@@ -55,7 +55,7 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 
 | Type | Supported |
 |------|-----------|
-| AI Models | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC), [AIHubMix](https://aihubmix.com/?aff=CfMq), Gemini, OpenAI-compatible providers, DeepSeek, Qwen, Claude, Ollama |
+| AI Models | [Anspire](https://open.anspire.cn/dsa?share_code=QFBC0FYC), [AIHubMix](https://aihubmix.com/?aff=CfMq), Gemini, OpenAI-compatible providers, DeepSeek, Qwen, Claude, Ollama |
 | Market Data | [TickFlow](https://tickflow.org/auth/register?ref=WDSGSPS5XC), AkShare, Tushare, Pytdx, Baostock, YFinance, Longbridge |
 | News Search | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC), [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX), [Tavily](https://tavily.com/), [Bocha](https://open.bocha.cn/), [Brave](https://brave.com/search/api/), [MiniMax](https://platform.minimaxi.com/), SearXNG |
 | Social Sentiment | [Stock Sentiment API](https://api.adanos.org/docs) for Reddit / X / Polymarket, US stocks only |
@@ -116,7 +116,7 @@ News search strongly improves sentiment, announcements, events, and catalyst qua
 
 | Secret Name | Description | Required |
 |-------------|-------------|:--------:|
-| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/), optimized for Chinese content and A-share analysis; the same key can also be used for Anspire LLM fallback examples | **Recommended** |
+| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://open.anspire.cn/dsa?share_code=QFBC0FYC): aggregates global sentiment and news, tuned for A-share / US / HK markets; the same key also powers the LLM service, and new users get a free quota equivalent to ¥30 | **Recommended** |
 | `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX), search-engine results for realtime financial news | **Recommended** |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/), general news search API | Optional |
 | `BOCHA_API_KEYS` | [Bocha](https://open.bocha.cn/), Chinese search with AI summaries | Optional |
@@ -188,17 +188,26 @@ python main.py --serve-only
 Analyzed 3 stocks | 🟢 Buy:0 🟡 Watch:2 🔴 Sell:1
 
 📊 Summary
-🟡 000657: Watch | Score 65 | Bullish
-🟡 600105: Watch | Score 48 | Range-bound
-🔴 300260: Sell | Score 35 | Bearish
+⚪ 000657: Watch | Score 65 | Bullish
+⚪ 600105: Watch | Score 48 | Range-bound
+🟡 300260: Sell | Score 35 | Bearish
+
+⚪ 000657
+📰 Key Info
+💭 Sentiment: Market focuses on its AI attributes and high growth; sentiment is positive but needs to digest short-term profit-taking and main-force outflow pressure.
+📊 Earnings outlook: Based on public sentiment, the company's 9-month 2025 earnings grew strongly YoY, with solid fundamentals supporting the price.
 
 🚨 Risk Alerts:
-Risk 1: Main-force funds showed notable outflow.
-Risk 2: Chip concentration suggests short-term resistance.
-
+Risk 1: On Feb 5, main-force funds net sold ¥363M; watch for short-term selling pressure.
+Risk 2: Chip concentration reached 35.15%, indicating dispersed chips and likely stronger upside resistance.
+Risk 3: Sentiment mentions the company's historical violations and restructuring-related risk warnings; keep monitoring.
 ✨ Positive Catalysts:
-Catalyst 1: AI-server supply-chain exposure remains a market focus.
-Catalyst 2: Recent earnings growth provides fundamental support.
+Catalyst 1: The company is positioned by the market as a core HDI supplier for AI servers, benefiting from AI industry growth.
+Catalyst 2: 9-month 2025 net profit (ex-non-recurring) surged 407.52% YoY, with strong earnings.
+📢 Latest: Public sentiment shows the company is a leader in AI PCB micro-drilling, deeply tied to top global PCB/substrate makers. On Feb 5, main-force funds net sold ¥363M; watch subsequent fund flows.
+
+---
+Generated at: 18:00
 ```
 
 ### Market Review
@@ -213,6 +222,10 @@ Catalyst 2: Recent earnings growth provides fundamental support.
 
 📈 Market Breadth
 Up: 3920 | Down: 1349 | Limit up: 155 | Limit down: 3
+
+🔥 Sector Performance
+Leading: Internet services, cultural media, minor metals
+Lagging: Insurance, aviation & airports, PV equipment
 ```
 
 ## ⚙️ Configuration
@@ -265,6 +278,15 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
     <td valign="top"><a href="https://github.com/ArcSeek-X/HermesX/issues">GitHub Issues</a> · <a href="https://github.com/ArcSeek-X/HermesX/discussions">Discussions</a></td>
   </tr>
 </table>
+
+## Donate
+
+If you find this project useful, you can buy the author a glass of juice :tropical_drink:
+
+<p>
+  <img src="../docs/assets/alipay.jpg" width="120" alt="Alipay donation QR code" style="display:inline-block;margin-right:20px;">
+  <img src="../docs/assets/wechat_pay.jpg" width="120" alt="WeChat Pay donation QR code" style="display:inline-block;">
+</p>
 
 ## 📄 License
 

@@ -55,7 +55,7 @@
 
 | 類型 | 支援 |
 |------|------|
-| AI 模型 | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC)、[AIHubMix](https://aihubmix.com/?aff=CfMq)、Gemini、OpenAI 兼容、DeepSeek、通義千問、Claude、Ollama 本地模型等 |
+| AI 模型 | [Anspire](https://open.anspire.cn/dsa?share_code=QFBC0FYC)、[AIHubMix](https://aihubmix.com/?aff=CfMq)、Gemini、OpenAI 兼容、DeepSeek、通義千問、Claude、Ollama 本地模型等 |
 | 行情數據 | [TickFlow](https://tickflow.org/auth/register?ref=WDSGSPS5XC)、AkShare、Tushare、Pytdx、Baostock、YFinance、Longbridge |
 | 新聞搜尋 | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC)、[SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX)、[Tavily](https://tavily.com/)、[Bocha](https://open.bocha.cn/)、[Brave](https://brave.com/search/api/)、[MiniMax](https://platform.minimaxi.com/)、SearXNG |
 | 社交輿情 | [Stock Sentiment API](https://api.adanos.org/docs)（Reddit / X / Polymarket，僅美股，可選） |
@@ -116,7 +116,7 @@
 
 | Secret 名稱 | 說明 | 必填 |
 |-------------|------|:----:|
-| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/)：中文內容特別優化，可增強 A 股分析效果；同一 Key 也可作為 Anspire 大模型網關兜底示例 | **推薦** |
+| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://open.anspire.cn/dsa?share_code=QFBC0FYC)：匯聚全球輿情資訊，適配 A 股、美股、港股等新聞和輿情檢索；同一 Key 可複用大模型服務，本項目新使用者提供免費 30 元等額的免費點數 | **推薦** |
 | `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX)：搜尋引擎結果補強，適合即時金融新聞 | **推薦** |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/)：通用新聞搜尋 API | 可選 |
 | `BOCHA_API_KEYS` | [博查搜尋](https://open.bocha.cn/)：中文搜尋優化，支援 AI 摘要 | 可選 |
@@ -188,17 +188,26 @@ python main.py --serve-only
 共分析3隻股票 | 🟢買入:0 🟡觀望:2 🔴賣出:1
 
 📊 分析結果摘要
-🟡 中鎢高新(000657): 觀望 | 評分 65 | 看多
-🟡 永鼎股份(600105): 觀望 | 評分 48 | 震盪
-🔴 新萊應材(300260): 賣出 | 評分 35 | 看空
+⚪ 中鎢高新(000657): 觀望 | 評分 65 | 看多
+⚪ 永鼎股份(600105): 觀望 | 評分 48 | 震盪
+🟡 新萊應材(300260): 賣出 | 評分 35 | 看空
+
+⚪ 中鎢高新 (000657)
+📰 重要資訊速覽
+💭 輿情情緒: 市場關注其 AI 屬性與業績高成長，情緒偏積極，但需消化短期獲利盤和主力流出壓力。
+📊 業績預期: 基於輿情資訊，公司 2025 年前三季度業績同比大幅增長，基本面強勁，為股價提供支撐。
 
 🚨 風險警報:
-風險點1：主力資金出現明顯流出，需警惕短期拋壓。
-風險點2：籌碼集中度偏高，拉升阻力可能較大。
-
+風險點1：2月5日主力資金大幅淨賣出 3.63 億元，需警惕短期拋壓。
+風險點2：籌碼集中度達 35.15%，表明籌碼分散，拉升阻力可能較大。
+風險點3：輿情中提及公司歷史違規記錄及重組相關風險提示，需保持關注。
 ✨ 利好催化:
-利好1：公司被市場定位為 AI 供應鏈核心標的。
-利好2：近期業績增長為股價提供基本面支撐。
+利好1：公司被市場定位為 AI 伺服器 HDI 核心供應商，受益於 AI 產業發展。
+利好2：2025 年前三季度扣非淨利潤同比暴漲 407.52%，業績表現強勁。
+📢 最新動態: 【最新消息】輿情顯示公司是 AI PCB 微鑽領域龍頭，深度綁定全球頭部 PCB/載板廠。2月5日主力資金淨賣出 3.63 億元，需關注後續資金流向。
+
+---
+生成時間: 18:00
 ```
 
 ### 大盤復盤
@@ -207,12 +216,16 @@ python main.py --serve-only
 🎯 2026-01-10 大盤復盤
 
 📊 主要指數
-- 上證指數: 3250.12 (+0.85%)
-- 深證成指: 10521.36 (+1.02%)
-- 創業板指: 2156.78 (+1.35%)
+- 上證指數: 3250.12 (🟢+0.85%)
+- 深證成指: 10521.36 (🟢+1.02%)
+- 創業板指: 2156.78 (🟢+1.35%)
 
 📈 市場概況
 上漲: 3920 | 下跌: 1349 | 漲停: 155 | 跌停: 3
+
+🔥 板塊表現
+領漲: 互聯網服務、文化傳媒、小金屬
+領跌: 保險、航空機場、光伏設備
 ```
 
 ## ⚙️ 配置說明
@@ -264,6 +277,15 @@ python main.py --webui-only
     <td valign="top"><a href="https://github.com/ArcSeek-X/HermesX/issues">提交 Issue</a></td>
   </tr>
 </table>
+
+## Donate
+
+如果您覺得這個專案有用，可以請作者喝杯果汁 :tropical_drink:
+
+<p>
+  <img src="../docs/assets/alipay.jpg" width="120" alt="支付寶收款二維碼" style="display:inline-block;margin-right:20px;">
+  <img src="../docs/assets/wechat_pay.jpg" width="120" alt="微信收款二維碼" style="display:inline-block;">
+</p>
 
 ## 📄 License
 
