@@ -1,7 +1,14 @@
+// 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+// 测试框架：beforeEach/describe/it/vi/expect
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 被测页面组件
 import StockScreeningPage from '../StockScreeningPage';
 
+// 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：
+// 把 AlphaSift 适配层 API 与路由跳转都替换成可控 mock。
+// 这里还额外维护 lastScreenResult，使 startScreenTask（提交任务）与
+// getScreenTask（轮询结果）能共享同一份选股结果，模拟真实「提交即出结果」的链路。
 const {
   enableAlphaSift,
   getAlphaSiftStatus,
@@ -16,6 +23,7 @@ const {
 } = vi.hoisted(() => {
   let lastScreenResult: unknown = null;
   const screenStocks = vi.fn();
+  // startScreenTask：调用 screenStocks 拿到结果写入 lastScreenResult，返回「任务已提交」响应
   const startScreenTask = vi.fn(async (payload: unknown) => {
     lastScreenResult = await screenStocks(payload);
     return {
@@ -28,6 +36,7 @@ const {
       maxResults: 3,
     };
   });
+  // getScreenTask：按 taskId 返回已完成任务，result 复用 lastScreenResult
   const getScreenTask = vi.fn(async (taskId: string) => {
     void taskId;
     return {
@@ -55,6 +64,7 @@ const {
   };
 });
 
+// mock 路由：保留真实实现，只把 useNavigate 换成可控 mock，便于断言跳转到分析页
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -63,6 +73,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// mock AlphaSift 适配层 API：把 alphasiftApi 各方法指向上面的 mock 函数
 vi.mock('../../api/alphasift', () => ({
   alphasiftApi: {
     enable: () => enableAlphaSift(),
@@ -76,6 +87,7 @@ vi.mock('../../api/alphasift', () => ({
   },
 }));
 
+// 策略列表的基准响应：仅含一个 dual_low（双低/价值）策略
 const mockStrategiesResponse = {
   enabled: true,
   strategies: [
@@ -93,6 +105,7 @@ const mockStrategiesResponse = {
   strategyCount: 1,
 };
 
+// 创建一个可手动控制完成时机的 Promise（deferred，含 resolve/reject），用于模拟异步请求乱序/延迟
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};
   let reject: (reason?: unknown) => void = () => {};
@@ -104,6 +117,9 @@ function createDeferred<T>() {
 }
 
 describe('StockScreeningPage', () => {
+  // 每个用例前：重置所有 mock、清空 sessionStorage，并设定默认响应——
+  // 策略列表、热点详情（含降级/stale 信息）、热点列表（空）。
+  // 注意这里用 mockReset 而非 mockClear，以确保 from 链（如 mockResolvedValueOnce）被清空。
   beforeEach(() => {
     enableAlphaSift.mockReset();
     getAlphaSiftStatus.mockReset();
@@ -145,7 +161,10 @@ describe('StockScreeningPage', () => {
     window.sessionStorage.clear();
   });
 
+  // 用例 1：配置已开启但可用性检查发现适配层不可用时，应重新同步「未开启」状态，
+  // 禁用运行按钮，并展示适配层不可用的错误（含 pip install 提示）
   it('re-syncs enabled state when AlphaSift availability check fails after config is enabled', async () => {
+    // 状态检查返回两次：先未启用（未安装）、再已启用但不可用
     getAlphaSiftStatus
       .mockResolvedValueOnce({
         enabled: false,
@@ -157,28 +176,35 @@ describe('StockScreeningPage', () => {
         available: false,
         installSpecIsDefault: true,
       });
+    // 点击「开启 AlphaSift」时启用调用失败
     enableAlphaSift.mockRejectedValueOnce(new Error('AlphaSift 适配层不可用。请执行 pip install -r requirements.txt'));
 
     render(<StockScreeningPage />);
 
+    // 断言：初始展示「选股未开启」，运行按钮禁用
     expect(await screen.findByText('选股未开启')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /运行选股/ })).toBeDisabled();
 
+    // 点击开启，状态检查应被调用 2 次；仍停留在「未开启」且运行按钮禁用
     fireEvent.click(screen.getByRole('button', { name: '开启 AlphaSift' }));
 
     await waitFor(() => expect(getAlphaSiftStatus).toHaveBeenCalledTimes(2));
     expect(screen.getByText('选股未开启')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /运行选股/ })).toBeDisabled();
+    // 断言：展示适配层不可用提示与原始错误信息
     expect(screen.getByText(/适配层当前不可用/)).toBeInTheDocument();
     expect(screen.getByText('AlphaSift 适配层不可用。请执行 pip install -r requirements.txt')).toBeInTheDocument();
   });
 
+  // 用例 2：按需加载热点题材——初始不请求详情，展开/刷新后请求列表，点击题材再请求详情；
+  // 并校验降级信息、发酵时间线、概念股及「分析」跳转
   it('loads AlphaSift hotspot themes on demand', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
       available: true,
       installSpecIsDefault: true,
     });
+    // 第一次列表（初始，空）+ 第二次列表（刷新后，含 AI算力）：验证 refresh 参数
     getHotspots
       .mockResolvedValueOnce({
         enabled: true,
@@ -212,15 +238,20 @@ describe('StockScreeningPage', () => {
     render(<StockScreeningPage />);
 
     expect(await screen.findByText('选股已开启')).toBeInTheDocument();
+    // 初始列表请求：provider=akshare、top=12、refresh=false
     await waitFor(() => expect(getHotspots).toHaveBeenCalledWith({ provider: 'akshare', top: 12, refresh: false }));
+    // 初始不应请求详情
     expect(getHotspotDetail).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /展开热点题材/ }));
     fireEvent.click(screen.getByRole('button', { name: /刷新热点题材/ }));
 
+    // 刷新后列表请求：refresh=true
     await waitFor(() => expect(getHotspots).toHaveBeenCalledWith({ provider: 'akshare', top: 12, refresh: true }));
     fireEvent.click(await screen.findByRole('button', { name: /AI算力/ }));
+    // 点击题材后请求详情：topic=AI算力、refresh=false
     await waitFor(() => expect(getHotspotDetail).toHaveBeenCalledWith({ topic: 'AI算力', provider: 'akshare', refresh: false }));
     await waitFor(() => expect(screen.getAllByText('AI算力').length).toBeGreaterThan(0));
+    // 校验详情面板：领先标签、龙头、覆盖股数、时间线、标准题材、降级质量、缺失字段、发酵路线、概念股
     expect(screen.getByText('强势领先')).toBeInTheDocument();
     expect(screen.getByText(/中际旭创、工业富联/)).toBeInTheDocument();
     expect(screen.getByText(/覆盖 8 股/)).toBeInTheDocument();
@@ -235,6 +266,7 @@ describe('StockScreeningPage', () => {
     expect(screen.getByText('中际旭创')).toBeInTheDocument();
     expect(screen.getByText(/来源 last_good_cache\.leader_stocks · 置信 65% · 回退/)).toBeInTheDocument();
 
+    // 点击「分析 中际旭创」应跳转到首页并携带待分析股票信息
     fireEvent.click(screen.getByRole('button', { name: '分析 中际旭创' }));
     expect(navigate).toHaveBeenCalledWith('/', {
       state: {
@@ -246,6 +278,7 @@ describe('StockScreeningPage', () => {
     });
   });
 
+  // 用例 3：初始加载时后端返回的英文「无缓存」提示，应被本地化为中文，且不展示原始英文
   it('localizes backend hotspot no-cache hint on initial load', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -263,10 +296,12 @@ describe('StockScreeningPage', () => {
 
     render(<StockScreeningPage />);
 
+    // 断言：展示中文提示，且不展示原始英文 message
     expect(await screen.findByText('暂无缓存热点题材，展开后可点击刷新拉取实时数据。')).toBeInTheDocument();
     expect(screen.queryByText(/No cached AlphaSift hotspot snapshot/)).not.toBeInTheDocument();
   });
 
+  // 用例 4：热点源连接失败时，应先展示用户可读的空消息，而非原始 sourceError 细节
   it('shows backend hotspot empty message before raw source diagnostics', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -289,6 +324,7 @@ describe('StockScreeningPage', () => {
     expect(screen.queryByText(/RemoteDisconnected/)).not.toBeInTheDocument();
   });
 
+  // 用例 5：详情应优先展示合并后的「发酵路线摘要（route）」，隐藏原始的「时间线（timeline）」原始文本
   it('prefers merged hotspot route summaries over raw timeline items', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -320,12 +356,14 @@ describe('StockScreeningPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /展开热点题材/ }));
     fireEvent.click(await screen.findByRole('button', { name: /AI算力/ }));
 
+    // 断言：route 摘要出现，raw timeline 文本被隐藏
     expect(await screen.findByText('route-summary')).toBeInTheDocument();
     expect(screen.getByText('compact route summary')).toBeInTheDocument();
     expect(screen.queryByText('raw-timeline')).not.toBeInTheDocument();
     expect(screen.queryByText('full raw timeline text should stay hidden')).not.toBeInTheDocument();
   });
 
+  // 用例 6：热点列表响应里若已预取 details，点击题材时应直接用预取数据，不再额外请求详情
   it('uses prefetched hotspot details from the hotspot list response', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -358,6 +396,7 @@ describe('StockScreeningPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /展开热点题材/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Moly/ }));
 
+    // 断言：预取的摘要与概念股出现，且没有发起独立的详情请求（用预取数据）
     expect(await screen.findByText('prefetched catalyst')).toBeInTheDocument();
     expect(screen.getByText('substitution drove the theme')).toBeInTheDocument();
     expect(screen.getByText('Moly Leader')).toBeInTheDocument();
@@ -410,6 +449,8 @@ describe('StockScreeningPage', () => {
     expect(getHotspotDetail).toHaveBeenCalledTimes(2);
   });
 
+  // 用例 7：在加载某一题材（AI算力）详情后，切换到另一个题材（机器人执行器）时，
+  // 应清空旧详情、显示加载中占位，待新详情返回后再展示，避免串台
   it('clears loaded hotspot detail while loading a different theme', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -437,6 +478,7 @@ describe('StockScreeningPage', () => {
       hotspotCount: 2,
     });
 
+    // AI算力详情立即返回；机器人执行器详情用 deferred 延后返回，便于观察加载占位
     const robotDetail = createDeferred<unknown>();
     getHotspotDetail
       .mockResolvedValueOnce({
@@ -464,16 +506,19 @@ describe('StockScreeningPage', () => {
     expect(await screen.findByText('盘中发酵')).toBeInTheDocument();
     expect(screen.getByText('中际旭创')).toBeInTheDocument();
 
+    // 点击切换到机器人执行器
     fireEvent.click(screen.getByRole('button', { name: /机器人执行器/ }));
 
     await waitFor(() =>
       expect(getHotspotDetail).toHaveBeenLastCalledWith({ topic: '机器人执行器', provider: 'akshare', refresh: false }),
     );
     expect(screen.getAllByText('机器人执行器').length).toBeGreaterThan(0);
+    // 断言：新详情加载中应展示占位，且旧 AI算力 详情已被清空
     expect(screen.getByText('正在读取发酵路线与概念股...')).toBeInTheDocument();
     expect(screen.queryByText('盘中发酵')).not.toBeInTheDocument();
     expect(screen.queryByText('中际旭创')).not.toBeInTheDocument();
 
+    // 机器人执行器详情返回后，应展示其路线与概念股
     await act(async () => {
       robotDetail.resolve({
         enabled: true,
@@ -491,6 +536,8 @@ describe('StockScreeningPage', () => {
     expect(screen.getByText('机器人龙头')).toBeInTheDocument();
   });
 
+  // 用例 8：切换题材后，旧的（AI算力）详情响应即使晚到也应被忽略，
+  // 页面只能展示当前已选题材（机器人执行器）的数据，避免陈旧响应串台
   it('ignores stale hotspot detail responses when switching themes', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -518,6 +565,7 @@ describe('StockScreeningPage', () => {
       hotspotCount: 2,
     });
 
+    // 两个详情都用 deferred 控制返回时机
     const aiDetail = createDeferred<unknown>();
     const robotDetail = createDeferred<unknown>();
     getHotspotDetail.mockImplementation(({ topic }: { topic: string }) => {
@@ -537,11 +585,13 @@ describe('StockScreeningPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /AI算力/ }));
     await waitFor(() => expect(getHotspotDetail).toHaveBeenCalledWith({ topic: 'AI算力', provider: 'akshare', refresh: false }));
 
+    // 切换到机器人执行器
     fireEvent.click(screen.getByRole('button', { name: /机器人执行器/ }));
 
     await waitFor(() =>
       expect(getHotspotDetail).toHaveBeenLastCalledWith({ topic: '机器人执行器', provider: 'akshare', refresh: false }),
     );
+    // 先 resolve 机器人执行器详情
     await act(async () => {
       robotDetail.resolve({
         enabled: true,
@@ -557,6 +607,7 @@ describe('StockScreeningPage', () => {
 
     expect(await screen.findByText('机器人发酵')).toBeInTheDocument();
 
+    // 再 resolve 旧的 AI算力 详情（晚到），应被忽略
     await act(async () => {
       aiDetail.resolve({
         enabled: true,
@@ -570,12 +621,14 @@ describe('StockScreeningPage', () => {
       });
     });
 
+    // 断言：仍展示机器人执行器，旧的 AI旧发酵/中际旭创 不应出现
     expect(screen.getByText('机器人发酵')).toBeInTheDocument();
     expect(screen.getByText('机器人龙头')).toBeInTheDocument();
     expect(screen.queryByText('AI旧发酵')).not.toBeInTheDocument();
     expect(screen.queryByText('中际旭创')).not.toBeInTheDocument();
   });
 
+  // 用例 9：刷新热点题材后，若同一题材仍在榜内，应重新拉取该题材详情并显示最新数据
   it('reloads selected hotspot detail when refreshed themes keep the same topic', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -646,15 +699,18 @@ describe('StockScreeningPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /AI算力/ }));
     await waitFor(() => expect(getHotspotDetail).toHaveBeenCalledTimes(1));
 
+    // 点击刷新热点题材：列表请求 refresh=true，且已选 AI算力 详情被重新拉取（refresh=true）
     fireEvent.click(screen.getByRole('button', { name: /刷新热点题材/ }));
 
     await waitFor(() => expect(getHotspots).toHaveBeenCalledWith({ provider: 'akshare', top: 12, refresh: true }));
     await waitFor(() => expect(getHotspotDetail).toHaveBeenCalledTimes(2));
     expect(getHotspotDetail).toHaveBeenLastCalledWith({ topic: 'AI算力', provider: 'akshare', refresh: true });
+    // 断言：展示刷新后的新热度（91）对应详情「刷新发酵」与「工业富联」
     expect(await screen.findByText('刷新发酵')).toBeInTheDocument();
     expect(screen.getByText('工业富联')).toBeInTheDocument();
   });
 
+  // 用例 10：手动刷新热点题材失败时，应保留已有的热点卡片，并展示错误，而非清空或白屏
   it('keeps existing hotspot cards when manual refresh fails', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -699,6 +755,7 @@ describe('StockScreeningPage', () => {
     expect(screen.queryByText(/点击刷新后会拉取热点概念/)).not.toBeInTheDocument();
   });
 
+  // 用例 11：当策略输入框填入非预设的策略 id 时，应回退显示为「自定义策略」，并照常提交选股
   it('shows input strategy when strategy is not in preset list', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -714,17 +771,20 @@ describe('StockScreeningPage', () => {
     render(<StockScreeningPage />);
 
     expect(await screen.findByText('选股已开启')).toBeInTheDocument();
+    // 在「策略参数」输入框填入非预设策略
     fireEvent.change(screen.getByLabelText('策略参数'), {
       target: { value: 'custom_strategy_alpha' },
     });
 
     expect(screen.getByDisplayValue('custom_strategy_alpha')).toBeInTheDocument();
 
+    // 运行选股：断言 screen 被调用一次，并展示「自定义策略（custom_strategy_alpha）」标签
     fireEvent.click(screen.getByRole('button', { name: /运行选股/ }));
     await waitFor(() => expect(screenStocks).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByText(/自定义策略 \(custom_strategy_alpha\)/)).toBeInTheDocument());
   });
 
+  // 用例 12：市场下拉应仅含 cn，且点击各策略按钮后选中的策略 id 正确（最终为 shrink_pullback）
   it('uses supported AlphaSift strategy ids and cn market', async () => {
     getStrategies.mockResolvedValueOnce({
       enabled: true,
@@ -774,6 +834,8 @@ describe('StockScreeningPage', () => {
     });
   });
 
+  // 用例 13：切换策略时，应先清空上一次选股结果（候选列表），回到「等待运行」状态，
+  // 并展示当前策略名 + 市场
   it('clears previous screening candidates when strategy changes', async () => {
     getStrategies.mockResolvedValueOnce({
       enabled: true,
@@ -818,6 +880,8 @@ describe('StockScreeningPage', () => {
     expect(screen.getByText('当前策略：资金热度 · A 股')).toBeInTheDocument();
   });
 
+  // 用例 14：运行选股后在 sessionStorage 记录进行中任务；页面卸载再挂载（remount）时，
+  // 应通过 getScreenTask 恢复任务进度，最终展示结果并清理 sessionStorage
   it('restores an in-flight screening task after remounting the page', async () => {
     getAlphaSiftStatus.mockResolvedValue({
       enabled: true,
@@ -874,17 +938,22 @@ describe('StockScreeningPage', () => {
     expect(await screen.findByText('选股已开启')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /运行选股/ }));
 
+    // 选股运行中，且进行中任务 id 已写入 sessionStorage（用于跨 remount 恢复）
     expect(await screen.findByText('选股运行中')).toBeInTheDocument();
     expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
 
+    // 卸载并重新挂载页面，模拟用户离开后返回
     firstRender.unmount();
     render(<StockScreeningPage />);
 
+    // 断言：从 sessionStorage 恢复出候选结果，完成后 sessionStorage 任务记录被清理
     expect(await screen.findByText('恢复后的候选')).toBeInTheDocument();
     expect(screen.getByText('选股完成')).toBeInTheDocument();
     expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toBeNull();
   });
 
+  // 用例 15：从 sessionStorage 恢复进行中任务后，若状态轮询超时（ECONNABORTED），
+  // 应保持任务可恢复、展示「轮询超时将自动重试」提示，且不展示底层连接错误原文
   it('keeps a restored screening task recoverable when status polling times out', async () => {
     getAlphaSiftStatus.mockResolvedValue({
       enabled: true,
@@ -911,6 +980,8 @@ describe('StockScreeningPage', () => {
     expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
   });
 
+  // 用例 16：LLM 重排失败降级时，应明确展示「LLM 已降级 / 未重排」提示与原因，
+  // 而非把 LLM 字段当作正常空值静默展示，且不暴露原始英文错误（Missing gemini_api_key）
   it('surfaces AlphaSift LLM fallback instead of showing empty LLM fields as normal', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -955,6 +1026,8 @@ describe('StockScreeningPage', () => {
     expect(screen.getAllByText('未返回（LLM 已降级）')).toHaveLength(2);
   });
 
+  // 用例 17：snapshot 降级 warning 与 sourceError 内容相同时，应去重只展示一次，
+  // 且本地化为中文「数据源降级：tushare（...）」，不展示原始英文错误
   it('deduplicates AlphaSift snapshot fallback warnings and source errors', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -990,6 +1063,8 @@ describe('StockScreeningPage', () => {
     expect(screen.queryByText(/trade_cal returned no open trading days/)).not.toBeInTheDocument();
   });
 
+  // 用例 18：超长的源诊断信息（含 URL/异常堆栈）应被净化并本地化，alert 容器限制宽度（max-w-full），
+  // 不展示 HTTPConnectionPool、URL、RemoteDisconnected 等原始细节
   it('sanitizes long AlphaSift source diagnostics and keeps the alert constrained', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -1030,6 +1105,8 @@ describe('StockScreeningPage', () => {
     expect(screen.queryByText(/RemoteDisconnected/)).not.toBeInTheDocument();
   });
 
+  // 用例 19：展示 DSA 增强结果——行情摘要、新闻、增强计数元数据；
+  // 当 DSA 新闻不可用时也应展示对应提示
   it('shows DSA enrichment summary, news, and enrichment metadata', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
@@ -1067,6 +1144,7 @@ describe('StockScreeningPage', () => {
     expect(await screen.findByText('选股已开启')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /运行选股/ }));
 
+    // 断言：增强计数「1 / 1」，且展示行情摘要、新闻列表、增强提示（含 stock_news_unavailable 警告）
     expect(await screen.findByText('DSA增强：1 / 1')).toBeInTheDocument();
 
     expect(screen.getByText('DSA 增强摘要')).toBeInTheDocument();

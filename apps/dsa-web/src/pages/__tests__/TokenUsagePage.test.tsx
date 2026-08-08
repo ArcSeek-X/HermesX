@@ -182,6 +182,7 @@ describe('TokenUsagePage', () => {
       recent_calls: [],
     });
 
+    // 根据请求参数中的 period 返回对应的 deferred promise，从而手动控制返回顺序
     get.mockImplementation((_url, config) => {
       const period = config?.params?.period;
       if (period === 'month') {
@@ -195,36 +196,43 @@ describe('TokenUsagePage', () => {
 
     renderPage();
 
+    // 首屏先发起 month 请求，等待其被调用
     await waitFor(() => {
       expect(get).toHaveBeenCalledWith('/api/v1/usage/dashboard', {
         params: { period: 'month', limit: 50 },
       });
     });
 
+    // 点击「今日」按钮，触发 today 请求
     fireEvent.click(screen.getByRole('button', { name: '今日' }));
 
+    // 断言：最近一次调用是 today 周期
     await waitFor(() => {
       expect(get).toHaveBeenLastCalledWith('/api/v1/usage/dashboard', {
         params: { period: 'today', limit: 50 },
       });
     });
 
+    // 先 resolve 后发的 today 请求，页面应展示 900
     await act(async () => {
       todayRequest.resolve({ data: todayResponse });
     });
 
     expect(await screen.findByText('900')).toBeInTheDocument();
 
+    // 再 resolve 先发的 month 请求；由于已切到 today，旧 month 数据不应覆盖最新数据
     await act(async () => {
       monthRequest.resolve({ data: dashboardResponse });
     });
 
+    // 断言：最终仍展示 900（today），且 400（month）不应出现
     await waitFor(() => {
       expect(screen.getByText('900')).toBeInTheDocument();
     });
     expect(screen.queryByText('400')).not.toBeInTheDocument();
   });
 
+  // 用例 4：切换周期应触发新的 dashboard 请求（以 today 为例）
   it('reloads dashboard when period changes', async () => {
     renderPage();
 

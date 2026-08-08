@@ -1,15 +1,26 @@
+// 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+// 使用 StrictMode 做严格模式渲染校验
 import { StrictMode } from 'react';
+// 路由：用 MemoryRouter / RouterProvider 做内存路由，避免真实浏览器历史
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
+// 测试框架：beforeAll（全局一次）/ beforeEach（每个用例前）/ describe/it/expect/vi
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// 解析后的 API 错误构造器，用于部分用例构造错误对象
 import { createParsedApiError } from '../../api/error';
+// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+// 历史 API（本文件 mock 其 getDetail）
 import { historyApi } from '../../api/history';
+// 聊天 store 的类型：消息与进度步骤
 import type { Message, ProgressStep } from '../../stores/agentChatStore';
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
+// 被测页面
 import ChatPage from '../ChatPage';
+// 从消息文本中解析股票代码的工具函数（部分用例做纯函数单测）
 import { extractStockCodeFromMessage, extractStockCodesFromMessage } from '../../utils/chatStockCode';
 
+// 创建一个可手动控制完成时机的 Promise（deferred，含 resolve/reject），用于模拟异步/乱序请求
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -20,6 +31,9 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+// 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：
+// 把 agent API、systemConfig API、聊天导出工具、股票索引数据都替换成可控 mock。
+// mockStockIndex 是一份标准股票索引，供 useStockIndex 的 mock 返回（用于代码解析/自选股逻辑）。
 const {
   mockGetSkills,
   mockGetStatus,
@@ -45,6 +59,7 @@ const {
   mockRemoveFromWatchlist: vi.fn(),
   mockDownloadSession: vi.fn(),
   mockFormatSessionAsMarkdown: vi.fn(),
+  // 标准股票索引：A股/美股/港股多市场，含别名（茅台）便于解析测试
   mockStockIndex: [
     { canonicalCode: '600519.SH', displayCode: '600519', nameZh: '贵州茅台', aliases: ['茅台'], market: 'CN', assetType: 'stock', active: true },
     { canonicalCode: '300750.SZ', displayCode: '300750', nameZh: '宁德时代', aliases: [], market: 'CN', assetType: 'stock', active: true },
@@ -53,6 +68,7 @@ const {
   ],
 }));
 
+// store 的动作方法 mock（与 mockStoreState 配合，控制聊天状态机的副作用）
 const mockLoadSessions = vi.fn();
 const mockLoadInitialSession = vi.fn();
 const mockSwitchSession = vi.fn();
@@ -61,6 +77,7 @@ const mockStopStream = vi.fn();
 const mockClearCompletionBadge = vi.fn();
 const mockStartNewChat = vi.fn();
 
+// 聊天 store 的可变状态对象：用例里直接修改它来驱动页面渲染（如 loading/消息列表/会话）
 const mockStoreState = {
   messages: [] as Message[],
   loading: false,
@@ -88,6 +105,7 @@ const mockStoreState = {
   clearCompletionBadge: mockClearCompletionBadge,
 };
 
+// mock agent API：把 agentApi 的技能/状态/删除会话/发送 方法指向对应 mock
 vi.mock('../../api/agent', () => ({
   agentApi: {
     getSkills: mockGetSkills,
@@ -97,6 +115,7 @@ vi.mock('../../api/agent', () => ({
   },
 }));
 
+// mock systemConfig API：把配置读取/更新/自选股读写 方法指向对应 mock
 vi.mock('../../api/systemConfig', () => ({
   systemConfigApi: {
     getConfig: mockGetSystemConfig,
@@ -107,17 +126,20 @@ vi.mock('../../api/systemConfig', () => ({
   },
 }));
 
+// mock 聊天导出工具：把下载/格式化为 Markdown 的方法指向对应 mock
 vi.mock('../../utils/chatExport', () => ({
   downloadSession: mockDownloadSession,
   formatSessionAsMarkdown: mockFormatSessionAsMarkdown,
 }));
 
+// mock 历史 API：getDetail 默认返回空对象（本页用不到详情拉取，仅避免真实请求）
 vi.mock('../../api/history', () => ({
   historyApi: {
     getDetail: vi.fn().mockResolvedValue({}),
   },
 }));
 
+// mock 股票索引 Hook：固定返回 mockStockIndex，避免真实索引加载
 vi.mock('../../hooks/useStockIndex', () => ({
   useStockIndex: () => ({
     index: mockStockIndex,
@@ -128,6 +150,8 @@ vi.mock('../../hooks/useStockIndex', () => ({
   }),
 }));
 
+// mock 聊天 store：useAgentChatStore 是一个接受 selector 的 hook，
+// 用外部 mockStoreState 作为状态源；getState 仅暴露 startNewChat
 vi.mock('../../stores/agentChatStore', () => {
   const useAgentChatStore = (
     selector?: (state: typeof mockStoreState) => unknown
@@ -140,6 +164,8 @@ vi.mock('../../stores/agentChatStore', () => {
   return { useAgentChatStore };
 });
 
+// 全局只执行一次：补齐 jsdom 缺失的浏览器 API（matchMedia / rAF / scrollIntoView），
+// 让组件在测试环境下能正常渲染与滚动
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -171,6 +197,7 @@ beforeAll(() => {
   });
 });
 
+// 每个用例前：清空 mock、重置 store 状态与默认响应（技能、状态、发送、自选、配置等）
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.removeItem(UI_LANGUAGE_STORAGE_KEY);
@@ -206,6 +233,7 @@ beforeEach(() => {
     errorCode: null,
     message: null,
   });
+  // startStream 默认立即回传「已受理」事件，模拟服务端接受请求
   mockStartStream.mockImplementation(async (_payload, meta) => {
     meta?.onAccepted?.({
       type: 'accepted',
@@ -217,6 +245,7 @@ beforeEach(() => {
   mockDeleteChatSession.mockResolvedValue(undefined);
   mockSendChat.mockResolvedValue({ success: true });
   mockGetWatchlist.mockResolvedValue([]);
+  // 系统配置：含一个开关项 AGENT_CONTEXT_COMPRESSION_ENABLED=false
   mockGetSystemConfig.mockResolvedValue({
     configVersion: 'cfg-v1',
     maskToken: 'mask-token',
@@ -229,6 +258,7 @@ beforeEach(() => {
       },
     ],
   });
+  // 配置更新成功响应
   mockUpdateSystemConfig.mockResolvedValue({
     success: true,
     configVersion: 'cfg-v2',
@@ -243,6 +273,7 @@ beforeEach(() => {
 });
 
 describe('ChatPage', () => {
+  // 用例 1：Codex 后端进行中时，应提供「停止分析」按钮，点击后调用 stopStream 一次，且发送按钮消失
   it('lets the user stop an active Codex analysis from the existing Chat composer', async () => {
     mockGetStatus.mockResolvedValueOnce({
       backend: 'codex_app_server',
@@ -261,10 +292,12 @@ describe('ChatPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '停止分析' }));
 
+    // 断言：停止被调用一次，且不应再出现「发送」按钮
     expect(mockStopStream).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: '发送' })).not.toBeInTheDocument();
   });
 
+  // 用例 2：LiteLLM 后端进行中时，应保持「处理中...」的等待态（禁用），且不应误提供「停止分析」按钮
   it('keeps the existing waiting state for LiteLLM without offering a false stop', async () => {
     mockStoreState.loading = true;
 
@@ -274,6 +307,7 @@ describe('ChatPage', () => {
       </MemoryRouter>,
     );
 
+    // 断言：显示禁用态「处理中...」，无「停止分析」按钮，stopStream 未被调用
     expect(await screen.findByRole('button', { name: '处理中...' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: '停止分析' })).not.toBeInTheDocument();
     expect(mockStopStream).not.toHaveBeenCalled();
@@ -2061,32 +2095,39 @@ describe('ChatPage', () => {
   });
 });
 
+// 分组：对 extractStockCodeFromMessage 纯函数做单测，覆盖各市场代码格式与误判防护
 describe('extractStockCodeFromMessage', () => {
+  // 用例：6 位 A 股数字代码（含 0 开头）应直接提取
   it('returns 6-digit A-share code', () => {
     expect(extractStockCodeFromMessage('分析 600519 趋势')).toBe('600519');
     expect(extractStockCodeFromMessage('002460')).toBe('002460');
   });
 
+  // 用例：hk 前缀的港股代码应规整为大写 HK 前缀
   it('returns HK prefixed code (normalized)', () => {
     expect(extractStockCodeFromMessage('分析 hk00700')).toBe('HK00700');
   });
 
+  // 用例：.HK 后缀代码应规整为 canonical 的 HK 前缀，并补齐前导 0
   it('returns .HK suffix code (normalized to canonical)', () => {
     expect(extractStockCodeFromMessage('00700.HK')).toBe('HK00700');
     expect(extractStockCodeFromMessage('1810.HK')).toBe('HK01810');
   });
 
+  // 用例：.SH/.SZ 后缀代码应规整为 6 位去掉后缀
   it('returns code with .SH/.SZ suffix (normalized)', () => {
     expect(extractStockCodeFromMessage('看 600519.SH')).toBe('600519');
     expect(extractStockCodeFromMessage('000001.SZ')).toBe('000001');
   });
 
+  // 用例：美股 ticker（含点号 BRK.B）应原样提取
   it('returns US ticker like AAPL', () => {
     expect(extractStockCodeFromMessage('分析 AAPL 走势')).toBe('AAPL');
     expect(extractStockCodeFromMessage('TSLA')).toBe('TSLA');
     expect(extractStockCodeFromMessage('分析 BRK.B')).toBe('BRK.B');
   });
 
+  // 用例：金融缩写（TTM/PE 等）不应被误判为股票代码
   it('does NOT return finance abbreviations as tickers', () => {
     expect(extractStockCodeFromMessage('如果不考虑 TTM 呢')).toBeNull();
     expect(extractStockCodeFromMessage('市盈率 TTM 怎么看')).toBeNull();
@@ -2160,6 +2201,7 @@ describe('extractStockCodeFromMessage', () => {
     expect(extractStockCodesFromMessage('比较 HK01810 和 AAPL')).toEqual(['HK01810', 'AAPL']);
   });
 
+  // 用例：多代码提取时，金融缩写（TTM/PE/MACD/RSI/KDJ）不应被当作代码；仅返回真实 ticker
   it('does not return denied abbreviations in multi-code extraction', () => {
     expect(extractStockCodesFromMessage('如果不考虑 TTM 和 PE')).toEqual([]);
     expect(extractStockCodesFromMessage('MACD AAPL 和 RSI')).toEqual(['AAPL']);
@@ -2167,7 +2209,11 @@ describe('extractStockCodeFromMessage', () => {
   });
 });
 
+// 分组：测试用户用「代码变体」（如 600519.SH、HK00700）输入时，
+// 自选股按钮应基于规整后的 canonical 代码判断「在/不在自选」，展示「从自选删除」或「加自选」
 describe('watchlist button with code variants', () => {
+  // 用例：自选含 canonical 码 600519/HK01810，用户输入变体 600519.SH 时，
+  // 应识别出已自选并展示「从自选删除」
   it('shows "从自选删除" when canonical code is in watchlist and user inputs variant', async () => {
     mockGetWatchlist.mockResolvedValue(['600519', 'HK01810']);
 
@@ -2184,6 +2230,7 @@ describe('watchlist button with code variants', () => {
     expect(await screen.findByText('从自选删除')).toBeInTheDocument();
   });
 
+  // 用例：港股变体代码（hk00700 等）也应基于 canonical（HK00700）匹配自选，展示「从自选删除」
   it('shows "从自选删除" for HK variant codes', async () => {
     mockGetWatchlist.mockResolvedValue(['HK01810']);
 

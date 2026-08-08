@@ -1,13 +1,25 @@
+// 仅类型导入 React（用于 recharts mock 的节点类型标注）
 import type React from 'react';
+// 测试库：within 用于在某个 DOM 子树内查询
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 决策信号 API（持仓页展示信号）
 import { decisionSignalsApi } from '../../api/decisionSignals';
+// 错误构造器（createApiError / createParsedApiError 用于构造 API 错误）
 import { createApiError, createParsedApiError } from '../../api/error';
+// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+// 决策信号项类型
 import type { DecisionSignalItem } from '../../types/decisionSignals';
+// 语言存储键
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
+// 被测页面
 import PortfolioPage from '../PortfolioPage';
 
+// 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：
+// 把决策信号 API（list/getLatest）与组合 API 的全部方法替换成可控 mock，
+// 组合 API 覆盖账户、快照、风险、汇率刷新、交易/现金/公司行动 CRUD、CSV 导入、持仓分析等
 const {
   getAccounts,
   getSnapshot,
@@ -54,6 +66,7 @@ const {
   getLatestDecisionSignals: vi.fn(),
 }));
 
+// mock 决策信号 API：list / getLatest 指向对应 mock
 vi.mock('../../api/decisionSignals', () => ({
   decisionSignalsApi: {
     list: listDecisionSignals,
@@ -61,6 +74,7 @@ vi.mock('../../api/decisionSignals', () => ({
   },
 }));
 
+// mock 组合 API：把 portfolioApi 各方法指向上面的 mock 函数
 vi.mock('../../api/portfolio', () => ({
   portfolioApi: {
     getAccounts,
@@ -85,6 +99,7 @@ vi.mock('../../api/portfolio', () => ({
   },
 }));
 
+// mock recharts：用轻量占位组件替换饼图，避免 jsdom 计算尺寸
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   PieChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -94,6 +109,7 @@ vi.mock('recharts', () => ({
   Cell: () => null,
 }));
 
+// 账户项简化类型（用于构造测试账户）
 type AccountItem = {
   id: number;
   name: string;
@@ -101,6 +117,7 @@ type AccountItem = {
   baseCurrency?: string;
 };
 
+// 由简化账户项批量构造完整账户响应（默认市场 us、基础货币 CNY、Demo 券商）
 function makeAccounts(items: AccountItem[] = [{ id: 1, name: 'Main' }]) {
   return {
     accounts: items.map((item) => ({
@@ -117,6 +134,7 @@ function makeAccounts(items: AccountItem[] = [{ id: 1, name: 'Main' }]) {
   };
 }
 
+// 构造持仓快照响应：根据传入选项生成账户快照（持仓、现金、汇总等），用于各种视图用例
 function makeSnapshot(options: {
   accountId?: number;
   fxStale?: boolean;
@@ -165,6 +183,7 @@ function makeSnapshot(options: {
   };
 }
 
+// 构造单条持仓响应：基准为茅台（600519），含成本价/市值/盈亏等，支持 overrides 覆盖
 function makePosition(overrides: Record<string, unknown> = {}) {
   return {
     symbol: '600519',
@@ -186,6 +205,7 @@ function makePosition(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// 构造风险响应：含集中度、行业集中度、回撤、止损、决策信号风险等，支持 overrides 覆盖
 function makeRisk(overrides: Record<string, unknown> = {}) {
   return {
     asOf: '2026-03-19',
@@ -230,6 +250,7 @@ function makeRisk(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// 构造决策信号项：基准为茅台（600519）持仓触发的「持有」信号，支持 overrides 覆盖
 function makeDecisionSignal(overrides: Partial<DecisionSignalItem> = {}): DecisionSignalItem {
   return {
     id: 100,
@@ -267,6 +288,7 @@ function makeDecisionSignal(overrides: Partial<DecisionSignalItem> = {}): Decisi
   };
 }
 
+// 创建一个可手动控制完成时机的 Promise（含 resolve/reject），用于模拟异步/乱序请求
 function deferredPromise<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -277,6 +299,7 @@ function deferredPromise<T>() {
   return { promise, resolve, reject };
 }
 
+// 等待初始加载完成：断言账户/快照/风险/交易四项接口各被调用一次
 async function waitForInitialLoad() {
   await waitFor(() => expect(getAccounts).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
@@ -285,6 +308,7 @@ async function waitForInitialLoad() {
 }
 
 describe('PortfolioPage FX refresh', () => {
+  // 每个用例前：清空 mock 与 localStorage，设定账户/快照/风险/交易/信号/公司行动等默认响应
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
@@ -474,6 +498,8 @@ describe('PortfolioPage FX refresh', () => {
     expect(screen.getByText('信号风险暂不可用')).toBeInTheDocument();
   });
 
+  // 用例：选中单个账户后点击汇率刷新，只针对该账户刷新 FX，
+  // 且仅重载快照/风险（不重载账户列表/交易），并且 fxStale 应由 true 变为 false
   it('refreshes FX for a single selected account and only reloads snapshot/risk', async () => {
     getSnapshot
       .mockResolvedValueOnce(makeSnapshot({ fxStale: true }))
@@ -681,6 +707,7 @@ describe('PortfolioPage FX refresh', () => {
     });
   });
 
+  // 用例：切换账户 scope 后，旧的持仓信号响应若晚到应被丢弃，避免显示错误账户的持仓信号
   it('drops late holding-signal responses after switching account scope', async () => {
     getAccounts.mockResolvedValueOnce(makeAccounts([
       { id: 1, name: 'Main' },
@@ -847,6 +874,8 @@ describe('PortfolioPage FX refresh', () => {
     expect(maxInFlight).toBeLessThanOrEqual(6);
   });
 
+  // 用例：为持仓提交手动分析时，UI 调用不应泄露组合明细，
+  // 仅以股票代码/市场等必要参数发起分析
   it('submits manual analysis for a held position without exposing portfolio details in the UI call', async () => {
     getSnapshot.mockResolvedValueOnce(makeSnapshot({ fxStale: true, positions: [
       { symbol: 'HK00700', market: 'hk', currency: 'HKD', quantity: 10, avgCost: 400, totalCost: 4000, lastPrice: 420, marketValueBase: 4200, unrealizedPnlBase: 200, unrealizedPnlPct: 5, valuationCurrency: 'HKD', priceSource: 'history_close', priceDate: '2026-03-18', priceStale: true, priceAvailable: true },
@@ -985,6 +1014,8 @@ describe('PortfolioPage FX refresh', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '刷新汇率' })).not.toBeDisabled());
   });
 
+  // 用例：为一个账户（scope=A）发起 FX 刷新后切换到另一账户（scope=B），
+  // A 的刷新结果若晚到应被丢弃，页面只展示 B 的当前状态
   it('drops late FX refresh results after switching to another account scope', async () => {
     getAccounts.mockResolvedValueOnce(makeAccounts([{ id: 1, name: 'Main' }, { id: 2, name: 'Alt' }]));
     getSnapshot.mockImplementation(async ({ accountId }: { accountId?: number } = {}) => {

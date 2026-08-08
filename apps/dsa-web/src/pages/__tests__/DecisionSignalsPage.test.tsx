@@ -1,13 +1,21 @@
+// 仅类型导入 React（用于 recharts mock 的节点类型标注）
 import type React from 'react';
+// 测试库：within 用于在某个 DOM 子树内查询
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 决策信号 API 与「重评估被阻断」错误构造器
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
 } from '../../api/decisionSignals';
+// 历史 API（本页 mock 其 K 线列表）
 import { historyApi } from '../../api/history';
+// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+// 分析相关类型
 import type { StockBarResponse } from '../../types/analysis';
+// 决策信号相关类型
 import type {
   DecisionSignalFeedbackItem,
   DecisionSignalItem,
@@ -16,9 +24,12 @@ import type {
   DecisionSignalOutcomeStatsResponse,
   DecisionSignalReassessResponse,
 } from '../../types/decisionSignals';
+// 股票索引项类型
 import type { StockIndexItem } from '../../types/stockIndex';
+// 被测页面
 import DecisionSignalsPage from '../DecisionSignalsPage';
 
+// 股票索引的运行时状态（被 useStockIndex 的 mock 返回），用例间可被重新赋值
 let stockIndexState: {
   index: StockIndexItem[];
   loading: boolean;
@@ -27,6 +38,7 @@ let stockIndexState: {
   loaded: boolean;
 };
 
+// mock 决策信号 API：把 decisionSignalsApi 各方法与「重评估阻断错误」构造器指向 mock
 vi.mock('../../api/decisionSignals', () => ({
   getDecisionSignalReassessBlockedError: vi.fn(),
   decisionSignalsApi: {
@@ -41,16 +53,20 @@ vi.mock('../../api/decisionSignals', () => ({
   },
 }));
 
+// mock 历史 API：getStockBarList 默认空实现（避免真实 K 线请求）
 vi.mock('../../api/history', () => ({
   historyApi: {
     getStockBarList: vi.fn(),
   },
 }));
 
+// mock 股票索引 Hook：返回外部可变的 stockIndexState
 vi.mock('../../hooks/useStockIndex', () => ({
   useStockIndex: () => stockIndexState,
 }));
 
+// mock recharts：用轻量占位组件替换图表，避免 jsdom 计算尺寸；
+// Scatter 专门渲染成可点击的按钮（data-testid=timeline-click-<id>），便于测试时间线点击行为
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ScatterChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -116,6 +132,7 @@ const signal: DecisionSignalItem = {
   metadata: { source: 'test' },
 };
 
+// 股票索引对照表：A股/美股/港股各一只，含拼音与别名，用于代码解析与搜索测试
 const stockIndexItems: StockIndexItem[] = [
   {
     canonicalCode: '600519.SH',
@@ -149,6 +166,7 @@ const stockIndexItems: StockIndexItem[] = [
   },
 ];
 
+// K 线柱状列表的基准响应（用于点击信号后展示支撑/压力）
 const stockBarResponse: StockBarResponse = {
   total: 1,
   items: [
@@ -161,6 +179,7 @@ const stockBarResponse: StockBarResponse = {
   ],
 };
 
+// 基于基准 signal 生成自定义信号：传入 overrides 覆盖任意字段，避免重复造数据
 function makeSignal(overrides: Partial<DecisionSignalItem> = {}): DecisionSignalItem {
   return {
     ...signal,
@@ -168,6 +187,7 @@ function makeSignal(overrides: Partial<DecisionSignalItem> = {}): DecisionSignal
   };
 }
 
+// 将 signal.createdAt 按中文格式预格式化为「月/日 时:分」，用于断言创建时间展示
 const formattedCreatedAt = new Intl.DateTimeFormat('zh-CN', {
   month: '2-digit',
   day: '2-digit',
@@ -175,6 +195,7 @@ const formattedCreatedAt = new Intl.DateTimeFormat('zh-CN', {
   minute: '2-digit',
 }).format(new Date('2026-06-17T09:30:00Z'));
 
+// 构造信号列表响应：默认返回 [signal]，支持自定义 items 与 total（用于分页/空态）
 function listResponse(items: DecisionSignalItem[] = [signal], total = items.length): DecisionSignalListResponse {
   return {
     items,
@@ -184,6 +205,7 @@ function listResponse(items: DecisionSignalItem[] = [signal], total = items.leng
   };
 }
 
+// 结果统计的基准响应：含命中/未中/无法评估、命中率、缺失原因、按决策画像的校准明细
 const outcomeStats: DecisionSignalOutcomeStatsResponse = {
   engineVersion: 'decision-signal-v1',
   horizons: null,
@@ -242,6 +264,7 @@ const outcomeStats: DecisionSignalOutcomeStatsResponse = {
   },
 };
 
+// 结果明细列表的基准响应：一条命中（hit）结果，含锚点价、窗口、涨跌等
 const outcomeList: DecisionSignalOutcomeListResponse = {
   items: [
     {
@@ -270,6 +293,7 @@ const outcomeList: DecisionSignalOutcomeListResponse = {
   pageSize: 100,
 };
 
+// 空反馈项：signalId=7，无反馈值/原因/备注
 const emptyFeedback: DecisionSignalFeedbackItem = {
   signalId: 7,
   feedbackValue: null,
@@ -278,6 +302,7 @@ const emptyFeedback: DecisionSignalFeedbackItem = {
   source: null,
 };
 
+// 重评估响应的基准结构：包含预览动作与评分拆解、护栏结果、校准等级等
 const reassessResponse: DecisionSignalReassessResponse = {
   preview: {
     action: 'watch',
@@ -374,6 +399,7 @@ function renderPage() {
   );
 }
 
+// 创建一个可手动控制完成时机的 Promise（无 reject），用于模拟单条异步请求
 function deferredPromise<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((res) => {
@@ -382,12 +408,14 @@ function deferredPromise<T>() {
   return { promise, resolve };
 }
 
+// 在「当前股票」输入框填入代码并点击「查看股票」的快捷操作
 function submitCurrentStock(value: string) {
   const input = screen.getByLabelText('当前股票');
   fireEvent.change(input, { target: { value } });
   fireEvent.click(screen.getByRole('button', { name: '查看股票' }));
 }
 
+// 走完「打开首个信号详情 -> 生成重评估预览 -> 两次确认保存」的快捷流程
 async function persistReassessFromFirstSignal() {
   await screen.findByText('贵州茅台');
   fireEvent.click(screen.getAllByRole('button', { name: '查看 贵州茅台 AI 建议详情' })[0]);
@@ -397,6 +425,8 @@ async function persistReassessFromFirstSignal() {
   fireEvent.click(confirmButtons[confirmButtons.length - 1]);
 }
 
+// 每个用例前：重置路由与 localStorage（默认中文）、清空 mock、重置股票索引，
+// 并设定各 API 的默认返回——K线、列表、最新、统计、结果、反馈、更新状态、重评估等
 beforeEach(() => {
   window.history.pushState({}, '', '/');
   window.localStorage.clear();
@@ -426,17 +456,21 @@ beforeEach(() => {
 });
 
 describe('DecisionSignalsPage', () => {
+  // 用例 1：默认进入应加载「active」状态信号，并展示统计卡（命中率 50%）、信号卡片、创建时间，
+  // 且统计口径说明文案出现（全局已复盘，不等于当前可见信号）
   it('loads active signals by default', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'AI 建议' })).toBeInTheDocument();
     await waitFor(() => {
+      // 断言：list 以 status=active、分页 1/20 被调用
       expect(decisionSignalsApi.list).toHaveBeenCalledWith(expect.objectContaining({
         status: 'active',
         page: 1,
         pageSize: 20,
       }));
     });
+    // 断言：茅台卡片、统计卡、命中率、详情按钮、风险摘要、创建时间、决策风格表现标题均出现
     expect(screen.getByText('贵州茅台')).toBeInTheDocument();
     expect(await screen.findByText('信号表现统计')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
@@ -582,6 +616,8 @@ describe('DecisionSignalsPage', () => {
     });
   });
 
+  // 用例：从选中的信号源报告（sourceReportId=3001）发起重评估预览，
+  // 不应触发 list 列表查询；并展示护栏拦截（actionable_signal_blocked_by_guardrail / buy -> watch）
   it('reassesses from the selected signal source report without triggering list lookup', async () => {
     renderPage();
     await screen.findByText('贵州茅台');
@@ -593,13 +629,16 @@ describe('DecisionSignalsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '生成预览' }));
 
     await waitFor(() => {
+      // 断言：reassess 以 sourceReportId/decisionProfile/persist=false 被调用
       expect(decisionSignalsApi.reassess).toHaveBeenCalledWith({
         sourceReportId: 3001,
         decisionProfile: 'balanced',
         persist: false,
       });
     });
+    // 断言：重评估预览阶段不应额外查询 list
     expect(decisionSignalsApi.list).not.toHaveBeenCalled();
+    // 断言：展示护栏拦截文案与动作变化（buy -> watch、被护栏拦截）
     expect(await screen.findByText('actionable_signal_blocked_by_guardrail')).toBeInTheDocument();
     expect(screen.getByText('buy -> watch')).toBeInTheDocument();
     expect(screen.getByText('action_blocked_by_guardrail')).toBeInTheDocument();
@@ -997,6 +1036,8 @@ describe('DecisionSignalsPage', () => {
     expect(decisionSignalsApi.reassess).not.toHaveBeenCalled();
   });
 
+  // 用例：为第一个信号（茅台）发起重评估后，切换到另一个信号（平安银行），
+  // 旧的（茅台）重评估响应即使晚到也应被忽略，页面只展示当前信号的状态
   it('ignores stale reassess responses after switching the selected signal', async () => {
     const nextSignal = makeSignal({
       id: 8,
@@ -1180,6 +1221,8 @@ describe('DecisionSignalsPage', () => {
     expect(screen.getByRole('heading', { name: 'AI 建议' })).toBeInTheDocument();
   });
 
+  // 用例：历史候选应采用「市场感知」的 key 去重——同一代码不同市场（600519 CN vs HK）应各保留一条，
+  // 而市场未知（null）的同代码（AAPL）两条应回退为按股票代码去重为一条
   it('deduplicates history candidates with market-aware keys and falls back to stock code without market', async () => {
     vi.mocked(historyApi.getStockBarList).mockResolvedValueOnce({
       total: 4,
@@ -1193,6 +1236,7 @@ describe('DecisionSignalsPage', () => {
     renderPage();
 
     expect(await screen.findByText('最近分析')).toBeInTheDocument();
+    // 过滤出包含 600519 / AAPL 的候选按钮
     const candidateButtons = screen.getAllByRole('button').filter((button) => (
       button.textContent?.includes('600519') || button.textContent?.includes('AAPL')
     ));

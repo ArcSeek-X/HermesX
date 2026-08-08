@@ -1,10 +1,19 @@
+// 仅类型导入 React（用于 components mock 的节点类型标注）
 import type React from 'react';
+// 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Web 构建信息解析工具
 import { resolveWebBuildInfo } from '../../utils/constants';
+// 系统配置设置状态响应类型
 import type { SetupStatusResponse } from '../../types/systemConfig';
+// 被测页面
 import SettingsPage from '../SettingsPage';
 
+// 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：
+// 覆盖分析 API、系统配置 API、AlphaSift API、桌面端更新 API、设置 store 动作、hooks（useAuth/useSystemConfig）、
+// 以及一个固定的 web 构建信息（webBuildInfoMock）。
 const {
   analyzeAsync,
   exportEnv,
@@ -66,6 +75,7 @@ const {
   settingsPanelErrorBoundary: vi.fn(),
   useAuthMock: vi.fn(),
   useSystemConfigMock: vi.fn(),
+  // 固定的 Web 构建信息，供 WEB_BUILD_INFO 注入，避免依赖真实构建产物
   webBuildInfoMock: {
     version: '3.11.0',
     rawVersion: '3.11.0',
@@ -76,13 +86,16 @@ const {
   },
 }));
 
+// 记录锚点点击行为（用于断言「下载/打开链接」等通过 a 标签触发的动作）
 const mockedAnchorClick = vi.fn();
 
+// mock 自定义 hooks：useAuth / useSystemConfig 替换为可注入的 mock
 vi.mock('../../hooks', () => ({
   useAuth: () => useAuthMock(),
   useSystemConfig: () => useSystemConfigMock(),
 }));
 
+// mock 系统配置 API：把导出/导入环境变量、调度状态、设置状态、调度立即运行、更新 方法指向对应 mock
 vi.mock('../../api/systemConfig', () => ({
   systemConfigApi: {
     exportEnv: (...args: unknown[]) => exportEnv(...args),
@@ -94,12 +107,14 @@ vi.mock('../../api/systemConfig', () => ({
   },
 }));
 
+// mock 分析 API：analyzeAsync 指向对应 mock
 vi.mock('../../api/analysis', () => ({
   analysisApi: {
     analyzeAsync: (...args: unknown[]) => analyzeAsync(...args),
   },
 }));
 
+// mock AlphaSift API：enable/install 与两个配置变更通知指向对应 mock
 vi.mock('../../api/alphasift', () => ({
   alphasiftApi: {
     enable: (...args: unknown[]) => alphasiftEnable(...args),
@@ -109,14 +124,19 @@ vi.mock('../../api/alphasift', () => ({
   notifySystemConfigChanged: (...args: unknown[]) => notifySystemConfigChanged(...args),
 }));
 
+// mock constants：保留真实导出，只把 WEB_BUILD_INFO 替换为固定测试构建信息
 vi.mock('../../utils/constants', async () => {
   const actual = await vi.importActual<typeof import('../../utils/constants')>('../../utils/constants');
   return {
     ...actual,
     WEB_BUILD_INFO: webBuildInfoMock,
   };
-});
+}));
 
+// mock 设置相关组件：用轻量占位组件替换真实卡片/编辑器，
+// 让测试聚焦设置页的编排逻辑而非子组件细节。
+// 其中 LLMChannelEditor 提供「emit llm draft / save llm channels」按钮供驱动草稿与保存；
+// IntelligentImport 提供合并股票列表的回调；GenerationBackendStatusPanel 展示状态项。
 vi.mock('../../components/settings', () => ({
   AuthSettingsCard: () => <div>认证与登录保护</div>,
   ChangePasswordCard: () => <div>修改密码</div>,
@@ -287,6 +307,7 @@ vi.mock('../../components/settings', () => ({
   ),
 }));
 
+// 构造桌面端运行时对象：把桌面更新相关方法指向 mock，支持 overrides 覆盖（用于桌面更新用例）
 function createDesktopRuntime(overrides: Record<string, unknown> = {}) {
   return {
     version: '3.12.0',
@@ -299,6 +320,7 @@ function createDesktopRuntime(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// 基础分类列表：系统/基础/AI/通知/Agent 五个设置分类，供 useSystemConfigMock 返回
 const baseCategories = [
   { category: 'system', title: 'System', description: '系统设置', displayOrder: 1, fields: [] },
   { category: 'base', title: 'Base', description: '基础配置', displayOrder: 2, fields: [] },
@@ -334,8 +356,13 @@ type ConfigState = {
   maskToken: string;
 };
 
+// 设置状态的局部覆盖类型
 type ConfigOverride = Partial<ConfigState>;
 
+// 构造默认系统配置状态：覆盖五个分类各一个代表字段——
+// system.ADMIN_AUTH_ENABLED（开关）、base.STOCK_LIST（股票列表）、ai_model.LLM_CHANNELS（通道）、
+// agent.AGENT_ORCHESTRATOR_TIMEOUT_S（超时秒）、notification.WECHAT_WEBHOOK_URL（敏感 webhook），
+// 用于驱动设置页渲染与保存流程。支持 overrides 覆盖整体状态。
 function buildSystemConfigState(overrides: ConfigOverride = {}) {
   return {
     categories: baseCategories,
@@ -467,6 +494,7 @@ function buildSystemConfigState(overrides: ConfigOverride = {}) {
   };
 }
 
+// 构造 agent 分类下的单个配置项（用于动态扩展 agent 字段）
 function buildAgentItem(
   key: string,
   value: string,
@@ -493,6 +521,7 @@ function buildAgentItem(
   };
 }
 
+// 创建一个可手动控制完成时机的 Promise（含 resolve/reject），用于模拟异步/乱序请求
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -504,9 +533,12 @@ function createDeferred<T>() {
 }
 
 describe('SettingsPage', () => {
+  // 每个用例前：恢复并清空所有 mock、重置 Web 构建信息，并设定默认响应——
+  // 配置 load、导出环境、调度状态、设置状态（各 check 通过）、分析、立即运行调度、导入环境、更新配置等
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    // 重置 Web 构建信息为固定测试值
     Object.assign(webBuildInfoMock, {
       version: '3.11.0',
       rawVersion: '3.11.0',
@@ -530,6 +562,7 @@ describe('SettingsPage', () => {
       lastSuccessAt: null,
       lastError: null,
     });
+    // 设置状态：自选股/模型渠道已配置、通知可选，整体已完成且可冒烟
     getSetupStatus.mockResolvedValue({
       isComplete: true,
       readyForSmoke: true,
@@ -609,19 +642,25 @@ describe('SettingsPage', () => {
     });
     desktopInstallDownloadedUpdate.mockResolvedValue(true);
     desktopOpenReleasePage.mockResolvedValue(true);
+    // 桌面更新状态变更监听：返回空清理函数
     desktopOnUpdateStateChange.mockImplementation(() => () => undefined);
+    // 默认 useAuth：认证已开启、可改密码
     useAuthMock.mockReturnValue({
       authEnabled: true,
       passwordChangeable: true,
       refreshStatus,
     });
+    // 默认 useSystemConfig：返回默认配置状态
     useSystemConfigMock.mockReturnValue(buildSystemConfigState());
+    // 确保无桌面运行时（走 Web 路径）
     delete (window as { dsaDesktop?: unknown }).dsaDesktop;
+    // spy URL.createObjectURL / revokeObjectURL 与 a 标签 click（用于下载/打开链接断言）
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(mockedAnchorClick);
   });
 
+  // 用例 1：应渲染分类导航与认证设置模块（认证/修改密码），并触发配置 load
   it('renders category navigation and auth settings modules', async () => {
     render(<SettingsPage />);
 
@@ -631,6 +670,8 @@ describe('SettingsPage', () => {
     expect(load).toHaveBeenCalled();
   });
 
+  // 用例 2：首次启动检查卡片应展示各 check 状态，且「配置模型/维护自选股/配置通知」按钮
+  // 应分别切换到对应分类（ai_model/base/notification）
   it('renders first-run setup checks and routes setup actions', async () => {
     useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'base' }));
 
@@ -639,8 +680,10 @@ describe('SettingsPage', () => {
     expect(await screen.findByTestId('first-run-setup-card')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '首次启动配置检查' })).toBeInTheDocument();
     expect(screen.getByText('自选股')).toBeInTheDocument();
+    // 两个必需项（自选股、模型渠道）都显示「已配置」
     expect(screen.getAllByText('已配置')).toHaveLength(2);
 
+    // 点击三个路由按钮，断言分类切换顺序
     fireEvent.click(screen.getByRole('button', { name: '配置模型' }));
     fireEvent.click(screen.getByRole('button', { name: '维护自选股' }));
     fireEvent.click(screen.getByRole('button', { name: '配置通知' }));
@@ -650,6 +693,7 @@ describe('SettingsPage', () => {
     expect(setActiveCategory).toHaveBeenNthCalledWith(3, 'notification');
   });
 
+  // 用例 3：首次启动状态「加载中」时，摘要应保持中性（不展示就绪/缺失结论）
   it('keeps first-run setup summary neutral while setup status is loading', async () => {
     getSetupStatus.mockImplementation(() => new Promise(() => undefined));
     useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'base' }));
@@ -658,11 +702,13 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByText('正在检查首次启动配置')).toBeInTheDocument();
     expect(screen.getByText('正在读取配置状态，完成后会显示缺失项和试跑入口。')).toBeInTheDocument();
+    // 各种结论性文案不应出现
     expect(screen.queryByText('基础配置已满足最小可用分析')).not.toBeInTheDocument();
     expect(screen.queryByText('还有基础配置需要处理')).not.toBeInTheDocument();
     expect(screen.queryByText('所有必需项已就绪，可运行一次简短分析验证链路。')).not.toBeInTheDocument();
   });
 
+  // 用例 4：首次启动状态读取失败时，摘要应保持中性并展示错误提示，不展示结论性文案
   it('keeps first-run setup summary neutral when setup status fails', async () => {
     getSetupStatus.mockRejectedValue(new Error('setup status unavailable'));
     useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'base' }));
@@ -676,6 +722,8 @@ describe('SettingsPage', () => {
     expect(screen.queryByText('所有必需项已就绪，可运行一次简短分析验证链路。')).not.toBeInTheDocument();
   });
 
+  // 用例 5：刷新首次启动状态时，若请求乱序返回，应展示最新状态（latestStatus），
+  // 旧的（stale）响应不应覆盖当前状态
   it('keeps the latest first-run setup status when refresh responses resolve out of order', async () => {
     const staleRefresh = createDeferred<SetupStatusResponse>();
     const latestRefresh = createDeferred<SetupStatusResponse>();

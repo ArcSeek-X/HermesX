@@ -1,20 +1,33 @@
+// 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+// 路由：用 MemoryRouter 做内存路由
 import { MemoryRouter } from 'react-router-dom';
+// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 分析 API（含 DuplicateTaskError 重复任务错误）与 agent API、历史 API、系统配置 API
 import { analysisApi, DuplicateTaskError } from '../../api/analysis';
 import { agentApi } from '../../api/agent';
 import { historyApi } from '../../api/history';
 import { systemConfigApi } from '../../api/systemConfig';
+// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+// 任务流 hook（本文件 mock 为 vi.fn 以便断言调用）
 import { useTaskStream } from '../../hooks/useTaskStream';
+// 自选股 store
 import { useStockPoolStore } from '../../stores';
+// 运行流快照类型
 import type { RunFlowSnapshot } from '../../types/runFlow';
+// 报告语言工具（getReportText 取报告文本、normalizeReportLanguage 规整语言）
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
+// 语言存储键
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
+// 被测页面
 import HomePage from '../HomePage';
 
+// 路由跳转 mock
 const navigateMock = vi.fn();
 
+// mock 路由：保留真实实现，只替换 useNavigate 为可控 mock
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -23,6 +36,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// mock 历史 API：列表/详情/新闻/Markdown/诊断/流程/Bar列表/按代码删除，其中新闻与 Bar列表给默认空响应
 vi.mock('../../api/history', () => ({
   historyApi: {
     getList: vi.fn(),
@@ -36,6 +50,7 @@ vi.mock('../../api/history', () => ({
   },
 }));
 
+// mock 分析 API：保留真实导出（含 DuplicateTaskError），只把异步分析/大盘复盘/状态/任务相关方法替换为 mock
 vi.mock('../../api/analysis', async () => {
   const actual = await vi.importActual<typeof import('../../api/analysis')>('../../api/analysis');
   return {
@@ -50,6 +65,7 @@ vi.mock('../../api/analysis', async () => {
   };
 });
 
+// mock 系统配置 API：配置读取/设置状态/自选股读（默认空自选）
 vi.mock('../../api/systemConfig', () => ({
   systemConfigApi: {
     getConfig: vi.fn(),
@@ -58,16 +74,19 @@ vi.mock('../../api/systemConfig', () => ({
   },
 }));
 
+// mock agent API：技能列表
 vi.mock('../../api/agent', () => ({
   agentApi: {
     getSkills: vi.fn(),
   },
 }));
 
+// mock 任务流 hook：替换为 vi.fn，便于在用例里断言调用参数
 vi.mock('../../hooks/useTaskStream', () => ({
   useTaskStream: vi.fn(),
 }));
 
+// 一条历史项基准数据：茅台、情绪分 82、建议买入
 const historyItem = {
   id: 1,
   queryId: 'q-1',
@@ -78,6 +97,7 @@ const historyItem = {
   createdAt: '2026-03-18T08:00:00Z',
 };
 
+// 一份历史报告基准数据：含 meta 与 summary（趋势、建议、预测、情绪分）
 const historyReport = {
   meta: {
     id: 1,
@@ -96,6 +116,8 @@ const historyReport = {
   },
 };
 
+// 批量配置自选股测试数据：生成 count 个 T 开头的代码，并同步设置自选/Bar列表/历史列表响应，
+// 用于「自选批量提交」「今日排行」等用例
 function configureWatchlistBatch(count: number): string[] {
   const codes = Array.from({ length: count }, (_, index) => `T${String(index + 1).padStart(3, '0')}`);
   vi.mocked(systemConfigApi.getWatchlist).mockResolvedValue(codes);
@@ -148,6 +170,7 @@ const marketReviewHistoryReport = {
   },
 };
 
+// 运行流快照基准数据：含任务/节点/边/事件，用于 mock 任务流接口（getRecordFlow / getTaskFlow）
 const runFlowSnapshot: RunFlowSnapshot = {
   taskId: 'task-1',
   traceId: 'trace-1',
@@ -205,6 +228,9 @@ const runFlowSnapshot: RunFlowSnapshot = {
 };
 
 describe('HomePage', () => {
+  // 每个用例前：清空 mock、重置路由跳转、默认中文、重置自选 store 状态，
+  // 并设定默认响应——任务列表（空）、自选（空）、技能（空）、诊断（unknown）、
+  // 任务流快照、设置状态（已完成/可冒烟）
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
@@ -237,6 +263,7 @@ describe('HomePage', () => {
     });
   });
 
+  // 用例 1：仪表盘应渲染工作区容器（含高度/滚动相关样式类），并自动加载第一条报告
   it('renders the dashboard workspace and auto-loads the first report', async () => {
     vi.mocked(historyApi.getList).mockResolvedValue({
       total: 1,
@@ -256,6 +283,7 @@ describe('HomePage', () => {
       </MemoryRouter>,
     );
 
+    // 断言：仪表盘容器存在且带预期高度/滚动样式类
     const dashboard = await screen.findByTestId('home-dashboard');
     expect(dashboard).toBeInTheDocument();
     expect(dashboard.className).toContain('h-[calc(100vh-5rem)]');
@@ -776,6 +804,7 @@ describe('HomePage', () => {
     expect(analysisApi.analyzeAsync).not.toHaveBeenCalled();
   });
 
+  // 用例：今日排行应从可分页的历史接口拉取（不受 Bar 列表上限截断影响），断言分页请求参数
   it('loads the Today ranking from paginated history instead of the capped stock bar', async () => {
     const todayInShanghai = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
     const rangeStart = new Date(`${todayInShanghai}T12:00:00Z`);
@@ -1102,6 +1131,7 @@ describe('HomePage', () => {
     expect(screen.queryByRole('button', { name: /Apple/ })).not.toBeInTheDocument();
   });
 
+  // 用例：自选含 51 只股票，提交时应按每批上限（约 20）分块，并汇总确认总数
   it('submits a watchlist in multiple chunks and reports the confirmed totals', async () => {
     configureWatchlistBatch(51);
     vi.mocked(analysisApi.analyzeAsync).mockImplementation(async ({ stockCodes = [] }) => ({
@@ -1276,6 +1306,7 @@ describe('HomePage', () => {
     expect(historyApi.deleteByCode).toHaveBeenCalledWith('MARKET');
   });
 
+  // 用例：仪表盘提交出现重复任务时，应展示重复任务警告横幅（含 DuplicateTaskError 信息）
   it('surfaces duplicate task warnings from dashboard submission', async () => {
     vi.mocked(historyApi.getList).mockResolvedValue({
       total: 0,
@@ -1425,6 +1456,7 @@ describe('HomePage', () => {
     }
   });
 
+  // 用例：从首页工具栏提交「大盘复盘」，断言 triggerMarketReview 被调用并展示复盘任务反馈
   it('submits market review from the home toolbar', async () => {
     vi.mocked(historyApi.getList).mockResolvedValue({
       total: 0,
@@ -1510,6 +1542,8 @@ describe('HomePage', () => {
     expect(systemConfigApi.getConfig).not.toHaveBeenCalled();
   });
 
+  // 用例：仅 UI 语言为英文、未显式选报告语言时，提交不应强制带 reportLanguage，
+  // 让后端按默认处理（验证报告语言与 UI 语言解耦）
   it('keeps report language unset when only the UI language is English', async () => {
     window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'en');
     vi.mocked(historyApi.getList).mockResolvedValue({
