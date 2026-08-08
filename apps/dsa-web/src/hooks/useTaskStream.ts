@@ -5,7 +5,8 @@ import type { TaskInfo } from '../types/analysis';
 import type { RunFlowEvent } from '../types/runFlow';
 
 /**
- * SSE event types.
+ * SSE 事件类型：服务端通过不同事件名推送任务状态变化。
+ * connected 表示连接就绪，heartbeat 为保活心跳。
  */
 export type SSEEventType =
   | 'connected'
@@ -17,7 +18,7 @@ export type SSEEventType =
   | 'heartbeat';
 
 /**
- * SSE event payload.
+ * SSE 事件负载的统一形状（透传给各回调）。
  */
 export interface SSEEvent {
   type: SSEEventType;
@@ -27,45 +28,46 @@ export interface SSEEvent {
 }
 
 /**
- * SSE hook options.
+ * useTaskStream 选项：以回调形式订阅各类任务事件。
  */
 export interface UseTaskStreamOptions {
-  /** Task created callback */
+  /** 任务创建时回调 */
   onTaskCreated?: (task: TaskInfo) => void;
-  /** Task started callback */
+  /** 任务开始时回调 */
   onTaskStarted?: (task: TaskInfo) => void;
-  /** Task completed callback */
+  /** 任务完成时回调 */
   onTaskCompleted?: (task: TaskInfo) => void;
-  /** Task progress callback */
+  /** 任务进度更新时回调 */
   onTaskProgress?: (task: TaskInfo) => void;
-  /** Task failed callback */
+  /** 任务失败时回调 */
   onTaskFailed?: (task: TaskInfo) => void;
-  /** Incremental run-flow event callback carried by task_progress */
+  /** task_progress 携带的增量运行流事件（用于绘制流程图） */
   onTaskFlowEvent?: (task: TaskInfo, event: RunFlowEvent) => void;
-  /** Connected callback */
+  /** 连接建立时回调 */
   onConnected?: () => void;
-  /** Connection error callback */
+  /** 连接出错时回调 */
   onError?: (error: Event) => void;
-  /** Whether to reconnect automatically */
+  /** 是否自动重连，默认 true */
   autoReconnect?: boolean;
-  /** Reconnect delay in milliseconds */
+  /** 重连延迟（毫秒），默认 3000 */
   reconnectDelay?: number;
-  /** Whether the hook is enabled */
+  /** 是否启用本 hook，默认 true */
   enabled?: boolean;
 }
 
 /**
- * SSE hook result.
+ * useTaskStream 返回值：连接态与手动 连接/断开 控制。
  */
 export interface UseTaskStreamResult {
-  /** Whether the stream is connected */
+  /** 当前是否已连接 */
   isConnected: boolean;
-  /** Reconnect manually */
+  /** 手动重连 */
   reconnect: () => void;
-  /** Disconnect manually */
+  /** 手动断开 */
   disconnect: () => void;
 }
 
+// 仅从这些回调中挑选用于订阅的部分
 type TaskStreamCallbacks = Pick<
   UseTaskStreamOptions,
   | 'onTaskCreated'
@@ -78,11 +80,13 @@ type TaskStreamCallbacks = Pick<
   | 'onError'
 >;
 
+/** 解析后的负载：任务对象 + 可选的 flow 事件。 */
 type ParsedTaskStreamPayload = {
   task: TaskInfo;
   flowEvent?: RunFlowEvent;
 };
 
+/** 单个订阅者的句柄：持有最新回调 ref、连接态 setter 与重连配置。 */
 type TaskStreamSubscriber = {
   callbacksRef: MutableRefObject<TaskStreamCallbacks>;
   setIsConnected: (value: boolean) => void;
@@ -90,13 +94,15 @@ type TaskStreamSubscriber = {
   reconnectDelay: number;
 };
 
+// ===== 模块级单例：所有 useTaskStream 实例共享同一条 SSE 连接 =====
+// 多个组件同时挂载时只维持一个 EventSource，避免重复订阅造成的资源浪费与事件重复分发。
 let sharedEventSource: EventSource | null = null;
 let sharedReconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 let sharedConnected = false;
 let nextSubscriberId = 1;
 const subscribers = new Map<number, TaskStreamSubscriber>();
 
-// Convert snake_case payloads into camelCase TaskInfo objects.
+/** 将后端的 snake_case 负载映射为前端的 camelCase TaskInfo 对象。 */
 const toTaskInfo = (data: Record<string, unknown>): TaskInfo => {
   const task: TaskInfo = {
     taskId: data.task_id as string,
@@ -116,6 +122,7 @@ const toTaskInfo = (data: Record<string, unknown>): TaskInfo => {
     skills: Array.isArray(data.skills) ? data.skills.map(String) : undefined,
   };
 
+  // 可选字段：仅在后端返回且非空时补齐
   if (typeof data.trace_id === 'string' && data.trace_id.trim()) {
     task.traceId = data.trace_id;
   }
@@ -126,6 +133,7 @@ const toTaskInfo = (data: Record<string, unknown>): TaskInfo => {
   return task;
 };
 
+/** 解析 SSE 事件 data：JSON 解析 + 任务映射 + flow_event 驼峰转换；失败时返回 null。 */
 const parseEventData = (eventData: string): ParsedTaskStreamPayload | null => {
   try {
     const data = JSON.parse(eventData);
@@ -140,15 +148,18 @@ const parseEventData = (eventData: string): ParsedTaskStreamPayload | null => {
   }
 };
 
+/** 广播连接态给所有订阅者。 */
 const notifyConnectionState = (connected: boolean) => {
   sharedConnected = connected;
   subscribers.forEach((subscriber) => subscriber.setIsConnected(connected));
 };
 
+/** 遍历所有订阅者，用其「当前最新的」回调集合触发通知。 */
 const forEachSubscriber = (notify: (callbacks: TaskStreamCallbacks) => void) => {
   subscribers.forEach((subscriber) => notify(subscriber.callbacksRef.current));
 };
 
+/** 清除计划中的重连锁定时器。 */
 const clearSharedReconnect = () => {
   if (sharedReconnectTimeout) {
     clearTimeout(sharedReconnectTimeout);
@@ -156,6 +167,7 @@ const clearSharedReconnect = () => {
   }
 };
 
+/** 关闭共享连接并通知所有订阅者已断开。 */
 const closeSharedConnection = () => {
   clearSharedReconnect();
   if (sharedEventSource) {
@@ -165,6 +177,7 @@ const closeSharedConnection = () => {
   notifyConnectionState(false);
 };
 
+/** 安排一次共享重连：取所有开启 autoReconnect 的订阅者中最小的重连延迟。 */
 const scheduleSharedReconnect = () => {
   if (sharedReconnectTimeout || subscribers.size === 0) {
     return;
@@ -182,6 +195,10 @@ const scheduleSharedReconnect = () => {
   }, reconnectDelay);
 };
 
+/**
+ * 建立（或复用）共享 SSE 连接，并绑定各事件监听器。
+ * 事件到达后解析负载，再广播给全部订阅者的对应回调。
+ */
 function connectSharedStream() {
   if (sharedEventSource || subscribers.size === 0) {
     return;
@@ -242,9 +259,10 @@ function connectSharedStream() {
   });
 
   eventSource.addEventListener('heartbeat', () => {
-    // Optional place to record the latest heartbeat timestamp.
+    // 心跳事件可选：可在此记录最近一次心跳时间
   });
 
+  // 连接错误：通知断开、触发错误回调，并在仍有效时安排自动重连
   eventSource.onerror = (error) => {
     notifyConnectionState(false);
     forEachSubscriber((callbacks) => callbacks.onError?.(error));
@@ -256,13 +274,20 @@ function connectSharedStream() {
   };
 }
 
+/** 强制重连：先关闭共享连接再重建。 */
 const reconnectSharedStream = () => {
   closeSharedConnection();
   connectSharedStream();
 };
 
 /**
- * Task-stream SSE hook for realtime task status updates.
+ * useTaskStream —— 基于 SSE 的实时任务流订阅 hook。
+ *
+ * 多个组件可同时调用本 hook，但它们共享同一条底层 EventSource 连接（模块级单例），
+ * 由 subscribers 多播分发。组件挂载时注册订阅、卸载时注销；最后一个订阅者注销时关闭连接。
+ *
+ * @param options 事件回调与各开关（enabled / autoReconnect / reconnectDelay）
+ * @returns { isConnected, reconnect, disconnect } 连接态与手动控制
  */
 export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStreamResult {
   const {
@@ -279,11 +304,14 @@ export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStream
     enabled = true,
   } = options;
 
+  // 连接态（本地镜像，初始为 false，挂载后会由共享连接态同步）
   const [isConnected, setIsConnected] = useState(false);
+  // 本实例在 subscribers Map 中的 id，用于卸载时注销
   const subscriberIdRef = useRef<number | null>(null);
+  // 连接延迟定时器句柄，便于在清理时取消未触发的连接
   const connectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Store callbacks in a ref to avoid reconnecting on every render.
+  // 用 ref 保存最新回调，避免因回调引用变化而重建连接
   const callbacksRef = useRef<TaskStreamCallbacks>({
     onTaskCreated,
     onTaskStarted,
@@ -295,7 +323,7 @@ export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStream
     onError,
   });
 
-  // Keep the latest callbacks available to the active SSE handlers.
+  // 每次渲染把最新回调写入 ref，供活跃 SSE 处理器读取当前逻辑
   useEffect(() => {
     callbacksRef.current = {
       onTaskCreated,
@@ -309,7 +337,10 @@ export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStream
     };
   });
 
-  // Disconnect and defer the state update to avoid nested renders.
+  /**
+   * 断开连接：取消挂起的连接定时器、从订阅者注销，
+   * 并在无其余订阅者时关闭共享连接。连接态更新延后到微任务，避免嵌套渲染。
+   */
   const disconnect = useCallback(() => {
     if (connectTimerRef.current) {
       window.clearTimeout(connectTimerRef.current);
@@ -325,7 +356,7 @@ export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStream
     queueMicrotask(() => setIsConnected(false));
   }, []);
 
-  // Reconnect
+  /** 手动重连：若尚未订阅则先注册，再触发共享重连。 */
   const reconnect = useCallback(() => {
     if (subscriberIdRef.current === null) {
       const subscriberId = nextSubscriberId++;
@@ -340,7 +371,7 @@ export function useTaskStream(options: UseTaskStreamOptions = {}): UseTaskStream
     reconnectSharedStream();
   }, [autoReconnect, reconnectDelay]);
 
-  // Connect or disconnect when the hook is enabled or disabled.
+  // 随 enabled 变化建立或断开订阅：启用时注册订阅者并延迟一拍建立共享连接（避免与渲染同帧）
   useEffect(() => {
     if (enabled) {
       const subscriberId = nextSubscriberId++;

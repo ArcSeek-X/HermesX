@@ -1,199 +1,113 @@
 /**
- * useAutocomplete Hook
+ * useAutocomplete —— 输入框自动补全（typeahead）通用钩子。
  *
- * Manage autocomplete interaction logic
+ * 能力：
+ * - 维护输入框文本（query）、候选列表（suggestions）、加载态与高亮索引。
+ * - 通过外部传入的 fetcher 异步拉取候选，并在文本变化后做防抖（debounce）。
+ * - 支持键盘上下选择（activeIndex），回车确认、失焦收起等常见交互。
+ *
+ * 设计：与具体数据源解耦，任何「输入 → 拉取建议」的场景（股票代码、板块名等）都可复用。
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { StockIndexItem, StockSuggestion } from '../types/stockIndex';
-import { searchStocks } from '../utils/searchStocks';
-import { SEARCH_CONFIG } from '../utils/stockIndexFields';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+/** fetcher 入参：当前输入文本；返回候选字符串数组（或空数组）。 */
+export type AutocompleteFetcher = (query: string) => Promise<string[]>;
+
+/** 钩子返回的一组状态与方法。 */
 export interface UseAutocompleteOptions {
-  /** Minimum query length */
-  minLength?: number;
-  /** Debounce delay (milliseconds) */
+  /** 异步拉取候选的函数 */
+  fetcher: AutocompleteFetcher;
+  /** 防抖延迟（毫秒），默认 250ms */
   debounceMs?: number;
-  /** Limit on number of results to return */
-  limit?: number;
+  /** 最小触发字符数，低于此长度不发起请求，默认 1 */
+  minChars?: number;
 }
 
-export interface UseAutocompleteResult {
-  /** Current query string */
-  query: string;
-  /** Set query string */
-  setQuery: (value: string) => void;
-  /** Search suggestions list */
-  suggestions: StockSuggestion[];
-  /** Whether to show suggestions list */
-  isOpen: boolean;
-  /** Highlighted item index */
-  highlightedIndex: number;
-  /** Set highlighted item index */
-  setHighlightedIndex: (index: number) => void;
-  /** Highlight previous item */
-  highlightPrevious: () => void;
-  /** Highlight next item */
-  highlightNext: () => void;
-  /** Select suggestion item */
-  handleSelect: (suggestion: StockSuggestion) => void;
-  /** Close suggestions list */
-  close: () => void;
-  /** Reset state */
-  reset: () => void;
-  /** Whether IME is composing */
-  isComposing: boolean;
-  /** Set IME composing state */
-  setIsComposing: (composing: boolean) => void;
-  /** Whether runtime fallback mode is active */
-  runtimeFallback: boolean;
-  /** Runtime error captured from search flow */
-  error: Error | null;
-}
-
-/**
- * Autocomplete Hook
- *
- * @param index - Stock index
- * @param options - Configuration options
- * @returns Autocomplete state and methods
- */
-export function useAutocomplete(
-  index: StockIndexItem[],
-  options: UseAutocompleteOptions = {}
-): UseAutocompleteResult {
-  const {
-    minLength = SEARCH_CONFIG.MIN_QUERY_LENGTH,
-    debounceMs = SEARCH_CONFIG.DEBOUNCE_MS,
-    limit = SEARCH_CONFIG.DEFAULT_LIMIT,
-  } = options;
-
+export function useAutocomplete({ fetcher, debounceMs = 250, minChars = 1 }: UseAutocompleteOptions) {
+  // 当前输入框文本
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<StockSuggestion[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
-  const [isComposing, setIsComposing] = useState(false);
-  const [runtimeFallback, setRuntimeFallback] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // 候选列表
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  // 是否正在加载候选
+  const [loading, setLoading] = useState(false);
+  // 键盘高亮项索引（-1 表示未选中）
+  const [activeIndex, setActiveIndex] = useState(-1);
+  // 下拉是否展开
+  const [open, setOpen] = useState(false);
 
-  // Use ref to store debounce timer
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 保存最新的 fetcher，避免因 fetcher 引用变化导致 effect 频繁重建
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
+  // 标记是否仍处于「最近一次请求」的有效窗口，组件卸载后避免 setState
+  const aliveRef = useRef(true);
 
-  // Search function (debounced)
-  const search = useCallback((q: string) => {
-    if (runtimeFallback) {
-      return;
-    }
-
-    if (q.length < minLength) {
-      setSuggestions([]);
-      setIsOpen(false);
-      setHighlightedIndex(-1);
-      return;
-    }
-
-    try {
-      const results = searchStocks(q, index, { limit });
-      setSuggestions(results);
-      setIsOpen(results.length > 0);
-      setHighlightedIndex(-1);
-    } catch (caught) {
-      const runtimeError = caught instanceof Error ? caught : new Error('Autocomplete search failed');
-      console.error('Autocomplete search failed. Falling back to plain input.', runtimeError);
-      setError(runtimeError);
-      setRuntimeFallback(true);
-      setSuggestions([]);
-      setIsOpen(false);
-      setHighlightedIndex(-1);
-    }
-  }, [index, minLength, limit, runtimeFallback]);
-
-  // Input handling (with debounce)
-  const handleInputChange = useCallback((value: string) => {
-    setQuery(value);
-
-    // Clear previous timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (runtimeFallback) {
-      return;
-    }
-
-    // Set new timer
-    debounceTimerRef.current = setTimeout(() => {
-      search(value);
-    }, debounceMs);
-  }, [search, debounceMs, runtimeFallback]);
-
-  // Select suggestion item
-  const handleSelect = useCallback((suggestion: StockSuggestion) => {
-    setQuery(suggestion.displayCode);
-    setIsOpen(false);
-    setSuggestions([]);
-    setHighlightedIndex(-1);
-  }, []);
-
-  // Highlight previous item
-  const highlightPrevious = useCallback(() => {
-    setHighlightedIndex(prev => {
-      if (prev <= 0) return suggestions.length - 1;
-      return prev - 1;
-    });
-  }, [suggestions.length]);
-
-  // Highlight next item
-  const highlightNext = useCallback(() => {
-    setHighlightedIndex(prev => {
-      if (prev >= suggestions.length - 1) return 0;
-      return prev + 1;
-    });
-  }, [suggestions.length]);
-
-  // Close dropdown
-  const close = useCallback(() => {
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-  }, []);
-
-  // Reset
-  const reset = useCallback(() => {
-    setQuery('');
-    setSuggestions([]);
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-  }, []);
-
-  // Cleanup timer (on component unmount)
   useEffect(() => {
+    aliveRef.current = true;
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      aliveRef.current = false;
     };
   }, []);
 
+  /**
+   * 拉取候选：仅当 query 达到最小字符数时生效。
+   * 使用定时器实现防抖，连续输入只保留最后一次请求。
+   */
+  useEffect(() => {
+    if (query.trim().length < minChars) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const result = await fetcherRef.current(query.trim());
+        if (!aliveRef.current) return;
+        setSuggestions(result);
+        setOpen(true);
+      } catch {
+        if (aliveRef.current) setSuggestions([]);
+      } finally {
+        if (aliveRef.current) setLoading(false);
+      }
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [query, debounceMs, minChars]);
+
+  /** 选中某个候选：回填文本、收起下拉、清空高亮。 */
+  const select = useCallback((value: string) => {
+    setQuery(value);
+    setOpen(false);
+    setActiveIndex(-1);
+  }, []);
+
+  /** 键盘下移：在候选范围内循环高亮。 */
+  const moveDown = useCallback(() => {
+    setActiveIndex((i) => (suggestions.length ? (i + 1) % suggestions.length : -1));
+  }, [suggestions.length]);
+
+  /** 键盘上移：在候选范围内循环高亮。 */
+  const moveUp = useCallback(() => {
+    setActiveIndex((i) => (suggestions.length ? (i - 1 + suggestions.length) % suggestions.length : -1));
+  }, [suggestions.length]);
+
+  /** 关闭下拉（如失焦）。 */
+  const close = useCallback(() => setOpen(false), []);
+
   return {
     query,
-    setQuery: handleInputChange,
+    setQuery,
     suggestions,
-    isOpen,
-    highlightedIndex,
-    setHighlightedIndex,
-    highlightPrevious,
-    highlightNext,
-    handleSelect,
+    loading,
+    open,
+    activeIndex,
+    setActiveIndex,
+    select,
+    moveDown,
+    moveUp,
     close,
-    reset,
-    isComposing,
-    setIsComposing,
-    runtimeFallback,
-    error,
   };
 }
-
-/**
- * Get default exported Hook
- */
-export default useAutocomplete;
