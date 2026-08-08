@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b0a" />
+    <title>2027 国考上岸工作台</title>
+    <script>
+      (() => {
+        let preference = "dark";
+        try { preference = localStorage.getItem("kaogong-workbench-theme") || "dark"; } catch {}
+        const resolved = preference === "system"
+          ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+          : preference;
+        document.documentElement.dataset.theme = preference;
+        document.documentElement.dataset.themeResolved = resolved;
+        document.documentElement.style.colorScheme = resolved;
+        let accent = "ocean";
+        try { accent = localStorage.getItem("kaogong-workbench-accent") || "ocean"; } catch {}
+        document.documentElement.dataset.accent = ["emerald", "ocean", "iris", "amber", "sakura"].includes(accent) ? accent : "ocean";
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v12H7.2A2.2 2.2 0 0 1 5 16.8V4.5Z"/><path d="M8 8h7M8 11h6M5 16.5c0-1.1.9-2 2-2h11"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+      <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="m9.5 14.5 5-5M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 1 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2l1.4 5.1L18 9l-4.6 1.9L12 16l-1.4-5.1L6 9l4.6-1.9L12 2Z"/><path d="m19 15 .7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z"/></symbol>
+      <symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3M7 12h10"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M14 4v6M4 17h2M10 17h10M10 14v6"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path class="play-path" d="m9 7 8 5-8 5V7Z"/><path class="pause-path" d="M9 7v10M15 7v10"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="m13.5 8 3 3"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
+    </svg>
+
+    <main class="app-shell">
+      <aside class="sidebar panel">
+        <div class="brand"><strong>上岸舱</strong><span>GovExam OS</span></div>
+        <nav class="primary-nav" aria-label="主导航">
+          <button class="nav-item active"><span class="live-dot"></span><svg><use href="#i-book"/></svg><span>备考驾驶舱</span><svg class="nav-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="nav-item"><svg><use href="#i-grid"/></svg><span>行测五模块</span></button>
+          <button class="nav-item"><svg><use href="#i-list"/></svg><span>今日训练队列</span></button>
+          <button class="nav-item"><svg><use href="#i-columns"/></svg><span>申论题型库</span></button>
+          <button class="nav-item"><svg><use href="#i-link"/></svg><span>真题套卷复盘</span></button>
+          <button class="nav-item"><svg><use href="#i-spark"/></svg><span>时政热点转化</span></button>
+          <button class="nav-item"><svg><use href="#i-list"/></svg><span>岗位选报雷达</span></button>
+          <button class="nav-item"><svg><use href="#i-grid"/></svg><span>模考分数结构</span></button>
+          <button id="sidebarSettingsBtn" class="nav-item" data-open-material aria-controls="materialOverlay"><svg><use href="#i-settings"/></svg><span>设置中心</span></button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="path-heading"><span>资料库空间</span><button aria-label="新建资料集">＋</button></div>
+          <button class="vault-row" title="/kaogong/2027-national-exam"><span class="diamond">◆</span><span>/kaogong/2027-national-exam</span><svg><use href="#i-chevron"/></svg></button>
+          <div class="profile-row"><span class="avatar">ZY<i></i></span><span><b>张鱼烧脑🐙</b><small>应届备考 A 组 · 目标：中央机关综合岗</small></span><button>⋮</button></div>
+        </div>
+      </aside>
+
+      <section class="core">
+        <header class="topbar">
+          <div class="page-title"><h1>2027 国考上岸工作台</h1><p>节点倒计时 · 行测控时 · 申论闭环 · 岗位雷达</p></div>
+          <label class="search-box"><svg><use href="#i-search"/></svg><input aria-label="搜索题型、套卷或岗位" placeholder="搜索题型、错因、套卷或岗位条件…"/><kbd>⌘ K</kbd></label>
+          <div class="top-actions">
+            <div class="theme-control">
+              <button id="themeToggleBtn" class="round-btn theme-toggle" aria-label="切换显示主题，当前暗色" title="暗色 · 点击切换为跟随系统">
+                <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+              </button>
+            </div>
+            <button id="materialSettingsBtn" class="round-btn filter-btn active" data-open-material aria-label="打开四张流体卡片设置" aria-controls="materialOverlay" aria-expanded="false" title="四张流体卡片设置"><svg><use href="#i-filter"/></svg></button>
+            <button class="round-btn" aria-label="消息"><svg><use href="#i-mail"/></svg></button>
+            <button class="scan-btn"><svg><use href="#i-scan"/></svg><span>生成今日卷</span></button>
+          </div>
+        </header>
+
+        <section class="metric-grid" aria-label="备考概览">
+          <article class="metric-card aurora light selected" data-material="cyan" data-fluid-variant="today" data-opacity="100" data-blur="20" data-flow="150" data-color-a="#27e8df" data-color-b="#11a9c8" data-color-c="#17346f"><span>TODAY / 限时训练</span><h3>今日题量</h3><strong>84<small>题</small></strong><p>目标 120 题 · <em>正确率 76%</em></p></article>
+          <article class="metric-card aurora blue" data-material="original" data-fluid-variant="inbox" data-opacity="92" data-blur="22" data-flow="175" data-color-a="#ff4aa9" data-color-b="#ff8849" data-color-c="#aa49ff"><span>QUEUE / 待完成</span><h3>待完成</h3><strong>5<small>项任务</small></strong><p>含资料 4 篇 · <em>28 分钟目标</em></p></article>
+          <article class="metric-card aurora ember" data-material="rain" data-fluid-variant="archive" data-opacity="70" data-blur="28" data-flow="130" data-color-a="#2e66ff" data-color-b="#ff693f" data-color-c="#4721ac"><span>PAPER / 套卷复盘</span><h3>套卷复盘</h3><strong>3<small>套真题</small></strong><p>行测 68.5 / 申论 64 · <em>差进面线 4.5</em></p></article>
+          <article class="metric-card aurora cobalt" data-material="chrome" data-fluid-variant="backlog" data-opacity="94" data-blur="21" data-flow="190" data-color-a="#f4f8f6" data-color-b="#8d9996" data-color-c="#11172b"><span>COUNTDOWN / 2027 国考</span><h3>距笔试</h3><strong>120<small>天</small></strong><p>预计 2026.11.29 · <em class="danger">冲刺倒计时</em></p></article>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="queue-pane">
+            <div class="section-heading"><h2>训练队列</h2><span>题型 / 用时 / 错因</span></div>
+            <div class="queue-tabs" role="tablist"><button class="active">全部任务</button><button>高频错因</button><button>岗位相关</button></div>
+            <div id="queueGroups" class="queue-groups"></div>
+          </section>
+
+          <section class="carousel-panel panel" aria-label="备考模块演示">
+            <div class="carousel-toolbar">
+              <div>
+                <button id="orbitModeBtn" class="pill-btn active" aria-pressed="true"><span>✦</span>3D 环绕</button>
+                <button id="playToggle" class="pill-btn"><svg><use href="#i-play"/></svg><span class="play-label">自动播放</span></button>
+                <button id="fanModeBtn" class="pill-btn quiet" aria-pressed="false"><span>▥</span>侧向层叠</button>
+              </div>
+              <div>
+                <button id="speedBtn" class="pill-btn active">速度 2×</button>
+                <button id="prevBtn" class="pill-btn quiet">‹ 前项</button>
+                <button id="nextBtn" class="icon-btn" aria-label="下一项">›</button>
+              </div>
+            </div>
+            <div class="live-badge"><i></i>实时交互</div>
+            <div id="carouselViewport" class="carousel-viewport" tabindex="0" aria-label="可滚轮切换的备考模块卡片">
+              <div class="ambient-glow"></div>
+              <div class="card-aura" aria-hidden="true"><i></i><b></b></div>
+              <div class="completion-card"><span>模块掌握度</span><strong id="completionValue">74%</strong><small>本周诊断</small><i><b style="width:74%"></b></i></div>
+              <div id="cardScene" class="card-scene"></div>
+              <div class="scroll-tip"><span class="mouse-icon"><i></i></span><p>连续滚动转动模块环；点击卡片展开</p><strong id="tipTitle">资料分析</strong></div>
+            </div>
+            <div class="timeline-panel">
+              <div class="timeline-head"><b>备考时间轴</b><span><svg><use href="#i-calendar"/></svg> 2026 年 8-11 月</span><div><button>月⌄</button><button>今天</button></div></div>
+              <div id="timelineDates" class="timeline-dates"></div>
+              <div class="timeline-track"><i id="timelineProgress"></i></div>
+              <div class="scene-actions"><button>编辑任务</button><button class="primary">保存节奏</button><button>导出计划</button><button>全屏</button></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="details-panel panel">
+        <div class="details-heading"><h2>✦ 上岸详情</h2><button aria-label="搜索详情"><svg><use href="#i-search"/></svg></button></div>
+        <div class="details-content">
+          <code id="detailId">KG-APT-004</code>
+          <div class="detail-title-row"><h2 id="detailTitle">资料分析</h2><span id="detailStatus">正确率 74%</span></div>
+          <p id="detailDescription" class="detail-description">4 篇 20 题控制在 28 分钟内，重点压缩增长率、比重和平均数列式时间。</p>
+          <dl class="metadata">
+            <div><dt>负责人</dt><dd><span class="mini-avatar">ZY</span>张鱼烧脑🐙</dd></div>
+            <div><dt>所属目录</dt><dd><svg><use href="#i-folder"/></svg><span id="detailFolder">行测 / 资料分析</span></dd></div>
+            <div><dt>训练节点</dt><dd><svg><use href="#i-calendar"/></svg><span id="detailDate">2026-08-01 20:30</span></dd></div>
+            <div><dt>当前状态</dt><dd><i class="status-dot"></i><span id="detailState">高优先级</span></dd></div>
+            <div><dt>优先级</dt><dd><i class="priority-dot"></i><span id="detailPriority">高</span></dd></div>
+            <div><dt>标签</dt><dd class="tag-list" id="detailTags"><span>资料分析</span><span>限时</span><span>错因复盘</span></dd></div>
+          </dl>
+          <article class="ai-note">
+            <h3>上岸策略建议</h3>
+            <ul id="detailAdvice"><li>先做增长率与比重混合 12 题，记录列式犹豫点</li><li>套卷复盘只保留可迁移的速算口径和错因标签</li></ul>
+            <button>查看策略详情</button>
+          </article>
+        </div>
+        <footer class="detail-actions"><button id="editNoteBtn"><svg><use href="#i-pen"/></svg>编辑任务</button><button class="primary"><svg><use href="#i-check"/></svg>标为完成</button><button class="more" aria-label="更多"><svg><use href="#i-more"/></svg></button></footer>
+      </aside>
+    </main>
+
+    <div id="materialOverlay" class="material-overlay" aria-hidden="true">
+      <aside class="material-drawer panel" role="dialog" aria-modal="true" aria-labelledby="materialTitle">
+        <header class="material-heading">
+          <div><span>FLUID GLASS MATERIAL</span><h2 id="materialTitle">四张流体卡片设置</h2></div>
+          <button id="closeMaterialBtn" aria-label="关闭材质设置">×</button>
+        </header>
+        <div class="material-body">
+          <label class="material-select"><span>当前卡片</span><select id="materialCardSelect"><option value="0" selected>今日题量</option><option value="1">待完成</option><option value="2">套卷复盘</option><option value="3">距笔试</option></select></label>
+          <section class="accent-section" aria-labelledby="accentTitle">
+            <div class="accent-section-heading"><div><h3 id="accentTitle">界面强调色</h3><p>按统一明暗比例同步按钮、状态、光晕与选中效果</p></div><output id="accentName">静海</output></div>
+            <div class="accent-swatches" role="group" aria-label="选择界面强调色">
+              <button class="accent-swatch" data-accent-option="emerald" aria-pressed="false"><i></i><span>翡翠</span></button>
+              <button class="accent-swatch active" data-accent-option="ocean" aria-pressed="true"><i></i><span>静海</span></button>
+              <button class="accent-swatch" data-accent-option="iris" aria-pressed="false"><i></i><span>鸢尾</span></button>
+              <button class="accent-swatch" data-accent-option="amber" aria-pressed="false"><i></i><span>琥珀</span></button>
+              <button class="accent-swatch" data-accent-option="sakura" aria-pressed="false"><i></i><span>绯樱</span></button>
+            </div>
+          </section>
+          <div id="materialPreview" class="material-preview" data-material="cyan" style="--mat-a:#27e8df;--mat-b:#11a9c8;--mat-c:#17346f"><small>LIVE PREVIEW</small><strong>今日题量</strong><span>动态实时调整 · 背景会发生视觉变化</span></div>
+
+          <section class="material-section"><h3>配色预设</h3><div class="material-swatches">
+            <button class="material-swatch active" data-material="cyan"><i></i><span>Cyan</span></button>
+            <button class="material-swatch" data-material="original"><i></i><span>Original</span></button>
+            <button class="material-swatch" data-material="rain"><i></i><span>Rain</span></button>
+            <button class="material-swatch" data-material="chrome"><i></i><span>Chrome</span></button>
+          </div></section>
+
+          <section class="material-section"><h3>自定义颜色</h3><div class="color-fields">
+            <label><span>主色 A</span><input id="colorA" type="color" value="#27e8df"><small>#27E8DF</small></label>
+            <label><span>辅色 B</span><input id="colorB" type="color" value="#11a9c8"><small>#11A9C8</small></label>
+            <label><span>阴影 C</span><input id="colorC" type="color" value="#17346f"><small>#17346F</small></label>
+          </div></section>
+
+          <section class="material-section material-controls"><h3>卡片材质</h3>
+            <label><span>面板不透明度 <output id="opacityOutput">100%</output></span><input id="materialOpacity" type="range" min="45" max="100" value="100"></label>
+            <label><span>背景模糊强度 <output id="blurOutput">20px</output></span><input id="materialBlur" type="range" min="4" max="30" value="20"></label>
+          </section>
+          <section class="material-section material-controls"><h3>动态参数</h3>
+            <label><span>流动速度 <output id="flowOutput">1.50×</output></span><input id="flowSpeed" type="range" min="50" max="300" value="150"></label>
+          </section>
+        </div>
+        <footer class="material-actions"><button id="resetMaterialBtn">重置参数</button><button id="defaultMaterialBtn">恢复至初始</button><button id="saveMaterialBtn" class="primary">保存设置</button></footer>
+      </aside>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
