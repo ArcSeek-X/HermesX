@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📈 股票智能分析系统
+# 📈 赫尔墨斯·X - 股票AI智能分析
 
 [![GitHub stars](https://img.shields.io/github/stars/ArcSeek-X/HermesX?style=social)](https://github.com/ArcSeek-X/HermesX/stargazers)
 [![CI](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml/badge.svg)](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml)
@@ -245,7 +245,7 @@ python main.py --webui-only
   <tr>
     <td width="92" valign="top"><strong>合作邮箱</strong></td>
     <td valign="top">
-      <a href="mailto:zhuls345@gmail.com">zhuls345@gmail.com</a><br>
+      <a href="Lensgcx@163.com">zhuls345@gmail.com</a><br>
       项目咨询、部署支持与功能扩展
     </td>
     <td align="center" rowspan="3" valign="middle" width="148">
