@@ -267,8 +267,10 @@ python main.py --webui-only
 
 If you find this project useful, you can buy author a glass of juice :tropical_drink:
 
-<img src="./docs/assets/alipay.jpg" width="112" alt="支付宝收款二维码"><br>
-<img src="./docs/assets/wechat_pay.jpg" width="112" alt="微信收款二维码"><br>
+<p>
+  <img src="./docs/assets/alipay.jpg" width="120" alt="支付宝收款二维码" style="display:inline-block;margin-right:20px;">
+  <img src="./docs/assets/wechat_pay.jpg" width="120" alt="微信收款二维码" style="display:inline-block;">
+</p>
 
 ## 📄 License
 
