@@ -267,8 +267,8 @@ python main.py --webui-only
 
 If you find this project useful, you can buy author a glass of juice :tropical_drink:
 
-![donate]<img src="./docs/assets/alipay.jpg" width="112" alt="支付宝收款二维码"><br>
-![donate] <img src="./docs/assets/wechatpay.jpg" width="112" alt="微信收款二维码"><br>
+<img src="./docs/assets/alipay.jpg" width="112" alt="支付宝收款二维码"><br>
+<img src="./docs/assets/wechat_pay.jpg" width="112" alt="微信收款二维码"><br>
 
 ## 📄 License
 
