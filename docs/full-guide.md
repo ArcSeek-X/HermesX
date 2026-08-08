@@ -7,7 +7,7 @@
 ## 📁 项目结构
 
 ```
-daily_stock_analysis/
+HermesX/
 ├── main.py              # 主程序入口
 ├── src/                 # 核心业务逻辑
 │   ├── analyzer.py      # AI 分析器
@@ -155,7 +155,7 @@ daily_stock_analysis/
 |------------|------|:----:|
 | `STOCK_LIST` | 自选股代码，如 `600519,300750,002594,7203.T,005930.KS`；推荐使用英文逗号，中文逗号、顿号、分号、空格和换行会被识别并规范为英文逗号 | ✅ |
 | `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/) 针对中文内容特别优化；同一 Key 可用于搜索与 Anspire 大模型网关的兜底示例（是否可用以控制台与账号权限为准） | 推荐 |
-| `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis) 搜索引擎结果补强，适合实时金融新闻 | 推荐 |
+| `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX) 搜索引擎结果补强，适合实时金融新闻 | 推荐 |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/) 搜索 API（新闻搜索） | 可选 |
 | `BOCHA_API_KEYS` | [博查搜索](https://open.bocha.cn/) Web Search API（中文搜索优化，支持AI摘要，多个key用逗号分隔） | 可选 |
 | `BRAVE_API_KEYS` | [Brave Search](https://brave.com/search/api/) API（隐私优先，美股优化，多个key用逗号分隔） | 可选 |
@@ -496,15 +496,15 @@ Dockerfile 使用多阶段构建，前端会在构建镜像时自动打包并内
 
 当前官方镜像发布地址：
 
-- GHCR：`ghcr.io/zhulinsen/daily_stock_analysis:<tag>`
-- Docker Hub：`<DOCKERHUB_USERNAME>/daily_stock_analysis:<tag>`（由发布者的 `DOCKERHUB_USERNAME` secret 决定，官方发布为 `zhulinsen/daily_stock_analysis`）
+- GHCR：`ghcr.io/ArcSeek-X/HermesX:<tag>`
+- Docker Hub：`<DOCKERHUB_USERNAME>/HermesX:<tag>`（由发布者的 `DOCKERHUB_USERNAME` secret 决定，官方发布为 `ArcSeek-X/HermesX`）
 
 ### 快速启动
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/ZhuLinsen/daily_stock_analysis.git
-cd daily_stock_analysis
+git clone https://github.com/ArcSeek-X/HermesX.git
+cd HermesX
 
 # 2. 配置环境变量
 cp .env.example .env
@@ -530,7 +530,7 @@ docker-compose -f ./docker/docker-compose.yml logs -f server
 
 ```bash
 # Web/API 模式
-docker pull zhulinsen/daily_stock_analysis:latest
+docker pull ArcSeek-X/HermesX:latest
 docker run -d \
   --name dsa-server \
   --env-file .env \
@@ -538,7 +538,7 @@ docker run -d \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/reports:/app/reports" \
-  zhulinsen/daily_stock_analysis:latest \
+  ArcSeek-X/HermesX:latest \
   python main.py --serve-only --host 0.0.0.0 --port 8000
 
 # 定时任务模式
@@ -548,7 +548,7 @@ docker run -d \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/reports:/app/reports" \
-  zhulinsen/daily_stock_analysis:latest
+  ArcSeek-X/HermesX:latest
 ```
 
 如需固定版本或便于回滚，请将 `latest` 替换为具体版本 tag，例如 `v3.13.0`。
@@ -1761,7 +1761,7 @@ A: 检查是否启用了 Actions，以及 cron 表达式是否正确（注意是
 
 ---
 
-更多问题请 [提交 Issue](https://github.com/ZhuLinsen/daily_stock_analysis/issues)
+更多问题请 [提交 Issue](https://github.com/ArcSeek-X/HermesX/issues)
 
 ## Agent 工具数据缓存与持久化
 

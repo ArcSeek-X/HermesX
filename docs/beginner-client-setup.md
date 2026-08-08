@@ -16,7 +16,7 @@
 
 打开发布页：
 
-<https://github.com/ZhuLinsen/daily_stock_analysis/releases/latest>
+<https://github.com/ArcSeek-X/HermesX/releases/latest>
 
 在页面下方 `Assets`（附件）里下载：
 
@@ -96,7 +96,7 @@ macOS 用户升级前建议先在客户端设置里导出一次配置备份。
 按你的模型服务选择：
 
 1. 用 Anspire Open：找到 `Anspire API Keys`，填入同一个 Anspire Key，保存成功后即可。
-2. 用 AIHubMix：建议再申请 [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis) 或 [Tavily](https://tavily.com/) 的 Key，填到 `SerpAPI API Keys` 或 `Tavily API Keys`，保存成功后即可。
+2. 用 AIHubMix：建议再申请 [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX) 或 [Tavily](https://tavily.com/) 的 Key，填到 `SerpAPI API Keys` 或 `Tavily API Keys`，保存成功后即可。
 
 想先试用也可以跳过新闻源，客户端仍然能生成基础分析。
 

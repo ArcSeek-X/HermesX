@@ -2,6 +2,7 @@
   "name": "dsa-web",
   "private": true,
   "version": "0.0.0",
+  "author": "Lensgcx (GaoCangxiong) - ArcSeek-X",
   "type": "module",
   "engines": {
     "node": ">=20.19.0 <27",

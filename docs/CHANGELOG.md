@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-> For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
+> For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
 - [修复] K 线全量数据回归：新浪老接口优先（datalen=10000 一次拉取上市以来全量），腾讯 K 线域名改为 ifzq 规避 WAF 拦截（web 前缀返回 501）。
@@ -780,7 +780,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 📊 **大盘复盘升级为盘后工作台式结构** — A 股复盘固定输出盘面温度、指数明细、板块 Top 表、新闻催化、明日交易计划和风险提示，减少纯文字复盘的重复与空泛。
 - 🖥️ **桌面端新增 GitHub Release 更新提醒** — Windows/macOS 桌面端启动后自动检测新版本，也可从设置页手动检查并跳转下载页。
 - 🤖 **Pipeline Agent 数据加载大幅降噪** — K 线工具改为 DB-first 并预热 240 天历史数据，避免同一只股票重复 HTTP 请求。
-- 🐳 **Docker 发布链路整理** — 发布工作流收敛为正式发布与手动补发两条路径，官方 Docker Hub 镜像名统一为 `zhulinsen/daily_stock_analysis`。
+- 🐳 **Docker 发布链路整理** — 发布工作流收敛为正式发布与手动补发两条路径，官方 Docker Hub 镜像名统一为 `ArcSeek-X/HermesX`。
 - 🔧 **LLM 渠道与 DeepSeek V4 配置补强** — GitHub Actions 定时分析补齐多渠道变量透传，DeepSeek 官方渠道预设与示例同步到 V4。
 - 🧩 **桌面端静态资源一致性校验** — 打包链路和运行时都能更早发现静态资源错配，降低 Release 包白屏排查成本。
 
@@ -792,7 +792,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 改进
 
 - 📊 **A 股大盘复盘报告改为结构化盘后工作台版式** — 固定输出盘面温度、指数明细、板块 Top 表、新闻催化和明日交易计划。
-- 🐳 **Docker 发布工作流收敛** — 更清晰地区分正式发布与手动补发链路，并统一官方 Docker Hub 镜像名为 `zhulinsen/daily_stock_analysis`。
+- 🐳 **Docker 发布工作流收敛** — 更清晰地区分正式发布与手动补发链路，并统一官方 Docker Hub 镜像名为 `ArcSeek-X/HermesX`。
 - 🤖 **Agent 日线工具优先复用本地缓存** — 同时持久化新获取的日线与新闻情报，减少重复数据源调用。
 
 ### 修复
@@ -1961,26 +1961,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - 核心 API：支持 `/analysis` (触发分析), `/tasks` (查询进度), `/health` (健康检查)
   - 交互界面：支持页面直接输入代码并触发分析，实时展示进度
   - 运行模式：新增 `--webui-only` 模式，仅启动 Web 服务
-  - 解决了 [#70](https://github.com/ZhuLinsen/daily_stock_analysis/issues/70) 的核心需求（提供触发分析的接口）
-- ⚙️ GitHub Actions 配置灵活性增强（[#79](https://github.com/ZhuLinsen/daily_stock_analysis/issues/79)）
+  - 解决了 [#70](https://github.com/ArcSeek-X/HermesX/issues/70) 的核心需求（提供触发分析的接口）
+- ⚙️ GitHub Actions 配置灵活性增强（[#79](https://github.com/ArcSeek-X/HermesX/issues/79)）
   - 支持从 Repository Variables 读取非敏感配置（如 STOCK_LIST, GEMINI_MODEL）
   - 保持对 Secrets 的向下兼容
 
 ### 修复
-- 🐛 修复企业微信/飞书报告截断问题（[#73](https://github.com/ZhuLinsen/daily_stock_analysis/issues/73)）
+- 🐛 修复企业微信/飞书报告截断问题（[#73](https://github.com/ArcSeek-X/HermesX/issues/73)）
   - 移除 notification.py 中不必要的长度硬截断逻辑
   - 依赖底层自动分片机制处理长消息
-- 🐛 修复 GitHub Workflow 环境变量缺失（[#80](https://github.com/ZhuLinsen/daily_stock_analysis/issues/80)）
+- 🐛 修复 GitHub Workflow 环境变量缺失（[#80](https://github.com/ArcSeek-X/HermesX/issues/80)）
   - 修复 `CUSTOM_WEBHOOK_BEARER_TOKEN` 未正确传递到 Runner 的问题
 
 ## [1.5.0] - 2026-01-17
 
 ### 新增
-- 📲 单股推送模式（[#55](https://github.com/ZhuLinsen/daily_stock_analysis/issues/55)）
+- 📲 单股推送模式（[#55](https://github.com/ArcSeek-X/HermesX/issues/55)）
   - 每分析完一只股票立即推送，不用等全部分析完
   - 命令行参数：`--single-notify`
   - 环境变量：`SINGLE_STOCK_NOTIFY=true`
-- 🔐 自定义 Webhook Bearer Token 认证（[#51](https://github.com/ZhuLinsen/daily_stock_analysis/issues/51)）
+- 🔐 自定义 Webhook Bearer Token 认证（[#51](https://github.com/ArcSeek-X/HermesX/issues/51)）
   - 支持需要 Token 认证的 Webhook 端点
   - 环境变量：`CUSTOM_WEBHOOK_BEARER_TOKEN`
 
@@ -2084,72 +2084,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-[Unreleased]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.28.0...HEAD
-[3.28.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.27.0...v3.28.0
-[3.27.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.26.1...v3.27.0
-[3.26.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.25.0...v3.26.1
-[3.25.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.24.1...v3.25.0
-[3.24.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.24.0...v3.24.1
-[3.24.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.23.0...v3.24.0
-[3.23.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.22.0...v3.23.0
-[3.22.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.21.1...v3.22.0
-[3.21.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.21.0...v3.21.1
-[3.21.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.20.0...v3.21.0
-[3.20.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.19.0...v3.20.0
-[3.19.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.18.0...v3.19.0
-[3.18.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.17.1...v3.18.0
-[3.17.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.17.0...v3.17.1
-[3.17.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.16.0...v3.17.0
-[3.16.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.15.0...v3.16.0
-[3.15.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.14.2...v3.15.0
-[3.14.2]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.14.1...v3.14.2
-[3.14.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.14.0...v3.14.1
-[3.14.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.13.0...v3.14.0
-[3.13.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.12.0...v3.13.0
-[3.12.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.11.0...v3.12.0
-[3.11.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.10.1...v3.11.0
-[3.10.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.10.0...v3.10.1
-[3.10.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.9.0...v3.10.0
-[3.9.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.8.0...v3.9.0
-[3.8.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.7.0...v3.8.0
-[3.7.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.6.0...v3.7.0
-[3.6.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.5.0...v3.6.0
-[3.5.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.4.10...v3.5.0
-[3.4.10]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.4.9...v3.4.10
-[3.4.9]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.4.8...v3.4.9
-[3.4.8]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.4.7...v3.4.8
-[3.4.7]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.4.0...v3.4.7
-[3.4.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.3.22...v3.4.0
-[3.3.22]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.3.12...v3.3.22
-[3.3.12]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.2.11...v3.3.12
-[3.2.11]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v3.2.10...v3.2.11
-[2.3.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.5...v2.3.0
-[2.2.5]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.4...v2.2.5
-[2.2.4]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.3...v2.2.4
-[2.2.3]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.2...v2.2.3
-[2.2.2]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.1...v2.2.2
-[2.2.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.2.0...v2.2.1
-[2.2.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.14...v2.2.0
-[2.1.14]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.13...v2.1.14
-[2.1.13]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.12...v2.1.13
-[2.1.12]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.11...v2.1.12
-[2.1.11]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.10...v2.1.11
-[2.1.10]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.9...v2.1.10
-[2.1.9]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.8...v2.1.9
-[2.1.8]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.7...v2.1.8
-[2.1.7]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.6...v2.1.7
-[2.1.6]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.5...v2.1.6
-[2.1.5]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.4...v2.1.5
-[2.1.4]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.3...v2.1.4
-[2.1.3]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.2...v2.1.3
-[2.1.2]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.1...v2.1.2
-[2.1.1]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.1.0...v2.1.1
-[2.1.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.6.0...v2.0.0
-[1.6.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.5.0...v1.6.0
-[1.5.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/ZhuLinsen/daily_stock_analysis/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/ZhuLinsen/daily_stock_analysis/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ArcSeek-X/HermesX/compare/v3.28.0...HEAD
+[3.28.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.27.0...v3.28.0
+[3.27.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.26.1...v3.27.0
+[3.26.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.25.0...v3.26.1
+[3.25.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.24.1...v3.25.0
+[3.24.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.24.0...v3.24.1
+[3.24.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.23.0...v3.24.0
+[3.23.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.22.0...v3.23.0
+[3.22.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.21.1...v3.22.0
+[3.21.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.21.0...v3.21.1
+[3.21.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.20.0...v3.21.0
+[3.20.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.19.0...v3.20.0
+[3.19.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.18.0...v3.19.0
+[3.18.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.17.1...v3.18.0
+[3.17.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.17.0...v3.17.1
+[3.17.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.16.0...v3.17.0
+[3.16.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.15.0...v3.16.0
+[3.15.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.14.2...v3.15.0
+[3.14.2]: https://github.com/ArcSeek-X/HermesX/compare/v3.14.1...v3.14.2
+[3.14.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.14.0...v3.14.1
+[3.14.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.13.0...v3.14.0
+[3.13.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.12.0...v3.13.0
+[3.12.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.11.0...v3.12.0
+[3.11.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.10.1...v3.11.0
+[3.10.1]: https://github.com/ArcSeek-X/HermesX/compare/v3.10.0...v3.10.1
+[3.10.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.9.0...v3.10.0
+[3.9.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.8.0...v3.9.0
+[3.8.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.7.0...v3.8.0
+[3.7.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.6.0...v3.7.0
+[3.6.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.5.0...v3.6.0
+[3.5.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.4.10...v3.5.0
+[3.4.10]: https://github.com/ArcSeek-X/HermesX/compare/v3.4.9...v3.4.10
+[3.4.9]: https://github.com/ArcSeek-X/HermesX/compare/v3.4.8...v3.4.9
+[3.4.8]: https://github.com/ArcSeek-X/HermesX/compare/v3.4.7...v3.4.8
+[3.4.7]: https://github.com/ArcSeek-X/HermesX/compare/v3.4.0...v3.4.7
+[3.4.0]: https://github.com/ArcSeek-X/HermesX/compare/v3.3.22...v3.4.0
+[3.3.22]: https://github.com/ArcSeek-X/HermesX/compare/v3.3.12...v3.3.22
+[3.3.12]: https://github.com/ArcSeek-X/HermesX/compare/v3.2.11...v3.3.12
+[3.2.11]: https://github.com/ArcSeek-X/HermesX/compare/v3.2.10...v3.2.11
+[2.3.0]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.5...v2.3.0
+[2.2.5]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.4...v2.2.5
+[2.2.4]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.3...v2.2.4
+[2.2.3]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.2...v2.2.3
+[2.2.2]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.1...v2.2.2
+[2.2.1]: https://github.com/ArcSeek-X/HermesX/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.14...v2.2.0
+[2.1.14]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.13...v2.1.14
+[2.1.13]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.12...v2.1.13
+[2.1.12]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.11...v2.1.12
+[2.1.11]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.10...v2.1.11
+[2.1.10]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.9...v2.1.10
+[2.1.9]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.8...v2.1.9
+[2.1.8]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.7...v2.1.8
+[2.1.7]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.6...v2.1.7
+[2.1.6]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.5...v2.1.6
+[2.1.5]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.4...v2.1.5
+[2.1.4]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.3...v2.1.4
+[2.1.3]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.2...v2.1.3
+[2.1.2]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/ArcSeek-X/HermesX/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/ArcSeek-X/HermesX/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.6.0...v2.0.0
+[1.6.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ArcSeek-X/HermesX/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/ArcSeek-X/HermesX/releases/tag/v1.0.0

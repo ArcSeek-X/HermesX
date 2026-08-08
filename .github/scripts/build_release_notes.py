@@ -189,7 +189,7 @@ def build(tag: str) -> str:
         [
             "",
             "### Full changelog",
-            f"https://github.com/ZhuLinsen/daily_stock_analysis/compare/{compare_from}...{tag}",
+            f"https://github.com/ArcSeek-X/HermesX/compare/{compare_from}...{tag}",
             "",
         ]
     )

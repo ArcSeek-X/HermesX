@@ -20,7 +20,7 @@ This document compiles common issues encountered by users and their solutions.
    ```
    This prioritizes Yahoo Finance data source for US stock data
 
-> Related Issue: [#153](https://github.com/ZhuLinsen/daily_stock_analysis/issues/153)
+> Related Issue: [#153](https://github.com/ArcSeek-X/HermesX/issues/153)
 
 ---
 
@@ -38,7 +38,7 @@ This document compiles common issues encountered by users and their solutions.
    ```
 3. System has built-in 5-day average volume calculation as fallback
 
-> Related Issue: [#155](https://github.com/ZhuLinsen/daily_stock_analysis/issues/155)
+> Related Issue: [#155](https://github.com/ArcSeek-X/HermesX/issues/155)
 
 ---
 
@@ -312,8 +312,8 @@ Work through the following 5 checkpoints in order:
 4. The desktop app has its own version in `apps/dsa-desktop/package.json`, and that only applies to the Electron desktop build, not the Docker image.
 
 **How to check your current Docker version**:
-1. **Check the image tag in your deploy command or Compose file**. For example, in `ghcr.io/zhulinsen/daily_stock_analysis:v3.12.0`, the deployed version is `v3.12.0`.
-2. **If you used `latest`**, check your original `docker pull`, `docker-compose.yml`, or deployment script, then compare with [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases).
+1. **Check the image tag in your deploy command or Compose file**. For example, in `ghcr.io/ArcSeek-X/HermesX:v3.12.0`, the deployed version is `v3.12.0`.
+2. **If you used `latest`**, check your original `docker pull`, `docker-compose.yml`, or deployment script, then compare with [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases).
 3. **If you only want to confirm the frontend was refreshed**, open WebUI → Settings and inspect `Build ID` / `Build Time`; that confirms static asset freshness, not the Docker release version.
 
 **Recommendation**: To avoid repeated updates, prefer a pinned version tag such as `v3.12.0` instead of relying on `latest`.
@@ -347,7 +347,7 @@ python main.py --market-only
 
 If the above content doesn't solve your issue, welcome to:
 1. Check [Complete Configuration Guide](full-guide_EN.md)
-2. Search or submit [GitHub Issue](https://github.com/ZhuLinsen/daily_stock_analysis/issues)
+2. Search or submit [GitHub Issue](https://github.com/ArcSeek-X/HermesX/issues)
 3. Check [Changelog](CHANGELOG.md) for latest fixes
 
 ---

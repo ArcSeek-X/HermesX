@@ -25,8 +25,8 @@ function resolveWindowBackgroundColor() {
 const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const appRootDev = path.resolve(__dirname, '..', '..');
-const GITHUB_OWNER = 'ZhuLinsen';
-const GITHUB_REPO = 'daily_stock_analysis';
+const GITHUB_OWNER = 'ArcSeek-X';
+const GITHUB_REPO = 'HermesX';
 const RELEASES_PAGE_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
