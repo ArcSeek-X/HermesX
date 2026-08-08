@@ -241,14 +241,6 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
 
 > Agent parameters, `skill` naming compatibility, multi-agent mode, and budget guards are covered in the [Full Guide](./full-guide_EN.md#local-webui-management-interface) and [LLM Config Guide](./LLM_CONFIG_GUIDE_EN.md).
 
-## 🧩 Related Projects
-
-> DSA focuses on daily analysis reports. These sibling projects cover stock screening, strategy validation, and strategy evolution for users who want to extend the workflow. They are maintained independently today, with candidate import, backtest validation, and report handoff planned as future integration directions.
-
-| Project | Focus |
-|---------|-------|
-| [AlphaSift](https://github.com/ZhuLinsen/alphasift) | Multi-factor stock screening and full-market scanning for building candidate watchlists |
-| [AlphaEvo](https://github.com/ZhuLinsen/alphaevo) | Strategy backtesting and self-evolution experiments for validating rules and iteratively exploring strategy parameters and combinations |
 
 ## 📞 Contact
 
@@ -276,7 +268,7 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
 
 ## 📄 License
 
-[MIT License](../LICENSE) © 2026 ZhuLinsen
+[MIT License](../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
 If you use or build on this project, attribution with a link back to this repository is appreciated.
 
