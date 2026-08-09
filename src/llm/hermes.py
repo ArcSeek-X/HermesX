@@ -16,7 +16,7 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 
 
 HERMES_CHANNEL_NAME = "hermes"
-HERMES_DEPLOYMENT_MARKER_KEY = "dsa_channel"
+HERMES_DEPLOYMENT_MARKER_KEY = "hrs_channel"
 HERMES_DEPLOYMENT_MARKER_VALUE = "hermes"
 HERMES_DEFAULT_PROTOCOL = "openai"
 HERMES_DEFAULT_BASE_URL = "http://127.0.0.1:8642/v1"
@@ -199,7 +199,7 @@ def canonicalize_hermes_base_url(base_url: str) -> str:
 
 
 def canonicalize_hermes_model_ref(raw_model: str) -> HermesModelRef:
-    """Return the canonical DSA route and LiteLLM wire model for Hermes.
+    """Return the canonical HRS route and LiteLLM wire model for Hermes.
 
     Hermes is OpenAI-compatible over local HTTP, so both route identity and
     outbound wire model use LiteLLM's openai/ namespace.  The display label is
@@ -375,7 +375,7 @@ def parse_hermes_channel(
 def hermes_model_info(display_model: str = "") -> Dict[str, str]:
     info = {HERMES_DEPLOYMENT_MARKER_KEY: HERMES_DEPLOYMENT_MARKER_VALUE}
     if display_model:
-        info["dsa_display_model"] = display_model
+        info["hrs_display_model"] = display_model
     return info
 
 

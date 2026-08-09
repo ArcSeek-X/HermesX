@@ -159,10 +159,10 @@ $packagedEntry = Join-Path 'dist\backend\stock_analysis' 'stock_analysis.exe'
 if (-not (Test-Path $packagedEntry)) {
   throw "Packaged backend entrypoint not found: $packagedEntry"
 }
-$previousProbe = $env:DSA_PACKAGED_IMPORT_PROBE
+$previousProbe = $env:HRS_PACKAGED_IMPORT_PROBE
 try {
   foreach ($module in @('alphasift.dsa_adapter', 'futu', 'orjson')) {
-    $env:DSA_PACKAGED_IMPORT_PROBE = $module
+    $env:HRS_PACKAGED_IMPORT_PROBE = $module
     $probeProcess = Start-Process -FilePath $packagedEntry -Wait -PassThru
     if ($probeProcess.ExitCode -ne 0) {
       throw "Packaged backend cannot import $module; probe exited with code $($probeProcess.ExitCode)."
@@ -170,9 +170,9 @@ try {
   }
 } finally {
   if ($null -eq $previousProbe) {
-    Remove-Item Env:DSA_PACKAGED_IMPORT_PROBE -ErrorAction SilentlyContinue
+    Remove-Item Env:HRS_PACKAGED_IMPORT_PROBE -ErrorAction SilentlyContinue
   } else {
-    $env:DSA_PACKAGED_IMPORT_PROBE = $previousProbe
+    $env:HRS_PACKAGED_IMPORT_PROBE = $previousProbe
   }
 }
 

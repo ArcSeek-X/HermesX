@@ -45,7 +45,7 @@ verify_unsigned_dmg() {
   local mounted_app=""
   local mounted=false
 
-  mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/dsa-unsigned-dmg.XXXXXX")"
+  mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/hrs-unsigned-dmg.XXXXXX")"
   cleanup_mount() {
     if [[ "${mounted}" == "true" ]]; then
       hdiutil detach "${mount_dir}" >/dev/null || true
@@ -78,7 +78,7 @@ if [[ ! -d "${ROOT_DIR}/dist/backend/stock_analysis" ]]; then
   exit 1
 fi
 
-pushd "${ROOT_DIR}/apps/dsa-desktop" >/dev/null
+pushd "${ROOT_DIR}/apps/hrs-desktop" >/dev/null
 
 package_lock_hash() {
   if command -v shasum >/dev/null 2>&1; then
@@ -97,11 +97,11 @@ install_desktop_dependencies() {
   echo "Installing desktop dependencies (${reason})..."
   npm install
   mkdir -p node_modules
-  package_lock_hash > node_modules/.dsa-package-lock.sha256
+  package_lock_hash > node_modules/.hrs-package-lock.sha256
 }
 
 ensure_desktop_dependencies() {
-  local marker="node_modules/.dsa-package-lock.sha256"
+  local marker="node_modules/.hrs-package-lock.sha256"
   local reason=""
 
   if [[ ! -d node_modules ]]; then
@@ -132,7 +132,7 @@ if compgen -G "dist/*.dmg" >/dev/null; then
   rm -f dist/*.dmg
 fi
 
-MAC_ARCH="${DSA_MAC_ARCH:-}"
+MAC_ARCH="${HRS_MAC_ARCH:-}"
 ARCH_ARGS=()
 if [[ -n "${MAC_ARCH}" ]]; then
   case "${MAC_ARCH}" in
@@ -140,7 +140,7 @@ if [[ -n "${MAC_ARCH}" ]]; then
       ARCH_ARGS+=("--${MAC_ARCH}")
       ;;
     *)
-      echo "Unsupported DSA_MAC_ARCH: ${MAC_ARCH}. Use x64 or arm64."
+      echo "Unsupported HRS_MAC_ARCH: ${MAC_ARCH}. Use x64 or arm64."
       exit 1
       ;;
   esac

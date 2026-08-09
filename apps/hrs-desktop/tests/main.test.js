@@ -15,7 +15,7 @@ function loadMainModule(t, options = {}) {
   const fakeApp = {
     isPackaged: false,
     getVersion: () => '3.12.0',
-    getPath: () => '/tmp/dsa-user-data',
+    getPath: () => '/tmp/hrs-user-data',
     whenReady: () => ({ then: () => undefined }),
     on: () => undefined,
     quit: () => undefined,
@@ -165,9 +165,9 @@ test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directori
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 
   const env = mainModule.buildBackendEnvironment({
-    envFile: '/tmp/dsa/.env',
-    dbPath: '/tmp/dsa/data.db',
-    logDir: '/tmp/dsa/logs',
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
     sourceEnv: {
       PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
       CUSTOM_FLAG: 'kept',
@@ -181,10 +181,10 @@ test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directori
   assert.ok(entries.includes('/opt/homebrew/sbin'));
   assert.ok(entries.includes('/usr/local/sbin'));
   assert.equal(env.CUSTOM_FLAG, 'kept');
-  assert.equal(env.DSA_DESKTOP_MODE, 'true');
-  assert.equal(env.ENV_FILE, '/tmp/dsa/.env');
-  assert.equal(env.DATABASE_PATH, '/tmp/dsa/data.db');
-  assert.equal(env.LOG_DIR, '/tmp/dsa/logs');
+  assert.equal(env.HRS_DESKTOP_MODE, 'true');
+  assert.equal(env.ENV_FILE, '/tmp/hrs/.env');
+  assert.equal(env.DATABASE_PATH, '/tmp/hrs/data.db');
+  assert.equal(env.LOG_DIR, '/tmp/hrs/logs');
   assert.equal(env.WEBUI_HOST, '127.0.0.1');
 });
 
@@ -192,9 +192,9 @@ test('buildBackendEnvironment keeps non-macOS PATH unchanged', (t) => {
   const mainModule = loadMainModule(t, { platform: 'linux' });
 
   const env = mainModule.buildBackendEnvironment({
-    envFile: '/tmp/dsa/.env',
-    dbPath: '/tmp/dsa/data.db',
-    logDir: '/tmp/dsa/logs',
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
     sourceEnv: {
       PATH: '/custom/bin:/usr/bin',
     },
@@ -207,9 +207,9 @@ test('buildBackendEnvironment pins WEBUI_PORT to the Electron-selected backend p
   const mainModule = loadMainModule(t, { platform: 'win32' });
 
   const env = mainModule.buildBackendEnvironment({
-    envFile: 'C:\\Users\\user\\AppData\\Roaming\\Daily Stock Analysis\\.env',
-    dbPath: 'C:\\Users\\user\\AppData\\Roaming\\Daily Stock Analysis\\data\\stock_analysis.db',
-    logDir: 'C:\\Users\\user\\AppData\\Roaming\\Daily Stock Analysis\\logs',
+    envFile: 'C:\\Users\\user\\AppData\\Roaming\\HermesX\\.env',
+    dbPath: 'C:\\Users\\user\\AppData\\Roaming\\HermesX\\data\\stock_analysis.db',
+    logDir: 'C:\\Users\\user\\AppData\\Roaming\\HermesX\\logs',
     port: 8000,
     sourceEnv: {
       PATH: 'C:\\Windows\\System32',
@@ -223,7 +223,7 @@ test('buildBackendEnvironment pins WEBUI_PORT to the Electron-selected backend p
 
 test('resolveBackendBindHost reads WEBUI_HOST from env file', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'WEBUI_HOST=0.0.0.0 # allow LAN\nWEBUI_PORT=8000\n', 'utf-8');
@@ -237,7 +237,7 @@ test('resolveBackendBindHost reads WEBUI_HOST from env file', (t) => {
 
 test('resolveBackendBindHost expands WEBUI_HOST dotenv references', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'BIND_HOST=0.0.0.0\nWEBUI_HOST=${BIND_HOST}\n', 'utf-8');
@@ -251,7 +251,7 @@ test('resolveBackendBindHost expands WEBUI_HOST dotenv references', (t) => {
 
 test('resolveBackendBindHost handles quoted WEBUI_HOST with inline comment', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'WEBUI_HOST="0.0.0.0" # allow LAN\n', 'utf-8');
@@ -265,7 +265,7 @@ test('resolveBackendBindHost handles quoted WEBUI_HOST with inline comment', (t)
 
 test('resolveBackendBindHost supports dotenv default expansion', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'WEBUI_HOST=${MISSING_HOST:-127.0.0.1}\n', 'utf-8');
@@ -279,7 +279,7 @@ test('resolveBackendBindHost supports dotenv default expansion', (t) => {
 
 test('resolveBackendBindHost keeps process WEBUI_HOST override ahead of env file', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'WEBUI_HOST=0.0.0.0\n', 'utf-8');
@@ -295,7 +295,7 @@ test('resolveBackendBindHost keeps process WEBUI_HOST override ahead of env file
 
 test('resolveBackendBindHost normalizes wildcard WEBUI_HOST values', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'WEBUI_HOST=*\n', 'utf-8');
@@ -315,15 +315,15 @@ test('resolveBackendBindHost normalizes wildcard WEBUI_HOST values', (t) => {
 
 test('buildBackendEnvironment injects env file WEBUI_HOST into backend process', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'BIND_HOST=0.0.0.0\nWEBUI_HOST=${BIND_HOST}\n', 'utf-8');
 
   const env = mainModule.buildBackendEnvironment({
     envFile: envPath,
-    dbPath: 'C:\\Users\\user\\AppData\\Roaming\\Daily Stock Analysis\\data\\stock_analysis.db',
-    logDir: 'C:\\Users\\user\\AppData\\Roaming\\Daily Stock Analysis\\logs',
+    dbPath: 'C:\\Users\\user\\AppData\\Roaming\\HermesX\\data\\stock_analysis.db',
+    logDir: 'C:\\Users\\user\\AppData\\Roaming\\HermesX\\logs',
     port: 8000,
     sourceEnv: {
       PATH: 'C:\\Windows\\System32',
@@ -338,17 +338,17 @@ test('buildBackendEnvironment normalizes wildcard host for backend env', (t) => 
   const mainModule = loadMainModule(t, { platform: 'win32' });
 
   const wildcardEnv = mainModule.buildBackendEnvironment({
-    envFile: '/tmp/dsa/.env',
-    dbPath: '/tmp/dsa/data.db',
-    logDir: '/tmp/dsa/logs',
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
     port: 8000,
     host: '*',
     sourceEnv: {},
   });
   const ipv6Env = mainModule.buildBackendEnvironment({
-    envFile: '/tmp/dsa/.env',
-    dbPath: '/tmp/dsa/data.db',
-    logDir: '/tmp/dsa/logs',
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
     port: 8001,
     host: '[::]',
     sourceEnv: {},
@@ -449,7 +449,7 @@ test('startBackend passes WEBUI_HOST from env file to backend args and env', (t)
       process.env.WEBUI_HOST = previousWebuiHost;
     }
   });
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-host-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-host-'));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const envPath = path.join(tmpDir, '.env');
   fs.writeFileSync(envPath, 'BIND_HOST=0.0.0.0\nWEBUI_HOST=${BIND_HOST}\n', 'utf-8');
@@ -640,13 +640,13 @@ test('fetchLatestReleaseJson rejects when response stream errors', async (t) => 
 
 test('auto download prompt falls back to error when install path fails', async (t) => {
   const updaterEvents = {};
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa desktop updater '));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs desktop updater '));
   const exeDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const exePath = path.join(exeDir, 'Daily Stock Analysis.exe');
-  const uninstallPath = path.join(exeDir, 'Uninstall Daily Stock Analysis.exe');
+  const exePath = path.join(exeDir, 'HermesX.exe');
+  const uninstallPath = path.join(exeDir, 'Uninstall HermesX.exe');
   const envFile = path.join(exeDir, '.env');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const originalRemove = fs.rmSync;
   let quitAndInstallArgs = null;
   const fakeUpdater = {
@@ -723,15 +723,15 @@ test('auto download prompt falls back to error when install path fails', async (
 
 test('auto update backup copies AlphaSift hotspot detail directories recursively', async (t) => {
   const updaterEvents = {};
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa desktop updater details '));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs desktop updater details '));
   const exeDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const exePath = path.join(exeDir, 'Daily Stock Analysis.exe');
-  const uninstallPath = path.join(exeDir, 'Uninstall Daily Stock Analysis.exe');
+  const exePath = path.join(exeDir, 'HermesX.exe');
+  const uninstallPath = path.join(exeDir, 'Uninstall HermesX.exe');
   const detailRelativePath = path.join('data', 'alphasift', 'hotspot_details');
   const detailFileRelativePath = path.join(detailRelativePath, 'ai-compute.json');
   const detailFile = path.join(exeDir, detailFileRelativePath);
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   let quitAndInstallArgs = null;
   const fakeUpdater = {
     autoDownload: true,
@@ -818,10 +818,10 @@ test('desktop update backup list preserves AlphaSift caches', (t) => {
 });
 
 test('desktop update backup and restore preserve generation and Agent backend env keys', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-env-backup-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-env-backup-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const envPath = path.join(appDir, '.env');
   const envContent = [
     'GENERATION_BACKEND=codex_cli',
@@ -835,7 +835,7 @@ test('desktop update backup and restore preserve generation and Agent backend en
 
   fs.mkdirSync(appDir, { recursive: true });
   fs.mkdirSync(userDataDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(path.join(appDir, 'Uninstall HermesX.exe'), '');
   fs.writeFileSync(envPath, envContent, 'utf-8');
 
   const mainModule = loadMainModule(t, {
@@ -844,7 +844,7 @@ test('desktop update backup and restore preserve generation and Agent backend en
       isPackaged: true,
       getPath: (name) => {
         if (name === 'exe') {
-          return path.join(appDir, 'Daily Stock Analysis.exe');
+          return path.join(appDir, 'HermesX.exe');
         }
         return userDataDir;
       },
@@ -873,10 +873,10 @@ test('desktop update backup and restore preserve generation and Agent backend en
 });
 
 test('desktop update backup and restore preserve AlphaSift detail directories recursively', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-dir-backup-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-dir-backup-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const detailRelativePath = path.join('data', 'alphasift', 'hotspot_details');
   const topicDetailPath = path.join(appDir, detailRelativePath, 'AI算力', 'detail.json');
   const nestedDetailPath = path.join(appDir, detailRelativePath, 'AI算力', 'events', 'latest.json');
@@ -884,7 +884,7 @@ test('desktop update backup and restore preserve AlphaSift detail directories re
 
   fs.mkdirSync(path.dirname(nestedDetailPath), { recursive: true });
   fs.mkdirSync(userDataDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(path.join(appDir, 'Uninstall HermesX.exe'), '');
   fs.writeFileSync(topicDetailPath, '{"topic":"AI算力"}\n', 'utf-8');
   fs.writeFileSync(nestedDetailPath, '{"events":1}\n', 'utf-8');
 
@@ -894,7 +894,7 @@ test('desktop update backup and restore preserve AlphaSift detail directories re
       isPackaged: true,
       getPath: (name) => {
         if (name === 'exe') {
-          return path.join(appDir, 'Daily Stock Analysis.exe');
+          return path.join(appDir, 'HermesX.exe');
         }
         return userDataDir;
       },
@@ -925,10 +925,10 @@ test('desktop update backup and restore preserve AlphaSift detail directories re
 });
 
 test('macOS packaged runtime state uses userData and migrates old app bundle files', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-macos-migrate-'));
-  const oldAppDir = path.join(tempRoot, 'Daily Stock Analysis.app', 'Contents', 'MacOS');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-macos-migrate-'));
+  const oldAppDir = path.join(tempRoot, 'HermesX.app', 'Contents', 'MacOS');
   const userDataDir = path.join(tempRoot, 'userData');
-  const exePath = path.join(oldAppDir, 'Daily Stock Analysis');
+  const exePath = path.join(oldAppDir, 'HermesX');
   const oldDbPath = path.join(oldAppDir, 'data', 'stock_analysis.db');
   const oldLogPath = path.join(oldAppDir, 'logs', 'desktop.log');
   const oldHotspotDetailPath = path.join(oldAppDir, 'data', 'alphasift', 'hotspot_details', 'AI算力', 'detail.json');
@@ -982,10 +982,10 @@ test('macOS packaged runtime state uses userData and migrates old app bundle fil
 });
 
 test('macOS runtime migration does not overwrite existing userData files', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-macos-skip-'));
-  const oldAppDir = path.join(tempRoot, 'Daily Stock Analysis.app', 'Contents', 'MacOS');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-macos-skip-'));
+  const oldAppDir = path.join(tempRoot, 'HermesX.app', 'Contents', 'MacOS');
   const userDataDir = path.join(tempRoot, 'userData');
-  const exePath = path.join(oldAppDir, 'Daily Stock Analysis');
+  const exePath = path.join(oldAppDir, 'HermesX');
 
   fs.mkdirSync(oldAppDir, { recursive: true });
   fs.mkdirSync(userDataDir, { recursive: true });
@@ -1018,14 +1018,14 @@ test('macOS runtime migration does not overwrite existing userData files', (t) =
 });
 
 test('restorePackagedRuntimeStateFromBackup keeps backup when copy fails', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-restore-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-restore-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const backupDbPath = path.join(backupRoot, 'data', 'stock_analysis.db');
   fs.mkdirSync(path.dirname(backupDbPath), { recursive: true });
   fs.mkdirSync(appDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(path.join(appDir, 'Uninstall HermesX.exe'), '');
   fs.writeFileSync(backupDbPath, 'backup-db');
   fs.writeFileSync(
     path.join(backupRoot, 'runtime-state.json'),
@@ -1039,7 +1039,7 @@ test('restorePackagedRuntimeStateFromBackup keeps backup when copy fails', (t) =
       isPackaged: true,
       getPath: (name) => {
         if (name === 'exe') {
-          return path.join(appDir, 'Daily Stock Analysis.exe');
+          return path.join(appDir, 'HermesX.exe');
         }
         return userDataDir;
       },
@@ -1071,10 +1071,10 @@ test('restorePackagedRuntimeStateFromBackup keeps backup when copy fails', (t) =
 });
 
 test('restorePackagedRuntimeStateFromBackup removes restored files from pending manifest', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-partial-restore-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-partial-restore-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const backupEnvPath = path.join(backupRoot, '.env');
   const backupDbPath = path.join(backupRoot, 'data', 'stock_analysis.db');
   const targetEnvPath = path.join(appDir, '.env');
@@ -1083,7 +1083,7 @@ test('restorePackagedRuntimeStateFromBackup removes restored files from pending 
 
   fs.mkdirSync(path.dirname(backupDbPath), { recursive: true });
   fs.mkdirSync(appDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(path.join(appDir, 'Uninstall HermesX.exe'), '');
   fs.writeFileSync(backupEnvPath, 'backup-env\n', 'utf-8');
   fs.writeFileSync(backupDbPath, 'backup-db');
   fs.writeFileSync(targetEnvPath, 'current-env\n', 'utf-8');
@@ -1099,7 +1099,7 @@ test('restorePackagedRuntimeStateFromBackup removes restored files from pending 
       isPackaged: true,
       getPath: (name) => {
         if (name === 'exe') {
-          return path.join(appDir, 'Daily Stock Analysis.exe');
+          return path.join(appDir, 'HermesX.exe');
         }
         return userDataDir;
       },
@@ -1134,17 +1134,17 @@ test('restorePackagedRuntimeStateFromBackup removes restored files from pending 
 });
 
 test('restorePackagedRuntimeStateFromBackup skips backup when app version did not change', (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-same-version-restore-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-same-version-restore-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const backupEnvPath = path.join(backupRoot, '.env');
   const targetEnvPath = path.join(appDir, '.env');
   const manifestPath = path.join(backupRoot, 'runtime-state.json');
 
   fs.mkdirSync(backupRoot, { recursive: true });
   fs.mkdirSync(appDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(path.join(appDir, 'Uninstall HermesX.exe'), '');
   fs.writeFileSync(backupEnvPath, 'pre-update-env\n', 'utf-8');
   fs.writeFileSync(targetEnvPath, 'user-change-after-aborted-install\n', 'utf-8');
   fs.writeFileSync(
@@ -1159,7 +1159,7 @@ test('restorePackagedRuntimeStateFromBackup skips backup when app version did no
       isPackaged: true,
       getPath: (name) => {
         if (name === 'exe') {
-          return path.join(appDir, 'Daily Stock Analysis.exe');
+          return path.join(appDir, 'HermesX.exe');
         }
         return userDataDir;
       },
@@ -1181,18 +1181,18 @@ test('restorePackagedRuntimeStateFromBackup skips backup when app version did no
 });
 
 test('createWindow startup path does not throw ReferenceError after restore result handling', async (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-startup-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hrs-desktop-startup-'));
   const appDir = path.join(tempRoot, 'app');
   const userDataDir = path.join(tempRoot, 'userData');
-  const exePath = path.join(appDir, 'Daily Stock Analysis.exe');
-  const uninstallPath = path.join(appDir, 'Uninstall Daily Stock Analysis.exe');
+  const exePath = path.join(appDir, 'HermesX.exe');
+  const uninstallPath = path.join(appDir, 'Uninstall HermesX.exe');
   const loadedFiles = [];
   const loadedUrls = [];
   let startupError;
   let updateCheckRequested = false;
   const originalResourcesPathDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
   const resourcesPath = path.join(tempRoot, 'resources');
-  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const backupRoot = path.join(userDataDir, '.hrs-desktop-update-backup');
   const manifestPath = path.join(backupRoot, 'runtime-state.json');
 
   function fakeBrowserWindow() {

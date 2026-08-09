@@ -19,7 +19,7 @@ PAGE_MARKER_SAFE_LEN = 13   # "\n\n📄 9999/9999"
 MIN_MAX_WORDS = 10
 MIN_MAX_BYTES = 40
 FENCED_CODE_BLOCK_RE = re.compile(r"(^```[^\n]*\n.*?^```[ \t]*$)", re.MULTILINE | re.DOTALL)
-FENCED_CODE_BLOCK_PLACEHOLDER = "@@DSA_FENCED_CODE_BLOCK_{}@@"
+FENCED_CODE_BLOCK_PLACEHOLDER = "@@HRS_FENCED_CODE_BLOCK_{}@@"
 
 # Unicode code point ranges for special characters.
 _SPECIAL_CHAR_RANGE = (0x10000, 0xFFFFF)
@@ -861,14 +861,14 @@ def _escape_telegram_non_link_markdown_chars(content: str) -> str:
 
     def _save_link(match: re.Match) -> str:
         links.append(match.group(0))
-        return f"@@DSA_TELEGRAM_LINK_{len(links) - 1}@@"
+        return f"@@HRS_TELEGRAM_LINK_{len(links) - 1}@@"
 
     result = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', _save_link, content)
     for char in ("[", "]", "(", ")"):
         result = result.replace(char, f"\\{char}")
 
     for index, link in enumerate(links):
-        result = result.replace(f"@@DSA_TELEGRAM_LINK_{index}@@", link)
+        result = result.replace(f"@@HRS_TELEGRAM_LINK_{index}@@", link)
     return result
 
 

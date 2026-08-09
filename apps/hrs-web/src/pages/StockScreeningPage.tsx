@@ -1,7 +1,7 @@
 /**
  * @file StockScreeningPage.tsx
  * @description AlphaSift 选股页面，提供基于 AlphaSift 适配层的智能选股功能。
- *              支持多策略选股、热点题材浏览、候选股票详情查看，并通过 DSA 数据
+ *              支持多策略选股、热点题材浏览、候选股票详情查看，并通过 HRS 数据
  *              增强候选股票的行情、基本面和新闻上下文。
  * @module pages
  *
@@ -60,7 +60,7 @@ import { usePreference } from '../hooks/usePreference';
 /** 可选市场列表（当前仅支持 A 股） */
 const MARKETS = [{ id: 'cn', label: 'A 股' }];
 /** sessionStorage 中持久化选股任务的键名，用于刷新页面后恢复轮询 */
-const SCREEN_TASK_STORAGE_KEY = 'dsa.alphasift.activeScreenTask.v1';
+const SCREEN_TASK_STORAGE_KEY = 'hrs.alphasift.activeScreenTask.v1';
 /** 选股任务状态轮询间隔：2 秒 */
 const SCREEN_TASK_POLL_INTERVAL_MS = 2000;
 
@@ -312,7 +312,7 @@ const normalizeScreenMessageKey = (value: string) => {
  * @returns 格式化后的中文提示；无意义消息返回空字符串
  */
 const formatScreenMessage = (value: string) => {
-  if (/^DSA provider context applied \d+ of \d+ candidates/i.test(value)) {
+  if (/^HRS provider context applied \d+ of \d+ candidates/i.test(value)) {
     return '';
   }
   if (/^LLM ranking failed/i.test(value)) {
@@ -1108,7 +1108,7 @@ const StockScreeningPage: React.FC = () => {
           </span>
           <div>
             <h1 className="text-2xl font-bold tracking-normal text-foreground">AlphaSift 选股</h1>
-            <p className="mt-1 text-sm text-secondary-text">开启后通过内置 AlphaSift 适配层生成候选股票，并补充 DSA 数据与新闻</p>
+            <p className="mt-1 text-sm text-secondary-text">开启后通过内置 AlphaSift 适配层生成候选股票，并补充 HRS 数据与新闻</p>
           </div>
         </div>
 
@@ -1397,7 +1397,7 @@ const StockScreeningPage: React.FC = () => {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-foreground">选择策略</h2>
-            <p className="mt-1 text-xs text-secondary-text">策略来自 AlphaSift；DSA 会对候选补充行情、基本面和新闻上下文。</p>
+            <p className="mt-1 text-xs text-secondary-text">策略来自 AlphaSift；HRS 会对候选补充行情、基本面和新闻上下文。</p>
           </div>
           <span className="rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-xs font-semibold text-cyan">
             {selectedStrategyTag}
@@ -1531,7 +1531,7 @@ const StockScreeningPage: React.FC = () => {
               {screenMeta?.llmCoverage != null ? ` · 覆盖 ${formatPercent(screenMeta.llmCoverage)}` : ''}
             </span>
             <span>
-              DSA增强：{screenMeta?.dsaEnrichment?.enrichedCount ?? '-'} / {screenMeta?.dsaEnrichment?.requestedCount ?? '-'}
+              HRS增强：{screenMeta?.hrsEnrichment?.enrichedCount ?? '-'} / {screenMeta?.hrsEnrichment?.requestedCount ?? '-'}
             </span>
           </div>
         </div>
@@ -1550,7 +1550,7 @@ const StockScreeningPage: React.FC = () => {
           <div>
             <h2 className="text-base font-semibold text-foreground">选股结果</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary-text">
-              AlphaSift 返回候选后，DSA 会对前几名补充行情、基本面、新闻和辅助摘要。
+              AlphaSift 返回候选后，HRS 会对前几名补充行情、基本面、新闻和辅助摘要。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs text-secondary-text">
@@ -1590,8 +1590,8 @@ const StockScreeningPage: React.FC = () => {
                     llmDegraded && !llmInsightAvailable
                       ? '本次 LLM 重排失败或未返回判断，当前展示的是本地因子评分结果。'
                       : '暂无 LLM 判断';
-                  const dsaWarnings = item.dsaContext?.warnings || [];
-                  const dsaNews = item.dsaNews || [];
+                  const hrsWarnings = item.hrsContext?.warnings || [];
+                  const hrsNews = item.hrsNews || [];
                   return (
                     <Fragment key={`${item.rank}-${item.code}`}>
                       <tr className="border-t border-border align-top transition-colors hover:bg-hover/50">
@@ -1631,10 +1631,10 @@ const StockScreeningPage: React.FC = () => {
                                   <p className="text-xs font-semibold text-secondary-text">操作信号</p>
                                   <p className="mt-1 text-sm text-foreground">{getSignal(item)}</p>
                                 </div>
-                                {item.dsaAnalysisSummary ? (
+                                {item.hrsAnalysisSummary ? (
                                   <div>
-                                    <p className="text-xs font-semibold text-secondary-text">DSA 增强摘要</p>
-                                    <p className="mt-1 text-sm leading-6 text-foreground">{item.dsaAnalysisSummary}</p>
+                                    <p className="text-xs font-semibold text-secondary-text">HRS 增强摘要</p>
+                                    <p className="mt-1 text-sm leading-6 text-foreground">{item.hrsAnalysisSummary}</p>
                                   </div>
                                 ) : null}
                                 <div>
@@ -1692,11 +1692,11 @@ const StockScreeningPage: React.FC = () => {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-semibold text-secondary-text">DSA 新闻</p>
-                                  {dsaNews.length > 0 ? (
+                                  <p className="text-xs font-semibold text-secondary-text">HRS 新闻</p>
+                                  {hrsNews.length > 0 ? (
                                     <ul className="mt-1 space-y-1 text-sm text-foreground">
-                                      {dsaNews.slice(0, 3).map((newsItem, newsIndex) => (
-                                        <li key={`${item.code}-dsa-news-${newsIndex}`}>
+                                      {hrsNews.slice(0, 3).map((newsItem, newsIndex) => (
+                                        <li key={`${item.code}-hrs-news-${newsIndex}`}>
                                           {newsItem.title || newsItem.snippet || '-'}
                                         </li>
                                       ))}
@@ -1705,10 +1705,10 @@ const StockScreeningPage: React.FC = () => {
                                     <p className="mt-1 text-sm text-secondary-text">无</p>
                                   )}
                                 </div>
-                                {dsaWarnings.length > 0 ? (
+                                {hrsWarnings.length > 0 ? (
                                   <div>
-                                    <p className="text-xs font-semibold text-secondary-text">DSA 增强提示</p>
-                                    <p className="mt-1 text-sm text-secondary-text">{dsaWarnings.join('，')}</p>
+                                    <p className="text-xs font-semibold text-secondary-text">HRS 增强提示</p>
+                                    <p className="mt-1 text-sm text-secondary-text">{hrsWarnings.join('，')}</p>
                                   </div>
                                 ) : null}
                               </div>

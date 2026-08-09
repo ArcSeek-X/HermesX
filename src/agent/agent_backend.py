@@ -94,7 +94,7 @@ class AgentBackend(ABC):
 
 
 class LiteLLMAgentBackend(AgentBackend):
-    """Thin wrapper around the existing DSA-owned ``run_agent_loop``."""
+    """Thin wrapper around the existing HRS-owned ``run_agent_loop``."""
 
     backend_id = "litellm"
     runtime_owns_loop = False

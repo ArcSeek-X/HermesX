@@ -996,7 +996,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
             llm_temperature=0.0,
@@ -1050,7 +1050,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "saved-secret-token",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
             llm_temperature=0.0,
@@ -1087,7 +1087,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "saved-secret-token",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
             generation_backend="litellm",
@@ -1135,7 +1135,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 },
                 {
                     "model_name": "shared-route",
@@ -1172,7 +1172,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 },
                 {
                     "model_name": "openai/shared-route",
@@ -1209,7 +1209,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 },
                 {
                     "model_name": "shared-route",
@@ -1247,7 +1247,7 @@ class TestAnalyzerGenerateText:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 },
                 {
                     "model_name": "openai/shared-route",

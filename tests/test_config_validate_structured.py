@@ -599,7 +599,7 @@ class TestValidateStructuredNotification:
         assert any(i.severity == "warning" and "通知渠道" in i.message for i in issues)
 
     def test_ntfy_topic_endpoint_counts_as_notification_channel(self):
-        cfg = _make_config(wechat_webhook_url=None, ntfy_url="https://ntfy.sh/dsa-topic")
+        cfg = _make_config(wechat_webhook_url=None, ntfy_url="https://ntfy.sh/hrs-topic")
         issues = cfg.validate_structured()
 
         assert not any(i.field == "NTFY_URL" for i in issues)

@@ -26,7 +26,7 @@ class PreparedAgentChatTurn:
 
 
 class AgentChatExecutor:
-    """Prepare one DSA Chat request and delegate only execution to a backend."""
+    """Prepare one HRS Chat request and delegate only execution to a backend."""
 
     def __init__(
         self,

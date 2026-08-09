@@ -1529,7 +1529,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         astrbot_complete = next(check for check in status["checks"] if check["key"] == "notification")
         self.assertEqual(astrbot_complete["status"], "configured")
 
-        self._rewrite_env(*base_lines, "NTFY_URL=https://ntfy.sh/dsa-topic")
+        self._rewrite_env(*base_lines, "NTFY_URL=https://ntfy.sh/hrs-topic")
         with patch.dict(os.environ, {}, clear=True):
             status = self.service.get_setup_status()
         ntfy_complete = next(check for check in status["checks"] if check["key"] == "notification")
@@ -3538,7 +3538,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     @patch("litellm.completion")
     def test_test_llm_channel_runs_json_and_tools_capability_checks(self, mock_completion) -> None:
-        tool_call = SimpleNamespace(function=SimpleNamespace(name="dsa_probe_echo"))
+        tool_call = SimpleNamespace(function=SimpleNamespace(name="hrs_probe_echo"))
         mock_completion.side_effect = [
             self._mock_completion_response("OK"),
             self._mock_completion_response('{"status":"ok"}'),
@@ -3560,7 +3560,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(payload["capability_results"]["tools"]["status"], "passed")
         self.assertEqual(mock_completion.call_count, 3)
         self.assertEqual(mock_completion.call_args_list[1].kwargs["response_format"], {"type": "json_object"})
-        self.assertEqual(mock_completion.call_args_list[2].kwargs["tool_choice"]["function"]["name"], "dsa_probe_echo")
+        self.assertEqual(mock_completion.call_args_list[2].kwargs["tool_choice"]["function"]["name"], "hrs_probe_echo")
 
     @patch("litellm.completion")
     def test_test_llm_channel_json_capability_ignores_minimax_reasoning_blocks(self, mock_completion) -> None:

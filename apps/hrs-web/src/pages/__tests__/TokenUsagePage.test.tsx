@@ -107,7 +107,7 @@ function renderPage() {
 // 每个用例前：清空 localStorage、默认中文环境、清空 mock 记录，并让 get 默认返回月维度数据
 beforeEach(() => {
   window.localStorage.clear();
-  window.localStorage.setItem('dsa.uiLanguage', 'zh');
+  window.localStorage.setItem('hrs.uiLanguage', 'zh');
   vi.clearAllMocks();
   get.mockResolvedValue({ data: dashboardResponse });
 });
@@ -133,7 +133,7 @@ describe('TokenUsagePage', () => {
 
   // 用例 2：英文环境下渲染英文文案，且不应出现中文标题
   it('renders English copy when the UI language is English', async () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'en');
+    window.localStorage.setItem('hrs.uiLanguage', 'en');
 
     renderPage();
 

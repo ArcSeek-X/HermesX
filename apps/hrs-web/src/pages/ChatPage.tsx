@@ -372,7 +372,7 @@ const ChatPage: React.FC = () => {
   // Set page title
   // 设置页面标题
   useEffect(() => {
-    document.title = '问股 - DSA';
+    document.title = '问股 - HRS';
   }, []);
 
   // 标记组件已挂载，卸载时标记为 false

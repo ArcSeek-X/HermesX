@@ -307,7 +307,7 @@ const LoginPage: React.FC = () => {
           transition={{ delay: 0.6 }}
           className="mt-8 text-center font-mono text-xs uppercase tracking-wider text-[var(--login-text-muted)]"
         >
-          Secure Connection Established via DSA-V3-TLS
+          Secure Connection Established via HRS-V3-TLS
         </motion.p>
       </div>
 

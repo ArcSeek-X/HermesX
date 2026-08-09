@@ -15,7 +15,7 @@ const ALPHASIFT_INSTALL_TIMEOUT_MS = 300000;
 /** AlphaSift 配置变更事件名 */
 export const ALPHASIFT_CONFIG_CHANGED_EVENT = 'alphasift-config-changed';
 /** 系统配置变更事件名 */
-export const SYSTEM_CONFIG_CHANGED_EVENT = 'dsa-system-config-changed';
+export const SYSTEM_CONFIG_CHANGED_EVENT = 'hrs-system-config-changed';
 
 /** AlphaSift 整体状态 */
 export type AlphaSiftStatus = {
@@ -62,7 +62,7 @@ export type AlphaSiftCandidate = {
   factorScores?: Record<string, number>;
   postAnalysisSummaries?: Record<string, string>;
   postAnalysisTags?: string[];
-  dsaContext?: {
+  hrsContext?: {
     enriched?: boolean;
     quote?: Record<string, unknown>;
     fundamentals?: Record<string, unknown>;
@@ -75,14 +75,14 @@ export type AlphaSiftCandidate = {
     };
     warnings?: string[];
   };
-  dsaNews?: Array<{
+  hrsNews?: Array<{
     title?: string;
     snippet?: string;
     url?: string;
     source?: string;
     publishedDate?: string | null;
   }>;
-  dsaAnalysisSummary?: string;
+  hrsAnalysisSummary?: string;
   raw: Record<string, unknown>;
 };
 
@@ -211,7 +211,7 @@ export type AlphaSiftScreenResponse = {
   llmParseErrors?: string[];
   warnings?: string[];
   sourceErrors?: string[];
-  dsaEnrichment?: {
+  hrsEnrichment?: {
     enabled?: boolean;
     maxCandidates?: number;
     requestedCount?: number;

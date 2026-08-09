@@ -96,7 +96,7 @@ export const resolveAppRevision = ({
 )
 
 const releaseVersion = normalizeVersion(
-  process.env.DSA_WEB_VERSION
+  process.env.HRS_WEB_VERSION
   || process.env.RELEASE_TAG
   || (process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : ''),
 )
@@ -107,14 +107,14 @@ const appVersion = releaseVersion
   || gitDescription
   || placeholderVersion
 const appRevision = resolveAppRevision({
-  explicitRevision: process.env.DSA_WEB_REVISION,
+  explicitRevision: process.env.HRS_WEB_REVISION,
   checkedOutRevision: runGit(['rev-parse', '--short=12', 'HEAD']),
   workflowRevision: process.env.GITHUB_SHA,
 })
 const sourceFingerprint = createSourceFingerprint()
 
 const buildMetadataPlugin = (): Plugin => ({
-  name: 'dsa-build-metadata',
+  name: 'hrs-build-metadata',
   generateBundle() {
     this.emitFile({
       type: 'asset',

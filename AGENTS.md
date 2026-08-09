@@ -9,7 +9,7 @@
 - 遵循现有目录边界：
   - 后端逻辑优先放在 `src/`、`data_provider/`、`api/`、`bot/`
   - Web 前端改动在 `apps/hrs-web/`
-  - 桌面端改动在 `apps/dsa-desktop/`
+  - 桌面端改动在 `apps/hrs-desktop/`
   - 部署与流水线改动在 `scripts/`、`.github/workflows/`、`docker/`
 - 未经明确确认，不执行 `git commit`、`git tag`、`git push`。
 - commit message 使用英文，不添加 `Co-Authored-By`。
@@ -63,7 +63,7 @@ python scripts/check_ai_assets.py
   - `main.py`：分析任务主入口
   - `server.py`：FastAPI 服务入口
   - `apps/hrs-web/`：Web 前端
-  - `apps/dsa-desktop/`：Electron 桌面端
+  - `apps/hrs-desktop/`：Electron 桌面端
   - `.github/workflows/`：CI、发布、每日任务
 - 核心职责：
   - `src/core/`：主流程编排
@@ -113,7 +113,7 @@ npm ci
 npm run lint
 npm run build
 
-cd ../dsa-desktop
+cd ../hrs-desktop
 npm install
 npm run build
 ```
@@ -174,12 +174,12 @@ gh run view <run_id> --log-failed
   - 若涉及 API 联调、路由、状态管理、Markdown/图表渲染或认证状态，交付说明中要明确说明联动面和未覆盖风险。
 
 - 桌面端改动：
-  - 适用范围：`apps/dsa-desktop/`、`scripts/run-desktop.ps1`、`scripts/build-desktop*.ps1`、`scripts/build-*.sh`、`docs/desktop-package.md`
+  - 适用范围：`apps/hrs-desktop/`、`scripts/run-desktop.ps1`、`scripts/build-desktop*.ps1`、`scripts/build-*.sh`、`docs/desktop-package.md`
   - 默认执行：先构建 Web，再构建桌面端
   - 如受平台限制未能完整验证，需要明确说明是否验证了 Web 构建产物、Electron 构建以及 Release 工作流影响。
 
 - API / Schema / 认证联动改动：
-  - 适用范围：`api/**`、`src/schemas/**`、`src/services/**`、`apps/hrs-web/**`、`apps/dsa-desktop/**`
+  - 适用范围：`api/**`、`src/schemas/**`、`src/services/**`、`apps/hrs-web/**`、`apps/hrs-desktop/**`
   - 至少覆盖对应后端验证 + 受影响客户端构建验证。
   - 若涉及登录、Cookie、会话、轮询状态、字段增删或枚举变化，必须明确写出兼容性影响。
 

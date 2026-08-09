@@ -1,6 +1,6 @@
-# ===================================
-# Daily Stock Analysis - dependencies
-# ===================================
+# ===============================================
+# HermesX（赫尔墨斯）- FOR AI交易量化 - dependencies
+# ===============================================
 
 # Core dependencies
 python-dotenv>=1.0.0        # Environment variable configuration

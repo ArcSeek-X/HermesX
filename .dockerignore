@@ -42,7 +42,7 @@ docs/
 !README.md
 
 # 忽略不参与 Docker 镜像构建的前端/桌面端产物
-apps/dsa-desktop/
+apps/hrs-desktop/
 node_modules/
 dist/
 build/

@@ -36,12 +36,12 @@ def test_windows_backend_build_script_collects_alphasift_adapter() -> None:
     assert "alphasift.dsa_adapter" in script
     assert "hiddenImports" in script
     assert "Verifying packaged runtime imports" in script
-    assert "DSA_PACKAGED_IMPORT_PROBE" in script
+    assert "HRS_PACKAGED_IMPORT_PROBE" in script
     assert "Start-Process -FilePath $packagedEntry -Wait -PassThru" in script
     assert "$probeProcess.ExitCode" in script
     assert "& $packagedEntry" not in script
     assert "Packaged backend cannot import $module" in script
-    assert "DSA_PACKAGED_IMPORT_PROBE" in main_py
+    assert "HRS_PACKAGED_IMPORT_PROBE" in main_py
     assert "importlib.import_module(_packaged_import_probe)" in main_py
 
 
@@ -55,21 +55,21 @@ def test_macos_backend_build_script_collects_alphasift_adapter() -> None:
     assert "cmd+=(\"--collect-all\" \"alphasift\")" in script
     assert "packaged_entry=\"${packaged_root}/stock_analysis\"" in script
     assert "--help" in script
-    assert 'DSA_PACKAGED_IMPORT_PROBE="${module}"' in script
-    assert "dsa-packaged-import.log" in script
+    assert 'HRS_PACKAGED_IMPORT_PROBE="${module}"' in script
+    assert "hrs-packaged-import.log" in script
     assert "PathFinder.find_spec(" not in script
     assert "zipfile" not in script
-    assert 'normalized.startswith("alphasift/dsa_adapter.")' not in script
-    assert "DSA_PACKAGED_IMPORT_PROBE" in main_py
+    assert 'normalized.startswith("alphasift/hrs_adapter.")' not in script
+    assert "HRS_PACKAGED_IMPORT_PROBE" in main_py
     assert "importlib.import_module(_packaged_import_probe)" in main_py
 
 
 def test_macos_unsigned_packaging_contract_is_explicit() -> None:
     package = json.loads(
-        _read_text(REPO_ROOT / "apps" / "dsa-desktop" / "package.json")
+        _read_text(REPO_ROOT / "apps" / "hrs-desktop" / "package.json")
     )
     after_pack_hook = _read_text(
-        REPO_ROOT / "apps" / "dsa-desktop" / "scripts" / "afterPackMacos.js"
+        REPO_ROOT / "apps" / "hrs-desktop" / "scripts" / "afterPackMacos.js"
     )
     backend_script = _read_text(REPO_ROOT / "scripts" / "build-backend-macos.sh")
     desktop_script = _read_text(REPO_ROOT / "scripts" / "build-desktop-macos.sh")

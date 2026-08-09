@@ -956,7 +956,7 @@ class TestNtfySender(unittest.TestCase):
     def test_send_success_uses_json_publish_with_topic_endpoint(self, mock_post):
         mock_post.return_value = _response(200)
         cfg = _config(
-            ntfy_url="https://ntfy.sh/dsa-topic",
+            ntfy_url="https://ntfy.sh/hrs-topic",
             ntfy_token="secret-token",
             webhook_verify_ssl=False,
         )
@@ -971,7 +971,7 @@ class TestNtfySender(unittest.TestCase):
         self.assertEqual(
             call_kw["json"],
             {
-                "topic": "dsa-topic",
+                "topic": "hrs-topic",
                 "title": "中文标题",
                 "message": "正文 **Markdown**",
                 "markdown": True,
@@ -984,14 +984,14 @@ class TestNtfySender(unittest.TestCase):
     @mock.patch("src.notification_sender.ntfy_sender.requests.post")
     def test_send_supports_self_hosted_path_prefix(self, mock_post):
         mock_post.return_value = _response(200)
-        cfg = _config(ntfy_url="https://example.com/ntfy/dsa-topic")
+        cfg = _config(ntfy_url="https://example.com/ntfy/hrs-topic")
         sender = NtfySender(cfg)
 
         result = sender.send_to_ntfy("body", title="title")
 
         self.assertTrue(result)
         self.assertEqual(mock_post.call_args.args[0], "https://example.com/ntfy")
-        self.assertEqual(mock_post.call_args.kwargs["json"]["topic"], "dsa-topic")
+        self.assertEqual(mock_post.call_args.kwargs["json"]["topic"], "hrs-topic")
 
     @mock.patch("src.notification_sender.ntfy_sender.requests.post")
     def test_send_returns_false_when_url_has_no_topic(self, mock_post):
@@ -1005,7 +1005,7 @@ class TestNtfySender(unittest.TestCase):
 
     @mock.patch("src.notification_sender.ntfy_sender.requests.post")
     def test_send_returns_false_when_url_scheme_is_not_http(self, mock_post):
-        cfg = _config(ntfy_url="ftp://ntfy.example/dsa-topic")
+        cfg = _config(ntfy_url="ftp://ntfy.example/hrs-topic")
         sender = NtfySender(cfg)
 
         result = sender.send_to_ntfy("body")
@@ -1016,7 +1016,7 @@ class TestNtfySender(unittest.TestCase):
     @mock.patch("src.notification_sender.ntfy_sender.requests.post")
     def test_send_http_error_returns_false(self, mock_post):
         mock_post.return_value = _response(500)
-        cfg = _config(ntfy_url="https://ntfy.sh/dsa-topic")
+        cfg = _config(ntfy_url="https://ntfy.sh/hrs-topic")
         sender = NtfySender(cfg)
 
         result = sender.send_to_ntfy("body")
@@ -1026,7 +1026,7 @@ class TestNtfySender(unittest.TestCase):
     @mock.patch("src.notification_sender.ntfy_sender.requests.post")
     def test_send_timeout_does_not_log_token_value(self, mock_post):
         mock_post.side_effect = requests.exceptions.Timeout("secret-token")
-        cfg = _config(ntfy_url="https://ntfy.sh/dsa-topic", ntfy_token="secret-token")
+        cfg = _config(ntfy_url="https://ntfy.sh/hrs-topic", ntfy_token="secret-token")
         sender = NtfySender(cfg)
 
         with self.assertLogs("src.notification_sender.ntfy_sender", level="ERROR") as captured:

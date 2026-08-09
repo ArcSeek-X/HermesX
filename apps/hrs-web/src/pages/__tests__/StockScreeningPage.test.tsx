@@ -311,7 +311,7 @@ describe('StockScreeningPage', () => {
     getHotspots.mockResolvedValueOnce({
       enabled: true,
       provider: 'akshare',
-      providerUsed: 'DsaEastMoneyHotspotProvider',
+      providerUsed: 'HrsEastMoneyHotspotProvider',
       hotspots: [],
       hotspotCount: 0,
       sourceErrors: ['eastmoney_hotspot_unavailable', "RemoteDisconnected('Remote end closed connection without response')"],
@@ -940,7 +940,7 @@ describe('StockScreeningPage', () => {
 
     // 选股运行中，且进行中任务 id 已写入 sessionStorage（用于跨 remount 恢复）
     expect(await screen.findByText('选股运行中')).toBeInTheDocument();
-    expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
+    expect(window.sessionStorage.getItem('hrs.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
 
     // 卸载并重新挂载页面，模拟用户离开后返回
     firstRender.unmount();
@@ -949,7 +949,7 @@ describe('StockScreeningPage', () => {
     // 断言：从 sessionStorage 恢复出候选结果，完成后 sessionStorage 任务记录被清理
     expect(await screen.findByText('恢复后的候选')).toBeInTheDocument();
     expect(screen.getByText('选股完成')).toBeInTheDocument();
-    expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toBeNull();
+    expect(window.sessionStorage.getItem('hrs.alphasift.activeScreenTask.v1')).toBeNull();
   });
 
   // 用例 15：从 sessionStorage 恢复进行中任务后，若状态轮询超时（ECONNABORTED），
@@ -960,7 +960,7 @@ describe('StockScreeningPage', () => {
       available: true,
       installSpecIsDefault: true,
     });
-    window.sessionStorage.setItem('dsa.alphasift.activeScreenTask.v1', JSON.stringify({
+    window.sessionStorage.setItem('hrs.alphasift.activeScreenTask.v1', JSON.stringify({
       taskId: 'screen-task-1',
       market: 'cn',
       strategy: 'dual_low',
@@ -977,7 +977,7 @@ describe('StockScreeningPage', () => {
     expect(screen.getByText('选股运行中')).toBeInTheDocument();
     expect(screen.getByText('选股任务仍在后台运行，状态轮询暂时超时，将自动重试。')).toBeInTheDocument();
     expect(screen.queryByText(/连接上游服务超时/)).not.toBeInTheDocument();
-    expect(window.sessionStorage.getItem('dsa.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
+    expect(window.sessionStorage.getItem('hrs.alphasift.activeScreenTask.v1')).toContain('screen-task-1');
   });
 
   // 用例 16：LLM 重排失败降级时，应明确展示「LLM 已降级 / 未重排」提示与原因，
@@ -1105,9 +1105,9 @@ describe('StockScreeningPage', () => {
     expect(screen.queryByText(/RemoteDisconnected/)).not.toBeInTheDocument();
   });
 
-  // 用例 19：展示 DSA 增强结果——行情摘要、新闻、增强计数元数据；
-  // 当 DSA 新闻不可用时也应展示对应提示
-  it('shows DSA enrichment summary, news, and enrichment metadata', async () => {
+  // 用例 19：展示 HRS 增强结果——行情摘要、新闻、增强计数元数据；
+  // 当 HRS 新闻不可用时也应展示对应提示
+  it('shows HRS enrichment summary, news, and enrichment metadata', async () => {
     getAlphaSiftStatus.mockResolvedValueOnce({
       enabled: true,
       available: true,
@@ -1122,9 +1122,9 @@ describe('StockScreeningPage', () => {
           name: '贵州茅台',
           score: 91.2,
           reason: 'AlphaSift pick',
-          dsaAnalysisSummary: 'DSA行情：现价 1688，涨跌幅 1.2%；DSA新闻：贵州茅台最新公告',
-          dsaNews: [{ title: '贵州茅台最新公告', source: '测试源' }],
-          dsaContext: {
+          hrsAnalysisSummary: 'HRS行情：现价 1688，涨跌幅 1.2%；HRS新闻：贵州茅台最新公告',
+          hrsNews: [{ title: '贵州茅台最新公告', source: '测试源' }],
+          hrsContext: {
             enriched: true,
             warnings: ['stock_news_unavailable'],
           },
@@ -1132,7 +1132,7 @@ describe('StockScreeningPage', () => {
         },
       ],
       candidateCount: 1,
-      dsaEnrichment: {
+      hrsEnrichment: {
         enabled: true,
         requestedCount: 1,
         enrichedCount: 1,
@@ -1145,13 +1145,13 @@ describe('StockScreeningPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /运行选股/ }));
 
     // 断言：增强计数「1 / 1」，且展示行情摘要、新闻列表、增强提示（含 stock_news_unavailable 警告）
-    expect(await screen.findByText('DSA增强：1 / 1')).toBeInTheDocument();
+    expect(await screen.findByText('HRS增强：1 / 1')).toBeInTheDocument();
 
-    expect(screen.getByText('DSA 增强摘要')).toBeInTheDocument();
-    expect(screen.getByText(/DSA行情：现价 1688/)).toBeInTheDocument();
-    expect(screen.getByText('DSA 新闻')).toBeInTheDocument();
+    expect(screen.getByText('HRS 增强摘要')).toBeInTheDocument();
+    expect(screen.getByText(/HRS行情：现价 1688/)).toBeInTheDocument();
+    expect(screen.getByText('HRS 新闻')).toBeInTheDocument();
     expect(screen.getByText('贵州茅台最新公告')).toBeInTheDocument();
-    expect(screen.getByText('DSA 增强提示')).toBeInTheDocument();
+    expect(screen.getByText('HRS 增强提示')).toBeInTheDocument();
     expect(screen.getByText('stock_news_unavailable')).toBeInTheDocument();
   });
 });

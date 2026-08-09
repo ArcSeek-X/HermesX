@@ -46,7 +46,7 @@ const zh = {
   'theme.toggle': '切换主题', // 切换主题按钮提示
 
   'layout.appFallbackDescription': 'Web workspace', // 应用回退描述文案
-  'layout.appFallbackTitle': 'Daily Stock Analysis', // 应用回退标题
+  'layout.appFallbackTitle': 'HermesX', // 应用回退标题
   'layout.collapseSidebar': '折叠侧边栏', // 折叠侧边栏按钮
   'layout.desktopSidebar': '桌面侧边导航', // 桌面端侧边栏标签
   'layout.expandSidebar': '展开侧边栏', // 展开侧边栏按钮
@@ -185,20 +185,20 @@ const zh = {
   'routeError.title': '页面加载失败', // 路由错误标题
   'notFound.backHome': '返回首页', // 404 返回首页
   'notFound.description': '抱歉，您访问的页面不存在或已被移动', // 404 描述
-  'notFound.pageTitle': '页面未找到 - DSA', // 404 页面标题
+  'notFound.pageTitle': '页面未找到 - HRS', // 404 页面标题
   'notFound.title': '页面未找到', // 404 标题
 
   'login.adminLogin': '管理员登录', // 管理员登录标题
   'login.adminPassword': '管理员密码', // 管理员密码标签
   'login.confirmPassword': '确认密码', // 确认密码标签
   'login.confirmPasswordPlaceholder': '再次确认管理员密码', // 确认密码占位符
-  'login.loginDescription': '访问 DSA 量化决策引擎需要有效的身份凭证。', // 登录页描述
+  'login.loginDescription': '访问 HRS 量化决策引擎需要有效的身份凭证。', // 登录页描述
   'login.loginFailed': '登录失败', // 登录失败提示
   'login.loginPassword': '登录密码', // 登录密码标签
   'login.loginPasswordPlaceholder': '请输入密码', // 登录密码占位符
   'login.loginSubmit': '授权进入工作台', // 登录提交按钮
   'login.loginSubmitting': '正在建立连接...', // 登录提交中状态
-  'login.pageTitle': '登录 - DSA', // 登录页标题
+  'login.pageTitle': '登录 - HRS', // 登录页标题
   'login.passwordMismatch': '两次输入的密码不一致', // 密码不一致提示
   'login.setupDescription': '首次启用认证，请为系统工作台设置管理员密码。', // 初始密码设置描述
   'login.setupFailed': '配置失败', // 初始设置失败提示
@@ -246,7 +246,7 @@ const zh = {
   'home.marketRegionTitle': '本次复盘市场', // 本次复盘市场标题
   'home.marketRegionUs': '美股', // 美股市场
   'home.notify': '推送通知', // 推送通知选项
-  'home.pageTitle': '每日选股分析 - DSA', // 首页文档标题
+  'home.pageTitle': '每日选股分析 - HRS', // 首页文档标题
   'home.placeholder': '输入股票代码或名称，如 600519、贵州茅台、AAPL', // 股票输入框占位符
   'home.progressActive': '进行中', // 任务进行中状态
   'home.reanalyze': '重新分析', // 重新分析按钮
@@ -343,7 +343,7 @@ const zh = {
   'decisionSignals.outcome.neutral': '中性', // 中性后验结果
   'decisionSignals.outcome.unable': '无法评估', // 无法评估后验结果
   'decisionSignals.outcomes': '后验结果', // 后验结果标签
-  'decisionSignals.pageTitle': 'AI 建议 - DSA', // AI 建议页文档标题
+  'decisionSignals.pageTitle': 'AI 建议 - HRS', // AI 建议页文档标题
   'decisionSignals.planQuality': '计划质量', // 计划质量标签
   'decisionSignals.planQuality.complete': '完整', // 完整计划质量
   'decisionSignals.planQuality.minimal': '最小', // 最小计划质量
@@ -701,7 +701,7 @@ const zh = {
   'settings.alphaSiftDisabled': '选股未开启', // 选股未开启状态
   'settings.alphaSiftEnabled': '选股已开启', // 选股已开启状态
   'settings.alphaSiftRisk': '实验功能与风险提示：选股结果仅用于研究和辅助判断，不构成投资建议；市场有风险，交易决策和损益由使用者自行承担。', // AlphaSift 风险提示
-  'settings.alphaSiftSummary': '开启后左侧导航会显示“选股”；策略和候选生成来自 AlphaSift，DSA 会补充行情、基本面和新闻上下文。', // AlphaSift 概要说明
+  'settings.alphaSiftSummary': '开启后左侧导航会显示“选股”；策略和候选生成来自 AlphaSift，HRS 会补充行情、基本面和新闻上下文。', // AlphaSift 概要说明
   'settings.authCurrentPassword': '当前管理员密码', // 当前管理员密码标签
   'settings.authDescription': '管理管理员密码认证，保护您的系统配置安全。', // 认证设置说明
   'settings.authDisabled': '未启用', // 认证未启用状态
@@ -913,11 +913,11 @@ const zh = {
   'settings.agentBackendExperimental': '实验功能', // 实验功能标签
   'settings.agentBackendCanTryDescription': '基础环境检查已通过。你可以回到问股页直接提问，首次问题会进行真实执行。', // 可以尝试说明
   'settings.agentBackendUnavailableDescription': '当前问股方式暂不可用，请检查设置后重试。', // 不可用说明
-  'settings.agentBackendCommandNotFound': '运行 DSA 的设备找不到 Codex。请在该设备安装 Codex，并确保 DSA 后端进程可以从 PATH 找到它。', // Codex 未找到提示
+  'settings.agentBackendCommandNotFound': '运行 HRS 的设备找不到 Codex。请在该设备安装 Codex，并确保 HRS 后端进程可以从 PATH 找到它。', // Codex 未找到提示
   'settings.agentBackendModeDisabledTitle': '需要启用 Agent 模式', // 需启用 Agent 模式标题
   'settings.agentBackendModeDisabled': 'Agent 模式当前未启用。点击下方按钮修改页面草稿，然后保存设置后再使用问股。', // Agent 模式未启用提示
   'settings.agentBackendEnableMode': '启用 Agent 模式', // 启用 Agent 模式按钮
-  'settings.agentBackendPlatformUnsupported': 'Codex 本地 Agent 当前不支持原生 Windows。可在 macOS、Linux，或让 DSA 后端完整运行于 WSL 后使用。', // 平台不支持提示
+  'settings.agentBackendPlatformUnsupported': 'Codex 本地 Agent 当前不支持原生 Windows。可在 macOS、Linux，或让 HRS 后端完整运行于 WSL 后使用。', // 平台不支持提示
   'settings.agentBackendInvalidTimeout': 'Codex 必须设置大于 0 的 Agent 整体时限，确保成功、失败、超时或停止都能明确结束。', // 超时设置无效提示
   'settings.agentBackendSingleOnlyTitle': '需要切换为单 Agent', // 需切换单 Agent 标题
   'settings.agentBackendSingleOnly': 'Codex 本地 Agent 当前只支持单 Agent 问股。此操作只修改页面草稿，仍需点击保存。', // 仅支持单 Agent 提示
@@ -931,7 +931,7 @@ const zh = {
   'settings.agentBackendErrorCode': '错误代码', // 错误代码标签
   'chat.agentBackendUnavailableTitle': '当前问股方式不可用', // 问股方式不可用标题
   'chat.agentModeDisabled': 'Agent 模式尚未启用，请前往 Agent 设置启用并保存后再试。', // Agent 模式未启用提示
-  'chat.agentPlatformUnsupported': 'Codex 本地 Agent 当前不支持原生 Windows，请改用默认模型问股，或在支持的系统上运行 DSA 后端。', // 平台不支持提示
+  'chat.agentPlatformUnsupported': 'Codex 本地 Agent 当前不支持原生 Windows，请改用默认模型问股，或在支持的系统上运行 HRS 后端。', // 平台不支持提示
   'chat.codexBackendBadge': 'Codex Agent · 实验', // Codex Agent 徽标
   'chat.defaultBackendBadge': '默认模型', // 默认模型徽标
   'chat.codexUnavailableMessage': '当前设备的 Codex 基础环境暂不满足问股要求，请前往 Agent 设置检查安装和单 Agent 配置。', // Codex 不可用消息
@@ -960,19 +960,19 @@ const zh = {
   'settings.notificationTest': '通知测试', // 通知测试标题
   'settings.notificationTestBody': '正文', // 通知测试正文标签
   'settings.notificationTestChannel': '渠道', // 通知测试渠道标签
-  'settings.notificationTestContent': '这是一条来自 DSA Web 设置页的通知测试消息。', // 通知测试内容
+  'settings.notificationTestContent': '这是一条来自 HRS Web 设置页的通知测试消息。', // 通知测试内容
   'settings.notificationTestDescription': '使用当前页面草稿发送一条真实测试通知；测试不会保存配置。', // 通知测试说明
   'settings.notificationTestFailure': '测试失败', // 测试失败提示
   'settings.notificationTestSend': '发送测试', // 发送测试按钮
   'settings.notificationTestSuccess': '测试成功', // 测试成功提示
   'settings.notificationTestTimeout': '超时秒数', // 超时秒数标签
   'settings.notificationTestTitle': '标题', // 通知测试标题标签
-  'settings.notificationTestTitleValue': 'DSA 通知测试', // 通知测试标题值
+  'settings.notificationTestTitleValue': 'HRS 通知测试', // 通知测试标题值
   'settings.notificationTesting': '测试中...', // 测试中状态
   'settings.openConfigItems': '查看配置项', // 查看配置项按钮
   'settings.pageDescription': '统一管理模型、数据源、通知、安全认证与导入能力。', // 设置页描述
   'settings.pageTitle': '系统设置', // 系统设置标题
-  'settings.pageTitleDocument': '系统设置 - DSA', // 系统设置文档标题
+  'settings.pageTitleDocument': '系统设置 - HRS', // 系统设置文档标题
   'settings.promptCacheAdvancedDescription': '维护 provider prompt cache 的观测、主动 hint 与脱敏诊断；默认配置已适合普通使用。', // Prompt Cache 高级设置说明
   'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache 高级设置', // Prompt Cache 高级设置标题
   'settings.reload': '重新加载', // 重新加载按钮

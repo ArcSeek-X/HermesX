@@ -363,7 +363,7 @@ Phase 2 只在 Phase 1/1.5/1.6/1.7/1.8/1.9 契约下新增 2–4 策略并发调
 
 ## Phase 3 前端多语言完整展示（本 PR 不做）
 
-Phase 3 只在 Phase 2 之上补前端（`apps/hrs-web/`、`apps/dsa-desktop/`）对 `strategy_synthesis` 的完整多语言展示：
+Phase 3 只在 Phase 2 之上补前端（`apps/hrs-web/`、`apps/hrs-desktop/`）对 `strategy_synthesis` 的完整多语言展示：
 
 - Web 报告详情页展示 `final_signal` / `consensus_level` / `supporting_skills` / `opposing_skills` / `conflicts` / `invalid_opinion_count`。
 - 桌面端复用 Web 展示逻辑。

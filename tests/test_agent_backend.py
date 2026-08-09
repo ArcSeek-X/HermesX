@@ -263,7 +263,7 @@ class _FakeTransport:
         )
 
     def thread_metadata(self, thread_id):
-        return {"active_permission_profile": {"id": "dsa_gate_a"}}
+        return {"active_permission_profile": {"id": "hrs_gate_a"}}
 
 
 def test_codex_backend_uses_tool_surface_and_ephemeral_transport(monkeypatch) -> None:

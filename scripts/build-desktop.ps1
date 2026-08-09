@@ -11,7 +11,7 @@ if (Test-Path $devModeKey) {
   }
 }
 
-$skipDevModeCheck = ($env:DSA_SKIP_DEVMODE_CHECK -eq 'true') -or ($env:CI -eq 'true')
+$skipDevModeCheck = ($env:HRS_SKIP_DEVMODE_CHECK -eq 'true') -or ($env:CI -eq 'true')
 if (-not $skipDevModeCheck -and ($allowDev -ne 1) -and ($allowTrusted -ne 1)) {
   Write-Host 'Developer Mode is disabled. Enable it to allow symlink creation for electron-builder.'
   Write-Host 'Windows Settings -> Privacy & security -> For developers -> Developer Mode'
@@ -48,11 +48,11 @@ function Install-DesktopDependencies {
     throw 'Desktop dependency installation failed.'
   }
   New-Item -ItemType Directory -Force -Path 'node_modules' | Out-Null
-  Set-Content -Path 'node_modules\.dsa-package-lock.sha256' -Value (Get-PackageLockHash) -Encoding ascii
+  Set-Content -Path 'node_modules\.hrs-package-lock.sha256' -Value (Get-PackageLockHash) -Encoding ascii
 }
 
 function Ensure-DesktopDependencies {
-  $lockHashMarker = 'node_modules\.dsa-package-lock.sha256'
+  $lockHashMarker = 'node_modules\.hrs-package-lock.sha256'
   $installReason = $null
 
   if (!(Test-Path 'node_modules')) {
@@ -73,7 +73,7 @@ function Ensure-DesktopDependencies {
 }
 
 Write-Host 'Building Electron desktop app...'
-Push-Location (Join-Path $repoRoot 'apps\dsa-desktop')
+Push-Location (Join-Path $repoRoot 'apps\hrs-desktop')
 Ensure-DesktopDependencies
 
 Write-Host 'Stopping running app (if any)...'

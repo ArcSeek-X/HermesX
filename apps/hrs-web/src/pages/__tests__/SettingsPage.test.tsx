@@ -653,7 +653,7 @@ describe('SettingsPage', () => {
     // 默认 useSystemConfig：返回默认配置状态
     useSystemConfigMock.mockReturnValue(buildSystemConfigState());
     // 确保无桌面运行时（走 Web 路径）
-    delete (window as { dsaDesktop?: unknown }).dsaDesktop;
+    delete (window as { hrsDesktop?: unknown }).hrsDesktop;
     // spy URL.createObjectURL / revokeObjectURL 与 a 标签 click（用于下载/打开链接断言）
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
@@ -929,7 +929,7 @@ describe('SettingsPage', () => {
   });
 
   it('renders desktop app version in system settings during desktop runtime', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
 
     render(<SettingsPage />);
 
@@ -939,7 +939,7 @@ describe('SettingsPage', () => {
   });
 
   it('keeps version grid at three columns when desktop runtime has no usable version', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '   ' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '   ' };
 
     render(<SettingsPage />);
 
@@ -952,7 +952,7 @@ describe('SettingsPage', () => {
   });
 
   it('ignores non-string desktop runtime version values without breaking render', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: 3120 };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: 3120 };
 
     render(<SettingsPage />);
 
@@ -974,7 +974,7 @@ describe('SettingsPage', () => {
       releaseName: { text: 'v3.13.0' },
       tagName: undefined,
     });
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
@@ -2478,7 +2478,7 @@ describe('SettingsPage', () => {
 
   it('uses desktop log in settings panel diagnostic hints during desktop runtime', () => {
     useSystemConfigMock.mockReturnValue(buildSystemConfigState({ activeCategory: 'notification' }));
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
@@ -2533,7 +2533,7 @@ describe('SettingsPage', () => {
   });
 
   it('exports saved env from config backup actions', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
 
     render(<SettingsPage />);
 
@@ -2547,7 +2547,7 @@ describe('SettingsPage', () => {
   });
 
   it('asks for confirmation before importing when local drafts exist', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
     useSystemConfigMock.mockReturnValue(buildSystemConfigState({ hasDirty: true, dirtyCount: 2 }));
 
     render(<SettingsPage />);
@@ -2561,7 +2561,7 @@ describe('SettingsPage', () => {
   });
 
   it('reloads config after successful env import', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
 
     const { container } = render(<SettingsPage />);
 
@@ -2581,7 +2581,7 @@ describe('SettingsPage', () => {
   });
 
   it('refreshes scheduler status after successful env import updates scheduler settings', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
     const configState = buildSystemConfigState();
     getSchedulerStatus
       .mockResolvedValueOnce({
@@ -2680,7 +2680,7 @@ describe('SettingsPage', () => {
   });
 
   it('shows an error when env import succeeds but reload fails', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = { version: '3.12.0' };
+    (window as { hrsDesktop?: unknown }).hrsDesktop = { version: '3.12.0' };
     load.mockResolvedValue(false);
 
     const { container } = render(<SettingsPage />);
@@ -2712,7 +2712,7 @@ describe('SettingsPage', () => {
       releaseUrl: 'https://github.com/ArcSeek-X/HermesX/releases/tag/v3.13.0',
       message: '发现新版本 3.13.0，可前往 GitHub Releases 下载更新。',
     });
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
@@ -2721,7 +2721,7 @@ describe('SettingsPage', () => {
   });
 
   it('checks desktop updates on demand and renders the latest-version state', async () => {
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
@@ -2739,7 +2739,7 @@ describe('SettingsPage', () => {
       releaseUrl: 'https://github.com/ArcSeek-X/HermesX/releases/tag/v3.13.0',
       message: '发现新版本 3.13.0，可前往 GitHub Releases 下载更新。',
     });
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
@@ -2762,7 +2762,7 @@ describe('SettingsPage', () => {
       message: '新版本 3.13.0 已下载，可重启应用完成安装。',
       downloadPercent: 100,
     });
-    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    (window as { hrsDesktop?: unknown }).hrsDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 

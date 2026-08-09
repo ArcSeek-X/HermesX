@@ -1,6 +1,6 @@
 import type { UiLanguage } from '../i18n/uiText';
 
-export const UI_LANGUAGE_STORAGE_KEY = 'dsa.uiLanguage';
+export const UI_LANGUAGE_STORAGE_KEY = 'hrs.uiLanguage';
 
 export function normalizeUiLanguage(value?: string | null): UiLanguage | null {
   if (value === 'zh' || value === 'en') {

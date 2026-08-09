@@ -3,7 +3,7 @@
 
 The transport owns only protocol, process, permission-profile, and dynamic-tool
 roundtrip concerns.  It never resolves or executes ``ToolRegistry`` directly;
-all DSA tools are supplied through the Phase 6a :class:`ToolSurface` boundary.
+all HRS tools are supplied through the Phase 6a :class:`ToolSurface` boundary.
 """
 
 from __future__ import annotations
@@ -35,13 +35,13 @@ MAX_TURN_FRAME_COUNT = 4096
 MAX_TURN_ITEM_COUNT = 1024
 MAX_STDERR_BYTES = 64 * 1024
 TOOL_WORKERS = 2
-PERMISSION_PROFILE = "dsa_gate_a"
+PERMISSION_PROFILE = "hrs_gate_a"
 
 _BASE_CONFIG_OVERRIDES = (
-    'default_permissions="dsa_gate_a"',
-    'permissions.dsa_gate_a.description="DSA Agent read-only workspace"',
-    'permissions.dsa_gate_a.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}',
-    "permissions.dsa_gate_a.network.enabled=false",
+    'default_permissions="hrs_gate_a"',
+    'permissions.hrs_gate_a.description="HRS Agent read-only workspace"',
+    'permissions.hrs_gate_a.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}',
+    "permissions.hrs_gate_a.network.enabled=false",
     "features.apps=false",
     "features.plugins=false",
 )
@@ -121,7 +121,7 @@ class TurnResult:
 
 
 def normalize_token_usage_notification(params: dict) -> Optional[dict]:
-    """Map the documented App Server per-turn usage payload to DSA telemetry keys."""
+    """Map the documented App Server per-turn usage payload to HRS telemetry keys."""
     token_usage = params.get("tokenUsage")
     last = token_usage.get("last") if isinstance(token_usage, dict) else None
     if not isinstance(last, dict):
@@ -156,7 +156,7 @@ def dynamic_tool_specs(surface: ToolSurface, names: Iterable[str]) -> list[dict]
     for name in names:
         descriptor = descriptors.get(name)
         if descriptor is None:
-            raise CodexAppServerError("tool_not_found", f"DSA tool is not registered: {name}")
+            raise CodexAppServerError("tool_not_found", f"HRS tool is not registered: {name}")
         specs.append(
             {
                 "type": "function",
@@ -246,7 +246,7 @@ class CodexAppServerTransport:
     def start(self) -> None:
         if self.process is not None:
             raise RuntimeError("transport already started")
-        safe_path = Path(tempfile.mkdtemp(prefix="dsa-codex-app-server-"))
+        safe_path = Path(tempfile.mkdtemp(prefix="hrs-codex-app-server-"))
         safe_path.chmod(0o700)
         self.safe_cwd = safe_path
         try:
@@ -282,7 +282,7 @@ class CodexAppServerTransport:
             self.request(
                 "initialize",
                 {
-                    "clientInfo": {"name": "dsa-stock-analysis", "version": "phase-6"},
+                    "clientInfo": {"name": "hrs-stock-analysis", "version": "phase-6"},
                     "capabilities": {"experimentalApi": True},
                 },
             )
@@ -310,7 +310,7 @@ class CodexAppServerTransport:
         if not tool_cleanup_ok:
             close_error = CodexAppServerError(
                 "resource_cleanup_failed",
-                "One or more DSA tool workers could not be fully reclaimed",
+                "One or more HRS tool workers could not be fully reclaimed",
             )
         if close_error is not None:
             raise close_error
@@ -436,7 +436,7 @@ class CodexAppServerTransport:
         if active_profile.get("id") != PERMISSION_PROFILE:
             raise CodexAppServerError(
                 "permission_profile_mismatch",
-                "App Server did not activate the DSA permission profile",
+                "App Server did not activate the HRS permission profile",
             )
         with self._state_lock:
             self._thread_tools[thread_id] = set(tool_names)
@@ -887,7 +887,7 @@ class CodexAppServerTransport:
             self._set_fatal(
                 CodexAppServerError(
                     error_code,
-                    "DSA tool process boundary failed",
+                    "HRS tool process boundary failed",
                     turn_started=True,
                 )
             )

@@ -88,7 +88,7 @@ def test_runtime_owned_backend_uses_visible_history_and_forwards_cancellation() 
     persist_trace.assert_not_called()
 
 
-def test_dsa_owned_backend_keeps_provider_trace_roundtrip() -> None:
+def test_hrs_owned_backend_keeps_provider_trace_roundtrip() -> None:
     backend = _Backend(runtime_owns_loop=False)
     prepared = PreparedAgentChat(
         system_prompt="system",

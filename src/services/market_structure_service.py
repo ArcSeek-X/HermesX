@@ -251,7 +251,7 @@ class MarketStructureService:
                 missing_fields=missing_fields,
                 sources=[
                     MarketStructureSource(
-                        provider="dsa",
+                        provider="hrs",
                         dataset="market_structure",
                         status="not_supported",
                         message=message,

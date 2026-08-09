@@ -39,7 +39,7 @@ const signal: DecisionSignalItem = {
 };
 
 function renderCard(onSelect?: (item: DecisionSignalItem) => void) {
-  window.localStorage.setItem('dsa.uiLanguage', 'zh');
+  window.localStorage.setItem('hrs.uiLanguage', 'zh');
   render(
     <UiLanguageProvider>
       <DecisionSignalCard item={signal} onSelect={onSelect} />
@@ -77,7 +77,7 @@ describe('DecisionSignalCard', () => {
   });
 
   it('hides missing optional plan text for sparse legacy signals', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
     render(
       <UiLanguageProvider>
         <DecisionSignalCard
@@ -112,7 +112,7 @@ describe('DecisionSignalCard', () => {
 
 describe('DecisionSignalDetails', () => {
   it('renders secondary-only entry_high as a valid entry range', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
     render(
       <UiLanguageProvider>
         <DecisionSignalDetails item={{ ...signal, entryLow: null, entryHigh: 1680 }} />
@@ -131,7 +131,7 @@ describe('DecisionSignalDetails', () => {
   });
 
   it('renders explicit null profile as unknown on card and details', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
     render(
       <UiLanguageProvider>
         <>
@@ -147,7 +147,7 @@ describe('DecisionSignalDetails', () => {
   });
 
   it('renders opaque JSON fields without creating html nodes from their string values', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
     const { container } = render(
       <UiLanguageProvider>
         <DecisionSignalDetails
@@ -173,7 +173,7 @@ describe('DecisionSignalDetails', () => {
 
   it('renders outcome results and feedback controls', () => {
     const onFeedbackSubmit = vi.fn();
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
     render(
       <UiLanguageProvider>
         <DecisionSignalDetails
@@ -225,7 +225,7 @@ describe('DecisionSignalDetails', () => {
   });
 
   it('renders portfolio signal horizon using the current UI language', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'en');
+    window.localStorage.setItem('hrs.uiLanguage', 'en');
     render(
       <UiLanguageProvider>
         <PortfolioSignalSummary item={{ ...signal, horizon: '10d', action: 'sell', actionLabel: null }} />

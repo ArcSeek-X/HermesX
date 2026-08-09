@@ -27,8 +27,8 @@ class DesktopPackagingAssetsTestCase(unittest.TestCase):
         self.assertIn("orjson>=3.10,<4", requirements)
         self.assertIn('"orjson"', macos_script)
         self.assertIn("'orjson'", windows_script)
-        self.assertIn('DSA_PACKAGED_IMPORT_PROBE="${module}"', macos_script)
-        self.assertIn("$env:DSA_PACKAGED_IMPORT_PROBE = $module", windows_script)
+        self.assertIn('HRS_PACKAGED_IMPORT_PROBE="${module}"', macos_script)
+        self.assertIn("$env:HRS_PACKAGED_IMPORT_PROBE = $module", windows_script)
         self.assertIn('importlib.import_module(_packaged_import_probe)', main)
 
     def test_scripts_collect_and_verify_akshare_calendar_data(self) -> None:

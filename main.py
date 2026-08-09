@@ -45,7 +45,7 @@ if os.getenv("GITHUB_ACTIONS") != "true" and os.getenv("USE_PROXY", "false").low
     os.environ["http_proxy"] = proxy_url
     os.environ["https_proxy"] = proxy_url
 
-_packaged_import_probe = os.getenv("DSA_PACKAGED_IMPORT_PROBE")
+_packaged_import_probe = os.getenv("HRS_PACKAGED_IMPORT_PROBE")
 if _packaged_import_probe:
     import importlib
     import sys

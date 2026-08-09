@@ -1,5 +1,5 @@
 {
-  "name": "daily-stock-analysis-desktop",
+  "name": "HermesX-desktop",
   "version": "3.21.0",
   "private": true,
   "main": "main.js",
@@ -16,8 +16,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.daily-stock-analysis.desktop",
-    "productName": "Daily Stock Analysis",
+    "appId": "com.HermesX.desktop",
+    "productName": "HermesX",
     "directories": {
       "output": "dist"
     },
@@ -39,7 +39,7 @@
     ],
     "win": {
       "target": "nsis",
-      "artifactName": "daily-stock-analysis-windows-installer-v${version}.${ext}",
+      "artifactName": "hermesX-windows-installer-v${version}.${ext}",
       "publish": [
         {
           "provider": "github",

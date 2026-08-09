@@ -1,4 +1,20 @@
-name: Desktop Release
+# ===========================================================================
+# 桌面端发布流水线 (Desktop Release)
+# ---------------------------------------------------------------------------
+# 作用：构建并发布 HermesX 桌面端（Electron 应用）的跨平台安装包。
+#   - 触发方式：推送形如 v1.2.3 的 semver tag，或通过 workflow_dispatch 手动
+#     指定一个已存在的发布 tag。
+#   - 构建产物：
+#       * Windows：NSIS 安装包（.exe）与免安装包，由 build-windows 任务产出。
+#       * macOS：Intel(x64) 与 Apple Silicon(arm64) 两套 .dmg，由 build-macos
+#         矩阵任务并行产出。
+#   - 收尾：publish-release 任务汇总各平台产物，发布到对应 tag 的 GitHub
+#     Release 下。
+#   - 注意：该流水线只负责打包与发布，不自动打 tag（自动打 tag 由其他
+#     工作流在含 #patch/#minor/#major 的提交时触发）。
+# ===========================================================================
+
+name: Desktop Release  # 桌面端发布流水线：打 tag 或手动触发后构建 Windows/macOS 安装包并发布 GitHub Release
 
 on:
   push:
@@ -13,7 +29,7 @@ on:
 
 concurrency:
   group: desktop-release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: true  # 同一 ref 只允许一个发布任务在跑，新触发会取消旧的，避免产物互相覆盖
 
 jobs:
   build-windows:
@@ -25,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # 拉取全量历史，便于按 tag 精确 checkout 并生成 revision
 
       - name: Resolve release ref
         shell: bash
@@ -37,8 +53,9 @@ jobs:
             git rev-parse "${RELEASE_TAG}" >/dev/null
             git checkout "${RELEASE_TAG}"
           fi
-          echo "DSA_WEB_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
-          echo "DSA_WEB_REVISION=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+          # 将版本号与短提交哈希写入环境，供前端打包注入（需与 vite.config.ts 的 HRS_WEB_* 读取端一致）
+          echo "HRS_WEB_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+          echo "HRS_WEB_REVISION=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
@@ -51,44 +68,44 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             apps/hrs-web/package-lock.json
-            apps/dsa-desktop/package-lock.json
+            apps/hrs-desktop/package-lock.json
 
-      - name: Sync desktop app version from release tag
+      - name: Sync desktop app version from release tag  # 将 npm 包版本号对齐到发布 tag，避免打包版本错乱
         shell: bash
         run: |
           set -euo pipefail
           [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           export VERSION="${RELEASE_TAG#v}"
-          cd apps/dsa-desktop
+          cd apps/hrs-desktop
           npm version "${VERSION}" --no-git-tag-version --allow-same-version
           node -e "const pkg = require('./package.json'); if (pkg.version !== process.env.VERSION) throw new Error('package version mismatch: ' + pkg.version); console.log('desktop version:', pkg.version);"
 
-      - name: Build desktop package (Windows)
+      - name: Build desktop package (Windows)  # 调用构建脚本产出 NSIS 安装包与 win-unpacked 目录
         shell: pwsh
         env:
-          DSA_SKIP_DEVMODE_CHECK: 'true'
+          HRS_SKIP_DEVMODE_CHECK: 'true'  # 跳过开发模式校验，发布构建无需该检查（需与 build-desktop.ps1 读取端一致）
         run: |
           powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1
 
-      - name: Prepare release artifact (Windows)
+      - name: Prepare release artifact (Windows)  # 校验并收集安装包、免安装包、latest.yml、blockmap 到发布目录
         shell: pwsh
         run: |
-          $expectedInstallerName = "daily-stock-analysis-windows-installer-$env:RELEASE_TAG.exe"
-          $installerPath = Join-Path 'apps/dsa-desktop/dist' $expectedInstallerName
+          $expectedInstallerName = "HermesX-windows-installer-$env:RELEASE_TAG.exe"
+          $installerPath = Join-Path 'apps/hrs-desktop/dist' $expectedInstallerName
           $installerExe = Get-Item -Path $installerPath -ErrorAction SilentlyContinue
           if (-not $installerExe) {
-            throw "No expected NSIS installer found under apps/dsa-desktop/dist: $expectedInstallerName"
+            throw "No expected NSIS installer found under apps/hrs-desktop/dist: $expectedInstallerName"
           }
-          $winUnpacked = 'apps/dsa-desktop/dist/win-unpacked'
+          $winUnpacked = 'apps/hrs-desktop/dist/win-unpacked'
           if (-not (Test-Path $winUnpacked)) {
-            throw 'No win-unpacked directory found under apps/dsa-desktop/dist.'
+            throw 'No win-unpacked directory found under apps/hrs-desktop/dist.'
           }
           New-Item -ItemType Directory -Path 'dist/release-assets' -Force | Out-Null
           $exeTarget = "dist/release-assets/$expectedInstallerName"
-          $zipTarget = "dist/release-assets/daily-stock-analysis-windows-noinstall-$env:RELEASE_TAG.zip"
+          $zipTarget = "dist/release-assets/HermesX-windows-noinstall-$env:RELEASE_TAG.zip"
           Copy-Item -Path $installerExe.FullName -Destination $exeTarget -Force
           Compress-Archive -Path $winUnpacked -DestinationPath $zipTarget -CompressionLevel Optimal -Force
-          Get-ChildItem -Path 'apps/dsa-desktop/dist' -File |
+          Get-ChildItem -Path 'apps/hrs-desktop/dist' -File |
             Where-Object { $_.Name -eq 'latest.yml' -or $_.Name -like '*.blockmap' } |
             ForEach-Object {
               Copy-Item -Path $_.FullName -Destination "dist/release-assets/$($_.Name)" -Force
@@ -120,15 +137,15 @@ jobs:
           }
           Get-ChildItem -Path 'dist/release-assets' -File | Sort-Object Name | Format-Table Name, Length
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6  # 上传 Windows 发布产物（安装包/免安装包/更新元数据），缺失则报错
         with:
           name: desktop-windows-${{ env.RELEASE_TAG }}
           path: dist/release-assets/*
           if-no-files-found: error
 
-  build-macos:
+  build-macos:  # 同时构建 Intel(x64) 与 Apple Silicon(arm64) 两个架构
     strategy:
-      fail-fast: false
+      fail-fast: false  # 一个架构失败不影响另一个继续构建
       matrix:
         include:
           - arch: x64
@@ -143,7 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # 拉取全量历史，便于按 tag 精确 checkout 并生成 revision
 
       - name: Resolve release ref
         shell: bash
@@ -155,8 +172,9 @@ jobs:
             git rev-parse "${RELEASE_TAG}" >/dev/null
             git checkout "${RELEASE_TAG}"
           fi
-          echo "DSA_WEB_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
-          echo "DSA_WEB_REVISION=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+          # 将版本号与短提交哈希写入环境，供前端打包注入（需与 vite.config.ts 的 HRS_WEB_* 读取端一致）
+          echo "HRS_WEB_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+          echo "HRS_WEB_REVISION=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
@@ -169,15 +187,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             apps/hrs-web/package-lock.json
-            apps/dsa-desktop/package-lock.json
+            apps/hrs-desktop/package-lock.json
 
-      - name: Sync desktop app version from release tag
+      - name: Sync desktop app version from release tag  # 将 npm 包版本号对齐到发布 tag，避免打包版本错乱
         shell: bash
         run: |
           set -euo pipefail
           [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           export VERSION="${RELEASE_TAG#v}"
-          cd apps/dsa-desktop
+          cd apps/hrs-desktop
           npm version "${VERSION}" --no-git-tag-version --allow-same-version
           node -e "const pkg = require('./package.json'); if (pkg.version !== process.env.VERSION) throw new Error('package version mismatch: ' + pkg.version); console.log('desktop version:', pkg.version);"
 
@@ -185,63 +203,63 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/Library/Caches/electron
-          key: electron-macos-${{ matrix.arch }}-${{ hashFiles('apps/dsa-desktop/package-lock.json') }}
+          key: electron-macos-${{ matrix.arch }}-${{ hashFiles('apps/hrs-desktop/package-lock.json') }}
           restore-keys: |
             electron-macos-${{ matrix.arch }}-
 
-      - name: Disable Spotlight indexing (prevents hdiutil Resource busy)
+      - name: Disable Spotlight indexing (prevents hdiutil Resource busy)  # 关闭 Spotlight 避免打包 dmg 时资源被占用
         run: sudo mdutil -a -i off
 
-      - name: Build desktop package (macOS)
+      - name: Build desktop package (macOS)  # 调用构建脚本产出对应架构的 .dmg 安装包
         env:
-          DSA_MAC_ARCH: ${{ matrix.arch }}
+          HRS_MAC_ARCH: ${{ matrix.arch }}  # 指定目标架构 x64/arm64（需与 build-desktop-macos.sh 读取端一致）
         run: bash scripts/build-all-macos.sh
 
-      - name: Prepare release artifact (macOS)
+      - name: Prepare release artifact (macOS)  # 将打包出的 .dmg 收集到发布目录
         shell: bash
         run: |
           set -euo pipefail
-          dmg_file="$(ls -t apps/dsa-desktop/dist/*${{ matrix.arch }}*.dmg 2>/dev/null | head -n 1 || true)"
+          dmg_file="$(ls -t apps/hrs-desktop/dist/*${{ matrix.arch }}*.dmg 2>/dev/null | head -n 1 || true)"
           if [[ -z "${dmg_file}" ]]; then
-            dmg_file="$(ls -t apps/dsa-desktop/dist/*.dmg | head -n 1)"
+            dmg_file="$(ls -t apps/hrs-desktop/dist/*.dmg | head -n 1)"
           fi
           test -n "$dmg_file"
           mkdir -p dist/release-assets
-          cp "$dmg_file" "dist/release-assets/daily-stock-analysis-macos-${{ matrix.arch }}-${RELEASE_TAG}.dmg"
+          cp "$dmg_file" "dist/release-assets/HermesX-macos-${{ matrix.arch }}-${RELEASE_TAG}.dmg"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6  # 上传 macOS 对应架构的 .dmg 产物，缺失则报错
         with:
           name: desktop-macos-${{ matrix.arch }}-${{ env.RELEASE_TAG }}
           path: dist/release-assets/*.dmg
           if-no-files-found: error
 
-  publish-release:
+  publish-release:  # 汇总各平台产物并发布到 GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos]  # 必须等 Windows 与 macOS 两个构建任务都完成
     permissions:
-      contents: write
+      contents: write  # 需要写权限以创建 Release
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Validate release tag
+      - name: Validate release tag  # 校验发布 tag 符合 semver 格式
         run: |
           [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v7  # 下载并合并所有桌面端产物
         with:
           pattern: desktop-*
           path: dist/release-assets
           merge-multiple: true
 
-      - name: Show release assets
+      - name: Show release assets  # 列出待发布产物，便于排障确认
         run: ls -lah dist/release-assets
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release  # 将产物挂到对应 tag 的 Release 下
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           generate_release_notes: false
           files: dist/release-assets/*
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: true  # 缺少产物则发布失败，避免发出空 Release

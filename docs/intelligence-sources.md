@@ -86,7 +86,7 @@ NEWS_INTEL_AUTO_FETCH_ENABLED=true
 
 ## NewsNow 默认源
 
-NewsNow 不是 RSS，而是一个聚合热点平台。DSA 直接按 HTTP API 读取它的 JSON 返回，不需要 MCP：
+NewsNow 不是 RSS，而是一个聚合热点平台。HRS 直接按 HTTP API 读取它的 JSON 返回，不需要 MCP：
 
 ```text
 GET {NEWSNOW_BASE_URL}/api/s?id=cls-hot

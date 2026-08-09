@@ -320,7 +320,7 @@ def _wait_for_market_hotspot_workers_to_drain(timeout: float = 0.5) -> bool:
     return False
 
 
-def test_market_hotspot_service_builds_theme_context_from_dsa_rankings() -> None:
+def test_market_hotspot_service_builds_theme_context_from_hrs_rankings() -> None:
     service = MarketHotspotService(fetcher_manager=_FakeFetcherManager())
 
     context = service.get_hotspots(market="cn", trade_date="2026-07-04")

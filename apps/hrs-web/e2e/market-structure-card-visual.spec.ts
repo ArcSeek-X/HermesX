@@ -267,11 +267,11 @@ async function renderMarketStructureCard(distIndexPath: string, testInfo: TestIn
     const artifactPageHint = githubRepository && githubRunId
       ? `${githubServer}/${githubRepository}/actions/runs/${githubRunId}/jobs`
       : '';
-    const externalEvidenceDir = process.env.DSA_WEB_VISUAL_EVIDENCE
-      ? path.resolve(process.env.DSA_WEB_VISUAL_EVIDENCE)
+    const externalEvidenceDir = process.env.HRS_WEB_VISUAL_EVIDENCE
+      ? path.resolve(process.env.HRS_WEB_VISUAL_EVIDENCE)
       : '';
-    const externalEvidenceUrl = process.env.DSA_WEB_VISUAL_EVIDENCE && isHttpUrl(process.env.DSA_WEB_VISUAL_EVIDENCE)
-      ? process.env.DSA_WEB_VISUAL_EVIDENCE
+    const externalEvidenceUrl = process.env.HRS_WEB_VISUAL_EVIDENCE && isHttpUrl(process.env.HRS_WEB_VISUAL_EVIDENCE)
+      ? process.env.HRS_WEB_VISUAL_EVIDENCE
       : '';
     const artifactManifestPath = testInfo.outputPath('market-structure-card-visual-artifact.txt');
     const evidenceNotes = [

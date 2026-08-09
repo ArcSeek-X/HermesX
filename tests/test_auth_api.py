@@ -92,7 +92,7 @@ class AuthApiTestCase(unittest.TestCase):
             )
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIn("dsa_session=", response.headers["set-cookie"])
+        self.assertIn("hrs_session=", response.headers["set-cookie"])
         self.assertIn(b'"ok":true', response.body)
 
     def test_login_first_time_mismatch_rejected(self) -> None:
@@ -143,7 +143,7 @@ class AuthApiTestCase(unittest.TestCase):
     def test_logout_clears_cookie(self) -> None:
         response = asyncio.run(auth_endpoint.auth_logout(self._build_request()))
         self.assertEqual(response.status_code, 204)
-        self.assertIn("dsa_session=", response.headers["set-cookie"])
+        self.assertIn("hrs_session=", response.headers["set-cookie"])
 
     def test_logout_invalidates_existing_session(self) -> None:
         login_response = asyncio.run(
@@ -154,7 +154,7 @@ class AuthApiTestCase(unittest.TestCase):
         )
         self.assertEqual(login_response.status_code, 200)
         cookie_header = login_response.headers["set-cookie"]
-        session_cookie = cookie_header.split("dsa_session=", 1)[1].split(";", 1)[0]
+        session_cookie = cookie_header.split("hrs_session=", 1)[1].split(";", 1)[0]
         self.assertTrue(auth.verify_session(session_cookie))
 
         logout_response = asyncio.run(auth_endpoint.auth_logout(self._build_request()))
@@ -256,7 +256,7 @@ class AuthApiTestCase(unittest.TestCase):
             "type": "http",
             "method": "GET",
             "path": "/api/v1/system/config",
-            "headers": [(b"cookie", b"dsa_session=test-session")],
+            "headers": [(b"cookie", b"hrs_session=test-session")],
             "query_string": b"",
             "scheme": "http",
             "client": ("127.0.0.1", 1234),
@@ -341,7 +341,7 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(b'"authEnabled":true', response.body)
         self.assertIn(b'"loggedIn":true', response.body)
         self.assertIn(b'"passwordSet":true', response.body)
-        self.assertIn("dsa_session=", response.headers["set-cookie"])
+        self.assertIn("hrs_session=", response.headers["set-cookie"])
         self.assertIn("ADMIN_AUTH_ENABLED=true", self.env_path.read_text(encoding="utf-8"))
 
     def test_auth_settings_enable_requires_password_when_missing(self) -> None:
@@ -407,7 +407,7 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(b'"loggedIn":false', response.body)
         self.assertIn(b'"passwordSet":false', response.body)
         self.assertIn("ADMIN_AUTH_ENABLED=false", self.env_path.read_text(encoding="utf-8"))
-        self.assertIn("dsa_session=", response.headers["set-cookie"])
+        self.assertIn("hrs_session=", response.headers["set-cookie"])
 
         with patch.object(auth, "_is_auth_enabled_from_env", side_effect=self._read_auth_enabled_from_env):
             status_response = asyncio.run(auth_endpoint.auth_status(self._build_request()))
@@ -466,7 +466,7 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(b'"authEnabled":true', enable_response.body)
         self.assertIn(b'"passwordSet":true', enable_response.body)
         self.assertIn(b'"loggedIn":true', enable_response.body)
-        self.assertIn("dsa_session=", enable_response.headers["set-cookie"])
+        self.assertIn("hrs_session=", enable_response.headers["set-cookie"])
 
     def test_auth_settings_enable_with_existing_password_requires_current_password(self) -> None:
         with patch.object(auth, "_is_auth_enabled_from_env", side_effect=self._read_auth_enabled_from_env):
@@ -588,7 +588,7 @@ class AuthApiTestCase(unittest.TestCase):
             # 3. The attacker tries to re-enable auth without a password or valid cookie
             response = asyncio.run(
                 auth_endpoint.auth_update_settings(
-                    self._build_request(cookies={"dsa_session": "invalid"}),
+                    self._build_request(cookies={"hrs_session": "invalid"}),
                     auth_endpoint.AuthSettingsRequest(authEnabled=True),
                 )
             )

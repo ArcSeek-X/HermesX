@@ -141,18 +141,18 @@ if [[ ! -x "${packaged_entry}" ]]; then
 fi
 
 # 先校验可执行文件可启动（不进入业务流程的参数），再检查冻结产物中的关键依赖。
-if ! "${packaged_entry}" --help >/tmp/dsa-packaged-help.log 2>&1; then
+if ! "${packaged_entry}" --help >/tmp/hrs-packaged-help.log 2>&1; then
   echo "ERROR: packaged backend help startup check failed."
-  cat /tmp/dsa-packaged-help.log
+  cat /tmp/hrs-packaged-help.log
   exit 1
 fi
 
 for module in alphasift.dsa_adapter futu orjson; do
-  if DSA_PACKAGED_IMPORT_PROBE="${module}" "${packaged_entry}" >/tmp/dsa-packaged-import.log 2>&1; then
-    cat /tmp/dsa-packaged-import.log
+  if HRS_PACKAGED_IMPORT_PROBE="${module}" "${packaged_entry}" >/tmp/hrs-packaged-import.log 2>&1; then
+    cat /tmp/hrs-packaged-import.log
   else
     echo "ERROR: packaged backend artifact cannot import ${module}."
-    cat /tmp/dsa-packaged-import.log
+    cat /tmp/hrs-packaged-import.log
     exit 1
   fi
 done

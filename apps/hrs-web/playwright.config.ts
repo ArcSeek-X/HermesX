@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '../..');
-const shouldRunWebSmoke = !!process.env.DSA_WEB_SMOKE_PASSWORD;
+const shouldRunWebSmoke = !!process.env.HRS_WEB_SMOKE_PASSWORD;
 
 function resolveBackendCommand() {
-  if (process.env.DSA_WEB_SMOKE_BACKEND_CMD) {
-    return process.env.DSA_WEB_SMOKE_BACKEND_CMD;
+  if (process.env.HRS_WEB_SMOKE_BACKEND_CMD) {
+    return process.env.HRS_WEB_SMOKE_BACKEND_CMD;
   }
 
   const unixVenvPython = path.join(repoRoot, '.venv', 'bin', 'python');

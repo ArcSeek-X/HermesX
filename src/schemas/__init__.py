@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===================================
-DSA Schemas
+HRS Schemas
 ===================================
 
 Pydantic schemas for report output validation and internal contracts.

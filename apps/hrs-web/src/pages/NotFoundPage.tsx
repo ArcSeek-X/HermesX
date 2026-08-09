@@ -18,7 +18,7 @@ const NotFoundPage: React.FC = () => {
 
   // 设置页面标题
   useEffect(() => {
-    document.title = '页面未找到 - DSA';
+    document.title = '页面未找到 - HRS';
   }, []);
 
   return (

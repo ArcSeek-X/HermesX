@@ -245,10 +245,10 @@ class AgentBackendStatusService:
                 backend="codex_app_server",
                 available=False,
                 error_code=getattr(exc, "code", "command_not_found"),
-                message="Codex was not found on the DSA process PATH",
+                message="Codex was not found on the HRS process PATH",
             )
         try:
-            with tempfile.TemporaryDirectory(prefix="dsa-codex-protocol-") as schema_dir:
+            with tempfile.TemporaryDirectory(prefix="hrs-codex-protocol-") as schema_dir:
                 schema_result = _run_codex_probe(
                     [
                         command[0],

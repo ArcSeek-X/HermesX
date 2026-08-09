@@ -1,11 +1,11 @@
 #!/bin/sh
 set -eu
 
-APP_USER="dsa"
-APP_GROUP="dsa"
+APP_USER="hrs"
+APP_GROUP="hrs"
 APP_UID="1000"
 APP_GID="1000"
-WRITABLE_DIRS="/app/data /app/logs /app/reports /home/dsa/.longbridge"
+WRITABLE_DIRS="/app/data /app/logs /app/reports /home/hrs/.longbridge"
 DATABASE_FILE="${DATABASE_PATH:-/app/data/stock_analysis.db}"
 
 warn() {
@@ -14,7 +14,7 @@ warn() {
 
 can_write_dir_as_app_user() {
     gosu "$APP_USER:$APP_GROUP" sh -c '
-        tmp="$1/.dsa-write-check.$$"
+        tmp="$1/.hrs-write-check.$$"
         : > "$tmp" && rm -f "$tmp"
     ' sh "$1"
 }
@@ -84,7 +84,7 @@ if [ "$(id -u)" = "0" ]; then
         fi
     done
 
-    HOME="/home/dsa"
+    HOME="/home/hrs"
     export HOME
     exec gosu "$APP_USER:$APP_GROUP" "$@"
 fi

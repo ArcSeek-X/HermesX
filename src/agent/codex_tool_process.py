@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Process-owned execution boundary for Codex dynamic tool calls.
 
-The App Server transport may use threads for protocol dispatch, but DSA tool
+The App Server transport may use threads for protocol dispatch, but HRS tool
 handlers run only in spawned child processes.  Cancellation and deadlines can
 therefore end database work by terminating the process group that owns it.
 """
@@ -273,7 +273,7 @@ def _error_result(tool_name: str, code: str, message: str) -> dict:
 
 
 class CodexToolProcessRunner:
-    """Own and reap every process used for one transport's DSA tool calls."""
+    """Own and reap every process used for one transport's HRS tool calls."""
 
     def __init__(self, *, worker: ToolWorker = _execute_registered_tool) -> None:
         self._worker = worker

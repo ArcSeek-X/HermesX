@@ -31,9 +31,9 @@ import {
 import { generateUUID } from '../utils/uuid';
 
 /** 当前会话 ID 在 localStorage 中的存储键名 */
-const STORAGE_KEY_SESSION = 'dsa_chat_session_id';
+const STORAGE_KEY_SESSION = 'hrs_chat_session_id';
 /** 单个会话消息列表在 localStorage 中的存储键名前缀，实际键名为该前缀拼接会话 ID */
-const STORAGE_KEY_MESSAGES_PREFIX = 'dsa_chat_messages_';
+const STORAGE_KEY_MESSAGES_PREFIX = 'hrs_chat_messages_';
 
 /**
  * 从 localStorage 加载指定会话的消息

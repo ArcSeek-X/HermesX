@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""AlphaSift service facade and DSA runtime bridge."""
+"""AlphaSift service facade and HRS runtime bridge."""
 
 from __future__ import annotations
 
@@ -30,30 +30,30 @@ from src.config import Config, DEFAULT_ALPHASIFT_INSTALL_SPEC, get_configured_ll
 
 logger = logging.getLogger(__name__)
 
-ALPHASIFT_DSA_ADAPTER_MODULE = "alphasift.dsa_adapter"
-ALPHASIFT_EXPECTED_MISSING_MODULES = frozenset({"alphasift", ALPHASIFT_DSA_ADAPTER_MODULE})
+ALPHASIFT_HRS_ADAPTER_MODULE = "alphasift.dsa_adapter"
+ALPHASIFT_EXPECTED_MISSING_MODULES = frozenset({"alphasift", ALPHASIFT_HRS_ADAPTER_MODULE})
 ALLOWED_ALPHASIFT_INSTALL_SPECS = frozenset({DEFAULT_ALPHASIFT_INSTALL_SPEC})
 _ALPHASIFT_INSTALL_LOCK = threading.RLock()
 ALPHASIFT_MANAGED_LITELLM_PROVIDERS = frozenset({"gemini", "vertex_ai", "anthropic", "openai", "deepseek"})
 _ALPHASIFT_RUNTIME_ENV_LOCK = threading.RLock()
-DSA_ENRICHMENT_MAX_CANDIDATES = 3
-DSA_PRE_RANK_CONTEXT_MAX_CANDIDATES = 3
-DSA_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER = 2
-DSA_ALPHASIFT_LLM_MAX_CANDIDATES = 12
-DSA_ALPHASIFT_DAILY_FETCH_RETRIES = 3
-DSA_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY = "sina,efinance,akshare_em,em_datacenter"
-DSA_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY_WITH_TUSHARE = "tushare,sina,efinance,akshare_em,em_datacenter"
-DSA_ALPHASIFT_CANDIDATE_CONTEXT_PROVIDERS = "news,fund_flow,announcement,quote"
-DSA_ALPHASIFT_DATA_DIR = Path("data") / "alphasift"
-DSA_ALPHASIFT_HOTSPOT_CACHE_PATH = DSA_ALPHASIFT_DATA_DIR / "hotspots.json"
-DSA_ALPHASIFT_HOTSPOT_HISTORY_PATH = DSA_ALPHASIFT_DATA_DIR / "hotspot.history.jsonl"
-DSA_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT = 3
-DSA_ALPHASIFT_HOTSPOT_DETAIL_CACHE_TTL_SECONDS = 30 * 60
-DSA_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS = 90
-DSA_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT = 8
-DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE = "eastmoney_hotspot_unavailable"
-DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE = "热点源连接中断，暂无可用缓存。"
-DSA_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS = (
+HRS_ENRICHMENT_MAX_CANDIDATES = 3
+HRS_PRE_RANK_CONTEXT_MAX_CANDIDATES = 3
+HRS_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER = 2
+HRS_ALPHASIFT_LLM_MAX_CANDIDATES = 12
+HRS_ALPHASIFT_DAILY_FETCH_RETRIES = 3
+HRS_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY = "sina,efinance,akshare_em,em_datacenter"
+HRS_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY_WITH_TUSHARE = "tushare,sina,efinance,akshare_em,em_datacenter"
+HRS_ALPHASIFT_CANDIDATE_CONTEXT_PROVIDERS = "news,fund_flow,announcement,quote"
+HRS_ALPHASIFT_DATA_DIR = Path("data") / "alphasift"
+HRS_ALPHASIFT_HOTSPOT_CACHE_PATH = HRS_ALPHASIFT_DATA_DIR / "hotspots.json"
+HRS_ALPHASIFT_HOTSPOT_HISTORY_PATH = HRS_ALPHASIFT_DATA_DIR / "hotspot.history.jsonl"
+HRS_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT = 3
+HRS_ALPHASIFT_HOTSPOT_DETAIL_CACHE_TTL_SECONDS = 30 * 60
+HRS_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS = 90
+HRS_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT = 8
+HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE = "eastmoney_hotspot_unavailable"
+HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE = "热点源连接中断，暂无可用缓存。"
+HRS_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS = (
     "remote disconnected",
     "remote end closed connection",
     "connection aborted",
@@ -68,8 +68,8 @@ DSA_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS = (
     "protocolerror",
     "incompleteread",
 )
-_DSA_FETCHER_MANAGER_LOCK = threading.RLock()
-_DSA_FETCHER_MANAGER: Any = None
+_HRS_FETCHER_MANAGER_LOCK = threading.RLock()
+_HRS_FETCHER_MANAGER: Any = None
 _FUNDAMENTAL_BLOCKS = ("valuation", "growth", "earnings", "institution", "capital_flow", "boards")
 _ALPHASIFT_LITELLM_COMPLETION_ROUTES: ContextVar[Optional[Tuple[Dict[str, Any], ...]]] = ContextVar(
     "alphasift_litellm_completion_routes",
@@ -99,19 +99,19 @@ def _resolve_alphasift_data_dir() -> Path:
     configured = _env_text(os.getenv("ALPHASIFT_DATA_DIR"))
     if configured:
         return Path(configured)
-    return DSA_ALPHASIFT_DATA_DIR
+    return HRS_ALPHASIFT_DATA_DIR
 
 
 def _alphasift_hotspot_cache_path() -> Path:
     if _env_text(os.getenv("ALPHASIFT_DATA_DIR")):
         return _resolve_alphasift_data_dir() / "hotspots.json"
-    return DSA_ALPHASIFT_HOTSPOT_CACHE_PATH
+    return HRS_ALPHASIFT_HOTSPOT_CACHE_PATH
 
 
 def _alphasift_hotspot_history_path() -> Path:
     if _env_text(os.getenv("ALPHASIFT_DATA_DIR")):
         return _resolve_alphasift_data_dir() / "hotspot.history.jsonl"
-    return DSA_ALPHASIFT_HOTSPOT_HISTORY_PATH
+    return HRS_ALPHASIFT_HOTSPOT_HISTORY_PATH
 
 
 def _alphasift_hotspot_detail_cache_dir() -> Path:
@@ -160,7 +160,7 @@ def _load_alphasift_hotspot_detail_cache(
     if cached_dt is None:
         return None
     age_seconds = max(0.0, (datetime.now(timezone.utc) - cached_dt).total_seconds())
-    stale = age_seconds > DSA_ALPHASIFT_HOTSPOT_DETAIL_CACHE_TTL_SECONDS
+    stale = age_seconds > HRS_ALPHASIFT_HOTSPOT_DETAIL_CACHE_TTL_SECONDS
     if stale and not allow_stale:
         return None
 
@@ -250,11 +250,11 @@ def _load_alphasift_hotspot_cache(*, provider: str, top: int) -> Optional[Dict[s
         return None
 
     top_count = max(1, min(int(top or 12), 50))
-    if len(hotspots) < min(DSA_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, top_count):
+    if len(hotspots) < min(HRS_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, top_count):
         logger.info(
             "Ignoring AlphaSift hotspot cache with too few rows: %s < %s",
             len(hotspots),
-            min(DSA_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, top_count),
+            min(HRS_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, top_count),
         )
         return None
 
@@ -303,7 +303,7 @@ def _normalize_alphasift_hotspot_cache_payload(raw: Any) -> Optional[Dict[str, A
 def _hotspot_route_has_external_event(route: Any) -> bool:
     if not isinstance(route, list):
         return False
-    generated_sources = {"", "eastmoney_board_change", "fallback", "dsa_topic_catalyst", "ths_info"}
+    generated_sources = {"", "eastmoney_board_change", "fallback", "hrs_topic_catalyst", "ths_info"}
     for item in route:
         if not isinstance(item, dict):
             continue
@@ -404,7 +404,7 @@ def _summarize_hotspot_news_event(*, topic: str, title: str, snippet: str, confi
     compact_text = _compact_hotspot_news_text(title=title, snippet=snippet)
     llm_summary = _summarize_hotspot_news_event_with_llm(topic=topic, text=compact_text, config=config)
     if llm_summary:
-        return _truncate_text(llm_summary, DSA_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS)
+        return _truncate_text(llm_summary, HRS_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS)
     return _summarize_hotspot_news_event_locally(topic=topic, text=compact_text)
 
 
@@ -420,8 +420,8 @@ def _summarize_hotspot_news_event_locally(*, topic: str, text: str) -> str:
         summary = f"{catalyst}，市场关注{topic}相关产业链机会。"
     else:
         summary = _first_meaningful_hotspot_sentence(cleaned)
-    summary = _truncate_text(summary, DSA_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS).rstrip(".。…")
-    return _truncate_text(f"{summary}。", DSA_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS)
+    summary = _truncate_text(summary, HRS_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS).rstrip(".。…")
+    return _truncate_text(f"{summary}。", HRS_ALPHASIFT_HOTSPOT_EVENT_SUMMARY_MAX_CHARS)
 
 
 def _strip_hotspot_news_noise(text: str) -> str:
@@ -573,7 +573,7 @@ def _extract_date_text(text: str) -> str:
 
 
 def _hotspot_rows_are_thin(rows: List[Any], *, top: int) -> bool:
-    if len(rows) < min(DSA_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, max(1, top)):
+    if len(rows) < min(HRS_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, max(1, top)):
         return True
     rich_count = 0
     metric_count = 0
@@ -697,7 +697,7 @@ def _attach_cached_hotspot_details(
     if not isinstance(rows, list) or not rows:
         return payload
     details = dict(payload.get("details") if isinstance(payload.get("details"), dict) else {})
-    for row in rows[:max(0, min(int(top or 0), DSA_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT))]:
+    for row in rows[:max(0, min(int(top or 0), HRS_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT))]:
         topic = _hotspot_topic_from_row(row)
         if not topic or topic in details:
             continue
@@ -780,7 +780,7 @@ def _is_known_eastmoney_hotspot_connectivity_error(exc: BaseException) -> bool:
         if isinstance(current, retryable_tuple):
             return True
         message = f"{current.__class__.__name__}: {current}".lower()
-        if any(marker in message for marker in DSA_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS):
+        if any(marker in message for marker in HRS_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS):
             return True
         cause = getattr(current, "__cause__", None)
         context = getattr(current, "__context__", None)
@@ -792,14 +792,14 @@ def _is_known_eastmoney_hotspot_connectivity_error(exc: BaseException) -> bool:
 
 
 def _should_return_eastmoney_hotspot_unavailable(provider_arg: Any, exc: BaseException) -> bool:
-    return isinstance(provider_arg, DsaEastMoneyHotspotProvider) and _is_known_eastmoney_hotspot_connectivity_error(exc)
+    return isinstance(provider_arg, HrsEastMoneyHotspotProvider) and _is_known_eastmoney_hotspot_connectivity_error(exc)
 
 
 def _has_degraded_eastmoney_hotspot_failure(provider_arg: Any, source_errors: List[str]) -> bool:
-    if not isinstance(provider_arg, DsaEastMoneyHotspotProvider):
+    if not isinstance(provider_arg, HrsEastMoneyHotspotProvider):
         return False
     for source_error in source_errors:
-        if source_error == DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE:
+        if source_error == HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE:
             return True
         if _is_known_eastmoney_hotspot_connectivity_error(RuntimeError(source_error)):
             return True
@@ -819,7 +819,7 @@ class AlphaSiftStrategyResponse(BaseModel):
 
 
 class AlphaSiftService:
-    """Coordinate AlphaSift calls with DSA-owned runtime capabilities."""
+    """Coordinate AlphaSift calls with HRS-owned runtime capabilities."""
 
     def __init__(self, config: Config):
         self.config = config
@@ -917,8 +917,8 @@ class AlphaSiftService:
             return _empty_alphasift_hotspot_payload(
                 provider=provider_name,
                 provider_used=type(provider_arg).__name__,
-                source_errors=[DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE],
-                message=DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE,
+                source_errors=[HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE],
+                message=HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE,
             )
 
         items = _remove_non_finite_json_values(_to_plain(raw))
@@ -927,18 +927,18 @@ class AlphaSiftService:
         selected = items[:top_count]
         source_errors = _list_text_values(getattr(raw, "source_errors", []))
         direct_hotspot_fallback_used = False
-        if isinstance(provider_arg, DsaEastMoneyHotspotProvider) and _hotspot_rows_are_thin(selected, top=top_count):
+        if isinstance(provider_arg, HrsEastMoneyHotspotProvider) and _hotspot_rows_are_thin(selected, top=top_count):
             try:
                 direct_hotspots = provider_arg.hotspot_rows(top=top_count)
             except Exception as exc:
-                logger.warning("AlphaSift DSA direct hotspot fallback failed: %s", exc)
+                logger.warning("AlphaSift HRS direct hotspot fallback failed: %s", exc)
                 direct_hotspots = []
-                source_errors.append(f"dsa_direct_hotspots_failed: {exc}")
+                source_errors.append(f"hrs_direct_hotspots_failed: {exc}")
             if len(direct_hotspots) > len(selected):
                 selected = direct_hotspots
                 direct_hotspot_fallback_used = True
-                source_errors.append("AlphaSift hotspot rows were thin; used DSA EastMoney board-change rows.")
-        if isinstance(provider_arg, DsaEastMoneyHotspotProvider) and selected:
+                source_errors.append("AlphaSift hotspot rows were thin; used HRS EastMoney board-change rows.")
+        if isinstance(provider_arg, HrsEastMoneyHotspotProvider) and selected:
             selected = _enrich_hotspot_rows_from_provider(selected, provider_arg, top=top_count)
         if not selected and source_errors:
             cached = _load_alphasift_hotspot_cache(provider=provider_name, top=top_count)
@@ -953,14 +953,14 @@ class AlphaSiftService:
                 return _empty_alphasift_hotspot_payload(
                     provider=provider_name,
                     provider_used=str(getattr(raw, "provider_used", "") or type(provider_arg).__name__),
-                    source_errors=[DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE],
-                    message=DSA_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE,
+                    source_errors=[HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_CODE],
+                    message=HRS_ALPHASIFT_HOTSPOT_UNAVAILABLE_MESSAGE,
                 )
 
         payload = {
             "enabled": True,
             "provider": provider_name,
-            "provider_used": "dsa_eastmoney_board_change" if direct_hotspot_fallback_used else str(getattr(raw, "provider_used", "")),
+            "provider_used": "hrs_eastmoney_board_change" if direct_hotspot_fallback_used else str(getattr(raw, "provider_used", "")),
             "fallback_used": direct_hotspot_fallback_used or bool(getattr(raw, "fallback_used", False)),
             "cache_used": False,
             "cached_at": None,
@@ -982,7 +982,7 @@ class AlphaSiftService:
             return payload
         details = dict(payload.get("details") if isinstance(payload.get("details"), dict) else {})
         source_errors = _list_text_values(payload.get("source_errors"))
-        for row in rows[:DSA_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT]:
+        for row in rows[:HRS_ALPHASIFT_HOTSPOT_PREFETCH_DETAIL_COUNT]:
             topic = _hotspot_topic_from_row(row)
             if not topic or (topic in details and not refresh):
                 continue
@@ -1009,8 +1009,8 @@ class AlphaSiftService:
                 detail={"error": "alphasift_hotspot_topic_required", "message": "热点题材名称不能为空。"},
             )
         provider_name, provider_arg = _resolve_hotspot_provider(provider)
-        if not isinstance(provider_arg, DsaEastMoneyHotspotProvider):
-            provider_arg = DsaEastMoneyHotspotProvider()
+        if not isinstance(provider_arg, HrsEastMoneyHotspotProvider):
+            provider_arg = HrsEastMoneyHotspotProvider()
         cached = None if refresh else _load_alphasift_hotspot_detail_cache(provider=provider_name, topic=topic_text)
         if cached is not None:
             return cached
@@ -1023,7 +1023,7 @@ class AlphaSiftService:
             except Exception:
                 get_hotspot_detail = None
             with _alphasift_runtime_env(self.config):
-                if callable(get_hotspot_detail) and type(provider_arg) is DsaEastMoneyHotspotProvider:
+                if callable(get_hotspot_detail) and type(provider_arg) is HrsEastMoneyHotspotProvider:
                     try:
                         detail = get_hotspot_detail(
                             topic_text,
@@ -1093,7 +1093,7 @@ class AlphaSiftService:
         _ensure_supported_market(market)
         _ensure_supported_strategy(strategy)
 
-        adapter = _get_dsa_adapter()
+        adapter = _get_hrs_adapter()
         screen = _get_adapter_callable(adapter, "screen", "screen() 不可调用。")
         try:
             raw = _call_alphasift_screen(screen, strategy, market, max_results, self.config)
@@ -1122,7 +1122,7 @@ class AlphaSiftService:
 
         candidates = _normalize_candidates(raw_data)
         selected = candidates[:max_results]
-        selected, dsa_enrichment = _enrich_candidates_with_dsa(selected)
+        selected, hrs_enrichment = _enrich_candidates_with_hrs(selected)
         return {
             "enabled": True,
             "candidates": selected,
@@ -1141,7 +1141,7 @@ class AlphaSiftService:
             "llm_parse_errors": _list_text_values(raw_data.get("llm_parse_errors")),
             "warnings": _list_text_values(raw_data.get("warnings")),
             "source_errors": _list_text_values(raw_data.get("source_errors")),
-            "dsa_enrichment": dsa_enrichment,
+            "hrs_enrichment": hrs_enrichment,
             "deep_analysis_requested": raw_data.get("deep_analysis_requested"),
             "post_analyzers": raw_data.get("post_analyzers") or [],
             "daily_enriched": raw_data.get("daily_enriched"),
@@ -1247,7 +1247,7 @@ def _hotspot_timeline_to_route(timeline: List[Any]) -> List[Dict[str, Any]]:
 def _merge_provider_hotspot_route_fallback(
     normalized: Dict[str, Any],
     *,
-    provider: "DsaEastMoneyHotspotProvider",
+    provider: "HrsEastMoneyHotspotProvider",
     topic: str,
 ) -> Dict[str, Any]:
     if _has_meaningful_hotspot_route(normalized.get("route")):
@@ -1320,7 +1320,7 @@ def _install_alphasift(config: Config) -> Dict[str, Any]:
     with _ALPHASIFT_INSTALL_LOCK:
         install_spec_is_default = _is_default_alphasift_install_spec(config.alphasift_install_spec)
         if _is_alphasift_available():
-            _get_dsa_adapter()
+            _get_hrs_adapter()
             return _build_install_response(
                 already_installed=True,
                 install_spec_is_default=install_spec_is_default,
@@ -1364,7 +1364,7 @@ def _install_alphasift(config: Config) -> Dict[str, Any]:
                 status_code=424,
                 detail={"error": "alphasift_unavailable", "message": "AlphaSift 安装完成，但适配层当前不可用（available=false）。请检查当前 Python 环境和安装状态后重试。"},
             )
-        _get_dsa_adapter()
+        _get_hrs_adapter()
 
         return _build_install_response(
             already_installed=False,
@@ -1420,7 +1420,7 @@ def _ensure_alphasift_available_for_use() -> None:
     normalized_diagnostics = _include_alphasift_diagnostic_suffix(diagnostics)
     if _is_missing_alphasift_module(diagnostics):
         raise _alphasift_unavailable_exception(
-            "AlphaSift 是 DSA 的项目依赖，但当前运行环境未安装适配层。请先执行 `pip install -r requirements.txt`，或重建 Docker/桌面后端产物。",
+            "AlphaSift 是 HRS 的项目依赖，但当前运行环境未安装适配层。请先执行 `pip install -r requirements.txt`，或重建 Docker/桌面后端产物。",
             diagnostics=normalized_diagnostics,
         )
     raise _alphasift_unavailable_exception(
@@ -1480,7 +1480,7 @@ def _get_alphasift_source_health_snapshot() -> Dict[str, Any]:
 
 
 def _ensure_alphasift_install_access(request: Request) -> None:
-    if os.getenv("DSA_DESKTOP_MODE") == "true":
+    if os.getenv("HRS_DESKTOP_MODE") == "true":
         return
     refresh_auth_state()
     if not is_auth_enabled():
@@ -1519,17 +1519,17 @@ def _is_adapter_available(adapter_status: Any) -> bool:
 def _import_alphasift() -> Any:
     try:
         _prepare_alphasift_runtime_env()
-        return importlib.import_module(ALPHASIFT_DSA_ADAPTER_MODULE)
+        return importlib.import_module(ALPHASIFT_HRS_ADAPTER_MODULE)
     except ModuleNotFoundError as exc:
         if _is_expected_alphasift_missing(exc):
             diagnostics = {
                 "reason": "missing_module",
                 "stage": "import_adapter",
                 "error_type": exc.__class__.__name__,
-                "module": str(getattr(exc, "name", ALPHASIFT_DSA_ADAPTER_MODULE)),
+                "module": str(getattr(exc, "name", ALPHASIFT_HRS_ADAPTER_MODULE)),
             }
             raise _alphasift_unavailable_exception(
-                f"AlphaSift 未安装或未挂载到当前 Python 环境，无法导入 {ALPHASIFT_DSA_ADAPTER_MODULE}：{exc}",
+                f"AlphaSift 未安装或未挂载到当前 Python 环境，无法导入 {ALPHASIFT_HRS_ADAPTER_MODULE}：{exc}",
                 diagnostics=diagnostics,
             ) from exc
         diagnostics = _log_unexpected_alphasift_exception("import_adapter", exc)
@@ -1587,7 +1587,7 @@ def _prepare_alphasift_runtime_env() -> None:
         os.environ["STRATEGIES_DIR"] = str(package_strategies_dir)
 
 
-def _get_dsa_adapter() -> Any:
+def _get_hrs_adapter() -> Any:
     adapter = _import_alphasift()
     for attr in ("get_status", "list_strategies", "screen"):
         _get_adapter_callable(adapter, attr, f"{attr}() 不可调用。")
@@ -1614,10 +1614,10 @@ def _call_alphasift_status() -> Dict[str, Any]:
                 "reason": "missing_module",
                 "stage": "import_adapter",
                 "error_type": exc.__class__.__name__,
-                "module": str(getattr(exc, "name", ALPHASIFT_DSA_ADAPTER_MODULE)),
+                "module": str(getattr(exc, "name", ALPHASIFT_HRS_ADAPTER_MODULE)),
             }
             raise _alphasift_unavailable_exception(
-                f"AlphaSift 未安装或未挂载到当前 Python 环境，无法导入 {ALPHASIFT_DSA_ADAPTER_MODULE}：{exc}",
+                f"AlphaSift 未安装或未挂载到当前 Python 环境，无法导入 {ALPHASIFT_HRS_ADAPTER_MODULE}：{exc}",
                 diagnostics=diagnostics,
             ) from exc
 
@@ -1691,7 +1691,7 @@ def _extract_alphasift_diagnostics(exc: HTTPException) -> Optional[Dict[str, str
 
 
 def _list_strategies() -> List[Dict[str, Any]]:
-    adapter = _get_dsa_adapter()
+    adapter = _get_hrs_adapter()
     list_strategies = _get_adapter_callable(adapter, "list_strategies", "list_strategies() 不可调用。")
     raw = _to_plain(list_strategies())
     if not isinstance(raw, list):
@@ -1796,7 +1796,7 @@ def _call_alphasift_screen(screen: Any, strategy: str, market: str, max_results:
 
     with (
         _alphasift_runtime_env(config, max_results=max_results),
-        _alphasift_dsa_daily_history_provider(),
+        _alphasift_hrs_daily_history_provider(),
         _alphasift_litellm_headers(config),
     ):
         try:
@@ -1842,7 +1842,7 @@ def _alphasift_runtime_env(config: Config, *, max_results: Optional[int] = None)
 
 
 @contextmanager
-def _alphasift_dsa_daily_history_provider() -> Iterator[None]:
+def _alphasift_hrs_daily_history_provider() -> Iterator[None]:
     try:
         daily_module = importlib.import_module("alphasift.daily")
     except Exception:
@@ -1854,7 +1854,7 @@ def _alphasift_dsa_daily_history_provider() -> Iterator[None]:
         yield
         return
 
-    def fetch_daily_history_with_dsa(
+    def fetch_daily_history_with_hrs(
         code: str,
         *,
         lookback_days: int = 120,
@@ -1862,14 +1862,14 @@ def _alphasift_dsa_daily_history_provider() -> Iterator[None]:
         retries: int = 2,
     ) -> Any:
         try:
-            dsa_df, dsa_source = get_dsa_daily_history(code, lookback_days=lookback_days)
-            normalized = _normalize_dsa_daily_history(dsa_df)
+            hrs_df, hrs_source = get_hrs_daily_history(code, lookback_days=lookback_days)
+            normalized = _normalize_hrs_daily_history(hrs_df)
             if normalized is not None and not normalized.empty:
-                normalized.attrs["source"] = f"dsa:{dsa_source}"
+                normalized.attrs["source"] = f"hrs:{hrs_source}"
                 return normalized
         except Exception as exc:
             logger.warning(
-                "AlphaSift DSA daily history fetch failed for %s; falling back to AlphaSift source %s: %s",
+                "AlphaSift HRS daily history fetch failed for %s; falling back to AlphaSift source %s: %s",
                 code,
                 source,
                 exc,
@@ -1877,7 +1877,7 @@ def _alphasift_dsa_daily_history_provider() -> Iterator[None]:
         return original_fetch(code, lookback_days=lookback_days, source=source, retries=retries)
 
     with _ALPHASIFT_RUNTIME_ENV_LOCK:
-        setattr(daily_module, "fetch_daily_history", fetch_daily_history_with_dsa)
+        setattr(daily_module, "fetch_daily_history", fetch_daily_history_with_hrs)
         try:
             yield
         finally:
@@ -1887,12 +1887,12 @@ def _alphasift_dsa_daily_history_provider() -> Iterator[None]:
 def _resolve_alphasift_snapshot_source_priority(config: Config) -> str:
     token = _env_text(getattr(config, "tushare_token", None) or os.getenv("TUSHARE_TOKEN"))
     if token:
-        return DSA_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY_WITH_TUSHARE
-    return DSA_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY
+        return HRS_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY_WITH_TUSHARE
+    return HRS_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY
 
 
 def _build_alphasift_runtime_env(config: Config, *, max_results: Optional[int] = None) -> Dict[str, str]:
-    # Bridge runtime only: only inject resolved DSA values for this request/process scope.
+    # Bridge runtime only: only inject resolved HRS values for this request/process scope.
     # User .env/config is never rewritten here; unset channels/models are not silently migrated.
     # 与 LiteLLM provider/model、openai-compatible `api_base` 与 headers 注入语义保持一致，
     # 参见 https://docs.litellm.ai/docs/providers 与
@@ -1917,7 +1917,7 @@ def _build_alphasift_runtime_env(config: Config, *, max_results: Optional[int] =
     if os.getenv("LLM_TEMPERATURE") not in (None, ""):
         put("LLM_TEMPERATURE", config.llm_temperature)
 
-    channels = _normalize_dsa_llm_channels(config)
+    channels = _normalize_hrs_llm_channels(config)
     if channels:
         put("LLM_CHANNELS", ",".join(channel["name"] for channel in channels))
         for channel in channels:
@@ -1957,12 +1957,12 @@ def _build_alphasift_runtime_env(config: Config, *, max_results: Optional[int] =
 
     put("OPENAI_BASE_URL", config.openai_base_url or _first_channel_base_url(channels, {"openai"}))
     put_default("DAILY_SOURCE", "auto")
-    put_default("DAILY_FETCH_RETRIES", str(DSA_ALPHASIFT_DAILY_FETCH_RETRIES))
+    put_default("DAILY_FETCH_RETRIES", str(HRS_ALPHASIFT_DAILY_FETCH_RETRIES))
     put_default("DAILY_FETCH_MAX_WORKERS", "1")
     put("LLM_CANDIDATE_CONTEXT_ENABLED", "false")
-    put_default("LLM_CANDIDATE_CONTEXT_PROVIDERS", DSA_ALPHASIFT_CANDIDATE_CONTEXT_PROVIDERS)
-    put_default("LLM_CANDIDATE_MULTIPLIER", str(DSA_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER))
-    put_default("LLM_MAX_CANDIDATES", str(_resolve_dsa_llm_max_candidates(max_results)))
+    put_default("LLM_CANDIDATE_CONTEXT_PROVIDERS", HRS_ALPHASIFT_CANDIDATE_CONTEXT_PROVIDERS)
+    put_default("LLM_CANDIDATE_MULTIPLIER", str(HRS_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER))
+    put_default("LLM_MAX_CANDIDATES", str(_resolve_hrs_llm_max_candidates(max_results)))
     put_default("SNAPSHOT_SOURCE_PRIORITY", _resolve_alphasift_snapshot_source_priority(config))
     alphasift_data_dir = _resolve_alphasift_data_dir()
     put_default("ALPHASIFT_DATA_DIR", str(alphasift_data_dir))
@@ -1975,18 +1975,18 @@ def _build_alphasift_runtime_env(config: Config, *, max_results: Optional[int] =
 def _resolve_hotspot_provider(provider: str) -> Tuple[str, Any]:
     requested = (provider or "").strip()
     if requested.lower() == "akshare":
-        return requested, DsaEastMoneyHotspotProvider()
+        return requested, HrsEastMoneyHotspotProvider()
     if requested:
         return requested, requested
     configured = (os.getenv("INDUSTRY_PROVIDER") or "").strip()
     if configured.lower() == "akshare":
-        return configured, DsaEastMoneyHotspotProvider()
+        return configured, HrsEastMoneyHotspotProvider()
     if configured:
         return configured, configured
-    return "akshare", DsaEastMoneyHotspotProvider()
+    return "akshare", HrsEastMoneyHotspotProvider()
 
 
-class DsaEastMoneyHotspotProvider:
+class HrsEastMoneyHotspotProvider:
     """Minimal EastMoney board provider for AlphaSift hotspot scoring."""
 
     _BASE_URL = "https://push2.eastmoney.com/api/qt/clist/get"
@@ -2189,7 +2189,7 @@ class DsaEastMoneyHotspotProvider:
                 "topic": name,
                 "name": display_name,
                 "theme_group": self._hotspot_group(name),
-                "source": "dsa_eastmoney_board_change",
+                "source": "hrs_eastmoney_board_change",
                 "rank": len(rows) + 1,
                 "change_pct": change_pct,
                 "heat_score": round(float(heat_score), 2),
@@ -2345,7 +2345,7 @@ class DsaEastMoneyHotspotProvider:
     def _fetch_rankings(self, source: str) -> Any:
         import pandas as pd
 
-        manager = _get_dsa_fetcher_manager()
+        manager = _get_hrs_fetcher_manager()
         fetch = manager.get_concept_rankings if source == "concept" else manager.get_sector_rankings
         top, _bottom = fetch(100)
         rows = []
@@ -2785,7 +2785,7 @@ class DsaEastMoneyHotspotProvider:
         if len(codes) < 4:
             return stocks
         try:
-            manager = _get_dsa_fetcher_manager()
+            manager = _get_hrs_fetcher_manager()
             manager.prefetch_realtime_quotes(codes)
         except Exception as exc:
             logger.debug("AlphaSift hotspot quote prefetch skipped: %s", exc)
@@ -2847,7 +2847,7 @@ class DsaEastMoneyHotspotProvider:
 def _build_alphasift_context(config: Config, *, max_results: Optional[int] = None) -> Dict[str, Any]:
     # context.llm.model/fallback/model_list 与 LiteLLM 路由语义保持一致，
     # 参见 https://docs.litellm.ai/docs/proxy/configs#the-model_list-key
-    channels = _normalize_dsa_llm_channels(config)
+    channels = _normalize_hrs_llm_channels(config)
     litellm_model, fallback_models = _resolve_alphasift_llm_models(config)
     return {
         "llm": {
@@ -2858,13 +2858,13 @@ def _build_alphasift_context(config: Config, *, max_results: Optional[int] = Non
             "model_list": _build_alphasift_litellm_model_list(config, channels),
             "litellm_config_path": config.litellm_config_path or "",
             "candidate_context_enabled": False,
-            "candidate_multiplier": DSA_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER,
-            "max_candidates": _resolve_dsa_llm_max_candidates(max_results),
+            "candidate_multiplier": HRS_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER,
+            "max_candidates": _resolve_hrs_llm_max_candidates(max_results),
         },
-        "dsa": {
+        "hrs": {
             "contract_version": "1",
             "mode": "pre_rank_light",
-            "max_candidates": DSA_PRE_RANK_CONTEXT_MAX_CANDIDATES,
+            "max_candidates": HRS_PRE_RANK_CONTEXT_MAX_CANDIDATES,
             "include_news": False,
             "news_max_results": 0,
             "capabilities": [
@@ -2873,10 +2873,10 @@ def _build_alphasift_context(config: Config, *, max_results: Optional[int] = Non
                 "realtime_quote",
                 "fundamental_context",
             ],
-            "get_candidate_context": get_dsa_candidate_context,
-            "get_daily_history": get_dsa_daily_history,
-            "get_realtime_quote": get_dsa_realtime_quote,
-            "get_fundamental_context": get_dsa_fundamental_context,
+            "get_candidate_context": get_hrs_candidate_context,
+            "get_daily_history": get_hrs_daily_history,
+            "get_realtime_quote": get_hrs_realtime_quote,
+            "get_fundamental_context": get_hrs_fundamental_context,
         },
     }
 
@@ -2911,7 +2911,7 @@ def _alphasift_litellm_headers(config: Config) -> Iterator[None]:
 
     original_completion = completion
 
-    def completion_with_dsa_headers(*args: Any, **kwargs: Any) -> Any:
+    def completion_with_hrs_headers(*args: Any, **kwargs: Any) -> Any:
         routes = _ALPHASIFT_LITELLM_COMPLETION_ROUTES.get()
         if routes:
             headers = _match_alphasift_litellm_headers(args, kwargs, routes)
@@ -2927,14 +2927,14 @@ def _alphasift_litellm_headers(config: Config) -> Iterator[None]:
                     kwargs["extra_headers"] = dict(headers)
         return original_completion(*args, **kwargs)
 
-    setattr(completion_with_dsa_headers, _ALPHASIFT_LITELLM_COMPLETION_ATTR, True)
-    setattr(completion_with_dsa_headers, "_alphasift_litellm_completion_original", original_completion)
-    completion_with_dsa_headers.__name__ = "completion_with_dsa_headers"
+    setattr(completion_with_hrs_headers, _ALPHASIFT_LITELLM_COMPLETION_ATTR, True)
+    setattr(completion_with_hrs_headers, "_alphasift_litellm_completion_original", original_completion)
+    completion_with_hrs_headers.__name__ = "completion_with_hrs_headers"
 
-    if completion is not completion_with_dsa_headers:
+    if completion is not completion_with_hrs_headers:
         with _ALPHASIFT_LITELLM_COMPLETION_LOCK:
             if not getattr(getattr(litellm_module, "completion", None), _ALPHASIFT_LITELLM_COMPLETION_ATTR, False):
-                setattr(litellm_module, "completion", completion_with_dsa_headers)
+                setattr(litellm_module, "completion", completion_with_hrs_headers)
 
     token = _ALPHASIFT_LITELLM_COMPLETION_ROUTES.set(
         tuple(route.copy() for route in header_routes),
@@ -2975,7 +2975,7 @@ def _channel_litellm_model_list(channels: List[Dict[str, Any]]) -> List[Dict[str
 
 
 def _build_alphasift_litellm_header_routes(config: Config) -> List[Dict[str, Any]]:
-    channels = _normalize_dsa_llm_channels(config)
+    channels = _normalize_hrs_llm_channels(config)
     model_list = _build_alphasift_litellm_model_list(config, channels)
     routes: List[Dict[str, Any]] = []
     for entry in model_list:
@@ -3031,11 +3031,11 @@ def _match_alphasift_litellm_headers(
     return {}
 
 
-def _resolve_dsa_llm_max_candidates(max_results: Optional[int]) -> int:
-    requested = max_results if isinstance(max_results, int) and max_results > 0 else DSA_ENRICHMENT_MAX_CANDIDATES
+def _resolve_hrs_llm_max_candidates(max_results: Optional[int]) -> int:
+    requested = max_results if isinstance(max_results, int) and max_results > 0 else HRS_ENRICHMENT_MAX_CANDIDATES
     return min(
-        DSA_ALPHASIFT_LLM_MAX_CANDIDATES,
-        max(requested, requested * DSA_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER),
+        HRS_ALPHASIFT_LLM_MAX_CANDIDATES,
+        max(requested, requested * HRS_ALPHASIFT_LLM_CANDIDATE_MULTIPLIER),
     )
 
 
@@ -3079,7 +3079,7 @@ def _is_managed_litellm_model(model: str) -> bool:
     return provider in ALPHASIFT_MANAGED_LITELLM_PROVIDERS
 
 
-def _normalize_dsa_llm_channels(config: Config) -> List[Dict[str, Any]]:
+def _normalize_hrs_llm_channels(config: Config) -> List[Dict[str, Any]]:
     channels: List[Dict[str, Any]] = []
     for index, raw in enumerate(config.llm_channels or []):
         if not isinstance(raw, dict):
@@ -3157,24 +3157,24 @@ def _env_text(value: Any) -> str:
     return text
 
 
-def _get_dsa_fetcher_manager() -> Any:
-    global _DSA_FETCHER_MANAGER
-    if _DSA_FETCHER_MANAGER is None:
-        with _DSA_FETCHER_MANAGER_LOCK:
-            if _DSA_FETCHER_MANAGER is None:
+def _get_hrs_fetcher_manager() -> Any:
+    global _HRS_FETCHER_MANAGER
+    if _HRS_FETCHER_MANAGER is None:
+        with _HRS_FETCHER_MANAGER_LOCK:
+            if _HRS_FETCHER_MANAGER is None:
                 from data_provider import DataFetcherManager
 
-                _DSA_FETCHER_MANAGER = DataFetcherManager()
-    return _DSA_FETCHER_MANAGER
+                _HRS_FETCHER_MANAGER = DataFetcherManager()
+    return _HRS_FETCHER_MANAGER
 
 
-def _get_dsa_search_service() -> Any:
+def _get_hrs_search_service() -> Any:
     from src.search_service import get_search_service
 
     return get_search_service()
 
 
-def get_dsa_daily_history(stock_code: str, *, lookback_days: int = 120) -> Tuple[Any, str]:
+def get_hrs_daily_history(stock_code: str, *, lookback_days: int = 120) -> Tuple[Any, str]:
     from src.services.history_loader import load_history_df
 
     normalized_code = _env_text(stock_code).zfill(6)
@@ -3182,7 +3182,7 @@ def get_dsa_daily_history(stock_code: str, *, lookback_days: int = 120) -> Tuple
     return load_history_df(normalized_code, days=days)
 
 
-def _normalize_dsa_daily_history(raw_df: Any) -> Any:
+def _normalize_hrs_daily_history(raw_df: Any) -> Any:
     if raw_df is None:
         return None
 
@@ -3232,8 +3232,8 @@ def _normalize_daily_date_value(value: Any) -> str:
     return text
 
 
-def get_dsa_realtime_quote(stock_code: str) -> Dict[str, Any]:
-    manager = _get_dsa_fetcher_manager()
+def get_hrs_realtime_quote(stock_code: str) -> Dict[str, Any]:
+    manager = _get_hrs_fetcher_manager()
     quote = manager.get_realtime_quote(stock_code, log_final_failure=False)
     if quote is None:
         return {}
@@ -3243,18 +3243,18 @@ def get_dsa_realtime_quote(stock_code: str) -> Dict[str, Any]:
     return _remove_non_finite_json_values(payload if isinstance(payload, dict) else {})
 
 
-def get_dsa_fundamental_context(stock_code: str) -> Dict[str, Any]:
-    manager = _get_dsa_fetcher_manager()
+def get_hrs_fundamental_context(stock_code: str) -> Dict[str, Any]:
+    manager = _get_hrs_fetcher_manager()
     context = manager.get_fundamental_context(stock_code, budget_seconds=4.0)
     return _compact_fundamental_context(_remove_non_finite_json_values(_to_plain(context)))
 
 
-def search_dsa_stock_news(stock_code: str, stock_name: str = "", max_results: int = 3) -> Dict[str, Any]:
-    service = _get_dsa_search_service()
+def search_hrs_stock_news(stock_code: str, stock_name: str = "", max_results: int = 3) -> Dict[str, Any]:
+    service = _get_hrs_search_service()
     if not getattr(service, "is_available", False):
         return {
             "success": False,
-            "error": "DSA search service unavailable",
+            "error": "HRS search service unavailable",
             "results": [],
         }
 
@@ -3281,7 +3281,7 @@ def search_dsa_stock_news(stock_code: str, stock_name: str = "", max_results: in
     )
 
 
-def get_dsa_candidate_context(
+def get_hrs_candidate_context(
     stock_code: str,
     stock_name: str = "",
     *,
@@ -3290,28 +3290,28 @@ def get_dsa_candidate_context(
     mode: str = "pre_rank_light",
 ) -> Dict[str, Any]:
     candidate = {"code": stock_code, "name": stock_name, "raw": {}}
-    context = _build_dsa_candidate_context(
+    context = _build_hrs_candidate_context(
         candidate,
         include_news=include_news,
         include_fundamentals=include_fundamentals,
         profile=mode or "pre_rank_light",
     )
-    return context.get("dsa_context", {})
+    return context.get("hrs_context", {})
 
 
-def _enrich_candidates_with_dsa(candidates: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+def _enrich_candidates_with_hrs(candidates: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     enriched_count = 0
     warnings: List[str] = []
-    limit = min(len(candidates), DSA_ENRICHMENT_MAX_CANDIDATES)
+    limit = min(len(candidates), HRS_ENRICHMENT_MAX_CANDIDATES)
 
     for index, candidate in enumerate(candidates):
         if index >= limit:
             continue
-        existing_context = candidate.get("dsa_context")
+        existing_context = candidate.get("hrs_context")
         if (
             isinstance(existing_context, dict)
             and existing_context.get("enriched")
-            and _candidate_has_dsa_news(candidate)
+            and _candidate_has_hrs_news(candidate)
         ):
             enriched_count += 1
             existing_warnings = existing_context.get("warnings") or []
@@ -3321,40 +3321,40 @@ def _enrich_candidates_with_dsa(candidates: List[Dict[str, Any]]) -> Tuple[List[
                 warnings.append(str(existing_warnings))
             continue
         try:
-            enriched = _build_dsa_candidate_context(
+            enriched = _build_hrs_candidate_context(
                 candidate,
                 include_news=True,
                 include_fundamentals=True,
                 profile="post_rank_full",
             )
             candidate.update(enriched)
-            if enriched.get("dsa_context", {}).get("enriched"):
+            if enriched.get("hrs_context", {}).get("enriched"):
                 enriched_count += 1
-            warnings.extend(enriched.get("dsa_context", {}).get("warnings") or [])
-        except Exception as exc:  # noqa: BLE001 - DSA enrichment must not block screening.
+            warnings.extend(enriched.get("hrs_context", {}).get("warnings") or [])
+        except Exception as exc:  # noqa: BLE001 - HRS enrichment must not block screening.
             code = candidate.get("code") or f"rank-{candidate.get('rank', index + 1)}"
             message = f"{code}: {exc}"
             warnings.append(message)
-            logger.warning("DSA enrichment failed for AlphaSift candidate %s: %s", code, exc)
-            candidate["dsa_context"] = {
+            logger.warning("HRS enrichment failed for AlphaSift candidate %s: %s", code, exc)
+            candidate["hrs_context"] = {
                 "enriched": False,
                 "warnings": [message],
             }
 
     return candidates, {
         "enabled": True,
-        "max_candidates": DSA_ENRICHMENT_MAX_CANDIDATES,
+        "max_candidates": HRS_ENRICHMENT_MAX_CANDIDATES,
         "requested_count": limit,
         "enriched_count": enriched_count,
         "warnings": _dedupe_strings(warnings),
     }
 
 
-def _candidate_has_dsa_news(candidate: Dict[str, Any]) -> bool:
-    news_items = candidate.get("dsa_news")
+def _candidate_has_hrs_news(candidate: Dict[str, Any]) -> bool:
+    news_items = candidate.get("hrs_news")
     if isinstance(news_items, list) and any(isinstance(item, dict) for item in news_items):
         return True
-    context = candidate.get("dsa_context")
+    context = candidate.get("hrs_context")
     if not isinstance(context, dict):
         return False
     return _news_has_results(context.get("news"))
@@ -3369,7 +3369,7 @@ def _news_has_results(news: Any) -> bool:
     return False
 
 
-def _build_dsa_candidate_context(
+def _build_hrs_candidate_context(
     candidate: Dict[str, Any],
     *,
     include_news: bool = True,
@@ -3381,13 +3381,13 @@ def _build_dsa_candidate_context(
     warnings: List[str] = []
     if not code:
         return {
-            "dsa_context": {
+            "hrs_context": {
                 "enriched": False,
                 "warnings": ["missing candidate code"],
             }
         }
 
-    existing_context = candidate.get("dsa_context")
+    existing_context = candidate.get("hrs_context")
     if not isinstance(existing_context, dict):
         existing_context = {}
 
@@ -3406,7 +3406,7 @@ def _build_dsa_candidate_context(
         warnings.append(str(existing_warnings))
 
     try:
-        manager = _get_dsa_fetcher_manager()
+        manager = _get_hrs_fetcher_manager()
         resolved_name = manager.get_stock_name(code, allow_realtime=False)
         if resolved_name and (not name or name == code):
             name = resolved_name
@@ -3416,7 +3416,7 @@ def _build_dsa_candidate_context(
 
     if not quote:
         try:
-            quote = get_dsa_realtime_quote(code)
+            quote = get_hrs_realtime_quote(code)
             if not quote:
                 warnings.append("realtime_quote_missing")
         except Exception as exc:  # noqa: BLE001
@@ -3432,7 +3432,7 @@ def _build_dsa_candidate_context(
 
     if include_fundamentals and not fundamentals:
         try:
-            fundamentals = get_dsa_fundamental_context(code)
+            fundamentals = get_hrs_fundamental_context(code)
         except Exception as exc:  # noqa: BLE001
             warnings.append(f"fundamental_context_failed: {exc}")
             fundamentals = {}
@@ -3440,7 +3440,7 @@ def _build_dsa_candidate_context(
     if include_news:
         if not _news_has_results(news):
             try:
-                news = search_dsa_stock_news(code, _env_text(candidate.get("name")) or name or code, max_results=3)
+                news = search_hrs_stock_news(code, _env_text(candidate.get("name")) or name or code, max_results=3)
                 if not news.get("success"):
                     warnings.append(news.get("error") or "stock_news_unavailable")
             except Exception as exc:  # noqa: BLE001
@@ -3454,7 +3454,7 @@ def _build_dsa_candidate_context(
             "results": [],
         }
 
-    summary = _build_dsa_analysis_summary(candidate, quote, fundamentals, news)
+    summary = _build_hrs_analysis_summary(candidate, quote, fundamentals, news)
     context = {
         "enriched": bool(quote or fundamentals or news.get("results")),
         "profile": profile,
@@ -3465,9 +3465,9 @@ def _build_dsa_candidate_context(
         "warnings": _dedupe_strings(warnings),
     }
     return {
-        "dsa_context": context,
-        "dsa_news": news.get("results") or [],
-        "dsa_analysis_summary": summary,
+        "hrs_context": context,
+        "hrs_news": news.get("results") or [],
+        "hrs_analysis_summary": summary,
     }
 
 
@@ -3499,7 +3499,7 @@ def _compact_fundamental_context(context: Any) -> Dict[str, Any]:
     return compact
 
 
-def _build_dsa_analysis_summary(
+def _build_hrs_analysis_summary(
     candidate: Dict[str, Any],
     quote: Dict[str, Any],
     fundamentals: Dict[str, Any],
@@ -3509,7 +3509,7 @@ def _build_dsa_analysis_summary(
     price = _first_non_empty(quote.get("price"), candidate.get("price"))
     change_pct = _first_non_empty(quote.get("change_pct"), candidate.get("change_pct"))
     if price is not None:
-        text = f"DSA行情：现价 {price}"
+        text = f"HRS行情：现价 {price}"
         if change_pct is not None:
             text += f"，涨跌幅 {change_pct}%"
         parts.append(text)
@@ -3518,14 +3518,14 @@ def _build_dsa_analysis_summary(
     if isinstance(coverage, dict) and coverage:
         available_blocks = [key for key, value in coverage.items() if str(value).lower() in {"available", "partial"}]
         if available_blocks:
-            parts.append(f"DSA基本面覆盖：{', '.join(available_blocks[:4])}")
+            parts.append(f"HRS基本面覆盖：{', '.join(available_blocks[:4])}")
 
     news_results = news.get("results") if isinstance(news, dict) else []
     if isinstance(news_results, list) and news_results:
         titles = [str(item.get("title") or "").strip() for item in news_results if isinstance(item, dict)]
         titles = [title for title in titles if title]
         if titles:
-            parts.append(f"DSA新闻：{'；'.join(titles[:2])}")
+            parts.append(f"HRS新闻：{'；'.join(titles[:2])}")
 
     if not parts:
         return ""
@@ -3577,12 +3577,12 @@ def _normalize_candidate(raw: Any, rank: int) -> Dict[str, Any]:
     if not isinstance(item, dict):
         item = {"code": str(item)}
     source = item.get("raw") if isinstance(item.get("raw"), dict) else item
-    dsa_context = item.get("dsa_context") or source.get("dsa_context") or {}
-    dsa_news = item.get("dsa_news") or source.get("dsa_news") or _extract_dsa_news_from_context(dsa_context)
-    dsa_analysis_summary = (
-        item.get("dsa_analysis_summary")
-        or source.get("dsa_analysis_summary")
-        or _extract_dsa_analysis_summary_from_context(dsa_context)
+    hrs_context = item.get("hrs_context") or source.get("hrs_context") or {}
+    hrs_news = item.get("hrs_news") or source.get("hrs_news") or _extract_hrs_news_from_context(hrs_context)
+    hrs_analysis_summary = (
+        item.get("hrs_analysis_summary")
+        or source.get("hrs_analysis_summary")
+        or _extract_hrs_analysis_summary_from_context(hrs_context)
     )
     return {
         "rank": item.get("rank") or source.get("rank") or rank,
@@ -3609,16 +3609,16 @@ def _normalize_candidate(raw: Any, rank: int) -> Dict[str, Any]:
         "amount": _first_present(item, source, "amount"),
         "industry": item.get("industry") or source.get("industry") or "",
         "factor_scores": item.get("factor_scores") or source.get("factor_scores") or {},
-        "dsa_context": dsa_context,
-        "dsa_news": dsa_news,
-        "dsa_analysis_summary": dsa_analysis_summary,
+        "hrs_context": hrs_context,
+        "hrs_news": hrs_news,
+        "hrs_analysis_summary": hrs_analysis_summary,
         "post_analysis_summaries": item.get("post_analysis_summaries") or source.get("post_analysis_summaries") or {},
         "post_analysis_tags": item.get("post_analysis_tags") or source.get("post_analysis_tags") or [],
         "raw": source,
     }
 
 
-def _extract_dsa_news_from_context(context: Any) -> List[Dict[str, Any]]:
+def _extract_hrs_news_from_context(context: Any) -> List[Dict[str, Any]]:
     if not isinstance(context, dict):
         return []
     news = context.get("news")
@@ -3633,10 +3633,10 @@ def _extract_dsa_news_from_context(context: Any) -> List[Dict[str, Any]]:
     return [item for item in results if isinstance(item, dict)]
 
 
-def _extract_dsa_analysis_summary_from_context(context: Any) -> str:
+def _extract_hrs_analysis_summary_from_context(context: Any) -> str:
     if not isinstance(context, dict):
         return ""
-    for key in ("dsa_analysis_summary", "analysis_summary", "summary"):
+    for key in ("hrs_analysis_summary", "analysis_summary", "summary"):
         value = context.get(key)
         if isinstance(value, str) and value.strip():
             return value
@@ -3646,12 +3646,12 @@ def _extract_dsa_analysis_summary_from_context(context: Any) -> str:
             value = news.get(key)
             if isinstance(value, str) and value.strip():
                 return value
-    news_items = _extract_dsa_news_from_context(context)
+    news_items = _extract_hrs_news_from_context(context)
     if not news_items:
         return ""
     quote = context.get("quote") if isinstance(context.get("quote"), dict) else {}
     fundamentals = context.get("fundamentals") if isinstance(context.get("fundamentals"), dict) else {}
-    return _build_dsa_analysis_summary({}, quote, fundamentals, {"results": news_items})
+    return _build_hrs_analysis_summary({}, quote, fundamentals, {"results": news_items})
 
 
 def _first_present(primary: Dict[str, Any], source: Dict[str, Any], *keys: str) -> Any:

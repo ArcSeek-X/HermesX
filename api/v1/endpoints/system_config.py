@@ -94,10 +94,10 @@ class EnvBackupAccessDenied(Exception):
 def _allow_env_backup_access(request: Request) -> None:
     """Gate raw .env backup/restore to explicit secure modes.
 
-    - Desktop runtime keeps existing local behavior via DSA_DESKTOP_MODE.
+    - Desktop runtime keeps existing local behavior via HRS_DESKTOP_MODE.
     - Non-desktop runtime must have admin auth enabled and a valid session.
     """
-    if os.getenv("DSA_DESKTOP_MODE") == "true":
+    if os.getenv("HRS_DESKTOP_MODE") == "true":
         return
 
     refresh_auth_state()

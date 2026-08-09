@@ -15,7 +15,7 @@ import { getStorageItem, setStorageItem } from '../utils/storage';
 /**
  * 读取并使用某个用户偏好。
  *
- * @param key - 偏好键名（内部会自动添加 `dsa-pref-` 前缀，调用方无需关心）
+ * @param key - 偏好键名（内部会自动添加 `hrs-pref-` 前缀，调用方无需关心）
  * @param defaultValue - 默认值（localStorage 中无该值时使用）
  * @returns [当前值, 更新函数]；更新函数支持直接传值或函数式更新（同 useState 语义）
  *

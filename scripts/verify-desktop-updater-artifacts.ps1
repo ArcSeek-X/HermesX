@@ -22,7 +22,7 @@ function Normalize-SemverText {
 }
 
 if (-not $DistDir) {
-  $DistDir = Join-Path $PSScriptRoot '..\apps\dsa-desktop\dist'
+  $DistDir = Join-Path $PSScriptRoot '..\apps\hrs-desktop\dist'
 }
 
 $resolvedDistDir = Resolve-Path $DistDir -ErrorAction SilentlyContinue
@@ -36,7 +36,7 @@ if (-not $distDirPath) {
   exit 0
 }
 
-$packageJsonPath = Join-Path $PSScriptRoot '..\apps\dsa-desktop\package.json'
+$packageJsonPath = Join-Path $PSScriptRoot '..\apps\hrs-desktop\package.json'
 if (-not (Test-Path $packageJsonPath)) {
   throw "Package manifest missing: $packageJsonPath"
 }

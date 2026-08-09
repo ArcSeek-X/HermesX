@@ -12,8 +12,8 @@
  * - 回测/决策信号：300-600 秒（计算结果变化不频繁）
  *
  * 键名前缀：
- * - localStorage: 'dsa-pref-'（用户偏好，永久保存）
- * - sessionStorage: 'dsa-state-'（页面状态，会话级）
+ * - localStorage: 'hrs-pref-'（用户偏好，永久保存）
+ * - sessionStorage: 'hrs-state-'（页面状态，会话级）
  */
 
 /** 各 API 路径的缓存 TTL（秒） */
@@ -55,10 +55,10 @@ export const DEFAULT_CACHE_TTL = 60;
 export const MAX_CACHE_ENTRIES = 200;
 
 /** localStorage 键名前缀（用户偏好） */
-export const LOCAL_STORAGE_PREFIX = 'dsa-pref-';
+export const LOCAL_STORAGE_PREFIX = 'hrs-pref-';
 
 /** sessionStorage 键名前缀（页面状态） */
-export const SESSION_STORAGE_PREFIX = 'dsa-state-';
+export const SESSION_STORAGE_PREFIX = 'hrs-state-';
 
 /**
  * 根据 URL 路径获取缓存 TTL

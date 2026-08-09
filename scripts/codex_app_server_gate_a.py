@@ -192,7 +192,7 @@ def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
         ),
     ) as client:
         common_base = (
-            "You are the DSA stock-analysis Agent runtime. DSA instructions and DSA tools define your task; "
+            "You are the HRS stock-analysis Agent runtime. HRS instructions and HRS tools define your task; "
             "coding-agent defaults do not. Never modify files, request approval, or use unregistered tools."
         )
 
@@ -216,7 +216,7 @@ def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
         report["checks"]["external_tool_isolation"] = client.inspect_external_tool_isolation(tool_thread)
         tool_turn = client.run_turn(
             tool_thread,
-            "Run the two-label DSA capability probe now. The hidden tokens are available only from the tool results.",
+            "Run the two-label HRS capability probe now. The hidden tokens are available only from the tool results.",
             timeout=timeout,
         )
         tool_calls = [call for call in client.tool_calls if call.turn_id == tool_turn.turn_id]
@@ -238,12 +238,12 @@ def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
             base_instructions=common_base,
             developer_instructions=(
                 "Use only get_analysis_context for the exact stock code in the user request, then report whether "
-                "the DSA Tool Surface returned analysis context. Do not substitute another code."
+                "the HRS Tool Surface returned analysis context. Do not substitute another code."
             ),
         )
         production_turn = client.run_turn(
             production_thread,
-            f"Check DSA analysis context for the reserved nonexistent stock code {reserved_stock_code}.",
+            f"Check HRS analysis context for the reserved nonexistent stock code {reserved_stock_code}.",
             timeout=timeout,
         )
         production_calls = [call for call in client.tool_calls if call.turn_id == production_turn.turn_id]
@@ -298,12 +298,12 @@ def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
             "assistant_role_preserved": history_assistant in history_turn.final_text,
             "user_role_not_flattened": history_user not in history_turn.final_text,
             "two_turn_replay": turn_one_token in history_turn.final_text,
-            "dsa_instruction_applied": history_turn.final_text.count("|") == 1,
+            "hrs_instruction_applied": history_turn.final_text.count("|") == 1,
         }
 
         sentinel_token = f"OUTSIDE_{secrets.token_hex(12)}"
         network_token = f"NETWORK_{secrets.token_hex(12)}"
-        sentinel_dir = Path(tempfile.mkdtemp(prefix="dsa-gate-a-outside-"))
+        sentinel_dir = Path(tempfile.mkdtemp(prefix="hrs-gate-a-outside-"))
         sentinel_file = sentinel_dir / "sentinel.txt"
         sentinel_file.write_text(sentinel_token, encoding="utf-8")
         sentinel_file.chmod(0o600)

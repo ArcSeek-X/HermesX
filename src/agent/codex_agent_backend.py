@@ -28,20 +28,20 @@ from src.storage import persist_llm_usage
 
 
 _BASE_INSTRUCTIONS = (
-    "You are the DSA stock-analysis Agent runtime. DSA instructions and DSA tools define your task; "
+    "You are the HRS stock-analysis Agent runtime. HRS instructions and HRS tools define your task; "
     "coding-agent defaults do not. Never modify files, request approval, or use unregistered tools. "
     "Only the tools shown for this turn are safe to cancel; never imply access to live quotes, news, "
     "portfolio data, or recalculation tools when they are not listed."
 )
 _NO_STOCK_SCOPE_INSTRUCTION = (
-    "No stock scope was established for this turn. Do not call any DSA tool that requires a "
+    "No stock scope was established for this turn. Do not call any HRS tool that requires a "
     "stock_code. If the user asks about a specific stock, ask them in plain language to provide "
     "or select an exact stock code. Non-stock market tools remain available."
 )
 
 _PUBLIC_ERROR_MESSAGES = {
-    "command_not_found": "运行 DSA 的设备找不到 Codex，请前往 Agent 设置检查安装和 PATH。",
-    "login_required": "Codex 尚未登录，请在运行 DSA 的设备上完成登录后重试。",
+    "command_not_found": "运行 HRS 的设备找不到 Codex，请前往 Agent 设置检查安装和 PATH。",
+    "login_required": "Codex 尚未登录，请在运行 HRS 的设备上完成登录后重试。",
     "capability_unsupported": "当前 Codex 安装不满足问股所需能力，请前往 Agent 设置查看运行状态。",
     "unsupported_agent_arch": "Codex 本地 Agent 当前只支持单 Agent 问股。",
     "approval_required": "Codex 请求了本次问股不允许的授权，运行已安全停止。",
@@ -50,14 +50,14 @@ _PUBLIC_ERROR_MESSAGES = {
     "output_too_large": "Codex Agent 返回的数据超过安全限制，本次问股已停止。",
     "resource_limit_exceeded": "Codex Agent 本次问股超过允许的工作量，后台任务已结束。",
     "tool_roundtrip_failed": "Codex Agent 本次未能完成只读数据调用，请根据提示重试或切换到默认模型。",
-    "resource_cleanup_failed": "Codex Agent 未能安全结束本次后台任务，请重启 DSA 服务后再试。",
+    "resource_cleanup_failed": "Codex Agent 未能安全结束本次后台任务，请重启 HRS 服务后再试。",
     "invalid_timeout": "Codex Agent 必须设置明确的整体时限，请在 Agent 设置中填写大于 0 的秒数。",
 }
 _DEFAULT_PUBLIC_ERROR_MESSAGE = "Codex Agent 暂时无法完成本次问股，请前往 Agent 设置查看运行状态。"
 
 
 class CodexAgentBackend(AgentBackend):
-    """Execute one DSA Chat turn in a new ephemeral Codex App Server."""
+    """Execute one HRS Chat turn in a new ephemeral Codex App Server."""
 
     backend_id = "codex_app_server"
     runtime_owns_loop = True
@@ -151,7 +151,7 @@ class CodexAgentBackend(AgentBackend):
                 if not tool_names:
                     raise CodexAppServerError(
                         "capability_unsupported",
-                        "No cancellation-safe DSA tools are available to Codex",
+                        "No cancellation-safe HRS tools are available to Codex",
                     )
                 developer_instructions = request.system_prompt
                 if request.stock_scope is None:

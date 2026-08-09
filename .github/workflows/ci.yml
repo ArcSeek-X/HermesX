@@ -34,7 +34,7 @@ jobs:
               - 'scripts/macos-signature-audit.sh'
               - 'scripts/build-all.ps1'
               - 'scripts/build-all-macos.sh'
-              - 'apps/dsa-desktop/**'
+              - 'apps/hrs-desktop/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/desktop-release.yml'
 

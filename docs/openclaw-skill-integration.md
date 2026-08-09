@@ -4,14 +4,14 @@
 
 ## 概述
 
-- **集成方式**：openclaw Skill 通过 HTTP 调用 HermesX（DSA）REST API
-- **适用场景**：已部署 DSA API 服务，希望在 openclaw 对话中触发分析（如「帮我分析茅台」「analyze AAPL」）
+- **集成方式**：openclaw Skill 通过 HTTP 调用 HermesX（HRS）REST API
+- **适用场景**：已部署 HRS API 服务，希望在 openclaw 对话中触发分析（如「帮我分析茅台」「analyze AAPL」）
 
 ## 前置条件
 
 1. **HermesX 必须已运行**：执行 `python main.py --serve-only` 或通过 Docker 部署，使 API 长期可用
 2. **openclaw 需具备 HTTP 调用能力**：如 `system.run` 执行 curl，或内置 HTTP 工具（如 api-tester 等）
-3. **说明**：GitHub Actions 仅做定时任务，不长期暴露 API，需本地或 Docker 运行 DSA
+3. **说明**：GitHub Actions 仅做定时任务，不长期暴露 API，需本地或 Docker 运行 HRS
 
 ## 核心 API 参考
 
@@ -93,7 +93,7 @@
       "daily-stock-analysis": {
         "enabled": true,
         "env": {
-          "DSA_BASE_URL": "http://localhost:8000"
+          "HRS_BASE_URL": "http://localhost:8000"
         }
       }
     }
@@ -103,7 +103,7 @@
 
 - 本地部署：`http://localhost:8000` 或 `http://127.0.0.1:8000`
 - 远程部署：替换为实际 URL
-- **建议**：`DSA_BASE_URL` 勿以 `/` 结尾
+- **建议**：`HRS_BASE_URL` 勿以 `/` 结尾
 
 ## 错误响应格式
 
@@ -122,7 +122,7 @@
 name: daily-stock-analysis
 description: 调用 HermesX API 进行股票智能分析。当用户询问「分析茅台」「analyze AAPL」「帮我看看 600519」等时使用。仅支持股票代码，不支持中文名称。
 metadata:
-  {"openclaw": {"requires": {"env": ["DSA_BASE_URL"]}, "primaryEnv": "DSA_BASE_URL"}}
+  {"openclaw": {"requires": {"env": ["HRS_BASE_URL"]}, "primaryEnv": "HRS_BASE_URL"}}
 ---
 
 ## 触发条件
@@ -132,7 +132,7 @@ metadata:
 ## 工作流程
 
 1. **提取股票代码**：从用户消息中识别股票代码（如 600519、AAPL、hk00700）。若用户仅提供中文名称（如「茅台」），需提示用户提供股票代码，或使用常见映射（茅台→600519）。
-2. **调用 API**：向 `{DSA_BASE_URL}/api/v1/analysis/analyze` 发送 POST 请求，请求体：
+2. **调用 API**：向 `{HRS_BASE_URL}/api/v1/analysis/analyze` 发送 POST 请求，请求体：
    ```json
    {"stock_code": "<提取的代码>", "report_type": "detailed", "force_refresh": true, "async_mode": false, "skills": ["bull_trend"]}
    ```
@@ -140,10 +140,10 @@ metadata:
 3. **等待响应**：同步模式下分析约需 2–5 分钟，请确保 HTTP 客户端超时足够（建议 ≥300 秒）。
 4. **解析结果**：从响应的 `report.summary` 中提取 `operation_advice`、`trend_prediction`、`analysis_summary`，从 `report.strategy` 中提取 `ideal_buy`、`stop_loss`、`take_profit`，以简洁格式呈现给用户。外部集成可继续只读取自由文本 `operation_advice`；若需要结构化展示，可优先读取可选的 `action` / `action_label`（八态：`buy|add|hold|reduce|sell|watch|avoid|alert`）。旧历史缺字段时可回退到 `operation_advice` 文本展示，但该回退不等价于稳定 API action；旧三态统计口径仍以 `decision_type` 为准。
 5. **错误处理**：
-   - 连接失败：提示检查 DSA 是否运行、DSA_BASE_URL 是否正确
+   - 连接失败：提示检查 HRS 是否运行、HRS_BASE_URL 是否正确
    - 400：检查 stock_code 格式
    - 409：该股票正在分析中，可稍后重试或查询任务状态
-   - 500：提示查看 DSA 日志排查
+   - 500：提示查看 HRS 日志排查
 
 ## 股票代码格式
 
@@ -159,8 +159,8 @@ metadata:
 若 HermesX 已启用 `AGENT_MODE=true`，可调用 Agent 策略问股接口，支持多轮对话与多种策略（缠论、均线金叉等）：
 
 ```bash
-# 将 {DSA_BASE_URL} 替换为实际配置的 API 地址（如 http://localhost:8000）
-curl -X POST {DSA_BASE_URL}/api/v1/agent/chat \
+# 将 {HRS_BASE_URL} 替换为实际配置的 API 地址（如 http://localhost:8000）
+curl -X POST {HRS_BASE_URL}/api/v1/agent/chat \
   -H 'Content-Type: application/json' \
   -d '{"message": "用缠论分析 600519", "session_id": "optional-session-id"}'
 ```
@@ -171,12 +171,12 @@ curl -X POST {DSA_BASE_URL}/api/v1/agent/chat \
 
 | 现象 | 可能原因 | 处理建议 |
 |------|----------|----------|
-| 连接失败 | DSA 未运行、端口错误、防火墙 | 确认 `python main.py --serve-only` 已启动，检查 `DSA_BASE_URL` |
+| 连接失败 | HRS 未运行、端口错误、防火墙 | 确认 `python main.py --serve-only` 已启动，检查 `HRS_BASE_URL` |
 | 400 错误 | stock_code 格式错误或缺失 | 检查代码格式（见上文表格），确保请求体包含 `stock_code` |
-| 500 错误 | AI 配置、数据源、网络问题 | 查看 DSA 日志，确认 GEMINI_API_KEY 等已配置 |
-| Agent 400 | Agent 模式未启用 | 在 DSA 的 `.env` 中设置 `AGENT_MODE=true` |
+| 500 错误 | AI 配置、数据源、网络问题 | 查看 HRS 日志，确认 GEMINI_API_KEY 等已配置 |
+| Agent 400 | Agent 模式未启用 | 在 HRS 的 `.env` 中设置 `AGENT_MODE=true` |
 | 分析超时 | 同步模式等待时间过长 | 增加 HTTP 客户端超时，或改用 `async_mode: true` 轮询状态 |
 
 ## 认证说明
 
-默认情况下 DSA API 无需认证。若在 `.env` 中启用了 `ADMIN_AUTH_ENABLED=true`，则需在 Skill 调用时携带登录后获得的 Cookie，具体方式取决于 openclaw 的 HTTP 工具能力（当前 API 仅支持 Cookie 认证，不支持 Bearer Token）。
+默认情况下 HRS API 无需认证。若在 `.env` 中启用了 `ADMIN_AUTH_ENABLED=true`，则需在 Skill 调用时携带登录后获得的 Cookie，具体方式取决于 openclaw 的 HTTP 工具能力（当前 API 仅支持 Cookie 认证，不支持 Bearer Token）。

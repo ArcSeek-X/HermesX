@@ -106,7 +106,7 @@ function renderCalibration(value = calibration) {
 describe('DecisionSignalProfileCalibration', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    window.localStorage.setItem('dsa.uiLanguage', 'zh');
+    window.localStorage.setItem('hrs.uiLanguage', 'zh');
   });
 
   it('keeps profile and child sample gates independent and distinguishes zero from no result', () => {
@@ -144,7 +144,7 @@ describe('DecisionSignalProfileCalibration', () => {
   });
 
   it('renders the same controls and disclosure in English', () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'en');
+    window.localStorage.setItem('hrs.uiLanguage', 'en');
     renderCalibration();
 
     expect(screen.getByRole('heading', { name: 'Decision profile history' })).toBeInTheDocument();

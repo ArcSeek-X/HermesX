@@ -89,7 +89,7 @@ const StockKLinePage: React.FC = () => {
   // 同时从 sessionStorage 恢复上次缓存的名称（避免 stockInfo 未加载时显示空）
   const [cachedStockName, setCachedStockName] = useState(() => {
     try {
-      const stored = sessionStorage.getItem('dsa-state-kline.stockName');
+      const stored = sessionStorage.getItem('hrs-state-kline.stockName');
       return stored ? JSON.parse(stored) : '';
     } catch {
       return '';
@@ -140,7 +140,7 @@ const StockKLinePage: React.FC = () => {
       // 保存股票名称到缓存（用于输入框显示"名称（代码）"格式）
       if (info?.stock_name) {
         setCachedStockName(info.stock_name);
-        try { sessionStorage.setItem('dsa-state-kline.stockName', JSON.stringify(info.stock_name)); } catch { /* ignore */ }
+        try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(info.stock_name)); } catch { /* ignore */ }
       }
 
       // 保存到 PageStateStore（L2 缓存）
@@ -186,7 +186,7 @@ const StockKLinePage: React.FC = () => {
             const resolved = results[0].code;
             const resolvedName = results[0].name || name || '';
             setCachedStockName(resolvedName);
-            try { sessionStorage.setItem('dsa-state-kline.stockName', JSON.stringify(resolvedName)); } catch { /* ignore */ }
+            try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(resolvedName)); } catch { /* ignore */ }
             setStockCode(resolved);
             setPeriod(searchPeriod);
             setShowSwitch(false); // 切换股票时重置全量数据开关
@@ -203,7 +203,7 @@ const StockKLinePage: React.FC = () => {
       // 有效股票代码：使用传入的 name 或清空
       if (name) {
         setCachedStockName(name);
-        try { sessionStorage.setItem('dsa-state-kline.stockName', JSON.stringify(name)); } catch { /* ignore */ }
+        try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(name)); } catch { /* ignore */ }
       }
       setStockCode(pureCode);
       setPeriod(searchPeriod);
@@ -322,7 +322,7 @@ const StockKLinePage: React.FC = () => {
             onClear={() => {
               setStockCode('');
               setCachedStockName('');
-              try { sessionStorage.removeItem('dsa-state-kline.stockName'); } catch { /* ignore */ }
+              try { sessionStorage.removeItem('hrs-state-kline.stockName'); } catch { /* ignore */ }
               setPageState('kline', (prev) => ({
                 ...prev,
                 stockCode: '',

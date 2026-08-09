@@ -35,7 +35,7 @@
 ## 🖥️ 產品預覽
 
 <p align="center">
-  <img src="assets/readme_workspace_tour_20260510.gif" alt="DSA Web 工作台演示" width="720">
+  <img src="assets/readme_workspace_tour_20260510.gif" alt="HRS Web 工作台演示" width="720">
 </p>
 
 ## ✨ 功能特性

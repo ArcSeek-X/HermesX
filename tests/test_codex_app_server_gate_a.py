@@ -89,10 +89,10 @@ for line in sys.stdin:
         thread_counter += 1
         thread_id = f"thread-{thread_counter}"
         cwd = message["params"]["cwd"]
-        if message["params"]["permissions"] != "dsa_gate_a":
+        if message["params"]["permissions"] != "hrs_gate_a":
             send({"id": request_id, "error": {"message": "wrong permission request"}})
             continue
-        active_profile = ":read-only" if mode == "wrong-profile" else "dsa_gate_a"
+        active_profile = ":read-only" if mode == "wrong-profile" else "hrs_gate_a"
         send({
             "id": request_id,
             "result": {
@@ -165,7 +165,7 @@ for line in sys.stdin:
         if mode == "turn-start-error":
             send({"id": request_id, "error": {"message": "turn/start rejected"}})
             continue
-        if message["params"]["permissions"] != "dsa_gate_a":
+        if message["params"]["permissions"] != "hrs_gate_a":
             send({"id": request_id, "error": {"message": "wrong turn permission"}})
             continue
         turn_counter += 1
@@ -633,7 +633,7 @@ def test_parallel_dynamic_tool_requests_roundtrip_and_transport_limits(tmp_path:
         assert client.safe_cwd is not None
         safe_cwd = client.safe_cwd
         assert stat.S_IMODE(safe_cwd.stat().st_mode) == 0o700
-        thread_id = client.start_thread(tool_names=["probe"], base_instructions="DSA", developer_instructions="probe")
+        thread_id = client.start_thread(tool_names=["probe"], base_instructions="HRS", developer_instructions="probe")
         isolation = client.inspect_external_tool_isolation(thread_id)
         result = client.run_turn(thread_id, "probe")
         calls = [call for call in client.tool_calls if call.turn_id == result.turn_id]
@@ -688,7 +688,7 @@ def test_transport_cancel_reaps_blocking_tool_before_close_returns(tmp_path: Pat
     with client:
         thread_id = client.start_thread(
             tool_names=["probe"],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="probe",
         )
 
@@ -722,7 +722,7 @@ def test_transport_cancel_reaps_blocking_tool_before_close_returns(tmp_path: Pat
 
 def test_history_injection_preserves_user_and_assistant_roles(tmp_path: Path) -> None:
     with _transport(tmp_path, "history") as client:
-        thread_id = client.start_thread(tool_names=[], base_instructions="DSA", developer_instructions="roles")
+        thread_id = client.start_thread(tool_names=[], base_instructions="HRS", developer_instructions="roles")
         client.inject_history(
             thread_id,
             [
@@ -753,7 +753,7 @@ def test_terminal_answer_uses_only_completed_item_events(
     with _transport(tmp_path, mode) as client:
         thread_id = client.start_thread(
             tool_names=[],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="terminal answer",
         )
         result = client.run_turn(thread_id, "answer")
@@ -829,7 +829,7 @@ def test_turn_start_rejection_is_not_counted_as_started(tmp_path: Path) -> None:
     with _transport(tmp_path, "turn-start-error") as client:
         thread_id = client.start_thread(
             tool_names=[],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="turn start",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -843,7 +843,7 @@ def test_turn_completed_unauthorized_maps_to_login_required(tmp_path: Path) -> N
     with _transport(tmp_path, "unauthorized") as client:
         thread_id = client.start_thread(
             tool_names=[],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="login",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -871,14 +871,14 @@ def test_command_probe_uses_fixed_argv_and_gate_a_permission_profile(tmp_path: P
 def test_wrong_active_permission_profile_fails_closed(tmp_path: Path) -> None:
     with _transport(tmp_path, "wrong-profile") as client:
         with pytest.raises(GateAError) as exc_info:
-            client.start_thread(tool_names=[], base_instructions="DSA", developer_instructions="profile")
+            client.start_thread(tool_names=[], base_instructions="HRS", developer_instructions="profile")
 
     assert exc_info.value.code == "permission_profile_mismatch"
 
 
 def test_exposed_mcp_capability_fails_allowlist_check(tmp_path: Path) -> None:
     with _transport(tmp_path, "mcp-exposed") as client:
-        thread_id = client.start_thread(tool_names=[], base_instructions="DSA", developer_instructions="mcp")
+        thread_id = client.start_thread(tool_names=[], base_instructions="HRS", developer_instructions="mcp")
         isolation = client.inspect_external_tool_isolation(thread_id)
 
     assert isolation["passed"] is False
@@ -889,9 +889,9 @@ def test_command_configuration_defines_profile_and_disables_inherited_tools(tmp_
     command = _resolve_command(sys.executable)
     overrides = command[command.index("--stdio") + 1 :]
 
-    assert 'default_permissions="dsa_gate_a"' in overrides
-    assert 'permissions.dsa_gate_a.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}' in overrides
-    assert "permissions.dsa_gate_a.network.enabled=false" in overrides
+    assert 'default_permissions="hrs_gate_a"' in overrides
+    assert 'permissions.hrs_gate_a.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}' in overrides
+    assert "permissions.hrs_gate_a.network.enabled=false" in overrides
     assert "features.apps=false" in overrides
     assert "features.plugins=false" in overrides
     assert "mcp_servers={}" not in overrides
@@ -919,7 +919,7 @@ def test_command_configuration_defines_profile_and_disables_inherited_tools(tmp_
 )
 def test_unexpected_server_requests_fail_closed(tmp_path: Path, mode: str, expected_code: str) -> None:
     with _transport(tmp_path, mode) as client:
-        thread_id = client.start_thread(tool_names=[], base_instructions="DSA", developer_instructions="fail")
+        thread_id = client.start_thread(tool_names=[], base_instructions="HRS", developer_instructions="fail")
         with pytest.raises(GateAError) as exc_info:
             client.run_turn(thread_id, "trigger")
 
@@ -942,7 +942,7 @@ def test_many_valid_frames_share_one_cumulative_output_budget(tmp_path: Path) ->
     with client:
         thread_id = client.start_thread(
             tool_names=["probe"],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="probe",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -964,7 +964,7 @@ def test_tool_request_queue_is_bounded_by_agent_max_steps(tmp_path: Path) -> Non
     with client:
         thread_id = client.start_thread(
             tool_names=["probe"],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="probe",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -985,7 +985,7 @@ def test_tool_output_limit_is_a_terminal_turn_error(tmp_path: Path) -> None:
     with client:
         thread_id = client.start_thread(
             tool_names=["probe"],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="probe",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -999,7 +999,7 @@ def test_completed_items_share_one_cumulative_turn_budget(tmp_path: Path) -> Non
     with client:
         thread_id = client.start_thread(
             tool_names=[],
-            base_instructions="DSA",
+            base_instructions="HRS",
             developer_instructions="item budget",
         )
         with pytest.raises(GateAError) as exc_info:
@@ -1010,7 +1010,7 @@ def test_completed_items_share_one_cumulative_turn_budget(tmp_path: Path) -> Non
 
 def test_turn_timeout_terminates_process_group(tmp_path: Path) -> None:
     with _transport(tmp_path, "timeout", timeout=0.25) as client:
-        thread_id = client.start_thread(tool_names=[], base_instructions="DSA", developer_instructions="timeout")
+        thread_id = client.start_thread(tool_names=[], base_instructions="HRS", developer_instructions="timeout")
         with pytest.raises(GateAError) as exc_info:
             client.run_turn(thread_id, "wait", timeout=0.25)
         assert client.process is not None

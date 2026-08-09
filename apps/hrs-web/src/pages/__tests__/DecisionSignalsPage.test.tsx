@@ -430,7 +430,7 @@ async function persistReassessFromFirstSignal() {
 beforeEach(() => {
   window.history.pushState({}, '', '/');
   window.localStorage.clear();
-  window.localStorage.setItem('dsa.uiLanguage', 'zh');
+  window.localStorage.setItem('hrs.uiLanguage', 'zh');
   vi.clearAllMocks();
   stockIndexState = {
     index: stockIndexItems,
@@ -546,7 +546,7 @@ describe('DecisionSignalsPage', () => {
   });
 
   it('renders decision signal filters and card value labels in English', async () => {
-    window.localStorage.setItem('dsa.uiLanguage', 'en');
+    window.localStorage.setItem('hrs.uiLanguage', 'en');
     vi.mocked(decisionSignalsApi.list).mockResolvedValueOnce(listResponse([
       makeSignal({
         market: 'jp',

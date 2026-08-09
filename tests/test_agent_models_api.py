@@ -104,7 +104,7 @@ class AgentModelsApiTestCase(unittest.TestCase):
                         "api_key": "secret-h",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
         )

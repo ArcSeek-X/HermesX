@@ -547,7 +547,7 @@ class YfinanceFetcher(BaseFetcher):
         request = Request(
             url,
             headers={
-                "User-Agent": "Mozilla/5.0 (compatible; DSA/1.0; +https://github.com/ArcSeek-X/HermesX)",
+                "User-Agent": "Mozilla/5.0 (compatible; HRS/1.0; +https://github.com/ArcSeek-X/HermesX)",
                 "Accept": "text/plain,text/csv,*/*",
             },
         )
@@ -568,7 +568,7 @@ class YfinanceFetcher(BaseFetcher):
             history_request = Request(
                 history_url,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; DSA/1.0; +https://github.com/ArcSeek-X/HermesX)",
+                    "User-Agent": "Mozilla/5.0 (compatible; HRS/1.0; +https://github.com/ArcSeek-X/HermesX)",
                     "Accept": "text/plain,text/csv,*/*",
                 },
             )

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const smokePassword = process.env.DSA_WEB_SMOKE_PASSWORD;
+const smokePassword = process.env.HRS_WEB_SMOKE_PASSWORD;
 
 if (!smokePassword) {
-  test.skip(true, 'Set DSA_WEB_SMOKE_PASSWORD to run authenticated smoke tests.');
+  test.skip(true, 'Set HRS_WEB_SMOKE_PASSWORD to run authenticated smoke tests.');
 }
 
 
@@ -20,7 +20,7 @@ async function captureSmokeScreenshot(page: Page, testInfo: { outputPath: (name:
 }
 
 async function login(page: Page) {
-  test.skip(!smokePassword, 'Set DSA_WEB_SMOKE_PASSWORD to run authenticated smoke tests.');
+  test.skip(!smokePassword, 'Set HRS_WEB_SMOKE_PASSWORD to run authenticated smoke tests.');
 
   await page.goto('/login');
   await page.waitForLoadState('domcontentloaded');
@@ -179,7 +179,7 @@ test.describe('web smoke', () => {
     await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
     await captureSmokeScreenshot(page, testInfo, 'smoke-home-page-en');
 
-    expect(await page.evaluate(() => localStorage.getItem('dsa.uiLanguage'))).toBe('en');
+    expect(await page.evaluate(() => localStorage.getItem('hrs.uiLanguage'))).toBe('en');
 
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
@@ -194,7 +194,7 @@ test.describe('web smoke', () => {
 
     await expect(page.getByRole('heading', { name: 'System settings' })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: 'Send test' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('DSA notification test');
+    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('HRS notification test');
 
     await captureSmokeScreenshot(page, testInfo, 'smoke-settings-page-en');
   });

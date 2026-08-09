@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for the internal DSA Tool Surface.
+"""Tests for the internal HRS Tool Surface.
 测试智能体工具工具面相关功能测试
 """
 

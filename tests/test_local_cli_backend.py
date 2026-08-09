@@ -352,7 +352,7 @@ print(json.dumps({{"type": "step_finish", "reason": "stop"}}))
         preset=preset,
     )
 
-    result = backend.generate("prompt from dsa", {}, response_validator=lambda text: json.loads(text))
+    result = backend.generate("prompt from hrs", {}, response_validator=lambda text: json.loads(text))
     payload = json.loads(result.text)
     argv = json.loads(argv_path.read_text(encoding="utf-8"))
     probe = json.loads(probe_path.read_text(encoding="utf-8"))
@@ -365,7 +365,7 @@ print(json.dumps({{"type": "step_finish", "reason": "stop"}}))
     assert argv.index("--file") > argv.index("json")
     assert "--attach" not in argv
     assert "--dangerously-skip-permissions" not in argv
-    assert probe["prompt"] == "prompt from dsa"
+    assert probe["prompt"] == "prompt from hrs"
     assert probe["prompt_mode"] == 0o600
     assert probe["cwd_mode"] == 0o700
     for tool_name in local_cli_backend_module._OPENCODE_DISABLED_TOOL_NAMES:

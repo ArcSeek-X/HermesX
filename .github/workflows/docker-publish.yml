@@ -136,8 +136,8 @@ jobs:
       - name: Pre-publish docker smoke
         run: |
           docker build \
-            --build-arg DSA_WEB_VERSION="${{ steps.release_ref.outputs.version }}" \
-            --build-arg DSA_WEB_REVISION="${{ steps.release_ref.outputs.revision }}" \
+            --build-arg HRS_WEB_VERSION="${{ steps.release_ref.outputs.version }}" \
+            --build-arg HRS_WEB_REVISION="${{ steps.release_ref.outputs.revision }}" \
             -t stock-analysis:release \
             -f docker/Dockerfile .
           docker run --rm stock-analysis:release python -c "
@@ -162,8 +162,8 @@ jobs:
             ${{ steps.meta-dockerhub.outputs.tags }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           build-args: |
-            DSA_WEB_VERSION=${{ steps.release_ref.outputs.version }}
-            DSA_WEB_REVISION=${{ steps.release_ref.outputs.revision }}
+            HRS_WEB_VERSION=${{ steps.release_ref.outputs.version }}
+            HRS_WEB_REVISION=${{ steps.release_ref.outputs.revision }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

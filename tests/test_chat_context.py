@@ -367,7 +367,7 @@ def test_bundle_does_not_match_hermes_only_fallback_trace() -> None:
                 "api_key": "sk-hermes",
                 "api_base": "http://127.0.0.1:8642/v1",
             },
-            "model_info": {"dsa_channel": "hermes"},
+            "model_info": {"hrs_channel": "hermes"},
         },
     ]
 
@@ -409,7 +409,7 @@ def test_bundle_does_not_fallback_to_unfiltered_try_order_for_hermes_only_agent(
                 "api_key": "sk-hermes",
                 "api_base": "http://127.0.0.1:8642/v1",
             },
-            "model_info": {"dsa_channel": "hermes"},
+            "model_info": {"hrs_channel": "hermes"},
         },
     ]
 

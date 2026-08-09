@@ -25,7 +25,7 @@ vi.mock('../../../stores/agentChatStore', () => ({
 
 vi.mock('../../../api/alphasift', () => ({
   ALPHASIFT_CONFIG_CHANGED_EVENT: 'alphasift-config-changed',
-  SYSTEM_CONFIG_CHANGED_EVENT: 'dsa-system-config-changed',
+  SYSTEM_CONFIG_CHANGED_EVENT: 'hrs-system-config-changed',
   alphasiftApi: {
     getStatus: () => mockGetAlphaSiftStatus(),
   },
@@ -86,7 +86,7 @@ describe('SidebarNav', () => {
     );
 
     expect(screen.queryByRole('link', { name: '选股' })).not.toBeInTheDocument();
-    window.dispatchEvent(new Event('dsa-system-config-changed'));
+    window.dispatchEvent(new Event('hrs-system-config-changed'));
 
     expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
     await waitFor(() => expect(mockGetAlphaSiftStatus.mock.calls.length).toBeGreaterThanOrEqual(2));

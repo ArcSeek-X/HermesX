@@ -1,17 +1,17 @@
 # 数据源稳定性与故障处理图示
 
-本文面向用户、部署者和维护者，说明 DSA 已接入的数据源如何参与分析、选股和大盘复盘，以及当数据源失败时系统会怎么降级。
+本文面向用户、部署者和维护者，说明 HermesX 已接入的数据源如何参与分析、选股和大盘复盘，以及当数据源失败时系统会怎么降级。
 
 核心原则：先用项目已经接入并验证过的数据源，把失败路径讲清楚；新增外部数据源应放在第二阶段，避免先扩大维护面。
 
 ## 一句话答复用户
 
-如果遇到“数据源失败”，通常不是系统只能用一个源，而是免费源被限流、上游接口临时变更、网络抖动或当前市场/标的不支持。DSA 已经内置多数据源 fallback，会按场景自动尝试下一个源；如果你希望更稳定，建议至少配置一个 token 型稳定源：
+如果遇到“数据源失败”，通常不是系统只能用一个源，而是免费源被限流、上游接口临时变更、网络抖动或当前市场/标的不支持。HermesX 已经内置多数据源 fallback，会按场景自动尝试下一个源；如果你希望更稳定，建议至少配置一个 token 型稳定源：
 
 - A 股个股与 AlphaSift：优先配置 `TUSHARE_TOKEN`，并保留 AkShare / Efinance / Tencent / Baostock / YFinance 兜底。
 - A 股大盘复盘：配置 `TICKFLOW_API_KEY` 后，指数和市场宽度会优先尝试 TickFlow，失败后回退现有免费源。
 - 港股 / 美股：配置 `LONGBRIDGE_*` 后优先使用 Longbridge，YFinance、Finnhub、AlphaVantage 继续兜底。
-- 热点题材：AlphaSift 热点默认走 DSA EastMoney provider，并使用本地 last-good cache 降低实时接口失败影响。
+- 热点题材：AlphaSift 热点默认走 HRS EastMoney provider，并使用本地 last-good cache 降低实时接口失败影响。
 
 ## 已接入数据源矩阵
 
@@ -20,9 +20,9 @@
 | A 股日线 / 技术面 | Efinance、Tencent、AkShare、Tushare、Pytdx、Baostock、YFinance | `DataFetcherManager` 按优先级尝试；配置 `TUSHARE_TOKEN` 后 Tushare 自动进入候选源 | 单源失败后尝试下一个源；连续失败会短期熔断该源 |
 | A 股实时行情 | Tencent、AkShare Sina、Efinance、AkShare EM、Tushare | `REALTIME_SOURCE_PRIORITY` 控制顺序，默认偏向 Tencent / Sina 这类轻量源 | 失败源记录 `fallback_from`，成功源继续返回 |
 | A 股大盘复盘 | TickFlow、AkShare、Tushare、Efinance | 配置 `TICKFLOW_API_KEY` 后，主指数和市场宽度优先尝试 TickFlow | TickFlow 权限不足或失败时回退 AkShare / Tushare / Efinance 链路 |
-| AlphaSift 选股快照 | Tushare、Sina、Efinance、AkShare EM、EastMoney Datacenter | 有 `TUSHARE_TOKEN` 时自动把 `tushare` 放入快照优先级；否则使用免费源链路 | AlphaSift 维护 source health；DSA 状态接口透出 snapshot/daily health |
-| AlphaSift 日线补特征 | DSA `DataFetcherManager` | AlphaSift 调用 DSA provider context，优先复用 DSA 日线与缓存链路 | DSA 链路失败后才回到 AlphaSift 原始日线源 |
-| AlphaSift 热点题材 | DSA EastMoney provider、AlphaSift hotspot、last-good cache | 未指定 provider 时默认使用 DSA EastMoney provider | 实时失败时回退热点缓存；无缓存时返回稳定空态和可读错误 |
+| AlphaSift 选股快照 | Tushare、Sina、Efinance、AkShare EM、EastMoney Datacenter | 有 `TUSHARE_TOKEN` 时自动把 `tushare` 放入快照优先级；否则使用免费源链路 | AlphaSift 维护 source health；HermesX 状态接口透出 snapshot/daily health |
+| AlphaSift 日线补特征 | `DataFetcherManager` | AlphaSift 调用 HermesX provider context，优先复用 HermesX 日线与缓存链路 | HermesX 链路失败后才回到 AlphaSift 原始日线源 |
+| AlphaSift 热点题材 | HRS EastMoney provider、AlphaSift hotspot、last-good cache | 未指定 provider 时默认使用 HRS EastMoney provider | 实时失败时回退热点缓存；无缓存时返回稳定空态和可读错误 |
 | 港股 / 美股 | Longbridge、YFinance、AkShare、Tushare、Finnhub、AlphaVantage、Stooq | 配置 Longbridge 凭证后参与港美股日线/实时兜底；YFinance 保持基础兜底 | Longbridge 冷却或失败时回退 YFinance / 其他可用源 |
 
 ## 总体链路图
@@ -48,8 +48,8 @@ flowchart TD
     RP --> RT[Tushare can be placed first when token/points are available]
 
     A --> AS[Snapshot: Tushare/Sina/Efinance/AkShare EM/EM Datacenter]
-    A --> AD[Daily features: DSA DataFetcherManager]
-    A --> AH[Hotspots: DSA EastMoney provider]
+    A --> AD[Daily features: DataFetcherManager]
+    A --> AH[Hotspots: HRS EastMoney provider]
     AH --> AC[hotspots.json / hotspot_details last-good cache]
 
     M --> TF{TICKFLOW_API_KEY configured?}
@@ -98,18 +98,18 @@ flowchart TD
     UI[Web 选股/热点入口] --> API[/api/v1/alphasift/]
 
     API --> SCREEN{screen}
-    SCREEN --> ENV[注入 DSA LLM 与数据源运行环境]
+    SCREEN --> ENV[注入 HermesX LLM 与数据源运行环境]
     ENV --> SNAP[AlphaSift snapshot 源优先级]
     SNAP --> TS{TUSHARE_TOKEN?}
     TS -->|yes| SP1[tushare -> sina -> efinance -> akshare_em -> em_datacenter]
     TS -->|no| SP2[sina -> efinance -> akshare_em -> em_datacenter]
-    ENV --> DAILY[DSA provider context]
+    ENV --> DAILY[HermesX provider context]
     DAILY --> DFM[DataFetcherManager: Tushare/Efinance/Tencent/AkShare/Pytdx/Baostock/YFinance]
     DFM --> RESULT[候选股 + source_errors/warnings/llm_parse_errors]
 
     API --> HOT{hotspots}
     HOT --> HP{provider specified?}
-    HP -->|no| EM[DSA EastMoney provider]
+    HP -->|no| EM[HRS EastMoney provider]
     HP -->|yes| CUSTOM[指定 provider/env provider]
     EM --> LIVE[实时热点题材]
     LIVE -->|成功| HCACHE[写入热点 last-good cache]

@@ -376,7 +376,7 @@ class TestNotificationMarkdownFormatters(unittest.TestCase):
         self.assertIn("| --- |", fenced)
         self.assertIn("| 示例 | 不应转换 |", fenced)
         self.assertIn("• 600519：买入", result)
-        self.assertNotIn("@@DSA_FENCED_CODE_BLOCK_", result)
+        self.assertNotIn("@@HRS_FENCED_CODE_BLOCK_", result)
 
     def test_feishu_formatter_keeps_legacy_structure_and_converts_table(self):
         text = "# 日报\n\n> 风险提示\n\n| 股票 | 信号 |\n| --- | --- |\n| 600519 | 强势 |\n\n- 关注量能"
@@ -471,4 +471,4 @@ class TestNotificationMarkdownFormatters(unittest.TestCase):
                 self.assertIn("# not heading", fenced)
                 self.assertIn("[详情](https://example.com/raw)", fenced)
                 self.assertIn("600519：强势", result)
-                self.assertNotIn("@@DSA_FENCED_CODE_BLOCK_", result)
+                self.assertNotIn("@@HRS_FENCED_CODE_BLOCK_", result)

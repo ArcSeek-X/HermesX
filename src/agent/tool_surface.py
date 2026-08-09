@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Internal DSA Tool Surface for future external Agent runtimes."""
+"""Internal HRS Tool Surface for future external Agent runtimes."""
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ class ToolSurface:
                 return self._error_result(
                     tool_name=tool_name,
                     code="invalid_tool_name",
-                    message="Tool name must exactly match a registered DSA tool.",
+                    message="Tool name must exactly match a registered HRS tool.",
                     started_at=started_at,
                     context=ctx,
                     retriable=False,

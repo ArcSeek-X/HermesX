@@ -72,7 +72,7 @@ function makeSignal(overrides: Partial<DecisionSignalItem>): DecisionSignalItem 
 }
 
 function renderTimeline(props: Partial<React.ComponentProps<typeof DecisionSignalTimeline>> = {}) {
-  window.localStorage.setItem('dsa.uiLanguage', 'zh');
+  window.localStorage.setItem('hrs.uiLanguage', 'zh');
   const onSelect = props.onSelect ?? vi.fn();
   render(
     <UiLanguageProvider>

@@ -160,11 +160,11 @@ class LLMChannelConfigTestCase(unittest.TestCase):
         self.assertFalse(config.llm_blocks_legacy_fallback)
         self.assertEqual(
             config.llm_model_list[0]["model_info"],
-            {"dsa_channel": "hermes", "dsa_display_model": "hermes-agent"},
+            {"hrs_channel": "hermes", "hrs_display_model": "hermes-agent"},
         )
         self.assertEqual(config.llm_model_list[0]["model_name"], "openai/hermes-agent")
         self.assertEqual(config.llm_model_list[0]["litellm_params"]["model"], "openai/hermes-agent")
-        self.assertNotIn("dsa_channel", config.llm_model_list[0]["litellm_params"])
+        self.assertNotIn("hrs_channel", config.llm_model_list[0]["litellm_params"])
 
     def test_hermes_no_proxy_client_does_not_create_transport_for_invalid_base_url(self) -> None:
         with patch("httpx.Client") as http_client_cls:
@@ -200,12 +200,12 @@ class LLMChannelConfigTestCase(unittest.TestCase):
             {
                 "model_name": "openai/hermes-agent",
                 "litellm_params": {"model": "openai/hermes-agent"},
-                "model_info": {"dsa_channel": "hermes"},
+                "model_info": {"hrs_channel": "hermes"},
             },
             {
                 "model_name": "openai/shared-route",
                 "litellm_params": {"model": "openai/shared-route"},
-                "model_info": {"dsa_channel": "hermes"},
+                "model_info": {"hrs_channel": "hermes"},
             },
             {
                 "model_name": "openai/shared-route",
@@ -214,7 +214,7 @@ class LLMChannelConfigTestCase(unittest.TestCase):
             {
                 "model_name": "openai/anthropic/foo",
                 "litellm_params": {"model": "openai/anthropic/foo"},
-                "model_info": {"dsa_channel": "hermes"},
+                "model_info": {"hrs_channel": "hermes"},
             },
             {
                 "model_name": "anthropic/foo",
@@ -255,7 +255,7 @@ class LLMChannelConfigTestCase(unittest.TestCase):
             [entry["litellm_params"]["model"] for entry in config.llm_model_list],
             route_models,
         )
-        self.assertEqual(config.llm_model_list[1]["model_info"]["dsa_display_model"], "deepseek-ai/DeepSeek-V3")
+        self.assertEqual(config.llm_model_list[1]["model_info"]["hrs_display_model"], "deepseek-ai/DeepSeek-V3")
 
     @patch("src.config.setup_env")
     @patch.object(Config, "_parse_litellm_yaml", return_value=[])

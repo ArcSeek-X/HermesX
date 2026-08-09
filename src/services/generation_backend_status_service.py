@@ -171,7 +171,7 @@ def _parse_smoke_timeout(value: Optional[float], *, backend_id: str) -> int:
 class GenerationBackendStatusService:
     """Build current generation backend status without persisting state."""
 
-    _TEXT_SMOKE_PROMPT = "Reply exactly: DSA_GENERATION_BACKEND_SMOKE_OK"
+    _TEXT_SMOKE_PROMPT = "Reply exactly: HRS_GENERATION_BACKEND_SMOKE_OK"
     _JSON_SMOKE_PROMPT = (
         "Return only a JSON object with exactly these keys and values: "
         '{"ok": true, "backend_smoke": "passed"}.'
@@ -422,7 +422,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _text_smoke_validator(cls, text: str) -> None:
-        if (text or "").strip() != "DSA_GENERATION_BACKEND_SMOKE_OK":
+        if (text or "").strip() != "HRS_GENERATION_BACKEND_SMOKE_OK":
             raise GenerationError(
                 error_code=GenerationErrorCode.SCHEMA_VALIDATION_FAILED,
                 stage="smoke_validation",

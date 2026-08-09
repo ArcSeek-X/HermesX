@@ -224,7 +224,7 @@ class TestCallLitellmVision:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
             openai_api_keys=[_OPENAI_KEY],
@@ -246,7 +246,7 @@ class TestCallLitellmVision:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 }
             ],
             openai_api_keys=[_OPENAI_KEY],
@@ -268,7 +268,7 @@ class TestCallLitellmVision:
                         "api_key": "sk-hermes-test-value",
                         "api_base": "http://127.0.0.1:8642/v1",
                     },
-                    "model_info": {"dsa_channel": "hermes"},
+                    "model_info": {"hrs_channel": "hermes"},
                 },
                 {
                     "model_name": "openai/shared-route",

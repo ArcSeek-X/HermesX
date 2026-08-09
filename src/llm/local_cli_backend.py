@@ -134,13 +134,13 @@ _SENSITIVE_ENV_PATTERNS = (
     "WEBHOOK",
 )
 _CLAUDE_CODE_STATIC_INSTRUCTION = (
-    "Generate the requested DSA analysis output from stdin. "
+    "Generate the requested HRS analysis output from stdin. "
     "Return only the final response content. Do not call tools, read files, "
     "use MCP, or ask for interactive approval."
 )
 _PROMPT_FILE_PLACEHOLDER = "{prompt_file}"
 _OPENCODE_STATIC_INSTRUCTION = (
-    "Generate the requested DSA output from the attached prompt file. "
+    "Generate the requested HRS output from the attached prompt file. "
     "Follow the output format required by that prompt. Return only the final response "
     "content. Do not use tools, do not read additional files, do not browse the web, "
     "do not edit files, do not ask questions, and do not request approval."
@@ -792,7 +792,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         with _local_cli_concurrency_slot(concurrency_limit):
             self._emit_progress(stream_progress_callback, 0)
             try:
-                with tempfile.TemporaryDirectory(prefix="dsa-local-cli-") as cwd:
+                with tempfile.TemporaryDirectory(prefix="hrs-local-cli-") as cwd:
                     cwd_path = Path(cwd)
                     try:
                         cwd_path.chmod(0o700)
@@ -1273,7 +1273,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         if self._preset.preset_id != OPENCODE_CLI_BACKEND_ID:
             return {}
         diagnostics["opencode_child_env_hardened"] = True
-        diagnostics["opencode_provider_credentials_managed_by_dsa"] = False
+        diagnostics["opencode_provider_credentials_managed_by_hrs"] = False
         return {
             "OPENCODE_DISABLE_DEFAULT_PLUGINS": "true",
             "OPENCODE_DISABLE_CLAUDE_CODE": "true",

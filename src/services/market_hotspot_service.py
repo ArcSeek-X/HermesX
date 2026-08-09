@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""DSA-native market hotspot context service.
+"""HRS-native market hotspot context service.
 
 This service intentionally does not import AlphaSift.  It builds the first
-market-theme layer from DSA's existing industry/concept ranking providers and
+market-theme layer from HRS's existing industry/concept ranking providers and
 returns explicit data-quality markers when richer hotspot evidence is missing.
 """
 
@@ -40,7 +40,7 @@ RANKING_FETCH_TIMEOUT_RETRY_DELAY_SECONDS = 0.2
 
 
 class MarketHotspotService:
-    """Build low-sensitive A-share market/theme context from DSA rankings."""
+    """Build low-sensitive A-share market/theme context from HRS rankings."""
 
     _ranking_fetch_slots = threading.BoundedSemaphore(RANKING_FETCH_MAX_WORKERS)
     _ranking_fetch_futures: Dict[Hashable, Future] = {}
@@ -106,7 +106,7 @@ class MarketHotspotService:
                     missing_fields=["industry_rankings", "concept_rankings"],
                     sources=[
                         MarketStructureSource(
-                            provider="dsa",
+                            provider="hrs",
                             dataset="sector_rankings",
                             status="not_supported",
                             message="market structure hotspots are only supported for A-share first version",
@@ -155,7 +155,7 @@ class MarketHotspotService:
         has_partial_source = any(
             source.status == "partial"
             for source in sources
-            if source.provider == "dsa" and source.dataset in {"sector_rankings", "concept_rankings"}
+            if source.provider == "hrs" and source.dataset in {"sector_rankings", "concept_rankings"}
         )
         if not missing_fields and not errors and not has_partial_source:
             status = "ok"
@@ -220,7 +220,7 @@ class MarketHotspotService:
         if not isinstance(rankings, dict):
             sources.append(
                 MarketStructureSource(
-                    provider="dsa",
+                    provider="hrs",
                     dataset=dataset,
                     status="invalid",
                     message="preloaded ranking payload is invalid",
@@ -241,7 +241,7 @@ class MarketHotspotService:
             status = "empty"
         sources.append(
             MarketStructureSource(
-                provider="dsa",
+                provider="hrs",
                 dataset=dataset,
                 status=status,
                 message="reused fundamental_context ranking payload",
@@ -343,7 +343,7 @@ class MarketHotspotService:
         if not callable(fetch_rankings):
             sources.append(
                 MarketStructureSource(
-                    provider="dsa",
+                    provider="hrs",
                     dataset=dataset,
                     status="missing",
                     message=f"{fetch_name} is unavailable",
@@ -369,7 +369,7 @@ class MarketHotspotService:
                 bottom_items = list(bottom) if isinstance(bottom, list) else []
                 sources.append(
                     MarketStructureSource(
-                        provider="dsa",
+                        provider="hrs",
                         dataset=dataset,
                         status="ok" if top_items or bottom_items else "empty",
                     )
@@ -377,7 +377,7 @@ class MarketHotspotService:
                 return top_items, bottom_items
             sources.append(
                 MarketStructureSource(
-                    provider="dsa",
+                    provider="hrs",
                     dataset=dataset,
                     status="invalid",
                     message="ranking provider returned an invalid payload",
@@ -388,7 +388,7 @@ class MarketHotspotService:
             errors.append(f"{dataset}: {exc}")
             sources.append(
                 MarketStructureSource(
-                    provider="dsa",
+                    provider="hrs",
                     dataset=dataset,
                     status="failed",
                     message=str(exc),

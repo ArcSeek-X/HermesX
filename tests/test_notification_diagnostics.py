@@ -90,7 +90,7 @@ class NotificationDiagnosticsTestCase(unittest.TestCase):
         result = run_notification_diagnostics(
             _config(
                 wechat_webhook_url="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=1",
-                ntfy_url="https://ntfy.sh/dsa-topic",
+                ntfy_url="https://ntfy.sh/hrs-topic",
                 gotify_url="https://gotify.example",
                 gotify_token="app-token",
                 astrbot_url="https://astrbot.example/webhook",
@@ -109,7 +109,7 @@ class NotificationDiagnosticsTestCase(unittest.TestCase):
         self.assertIn("NTFY_URL", {item.key for item in result.errors})
 
     def test_ntfy_url_with_unsupported_scheme_reports_error(self):
-        result = run_notification_diagnostics(_config(ntfy_url="ftp://ntfy.example/dsa-topic"))
+        result = run_notification_diagnostics(_config(ntfy_url="ftp://ntfy.example/hrs-topic"))
 
         self.assertFalse(result.ok)
         self.assertNotIn("ntfy", result.configured_channels)

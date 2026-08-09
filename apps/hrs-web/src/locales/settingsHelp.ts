@@ -39,7 +39,7 @@ const settingsHelpZhCN: SettingsHelpMap = {
     usage: '通常保持“默认模型配置”。只有在本机已安装并登录对应 CLI，且你信任它处理分析内容时，才选择本地 CLI 生成方式（实验）。',
     valueNotes: [
       '本地 CLI 生成方式是本机启动的命令行程序，不等于离线模型；背后的服务可能处理股票代码、新闻、持仓上下文、分析请求和报告草稿。',
-      'Docker、云服务器、CI 不天然拥有你本机的登录状态；DSA 不读取 Codex/Claude/OpenCode 登录凭据文件，但对应 CLI 自己可能使用它的登录状态。',
+      'Docker、云服务器、CI 不天然拥有你本机的登录状态；HRS 不读取 Codex/Claude/OpenCode 登录凭据文件，但对应 CLI 自己可能使用它的登录状态。',
     ],
     impact: ['影响普通分析、大盘复盘和文本生成入口，不改变问股助手的工具执行规则。'],
     notes: [
@@ -67,8 +67,8 @@ const settingsHelpZhCN: SettingsHelpMap = {
   'settings.ai_model.OPENCODE_CLI_MODEL': {
     title: 'OpenCode CLI 模型',
     showFieldKey: true,
-    summary: '可选：指定 DSA 调用 OpenCode run 时传给 --model 的模型名。',
-    usage: '仅在“分析生成方式”选择 OpenCode CLI 时生效。留空时 DSA 不传 --model，使用你本机 OpenCode 的默认模型配置。',
+    summary: '可选：指定 HRS 调用 OpenCode run 时传给 --model 的模型名。',
+    usage: '仅在“分析生成方式”选择 OpenCode CLI 时生效。留空时 HRS 不传 --model，使用你本机 OpenCode 的默认模型配置。',
     valueNotes: [
       '模型是否可用、如何认证由你本机的 OpenCode 配置负责。',
       '配置时该值会作为单个 argv 参数传给 OpenCode，不能包含空白或 shell 元字符。',
@@ -328,9 +328,9 @@ const settingsHelpZhCN: SettingsHelpMap = {
     title: 'AlphaSift 选股',
     summary: '控制是否启用内置 AlphaSift 选股页。',
     usage: '默认关闭。设为 true 后，Web 会检查随后端依赖安装的 alphasift.dsa_adapter；若缺失，请先执行 pip install -r requirements.txt 或重建后端产物。',
-    valueNotes: ['AlphaSift 作为 DSA 后端依赖安装，/install 仅作为显式修复入口保留。', '选股结果仅用于研究辅助，不构成投资建议。'],
+    valueNotes: ['AlphaSift 作为 HRS 后端依赖安装，/install 仅作为显式修复入口保留。', '选股结果仅用于研究辅助，不构成投资建议。'],
     impact: ['影响 Web 选股入口、AlphaSift 策略读取和选股 API。'],
-    notes: ['AlphaSift 初筛候选，DSA 补充行情、基本面和新闻上下文；关闭时不影响原有分析、报告和通知流程。'],
+    notes: ['AlphaSift 初筛候选，HRS 补充行情、基本面和新闻上下文；关闭时不影响原有分析、报告和通知流程。'],
   },
   'settings.data_source.ALPHASIFT_INSTALL_SPEC': {
     title: 'AlphaSift 安装来源',
@@ -825,17 +825,17 @@ const settingsHelpZhCN: SettingsHelpMap = {
   'settings.agent.AGENT_BACKEND': {
     title: '问股生成方式',
     showFieldKey: false,
-    summary: '选择问股 Chat 使用默认模型配置，还是调用运行 DSA 设备上的 Codex。',
-    usage: '通常保持“自动（推荐）”。自动模式不会启用实验性的 Codex；只有确认运行 DSA 的设备已安装并登录 Codex 后，才选择 Codex 本地 Agent。',
+    summary: '选择问股 Chat 使用默认模型配置，还是调用运行 HRS 设备上的 Codex。',
+    usage: '通常保持“自动（推荐）”。自动模式不会启用实验性的 Codex；只有确认运行 HRS 的设备已安装并登录 Codex 后，才选择 Codex 本地 Agent。',
     valueNotes: [
       '“自动（推荐）”与“默认模型配置”都继续使用现有模型和 API 配置。',
       '“Codex 本地 Agent（实验）”目前只支持单 Agent 问股，不支持 Codex Multi Agent 或 Codex Deep Research。',
-      'Codex 本地 Agent 当前支持 macOS、Linux，以及完整运行于 WSL 的 DSA 后端；暂不支持原生 Windows 后端。',
+      'Codex 本地 Agent 当前支持 macOS、Linux，以及完整运行于 WSL 的 HRS 后端；暂不支持原生 Windows 后端。',
       '本地 Agent 不等于离线模型；股票问题和工具结果可能由 Codex 自身配置的服务处理。',
     ],
     impact: ['只影响问股 Chat，不改变普通报告、定时分析、现有 Multi Agent 或 Deep Research。'],
     notes: [
-      'DSA 不读取或保存 Codex 登录凭据，Codex 进程使用自己的登录状态。',
+      'HRS 不读取或保存 Codex 登录凭据，Codex 进程使用自己的登录状态。',
       '设置页状态只检查配置、Codex 命令和所需协议，不会登录、调用模型或读取股票数据；显示“可以尝试”不代表已验证可用。',
       '保存后可直接在问股页提问；第一次问题就是第一次真实执行，若 Codex 登录或服务不可用，页面会保留问题并显示原因。',
       '想恢复原有行为，选择“自动（推荐）”并保存。',
@@ -1267,7 +1267,7 @@ const settingsHelpEnUS: SettingsHelpMap = {
     usage: 'Usually keep Default model settings. Choose a local CLI backend only when the corresponding CLI is installed and logged in on this machine and you trust it to handle analysis content.',
     valueNotes: [
       'Local CLI backends are local command-line programs, not offline models. The service behind them may process stock symbols, news, position context, analysis requests, and report drafts.',
-      'Docker, cloud servers, and CI do not automatically have your local login state. DSA does not read Codex/Claude/OpenCode credential files, but the corresponding CLI itself may use its login state.',
+      'Docker, cloud servers, and CI do not automatically have your local login state. HRS does not read Codex/Claude/OpenCode credential files, but the corresponding CLI itself may use its login state.',
     ],
     impact: ['Affects regular analysis, market review, and text generation entry points. It does not change how the ask-stock assistant runs tools.'],
     notes: [
@@ -1296,7 +1296,7 @@ const settingsHelpEnUS: SettingsHelpMap = {
     title: 'OpenCode CLI Model',
     showFieldKey: true,
     summary: 'Optional model name passed to OpenCode run through --model.',
-    usage: 'Only applies when Analysis Generation Method is OpenCode CLI. Leave it empty and DSA will not pass --model, so OpenCode uses its local default model configuration.',
+    usage: 'Only applies when Analysis Generation Method is OpenCode CLI. Leave it empty and HRS will not pass --model, so OpenCode uses its local default model configuration.',
     valueNotes: [
       'Model availability and authentication are handled by your local OpenCode setup.',
       'When set, the value is passed as one argv token and must not contain whitespace or shell metacharacters.',
@@ -1534,9 +1534,9 @@ const settingsHelpEnUS: SettingsHelpMap = {
     title: 'AlphaSift Screening',
     summary: 'Controls the built-in AlphaSift stock screening page.',
     usage: 'Disabled by default. When true, the Web app checks alphasift.dsa_adapter installed with backend dependencies; if it is missing, run pip install -r requirements.txt or rebuild the backend artifact.',
-    valueNotes: ['AlphaSift is installed as a DSA backend dependency; /install is retained only as an explicit repair action.', 'Screening output is for research support only and is not investment advice.'],
+    valueNotes: ['AlphaSift is installed as a HRS backend dependency; /install is retained only as an explicit repair action.', 'Screening output is for research support only and is not investment advice.'],
     impact: ['Affects the Web screening entry, AlphaSift strategy loading, and screening API.'],
-    notes: ['AlphaSift generates candidates, while DSA enriches them with quote, fundamental, and news context; disabling it does not affect existing analysis, reports, or notifications.'],
+    notes: ['AlphaSift generates candidates, while HRS enriches them with quote, fundamental, and news context; disabling it does not affect existing analysis, reports, or notifications.'],
   },
   'settings.data_source.ALPHASIFT_INSTALL_SPEC': {
     title: 'AlphaSift Install Source',
@@ -2012,17 +2012,17 @@ const settingsHelpEnUS: SettingsHelpMap = {
   'settings.agent.AGENT_BACKEND': {
     title: 'Ask-Stock Method',
     showFieldKey: false,
-    summary: 'Choose whether ask-stock Chat uses the default model configuration or Codex on the device running DSA.',
-    usage: 'Keep Auto (recommended) unless Codex is installed and signed in on the device running DSA. Auto never enables the experimental Codex route.',
+    summary: 'Choose whether ask-stock Chat uses the default model configuration or Codex on the device running HRS.',
+    usage: 'Keep Auto (recommended) unless Codex is installed and signed in on the device running HRS. Auto never enables the experimental Codex route.',
     valueNotes: [
       'Auto (recommended) and Default model settings both keep the existing model and API route.',
       'Codex local Agent (experimental) currently supports single-agent Chat only, not Codex Multi Agent or Codex Deep Research.',
-      'Codex local Agent currently supports macOS, Linux, and a DSA backend running completely inside WSL; native Windows backends are not supported yet.',
+      'Codex local Agent currently supports macOS, Linux, and a HRS backend running completely inside WSL; native Windows backends are not supported yet.',
       'A local Agent is not an offline model; stock questions and tool results may be processed by services configured in Codex.',
     ],
     impact: ['Only affects ask-stock Chat. Regular reports, scheduled analysis, existing Multi Agent, and Deep Research stay unchanged.'],
     notes: [
-      'DSA does not read or store Codex credentials. The Codex process uses its own sign-in state.',
+      'HRS does not read or store Codex credentials. The Codex process uses its own sign-in state.',
       'Settings checks only configuration, the Codex command, and the required protocol. It does not sign in, call a model, or read stock data; “Can try” is not a verified-success claim.',
       'After saving, ask directly in Chat. The first question is the first real execution; if sign-in or the Codex service fails, Chat preserves the question and explains what happened.',
       'To restore the original behavior, select Auto (recommended) and save.',

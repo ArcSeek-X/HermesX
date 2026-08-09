@@ -36,7 +36,7 @@ class ToolParameter:
 
 @dataclass(frozen=True)
 class ToolPolicy:
-    """Internal policy metadata for DSA Tool Surface descriptors."""
+    """Internal policy metadata for HRS Tool Surface descriptors."""
 
     read_only: Optional[bool] = None
     side_effects: List[str] = field(default_factory=list)

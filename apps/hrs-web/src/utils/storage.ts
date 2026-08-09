@@ -9,8 +9,8 @@
  * - sessionStorage: 会话级存储，关闭标签页后清除（用于临时状态）
  *
  * 键名前缀：
- * - localStorage: 'dsa-pref-'（用户偏好）
- * - sessionStorage: 'dsa-state-'（页面状态）
+ * - localStorage: 'hrs-pref-'（用户偏好）
+ * - sessionStorage: 'hrs-state-'（页面状态）
  *
  * 使用场景：
  * - usePreference: 使用 localStorage 存储用户偏好
@@ -57,7 +57,7 @@ export const isSessionStorageAvailable = typeof window !== 'undefined'
  * @example
  * ```typescript
  * const value = getStorageItem<string>('user-preference', 'local');
- * // 实际读取的键名：'dsa-pref-user-preference'
+ * // 实际读取的键名：'hrs-pref-user-preference'
  * ```
  */
 export function getStorageItem<T = unknown>(
@@ -87,7 +87,7 @@ export function getStorageItem<T = unknown>(
  * @example
  * ```typescript
  * setStorageItem('user-preference', { theme: 'dark' }, 'local');
- * // 实际存储的键名：'dsa-pref-user-preference'
+ * // 实际存储的键名：'hrs-pref-user-preference'
  * ```
  */
 export function setStorageItem<T = unknown>(
@@ -132,26 +132,26 @@ export function removeStorageItem(
 }
 
 /**
- * 清除所有 DSA 相关的存储项
+ * 清除所有 HRS 相关的存储项
  *
- * 遍历存储，删除所有以 DSA 前缀开头的键
+ * 遍历存储，删除所有以 HRS 前缀开头的键
  *
  * @param storageType - 存储类型：'local'（仅 localStorage）、'session'（仅 sessionStorage）或 'all'（全部）
  *
  * @example
  * ```typescript
- * // 清除所有 DSA 数据（登出时调用）
- * clearDSAStorage('all');
+ * // 清除所有 HRS 数据（登出时调用）
+ * clearHRSStorage('all');
  *
  * // 仅清除用户偏好
- * clearDSAStorage('local');
+ * clearHRSStorage('local');
  * ```
  */
-export function clearDSAStorage(storageType: 'local' | 'session' | 'all' = 'all'): void {
+export function clearHRSStorage(storageType: 'local' | 'session' | 'all' = 'all'): void {
   try {
     const clearStorage = (storage: Storage, prefix: string) => {
       const keysToRemove: string[] = [];
-      // 遍历所有键，找出以 DSA 前缀开头的
+      // 遍历所有键，找出以 HRS 前缀开头的
       for (let i = 0; i < storage.length; i++) {
         const key = storage.key(i);
         if (key && key.startsWith(prefix)) {

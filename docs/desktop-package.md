@@ -31,7 +31,7 @@ npm run build
 2) 启动 Electron 应用（自动拉起后端）
 
 ```bash
-cd apps/dsa-desktop
+cd apps/hrs-desktop
 npm install
 npm run dev
 ```
@@ -70,7 +70,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
   - 推送语义化 tag（如 `v3.2.12`）后自动触发
   - 在 Actions 页面手动触发并指定 `release_tag`
 - 产物：
-  - Windows 安装包：Release 附件和本地 `apps/dsa-desktop/dist/` 中统一为 `daily-stock-analysis-windows-installer-<tag>.exe`
+  - Windows 安装包：Release 附件和本地 `apps/hrs-desktop/dist/` 中统一为 `daily-stock-analysis-windows-installer-<tag>.exe`
   - Windows 自动更新元数据：Release 附件会额外保留 `latest.yml` 和 `*.blockmap`，供安装版桌面端后台下载与校验更新；普通用户无需手动下载这些元数据。下载完成后用户确认“重启安装”时，桌面端会先停止内置后端、备份运行时文件，并以静默模式执行安装器。
   - Windows 免安装包：`daily-stock-analysis-windows-noinstall-<tag>.zip`
   - macOS Intel：`daily-stock-analysis-macos-x64-<tag>.dmg`
@@ -83,11 +83,11 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
 请按以下顺序排查：
 
 1. 只从项目的 [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) 下载附件，并确认安装包架构与 Mac 一致：Apple 芯片（M1/M2/M3/M4 等）使用 `daily-stock-analysis-macos-arm64-<tag>.dmg`，Intel 芯片使用 `daily-stock-analysis-macos-x64-<tag>.dmg`。不要对第三方转载或来源不明的安装包绕过 Gatekeeper。
-2. 打开 DMG，将 `Daily Stock Analysis` 拖入“应用程序”后尝试启动一次。若被拦截，进入“系统设置 -> 隐私与安全性”，在安全性提示处确认应用名称，然后点击“仍要打开”，按系统提示再次确认。较旧 macOS 的对应入口为“系统偏好设置 -> 安全性与隐私 -> 通用”。
+2. 打开 DMG，将 `HermesX` 拖入“应用程序”后尝试启动一次。若被拦截，进入“系统设置 -> 隐私与安全性”，在安全性提示处确认应用名称，然后点击“仍要打开”，按系统提示再次确认。较旧 macOS 的对应入口为“系统偏好设置 -> 安全性与隐私 -> 通用”。
 3. 仅当安装包确认来自上述官方 Release、且“仍要打开”仍无法放行时，打开“终端”清除该应用的下载隔离属性，然后重新启动：
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Daily Stock Analysis.app"
+xattr -dr com.apple.quarantine "/Applications/HermesX.app"
 ```
 
 如果应用不在 `/Applications`，请将命令中的路径替换为实际 `.app` 路径。不要对整个“应用程序”目录执行 `xattr`，也不要对来源不明的应用执行此命令。不同 macOS 版本可能仍拒绝 unsigned 应用，清除 quarantine 不保证能够放行。长期彻底消除该提示需要在发布流程中接入 Apple Developer 签名与 notarization（公证），不属于上述临时放行步骤。
@@ -95,8 +95,8 @@ xattr -dr com.apple.quarantine "/Applications/Daily Stock Analysis.app"
 维护者可用以下命令区分“预期的 unsigned 拒绝”和“不可发布的残缺签名”：
 
 ```bash
-codesign -d "/Applications/Daily Stock Analysis.app"
-spctl --assess --type execute --verbose=4 "/Applications/Daily Stock Analysis.app"
+codesign -d "/Applications/HermesX.app"
+spctl --assess --type execute --verbose=4 "/Applications/HermesX.app"
 ```
 
 当前 unsigned 产物的 `codesign -d` 预期包含 `code object is not signed at all`，`spctl` 预期拒绝；如果输出 `code has no resources but signature indicates they must be present` 或其它签名损坏信息，应视为发布阻断。
@@ -127,7 +127,7 @@ npm run build
 2. 回到桌面端，补齐依赖、运行 preload 单测、再执行 Electron 打包
 
 ```bash
-cd ../dsa-desktop
+cd ../hrs-desktop
 npm ci
 npm test
 npm run build
@@ -136,7 +136,7 @@ npm run build
 在 Windows 发布复核环境，还可额外执行：
 
 ```powershell
-./scripts/verify-desktop-updater-artifacts.ps1 -ReleaseTag v$(node -p "require('./apps/dsa-desktop/package.json').version")
+./scripts/verify-desktop-updater-artifacts.ps1 -ReleaseTag v$(node -p "require('./apps/hrs-desktop/package.json').version")
 ```
 
 > 预期当前执行环境不支持生成 Windows NSIS 安装器时，请在交付说明中明确注明平台限制，并要求指定的 Windows 发布链路复核人补齐该项验证。
@@ -196,7 +196,7 @@ Windows 发布链路复核清单（在 PR 后由发布团队/维护者执行）�
 
    1. 安装前后分别记录安装目录中的 `.env`、`data/stock_analysis.db`、`data/stock_analysis.db-wal`、`data/stock_analysis.db-shm`、`logs/desktop.log` 的 SHA256；
    2. 确认桌面端下一次启动后，上述文件仍存在且与安装前记录一致；
-   3. 如不一致，可在应用退出后检查用户数据目录中的 `.dsa-desktop-update-backup` 是否清理完整，并结合最新日志串联排查。
+   3. 如不一致，可在应用退出后检查用户数据目录中的 `.hrs-desktop-update-backup` 是否清理完整，并结合最新日志串联排查。
 
 Windows 平台建议使用 PowerShell 执行：
 
@@ -230,17 +230,17 @@ powershell -ExecutionPolicy Bypass -File scripts\build-backend.ps1
 bash scripts/build-backend-macos.sh
 ```
 
-该脚本会在安装依赖后执行 `--collect-all alphasift`、`--collect-all futu` 和 `--collect-data akshare`。构建完成后会通过冻结可执行文件校验 `alphasift.dsa_adapter`、`futu`、`orjson` 均可导入，并确认 AkShare 的 `file_fold/calendar.json` 已进入冻结产物，避免发行包在热点题材、Futu 持仓导入或日线增强路径中因缺少依赖/package data 降级。PR 主 CI 在 `requirements.txt`、Futu broker、Desktop 打包入口或相关 workflow 变化时，会分别运行 `desktop-futu-package-windows` 与 `desktop-futu-package-macos` 阻断检查。
+该脚本会在安装依赖后执行 `--collect-all alphasift`、`--collect-all futu` 和 `--collect-data akshare`。构建完成后会通过冻结可执行文件校验 `alphasift.hrs_adapter`、`futu`、`orjson` 均可导入，并确认 AkShare 的 `file_fold/calendar.json` 已进入冻结产物，避免发行包在热点题材、Futu 持仓导入或日线增强路径中因缺少依赖/package data 降级。PR 主 CI 在 `requirements.txt`、Futu broker、Desktop 打包入口或相关 workflow 变化时，会分别运行 `desktop-futu-package-windows` 与 `desktop-futu-package-macos` 阻断检查。
 
 3) 打包 Electron 桌面应用
 
 ```bash
-cd apps/dsa-desktop
+cd apps/hrs-desktop
 npm install
 npm run build
 ```
 
-打包产物位于 `apps/dsa-desktop/dist/`。Windows 安装器会生成 `daily-stock-analysis-windows-installer-<tag>.exe`，安装向导中可选择安装目录。
+打包产物位于 `apps/hrs-desktop/dist/`。Windows 安装器会生成 `daily-stock-analysis-windows-installer-<tag>.exe`，安装向导中可选择安装目录。
 
 ## 目录结构
 
@@ -250,7 +250,7 @@ Windows 安装包模式下，安装器仅支持当前用户安装且已禁用管
 
 ```
 win-unpacked/
-  Daily Stock Analysis.exe    <- 双击启动
+  HermesX.exe    <- 双击启动
   .env                        <- 用户配置文件（首次启动自动生成）
   data/
     stock_analysis.db         <- 数据库主文件
@@ -339,11 +339,11 @@ PyInstaller 打包时缺少模块，需要在 Windows 与 macOS 后端构建脚�
 
 Windows 分发现在有两种方式：
 
-1. 安装包：分发 `apps/dsa-desktop/dist/` 下的 `daily-stock-analysis-windows-installer-<tag>.exe`，用户安装时可自行选择目标目录
-2. 免安装包：将 `apps/dsa-desktop/dist/win-unpacked/` 整个文件夹打包发给用户
+1. 安装包：分发 `apps/hrs-desktop/dist/` 下的 `daily-stock-analysis-windows-installer-<tag>.exe`，用户安装时可自行选择目标目录
+2. 免安装包：将 `apps/hrs-desktop/dist/win-unpacked/` 整个文件夹打包发给用户
 
 使用 `win-unpacked` 免安装包时，用户只需：
 
 1. 解压文件夹
 2. 编辑 `.env` 配置 API Key 和股票列表
-3. 双击 `Daily Stock Analysis.exe` 启动
+3. 双击 `HermesX.exe` 启动

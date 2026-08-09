@@ -356,7 +356,7 @@ const fieldDescriptionMap: Record<string, string> = {
   WEBUI_AUTO_BUILD: '后端启动 WebUI 前是否自动检查并构建前端静态产物；关闭前需确认产物已预构建，保存后需重启生效。',
   WEBUI_PORT: 'Web 页面服务监听端口。',
   AGENT_MODE: '是否启用 ReAct Agent 策略问股。对外文案仍叫“策略”，内部配置字段统一使用 skill。',
-  AGENT_BACKEND: '选择问股 Chat 使用当前默认模型配置，还是调用运行 DSA 设备上的 Codex。自动（推荐）始终保持默认模型配置，不会自动启用实验能力。',
+  AGENT_BACKEND: '选择问股 Chat 使用当前默认模型配置，还是调用运行 HRS 设备上的 Codex。自动（推荐）始终保持默认模型配置，不会自动启用实验能力。',
   AGENT_GENERATION_BACKEND: '用于问股助手生成回复并调用行情、新闻和历史数据工具。通常保持“自动”，系统会选择当前可用的方式。',
   AGENT_MAX_STEPS: '默认模型配置的 Agent 最大推理步数；选择 Codex 时，用作单次问股的最大工具调用次数。',
   AGENT_SKILLS: '逗号分隔的交易策略列表。留空时使用 metadata 里声明的主默认策略 skill（内置默认是 bull_trend）；也可填写 all 启用全部策略。',

@@ -35,7 +35,7 @@ _BUILD_INPUT_FILES = (
 _BUILD_INPUT_DIRS = ("src", "public")
 _BUILD_METADATA_FILE = "build-info.json"
 _DEPENDENCY_INPUT_FILES = ("package.json", "package-lock.json")
-_DEPENDENCY_FINGERPRINT_FILE = ".dsa-dependency-fingerprint"
+_DEPENDENCY_FINGERPRINT_FILE = ".hrs-dependency-fingerprint"
 
 
 def _is_truthy_env(var_name: str, default: str = "true") -> bool:

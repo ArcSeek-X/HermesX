@@ -9,7 +9,7 @@ from importlib import import_module
 def ensure_litellm_stub() -> None:
     """Install a minimal litellm stub unless a test already provided one."""
     existing = sys.modules.get("litellm")
-    if getattr(existing, "__dsa_test_stub__", False):
+    if getattr(existing, "__hrs_test_stub__", False):
         return
     if existing is not None:
         try:
@@ -20,7 +20,7 @@ def ensure_litellm_stub() -> None:
                 sys.modules.pop(module_name, None)
 
     litellm_stub = types.ModuleType("litellm")
-    litellm_stub.__dsa_test_stub__ = True
+    litellm_stub.__hrs_test_stub__ = True
 
     class _DummyRouter:  # pragma: no cover
         pass
@@ -58,7 +58,7 @@ def ensure_litellm_stub() -> None:
 
 def remove_litellm_stub() -> None:
     """Remove this stub so tests that need real LiteLLM types can import them."""
-    if not getattr(sys.modules.get("litellm"), "__dsa_test_stub__", False):
+    if not getattr(sys.modules.get("litellm"), "__hrs_test_stub__", False):
         return
 
     for module_name in ("litellm.types.utils", "litellm.types", "litellm"):

@@ -30,7 +30,7 @@ const GITHUB_REPO = 'HermesX';
 const RELEASES_PAGE_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
-const DESKTOP_UPDATE_BACKUP_DIR = '.dsa-desktop-update-backup';
+const DESKTOP_UPDATE_BACKUP_DIR = '.hrs-desktop-update-backup';
 const DESKTOP_UPDATE_BACKUP_MANIFEST_FILE = 'runtime-state.json';
 const DESKTOP_BACKEND_DEFAULT_HOST = '127.0.0.1';
 const PUBLIC_BIND_HOSTS = Object.freeze(new Set(['0.0.0.0', '::', '[::]', '*']));
@@ -332,7 +332,7 @@ function fetchLatestReleaseJson({
         method: 'GET',
         headers: {
           Accept: 'application/vnd.github+json',
-          'User-Agent': 'daily-stock-analysis-desktop',
+          'User-Agent': 'HermesX-desktop',
         },
       },
       (incomingResponse) => {
@@ -649,8 +649,8 @@ function migrateMacPackagedRuntimeState() {
 }
 
 function resolveBackendPath() {
-  if (process.env.DSA_BACKEND_PATH) {
-    return process.env.DSA_BACKEND_PATH;
+  if (process.env.HRS_BACKEND_PATH) {
+    return process.env.HRS_BACKEND_PATH;
   }
 
   if (app.isPackaged) {
@@ -871,7 +871,7 @@ function buildBackendEnvironment({
   );
   const env = {
     ...sourceEnv,
-    DSA_DESKTOP_MODE: 'true',
+    HRS_DESKTOP_MODE: 'true',
     ENV_FILE: envFile,
     DATABASE_PATH: dbPath,
     LOG_DIR: logDir,
@@ -962,7 +962,7 @@ function formatCommand(command, args = []) {
 }
 
 function resolvePythonPath() {
-  return process.env.DSA_PYTHON || 'python';
+  return process.env.HRS_PYTHON || 'python';
 }
 
 function ensureEnvFile(envPath) {
@@ -1342,7 +1342,7 @@ function isWindowsNsisInstalledApp() {
   }
 
   const appDir = path.dirname(app.getPath('exe'));
-  return fs.existsSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'));
+  return fs.existsSync(path.join(appDir, 'Uninstall HermesX.exe'));
 }
 
 function getElectronAutoUpdater() {
@@ -1784,7 +1784,7 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      additionalArguments: [`--dsa-desktop-version=${app.getVersion()}`],
+      additionalArguments: [`--hrs-desktop-version=${app.getVersion()}`],
     },
   });
   logStartup('BrowserWindow created');

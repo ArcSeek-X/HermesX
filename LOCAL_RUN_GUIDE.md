@@ -226,10 +226,10 @@ python main.py --serve
 
 ## 7. 桌面端启动
 
-桌面端基于 **Electron**，位于 `apps/dsa-desktop/`。
+桌面端基于 **Electron**，位于 `apps/hrs-desktop/`。
 
 ```bash
-cd apps/dsa-desktop
+cd apps/hrs-desktop
 npm install
 npm run dev          # 启动 Electron 桌面应用
 npm run build        # 打包桌面应用（Windows NSIS / macOS DMG）

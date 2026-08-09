@@ -64,7 +64,7 @@ from src.utils.sniper_points import extract_sniper_points, parse_sniper_value
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
 CURRENT_SCHEMA_VERSION = "2026-06-05-create-all-baseline"
-INTELLIGENCE_ITEM_NULL_SCOPE_VALUE = "__dsa_null_scope__"
+INTELLIGENCE_ITEM_NULL_SCOPE_VALUE = "__hrs_null_scope__"
 
 # SQLAlchemy ORM 基类
 Base = declarative_base()

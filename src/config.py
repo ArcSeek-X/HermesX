@@ -2914,7 +2914,7 @@ class Config:
                     message=(
                         "OPENCODE_CLI_MODEL 是可选的 OpenCode 模型覆盖值。"
                         "配置时会作为单个 --model 参数传给 OpenCode，不能包含空白或 shell 元字符；"
-                        "不配置时 DSA 将使用 OpenCode 自身默认模型。"
+                        "不配置时 HRS 将使用 OpenCode 自身默认模型。"
                     ),
                     field="OPENCODE_CLI_MODEL",
                 ))

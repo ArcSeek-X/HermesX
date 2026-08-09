@@ -7444,7 +7444,7 @@
       "AdminSessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "dsa_session"
+        "name": "hrs_session"
       }
     }
   }

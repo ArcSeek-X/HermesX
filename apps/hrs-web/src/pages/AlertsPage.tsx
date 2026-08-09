@@ -146,7 +146,7 @@ function formatNotificationStatus(notification: AlertNotificationItem): string {
 const AlertsPage: React.FC = () => {
   // 页面标题设置
   useEffect(() => {
-    document.title = '告警中心 - DSA';
+    document.title = '告警中心 - HRS';
   }, []);
 
   const [rules, setRules] = useState<AlertRuleItem[]>([]); // 告警规则列表

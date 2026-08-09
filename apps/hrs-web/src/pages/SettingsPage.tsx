@@ -45,7 +45,7 @@ import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 
 /** 桌面端 Electron 注入的全局 window 对象类型，包含版本信息和更新相关 API */
 type DesktopWindow = Window & {
-  dsaDesktop?: {
+  hrsDesktop?: {
     version?: unknown;
     getUpdateState?: () => Promise<RawDesktopUpdateState>;
     checkForUpdates?: () => Promise<RawDesktopUpdateState>;
@@ -240,7 +240,7 @@ function getDesktopRuntimeApi() {
     return undefined;
   }
 
-  return (window as DesktopWindow).dsaDesktop;
+  return (window as DesktopWindow).hrsDesktop;
 }
 
 /** 获取桌面端应用版本号字符串 */
@@ -365,7 +365,7 @@ function getDesktopUpdateNotice(
 
 /**
  * 生成环境配置备份文件的文件名
- * 格式为 `dsa-env_YYYYMMDD_HHmm.env` 或 `dsa-desktop-env_YYYYMMDD_HHmm.env`（桌面端）
+ * 格式为 `hrs-env_YYYYMMDD_HHmm.env` 或 `hrs-desktop-env_YYYYMMDD_HHmm.env`（桌面端）
  * @param isDesktopRuntime - 是否为桌面端运行环境
  * @returns 格式化的备份文件名
  */
@@ -374,7 +374,7 @@ function formatEnvBackupFilename(isDesktopRuntime: boolean) {
   const pad = (value: number) => value.toString().padStart(2, '0');
   const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
   const time = `${pad(now.getHours())}${pad(now.getMinutes())}`;
-  return `${isDesktopRuntime ? 'dsa-desktop-env' : 'dsa-env'}_${date}_${time}.env`;
+  return `${isDesktopRuntime ? 'hrs-desktop-env' : 'hrs-env'}_${date}_${time}.env`;
 }
 
 /** 调度时间格式正则：匹配 HH:mm（24 小时制） */
