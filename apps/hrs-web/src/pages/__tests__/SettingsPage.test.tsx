@@ -1,3 +1,12 @@
+/**
+ * SettingsPage 组件测试
+ *
+ * 文件作用：
+ * 覆盖设置页（SettingsPage）的核心编排逻辑：系统配置的加载/保存/草稿管理、
+ * 分析 API 与 AlphaSift 开关、桌面端更新流程、LLM 渠道编辑与智能导入等交互。
+ * 通过 vi.mock 屏蔽真实网络请求与子组件细节，聚焦页面状态流转与回调行为的断言。
+ */
+
 // 仅类型导入 React（用于 components mock 的节点类型标注）
 import type React from 'react';
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
@@ -125,13 +134,14 @@ vi.mock('../../api/alphasift', () => ({
 }));
 
 // mock constants：保留真实导出，只把 WEB_BUILD_INFO 替换为固定测试构建信息
+// 注意：此块曾因多写一个右括号（}));）导致语法错误、阻断 tsc -b 构建，已修正为 });
 vi.mock('../../utils/constants', async () => {
   const actual = await vi.importActual<typeof import('../../utils/constants')>('../../utils/constants');
   return {
     ...actual,
     WEB_BUILD_INFO: webBuildInfoMock,
   };
-}));
+});
 
 // mock 设置相关组件：用轻量占位组件替换真实卡片/编辑器，
 // 让测试聚焦设置页的编排逻辑而非子组件细节。
