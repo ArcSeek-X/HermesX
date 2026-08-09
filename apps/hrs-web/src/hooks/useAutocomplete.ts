@@ -1,5 +1,5 @@
 /**
- * useAutocomplete —— 股票搜索自动补全 Hook
+ * useAutocomplete —— 股票搜索（自动搜索补全）
  *
  * 文件作用：
  * 管理搜索框"输入即提示"的完整交互逻辑：接收股票索引（来自 useStockIndex），

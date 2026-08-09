@@ -1,5 +1,14 @@
+/**
+ * 报告语言（report language）工具
+ *
+ * 作用：统一管理分析报告支持的语言（中文 zh / 英文 en / 韩文 ko）的规范化与文案表。
+ * 提供 normalizeReportLanguage 将任意输入安全回退到 'zh'，以及 getReportText 按当前
+ * 语言返回一份集中的 UI 文案字典（核心洞察、操作建议、新闻动态等），供报告详情页调用。
+ */
+
 import type { ReportLanguage } from '../types/analysis';
 
+/** 将任意语言输入规范化为受支持的语言，非法/空值回退到 'zh'。 */
 export const normalizeReportLanguage = (value?: string | null): ReportLanguage =>
   value === 'en' ? 'en' : value === 'ko' ? 'ko' : 'zh';
 

@@ -1,3 +1,11 @@
+/**
+ * 市场阶段（Market Phase）文案工具
+ *
+ * 作用：将后端返回的市场/请求阶段枚举翻译为用户可见的中文 / 英文 / 韩文标签。
+ * 区分两类阶段：用户“请求的（requested）阶段”与系统“最终判定的（market）市场阶段”，
+ * 并支持带“日线未完成（partial bar）”标注。文案表覆盖 zh/en/ko 三语。
+ */
+
 import type {
   AnalysisPhase,
   MarketPhaseSummary,

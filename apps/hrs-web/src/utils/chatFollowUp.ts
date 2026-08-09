@@ -1,7 +1,17 @@
+/**
+ * 问股会话“追问上下文”构建工具
+ *
+ * 作用：为问股（agent chat）场景构建发送给后端 Agent 的上下文对象，使 AI 能基于
+ * 历史分析报告（结论、策略、现价、涨跌幅、市场结构等）做更深入的追问分析。
+ * 同时提供输入净化（股票代码/名称）、recordId 解析与默认追问提示构建，
+ * 并从指定历史报告（通过 historyApi 拉取）中聚合上下文，失败时优雅回退到仅含基础信息。
+ */
+
 import type { AnalysisReport } from '../types/analysis';
 import { historyApi } from '../api/history';
 import { validateStockCode } from './validation';
 
+/** 问股追问上下文：以 snake_case 命名，对齐后端 Agent 接口契约 */
 export interface ChatFollowUpContext {
   stock_code: string;
   stock_name: string | null;

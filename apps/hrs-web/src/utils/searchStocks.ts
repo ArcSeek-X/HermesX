@@ -1,30 +1,33 @@
 /**
- * Stock Search Algorithm
+ * 股票搜索算法
  *
- * Supports multiple matching methods:
- * - Exact match: code, name, pinyin, alias
- * - Prefix match: code prefix, name prefix, pinyin prefix
- * - Contains match: code contains, name contains, pinyin contains
+ * 作用：基于股票索引（StockIndexItem）实现自动补全搜索，支持多种匹配方式：
+ * - 精确匹配：代码、名称、拼音、别名
+ * - 前缀匹配：代码前缀、名称前缀、拼音前缀
+ * - 包含匹配：代码包含、名称包含、拼音包含
+ * 对每条命中结果计算匹配评分（越高越相关），并按评分与热度排序返回 Top N 建议项，
+ * 另提供高亮渲染（带 HTML 转义，防止 XSS）供搜索结果 UI 使用。
  */
 
 import type { StockIndexItem, StockSuggestion } from '../types/stockIndex';
 import { normalizeQuery } from './normalizeQuery';
 import { MATCH_SCORE, SEARCH_CONFIG } from './stockIndexFields';
 
+/** 搜索选项 */
 export interface SearchOptions {
-  /** Limit on number of results to return */
+  /** 返回结果数量上限 */
   limit?: number;
-  /** Show only active stocks */
+  /** 是否只展示在市股票 */
   activeOnly?: boolean;
 }
 
 /**
- * Search stock index
+ * 在股票索引中搜索。
  *
- * @param query - Search query
- * @param index - Stock index
- * @param options - Search options
- * @returns List of matched stock suggestions
+ * @param query - 用户输入的查询
+ * @param index - 股票索引
+ * @param options - 搜索选项
+ * @returns 命中的股票建议列表（已排序、截断到 limit）
  */
 export function searchStocks(
   query: string,
@@ -38,28 +41,28 @@ export function searchStocks(
   const limit = options.limit || SEARCH_CONFIG.DEFAULT_LIMIT;
   const activeOnly = options.activeOnly !== false;
 
-  // Filter index
+  // 过滤索引：activeOnly 时剔除不在市的股票
   const filteredIndex = index.filter(item => {
     if (activeOnly && !item.active) return false;
     return true;
   });
 
-  // Calculate match score for each item
+  // 为每条索引项计算匹配评分
   const suggestions = filteredIndex.map(item => ({
     item,
     score: calculateMatchScore(normalizedQuery, item),
   }));
 
-  // Filter out items with score of 0
+  // 过滤掉评分为 0（完全不匹配）的项
   const matched = suggestions.filter(s => s.score > 0);
 
-  // Sort: by score descending, then by popularity descending for same score
+  // 排序：先按评分降序，评分相同时按热度（popularity）降序
   matched.sort((a, b) => {
     if (a.score !== b.score) return b.score - a.score;
     return (b.item.popularity || 0) - (a.item.popularity || 0);
   });
 
-  // Return top N items
+  // 返回前 N 项，并映射为前端所需的建议结构
   return matched.slice(0, limit).map(s => ({
     canonicalCode: s.item.canonicalCode,
     displayCode: s.item.displayCode,
@@ -72,17 +75,17 @@ export function searchStocks(
 }
 
 /**
- * Calculate match score
+ * 计算单条索引项相对查询的匹配评分。
  *
- * Score rules:
- * - 100: Exact match canonical code
- * - 99: Exact match display code
- * - 98: Exact match Chinese name
- * - 97: Exact match alias
- * - 96: Exact match pinyin abbreviation
- * - 80-89: Prefix match
- * - 60-69: Contains match
- * - 0: No match
+ * 评分规则：
+ * - 100：精确匹配 canonical code
+ * - 99 ：精确匹配 display code
+ * - 98 ：精确匹配中文名称
+ * - 97 ：精确匹配别名
+ * - 96 ：精确匹配拼音缩写
+ * - 80-89：前缀匹配（越高越优先）
+ * - 60-69：包含匹配
+ * - 0  ：不匹配
  */
 function calculateMatchScore(query: string, item: StockIndexItem): number {
   let score = 0;
@@ -94,20 +97,20 @@ function calculateMatchScore(query: string, item: StockIndexItem): number {
   const normalizedPinyinAbbr = normalizeQuery(item.pinyinAbbr || '');
   const normalizedAliases = item.aliases?.map(alias => normalizeQuery(alias)) || [];
 
-  // 1. Exact match (96-100 points)
+  // 1. 精确匹配（96-100 分），按字段优先级取最高分
   if (q === normalizedCanonicalCode) return 100;
   if (q === normalizedDisplayCode) return 99;
   if (q === normalizedName) return 98;
   if (normalizedAliases.some(a => a === q)) return 97;
   if (q === normalizedPinyinAbbr) return 96;
 
-  // 2. Prefix match (77-80 points)
+  // 2. 前缀匹配（77-80 分），用 Math.max 叠加避免后续包含匹配覆盖高分
   if (normalizedDisplayCode.startsWith(q)) score = Math.max(score, 80);
   if (normalizedName.startsWith(q)) score = Math.max(score, 79);
   if (normalizedPinyinAbbr.startsWith(q)) score = Math.max(score, 78);
   if (normalizedAliases.some(a => a.startsWith(q))) score = Math.max(score, 77);
 
-  // 3. Contains match (57-60 points)
+  // 3. 包含匹配（57-60 分）
   if (normalizedDisplayCode.includes(q)) score = Math.max(score, 60);
   if (normalizedName.includes(q)) score = Math.max(score, 59);
   if (normalizedPinyinFull.includes(q)) score = Math.max(score, 58);
@@ -117,7 +120,8 @@ function calculateMatchScore(query: string, item: StockIndexItem): number {
 }
 
 /**
- * Determine match type based on score
+ * 根据评分判断匹配类型（exact / prefix / contains / fuzzy）。
+ * 阈值取自 MATCH_SCORE 常量。
  */
 function determineMatchType(score: number): 'exact' | 'prefix' | 'contains' | 'fuzzy' {
   if (score >= MATCH_SCORE.EXACT_MIN) return 'exact';
@@ -127,7 +131,7 @@ function determineMatchType(score: number): 'exact' | 'prefix' | 'contains' | 'f
 }
 
 /**
- * Determine match field
+ * 判断匹配命中的字段（code / name / pinyin / alias），用于结果展示“按哪类字段匹配”。
  */
 function determineMatchField(query: string, item: StockIndexItem): 'code' | 'name' | 'pinyin' | 'alias' {
   const q = query.toLowerCase();
@@ -152,7 +156,7 @@ function determineMatchField(query: string, item: StockIndexItem): 'code' | 'nam
 }
 
 /**
- * Escape HTML entities
+ * 转义 HTML 特殊字符，防止注入（用于高亮渲染前的文本片段）。
  */
 function escapeHtml(unsafe: string): string {
   return unsafe
@@ -164,11 +168,11 @@ function escapeHtml(unsafe: string): string {
 }
 
 /**
- * Highlight matched text
+ * 在文本中高亮命中片段。
  *
- * @param text - Original text
- * @param query - Query string
- * @returns Safe HTML string with highlight markers
+ * @param text - 原始文本
+ * @param query - 查询字符串
+ * @returns 经过 HTML 转义、并用安全 <mark> 标签包裹命中片段的 HTML 字符串
  */
 export function highlightMatch(text: string, query: string): string {
   const normalizedQuery = normalizeQuery(query);
@@ -181,6 +185,6 @@ export function highlightMatch(text: string, query: string): string {
   const match = text.substring(index, index + normalizedQuery.length);
   const after = text.substring(index + normalizedQuery.length);
 
-  // Return escaped segments joined by safe <mark> tags
+  // 返回各转义片段，命中部分用安全 <mark> 包裹
   return `${escapeHtml(before)}<mark>${escapeHtml(match)}</mark>${escapeHtml(after)}`;
 }

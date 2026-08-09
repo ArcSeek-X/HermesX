@@ -1,3 +1,13 @@
+/**
+ * 系统配置国际化（i18n）工具
+ *
+ * 作用：为系统设置页提供配置项的中文/英文展示文案，包括：
+ * - 配置分类（category）的标题与描述；
+ * - 各配置字段（field）的标题与帮助说明；
+ * - 字段枚举选项在不同语言下的标签。
+ * 所有文案集中在此文件维护，设置页渲染时统一调用对应的 get* 函数，未命中时回退到字段名/默认值。
+ */
+
 import type { SystemConfigCategory } from '../types/systemConfig';
 import type { UiLanguage } from '../i18n/uiText';
 

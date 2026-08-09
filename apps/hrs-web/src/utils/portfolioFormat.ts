@@ -1,3 +1,11 @@
+/**
+ * 投资组合（Portfolio）展示格式化工具
+ *
+ * 作用：为组合管理相关页面提供金额、百分比、价格、买卖方向、公司行为、券商等字段的
+ * 统一格式化与中文标签，并把后端返回的导入/汇率刷新结果转换为前端提示（tone/variant），
+ * 便于 UI 以一致的视觉风格展示各类状态与反馈。
+ */
+
 import type {
   PortfolioCashDirection,
   PortfolioCorporateActionType,

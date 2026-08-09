@@ -1,5 +1,18 @@
+/**
+ * 决策动作（DecisionAction）解析与展示工具
+ *
+ * 作用：统一管理交易决策动作的展示文案与视觉色调（tone），并兼容“新版结构化动作（action）”
+ * 与“旧版自由文本建议（advice）”两种数据形态：
+ * - 默认提供一套中文动作标签（买入/加仓/持有/减仓/卖出/观望/回避/预警）；
+ * - buildDecisionActionLabelMap 结合 i18n 翻译生成多语言标签；
+ * - getLegacyDecisionAction 对旧版中英文建议文本做关键词/正则解析，回推出结构化动作
+ *   （含对“暂不/不建议/回避”“等待/延期”等语义的精细处理，多个动作冲突时返回 null）；
+ * - getDecisionActionLabel / getDecisionActionTone 统一解析展示文案与色调。
+ */
+
 import type { DecisionAction } from '../types/analysis';
 
+/** 动作对应的视觉色调，用于 UI 着色 */
 export type DecisionActionTone = 'success' | 'warning' | 'danger' | 'default';
 export type DecisionActionLabelMap = Record<DecisionAction, string>;
 export type DecisionActionLabelTextKey =

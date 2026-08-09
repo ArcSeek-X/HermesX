@@ -1,7 +1,19 @@
+/**
+ * 问股会话导出工具
+ *
+ * 作用：把前端“问股（agent chat）”会话的消息列表导出为 Markdown 文件。
+ * formatSessionAsMarkdown 负责把每条消息（用户/AI、含技能名）拼接成带生成时间的
+ * Markdown 文本；downloadSession 负责生成 Blob 并触发浏览器下载为 .md 文件，
+ * 下载完成后释放 Object URL 以避免内存泄漏。
+ */
+
 import type { Message } from '../stores/agentChatStore';
 
 /**
- * Format chat messages as Markdown for export.
+ * 将会话消息格式化为用于导出的 Markdown 文本。
+ *
+ * @param messages - 会话消息数组
+ * @returns 完整的 Markdown 字符串（含“问股会话”标题与生成时间）
  */
 export function formatSessionAsMarkdown(messages: Message[]): string {
   const now = new Date();
@@ -36,8 +48,10 @@ export function formatSessionAsMarkdown(messages: Message[]): string {
 }
 
 /**
- * Trigger browser download of session as .md file.
- * Revokes object URL after download to prevent memory leak.
+ * 触发浏览器将会话下载为 .md 文件。
+ * 下载后主动 revoke Object URL，防止内存泄漏。
+ *
+ * @param messages - 会话消息数组
  */
 export function downloadSession(messages: Message[]): void {
   const content = formatSessionAsMarkdown(messages);

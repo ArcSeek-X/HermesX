@@ -1,3 +1,11 @@
+/**
+ * 决策信号字段多语言标签工具
+ *
+ * 作用：为决策信号中的结构化枚举字段（市场、市场阶段、持有周期、计划完整性、信号来源）
+ * 提供统一的 i18n 标签映射。每个枚举对应一组 i18n 文案键，通过统一的 translatedKnownValue
+ * 逻辑取标签，未识别或空值返回占位符 '-'。供信号卡片、筛选器与详情展示复用。
+ */
+
 import type { MarketPhaseValue } from '../types/analysis';
 import type {
   DecisionSignalHorizon,
@@ -7,6 +15,7 @@ import type {
 } from '../types/decisionSignals';
 import type { UiTextKey } from '../i18n/uiText';
 
+/** 翻译函数类型：接受 i18n 文案键返回字符串 */
 type Translator = (key: UiTextKey) => string;
 
 const MARKET_LABEL_KEYS: Record<DecisionSignalMarket, UiTextKey> = {
@@ -53,6 +62,10 @@ const SOURCE_TYPE_LABEL_KEYS: Record<DecisionSignalSourceType, UiTextKey> = {
   manual: 'decisionSignals.sourceType.manual',
 };
 
+/**
+ * 通用枚举标签解析：根据当前值从键映射表中取 i18n 文案。
+ * 值为空或键未命中时返回占位符 '-'。
+ */
 function translatedKnownValue<Value extends string>(
   value: Value | null | undefined,
   keys: Record<Value, UiTextKey>,
