@@ -373,7 +373,7 @@ python main.py --market-only
 **现象**：已经配置了 `TRADING_DAY_CHECK_ENABLED` 或希望手动运行，但日志仍提示“今日所有相关市场均为非交易日，跳过执行”。
 
 **解决方案**：
-1. 打开 `Actions → 每日股票分析 → Run workflow`
+1. 打开 `Actions → HermesX-每日股票分析 → Run workflow`
 2. 手动触发时将 `force_run` 设为 `true`（单次强制运行）
 3. 如果希望长期关闭交易日检查，在 `Settings → Secrets and variables → Actions` 中设置：
    ```bash

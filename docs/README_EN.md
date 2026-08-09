@@ -35,7 +35,7 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 ## 🖥️ Product Preview
 
 <p align="center">
-  <img src="assets/readme_workspace_tour_20260510.gif" alt="DSA Web workspace demo" width="720">
+  <img src="assets/readme_workspace_tour_20260510.gif" alt="HRS Web workspace demo" width="720">
 </p>
 
 ## ✨ Key Features
@@ -144,7 +144,7 @@ Open the `Actions` tab and click `I understand my workflows, go ahead and enable
 
 #### 4. Manual Test
 
-`Actions` -> `Daily Stock Analysis` -> `Run workflow` -> `Run workflow`.
+`Actions` -> `HermesX-每日股票分析` -> `Run workflow` -> `Run workflow`.
 
 #### Done
 

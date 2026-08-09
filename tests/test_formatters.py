@@ -273,7 +273,7 @@ class TestChunkMarkdownPreservingBlocks(unittest.TestCase):
             self.assertEqual(body.count("`") % 2, 0)
 
     def test_avoids_splitting_inside_markdown_links(self):
-        link = "[full report](https://example.com/reports/2026/05/30/daily-stock-analysis?channel=feishu)"
+        link = "[full report](https://example.com/reports/2026/05/30/hermesx?channel=feishu)"
         text = (
             "Intro "
             + ("word " * 8)

@@ -1,6 +1,6 @@
 # Zeabur 部署指南
 
-本指南详细介绍如何在 Zeabur 上部署 A股自选股智能分析系统，包括 WebUI 和 Discord 机器人功能。
+本指南详细介绍如何在 Zeabur 上部署 HermesX - A股自选股智能分析系统，包括 WebUI 和 Discord 机器人功能。
 
 ## 目录
 

@@ -1,13 +1,13 @@
-# ===================================
-# A股自选股智能分析系统 - Docker Compose
-# ===================================
+# =============================================
+# HermesX - A股自选股智能分析系统 - Docker Compose
+# =============================================
 # 
 # 使用方式:
 #   定时模式: docker-compose -f ./docker/docker-compose.yml up -d
 #   FastAPI模式: docker-compose -f ./docker/docker-compose.yml up -d server
 #   同时启动: docker-compose -f ./docker/docker-compose.yml up -d analyzer server
 
-name: daily-stock-analysis
+name: hermesx
 version: '3.8'
 
 x-common: &common

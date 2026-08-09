@@ -90,7 +90,7 @@ jobs:
       - name: Prepare release artifact (Windows)  # 校验并收集安装包、免安装包、latest.yml、blockmap 到发布目录
         shell: pwsh
         run: |
-          $expectedInstallerName = "HermesX-windows-installer-$env:RELEASE_TAG.exe"
+          $expectedInstallerName = "hermesX-windows-installer-$env:RELEASE_TAG.exe"
           $installerPath = Join-Path 'apps/hrs-desktop/dist' $expectedInstallerName
           $installerExe = Get-Item -Path $installerPath -ErrorAction SilentlyContinue
           if (-not $installerExe) {
@@ -102,7 +102,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path 'dist/release-assets' -Force | Out-Null
           $exeTarget = "dist/release-assets/$expectedInstallerName"
-          $zipTarget = "dist/release-assets/HermesX-windows-noinstall-$env:RELEASE_TAG.zip"
+          $zipTarget = "dist/release-assets/hermesX-windows-noinstall-$env:RELEASE_TAG.zip"
           Copy-Item -Path $installerExe.FullName -Destination $exeTarget -Force
           Compress-Archive -Path $winUnpacked -DestinationPath $zipTarget -CompressionLevel Optimal -Force
           Get-ChildItem -Path 'apps/hrs-desktop/dist' -File |
@@ -225,7 +225,7 @@ jobs:
           fi
           test -n "$dmg_file"
           mkdir -p dist/release-assets
-          cp "$dmg_file" "dist/release-assets/HermesX-macos-${{ matrix.arch }}-${RELEASE_TAG}.dmg"
+          cp "$dmg_file" "dist/release-assets/hermesX-macos-${{ matrix.arch }}-${RELEASE_TAG}.dmg"
 
       - uses: actions/upload-artifact@v6  # 上传 macOS 对应架构的 .dmg 产物，缺失则报错
         with:

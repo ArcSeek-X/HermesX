@@ -2,7 +2,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ===================================
-# A股自选股智能分析系统（HermesX）- Docker 镜像
+# HermesX - A股自选股智能分析系统 - Docker 镜像
 # ===================================
 # 构建策略：多阶段构建（multi-stage build）
 #   - 阶段一（web-builder）：用 Node 构建前端静态产物

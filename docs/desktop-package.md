@@ -70,11 +70,11 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
   - 推送语义化 tag（如 `v3.2.12`）后自动触发
   - 在 Actions 页面手动触发并指定 `release_tag`
 - 产物：
-  - Windows 安装包：Release 附件和本地 `apps/hrs-desktop/dist/` 中统一为 `daily-stock-analysis-windows-installer-<tag>.exe`
+  - Windows 安装包：Release 附件和本地 `apps/hrs-desktop/dist/` 中统一为 `hermesX-windows-installer-<tag>.exe`
   - Windows 自动更新元数据：Release 附件会额外保留 `latest.yml` 和 `*.blockmap`，供安装版桌面端后台下载与校验更新；普通用户无需手动下载这些元数据。下载完成后用户确认“重启安装”时，桌面端会先停止内置后端、备份运行时文件，并以静默模式执行安装器。
-  - Windows 免安装包：`daily-stock-analysis-windows-noinstall-<tag>.zip`
-  - macOS Intel：`daily-stock-analysis-macos-x64-<tag>.dmg`
-  - macOS Apple Silicon：`daily-stock-analysis-macos-arm64-<tag>.dmg`
+  - Windows 免安装包：`HermesX-windows-noinstall-<tag>.zip`
+  - macOS Intel：`HermesX-macos-x64-<tag>.dmg`
+  - macOS Apple Silicon：`HermesX-macos-arm64-<tag>.dmg`
 
 ### macOS 提示“应用已损坏，无法打开”
 
@@ -82,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
 
 请按以下顺序排查：
 
-1. 只从项目的 [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) 下载附件，并确认安装包架构与 Mac 一致：Apple 芯片（M1/M2/M3/M4 等）使用 `daily-stock-analysis-macos-arm64-<tag>.dmg`，Intel 芯片使用 `daily-stock-analysis-macos-x64-<tag>.dmg`。不要对第三方转载或来源不明的安装包绕过 Gatekeeper。
+1. 只从项目的 [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) 下载附件，并确认安装包架构与 Mac 一致：Apple 芯片（M1/M2/M3/M4 等）使用 `HermesX-macos-arm64-<tag>.dmg`，Intel 芯片使用 `HermesX-macos-x64-<tag>.dmg`。不要对第三方转载或来源不明的安装包绕过 Gatekeeper。
 2. 打开 DMG，将 `HermesX` 拖入“应用程序”后尝试启动一次。若被拦截，进入“系统设置 -> 隐私与安全性”，在安全性提示处确认应用名称，然后点击“仍要打开”，按系统提示再次确认。较旧 macOS 的对应入口为“系统偏好设置 -> 安全性与隐私 -> 通用”。
 3. 仅当安装包确认来自上述官方 Release、且“仍要打开”仍无法放行时，打开“终端”清除该应用的下载隔离属性，然后重新启动：
 
@@ -113,7 +113,7 @@ spctl --assess --type execute --verbose=4 "/Applications/HermesX.app"
 
 说明：该清单专注于 Windows NSIS 安装版与 `electron-updater` 发布元数据。当前 Linux 环境无法直接产出 Windows 安装包和 updater 元数据（`latest.yml` / `*.blockmap`），此类链路需在 Windows 发布执行器或 Windows 本机环境复核。
 
-若在非 Windows 环境无法完成上述验证，请在 PR 验收说明中明确补齐 Windows 发布链路复核人、复核时间窗及 `desktop-release` 产物检查结果（release/tag 与 `daily-stock-analysis-windows-installer-<tag>.exe`、`latest.yml`、`*.blockmap` 版本一致性与可下载性）。
+若在非 Windows 环境无法完成上述验证，请在 PR 验收说明中明确补齐 Windows 发布链路复核人、复核时间窗及 `desktop-release` 产物检查结果（release/tag 与 `hermesX-windows-installer-<tag>.exe`、`latest.yml`、`*.blockmap` 版本一致性与可下载性）。
 
 1. 先构建 Web 静态产物（桌面端主窗口与设置页入口依赖）
 
@@ -154,7 +154,7 @@ ls -1 dist/*.yml dist/*.blockmap 2>/dev/null || true
 RELEASE_TAG="v$(node -p \"require('./package.json').version\")"
 REPO="ArcSeek-X/HermesX"
 
-for f in dist/*latest.yml dist/*.blockmap dist/daily-stock-analysis-windows-installer-*.exe; do
+for f in dist/*latest.yml dist/*.blockmap dist/hermesX-windows-installer-*.exe; do
   [ -f \"$f\" ] && echo \"[FOUND] $f\"
 done
 
@@ -167,7 +167,7 @@ echo \"---- Release 清单（人工核对）----\"
 echo \"Release Tag: $RELEASE_TAG\"
 echo \"Release 地址: https://github.com/$REPO/releases/tag/$RELEASE_TAG\"
 echo \"应核对附件是否包含:\"
-echo \"- daily-stock-analysis-windows-installer-*.exe\"
+echo \"- hermesX-windows-installer-*.exe\"
 echo \"- latest.yml\"
 echo \"- *.blockmap\"
 echo \"并确保 latest.yml 中 version 与 tag 的语义化版本一致，path/url 与安装包附件名一致\"
@@ -187,8 +187,8 @@ ls -1 dist/*.yml dist/*.blockmap dist/*installer*.exe 2>/dev/null | sort
 
 Windows 发布链路复核清单（在 PR 后由发布团队/维护者执行）：
 
-- release/tag 与 `daily-stock-analysis-windows-installer-<tag>.exe` 的版本号一致；
-- `latest.yml`、`daily-stock-analysis-windows-installer-<tag>.exe`、`*.blockmap` 同 tag 同步出现且可下载；
+- release/tag 与 `hermesX-windows-installer-<tag>.exe` 的版本号一致；
+- `latest.yml`、`hermesX-windows-installer-<tag>.exe`、`*.blockmap` 同 tag 同步出现且可下载；
 - `latest.yml` 中 `version` 与 Release tag 语义一致（去掉 `v` 前缀后比对），且 `path` / `files.url` 与安装包附件名一致；
 - 如缺少上述文件或 `release-tag` 不匹配，需标注阻断并补齐 `desktop-release` 打包流程。
 
@@ -240,7 +240,7 @@ npm install
 npm run build
 ```
 
-打包产物位于 `apps/hrs-desktop/dist/`。Windows 安装器会生成 `daily-stock-analysis-windows-installer-<tag>.exe`，安装向导中可选择安装目录。
+打包产物位于 `apps/hrs-desktop/dist/`。Windows 安装器会生成 `hermesX-windows-installer-<tag>.exe`，安装向导中可选择安装目录。
 
 ## 目录结构
 
@@ -339,7 +339,7 @@ PyInstaller 打包时缺少模块，需要在 Windows 与 macOS 后端构建脚�
 
 Windows 分发现在有两种方式：
 
-1. 安装包：分发 `apps/hrs-desktop/dist/` 下的 `daily-stock-analysis-windows-installer-<tag>.exe`，用户安装时可自行选择目标目录
+1. 安装包：分发 `apps/hrs-desktop/dist/` 下的 `hermesX-windows-installer-<tag>.exe`，用户安装时可自行选择目标目录
 2. 免安装包：将 `apps/hrs-desktop/dist/win-unpacked/` 整个文件夹打包发给用户
 
 使用 `win-unpacked` 免安装包时，用户只需：

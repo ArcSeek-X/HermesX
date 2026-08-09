@@ -181,7 +181,7 @@ To get started quickly, you need at minimum:
 ### 4. Manual Test
 
 1. Go to `Actions` tab
-2. Select `Daily Stock Analysis` workflow on the left
+2. Select `HermesX-每日股票分析` workflow on the left
 3. Click `Run workflow` button on the right
 4. Select run mode
 5. Click green `Run workflow` to confirm

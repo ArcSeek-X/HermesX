@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-===================================
-A股自选股智能分析系统 - 环境验证测试
-===================================
+=========================================
+HermesX - A股自选股智能分析系统 - 环境验证测试
+=========================================
 
 用于验证 .env 配置是否正确，包括：
 1. 配置加载测试
@@ -364,7 +364,7 @@ def check_notification():
     
     test_message = f"""## 🧪 系统测试消息
 
-这是一条来自 **A股自选股智能分析系统** 的测试消息。
+这是一条来自 ** HermesX - A股自选股智能分析系统 ** 的测试消息。
 
 - 测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 - 测试目的: 验证企业微信 Webhook 配置
@@ -391,7 +391,7 @@ def check_notification():
 def run_all_tests():
     """运行所有测试"""
     print("\n" + "🚀" * 20)
-    print("  A股自选股智能分析系统 - 环境验证")
+    print("  HermesX - A股自选股智能分析系统 - 环境验证")
     print("  " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     print("🚀" * 20)
     
@@ -466,7 +466,7 @@ def main():
     configure_console_encoding()
 
     parser = argparse.ArgumentParser(
-        description='A股自选股智能分析系统 - 环境验证测试',
+        description='HermesX - A股自选股智能分析系统 - 环境验证测试',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     

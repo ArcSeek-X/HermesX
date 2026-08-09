@@ -98,7 +98,7 @@ def _github_api_json(path):
     headers = {
         'Accept': 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'daily-stock-analysis-pr-review',
+        'User-Agent': 'hermesx-pr-review',
     }
     if token:
         headers['Authorization'] = f'Bearer {token}'

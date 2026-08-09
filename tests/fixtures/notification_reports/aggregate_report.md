@@ -18,4 +18,4 @@
 volume_signal = "watch"
 ```
 
-[查看完整报告](https://example.com/reports/daily-stock-analysis)
+[查看完整报告](https://example.com/reports/hermesx)

@@ -249,7 +249,7 @@ const en: Record<UiTextKey, string> = {
   'home.marketRegionTitle': 'Markets for this review',
   'home.marketRegionUs': 'US',
   'home.notify': 'Send notification',
-  'home.pageTitle': 'Daily Stock Analysis - HRS',
+  'home.pageTitle': 'HermesX - HRS',
   'home.placeholder': 'Enter a stock code or name, e.g. 600519, Kweichow Moutai, AAPL',
   'home.progressActive': 'In progress',
   'home.reanalyze': 'Reanalyze',

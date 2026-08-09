@@ -87,7 +87,7 @@ def _github_login_from_pr(repo: str, token: str, pr_number: str) -> str | None:
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
-            "User-Agent": "daily-stock-analysis-release-notes",
+            "User-Agent": "hermesx-release-notes",
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )

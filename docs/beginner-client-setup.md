@@ -22,10 +22,10 @@
 
 | 电脑 | 下载哪个 |
 | --- | --- |
-| Windows | `daily-stock-analysis-windows-installer-<版本号>.exe` |
-| Windows 不想安装 | `daily-stock-analysis-windows-noinstall-<版本号>.zip` |
-| macOS Apple 芯片 | `daily-stock-analysis-macos-arm64-<版本号>.dmg` |
-| macOS Intel 芯片 | `daily-stock-analysis-macos-x64-<版本号>.dmg` |
+| Windows | `hermesX-windows-installer-<版本号>.exe` |
+| Windows 不想安装 | `hermesX-windows-noinstall-<版本号>.zip` |
+| macOS Apple 芯片 | `hermesX-macos-arm64-<版本号>.dmg` |
+| macOS Intel 芯片 | `hermesX-macos-x64-<版本号>.dmg` |
 
 不用下载 `latest.yml`、`*.blockmap`，它们不是客户端安装包。
 

@@ -1,4 +1,5 @@
-name: 每日股票分析
+name: HermesX-每日股票分析
+description: 'HermesX（赫尔墨斯）- 每日股票智能分析（A股/港股/美股）定时任务'
 
 on:
   # 定时触发 - 每天北京时间 18:00 (UTC 10:00)
@@ -28,7 +29,9 @@ concurrency:
   group: stock-analysis
   cancel-in-progress: false
 
+# 任务定义：定时/手动触发后，在云端 runner 上完成数据抓取、分析与报告推送
 jobs:
+  # 分析任务主作业
   analyze:
     runs-on: ubuntu-latest
     # 兼容误将 STOCK_LIST 配到同名 Environment variables 的场景；
@@ -409,6 +412,7 @@ jobs:
           # 如果有 TickFlow 或 Tushare Pro，可按权限把 tickflow / tushare 放在更靠前位置
           REALTIME_SOURCE_PRIORITY: ${{ vars.REALTIME_SOURCE_PRIORITY || 'tencent,akshare_sina,efinance,akshare_em' }}
           
+        # 主执行步骤：注入环境变量后运行分析主流程
         run: |
           # 解析自选股配置：
           # 1. Repository/Environment secrets 或 Repository variables（STOCK_LIST_CONFIG）
@@ -434,7 +438,7 @@ jobs:
           MODE="${{ github.event.inputs.mode || 'full' }}"
           
           echo "=========================================="
-          echo "🚀 A股自选股智能分析系统"
+          echo "🚀 HermesX 股票智能分析系统"
           echo "=========================================="
           echo "⏰ 时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
           echo "🎯 运行模式: $MODE"

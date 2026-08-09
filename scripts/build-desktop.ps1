@@ -77,7 +77,7 @@ Push-Location (Join-Path $repoRoot 'apps\hrs-desktop')
 Ensure-DesktopDependencies
 
 Write-Host 'Stopping running app (if any)...'
-Get-Process -Name "Daily Stock Analysis" -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name "HermesX" -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process -Name "stock_analysis" -ErrorAction SilentlyContinue | Stop-Process -Force
 
 if (Test-Path 'dist\win-unpacked') {

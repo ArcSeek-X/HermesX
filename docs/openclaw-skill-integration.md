@@ -90,7 +90,7 @@
 {
   "skills": {
     "entries": {
-      "daily-stock-analysis": {
+      "hermesx": {
         "enabled": true,
         "env": {
           "HRS_BASE_URL": "http://localhost:8000"
@@ -115,11 +115,11 @@
 
 ## 完整 SKILL.md 示例
 
-将以下内容保存到 `~/.openclaw/skills/daily-stock-analysis/SKILL.md`：
+将以下内容保存到 `~/.openclaw/skills/hermesx/SKILL.md`：
 
 ```markdown
 ---
-name: daily-stock-analysis
+name: hermesx
 description: 调用 HermesX API 进行股票智能分析。当用户询问「分析茅台」「analyze AAPL」「帮我看看 600519」等时使用。仅支持股票代码，不支持中文名称。
 metadata:
   {"openclaw": {"requires": {"env": ["HRS_BASE_URL"]}, "primaryEnv": "HRS_BASE_URL"}}

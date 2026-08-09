@@ -127,7 +127,7 @@
 
 #### 4. 手动测试
 
-`Actions` → `每日股票分析` → `Run workflow` → `Run workflow`
+`Actions` → `HermesX-每日股票分析` → `Run workflow` → `Run workflow`
 
 #### 完成
 
