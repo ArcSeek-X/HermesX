@@ -7,14 +7,14 @@
 
 FROM node:20-slim AS web-builder
 
-WORKDIR /app/apps/dsa-web
+WORKDIR /app/apps/hrs-web
 ARG DSA_WEB_VERSION=0.0.0
 ARG DSA_WEB_REVISION=unknown
 
-COPY apps/dsa-web/package.json apps/dsa-web/package-lock.json ./
+COPY apps/hrs-web/package.json apps/hrs-web/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-COPY apps/dsa-web/ ./
+COPY apps/hrs-web/ ./
 RUN DSA_WEB_VERSION="${DSA_WEB_VERSION}" DSA_WEB_REVISION="${DSA_WEB_REVISION}" npm run build
 
 # Pin to bookworm: wkhtmltopdf was removed from Debian testing (2025)

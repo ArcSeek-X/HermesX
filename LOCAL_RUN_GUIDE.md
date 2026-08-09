@@ -69,7 +69,7 @@ pip install -r requirements.txt
 ### 2.3 安装前端依赖
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm ci                           # 如果没有 package-lock.json，用 npm install
 cd ../..
 ```
@@ -139,12 +139,12 @@ python main.py --schedule         # 定时任务模式
 
 ## 4. 前端启动命令
 
-前端位于 `apps/dsa-web/`，基于 **React 19 + Vite 7 + TypeScript + Tailwind CSS 4**。
+前端位于 `apps/hrs-web/`，基于 **React 19 + Vite 7 + TypeScript + Tailwind CSS 4**。
 
 ### 4.1 开发服务器（热更新）
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm run dev
 ```
 
@@ -161,7 +161,7 @@ npm run dev
 ### 4.2 生产构建
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm run build
 ```
 
@@ -170,7 +170,7 @@ npm run build
 ### 4.3 其他前端命令
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm run lint          # ESLint 代码检查
 npm run test          # Vitest 单元测试
 npm run preview       # 本地预览生产构建
@@ -192,7 +192,7 @@ python main.py --serve-only
 **终端 2 — 启动前端开发服务器（端口 5173）：**
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm run dev
 ```
 
@@ -208,7 +208,7 @@ npm run dev
 
 ```bash
 # 第一步：构建前端
-cd apps/dsa-web
+cd apps/hrs-web
 npm run build
 cd ../..
 
@@ -330,7 +330,7 @@ WEBUI_PORT=9000 python main.py --serve-only
 # WEBUI_PORT=9000
 ```
 
-如果同时修改了后端端口，记得同步修改前端 Vite 代理目标（`apps/dsa-web/vite.config.ts` 中的 `server.proxy['/api'].target`）。
+如果同时修改了后端端口，记得同步修改前端 Vite 代理目标（`apps/hrs-web/vite.config.ts` 中的 `server.proxy['/api'].target`）。
 
 ### Q: 生产模式下前端没显示？
 

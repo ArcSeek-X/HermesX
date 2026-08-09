@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 个股 K 线（StockKLinePage）前端走查脚本
 # 路由：域名 + /kline
-# 对应页面：apps/dsa-web/src/pages/StockKLinePage.tsx
-# 对应 API 层：apps/dsa-web/src/api/kline.ts
+# 对应页面：apps/hrs-web/src/pages/StockKLinePage.tsx
+# 对应 API 层：apps/hrs-web/src/api/kline.ts
 #
 # 与后端脚本相同关键字的约定见 scripts/test_wt/test_wt.sh 顶部约定：
 #   [CHECK] 前端|检查项|状态|明细

@@ -8,7 +8,7 @@ echo ""
 
 # 获取脚本所在目录（根目录）
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-TARGET_DIR="$SCRIPT_DIR/apps/dsa-web"
+TARGET_DIR="$SCRIPT_DIR/apps/hrs-web"
 
 # 检查当前 Node.js 版本
 CURRENT_VERSION=$(node --version 2>/dev/null || echo "未安装")

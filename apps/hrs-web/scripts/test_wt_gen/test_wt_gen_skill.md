@@ -3,7 +3,7 @@
 为「前端功能页面」批量生成**前后端走查脚本**的脚手架 skill。每开发一个新功能模块，
 按本规范生成一对脚本，即可被 `scripts/test_wt/test_wt.sh` 主流程自动发现、编排、跑测并产出报告。
 
-**Repository**: HermesX（apps/dsa-web 前端 + 后端 api/）
+**Repository**: HermesX（apps/hrs-web 前端 + 后端 api/）
 
 ## 触发条件
 
@@ -16,14 +16,14 @@
 
 1. **路由名**（用于文件夹与文件命名）：如 `kline`、`sector-analysis`、`xxx`
    - 命名规则：与页面路由 path 的最后一段一致，全小写、连字符分隔；**禁止首字母大写**
-2. **核心页面代码文件**：`apps/dsa-web/src/pages/<Page>.tsx`
+2. **核心页面代码文件**：`apps/hrs-web/src/pages/<Page>.tsx`
 3. **前端 API 调用层**：页面 import 的 api 模块（如 `src/api/sectorData.ts`）——用于确认前端实际请求的接口与参数
 4. **后端接口端点**：对应 `api/v1/endpoints/<x>.py` 的 router 定义——用于确认真实路由、Query 参数、返回 Schema
 5. （可选）页面涉及的接口域名 / 监听端口约定
 
 ## 输出产物（严格契约）
 
-在 `apps/dsa-web/scripts/test_wt/<route>/` 下生成**两个文件**：
+在 `apps/hrs-web/scripts/test_wt/<route>/` 下生成**两个文件**：
 
 | 文件 | 类型 | 作用 |
 | ---- | ---- | ---- |
@@ -52,7 +52,7 @@
 
 ## 前端脚本契约（test_wt_<route>_frontend.sh）
 
-- **运行位置**：`cd apps/dsa-web`（脚本内部 `cd "$(dirname "$0")/../../.."` 自适应）
+- **运行位置**：`cd apps/hrs-web`（脚本内部 `cd "$(dirname "$0")/../../.."` 自适应）
 - **接收参数**：`$1="lint"` 时开启 ESLint（由主脚本 `--lint` 透传）；否则跳过 lint
 - **退出码**：`0`=通过(含良性 SKIP)，`1`=失败，`2`=环境/依赖未就绪
 - **步骤**（参考 kline / sector-analysis 实现）：
@@ -78,7 +78,7 @@
 7. 基于功能页面真实内容（代码 / 注释 / 交互 / 边界），在 `frontend.sh` 步骤 4 的 `### 人工UI走查清单` 标记区间内逐项手写人工走查清单；该区间内容会被主脚本报告"五、人工 UI 走查清单"章节读取（缺失则回退通用兜底清单）
 8. 验证：
    ```bash
-   cd apps/dsa-web/scripts/test_wt && bash test_wt.sh --list        # 确认新模块被识别
+   cd apps/hrs-web/scripts/test_wt && bash test_wt.sh --list        # 确认新模块被识别
    bash test_wt.sh <route>            # 跑测（依赖齐备时产生真实结果）
    bash test_wt.sh <route> --lint     # 带 ESLint
    ```

@@ -21,7 +21,7 @@
 set -uo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WT_ROOT="$(cd "$SKILL_DIR/../test_wt" && pwd)"   # apps/dsa-web/scripts/test_wt
+WT_ROOT="$(cd "$SKILL_DIR/../test_wt" && pwd)"   # apps/hrs-web/scripts/test_wt
 
 ROUTE="${1:-}"
 PAGE_BASENAME="${2:-}"
@@ -70,5 +70,5 @@ echo "下一步："
 echo "  1. 编辑 $BE_OUT 的 main() 补全真实接口用例（替换 TODO）"
 echo "  2. 编辑 $FE_OUT 的内联 INLINE_TEST 补全 api 契约与组件渲染断言"
 echo "  3. 编辑 $FE_OUT 步骤 4 的人工走查清单：基于页面实际代码/交互/边界逐项补充（供报告人工清单章节引用）"
-echo "  4. 校验：cd apps/dsa-web/scripts/test_wt && bash test_wt.sh --list"
+echo "  4. 校验：cd apps/hrs-web/scripts/test_wt && bash test_wt.sh --list"
 echo "  5. 运行：bash test_wt.sh $ROUTE [--lint]"

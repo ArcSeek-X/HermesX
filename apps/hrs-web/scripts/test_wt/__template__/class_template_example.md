@@ -3,8 +3,8 @@
 **基本信息：**
 
 - **报告名称**：`test_wt_kline_report_2026_08_07_18_51_21.md`
-- **生成目录**：`/Users/gaocangxiong/Work/DevProject/HermesX/apps/dsa-web/.test_record/test_wt_report_2026_08_07_18_51_21`
-- **执行脚本**：`apps/dsa-web/scripts/test_wt/test_wt.sh`
+- **生成目录**：`/Users/gaocangxiong/Work/DevProject/HermesX/apps/hrs-web/.test_record/test_wt_report_2026_08_07_18_51_21`
+- **执行脚本**：`apps/hrs-web/scripts/test_wt/test_wt.sh`
 - **执行时间**：2026\_08\_07\_18\_51\_21
 - **功能模块**：kline
 - **执行结果**：✅ 通过（含良性 SKIP）
@@ -13,7 +13,7 @@
 
 - **前端环境**：Node（npm/npx Vitest / tsc），由 test\_wt/kline/ 下前端走查脚本执行
 - **后端环境**：Python（FastAPI TestClient，真实调用接口，非 mock）；联网访问外部行情源
-- **执行目录**：`apps/dsa-web`
+- **执行目录**：`apps/hrs-web`
 - **脚本退出码**：`0`（0=通过/良性SKIP，1=失败，2=环境未就绪）
 
 ## 一、走查范围（前后端同时走查）

@@ -651,7 +651,7 @@ const settingsHelpZhCN: SettingsHelpMap = {
     summary: '控制后端启动 WebUI 前是否自动检查并构建前端静态产物。',
     usage: '源码部署通常保持 true；已预构建镜像、离线环境或受限环境可设为 false。',
     valueNotes: [
-      'true 时启动流程会尝试准备 apps/dsa-web 静态产物。',
+      'true 时启动流程会尝试准备 apps/hrs-web 静态产物。',
       'false 时只检查已有构建产物；如果产物缺失，WebUI 可能不可用或只看到后端警告。',
     ],
     impact: [
@@ -1840,7 +1840,7 @@ const settingsHelpEnUS: SettingsHelpMap = {
     summary: 'Controls whether backend WebUI startup automatically checks and builds frontend static assets.',
     usage: 'Keep true for source deployments. Set false for prebuilt images, offline environments, or restricted runtimes.',
     valueNotes: [
-      'true makes startup prepare apps/dsa-web static assets.',
+      'true makes startup prepare apps/hrs-web static assets.',
       'false only verifies existing build artifacts; if assets are missing, WebUI may be unavailable or only backend warnings will be logged.',
     ],
     impact: ['Affects frontend asset preparation on the next WebUI backend startup.'],

@@ -14,7 +14,7 @@
 | 组件                 | 现状                                                         | 代码位置                                 |
 | ------------------ | ---------------------------------------------------------- | ------------------------------------ |
 | 后端默认 limit         | `2000`（所有周期统一）                                             | `api/v1/endpoints/kline.py` L691     |
-| 前端默认 limit         | `10000`（所有周期统一）                                            | `apps/dsa-web/src/api/kline.ts` L108 |
+| 前端默认 limit         | `10000`（所有周期统一）                                            | `apps/hrs-web/src/api/kline.ts` L108 |
 | 5日K实现              | 错误：`"5d": 1` 复用1分钟分时数据，过滤最近5个交易日                           | `kline.py` L64, L208-221             |
 | 分页加载               | 不支持左滑追加历史数据                                                | —                                    |
 | dataZoom 初始范围      | `start: 0, end: 100`（显示全部数据）                               | `KLineChart.tsx` L884                |
@@ -118,7 +118,7 @@ def get_kline(
 
 ### 3.2 前端 API 客户端调整
 
-**文件**：`apps/dsa-web/src/api/kline.ts`
+**文件**：`apps/hrs-web/src/api/kline.ts`
 
 **当前代码**（L105-118）：
 
@@ -304,7 +304,7 @@ klineApi.fetchKLine("603019", "daily", 250, 1, "2025-08-01")
 
 ### 4.1 全量数据开关（接入数据加载逻辑）
 
-**文件**：`apps/dsa-web/src/pages/StockKLinePage.tsx`
+**文件**：`apps/hrs-web/src/pages/StockKLinePage.tsx`
 
 **当前状态**：
 
@@ -407,7 +407,7 @@ const handlePeriodChange = useCallback(
 
 ### 4.2 dataZoom 初始可见范围
 
-**文件**：`apps/dsa-web/src/components/kline/KLineChart.tsx`
+**文件**：`apps/hrs-web/src/components/kline/KLineChart.tsx`
 
 **当前代码**（L883-894）：
 
@@ -477,7 +477,7 @@ dataZoom: [
 
 ### 4.3 左滑分页加载
 
-**文件**：`apps/dsa-web/src/pages/StockKLinePage.tsx`
+**文件**：`apps/hrs-web/src/pages/StockKLinePage.tsx`
 
 **新增状态**：
 
@@ -567,7 +567,7 @@ const loadMoreHistory = useCallback(async () => {
 
 ### 4.4 分钟线性能保护
 
-**文件**：`apps/dsa-web/src/components/kline/KLineChart.tsx`
+**文件**：`apps/hrs-web/src/components/kline/KLineChart.tsx`
 
 **问题**：分钟线如果用户持续左滑加载，可能累积数千条数据导致 ECharts 卡顿。
 
@@ -826,9 +826,9 @@ for item in kline_data:
 
 | 文件                                                 | 改动                                                                                                                                                                                      |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/dsa-web/src/api/kline.ts`                    | 1. `fetchKLine` 的 `limit` 改为可选参数2. 新增 `beforeDate` 参数                                                                                                                                   |
-| `apps/dsa-web/src/components/kline/KLineChart.tsx` | 1. 新增 `PERIOD_VISIBLE_BARS` 常量2. dataZoom `start` 按周期计算（替换 `start: 0`）3. Props 新增 `onDataZoomBoundary` 回调4. dataZoom 事件处理中添加左边界检测5. 初始化 `visibleCountRef` 为正确的可见数量                      |
-| `apps/dsa-web/src/pages/StockKLinePage.tsx`        | 1. `loadStockData` 新增 `limit?` 参数2. Switch `onChange` 接入数据加载逻辑3. `handlePeriodChange` 感知开关状态4. 新增 `isLoadingMore` 状态5. 新增 `loadMoreHistory` 分页加载函数6. KLineChart 传入 `onDataZoomBoundary` |
+| `apps/hrs-web/src/api/kline.ts`                    | 1. `fetchKLine` 的 `limit` 改为可选参数2. 新增 `beforeDate` 参数                                                                                                                                   |
+| `apps/hrs-web/src/components/kline/KLineChart.tsx` | 1. 新增 `PERIOD_VISIBLE_BARS` 常量2. dataZoom `start` 按周期计算（替换 `start: 0`）3. Props 新增 `onDataZoomBoundary` 回调4. dataZoom 事件处理中添加左边界检测5. 初始化 `visibleCountRef` 为正确的可见数量                      |
+| `apps/hrs-web/src/pages/StockKLinePage.tsx`        | 1. `loadStockData` 新增 `limit?` 参数2. Switch `onChange` 接入数据加载逻辑3. `handlePeriodChange` 感知开关状态4. 新增 `isLoadingMore` 状态5. 新增 `loadMoreHistory` 分页加载函数6. KLineChart 传入 `onDataZoomBoundary` |
 
 ***
 

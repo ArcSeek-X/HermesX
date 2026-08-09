@@ -67,7 +67,7 @@ jobs:
               filename === '.github/PULL_REQUEST_TEMPLATE.md' ||
               filename === 'docker/Dockerfile' ||
               filename === 'docker-compose.yml' ||
-              filename.startsWith('apps/dsa-web/') ||
+              filename.startsWith('apps/hrs-web/') ||
               filename.startsWith('.github/workflows/') ||
               filename.startsWith('.github/scripts/');
 

@@ -27,7 +27,7 @@ def _create_full_static(repo_root):
 
 
 def _create_frontend_source(repo_root):
-    frontend_dir = repo_root / "apps" / "dsa-web"
+    frontend_dir = repo_root / "apps" / "hrs-web"
     source_dir = frontend_dir / "src"
     source_dir.mkdir(parents=True)
     (frontend_dir / "package.json").write_text('{"version":"0.0.0"}', encoding="utf-8")

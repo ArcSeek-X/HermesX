@@ -87,12 +87,12 @@ python -m pytest -m "not network"
 >
 > 若本 PR 修改 Web UI，建议至少补一条可复现路径，例如（优先 settings page）：
 >
-> - Playwright 截图产物：`apps/dsa-web/e2e/smoke.spec.ts`（`cd apps/dsa-web && npx playwright test e2e/smoke.spec.ts --grep "settings page renders title and save actions after login"`）
+> - Playwright 截图产物：`apps/hrs-web/e2e/smoke.spec.ts`（`cd apps/hrs-web && npx playwright test e2e/smoke.spec.ts --grep "settings page renders title and save actions after login"`）
 > - 审查证据链接：可直接使用 Actions 产物、GitHub 评论附件或外部可访问链接。
 
 > 替代证据模板（设置页变更建议）：
-> - 命令：`cd apps/dsa-web && npx playwright test e2e/smoke.spec.ts --grep "settings page"`
-> - 产物路径：`apps/dsa-web/test-results/**/smoke-settings-page-*.png`
+> - 命令：`cd apps/hrs-web && npx playwright test e2e/smoke.spec.ts --grep "settings page"`
+> - 产物路径：`apps/hrs-web/test-results/**/smoke-settings-page-*.png`
 > - 说明：截图中应可见本次修改的系统设置项（字段、标签、帮助文案）
 
 - 截图链接 / Screenshot links（Web UI/报告改动项必填，未提供请在下方“不适用原因”给出替代证据）：
@@ -100,8 +100,8 @@ python -m pytest -m "not network"
 - 前后对比 / Before & After（如有）：
 - settings 字段变更说明：截图或产物应明确包含 `MARKET_REVIEW_REGION` 字段与帮助文案区块（中文/英文）。
 - 不适用原因 / Reason if not applicable（若未附截图，此项务必填写，且包含可复现证据与命令）：
-  - Playwright 命令（无截图时）：`cd apps/dsa-web && npx playwright test e2e/smoke.spec.ts --grep "settings page"`
-  - 产物路径（无截图时）：`apps/dsa-web/test-results/**/smoke-settings-page-*.png`
+  - Playwright 命令（无截图时）：`cd apps/hrs-web && npx playwright test e2e/smoke.spec.ts --grep "settings page"`
+  - 产物路径（无截图时）：`apps/hrs-web/test-results/**/smoke-settings-page-*.png`
   - 说明：截图（或产物）必须可见本次修改的设置字段文案与帮助信息。
 
 > 若本 PR 修改 Web 设置字段（字段、文案或帮助文案），截图或替代证据必须可定位到对应设置项区域并可追溯至变更项；该项为必填。

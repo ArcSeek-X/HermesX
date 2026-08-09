@@ -18,7 +18,7 @@
 #### 方式1：直接运行脚手架（最常用）
 
 ```bash
-cd /apps/dsa-web/scripts/gen-wt-skill
+cd /apps/hrs-web/scripts/gen-wt-skill
 bash scaffold_wt.sh <route> [PageBasename]
 ```
 
@@ -41,8 +41,8 @@ SKILL.md 是给 Claude Code / 类 Claude 工具看的说明。当你在对话里
 ```bash
 我项目里有一些功能页面需要进行测试走查
 菜单路由：域名+/sector-analysis
-对应的核心代码文件：apps/dsa-web/src/pages/SectorAnalysisPage.tsx
-请你基于SIKLLS：apps/dsa-web/scripts/test_wt_gen/test_wt_gen_skill.md
+对应的核心代码文件：apps/hrs-web/src/pages/SectorAnalysisPage.tsx
+请你基于SIKLLS：apps/hrs-web/scripts/test_wt_gen/test_wt_gen_skill.md
 帮我生成对应的测试走查脚本
 ```
 
@@ -68,7 +68,7 @@ SKILL.md 是给 Claude Code / 类 Claude 工具看的说明。当你在对话里
 用生成出来的脚本做走查：生成的脚本会被主脚本 scripts/test_wt/test_wt.sh 自动发现（因为它按目录扫描 test_wt/ 下的子目录）
 
 ```bash
-/apps/dsa-web/scripts/test_wt/test_wt.sh
+/apps/hrs-web/scripts/test_wt/test_wt.sh
 这个执行脚本需要优化：
 1、因为要生成整体测试执行报告，以及遍历文件夹后生成各个板块功能的测试执行报告，我建议你要分为2个模板，一个是全功能模块前后端走查报告的模板，一个是板块功能前后端走查报告的模板
 2、“整体测试执行报告”请参考：sum_template_example.md

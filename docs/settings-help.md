@@ -13,7 +13,7 @@
 - `docs`：相关文档链接，优先指向仓库内已有专题文档或完整指南。
 - `warning_codes`：面向前端或后续校验扩展的稳定提示 code。
 
-前端长文案维护在 `apps/dsa-web/src/locales/settingsHelp.ts`：
+前端长文案维护在 `apps/hrs-web/src/locales/settingsHelp.ts`：
 
 - 默认展示中文文案。
 - 英文文案保留同样结构，便于后续扩展语言切换。

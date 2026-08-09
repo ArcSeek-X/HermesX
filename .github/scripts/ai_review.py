@@ -28,7 +28,7 @@ REVIEW_PATHS = [
     '.github/workflows/*.yml',
     '.github/workflows/*.yaml',
     '.github/scripts/*.py',
-    'apps/dsa-web/**',
+    'apps/hrs-web/**',
     'docker/Dockerfile',
     'docker-compose.yml',
 ]
@@ -213,7 +213,7 @@ def get_pr_context():
 def classify_files(files):
     py_files = [f for f in files if f.endswith('.py')]
     doc_files = [f for f in files if f.endswith('.md') or f.startswith('docs/') or f in ('README.md', 'AGENTS.md')]
-    frontend_files = [f for f in files if f.startswith('apps/dsa-web/') or f.endswith(('.tsx', '.ts'))]
+    frontend_files = [f for f in files if f.startswith('apps/hrs-web/') or f.endswith(('.tsx', '.ts'))]
     ci_files = [f for f in files if f.startswith('.github/workflows/')]
     config_files = [
         f for f in files if f in ('requirements.txt', '.github/requirements-ci.txt', 'pyproject.toml', 'setup.cfg', '.github/PULL_REQUEST_TEMPLATE.md')
@@ -270,7 +270,7 @@ def build_prompt(diff_content, files, truncated, pr_title, pr_body):
 ## 修改文件统计
 - Python: {len(py_files)}
 - Docs/Markdown: {len(doc_files)}
-- Frontend (apps/dsa-web): {len(frontend_files)}
+- Frontend (apps/hrs-web): {len(frontend_files)}
 - CI Workflow: {len(ci_files)}
 - Config/Template: {len(config_files)}
 

@@ -192,7 +192,7 @@ _STOCK_INDEX_HEADERS = {
 
 
 def _bundled_stock_index_path() -> Path:
-    return Path(__file__).parent.parent / "apps" / "dsa-web" / "public" / _STOCK_INDEX_FILENAME
+    return Path(__file__).parent.parent / "apps" / "hrs-web" / "public" / _STOCK_INDEX_FILENAME
 
 
 async def _refresh_stock_index_cache_in_background(reason: str) -> None:
@@ -415,7 +415,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
 <h1>&#9888;&#65039; Frontend Not Built</h1>
 <p>API is running, but the Web UI has not been built yet.</p>
 <p>Build the frontend first:</p>
-<p><code>cd apps/dsa-web &amp;&amp; npm install &amp;&amp; npm run build</code></p>
+<p><code>cd apps/hrs-web &amp;&amp; npm install &amp;&amp; npm run build</code></p>
 <p>Or start with auto-build:</p>
 <p><code>python main.py --serve-only</code></p>
 <div class="hint"><p>If you only need the API, visit <a href="/docs">/docs</a> for the interactive API documentation.</p></div>

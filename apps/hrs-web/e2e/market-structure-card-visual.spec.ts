@@ -262,7 +262,7 @@ async function renderMarketStructureCard(distIndexPath: string, testInfo: TestIn
     const artifactDownloadHint = githubRunId
       ? `gh run download ${githubRunId} --name ${artifactName} --dir ./.market-structure-card-visual`
       : '';
-    const reproductionCommand = 'cd apps/dsa-web && npx playwright test e2e/market-structure-card-visual.spec.ts';
+    const reproductionCommand = 'cd apps/hrs-web && npx playwright test e2e/market-structure-card-visual.spec.ts';
     const artifactHint = `${artifactRunHint}/artifacts`;
     const artifactPageHint = githubRepository && githubRunId
       ? `${githubServer}/${githubRepository}/actions/runs/${githubRunId}/jobs`

@@ -3,8 +3,8 @@
 """
 板块分析（SectorAnalysisPage）后端集成走查脚本
 路由：域名 + /sector-analysis
-对应页面：apps/dsa-web/src/pages/SectorAnalysisPage.tsx
-对应 API 层：apps/dsa-web/src/api/sectorData.ts
+对应页面：apps/hrs-web/src/pages/SectorAnalysisPage.tsx
+对应 API 层：apps/hrs-web/src/api/sectorData.ts
 对应后端端点：api/v1/endpoints/sector.py（前缀 /api/v1/sector）
 
 测试范围（真实联网调用，不 mock）：
@@ -25,7 +25,7 @@
 import os
 import sys
 
-# 允许从仓库根目录导入（与 test_wt.sh 的执行约定保持一致：切换至 apps/dsa-web 后运行）
+# 允许从仓库根目录导入（与 test_wt.sh 的执行约定保持一致：切换至 apps/hrs-web 后运行）
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 from fastapi.testclient import TestClient  # noqa: E402

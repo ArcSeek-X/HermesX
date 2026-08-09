@@ -12,7 +12,7 @@ console.log('🔄 正在切换 Node.js 版本...\n');
 
 // 获取脚本所在目录（根目录）
 const rootDir = __dirname;
-const targetDir = path.join(rootDir, 'apps', 'dsa-web');
+const targetDir = path.join(rootDir, 'apps', 'hrs-web');
 
 try {
   // 检查当前 Node.js 版本
@@ -26,7 +26,7 @@ try {
   // 使用 nvm 切换到 v20
   console.log('📦 尝试切换到 Node.js v20...');
   
-  // 执行 nvm 命令并切换到 apps/dsa-web 目录
+  // 执行 nvm 命令并切换到 apps/hrs-web 目录
   const nvmCommand = `
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -45,7 +45,7 @@ try {
   const newVersion = lines[lines.length - 1].trim();
 
   console.log(`✅ 已切换到 Node.js ${newVersion}`);
-  console.log(`📂 当前目录: apps/dsa-web\n`);
+  console.log(`📂 当前目录: apps/hrs-web\n`);
 
   // 验证版本
   const majorVersion = parseInt(newVersion.replace('v', '').split('.')[0]);

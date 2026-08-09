@@ -81,7 +81,7 @@ def main(argv: List[str]) -> int:
         print(f"[check_static_assets] ERROR: {exc}", file=sys.stderr)
         print(
             "[check_static_assets] Hint: build the frontend first via "
-            "`cd apps/dsa-web && npm install && npm run build`.",
+            "`cd apps/hrs-web && npm install && npm run build`.",
             file=sys.stderr,
         )
         return 2

@@ -10,7 +10,7 @@
 #     - 后端测试：子目录内的 *.py 文件（如 test_wt_xxx_backend.py）
 #     - 前端测试：子目录内的 *.sh 文件（如 test_wt_xxx_frontend.sh）
 #   每个模块的前后端测试执行完毕后，统一汇总生成走查报告，按时间戳归档到
-#   .test_record/ 下的子目录（位于 apps/dsa-web 根下），目录内包含：
+#   .test_record/ 下的子目录（位于 apps/hrs-web 根下），目录内包含：
 #     test_wt_report_<TS>/test_wt_report_<TS>.md        # 总体报告（覆盖全部模块）
 #     test_wt_report_<TS>/test_wt_<Mod>_report_<TS>.md  # 各功能模块独立报告（Mod 即模块目录名，如 kline）
 #
@@ -29,7 +29,7 @@
 #   - 前端 .sh 通过退出码表达结论：0=通过/SKIP，1=失败
 #
 # 用法：
-#   cd apps/dsa-web/scripts/test_wt
+#   cd apps/hrs-web/scripts/test_wt
 #   ./test_wt.sh                 # 遍历全部功能模块
 #   ./test_wt.sh kline           # 仅执行指定功能模块（如 kline）
 #   ./test_wt.sh --list          # 仅列出将要执行的功能模块，不实际执行
@@ -37,7 +37,7 @@
 #   ./test_wt.sh --lint kline    # 仅对 kline 模块开启 ESLint 检查
 #
 # 报告产物：
-#   本次走查的报告统一落在 apps/dsa-web/.test_record/test_wt_report_<TS>/ 目录下：
+#   本次走查的报告统一落在 apps/hrs-web/.test_record/test_wt_report_<TS>/ 目录下：
 #     - test_wt_report_<TS>.md        # 总体报告（模板见 sum_template.md：基本信息/环境/一汇总/二各模块/三结论）
 #     - test_wt_<Mod>_report_<TS>.md  # 各功能模块独立报告（模板见 class_template.md：基本信息/环境/一范围/二介绍/三汇总/四明细/五人工/六问题/七结论）
 #
@@ -65,9 +65,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 测试资源根目录（test_wt 本身）
 WT_ROOT="${SCRIPT_DIR}"
 
-# 报告输出目录（apps/dsa-web/.test_record，置于 dsa-web 根下且以 . 隐藏）
-# WT_ROOT 为 scripts/test_wt，需上溯两级到达 apps/dsa-web：
-#   scripts/test_wt → scripts → dsa-web
+# 报告输出目录（apps/hrs-web/.test_record，置于 hrs-web 根下且以 . 隐藏）
+# WT_ROOT 为 scripts/test_wt，需上溯两级到达 apps/hrs-web：
+#   scripts/test_wt → scripts → hrs-web
 REPORT_DIR="$(cd "${WT_ROOT}/../.." && pwd)/.test_record"
 
 # ---- 颜色与输出工具函数 ----
@@ -171,7 +171,7 @@ OVERALL_ENV=0
 SUMMARY_FILE="$(mktemp)"
 : > "${SUMMARY_FILE}"
 
-# 仓库根：WT_ROOT(=.../apps/dsa-web/scripts/test_wt) 上溯四级到仓库根。
+# 仓库根：WT_ROOT(=.../apps/hrs-web/scripts/test_wt) 上溯四级到仓库根。
 REPO_ROOT="${WT_ROOT}/../../../.."
 REPO_ROOT="$(cd "${REPO_ROOT}" && pwd)"
 # 选择 Python 解释器：
@@ -538,7 +538,7 @@ gen_module_report() {
   # ---- 占位符内容：基本信息 ----
   local t_name; t_name="$(basename "${mod_report}")"
   local t_dir="${REPORT_SUBDIR}"
-  local t_script="apps/dsa-web/scripts/test_wt/test_wt.sh"
+  local t_script="apps/hrs-web/scripts/test_wt/test_wt.sh"
   local t_time="${TS}"
   local t_mod="${mod}"
   local t_result="${mod_res}"
@@ -546,7 +546,7 @@ gen_module_report() {
   # ---- 占位符内容：环境信息（固定描述，与模板一致）----
   local t_fe_env="Node（npm/npx Vitest / tsc），由 test_wt/${mod}/ 下前端走查脚本执行"
   local t_be_env="Python（FastAPI TestClient，真实调用接口，非 mock）；联网访问外部行情源"
-  local t_exec_dir="apps/dsa-web"
+  local t_exec_dir="apps/hrs-web"
   local t_exit_code="${st}（0=通过/良性SKIP，1=失败，2=环境未就绪）"
 
   # ---- 占位符内容：一、走查范围 ----
@@ -831,14 +831,14 @@ gen_overall_report() {
   local s_title="全功能模块前后端走查报告（共 ${#MODULES[@]} 个模块）"
   local s_name; s_name="$(basename "${REPORT_FILE}")"
   local s_dir="${REPORT_SUBDIR}"
-  local s_script="apps/dsa-web/scripts/test_wt/test_wt.sh"
+  local s_script="apps/hrs-web/scripts/test_wt/test_wt.sh"
   local s_time="${TS}"
   local s_modcount="${#MODULES[@]}（${MODULES[*]}）"
   local s_overall
   s_overall="$(overall_result_text)"
   local s_fe_env="Node（npm/npx Vitest / tsc），由 test_wt/ 下前端走查脚本执行"
   local s_be_env="Python（FastAPI TestClient，真实调用接口，非 mock）；联网访问外部行情源"
-  local s_exec_dir="apps/dsa-web"
+  local s_exec_dir="apps/hrs-web"
   local s_exit_code="${OVERALL_RESULT}"
   if [ "${OVERALL_RESULT}" -eq 0 ] && [ "${OVERALL_ENV}" -ne 0 ]; then
     s_exit_code="2（无失败但环境/依赖未就绪）"

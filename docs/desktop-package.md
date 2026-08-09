@@ -1,6 +1,6 @@
 # 桌面端打包说明 (Electron + React UI)
 
-本项目可打包为桌面应用，使用 Electron 作为桌面壳，`apps/dsa-web` 的 React UI 作为界面。
+本项目可打包为桌面应用，使用 Electron 作为桌面壳，`apps/hrs-web` 的 React UI 作为界面。
 
 ## 架构说明
 
@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run-desktop.ps1
 1) 构建 React UI（输出到 `static/`）
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm install
 npm run build
 ```
@@ -118,7 +118,7 @@ spctl --assess --type execute --verbose=4 "/Applications/Daily Stock Analysis.ap
 1. 先构建 Web 静态产物（桌面端主窗口与设置页入口依赖）
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm ci
 npm run lint
 npm run build
@@ -211,7 +211,7 @@ Get-FileHash .env,data\\stock_analysis.db,data\\stock_analysis.db-wal,data\\stoc
 1) 构建 React UI
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm install
 npm run build
 ```

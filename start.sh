@@ -168,9 +168,9 @@ check_backend_deps() {
 # ----------------------------------
 check_frontend_deps() {
     info "检查前端依赖..."
-    if [ ! -d "apps/dsa-web/node_modules" ]; then
+    if [ ! -d "apps/hrs-web/node_modules" ]; then
         warn "前端依赖未安装，执行: npm ci"
-        cd "$SCRIPT_DIR/apps/dsa-web" && npm ci
+        cd "$SCRIPT_DIR/apps/hrs-web" && npm ci
         cd "$SCRIPT_DIR"
     else
         ok "前端依赖已就绪"
@@ -205,7 +205,7 @@ start_frontend() {
     info "启动前端服务 (port: 5173)..."
     echo "   访问地址: http://localhost:5173"
     echo ""
-    cd "$SCRIPT_DIR/apps/dsa-web"
+    cd "$SCRIPT_DIR/apps/hrs-web"
     # Vite 开发服务器，支持热更新（HMR）
     # 已配置代理，/api 请求自动转发到后端 8000 端口
     npm run dev
@@ -272,7 +272,7 @@ main() {
             echo "   前端: http://localhost:5173"
             echo "   后端: http://localhost:8000/docs"
             echo ""
-            cd "$SCRIPT_DIR/apps/dsa-web"
+            cd "$SCRIPT_DIR/apps/hrs-web"
             npm run dev
             ;;
         *)

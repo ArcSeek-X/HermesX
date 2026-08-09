@@ -176,13 +176,13 @@ Web 入口：
 ```bash
 ./scripts/ci_gate.sh
 python -m pytest tests/test_realtime_types.py tests/test_scheduler_background.py tests/test_pipeline_market_phase_context.py tests/test_analysis_api_contract.py tests/test_analysis_history.py
-cd apps/dsa-web && npm run lint && npm run build
+cd apps/hrs-web && npm run lint && npm run build
 ```
 
 ## 验证建议
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm run lint
 npm run build
 ```
@@ -190,7 +190,7 @@ npm run build
 可补充执行（非阻断）：
 
 ```bash
-cd apps/dsa-web
+cd apps/hrs-web
 npm test -- --run src/components/report/__tests__/ReportDiagnostics.test.tsx src/components/tasks/__tests__/TaskPanel.test.tsx src/hooks/__tests__/useTaskStream.test.tsx
 ```
 

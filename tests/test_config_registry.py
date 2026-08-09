@@ -573,7 +573,7 @@ class TestSettingsHelpContract(unittest.TestCase):
     """
 
     _LLM_CHANNEL_HELP_PREFIX = "settings.llm_channel."
-    _SETTINGS_HELP_FILE = Path(__file__).resolve().parents[1] / "apps/dsa-web/src/locales/settingsHelp.ts"
+    _SETTINGS_HELP_FILE = Path(__file__).resolve().parents[1] / "apps/hrs-web/src/locales/settingsHelp.ts"
 
     @classmethod
     def _collect_registry_help_keys(cls) -> set[str]:

@@ -47,7 +47,7 @@ node_modules/
 dist/
 build/
 coverage/
-apps/dsa-web/node_modules/
-apps/dsa-web/dist/
-apps/dsa-web/build/
-apps/dsa-web/coverage/
+apps/hrs-web/node_modules/
+apps/hrs-web/dist/
+apps/hrs-web/build/
+apps/hrs-web/coverage/

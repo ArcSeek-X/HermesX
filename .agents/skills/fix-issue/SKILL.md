@@ -54,7 +54,7 @@ git pull --ff-only
 
 - 后端优先：`./scripts/ci_gate.sh`
 - 最低后端要求：`python -m py_compile <changed_python_files>`
-- 前端：`cd apps/dsa-web && npm ci && npm run lint && npm run build`
+- 前端：`cd apps/hrs-web && npm ci && npm run lint && npm run build`
 - 桌面端：先构建 Web，再构建桌面端
 
 如无法完成完整验证，必须记录缺口、原因与潜在风险。

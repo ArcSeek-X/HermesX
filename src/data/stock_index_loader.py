@@ -30,7 +30,7 @@ def get_stock_index_candidate_paths() -> tuple[Path, ...]:
     repo_root = Path(__file__).resolve().parents[2]
     return (
         get_remote_stock_index_cache_path(),
-        repo_root / "apps" / "dsa-web" / "public" / _STOCK_INDEX_FILENAME,
+        repo_root / "apps" / "hrs-web" / "public" / _STOCK_INDEX_FILENAME,
         repo_root / "static" / _STOCK_INDEX_FILENAME,
     )
 

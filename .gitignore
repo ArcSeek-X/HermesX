@@ -72,8 +72,8 @@ Thumbs.db
 .coverage
 htmlcov/
 
-# 本地走查报告（由 apps/dsa-web/scripts/test_wt/test_wt.sh 生成，含日期时间，不入库）
-/apps/dsa-web/.test_record/
+# 本地走查报告（由 apps/hrs-web/scripts/test_wt/test_wt.sh 生成，含日期时间，不入库）
+/apps/hrs-web/.test_record/
 
 local/
 

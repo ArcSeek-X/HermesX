@@ -3,8 +3,8 @@
 """
 个股 K 线（StockKLinePage）后端集成走查脚本
 路由：域名 + /kline
-对应页面：apps/dsa-web/src/pages/StockKLinePage.tsx
-对应 API 层：apps/dsa-web/src/api/kline.ts
+对应页面：apps/hrs-web/src/pages/StockKLinePage.tsx
+对应 API 层：apps/hrs-web/src/api/kline.ts
 对应后端端点：api/v1/endpoints/kline.py（前缀 /api/v1/kline）
 
 前端 klineApi 真实调用（见 src/api/kline.ts）：

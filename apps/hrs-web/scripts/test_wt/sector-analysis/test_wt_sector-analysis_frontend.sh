@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 板块分析（SectorAnalysisPage）前端走查脚本
 # 路由：域名 + /sector-analysis
-# 对应页面：apps/dsa-web/src/pages/SectorAnalysisPage.tsx
-# 对应 API 层：apps/dsa-web/src/api/sectorData.ts
+# 对应页面：apps/hrs-web/src/pages/SectorAnalysisPage.tsx
+# 对应 API 层：apps/hrs-web/src/api/sectorData.ts
 #
 # 与后端脚本相同关键字的约定见 scripts/test_wt/test_wt.sh 顶部约定：
 #   [CHECK] 前端|检查项|状态|明细

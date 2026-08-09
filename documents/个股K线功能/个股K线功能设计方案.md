@@ -149,7 +149,7 @@ sina_limit = min(limit, 1000)  # 避免 datalen 超过 1000 触发反爬
 
 ## 三、前端：API 客户端
 
-**文件**：`apps/dsa-web/src/api/kline.ts`
+**文件**：`apps/hrs-web/src/api/kline.ts`
 
 遵循 `sectorData.ts` 的模式，封装 3 个 API 调用。
 
@@ -159,7 +159,7 @@ sina_limit = min(limit, 1000)  # 避免 datalen 超过 1000 触发反爬
 
 ## 四、前端：K线图组件
 
-**文件**：`apps/dsa-web/src/components/kline/KLineChart.tsx`
+**文件**：`apps/hrs-web/src/components/kline/KLineChart.tsx`
 
 ### 4.1 网格布局
 
@@ -472,7 +472,7 @@ function computeTimeAxisLabels(
 
 ### 5.1 StockInfoHeader
 
-**文件**：`apps/dsa-web/src/components/kline/StockInfoHeader.tsx`
+**文件**：`apps/hrs-web/src/components/kline/StockInfoHeader.tsx`
 
 - 股票名称（不显示股票代码，避免与输入框重复）
 - 当前价格、涨跌幅
@@ -481,7 +481,7 @@ function computeTimeAxisLabels(
 
 ### 5.2 StockAutocomplete
 
-**文件**：`apps/dsa-web/src/components/StockAutocomplete/StockAutocomplete.tsx`
+**文件**：`apps/hrs-web/src/components/StockAutocomplete/StockAutocomplete.tsx`
 
 **新增属性**：
 
@@ -495,7 +495,7 @@ function computeTimeAxisLabels(
 
 ### 5.3 PeriodSelector
 
-**文件**：`apps/dsa-web/src/components/kline/PeriodSelector.tsx`
+**文件**：`apps/hrs-web/src/components/kline/PeriodSelector.tsx`
 
 - 单行按钮组：分时/日K/5日/周K/月K/年K/120分/60分/30分/15分/5分
 - 激活态使用 cyan 高亮
@@ -506,7 +506,7 @@ function computeTimeAxisLabels(
 
 ## 六、前端：主页面
 
-**文件**：`apps/dsa-web/src/pages/StockKLinePage.tsx`
+**文件**：`apps/hrs-web/src/pages/StockKLinePage.tsx`
 
 ### 6.1 页面结构
 
@@ -538,7 +538,7 @@ function computeTimeAxisLabels(
 
 ## 七、响应式布局
 
-**文件**：`apps/dsa-web/src/hooks/useWindowWidth.ts`
+**文件**：`apps/hrs-web/src/hooks/useWindowWidth.ts`
 
 ```typescript
 export function useWindowWidth(debounceMs = 150): number {
@@ -572,25 +572,25 @@ export function useWindowWidth(debounceMs = 150): number {
 | -- | --------------------------------------------------------------------- | ----------------------- |
 | 新建 | `api/v1/endpoints/kline.py`                                           | K线数据 API（三级数据源）         |
 | 新建 | `api/v1/schemas/kline.py`                                             | Pydantic 响应模型           |
-| 新建 | `apps/dsa-web/src/api/kline.ts`                                       | 前端 API 客户端              |
-| 新建 | `apps/dsa-web/src/components/kline/KLineChart.tsx`                    | K线图组件（四层布局）             |
-| 新建 | `apps/dsa-web/src/components/kline/StockInfoHeader.tsx`               | 股票信息头部                  |
-| 新建 | `apps/dsa-web/src/components/kline/PeriodSelector.tsx`                | 周期选择器                   |
-| 新建 | `apps/dsa-web/src/pages/StockKLinePage.tsx`                           | 主页面                     |
-| 新建 | `apps/dsa-web/src/hooks/useWindowWidth.ts`                            | 窗口宽度监听 Hook             |
+| 新建 | `apps/hrs-web/src/api/kline.ts`                                       | 前端 API 客户端              |
+| 新建 | `apps/hrs-web/src/components/kline/KLineChart.tsx`                    | K线图组件（四层布局）             |
+| 新建 | `apps/hrs-web/src/components/kline/StockInfoHeader.tsx`               | 股票信息头部                  |
+| 新建 | `apps/hrs-web/src/components/kline/PeriodSelector.tsx`                | 周期选择器                   |
+| 新建 | `apps/hrs-web/src/pages/StockKLinePage.tsx`                           | 主页面                     |
+| 新建 | `apps/hrs-web/src/hooks/useWindowWidth.ts`                            | 窗口宽度监听 Hook             |
 | 修改 | `api/v1/router.py`                                                    | 注册 kline 路由             |
-| 修改 | `apps/dsa-web/src/App.tsx`                                            | 添加路由 /kline             |
-| 修改 | `apps/dsa-web/src/components/layout/SidebarNav.tsx`                   | 添加菜单项                   |
-| 修改 | `apps/dsa-web/src/i18n/uiText.ts`                                     | 添加中英文 i18n key          |
-| 修改 | `apps/dsa-web/src/components/StockAutocomplete/StockAutocomplete.tsx` | 新增 displayValue、onClear |
-| 修改 | `apps/dsa-web/src/hooks/useCachedState.ts`                            | 修复空值判断                  |
+| 修改 | `apps/hrs-web/src/App.tsx`                                            | 添加路由 /kline             |
+| 修改 | `apps/hrs-web/src/components/layout/SidebarNav.tsx`                   | 添加菜单项                   |
+| 修改 | `apps/hrs-web/src/i18n/uiText.ts`                                     | 添加中英文 i18n key          |
+| 修改 | `apps/hrs-web/src/components/StockAutocomplete/StockAutocomplete.tsx` | 新增 displayValue、onClear |
+| 修改 | `apps/hrs-web/src/hooks/useCachedState.ts`                            | 修复空值判断                  |
 
 ***
 
 ## 十、验证
 
 1. 后端：`python -m py_compile api/v1/endpoints/kline.py` + `curl` 测试 3 个接口
-2. 前端：`cd apps/dsa-web && npx tsc --noEmit`
+2. 前端：`cd apps/hrs-web && npx tsc --noEmit`
 3. 浏览器访问 `/kline`，搜索股票，切换周期，验证图表渲染
 4. 验证中文名称搜索（如"中科曙光"）
 5. 验证清除按钮功能
