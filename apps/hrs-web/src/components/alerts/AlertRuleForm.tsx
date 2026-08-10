@@ -1,3 +1,12 @@
+/**
+ * AlertRuleForm.tsx
+ * 告警规则创建表单组件。
+ * 作用：提供一套可视化的表单，让用户按「标的范围（targetScope）→ 告警类型（alertType）→ 参数（parameters）」
+ * 的层次配置并新建一条告警规则。表单会根据所选范围与类型动态渲染不同的参数控件（价格突破、涨跌幅、
+ * 成交量放大、均线穿越、RSI / MACD / KDJ / CCI 阈值、组合止损、大盘红绿灯等），并在提交前做前端校验，
+ * 最终通过 onSubmit 回调把标准化后的 AlertRuleCreateRequest 交给上层处理。
+ * 组件本身不负责网络请求，仅做本地状态管理与参数构造。
+ */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { portfolioApi } from '../../api/portfolio';
@@ -31,6 +40,7 @@ import {
 import { validateStockCode } from '../../utils/validation';
 import { Button, Card, Checkbox, Input, Select } from '../common';
 
+// 单标的（个股/指数）类告警类型，中文文案直接写死，英文由 featureText 提供
 const SYMBOL_ALERT_TYPE_OPTIONS = [
   { value: 'price_cross', label: '价格突破' },
   { value: 'price_change_percent', label: '涨跌幅' },
@@ -42,6 +52,7 @@ const SYMBOL_ALERT_TYPE_OPTIONS = [
   { value: 'cci_threshold', label: 'CCI 阈值' },
 ];
 
+// 组合（持仓）类告警类型
 const PORTFOLIO_ALERT_TYPE_OPTIONS = [
   { value: 'portfolio_stop_loss', label: '组合止损' },
   { value: 'portfolio_concentration', label: '组合集中度' },
@@ -49,11 +60,13 @@ const PORTFOLIO_ALERT_TYPE_OPTIONS = [
   { value: 'portfolio_price_stale', label: '组合价格状态' },
 ];
 
+// 大盘类告警类型
 const MARKET_ALERT_TYPE_OPTIONS = [
   { value: 'market_light_status', label: '大盘红绿灯状态' },
   { value: 'market_light_score_drop', label: '大盘红绿灯分数下降' },
 ];
 
+// 标的范围：决定后续展示哪一类告警类型选项
 const TARGET_SCOPE_OPTIONS = [
   { value: 'single_symbol', label: '单标的' },
   { value: 'watchlist', label: '自选股' },
@@ -62,59 +75,71 @@ const TARGET_SCOPE_OPTIONS = [
   { value: 'market', label: '大盘市场' },
 ];
 
+// 严重级别：提示 / 警告 / 严重
 const SEVERITY_OPTIONS = [
   { value: 'info', label: '提示' },
   { value: 'warning', label: '警告' },
   { value: 'critical', label: '严重' },
 ];
 
+// 价格突破方向：上破 / 下破
 const PRICE_DIRECTION_OPTIONS = [
   { value: 'above', label: '上破' },
   { value: 'below', label: '下破' },
 ];
 
+// 涨跌幅方向：上涨达到 / 下跌达到
 const CHANGE_DIRECTION_OPTIONS = [
   { value: 'up', label: '上涨达到' },
   { value: 'down', label: '下跌达到' },
 ];
 
+// 阈值穿越方向：上穿 / 下穿（MA/RSI/CCI 等通用）
 const THRESHOLD_DIRECTION_OPTIONS = [
   { value: 'above', label: '上穿' },
   { value: 'below', label: '下穿' },
 ];
 
+// 交叉方向：金叉 / 死叉（MACD/KDJ 使用）
 const CROSS_DIRECTION_OPTIONS = [
   { value: 'bullish_cross', label: '金叉' },
   { value: 'bearish_cross', label: '死叉' },
 ];
 
+// 组合止损模式：接近止损 / 已触发止损
 const STOP_LOSS_MODE_OPTIONS = [
   { value: 'near', label: '接近止损' },
   { value: 'breach', label: '已触发止损' },
 ];
 
 
+// 大盘红绿灯可触发状态：红灯 / 黄灯（多选）
 const MARKET_LIGHT_STATUS_OPTIONS: Array<{ value: MarketLightStatus; label: string }> = [
   { value: 'red', label: '红灯' },
   { value: 'yellow', label: '黄灯' },
 ];
 
+// 指标类告警所需的历史 K 线最大天数限制（用于校验参数不会请求过多历史数据）
 const MAX_REQUESTED_DAYS = 365;
 
 interface AlertRuleFormProps {
+  // 提交回调：返回 false 表示提交被上层拒绝（例如后端校验失败），此时不清空表单
   onSubmit: (payload: AlertRuleCreateRequest) => Promise<boolean | void> | boolean | void;
   isSubmitting?: boolean;
 }
 
+// 判断范围是否属于组合（持仓）类，组合类需要从后端拉取账户列表
 function isPortfolioScope(scope: AlertTargetScope): boolean {
   return scope === 'portfolio_holdings' || scope === 'portfolio_account';
 }
 
+// 范围切换时的默认告警类型：市场→红绿灯状态，账户→组合止损，其余→价格突破
 function defaultAlertTypeForScope(scope: AlertTargetScope): AlertType {
   if (scope === 'market') return 'market_light_status';
   return scope === 'portfolio_account' ? 'portfolio_stop_loss' : 'price_cross';
 }
 
+// 根据范围与语言返回告警类型下拉选项；中文用本地常量，英文/i18n 用 featureText
 function optionsForScope(scope: AlertTargetScope, language: UiLanguage) {
   if (language === 'zh') {
     if (scope === 'market') return MARKET_ALERT_TYPE_OPTIONS;
@@ -157,6 +182,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
   const [minDrop, setMinDrop] = useState('10');
   const [formError, setFormError] = useState<string | null>(null);
 
+  // 当选中组合类范围时，异步拉取账户列表用于「账户」下拉；切换范围或文案变化时重新拉取
   useEffect(() => {
     if (!isPortfolioScope(targetScope)) return undefined;
     let cancelled = false;
@@ -172,11 +198,14 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         setAccountsError(error instanceof Error ? error.message : text.accountLoadFailed);
       });
     return () => {
+      // 卸载或依赖变化时取消，避免竞态写入
       cancelled = true;
     };
   }, [targetScope, text.accountLoadFailed]);
 
+  // 告警类型下拉选项随语言与范围变化重算
   const alertTypeOptions = useMemo(() => optionsForScope(targetScope, language), [language, targetScope]);
+  // 账户下拉选项：固定「全部账户」+ 拉取到的各账户
   const portfolioTargetOptions = useMemo(() => [
     { value: 'all', label: text.allAccounts },
     ...accounts.map((account) => ({
@@ -185,6 +214,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     })),
   ], [accounts, text.allAccounts]);
 
+  // 切换告警类型时，把该类型相关的参数状态重置为默认值
   const resetParameters = (nextType: AlertType) => {
     if (nextType === 'price_cross') {
       setPriceDirection('above');
@@ -232,6 +262,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     ));
   };
 
+  // 解析强制为正的数值（如价格、倍数、涨跌幅），非法则写入表单错误并返回 null
   const parsePositiveNumber = (value: string, label: string): number | null => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -241,6 +272,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return parsed;
   };
 
+  // 解析落在 [min, max] 区间内的整数（如周期、窗口）
   const parseIntegerInRange = (value: string, label: string, min = 2, max = 250): number | null => {
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
@@ -250,6 +282,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return parsed;
   };
 
+  // 解析必填的有限数值，空值或非数字均视为非法
   const parseFiniteNumber = (value: string, label: string): number | null => {
     if (value.trim() === '') {
       setFormError(formatUiText(text.required, { label }));
@@ -263,6 +296,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return parsed;
   };
 
+  // RSI 阈值额外约束在 [0,100]
   const parseRsiThreshold = (value: string): number | null => {
     const parsed = parseFiniteNumber(value, text.rsiThreshold);
     if (parsed == null) return null;
@@ -273,6 +307,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return parsed;
   };
 
+  // 校验指标类告警所需的历史 K 线数不超过上限（MAX_REQUESTED_DAYS）
   const ensureRequiredBarsWithinLimit = (label: string, requiredBars: number): boolean => {
     if (requiredBars > MAX_REQUESTED_DAYS) {
       setFormError(formatUiText(text.requiredBarsLimit, { label, requiredBars, max: MAX_REQUESTED_DAYS }));
@@ -281,6 +316,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return true;
   };
 
+  // 根据当前告警类型，把各控件值构造成后端所需的 parameters 对象；任一参数非法即返回 null（中止提交）
   const buildParameters = (): AlertRuleCreateRequest['parameters'] | null => {
     if (alertType === 'price_cross') {
       const parsedPrice = parsePositiveNumber(price, text.priceThreshold);
@@ -357,6 +393,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     return {};
   };
 
+  // 范围下拉变化：切换默认类型、重置相关的目标与参数，并清掉表单错误
   const handleScopeChange = (value: string) => {
     const nextScope = value as AlertTargetScope;
     const nextType = defaultAlertTypeForScope(nextScope);
@@ -368,6 +405,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     setFormError(null);
   };
 
+  // 提交：先按范围解析并标准化 target；单标的会做股票代码校验并归一化
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     let resolvedTarget = target.trim();
@@ -390,6 +428,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     if (parameters == null) return;
 
     setFormError(null);
+    // 交还上层执行实际创建；返回 false 时不清空表单，便于用户修改
     const submitted = await onSubmit({
       name: name.trim() || undefined,
       targetScope,
@@ -421,6 +460,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     setEnabled(true);
   };
 
+  // 根据范围渲染「目标」控件：单标的=代码输入框，自选股=只读 default，大盘=区域下拉，组合=账户下拉
   const renderTargetControl = () => {
     if (targetScope === 'single_symbol') {
       return (
@@ -469,6 +509,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
   };
 
   return (
+    // 外层卡片容器，表单整体禁用在提交中状态
     <Card title={text.cardTitle} subtitle={text.cardSubtitle} variant="bordered" padding="md">
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(event)}>
         <div className="grid gap-4 md:grid-cols-2">

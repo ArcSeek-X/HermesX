@@ -1,3 +1,10 @@
+/**
+ * AlertRuleList.tsx
+ * 告警规则列表组件。
+ * 作用：以表格形式展示告警规则列表，支持按「是否启用」「告警类型」两个维度筛选与分页，
+ * 并针对每条规则提供「测试 / 启用停用切换 / 删除」三类操作。删除前会弹出二次确认弹窗，
+ * 避免误删。组件自身只负责渲染与交互编排，所有数据获取、状态变更都通过 props 回调交给上层。
+ */
 import type React from 'react';
 import { useState } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
@@ -18,15 +25,20 @@ import {
 import type { AlertRuleItem, AlertType, MarketRegion } from '../../types/alerts';
 import { formatDateTime } from '../../utils/format';
 
+// 启用状态筛选：全部 / 仅启用 / 仅停用
 export type AlertRuleEnabledFilter = 'all' | 'enabled' | 'disabled';
+// 告警类型筛选：全部或具体某类型
 export type AlertTypeFilter = 'all' | AlertType;
+// 单条规则正在进行的操作类型，用于按钮 loading 与禁用态
 export type AlertRuleBusyAction = 'test' | 'toggle' | 'delete';
 
+// 当前正在处理中的规则标识，避免同一规则并发操作
 export interface AlertRuleBusyState {
   id: number;
   action: AlertRuleBusyAction;
 }
 
+// 根据规则类型与参数，把 parameters 还原成人类可读的一行文本
 function formatParameters(rule: AlertRuleItem, language: UiLanguage): string {
   const directionLabels = ALERT_DIRECTION_LABELS[language];
   if (rule.alertType === 'market_light_status') {
@@ -69,10 +81,12 @@ function formatParameters(rule: AlertRuleItem, language: UiLanguage): string {
   return `CCI${rule.parameters.period ?? '--'} ${rule.parameters.direction === 'below' ? directionLabels.belowThreshold : directionLabels.aboveThreshold} ${rule.parameters.threshold ?? '--'}`;
 }
 
+// 是否处于冷却中（cooldownActive 标记）
 function isCoolingDown(rule: AlertRuleItem): boolean {
   return rule.cooldownActive === true;
 }
 
+// 把 target 字段按范围转成展示文案：市场=区域名，自选股=default，组合账户=账户/全部账户
 function formatTarget(rule: AlertRuleItem, language: UiLanguage): string {
   if (rule.targetScope === 'market') return ALERT_MARKET_REGION_LABELS[language][rule.target as MarketRegion] ?? rule.target;
   if (rule.targetScope === 'watchlist') return 'default';
@@ -126,14 +140,19 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
 }) => {
   const { language } = useUiLanguage();
   const text = ALERT_LIST_TEXT[language];
+  // 等待二次确认的待删除规则
   const [pendingDelete, setPendingDelete] = useState<AlertRuleItem | null>(null);
+  // 总页数：至少为 1，避免除以 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // 该规则是否处于处理中（任意操作）
   const isRuleBusy = (rule: AlertRuleItem) => busyRule?.id === rule.id;
+  // 该规则是否正在处理指定操作（用于按钮 loading 与互斥禁用）
   const isRuleActionBusy = (rule: AlertRuleItem, action: AlertRuleBusyAction) => (
     busyRule?.id === rule.id && busyRule.action === action
   );
 
   return (
+    // 列表卡片：标题展示规则总数
     <Card
       title={text.title}
       subtitle={formatUiText(text.subtitle, { total })}
@@ -141,6 +160,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
       padding="md"
       className={className}
     >
+      {/* 筛选区：启用状态 + 告警类型两个下拉 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         <Select
           label={text.enabledFilter}
@@ -160,6 +180,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
         />
       </div>
 
+      {/* 无数据：加载中展示 loading 文案，否则展示空状态 */}
       {rules.length === 0 ? (
         <div className="flex min-h-[220px] flex-1 items-center justify-center">
           <EmptyState
@@ -169,6 +190,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
           />
         </div>
       ) : (
+        // 有数据：横向可滚动表格
         <div className="min-h-0 flex-1 overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="border-b border-border/60 text-xs uppercase text-muted-text">
@@ -217,6 +239,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
                   </td>
                   <td className="px-3 py-3 text-xs text-secondary-text">{formatDateTime(rule.updatedAt ?? rule.createdAt)}</td>
                   <td className="px-3 py-3">
+                    {/* 单条规则操作区：测试 / 启用停用切换 / 删除（删除触发二次确认） */}
                     <div className="flex justify-end gap-2">
                       <Button
                         size="xsm"

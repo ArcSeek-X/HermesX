@@ -1,3 +1,10 @@
+/**
+ * AlertTriggerHistory.tsx
+ * 告警触发历史记录组件。
+ * 作用：以表格展示某条告警规则的后台评估记录（triggered / skipped / degraded / failed 等状态），
+ * 并额外呈现每次评估时的「市场阶段 / 数据质量」上下文。支持加载态与空状态展示。
+ * 组件为纯展示型，数据由 props 注入，自身不发起请求。
+ */
 import type React from 'react';
 import { Activity } from 'lucide-react';
 import { Badge, Card, EmptyState, Loading } from '../common';
@@ -5,6 +12,7 @@ import type { AlertTriggerItem } from '../../types/alerts';
 import { formatDateTime } from '../../utils/format';
 import { getMarketPhaseSummaryLabel } from '../../utils/marketPhase';
 
+// 触发状态中文文案映射
 const statusLabel: Record<string, string> = {
   triggered: '已触发',
   skipped: '已跳过',
@@ -12,6 +20,7 @@ const statusLabel: Record<string, string> = {
   failed: '失败',
 };
 
+// 触发状态 -> Badge 颜色：已触发=绿，跳过/降级=黄，失败=红，其余=默认
 function statusVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
   if (status === 'triggered') return 'success';
   if (status === 'skipped' || status === 'degraded') return 'warning';
@@ -19,11 +28,13 @@ function statusVariant(status: string): 'success' | 'warning' | 'danger' | 'defa
   return 'default';
 }
 
+// 把空值/空串统一显示为占位符 --
 function formatNullable(value?: string | number | null): string {
   if (value === null || value === undefined || value === '') return '--';
   return String(value);
 }
 
+// 渲染单次触发的「市场阶段 / 数据质量」上下文；无内容时回退为 --
 function renderPhaseQuality(trigger: AlertTriggerItem): React.ReactNode {
   const phase = getMarketPhaseSummaryLabel(trigger.marketPhaseSummary, 'zh');
   const quality = trigger.analysisContextPackOverview?.dataQuality?.level;
@@ -33,8 +44,10 @@ function renderPhaseQuality(trigger: AlertTriggerItem): React.ReactNode {
   }
   return (
     <div className="space-y-1">
+      {/* 去掉前缀「市场阶段: 」只保留标签文本 */}
       {phase ? <Badge variant="default">{phase.replace('市场阶段: ', '').replace('市场阶段：', '')}</Badge> : null}
       {quality ? <div className="text-xs text-secondary-text">质量：{quality}</div> : null}
+      {/* 最多展示前两条数据限制说明 */}
       {limitations.length ? (
         <div className="max-w-[180px] text-xs text-muted-text">{limitations.join('；')}</div>
       ) : null}
@@ -49,8 +62,11 @@ interface AlertTriggerHistoryProps {
 
 export const AlertTriggerHistory: React.FC<AlertTriggerHistoryProps> = ({ triggers, isLoading = false }) => {
   return (
+    // 历史记录卡片
     <Card title="触发历史" subtitle="评估记录" variant="bordered" padding="md">
+      {/* 加载态 */}
       {isLoading ? <Loading label="正在加载触发历史" /> : null}
+      {/* 空状态：说明只有被后台评估过的记录才会写入历史 */}
       {!isLoading && triggers.length === 0 ? (
         <EmptyState
           icon={<Activity className="h-6 w-6" />}
@@ -58,6 +74,7 @@ export const AlertTriggerHistory: React.FC<AlertTriggerHistoryProps> = ({ trigge
           description="后台评估会记录 triggered、skipped、degraded 和 failed 状态；正常未触发不会写入历史。"
         />
       ) : null}
+      {/* 有记录：横向可滚动表格 */}
       {!isLoading && triggers.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
