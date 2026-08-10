@@ -1,62 +1,55 @@
 /**
- * useCachedState —— 带本地持久化的 useState 增强版。
+ * useCachedState —— 带浏览器持久化的 useState 增强版。
  *
- * 与普通 useState 的区别：状态变化会自动写入 localStorage（默认 key），
- * 组件再次挂载时优先从 localStorage 恢复，实现「刷新不丢状态」。
+ * 与普通 useState 的区别：状态变化会自动写入 localStorage / sessionStorage（带 HRS 前缀），
+ * 组件再次挂载时优先从存储恢复，实现「刷新不丢状态」。
  *
  * 适用：用户偏好、表单草稿、折叠面板展开态等希望跨会话保留的轻量数据。
+ * 底层复用 utils/storage 的存储工具，自带前缀与异常安全降级。
  */
 
 import { useCallback, useEffect, useState } from 'react';
-
-/** JSON 安全值均可作为状态类型。 */
-export type CachedValue = unknown;
+import { getStorageItem, removeStorageItem, setStorageItem } from '../utils/storage';
 
 export interface UseCachedStateOptions {
-  /** localStorage 键名 */
-  key: string;
-  /** 初始默认值（仅在无持久化值时使用） */
-  defaultValue: CachedValue;
-  /** 序列化函数，默认 JSON.stringify */
-  serialize?: (value: CachedValue) => string;
-  /** 反序列化函数，默认 JSON.parse */
-  deserialize?: (raw: string) => CachedValue;
+  /** 存储类型：'local'（localStorage，永久，默认）或 'session'（sessionStorage，会话级） */
+  storage?: 'local' | 'session';
 }
 
-export function useCachedState({
-  key,
-  defaultValue,
-  serialize = JSON.stringify,
-  deserialize = JSON.parse,
-}: UseCachedStateOptions) {
-  // 惰性初始化：首次渲染时尝试从 localStorage 读取，失败则回退默认值
-  const [value, setValue] = useState<CachedValue>(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw === null ? defaultValue : deserialize(raw);
-    } catch {
-      return defaultValue;
-    }
+/**
+ * 带持久化的 useState。
+ *
+ * @param key - 存储键名（自动加 HRS 前缀，无需手动加）
+ * @param defaultValue - 初始默认值（仅在无持久化值时使用）
+ * @param options - 可选配置，storage 指定使用 localStorage 还是 sessionStorage
+ * @returns [value, setValue, reset]，reset 用于清空持久化值并恢复默认
+ *
+ * @example
+ * ```typescript
+ * const [period, setPeriod] = useCachedState<KLinePeriod>('kline.period', '1m', { storage: 'local' });
+ * ```
+ */
+export function useCachedState<T>(
+  key: string,
+  defaultValue: T,
+  { storage = 'local' }: UseCachedStateOptions = {},
+) {
+  // 惰性初始化：首次渲染时尝试从存储读取，失败则回退默认值
+  const [value, setValue] = useState<T>(() => {
+    const stored = getStorageItem<T>(key, storage);
+    return stored === null ? defaultValue : stored;
   });
 
-  // 状态变化即写回 localStorage，保证持久化与内存状态一致
+  // 状态变化即写回存储，保证持久化与内存状态一致
   useEffect(() => {
-    try {
-      localStorage.setItem(key, serialize(value));
-    } catch {
-      // 写入失败（如配额超限、隐私模式）时静默忽略，不影响内存态使用
-    }
-  }, [key, value, serialize]);
+    setStorageItem(key, value, storage);
+  }, [key, value, storage]);
 
   // 暴露一个重置入口，清空内存态与持久化值
   const reset = useCallback(() => {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // 忽略移除失败
-    }
+    removeStorageItem(key, storage);
     setValue(defaultValue);
-  }, [key, defaultValue]);
+  }, [key, storage, defaultValue]);
 
   return [value, setValue, reset] as const;
 }

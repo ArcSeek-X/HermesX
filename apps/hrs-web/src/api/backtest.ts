@@ -59,7 +59,7 @@ export const backtestApi = {
     if (code) queryParams.code = code;
     if (evalWindowDays) queryParams.eval_window_days = evalWindowDays;
     if (analysisDateFrom) queryParams.analysis_date_from = analysisDateFrom;
-    if (analysisDateTo) queryParams.analysis_date_to = params.analysisDateTo;
+    if (analysisDateTo) queryParams.analysis_date_to = analysisDateTo;
     if (analysisPhase && analysisPhase !== 'all') queryParams.analysis_phase = analysisPhase;
 
     const response = await apiClient.get<Record<string, unknown>>(

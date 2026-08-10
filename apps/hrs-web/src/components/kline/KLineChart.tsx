@@ -420,7 +420,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
 
     // 提取数据
     const dates = data.map((d) => d.date);
-    const closes = data.map((d) => d.close);
+    const closes = data.map((d) => d.close ?? 0);
     const volumes = data.map((d) => d.volume ?? 0);
     
     // 找到交易时段分割线的索引
@@ -446,7 +446,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     // 成交量颜色（红涨绿跌）
     const volumeColors = data.map((d, i) => {
       if (i === 0) return colors.upColor;
-      return d.close >= data[i - 1].close ? colors.upColor : colors.downColor;
+      return (d.close ?? 0) >= (data[i - 1].close ?? 0) ? colors.upColor : colors.downColor;
     });
 
     // MACD 柱颜色
@@ -471,8 +471,11 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     const maxPrice = Math.max(...closes);
     
     // 当日真实最高/最低价（盘口极值，包含集合竞价），用于标注
-    const trueHighPrice = Math.max(...data.map(d => d.high));
-    const trueLowPrice = Math.min(...data.map(d => d.low));
+    // 先过滤 null（数据缺失时该点不参与极值计算），再取最大/最小值
+    const highs = data.map(d => d.high).filter((v): v is number => v !== null);
+    const lows = data.map(d => d.low).filter((v): v is number => v !== null);
+    const trueHighPrice = highs.length > 0 ? Math.max(...highs) : 0;
+    const trueLowPrice = lows.length > 0 ? Math.min(...lows) : 0;
     // 找到真实最高/最低价对应的时间索引（用于 markPoint 定位）
     const trueHighIndex = data.findIndex(d => d.high === trueHighPrice);
     const trueLowIndex = data.findIndex(d => d.low === trueLowPrice);
@@ -535,9 +538,10 @@ export const KLineChart: React.FC<KLineChartProps> = ({
 
 
     // 非分时蜡烛图 tooltip（显示：日期、涨跌幅、开盘价、收盘价、最高价、最低价、成交量、成交额、换手率、MA5、MA10、MA30、MA60、MACD、DIF、DEA）
-    const candlestickTooltipFormatter = (params: echarts.TopLevelFormatterParams) => {
-      if (!params || params.length === 0) return '';
-      const dataIndex = params[0]?.dataIndex;
+    const candlestickTooltipFormatter = (params: unknown) => {
+      const items = params as Array<{ dataIndex?: number }>;
+      if (!items || items.length === 0) return '';
+      const dataIndex = items[0]?.dataIndex;
       if (dataIndex === undefined || dataIndex < 0 || dataIndex >= data.length) return '';
       const point = data[dataIndex];
       const change = point.change_percent;
@@ -648,15 +652,16 @@ export const KLineChart: React.FC<KLineChartProps> = ({
           borderWidth: 1,
           textStyle: { color: '#fff', fontSize: 12 },
           confine: true,
-          formatter: (params: echarts.TopLevelFormatterParams) => {
-            if (!params || params.length === 0) return '';
-            const dataIndex = params[0]?.dataIndex;
+          formatter: (params: unknown) => {
+            const items = params as Array<{ dataIndex?: number }>;
+            if (!items || items.length === 0) return '';
+            const dataIndex = items[0]?.dataIndex;
             if (dataIndex === undefined || dataIndex < 0 || dataIndex >= fullDates.length) return '';
             const timeStr = fullDates[dataIndex];
             const d = dataMap.get(timeStr);
             if (!d) return '';
             
-            const price = d.close;
+            const price = d.close ?? 0;
             const pct = prevClose && prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
             const avgP = fullAvgPriceLine[dataIndex];
             const pctColor = pct >= 0 ? colors.upColor : colors.downColor;
@@ -897,7 +902,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
               if (d) {
                 const prevIdx = data.findIndex(x => x.date === d.date) - 1;
                 if (prevIdx >= 0) {
-                  color = d.close >= data[prevIdx].close ? colors.upColor : colors.downColor;
+                  color = (d.close ?? 0) >= (data[prevIdx].close ?? 0) ? colors.upColor : colors.downColor;
                 } else {
                   color = colors.upColor;
                 }
@@ -1178,13 +1183,18 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       // 非分时模式：监听 dataZoom 事件
       // 防止 setOption 触发的 dataZoom 事件导致无限循环
       let isProgrammaticZoom = false;
-      const handleDataZoom = (params: echarts.ECElementEvent) => {
+      const handleDataZoom = (params: unknown) => {
         if (isProgrammaticZoom) return;
 
-        // 兼容 batch 形式（inside+slider 联动）和单组件形式的 dataZoom 事件
-        const batch = params.batch && params.batch[0];
-        const start = batch ? (batch.start ?? 0) : (params.start ?? 0);
-        const end = batch ? (batch.end ?? 100) : (params.end ?? 100);
+        // dataZoom 事件载荷有单组件 / batch 两种形态，先断言再取值
+        const e = params as {
+          batch?: Array<{ start?: number; end?: number }>;
+          start?: number;
+          end?: number;
+        };
+        const batch = e.batch && e.batch[0];
+        const start = batch ? (batch.start ?? 0) : (e.start ?? 0);
+        const end = batch ? (batch.end ?? 100) : (e.end ?? 100);
 
         // 更新可见范围 refs（interval 函数据此选取标签）
         const count = Math.round(data.length * (end - start) / 100);

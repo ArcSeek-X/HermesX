@@ -14,7 +14,6 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
-import type React from 'react';
 
 // ---- mock echarts（KLineChart 依赖）----
 vi.mock('echarts', () => {

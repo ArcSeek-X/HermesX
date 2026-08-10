@@ -15,9 +15,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
-import type React from 'react';
 
-import type { KLinePoint, KLinePeriod } from '../../api/kline';
+import type { KLinePoint, KLinePeriod } from '../../../api/kline';
 
 // ============================================================
 // mock echarts：捕获实例调用，避免 jsdom 无 canvas 报错
@@ -203,7 +202,7 @@ describe('KLineChart - 结构正确性', () => {
       '1m', '5m', '15m', '30m', '60m', '120m', '5d', 'daily', 'weekly', 'monthly', 'yearly',
     ];
     periods.forEach((p) => {
-      expect(() => render(<KLineChart data={makeData(30, p)} period={p} />)).not.toThrow();
+      expect(() => render(<KLineChart data={makeData(30)} period={p} />)).not.toThrow();
       cleanup();
     });
   });
