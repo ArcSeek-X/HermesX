@@ -1,12 +1,12 @@
 /**
  * @file LoginPage.tsx
- * @description 登录页，提供管理员密码登录与首次密码设置功能，包含深色紫色弧线背景与 3D 视差动画效果
+ * @description 登录页，提供管理员密码登录与首次密码设置功能，包含 3D 视差动画背景效果
  * @module pages
  */
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
-import { Lock, Loader2, Network, ShieldCheck } from "lucide-react";
+import { Lock, Loader2, Cpu, TrendingUp, Network, ShieldCheck } from "lucide-react";
 import { Button, Input, ParticleBackground } from '../../components/common';
 import { UiLanguageToggle } from '../../components/i18n/UiLanguageToggle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -21,7 +21,7 @@ import { SettingsAlert } from '../../components/settings';
  * 支持两种模式：
  * 1. 首次设置密码：当系统尚未配置管理员密码时，引导用户设置初始密码
  * 2. 管理员登录：已有密码时，验证用户输入的密码以完成登录
- * 包含鼠标视差 3D 倾斜动画、粒子背景、底部紫色弧线（参考 Next-Gen AI Studio 风格）视觉设计
+ * 包含鼠标视差 3D 倾斜动画、粒子背景、赛博朋克风格视觉设计
  * @returns 登录页的 JSX 元素
  */
 const LoginPage: React.FC = () => {
@@ -123,12 +123,8 @@ const LoginPage: React.FC = () => {
         <UiLanguageToggle />
       </div>
 
-      {/* ===== 底部球形光晕背景（参考 Next-Gen AI Studio：黑底 + 半球形蓝色渐变光晕 + 弧线顶部轮廓亮边） ===== */}
-      {/* 半球填充层：从屏幕底部升起的主色光晕，向四周渐隐 */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_62%_at_50%_118%,var(--login-arc-core)_0%,var(--login-arc-primary)_45%,transparent_78%)]" />
-      {/* 弧线轮廓层：在球弧顶部勾勒一圈高亮边缘，增强科技感 */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_72%_42%_at_50%_114%,transparent_45%,var(--login-arc-glow)_72%,transparent_94%)]" />
-
+      {/* ===== 赛博朋克网格背景 ===== */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,var(--login-grid-line)_1px,transparent_1px),linear-gradient(to_bottom,var(--login-grid-line)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:var(--login-grid-mask)]" />
 
       {/* ===== 视差发光光球（跟随鼠标移动产生 3D 视差效果） ===== */}
       <motion.div
@@ -143,7 +139,7 @@ const LoginPage: React.FC = () => {
           x: useTransform(smoothX, [-0.5, 0.5], [60, -60]),
           y: useTransform(smoothY, [-0.5, 0.5], [60, -60]),
         }}
-        className="absolute right-[20%] bottom-[10%] -z-10 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-[var(--login-arc-glow)] blur-[120px]"
+        className="absolute right-[20%] bottom-[10%] -z-10 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-emerald-600/10 blur-[120px]"
       />
 
       {/* ===== 登录卡片主容器 ===== */}
@@ -154,6 +150,21 @@ const LoginPage: React.FC = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="flex flex-col items-center justify-center mb-10 relative"
         >
+          {/* ===== 全屏背景 Logo（视差跟随鼠标） ===== */}
+          <motion.div
+            style={{
+              x: useTransform(smoothX, [-0.5, 0.5], [-8, 8]),
+              y: useTransform(smoothY, [-0.5, 0.5], [-8, 8]),
+              rotate: useTransform(smoothX, [-0.5, 0.5], [-0.5, 0.5]),
+            }}
+            className="pointer-events-none absolute -top-[20vh] -z-10 opacity-80"
+          >
+            <div className="relative flex h-[120vh] w-[120vh] items-center justify-center rounded-full border border-[var(--login-accent-soft)] bg-gradient-to-br from-[var(--login-accent-soft)] to-[hsl(214_100%_20%_/_0.18)] shadow-[inset_0_0_200px_var(--login-accent-glow)] blur-[4px]">
+              <Cpu className="h-[70vh] w-[70vh] text-[hsl(200_80%_22%_/_0.4)] brightness-50" />
+              <TrendingUp className="absolute h-[25vh] w-[25vh] translate-x-[15vh] translate-y-[15vh] text-emerald-900/30 brightness-50" />
+            </div>
+          </motion.div>
+
           <div className="mt-8 flex flex-col items-center">
             {/* ===== 品牌标题 ===== */}
             <h2 className="text-4xl font-extrabold tracking-tighter text-[var(--login-text-primary)] sm:text-6xl">
