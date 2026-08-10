@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 // 测试框架：beforeEach 每个用例前重置、describe 用例分组、it 单个用例、vi 做 mock、expect 断言
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // 被测页面组件
-import LoginPage from '../LoginPage';
+import LoginPage from '../LoginPage/LoginPage';
 
 // 用 vi.hoisted 在模块 mock 之前创建可被外部引用的共享 mock 函数。
 // 把 navigate / useSearchParams 的返回值、useAuth 的返回值都做成可注入的 mock，

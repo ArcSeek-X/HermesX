@@ -7,14 +7,14 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
 import { Lock, Loader2, Cpu, TrendingUp, Network, ShieldCheck } from "lucide-react";
-import { Button, Input, ParticleBackground } from '../components/common';
-import { UiLanguageToggle } from '../components/i18n/UiLanguageToggle';
+import { Button, Input, ParticleBackground } from '../../components/common';
+import { UiLanguageToggle } from '../../components/i18n/UiLanguageToggle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { ParsedApiError } from '../api/error';
-import { isParsedApiError } from '../api/error';
-import { useAuth } from '../hooks';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { SettingsAlert } from '../components/settings';
+import type { ParsedApiError } from '../../api/error';
+import { isParsedApiError } from '../../api/error';
+import { useAuth } from '../../hooks';
+import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { SettingsAlert } from '../../components/settings';
 
 /**
  * 登录页组件
@@ -168,8 +168,8 @@ const LoginPage: React.FC = () => {
           <div className="mt-8 flex flex-col items-center">
             {/* ===== 品牌标题 ===== */}
             <h2 className="text-4xl font-extrabold tracking-tighter text-[var(--login-text-primary)] sm:text-6xl">
-              <span className="bg-gradient-to-r from-[var(--login-text-primary)] via-[var(--login-text-primary)] to-[var(--login-text-secondary)] bg-clip-text text-transparent">DAILY </span>
-              <span className="bg-gradient-to-r from-[var(--login-brand-start)] to-[var(--login-brand-end)] bg-clip-text text-transparent drop-shadow-[0_0_20px_var(--login-accent-glow)]">STOCK</span>
+              <span className="bg-gradient-to-r from-[var(--login-text-primary)] via-[var(--login-text-primary)] to-[var(--login-text-secondary)] bg-clip-text text-transparent">Hermes</span>
+              <span className="bg-gradient-to-r from-[var(--login-brand-start)] to-[var(--login-brand-end)] bg-clip-text text-transparent drop-shadow-[0_0_20px_var(--login-accent-glow)]">X</span>
             </h2>
             <h3 className="mt-1 text-xl font-bold uppercase tracking-[0.5em] text-[var(--login-text-muted)]">
               Analysis Engine
