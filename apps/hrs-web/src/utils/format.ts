@@ -293,3 +293,63 @@ export const getChangeColorClass = (value: number | null | undefined): string =>
   if (value == null || value === 0) return 'text-muted-text';
   return value > 0 ? 'stock-up' : 'stock-down';
 };
+
+/** 金额单位：万元 / 亿元 */
+export type AmountUnit = 'wan' | 'yi';
+
+/**
+ * 将金额（原始单位：元）按指定单位换算并格式化展示。
+ *
+ * 通用金额单位换算入口，集中处理「元 → 万/亿」的换算、小数位保留与
+ * 千分位格式，避免各业务卡片散落 toFixed / 除法逻辑。
+ *
+ * @param amount - 金额数值，单位：元，可为 null/undefined/NaN
+ * @param unit   - 目标单位：'wan'（万，÷1e4）或 'yi'（亿，÷1e8），默认 'wan'
+ * @param digits - 保留小数位数，默认 2
+ * @returns 带单位后缀的格式化字符串，如 "232433.60万"、"1234.50亿"；
+ *          非法值（null/undefined/NaN）返回 "--"
+ *
+ * @example
+ * formatAmountUnit(2324336000000)              → "232433.60万"
+ * formatAmountUnit(123456000, 'yi')            → "1.23亿"
+ * formatAmountUnit(123456000, 'wan', 0)        → "12346万"
+ * formatAmountUnit(null)                       → "--"
+ */
+export const formatAmountUnit = (
+  amount: number | null | undefined,
+  unit: AmountUnit = 'wan',
+  digits = 2,
+): string => {
+  if (amount == null || Number.isNaN(amount)) return '--';
+  const divisor = unit === 'wan' ? 1e4 : 1e8;
+  const value = amount / divisor;
+  const formatted = value.toLocaleString('zh-CN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `${formatted}${unit === 'wan' ? '万' : '亿'}`;
+};
+
+/**
+ * 将金额（元）按指定单位换算并四舍五入格式化（合并自原 formatAmountToYi / formatAmountToWan）。
+ *
+ * 便捷封装，底层复用 formatAmountUnit：统一处理「元 → 万/亿」换算、小数位保留
+ * 与千分位格式。通过 unit 在「亿」与「万」之间切换。
+ *
+ * @param amount - 金额数值，单位：元，可为 null/undefined/NaN
+ * @param unit   - 目标单位：'wan'（万）或 'yi'（亿），默认 'wan'
+ * @param digits - 保留小数位数，默认 2
+ * @returns 带单位后缀的格式化字符串，如 "232433.60万"、"1234.50亿"；
+ *          非法值（null/undefined/NaN）返回 "--"
+ *
+ * @example
+ * formatAmountRounding(2324336000000)              → "232433.60万"
+ * formatAmountRounding(123456000, 'yi')           → "1.23亿"
+ * formatAmountRounding(123456000, 'wan', 0)       → "12346万"
+ * formatAmountRounding(null)                      → "--"
+ */
+export const formatAmountRounding = (
+  amount: number | null | undefined,
+  unit: AmountUnit = 'wan',
+  digits = 2,
+): string => formatAmountUnit(amount, unit, digits);
