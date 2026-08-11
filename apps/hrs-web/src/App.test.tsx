@@ -88,7 +88,9 @@ vi.mock('./pages/NotFoundPage', () => ({
   default: () => <div data-testid="not-found-page">Not Found</div>,
 }));
 
-vi.mock('./pages/LoginPage', () => ({
+// 注意：mock 路径必须与 App.tsx 中 lazy import 的模块路径一致（./pages/LoginPage/LoginPage），
+// 否则 mock 不生效，会渲染真实登录页导致测试找不到占位 testid
+vi.mock('./pages/LoginPage/LoginPage', () => ({
   default: () => <div data-testid="login-page">Login</div>,
 }));
 

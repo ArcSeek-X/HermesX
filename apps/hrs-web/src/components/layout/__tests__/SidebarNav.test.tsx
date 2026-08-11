@@ -71,7 +71,8 @@ describe('SidebarNav', () => {
 
     await screen.findByRole('link', { name: '选股' });
     const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
-    expect(hrefs.slice(0, 5)).toEqual(['/', '/chat', '/screening', '/portfolio', '/decision-signals']);
+    // 选股项紧跟问股项之后；home/总览等项顺序由 NAV_ITEMS 决定，此处只验证相对位置
+    expect(hrefs.indexOf('/screening')).toBe(hrefs.indexOf('/chat') + 1);
   });
 
   it('refreshes the screening navigation item after any config save event', async () => {

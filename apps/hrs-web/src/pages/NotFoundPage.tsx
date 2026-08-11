@@ -44,7 +44,7 @@ const NotFoundPage: React.FC = () => {
       <button
         type="button"
         className="btn-primary flex items-center gap-2"
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/home')}
       >
         {/* 主页图标 SVG */}
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

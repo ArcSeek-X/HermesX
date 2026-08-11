@@ -55,6 +55,7 @@ const zh = {
   'layout.nav.backtest': '回测', // 回测导航项
   'layout.nav.chat': '问股', // 问股导航项
   'layout.nav.decisionSignals': 'AI 建议', // AI 建议导航项
+  'layout.nav.dashboard': '总览', // 总览导航项
   'layout.nav.home': '首页', // 首页导航项
   'layout.nav.kline': 'K 线', // K 线导航项
   'layout.nav.sectorAnalysis': '板块', // 板块分析导航项
@@ -74,6 +75,8 @@ const zh = {
   'layout.route.chat.title': '问股', // 问股路由标题
   'layout.route.decisionSignals.description': 'AI 建议、风险与观察条件', // AI 建议路由描述
   'layout.route.decisionSignals.title': 'AI 建议', // AI 建议路由标题
+  'layout.route.dashboard.description': '市场行情与核心指标总览', // 总览路由描述
+  'layout.route.dashboard.title': '总览', // 总览路由标题
   'layout.route.home.description': '股票分析与历史报告工作台', // 首页路由描述
   'layout.route.home.title': '首页', // 首页路由标题
   'layout.route.sectorAnalysis.description': '板块涨跌、资金流向与热点追踪', // 板块分析路由描述
@@ -92,6 +95,10 @@ const zh = {
   'layout.logoutConfirm': '确认退出', // 退出确认按钮
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码。', // 退出确认提示文案
   'layout.logoutTitle': '退出登录', // 退出登录弹窗标题
+
+  // 总览页面
+  'stockDashboard.placeholderTitle': '总览页面建设中', // 总览占位标题
+  'stockDashboard.placeholderDescription': '这里将展示市场行情总览、自选快照与核心指标，敬请期待。', // 总览占位描述
 
   // K 线页面
   'kline.title': '个股 K 线', // K 线页面标题

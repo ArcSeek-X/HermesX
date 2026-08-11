@@ -41,6 +41,7 @@ const TokenUsagePage = lazy(() => import('./pages/TokenUsagePage'));
 const StockScreeningPage = lazy(() => import('./pages/StockScreeningPage'));
 const SectorAnalysisPage = lazy(() => import('./pages/SectorAnalysisPage'));
 const StockKLinePage = lazy(() => import('./pages/StockKLinePage'));
+const StockDashboardPage = lazy(() => import('./pages/StockDashboardPage'));
 
 /**
  * 路由内部组件，必须位于 <Router> 之内，才能使用 useLocation / useAuth 等钩子。
@@ -98,7 +99,7 @@ const AppContent: React.FC = () => {
 
   // 已登录状态下访问 /login：直接回到首页，避免登录页悬挂
   if (location.pathname === '/login') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   // 正常渲染壳布局 + 子路由出口
@@ -112,8 +113,12 @@ const AppContent: React.FC = () => {
           </Shell>
         )}
       >
+        {/* 总览：市场行情与核心指标看板 */}
+        <Route path="/stock-dashboard" element={<StockDashboardPage />} />
+        {/* 根路径兼容旧链接：重定向到首页 */}
+        <Route path="/" element={<Navigate to="/home" replace />} />
         {/* 首页：分析任务入口与历史记录 */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
         {/* 板块分析 */}
         <Route path="/sector-analysis" element={<SectorAnalysisPage />} />
         {/* K 线行情 */}

@@ -45,8 +45,8 @@ export const AppPage: React.FC<AppPageProps> = ({ children, className = '' }) =>
     <main
       className={cn(
         'hrs-page-main',
-        // 布局约束：居中 + 最大宽度 + 最小高度
-        'mx-auto min-h-full w-full max-w-7xl',
+        // 布局约束：居中 + 最小高度
+        'mx-auto min-h-full w-full',
         // 默认内边距
         'px-4',
         // 响应式水平内边距：中等屏幕 6、大屏幕 8

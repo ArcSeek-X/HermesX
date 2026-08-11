@@ -58,6 +58,7 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.backtest': 'Backtest',
   'layout.nav.chat': 'Ask',
   'layout.nav.decisionSignals': 'AI signals',
+  'layout.nav.dashboard': 'Overview',
   'layout.nav.home': 'Home',
   'layout.nav.kline': 'K-Line',
   'layout.nav.sectorAnalysis': 'Sector',
@@ -77,6 +78,8 @@ const en: Record<UiTextKey, string> = {
   'layout.route.chat.title': 'Ask',
   'layout.route.decisionSignals.description': 'AI recommendations, risks, and watch conditions',
   'layout.route.decisionSignals.title': 'AI signals',
+  'layout.route.dashboard.description': 'Market overview and key indicators',
+  'layout.route.dashboard.title': 'Overview',
   'layout.route.home.description': 'Stock analysis and report workspace',
   'layout.route.home.title': 'Home',
   'layout.route.sectorAnalysis.description': 'Sector performance, capital flow, and hotspot tracking',
@@ -95,6 +98,10 @@ const en: Record<UiTextKey, string> = {
   'layout.logoutConfirm': 'Log out',
   'layout.logoutMessage': 'Log out of the current session? You will need to enter the password again.',
   'layout.logoutTitle': 'Log out',
+
+  // Overview page
+  'stockDashboard.placeholderTitle': 'Overview under construction',
+  'stockDashboard.placeholderDescription': 'Market overview, watchlist snapshots, and key indicators will be shown here. Stay tuned.',
 
   // K-Line page
   'kline.title': 'Stock K-Line',

@@ -1,13 +1,17 @@
 /**
  * 顶部页头组件（ShellHeader）
  *
- * 固定在页面顶部的 sticky 导航栏，包含：
+ * 固定在右侧列顶部（h-12），滚动发生在兄弟元素 hrs-page-container 上，
+ * 因此 header 天然不随内容区滚动。
+ * 内部内容撑满父容器宽度。
+ *
+ * 包含：
  * 1. 移动端菜单按钮（< lg 断点）：打开移动端侧边导航
  * 2. 桌面端侧边栏折叠/展开按钮（>= lg 断点）
  * 3. 当前路由的标题 + 描述（根据路径从 TITLES 映射表查询）
  * 4. 语言切换 + 主题切换按钮
  *
- * 注意：此组件当前未在 Shell.tsx 中使用，但作为备选布局保留。
+ * 注意：此组件在 Shell.tsx 的右侧列中使用，作为右侧内容区的顶部页头。
  */
 import type React from 'react';
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -32,10 +36,13 @@ type ShellHeaderProps = {
  * 当路径不在映射表中时，回退到 appFallbackTitle / appFallbackDescription
  */
 const TITLES: Record<string, { title: UiTextKey; description: UiTextKey }> = {
-  '/': { title: 'layout.route.home.title', description: 'layout.route.home.description' },
+  '/home': { title: 'layout.route.home.title', description: 'layout.route.home.description' },
+  '/stock-dashboard': { title: 'layout.route.dashboard.title', description: 'layout.route.dashboard.description' },
   '/sector-analysis': { title: 'layout.route.sectorAnalysis.title', description: 'layout.route.sectorAnalysis.description' },
+  '/kline': { title: 'layout.route.kline.title', description: 'layout.route.kline.description' },
   '/chat': { title: 'layout.route.chat.title', description: 'layout.route.chat.description' },
   '/portfolio': { title: 'layout.route.portfolio.title', description: 'layout.route.portfolio.description' },
+  '/decision-signals': { title: 'layout.route.decisionSignals.title', description: 'layout.route.decisionSignals.description' },
   '/screening': { title: 'layout.route.screening.title', description: 'layout.route.screening.description' },
   '/backtest': { title: 'layout.route.backtest.title', description: 'layout.route.backtest.description' },
   '/alerts': { title: 'layout.route.alerts.title', description: 'layout.route.alerts.description' },
@@ -54,8 +61,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   const current = TITLES[location.pathname];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/84 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 w-full max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+    <header className="hrs-header z-30 h-12 border-b border-border/60 bg-background backdrop-blur-xl">
+      <div className="flex h-full w-full items-center gap-3 px-4 sm:px-6">
         {/* 移动端菜单按钮（< lg 断点显示） */}
         <button
           type="button"
