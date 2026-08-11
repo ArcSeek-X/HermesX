@@ -4,7 +4,9 @@
  * 作用：集中提供前端展示所需的格式化函数，覆盖：
  * - 日期/时间（含上海时区的交易日语义）
  * - 报告类型标签
+ * - 股票/指数点位（保留指定位数小数）
  * - 股票成交量（股→万手/亿手）、成交额与总市值（元→亿/万亿）
+ * - 带符号指标（涨跌幅/涨跌额/净流入等）与涨跌颜色（stock-up 红涨 / stock-down 绿跌）
  * 成交量与金额的换算单位与后端 StockInfo 字段原始单位对齐，并支持中英文单位切换。
  */
 
@@ -91,6 +93,25 @@ export const formatReportType = (value?: string): string => {
   if (value === 'brief') return '简版';
   if (value === 'market_review') return '大盘';
   return value;
+};
+
+/**
+ * 格式化股票/指数点位（保留指定位数小数）
+ *
+ * 通用点位展示入口：指数点位、个股最新价等数值统一走此函数，
+ * 避免各处散落 toFixed 调用；null 时返回占位符。
+ *
+ * @param value  - 点位数值，可为 null
+ * @param digits - 保留小数位数，默认 2
+ * @returns 格式化后的点位字符串，如 "3324.44"；value 为 null 时返回 "--"
+ *
+ * @example
+ * formatPricePoint(3324.445) → "3324.44" 
+ * formatPricePoint(null)     → "--"
+ */
+export const formatPricePoint = (value: number | null, digits = 2): string => {
+  if (value == null) return '--';
+  return value.toFixed(digits);
 };
 
 /**
@@ -192,4 +213,83 @@ export const formatStockMarketCap = (
     return `${(yi / 10000).toFixed(2)}${t('stockUnit.amountWanYi')}`;
   }
   return `${yi.toFixed(2)}${t('stockUnit.amountYi')}`;
+};
+
+/**
+ * 格式化成交额（原始单位：元 → 亿/万亿）
+ *
+ * 通用金额展示入口，无 i18n 依赖（固定中文单位），适合成交额、净流入等
+ * 需要"亿/万亿"展示的场景；null/undefined/NaN 返回占位符。
+ *
+ * @param amount - 金额数值，单位：元，可为 null/undefined
+ * @returns 格式化后的金额，如 "6924.12亿"、"1.53万亿"；非法值返回 "--"
+ *
+ * @example
+ * formatAmount(692412000000) → "6924.12亿"
+ * formatAmount(null)         → "--"
+ */
+export const formatAmount = (amount: number | null | undefined): string => {
+  if (amount == null || Number.isNaN(amount)) return '--';
+  const yi = Math.abs(amount) / 1e8;
+  if (yi >= 10000) {
+    return `${(yi / 10000).toFixed(2)}万亿`;
+  }
+  return `${yi.toFixed(2)}亿`;
+};
+
+/**
+ * 格式化带符号金额（元 → 亿/万亿，正数带 +）
+ *
+ * 用于净流入/净流出类指标展示；负数为 "-"，零不带符号。
+ *
+ * @param amount - 金额数值，单位：元，可为 null/undefined
+ * @returns 格式化后的带符号金额，如 "+136.50亿"、"-85.20亿"；非法值返回 "--"
+ *
+ * @example
+ * formatSignedAmount(13650000000)  → "+136.50亿"
+ * formatSignedAmount(-8520000000)  → "-85.20亿"
+ * formatSignedAmount(null)         → "--"
+ */
+export const formatSignedAmount = (amount: number | null | undefined): string => {
+  if (amount == null || Number.isNaN(amount)) return '--';
+  const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+  return `${sign}${formatAmount(Math.abs(amount))}`;
+};
+
+/**
+ * 格式化百分比（带符号，保留 2 位小数）
+ *
+ * 用于涨跌幅、净流入占比等百分比指标展示；负数为 "-"，零不带符号。
+ *
+ * @param value - 百分比数值（如 1.23 表示 1.23%），可为 null/undefined
+ * @returns 格式化后的百分比，如 "+1.23%"、"-0.85%"；非法值返回 "--"
+ *
+ * @example
+ * formatPercent(1.23)  → "+1.23%"
+ * formatPercent(-0.85) → "-0.85%"
+ * formatPercent(null)  → "--"
+ */
+export const formatPercent = (value: number | null | undefined): string => {
+  if (value == null || Number.isNaN(value)) return '--';
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}%`;
+};
+
+/**
+ * 涨跌颜色 class（A 股红涨绿跌）
+ *
+ * 正数返回 stock-up（红），负数返回 stock-down（绿），零/空返回 muted；
+ * 与全局主题色定义保持一致，供行情类数值展示统一着色。
+ *
+ * @param value - 涨跌数值（涨跌幅/涨跌额/净流入等），可为 null/undefined
+ * @returns 颜色 class 字符串
+ *
+ * @example
+ * getChangeColorClass(1.23)  → "stock-up"
+ * getChangeColorClass(-0.5)  → "stock-down"
+ * getChangeColorClass(0)     → "text-muted-text"
+ */
+export const getChangeColorClass = (value: number | null | undefined): string => {
+  if (value == null || value === 0) return 'text-muted-text';
+  return value > 0 ? 'stock-up' : 'stock-down';
 };
