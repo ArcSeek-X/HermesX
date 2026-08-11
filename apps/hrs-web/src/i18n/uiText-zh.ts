@@ -96,10 +96,6 @@ const zh = {
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码。', // 退出确认提示文案
   'layout.logoutTitle': '退出登录', // 退出登录弹窗标题
 
-  // 总览页面
-  'stockDashboard.placeholderTitle': '总览页面建设中', // 总览占位标题
-  'stockDashboard.placeholderDescription': '这里将展示市场行情总览、自选快照与核心指标，敬请期待。', // 总览占位描述
-
   // K 线页面
   'kline.title': '个股 K 线', // K 线页面标题
   'kline.searchPlaceholder': '输入股票代码、名称、拼音或简拼搜索', // K 线搜索框占位符

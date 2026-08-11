@@ -268,7 +268,7 @@ describe('StockScreeningPage', () => {
 
     // 点击「分析 中际旭创」应跳转到首页并携带待分析股票信息
     fireEvent.click(screen.getByRole('button', { name: '分析 中际旭创' }));
-    expect(navigate).toHaveBeenCalledWith('/', {
+    expect(navigate).toHaveBeenCalledWith('/home', {
       state: {
         stockCode: '300000',
         stockName: '中际旭创',

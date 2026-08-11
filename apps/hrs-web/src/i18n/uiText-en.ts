@@ -99,10 +99,6 @@ const en: Record<UiTextKey, string> = {
   'layout.logoutMessage': 'Log out of the current session? You will need to enter the password again.',
   'layout.logoutTitle': 'Log out',
 
-  // Overview page
-  'stockDashboard.placeholderTitle': 'Overview under construction',
-  'stockDashboard.placeholderDescription': 'Market overview, watchlist snapshots, and key indicators will be shown here. Stay tuned.',
-
   // K-Line page
   'kline.title': 'Stock K-Line',
   'kline.searchPlaceholder': 'Search by stock code, name, pinyin, or abbreviation',
