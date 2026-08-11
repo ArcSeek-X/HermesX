@@ -91,3 +91,9 @@ static/
 /apps/hrs-desktop/dist/
 /apps/hrs-desktop/node_modules/
 docs/specs/
+
+
+
+# # 第三方本地模板（参考用，不入库）
+/apps/template-stock-dashboard/
+/apps/template-overview/
