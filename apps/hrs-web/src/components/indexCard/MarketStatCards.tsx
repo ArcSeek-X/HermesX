@@ -15,6 +15,7 @@
  */
 import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
+import { AnimatedValue } from '../../utils/animate.tsx';
 import type {
   BoardListItem,
   MarketFundFlowData,
@@ -30,6 +31,12 @@ export type MarketStatCardProps = {
   titleClassName?: string;
   /** 主值内容 */
   value: ReactNode;
+  /**
+   * 主值的稳定标识，用于驱动数据更新动画（占位 → 真实值）的切换判定。
+   * 强烈建议调用方显式传入：字符串值传其文本，复合/JSX 值传由数据字段拼出的标识。
+   * 未提供时：字符串值用自身文本；JSX 值用固定标识（不触发数据更新动画，但避免 JSON.stringify 循环引用崩溃）。
+   */
+  valueKey?: string;
   /** 主值颜色 class（默认 text-foreground） */
   valueClass?: string;
   /** 额外 class（合并到主值容器，用于覆盖/追加样式） */
@@ -47,7 +54,10 @@ export type MarketStatCardProps = {
  * 入场动画使用 framer-motion（本项目以 motion 包提供）：slide-up + fade-in，
  * 按 ordinal 在同类卡片间错位延迟。
  */
-export function MarketStatCard({ title, titleClassName, value, valueClass, className, meta, ordinal = 0 }: MarketStatCardProps) {
+export function MarketStatCard({ title, titleClassName, value, valueKey, valueClass, className, meta, ordinal = 0 }: MarketStatCardProps) {
+  // 数据更新动画的切换标识：优先用调用方显式传入的 valueKey；
+  // 未传时字符串值用自身文本，JSX 值用固定标识（避免对 React 元素 JSON.stringify 触发循环引用崩溃）
+  const animatedKey = valueKey ?? (typeof value === 'string' ? value : '__jsx-value__');
   return (
     <motion.div
       className="hrs-index-card relative overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]
@@ -61,7 +71,10 @@ export function MarketStatCard({ title, titleClassName, value, valueClass, class
       <div className="relative z-10 flex flex-col p-4 h-full">
         <div className={titleClassName ?? 'text-xs text-muted-text'}>{title}</div>
         <div className={`text-2xl lg:text-2xl font-semibold mt-2 leading-tight tabular-nums ${valueClass ?? 'text-foreground'}  ${className ?? ''}`}>
-          {value}
+          {/* 数据到达时（占位 → 真实值）做柔和淡入，避免直接替换的生硬感 */}
+          <AnimatedValue valueKey={animatedKey}>
+            {value}
+          </AnimatedValue>
         </div>
         <div className="mt-auto text-xs text-secondary-text leading-4">{meta}</div>
       </div>
@@ -87,10 +100,11 @@ export function MarketBreadthCard({ riseCount, fallCount, flatCount, ordinal }: 
     <MarketStatCard
       title="市场涨跌"
       ordinal={ordinal}
+      valueKey={`${riseCount}/${fallCount}`}
       value={
-        <span className="inline-flex items-baseline gap-1">
+        <span className="inline-flex items-center justify-center gap-1">
           <span className="stock-up">{riseCount}</span>
-          <span className="text-sm text-muted-text">/</span>
+          <span className="text-sm text-muted-text self-center">/</span>
           <span className="stock-down">{fallCount}</span>
         </span>
       }
@@ -122,10 +136,11 @@ export function LimitUpDownCard({ limitUpCount, limitDownCount, ordinal }: Limit
     <MarketStatCard
       title="涨跌停"
       ordinal={ordinal}
+      valueKey={`${limitUpCount}/${limitDownCount}`}
       value={
-        <span>
+        <span className="inline-flex items-center justify-center gap-1">
           <span className="stock-up">{limitUpCount}</span>
-          <span className="mx-1 text-sm text-muted-text">/</span>
+          <span className="text-sm text-muted-text self-center">/</span>
           <span className="stock-down">{limitDownCount}</span>
         </span>
       }
@@ -138,22 +153,15 @@ export function LimitUpDownCard({ limitUpCount, limitDownCount, ordinal }: Limit
 export type TotalAmountCardProps = {
   /** 全市场成交额（元） */
   totalAmount: number;
-  /** 放量/缩量金额（元，正=放量，负=缩量），可选 */
-  volumeChange?: number;
   /** 卡片在网格中的序号，用于入场动画错位延迟（从 0 开始） */
   ordinal?: number;
 };
 
 /**
  * 全市场成交额卡片：A 股实时成交额快照（以"亿"为单位）；
- * 副值第一行显示放量/缩量金额（带正负颜色），第二行显示快照说明。
+ * 副值显示「较上一日 持平 --」。
  */
-export function TotalAmountCard({ totalAmount, volumeChange, ordinal }: TotalAmountCardProps) {
-  const isIncrease = volumeChange != null && volumeChange > 0;
-  const isDecrease = volumeChange != null && volumeChange < 0;
-  const volumeChangeText =
-    volumeChange != null ? `${volumeChange > 0 ? '+' : ''}${formatAmountRounding(volumeChange, 'yi')}` : '--';
-  const volumeChangeClass = isIncrease ? 'stock-up' : isDecrease ? 'stock-down' : 'text-muted-text';
+export function TotalAmountCard({ totalAmount, ordinal }: TotalAmountCardProps) {
   return (
     <MarketStatCard
       title="全市场成交额"
@@ -161,9 +169,7 @@ export function TotalAmountCard({ totalAmount, volumeChange, ordinal }: TotalAmo
       value={formatAmountRounding(totalAmount, 'yi')}
       meta={
         <div className="flex flex-col gap-0.5">
-          <div className={`${volumeChangeClass} mt-2 text-xs` }>
-            较上一日 {isIncrease ? '增量' : isDecrease ? '缩量' : '持平'} {volumeChangeText}
-          </div>
+          {/* <div className="text-muted-text mt-2">较上一日 持平 --</div> */}
           <div className="text-muted-text mt-2">A 股实时成交额快照</div>
         </div>
       }
