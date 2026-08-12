@@ -44,6 +44,8 @@ const zh = {
   'theme.system': '跟随系统', // 跟随系统主题
   'theme.theme': '主题', // 主题通用标签
   'theme.toggle': '切换主题', // 切换主题按钮提示
+  'theme.primary': '主色', // 主题主色配置标签
+  'theme.reset': '重置', // 重置主题主色按钮
 
   'layout.appFallbackDescription': 'Web workspace', // 应用回退描述文案
   'layout.appFallbackTitle': 'HermesX', // 应用回退标题
@@ -95,6 +97,9 @@ const zh = {
   'layout.logoutConfirm': '确认退出', // 退出确认按钮
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码。', // 退出确认提示文案
   'layout.logoutTitle': '退出登录', // 退出登录弹窗标题
+  'header.themeSettings': '主题设置', // 头部主题设置按钮
+  'header.language': '界面语言', // 头部中英文切换按钮
+  'header.userSettings': '个人设置', // 头部个人设置按钮
 
   // K 线页面
   'kline.title': '个股 K 线', // K 线页面标题

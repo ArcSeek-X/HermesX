@@ -47,6 +47,8 @@ const en: Record<UiTextKey, string> = {
   'theme.system': 'System',
   'theme.theme': 'Theme',
   'theme.toggle': 'Toggle theme',
+  'theme.primary': 'Primary color',
+  'theme.reset': 'Reset',
 
   'layout.appFallbackDescription': 'Web workspace',
   'layout.appFallbackTitle': 'HermesX',
@@ -98,6 +100,9 @@ const en: Record<UiTextKey, string> = {
   'layout.logoutConfirm': 'Log out',
   'layout.logoutMessage': 'Log out of the current session? You will need to enter the password again.',
   'layout.logoutTitle': 'Log out',
+  'header.themeSettings': 'Theme settings',
+  'header.language': 'UI language',
+  'header.userSettings': 'User settings',
 
   // K-Line page
   'kline.title': 'Stock K-Line',
