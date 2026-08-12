@@ -9,11 +9,10 @@
  * 1. 渲染导航项列表（首页、板块分析、K线、对话、选股、持仓等）
  * 2. 根据 AlphaSift 配置状态动态显示/隐藏「选股」入口
  * 3. 对话页面支持未读完成标记（StatusDot 红点）
- * 4. 内嵌主题切换和语言切换按钮
- * 5. 认证开启时显示退出登录按钮（带二次确认弹窗）
+ * 4. 主题切换 / 语言切换 / 退出登录已由顶部 Header 操作区统一提供，本组件不再重复放置
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, Gauge, Home, LayoutDashboard, LayoutGrid, LogOut, MessageSquareQuote, Search, Settings2 } from 'lucide-react';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, Gauge, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Search, Settings2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,8 +22,6 @@ import type { UiTextKey } from '../../i18n/uiText';
 import { cn } from '../../utils/cn';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { StatusDot } from '../common/StatusDot';
-import { UiLanguageToggle } from '../i18n/UiLanguageToggle';
-import { ThemeToggle } from '../theme/ThemeToggle';
 
 type SidebarNavProps = {
   /** 是否折叠（仅显示图标，隐藏文字） */
@@ -207,42 +204,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
         );
         })}
 
-        {/* 主题切换按钮（复用导航项样式） */}
-        <ThemeToggle
-          variant={isRail ? 'rail' : 'nav'}
-          collapsed={collapsed}
-          wrapperClassName="w-full"
-          triggerClassName={itemInteractiveClass}
-          triggerActiveClassName={itemActiveClass}
-          iconClassName={itemIconClass}
-          labelClassName={itemLabelClass}
-        />
-        {/* 语言切换按钮（复用导航项样式） */}
-        <UiLanguageToggle
-          variant={isRail ? 'rail' : 'nav'}
-          collapsed={collapsed}
-          wrapperClassName="w-full"
-          triggerClassName={itemInteractiveClass}
-          triggerActiveClassName={itemActiveClass}
-          iconClassName={itemIconClass}
-          labelClassName={itemLabelClass}
-        />
       </nav>
 
-      {/* ===== 退出登录按钮（仅在认证开启时显示）===== */}
-      {authEnabled ? (
-        <button
-          type="button"
-          onClick={() => setShowLogoutConfirm(true)}
-          className={cn(
-            itemInteractiveClass,
-            isRail ? 'mt-1.5' : 'mt-5'
-          )}
-        >
-          <LogOut className={itemIconClass} />
-          {!collapsed ? <span className={itemLabelClass}>{t('layout.logout')}</span> : null}
-        </button>
-      ) : null}
+      {/* 说明：主题切换 / 语言切换 / 退出登录 已上移到顶部 Header 操作区，此处不再重复提供 */}
 
       {/* 退出登录二次确认弹窗 */}
       <ConfirmDialog

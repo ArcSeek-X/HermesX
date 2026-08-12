@@ -9,7 +9,7 @@
  * 1. 移动端菜单按钮（< lg 断点）：打开移动端侧边导航
  * 2. 桌面端侧边栏折叠/展开按钮（>= lg 断点）
  * 3. 当前路由的标题 + 描述（根据路径从 TITLES 映射表查询）
- * 4. 语言切换 + 主题切换按钮
+ * 4. 右侧操作区：主题设置、中英文切换、个人设置（齿轮）
  *
  * 注意：此组件在 Shell.tsx 的右侧列中使用，作为右侧内容区的顶部页头。
  */
@@ -18,8 +18,9 @@ import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
-import { UiLanguageToggle } from '../i18n/UiLanguageToggle';
-import { ThemeToggle } from '../theme/ThemeToggle';
+import { ThemeSettingsPopover } from './ThemeSettingsPopover';
+import { UserMenu } from './UserMenu';
+import { LanguageMenu } from './LanguageMenu';
 
 type ShellHeaderProps = {
   /** 侧边栏是否处于折叠状态 */
@@ -90,9 +91,12 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           <p className="truncate text-xs text-secondary-text">{current ? t(current.description) : t('layout.appFallbackDescription')}</p>
         </div>
 
-        {/* 语言切换 + 主题切换 */}
-        <UiLanguageToggle />
-        <ThemeToggle />
+        {/* 右侧操作区：主题设置 / 中英文切换 / 个人设置 */}
+        <div className="flex items-center gap-2">
+          <ThemeSettingsPopover />
+          <LanguageMenu />
+          <UserMenu />
+        </div>
       </div>
     </header>
   );
