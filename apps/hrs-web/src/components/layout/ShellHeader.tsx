@@ -19,9 +19,9 @@ import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
-import { ThemeSettingsPopover } from './ThemeSettingsPopover';
-import { UserSetting } from './UserSetting';
-import { LanguageSwitch } from './LanguageSwitch';
+import { ThemeSetting } from './HeaderComponents/ThemeSetting';
+import { UserSetting } from './HeaderComponents/UserSetting';
+import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
 import { StockAutocomplete } from '../StockAutocomplete/StockAutocomplete';
 import { setStorageItem } from '../../utils/storage';
 import { cn } from '../../utils/cn';
@@ -119,7 +119,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             ariaLabel={t('kline.searchPlaceholder')}
             className="!h-9 !text-xs w-60 lg:w-56 !rounded-[10px] !border-border/70 !bg-card/80 !shadow-soft-card focus:!border-border/70"
           />
-          <ThemeSettingsPopover />
+          <ThemeSetting />
           <LanguageSwitch />
           <UserSetting/>
         </div>

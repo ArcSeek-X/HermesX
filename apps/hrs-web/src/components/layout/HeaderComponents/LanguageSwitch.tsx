@@ -1,13 +1,13 @@
 /**
- * LanguageMenu
+ * LanguageSwitch
  *
  * 头部「界面语言」入口：单一图标按钮，点击即在中文 / English 之间切换。
  * 图标随当前语言展示：中文显示文字「文」、英文显示「EN」（区分直观）。
  * 切换后由 useUiLanguage 持久化到 localStorage 并触发全站文案重渲染。
  */
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
-export const LanguageMenu = () => {
+export const LanguageSwitch = () => {
   const { t, language, setLanguage } = useUiLanguage();
   const nextLanguage = language === 'zh' ? 'en' : 'zh';
   const isChinese = language === 'zh';

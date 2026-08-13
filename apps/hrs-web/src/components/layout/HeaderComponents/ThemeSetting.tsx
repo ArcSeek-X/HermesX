@@ -1,5 +1,5 @@
 /**
- * ThemeSettingsPopover
+ * ThemeSetting
  *
  * 主题设置弹窗：包含「主题模式（浅色/暗色/跟随系统）」与「主色配置」两部分。
  * 主色通过 useThemeColor 写入 --primary 并持久化到 localStorage，全局联动生效。
@@ -13,11 +13,11 @@ import { createPortal } from 'react-dom';
 import { Palette } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
-import { cn } from '../../utils/cn';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { useThemeColor } from '../../hooks/useThemeColor';
-import { ColorPicker } from '../basic/ColorPicker';
-import { Button } from '../basic/Button';
+import { cn } from '../../../utils/cn';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useThemeColor } from '../../../hooks/useThemeColor';
+import { ColorPicker } from '../../basic/ColorPicker';
+import { Button } from '../../basic/Button';
 
 /** 主题模式选项 */
 const THEME_MODES = [
@@ -40,7 +40,7 @@ const PRIMARY_PRESETS = [
   '#64748B', // 灰蓝
 ];
 
-export const ThemeSettingsPopover = () => {
+export const ThemeSetting = () => {
   const { t } = useUiLanguage();
   const { theme, setTheme } = useTheme();
   const { color, setColor, reset } = useThemeColor();
