@@ -3,8 +3,13 @@
  *
  * 主题设置弹窗：包含「主题模式（浅色/暗色/跟随系统）」与「主色配置」两部分。
  * 主色通过 useThemeColor 写入 --primary 并持久化到 localStorage，全局联动生效。
+ *
+ * 层级处理：弹层通过 createPortal 渲染到 document.body，并用 fixed 定位，
+ * 避免被父级（如 <header class="z-30">）的 stacking context / overflow 影响层级，
+ * 确保弹层始终在页面所有内容之上。
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Palette } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
@@ -41,15 +46,36 @@ export const ThemeSettingsPopover = () => {
   const { color, setColor, reset } = useThemeColor();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // 弹层定位：top 紧贴触发按钮底部、right 与按钮右边缘对齐
+  const [popoverStyle, setPopoverStyle] = useState<{ top: number; right: number } | null>(null);
 
   useEffect(() => setMounted(true), []);
+
+  /** 依据触发按钮的位置计算弹层 fixed 定位 */
+  const updatePopoverPosition = () => {
+    const btn = triggerRef.current;
+    if (!btn) {
+      setPopoverStyle(null);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    setPopoverStyle({
+      top: rect.bottom + 8,  // 紧贴按钮下沿 + 8px 间隔
+      right: window.innerWidth - rect.right, // 弹层右边缘与按钮右边缘对齐
+    });
+  };
 
   // 点击外部 / Esc 关闭
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      // 点击触发按钮或弹层内部均不算"外部"（弹层在 portal 中，需显式判断自身 DOM）
+      if (triggerRef.current && triggerRef.current.contains(target)) return;
+      if (popoverRef.current && popoverRef.current.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
@@ -62,11 +88,28 @@ export const ThemeSettingsPopover = () => {
     };
   }, [open]);
 
+  // 打开时计算位置，并监听滚动/缩放实时更新
+  useEffect(() => {
+    if (!open) {
+      setPopoverStyle(null);
+      return;
+    }
+    const frameId = window.requestAnimationFrame(updatePopoverPosition);
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [open]);
+
   const activeMode = mounted ? theme ?? 'system' : 'system';
 
   return (
-    <div className="hrs-theme-setting relative" ref={ref}>
+    <div className="hrs-theme-setting relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={t('header.themeSettings')}
@@ -78,11 +121,14 @@ export const ThemeSettingsPopover = () => {
         <Palette className="h-4 w-4" />
       </button>
 
-      {open && (
+      {/* 弹层：portal 到 body + fixed 定位 + z-[130]，脱离父 stacking context 与 overflow 限制 */}
+      {open && popoverStyle && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-label={t('header.themeSettings')}
-          className="hrs-theme-popover absolute right-0 top-[calc(100%+8px)] z-50 w-[360px] rounded-xl border border-border/80 bg-card p-4 shadow-lg"
+          className="hrs-theme-popover fixed z-[130] w-[360px] rounded-xl border border-border/80 bg-card p-4 shadow-lg"
+          ref={popoverRef}
+          style={{ top: popoverStyle.top, right: popoverStyle.right }}
         >
           <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.menu')}</div>
           <div className="theme-mode-switch relative mb-4 flex items-center gap-1 rounded-lg border border-subtle bg-bg-elevated p-1">
@@ -129,7 +175,8 @@ export const ThemeSettingsPopover = () => {
               {t('theme.reset')}
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
