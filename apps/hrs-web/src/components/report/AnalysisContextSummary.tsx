@@ -6,7 +6,7 @@ import type {
   ReportLanguage,
 } from '../../types/analysis';
 import { normalizeReportLanguage } from '../../utils/reportLanguage';
-import { Badge, Card, StatusDot } from '../common';
+import { Badge, Card, StatusDot } from '../';
 import { DashboardPanelHeader } from '../dashboard';
 
 interface AnalysisContextSummaryProps {

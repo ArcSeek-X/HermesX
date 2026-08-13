@@ -1,6 +1,6 @@
 import type React from 'react';
 import { ChevronDown, ChevronRight, Info, X } from 'lucide-react';
-import { Badge, Button, StatusDot } from '../common';
+import { Badge, Button, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowNode, RunFlowStatus } from '../../types/runFlow';
 import {

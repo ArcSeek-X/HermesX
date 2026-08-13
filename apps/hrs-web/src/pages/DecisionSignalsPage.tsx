@@ -40,7 +40,7 @@ import {
   InlineAlert,
   PageHeader,
   Pagination,
-} from '../components/common'; // 通用 UI 组件
+} from '../components'; // 通用 UI 组件
 import {
   DecisionSignalCard,
   DecisionSignalDetails,

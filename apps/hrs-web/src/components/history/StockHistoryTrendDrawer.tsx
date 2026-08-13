@@ -9,7 +9,7 @@ import {
   type DecisionActionLabelMap,
 } from '../../utils/decisionAction';
 import { formatDateTime } from '../../utils/format';
-import { Badge, Button, Card } from '../common';
+import { Badge, Button, Card } from '../';
 import { DashboardStateBlock } from '../dashboard';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';

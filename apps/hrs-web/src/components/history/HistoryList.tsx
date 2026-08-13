@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useRef, useCallback, useEffect, useId } from 'react';
 import type { HistoryItem } from '../../types/analysis';
-import { Badge, Button, ScrollArea } from '../common';
+import { Badge, Button, ScrollArea } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { HistoryListItem } from './HistoryListItem';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';

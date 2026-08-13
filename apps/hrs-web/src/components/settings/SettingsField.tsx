@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type React from 'react';
-import { Badge, Button, Select, Input } from '../common';
+import { Badge, Button, Select, Input } from '../';
 import type { ConfigValidationIssue, SystemConfigFieldSchema, SystemConfigItem } from '../../types/systemConfig';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { getSettingsHelpContent } from '../../locales/settingsHelp';

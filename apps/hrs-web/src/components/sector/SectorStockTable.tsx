@@ -13,7 +13,7 @@
  * 数据来源：父组件通过 props 传入 sectorName 和 stocks
  */
 import type React from 'react';
-import { Card } from '../common';
+import { Card } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { StockItem } from '../../api/sectorData';
 

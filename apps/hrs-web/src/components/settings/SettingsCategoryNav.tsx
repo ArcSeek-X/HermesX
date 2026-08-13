@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Bell, Bot, Database, Layers3, LineChart, Settings2, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Badge } from '../common';
+import { Badge } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { getCategoryDescription, getCategoryTitle } from '../../utils/systemConfigI18n';
 import type { SystemConfigCategory, SystemConfigCategorySchema, SystemConfigItem } from '../../types/systemConfig';

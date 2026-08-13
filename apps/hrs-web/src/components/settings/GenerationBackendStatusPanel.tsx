@@ -5,7 +5,7 @@ import { systemConfigApi } from '../../api/systemConfig';
 import { getParsedApiError, type ParsedApiError } from '../../api/error';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { GenerationBackendStatus, GenerationBackendStatusResponse, SystemConfigUpdateItem, TestGenerationBackendResponse } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button } from '../common';
+import { ApiErrorAlert, Badge, Button } from '../';
 import { SettingsAlert } from './SettingsAlert';
 
 type Translate = ReturnType<typeof useUiLanguage>['t'];

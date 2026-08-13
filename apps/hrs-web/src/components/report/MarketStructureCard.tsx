@@ -9,7 +9,7 @@ import type {
   ReportLanguage,
 } from '../../types/analysis';
 import { normalizeReportLanguage } from '../../utils/reportLanguage';
-import { Badge, Card } from '../common';
+import { Badge, Card } from '../';
 import { DashboardPanelHeader } from '../dashboard';
 
 interface MarketStructureCardProps {

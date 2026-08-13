@@ -4,7 +4,7 @@ import type {
   ReportMeta,
   ReportSummary as ReportSummaryType,
 } from '../../types/analysis';
-import { Badge, Button, Card, ScoreGauge } from '../common';
+import { Badge, Button, Card, ScoreGauge } from '../';
 import { formatDateTime } from '../../utils/format';
 import { getMarketPhaseSummaryLabel, getPartialBarLabel } from '../../utils/marketPhase';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';

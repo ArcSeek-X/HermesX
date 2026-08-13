@@ -12,7 +12,7 @@
 import type React from 'react';
 import { lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ApiErrorAlert, Shell } from './components/common';
+import { ApiErrorAlert, Shell } from './components';
 import {
   PageLoadingFallback,
   RouteOutletBoundary,

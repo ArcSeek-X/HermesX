@@ -15,7 +15,21 @@
  *   </AppPage>
  */
 import type React from 'react';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
+
+/**
+ * 从当前路由路径派生「页面标识名」，用于拼装 <main> 的路由类名（hrs-apge-<name>）。
+ * 规则：
+ * - 取 pathname 的最后一段（去掉首尾斜杠），例如 /stock-dashboard -> stock-dashboard
+ * - 根路径 "/" 归为 home
+ * - 空段（如路径以斜杠结尾）回退到上一级段，仍为空则归为 home
+ */
+const getRouteName = (pathname: string): string => {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return 'home';
+  return segments[segments.length - 1];
+};
 
 /** AppPage 组件的 Props 定义 */
 interface AppPageProps {
@@ -41,10 +55,16 @@ interface AppPageProps {
  * @returns 带统一布局约束的页面容器
  */
 export const AppPage: React.FC<AppPageProps> = ({ children, className = '' }) => {
+  // 当前路由信息，用于派生页面级标识类名
+  const location = useLocation();
+  // 路由标识名，如 stock-dashboard / home / settings
+  const routeName = getRouteName(location.pathname);
   return (
     <main
       className={cn(
         'hrs-page-main',
+        // 路由级标识类：hrs-apge-<当前路由名称>，便于按页面定制样式
+        `hrs-apge-${routeName}`,
         // 布局约束：居中 + 最小高度
         'mx-auto min-h-full w-full',
         // 用户自定义样式（优先级最高）

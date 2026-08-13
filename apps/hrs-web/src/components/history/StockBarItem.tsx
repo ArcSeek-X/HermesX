@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Badge, Button } from '../common';
+import { Badge, Button } from '../';
 import type { StockBarItem as StockBarItemType } from '../../types/analysis';
 import { getSentimentColor } from '../../types/analysis';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../utils/decisionAction';

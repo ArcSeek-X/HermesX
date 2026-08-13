@@ -1,14 +1,47 @@
+/**
+ * ===================================
+ * 密码可见性切换图标（EyeToggleIcon）
+ * ===================================
+ *
+ * 【功能介绍】
+ * 一个纯展示的「眼睛 / 眼罩」图标组件，用于密码输入框的「显示 / 隐藏」切换按钮中，
+ * 以图标直观表达当前密码是否可见。组件本身只负责 rendering 对应图标，不包含点击逻辑或状态。
+ *
+ * 【设计要点】
+ * 1. 双态图标：visible=true 时显示「眼罩（eye-slash）」——表示密码当前可见、点击可隐藏；
+ *    visible=false 时显示「眼睛（eye）」——表示密码当前隐藏、点击可显示。
+ * 2. 纯展示、无状态：不持有任何内部状态，图标完全由 visible prop 决定，便于父组件统一管理
+ *    密码显隐状态。
+ * 3. 可定制尺寸：className 默认 'w-4 h-4'，调用方可传入其它尺寸类（如 'w-5 h-5'）。
+ * 4. 无障碍：图标为装饰性，统一设置 aria-hidden=true，真实状态由按钮的 aria-label 负责播报。
+ *
+ * 【使用方式】
+ *   <button onClick={toggle} aria-label={visible ? '隐藏密码' : '显示密码'}>
+ *     <EyeToggleIcon visible={visible} />
+ *   </button>
+ */
+
 import type React from 'react';
 
+/** EyeToggleIcon 组件的 Props 定义 */
 interface EyeToggleIconProps {
-  /** true = password visible, show eye-slash (hide). false = password hidden, show eye (show) */
+  /** true = 密码可见（显示眼罩图标，提示点击隐藏）；false = 密码隐藏（显示眼睛图标，提示点击显示） */
   visible: boolean;
+  /** 图标尺寸类名，默认 'w-4 h-4' */
   className?: string;
 }
 
+/**
+ * 密码可见性切换图标组件：根据 visible 在「眼睛 / 眼罩」之间切换。
+ *
+ * @param props - 组件属性
+ * @param props.visible - 密码是否可见
+ * @param props.className - 图标尺寸类名
+ * @returns 对应的 SVG 图标
+ */
 export const EyeToggleIcon: React.FC<EyeToggleIconProps> = ({ visible, className = 'w-4 h-4' }) => {
   if (visible) {
-    // eye-slash: password currently visible, click to hide
+    // 眼罩图标：密码当前可见，点击可隐藏
     return (
       <svg
         className={className}
@@ -26,7 +59,7 @@ export const EyeToggleIcon: React.FC<EyeToggleIconProps> = ({ visible, className
       </svg>
     );
   }
-  // eye: password currently hidden, click to show
+  // 眼睛图标：密码当前隐藏，点击可显示
   return (
     <svg
       className={className}

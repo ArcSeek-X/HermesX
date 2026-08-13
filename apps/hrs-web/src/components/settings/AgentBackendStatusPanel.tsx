@@ -7,7 +7,7 @@ import type {
   AgentBackendStatusResponse,
   SystemConfigUpdateItem,
 } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button } from '../common';
+import { ApiErrorAlert, Badge, Button } from '../';
 import { SettingsAlert } from './SettingsAlert';
 
 interface AgentBackendStatusPanelProps {

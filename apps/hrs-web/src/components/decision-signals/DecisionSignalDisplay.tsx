@@ -14,7 +14,7 @@
 
 import type React from 'react';
 import { PanelRightOpen } from 'lucide-react';
-import { Badge, Card, JsonViewer } from '../common';
+import { Badge, Card, JsonViewer } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey } from '../../i18n/uiText';
 import type {

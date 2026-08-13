@@ -3,7 +3,7 @@ import { useId, useState } from 'react';
 import { Lock, Key } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
-import { EyeToggleIcon } from './EyeToggleIcon';
+import { EyeToggleIcon } from '../common/EyeToggleIcon';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;

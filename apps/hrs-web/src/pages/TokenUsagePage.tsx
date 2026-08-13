@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Clock3, Cpu, Database, Gauge, RefreshCw } from 'lucide-react';
 import { usageApi, type UsageDashboard, type UsageModelBreakdown, type UsagePeriod } from '../api/usage';
 import type { ParsedApiError } from '../api/error';
-import { ApiErrorAlert, AppPage, Card, EmptyState, PageHeader, StatCard } from '../components/common';
+import { ApiErrorAlert, AppPage, Card, EmptyState, PageHeader, StatCard } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey, UiTextParams } from '../i18n/uiText';
 import { cn } from '../utils/cn';

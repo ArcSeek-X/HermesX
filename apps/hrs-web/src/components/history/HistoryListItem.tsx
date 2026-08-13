@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Badge } from '../common';
+import { Badge } from '../';
 import type { HistoryItem } from '../../types/analysis';
 import { getSentimentColor } from '../../types/analysis';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../utils/decisionAction';

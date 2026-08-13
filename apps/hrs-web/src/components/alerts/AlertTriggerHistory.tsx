@@ -7,7 +7,7 @@
  */
 import type React from 'react';
 import { Activity } from 'lucide-react';
-import { Badge, Card, EmptyState, Loading } from '../common';
+import { Badge, Card, EmptyState, Loading } from '../';
 import type { AlertTriggerItem } from '../../types/alerts';
 import { formatDateTime } from '../../utils/format';
 import { getMarketPhaseSummaryLabel } from '../../utils/marketPhase';

@@ -7,7 +7,7 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
 import { Lock, Loader2, Network, ShieldCheck } from "lucide-react";
-import { Button, Input, ParticleBackground } from '../../components/common';
+import { Button, Input, ParticleBackground } from '../../components';
 import { UiLanguageToggle } from '../../components/i18n/UiLanguageToggle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ParsedApiError } from '../../api/error';

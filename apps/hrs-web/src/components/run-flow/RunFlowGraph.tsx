@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useMemo, useId } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Badge, StatusDot } from '../common';
+import { Badge, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowEdge, RunFlowLane, RunFlowNode, RunFlowStatus } from '../../types/runFlow';
 import {

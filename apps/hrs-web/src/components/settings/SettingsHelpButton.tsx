@@ -6,7 +6,7 @@ import type { SystemConfigFieldSchema } from '../../types/systemConfig';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { getSettingsHelpContent } from '../../locales/settingsHelp';
 import { cn } from '../../utils/cn';
-import { Tooltip } from '../common';
+import { Tooltip } from '../';
 
 interface SettingsHelpButtonProps {
   fieldKey: string;

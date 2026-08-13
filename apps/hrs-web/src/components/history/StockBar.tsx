@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
-import { Badge, Button, ScrollArea } from '../common';
+import { Badge, Button, ScrollArea } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { StockBarItemComponent } from './StockBarItem';
 import type { StockBarItem as StockBarItemType } from '../../types/analysis';

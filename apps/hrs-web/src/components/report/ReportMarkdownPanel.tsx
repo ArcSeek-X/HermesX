@@ -4,7 +4,7 @@ import { historyApi } from '../../api/history';
 import type { ReportLanguage } from '../../types/analysis';
 import { markdownToPlainText } from '../../utils/markdown';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
-import { Tooltip } from '../common/Tooltip';
+import { Tooltip } from '../basic/Tooltip';
 import { ReportMarkdownBody } from './ReportMarkdownBody';
 
 export interface ReportMarkdownPanelProps {

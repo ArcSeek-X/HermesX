@@ -21,7 +21,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { EmptyState, InlineAlert } from '../common';
+import { EmptyState, InlineAlert } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey } from '../../i18n/uiText';
 import type { DecisionSignalItem, DecisionSignalStatus } from '../../types/decisionSignals';

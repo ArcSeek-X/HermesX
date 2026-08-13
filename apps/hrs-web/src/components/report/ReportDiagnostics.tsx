@@ -11,7 +11,7 @@ import type {
   RunDiagnosticSummary,
 } from '../../types/analysis';
 import { normalizeReportLanguage } from '../../utils/reportLanguage';
-import { Badge, Button, Card, StatusDot } from '../common';
+import { Badge, Button, Card, StatusDot } from '../';
 
 interface ReportDiagnosticsProps {
   recordId?: number;

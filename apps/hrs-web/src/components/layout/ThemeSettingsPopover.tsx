@@ -16,8 +16,8 @@ import { useTheme } from 'next-themes';
 import { cn } from '../../utils/cn';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { ColorPicker } from '../common/ColorPicker';
-import { Button } from '../common/Button';
+import { ColorPicker } from '../basic/ColorPicker';
+import { Button } from '../basic/Button';
 
 /** 主题模式选项 */
 const THEME_MODES = [

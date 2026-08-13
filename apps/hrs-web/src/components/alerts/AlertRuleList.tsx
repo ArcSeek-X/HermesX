@@ -8,7 +8,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDialog, EmptyState, Pagination, Select } from '../common';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, Pagination, Select } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { formatUiText, type UiLanguage } from '../../i18n/uiText';
 import {

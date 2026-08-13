@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Clock, Database, GitBranch, MessageSquareText, Workflow } from 'lucide-react';
-import { Badge, StatusDot } from '../common';
+import { Badge, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowSnapshot } from '../../types/runFlow';
 import { compactText, formatDateTime, formatDuration, getRunFlowStatusLabel, RUN_FLOW_STATUS_STYLE } from './utils';

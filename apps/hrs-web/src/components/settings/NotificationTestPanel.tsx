@@ -9,7 +9,7 @@ import type {
   TestNotificationChannelResponse,
   SystemConfigUpdateItem,
 } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select } from '../common';
+import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select } from '../';
 import { SettingsSectionCard } from './SettingsSectionCard';
 
 function getChannelOptions(language: 'zh' | 'en'): Array<{ value: NotificationTestChannel; label: string }> {

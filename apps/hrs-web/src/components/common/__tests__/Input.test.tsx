@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { Input } from '../Input';
+import { Input } from '../../basic/Input';
 
 describe('Input', () => {
   it('wires label and hint text to the input', () => {

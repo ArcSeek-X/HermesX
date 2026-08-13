@@ -26,7 +26,7 @@
 import type React from 'react';
 import { createPortal } from 'react-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { Button } from './Button';
+import { Button } from '../basic/Button';
 
 /** 组件入参定义 */
 interface ConfirmDialogProps {

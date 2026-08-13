@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Filter, GitBranch, ListFilter, OctagonAlert, XCircle } from 'lucide-react';
-import { Badge, Button, StatusDot } from '../common';
+import { Badge, Button, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import type { RunFlowEvent } from '../../types/runFlow';

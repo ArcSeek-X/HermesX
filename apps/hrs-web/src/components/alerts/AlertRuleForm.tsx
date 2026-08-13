@@ -38,7 +38,7 @@ import {
   ALERT_THRESHOLD_DIRECTION_OPTIONS,
 } from '../../locales/featureText';
 import { validateStockCode } from '../../utils/validation';
-import { Button, Card, Checkbox, Input, Select } from '../common';
+import { Button, Card, Checkbox, Input, Select } from '../';
 
 // 单标的（个股/指数）类告警类型，中文文案直接写死，英文由 featureText 提供
 const SYMBOL_ALERT_TYPE_OPTIONS = [

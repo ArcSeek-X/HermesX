@@ -1,6 +1,6 @@
 import type React from 'react';
 import { ChevronDown, RefreshCw, Workflow } from 'lucide-react';
-import { Badge, Button, Card, StatusDot, Tooltip } from '../common';
+import { Badge, Button, Card, StatusDot, Tooltip } from '../';
 import { DashboardPanelHeader } from '../dashboard';
 import type { TaskInfo } from '../../types/analysis';
 import { getRequestedPhaseLabel } from '../../utils/marketPhase';

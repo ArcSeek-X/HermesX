@@ -4,7 +4,7 @@ import type { ParsedApiError } from '../../api/error';
 import { isParsedApiError } from '../../api/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { Button, Input } from '../common';
+import { Button, Input } from '../';
 import { SettingsAlert } from './SettingsAlert';
 import { SettingsSectionCard } from './SettingsSectionCard';
 

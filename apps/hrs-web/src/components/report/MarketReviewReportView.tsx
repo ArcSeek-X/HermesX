@@ -11,8 +11,8 @@ import type {
 } from '../../types/analysis';
 import { markdownToPlainText } from '../../utils/markdown';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
-import { Card } from '../common';
-import { Tooltip } from '../common/Tooltip';
+import { Card } from '../';
+import { Tooltip } from '../basic/Tooltip';
 import { ReportMarkdownBody } from './ReportMarkdownBody';
 
 interface MarketReviewReportViewProps {

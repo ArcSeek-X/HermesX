@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
-import { ApiErrorAlert, Card } from '../common';
+import { ApiErrorAlert, Card } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { historyApi } from '../../api/history';
 import type { NewsIntelItem, ReportLanguage } from '../../types/analysis';

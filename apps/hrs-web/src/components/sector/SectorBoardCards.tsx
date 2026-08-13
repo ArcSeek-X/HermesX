@@ -19,7 +19,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search, Building2, Lightbulb } from 'lucide-react';
-import { Card } from '../common';
+import { Card } from '../';
 import {
   fetchBoardList,
   type BoardListItem,

@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { getParsedApiError } from '../../api/error';
 import { stocksApi, type ExtractItem } from '../../api/stocks';
 import { systemConfigApi, SystemConfigConflictError } from '../../api/systemConfig';
-import { Badge, Button, InlineAlert } from '../common';
+import { Badge, Button, InlineAlert } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../i18n/uiText';
 import { parseStockListValue } from '../../utils/stockList';

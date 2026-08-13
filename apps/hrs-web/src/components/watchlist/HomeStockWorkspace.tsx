@@ -31,7 +31,7 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
-import { Badge, Button, Input, ScrollArea, StatusDot } from '../common';
+import { Badge, Button, Input, ScrollArea, StatusDot } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { StockBar } from '../history';
 import type { StockBarItem, TaskInfo } from '../../types/analysis';
