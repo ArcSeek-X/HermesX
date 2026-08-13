@@ -20,8 +20,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import { ThemeSettingsPopover } from './ThemeSettingsPopover';
-import { UserMenu } from './UserMenu';
-import { LanguageMenu } from './LanguageMenu';
+import { UserSetting } from './UserSetting';
+import { LanguageSwitch } from './LanguageSwitch';
 import { StockAutocomplete } from '../StockAutocomplete/StockAutocomplete';
 import { setStorageItem } from '../../utils/storage';
 import { cn } from '../../utils/cn';
@@ -120,8 +120,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             className="!h-9 !text-xs w-60 lg:w-56 !rounded-[10px] !border-border/70 !bg-card/80 !shadow-soft-card focus:!border-border/70"
           />
           <ThemeSettingsPopover />
-          <LanguageMenu />
-          <UserMenu />
+          <LanguageSwitch />
+          <UserSetting/>
         </div>
       </div>
     </header>
