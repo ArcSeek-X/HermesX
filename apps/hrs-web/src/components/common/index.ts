@@ -32,3 +32,4 @@ export * from '../theme/ThemeProvider';
 export * from '../theme/ThemeToggle';
 export * from './ParticleBackground';
 export * from './Switch';
+export * from './ColorPicker';
