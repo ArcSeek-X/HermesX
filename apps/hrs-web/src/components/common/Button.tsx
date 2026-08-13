@@ -12,10 +12,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BUTTON_SIZE_STYLES = {
-  xsm: 'h-6 rounded-lg px-2 text-sm',
-  sm: 'h-9 rounded-lg px-3 text-sm',
-  md: 'h-10 rounded-xl px-4 text-sm',
-  lg: 'h-11 rounded-xl px-5 text-sm',
+  xsm: 'h-6 rounded-lg px-2 !text-xs',
+  sm: 'h-7 rounded-lg px-3 !text-xs',
+  md: 'h-8 rounded-xl px-4 !text-xs',
+  lg: 'h-10 rounded-xl px-5 text-sm',
   xl: 'h-12 rounded-xl px-6 text-sm',
 } as const;
 
@@ -62,7 +62,7 @@ export const Button: React.FC<ButtonProps> = ({
       aria-busy={isLoading || undefined}
       data-variant={variant}
       className={cn(
-        'inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-all duration-200',
+        'hrs-button inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 focus-visible:ring-offset-0',
         'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none',
         BUTTON_SIZE_STYLES[size],

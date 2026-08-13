@@ -12,6 +12,7 @@ import { cn } from '../../utils/cn';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { ColorPicker } from '../common/ColorPicker';
+import { Button } from '../common/Button';
 
 /** 主题模式选项 */
 const THEME_MODES = [
@@ -119,14 +120,14 @@ export const ThemeSettingsPopover = () => {
             showPreviewDot
             className="w-full [&_.react-colorful]:!w-full [&_.react-colorful-wrapper]:w-full"
           />
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              onClick={reset}
-              className="text-xs text-muted-text transition-colors hover:text-foreground"
-            >
+          <div className="mt-3 flex justify-end gap-3">
+            <Button
+              type="button" variant="settings-primary" onClick={() => {}}>
+              {t('theme.save')}
+            </Button>
+            <Button type="button" variant="settings-secondary" onClick={reset}>
               {t('theme.reset')}
-            </button>
+            </Button>
           </div>
         </div>
       )}

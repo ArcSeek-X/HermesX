@@ -99,7 +99,7 @@ export const ColorPicker = ({
   };
 
   return (
-    <div className={cn('color-picker flex flex-col gap-3', className)}>
+    <div className={cn('color-picker flex flex-col gap-3 mb-4', className)}>
       {/* 色彩面板（react-colorful 自带层级样式，禁用时降低不透明度） */}
       <div className={cn('react-colorful-wrapper', disabled && 'pointer-events-none opacity-50')}>
         <HexColorPicker

@@ -46,6 +46,7 @@ const zh = {
   'theme.toggle': '切换主题', // 切换主题按钮提示
   'theme.primary': '主色', // 主题主色配置标签
   'theme.reset': '重置', // 重置主题主色按钮
+  'theme.save': '保存', // 保存主题设置按钮
 
   'layout.appFallbackDescription': 'Web workspace', // 应用回退描述文案
   'layout.appFallbackTitle': 'HermesX', // 应用回退标题

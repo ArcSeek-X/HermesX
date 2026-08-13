@@ -49,6 +49,7 @@ const en: Record<UiTextKey, string> = {
   'theme.toggle': 'Toggle theme',
   'theme.primary': 'Primary color',
   'theme.reset': 'Reset',
+  'theme.save': 'Save',
 
   'layout.appFallbackDescription': 'Web workspace',
   'layout.appFallbackTitle': 'HermesX',
