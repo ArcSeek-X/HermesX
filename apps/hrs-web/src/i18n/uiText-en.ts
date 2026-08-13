@@ -99,7 +99,7 @@ const en: Record<UiTextKey, string> = {
   'layout.route.kline.title': 'Stock K-Line',
   'layout.logout': 'Log out',
   'layout.logoutConfirm': 'Log out',
-  'layout.logoutMessage': 'Log out of the current session? You will need to enter the password again.',
+  'layout.logoutMessage': 'Confirm logging out of the current session? After logging out, you will need to re-enter your password to log in.',
   'layout.logoutTitle': 'Log out',
   'header.themeSettings': 'Theme settings',
   'header.language': 'UI language',

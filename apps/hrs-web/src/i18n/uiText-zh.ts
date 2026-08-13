@@ -96,7 +96,7 @@ const zh = {
   'layout.route.kline.title': '个股 K 线', // K 线路由标题
   'layout.logout': '退出', // 退出登录按钮
   'layout.logoutConfirm': '确认退出', // 退出确认按钮
-  'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码。', // 退出确认提示文案
+  'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码登录。', // 退出确认提示文案
   'layout.logoutTitle': '退出登录', // 退出登录弹窗标题
   'header.themeSettings': '主题设置', // 头部主题设置按钮
   'header.language': '界面语言', // 头部中英文切换按钮
