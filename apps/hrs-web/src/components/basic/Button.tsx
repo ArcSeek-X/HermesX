@@ -44,9 +44,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  * 未分层的 `button { font: inherit }` 规则，确保字号稳定生效。
  */
 const BUTTON_SIZE_STYLES = {
-  xsm: 'h-6 rounded-lg px-2 !text-xs',
-  sm: 'h-7 rounded-lg px-3 !text-xs',
-  md: 'h-8 rounded-xl px-4 !text-xs',
+  xsm: 'h-6 rounded-xsm px-2 !text-xs',
+  sm: 'h-7 rounded-sm px-3 !text-xs',
+  md: 'h-8 rounded-md px-4 !text-xs',
   lg: 'h-10 rounded-xl px-5 text-sm',
   xl: 'h-12 rounded-xl px-6 text-sm',
 } as const;
