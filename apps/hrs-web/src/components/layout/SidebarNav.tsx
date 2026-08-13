@@ -62,7 +62,6 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'backtest', labelKey: 'layout.nav.backtest', to: '/backtest', icon: BarChart3 },
   { key: 'alerts', labelKey: 'layout.nav.alerts', to: '/alerts', icon: Bell },
   { key: 'usage', labelKey: 'layout.nav.usage', to: '/usage', icon: Gauge },
-  { key: 'settings', labelKey: 'layout.nav.settings', to: '/settings', icon: Settings2 },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
@@ -114,14 +113,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
 
   // 导航项基础样式：布局、圆角、间距、默认文字色
   const itemBaseClass = cn(
-    'group relative mx-auto flex h-[var(--nav-item-height)] items-center overflow-hidden rounded-2xl border border-transparent text-sm leading-none text-secondary-text transition-all',
+    // 去除 mx-auto：配合 nav 的 items-stretch，让子项宽度由 nav 宽度决定，使所有菜单项左边沿对齐
+    'group relative flex h-[var(--nav-item-height)] items-center overflow-hidden rounded-sm border border-transparent text-sm leading-none text-secondary-text transition-all',
     isRail
       ? collapsed
+        // 折叠态：图标居中（窄栏中视觉居中）
         ? 'w-full justify-center px-0'
-        : 'w-fit justify-center gap-2.5 px-3'
+        // 展开态：图标列左对齐成一条竖线（与参考图一致），激活态呈胶囊状
+        : 'w-full justify-start gap-2.5 px-3'
       : collapsed
         ? 'w-full justify-center px-0'
-        : 'w-fit gap-3 px-[var(--nav-item-padding-x)]'
+        : 'w-full gap-3 px-[var(--nav-item-padding-x)]'
   );
   // 交互态：hover 背景 + 文字变亮
   const itemInteractiveClass = cn(
@@ -135,7 +137,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
   const itemLabelClass = cn('truncate', isRail ? 'text-center' : '');
 
   return (
-    <div className="hrs-side-container flex h-full flex-col">
+    <div className="hrs-side-container flex w-full h-full flex-col">
       {/* 品牌 Logo 区域 */}
       <div
         className={cn(
@@ -164,7 +166,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
       </div>
 
       {/* 导航项列表 */}
-      <nav className={cn('flex flex-col items-center gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
+      {/* items-stretch 让子项在交叉轴占满宽度，配合子项 w-full 实现图标列左对齐 */}
+      <nav className={cn('flex flex-col items-stretch gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
         {navItems.map(({ key, labelKey, to, icon: Icon, exact, badge }) => {
           const label = t(labelKey);
           return (
@@ -205,6 +208,33 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
         );
         })}
       </nav>
+
+      {/* 底部固定区：设置入口，始终贴在侧边栏底部 */}
+      {/* 顶部分割线：浅色，用于隔开上方导航列表与设置入口 */}
+      <div className={cn('ggggg mt-auto w-full pt-3', isRail && collapsed ? 'flex justify-center' : '')}>
+        <div className={cn('h-px w-full bg-[var(--nav-divider)]',isRail && collapsed ? 'w-6' : '' )}/>
+      </div>
+      <div className="flex flex-col items-center pt-">
+        <NavLink
+          to="/settings"
+          onClick={onNavigate}
+          aria-label={t('layout.nav.settings')}
+          className={({ isActive }) =>
+            cn(
+              itemBaseClass,
+              itemInteractiveClass,
+              isActive ? itemActiveClass : ''
+            )
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Settings2 className={cn(itemIconClass, isActive ? 'text-[var(--nav-icon-active)]' : 'text-current')} />
+              {!collapsed ? <span className={itemLabelClass}>{t('layout.nav.settings')}</span> : null}
+            </>
+          )}
+        </NavLink>
+      </div>
     </div>
   );
 };
