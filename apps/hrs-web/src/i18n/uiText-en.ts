@@ -106,7 +106,7 @@ const en: Record<UiTextKey, string> = {
 
   // K-Line page
   'kline.title': 'Stock K-Line',
-  'kline.searchPlaceholder': 'Search by stock code, name, pinyin, or abbreviation',
+  'kline.searchPlaceholder': 'code / name/ pinyin / abbreviation',
   'kline.period.1m': 'Intraday',
   'kline.period.5d': '5-Day',
   'kline.period.daily': 'Daily',

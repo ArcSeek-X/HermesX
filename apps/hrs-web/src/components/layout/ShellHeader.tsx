@@ -14,13 +14,17 @@
  * 注意：此组件在 Shell.tsx 的右侧列中使用，作为右侧内容区的顶部页头。
  */
 import type React from 'react';
+import { useState } from 'react';
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import { ThemeSettingsPopover } from './ThemeSettingsPopover';
 import { UserMenu } from './UserMenu';
 import { LanguageMenu } from './LanguageMenu';
+import { StockAutocomplete } from '../StockAutocomplete/StockAutocomplete';
+import { setStorageItem } from '../../utils/storage';
+import { cn } from '../../utils/cn';
 
 type ShellHeaderProps = {
   /** 侧边栏是否处于折叠状态 */
@@ -29,6 +33,8 @@ type ShellHeaderProps = {
   onToggleSidebar: () => void;
   /** 打开移动端导航抽屉 */
   onOpenMobileNav: () => void;
+  /** 自定义类名，追加到根 header 元素，用于个性化样式覆盖 */
+  className?: string;
 };
 
 /**
@@ -55,15 +61,20 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   collapsed,
   onToggleSidebar,
   onOpenMobileNav,
+  className,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useUiLanguage();
   // 根据当前路径查找标题配置，未匹配时为 undefined
   const current = TITLES[location.pathname];
 
+  // 头部股票搜索框：提交后将规范代码写入 sessionStorage（与 K 线页共享键）并跳转 /kline
+  const [stockQuery, setStockQuery] = useState('');
+
   return (
-    <header className="hrs-header z-30 h-12 border-b border-border/60 bg-background backdrop-blur-xl">
-      <div className="flex h-full w-full items-center gap-3 px-4 sm:px-6">
+    <header className={cn('hrs-header z-30 h-14 border-b border-border/60 bg-background backdrop-blur-xl', className)}>
+      <div className="flex h-full w-full items-center gap-3">
         {/* 移动端菜单按钮（< lg 断点显示） */}
         <button
           type="button"
@@ -91,8 +102,23 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           <p className="truncate text-xs text-secondary-text">{current ? t(current.description) : t('layout.appFallbackDescription')}</p>
         </div>
 
-        {/* 右侧操作区：主题设置 / 中英文切换 / 个人设置 */}
+        {/* 右侧操作区：股票搜索 / 主题设置 / 中英文切换 / 个人设置 */}
         <div className="flex items-center gap-2">
+          <StockAutocomplete
+            value={stockQuery}
+            onChange={setStockQuery}
+            onSubmit={(code) => {
+              if (!code) return;
+              // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
+              setStorageItem('kline.stockCode', code, 'session');
+              setStockQuery('');
+              navigate('/kline');
+            }}
+            onClear={() => setStockQuery('')}
+            placeholder={t('kline.searchPlaceholder')}
+            ariaLabel={t('kline.searchPlaceholder')}
+            className="!h-9 !text-xs w-60 lg:w-56 !rounded-[10px] !border-border/70 !bg-card/80 !shadow-soft-card focus:!border-border/70"
+          />
           <ThemeSettingsPopover />
           <LanguageMenu />
           <UserMenu />

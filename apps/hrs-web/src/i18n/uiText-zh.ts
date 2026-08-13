@@ -103,7 +103,7 @@ const zh = {
 
   // K 线页面
   'kline.title': '个股 K 线', // K 线页面标题
-  'kline.searchPlaceholder': '输入股票代码、名称、拼音或简拼搜索', // K 线搜索框占位符
+  'kline.searchPlaceholder': '输入股票代码、名称、拼音或简拼', // K 线搜索框占位符
   'kline.period.1m': '分时', // 分时周期
   'kline.period.5d': '5日', // 5日周期
   'kline.period.daily': '日K', // 日K周期

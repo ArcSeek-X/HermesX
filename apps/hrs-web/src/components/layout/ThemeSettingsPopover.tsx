@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Palette } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
 import { cn } from '../../utils/cn';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
@@ -63,7 +64,7 @@ export const ThemeSettingsPopover = () => {
   const activeMode = mounted ? theme ?? 'system' : 'system';
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="hrs-theme-setting relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -80,10 +81,10 @@ export const ThemeSettingsPopover = () => {
         <div
           role="dialog"
           aria-label={t('header.themeSettings')}
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-[280px] rounded-xl border border-border/80 bg-card p-4 shadow-lg"
+          className="hrs-theme-popover absolute right-0 top-[calc(100%+8px)] z-50 w-[360px] rounded-xl border border-border/80 bg-card p-4 shadow-lg"
         >
           <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.menu')}</div>
-          <div className="mb-4 grid grid-cols-3 gap-2">
+          <div className="theme-mode-switch relative mb-4 flex items-center gap-1 rounded-lg border border-subtle bg-bg-elevated p-1">
             {THEME_MODES.map((mode) => {
               const active = activeMode === mode.value;
               return (
@@ -92,20 +93,32 @@ export const ThemeSettingsPopover = () => {
                   type="button"
                   onClick={() => setTheme(mode.value)}
                   className={cn(
-                    'rounded-lg border px-2 py-1.5 text-xs transition-colors',
-                    active
-                      ? 'border-primary/40 bg-primary/10 text-foreground'
-                      : 'border-border/70 text-secondary-text hover:bg-hover'
+                    'theme-mode-item relative z-10 flex-1 rounded-md px-2 py-1.5 text-xs !text-xs font-medium transition-colors',
+                    active ? 'text-cyan' : 'text-muted-text hover:text-foreground'
                   )}
                 >
-                  {t(mode.labelKey)}
+                  {active && (
+                    <motion.span
+                      layoutId="theme-mode-highlight"
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 rounded-md bg-cyan/15"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10">{t(mode.labelKey)}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="mb-2 text-xs font-medium text-muted-text">{t('theme.primary')}</div>
-          <ColorPicker value={color} onChange={setColor} presets={PRIMARY_PRESETS} />
+          <ColorPicker
+            value={color}
+            onChange={setColor}
+            presets={PRIMARY_PRESETS}
+            showPreviewDot
+            className="w-full [&_.react-colorful]:!w-full [&_.react-colorful-wrapper]:w-full"
+          />
           <div className="mt-3 flex justify-end">
             <button
               type="button"

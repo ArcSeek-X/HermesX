@@ -13,7 +13,7 @@
  * - 内置 HEX 合法性校验，非法输入不向上回写、仅本地提示
  * - 样式复用项目的 CSS 变量（卡片背景、边框、文字、主色）
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { cn } from '../../utils/cn';
 
@@ -44,6 +44,8 @@ interface ColorPickerProps {
   showPresets?: boolean;
   /** 是否显示 HEX 输入框，默认 true */
   showInput?: boolean;
+  /** 是否在 HEX 输入框右侧显示当前颜色示例色块，默认 false */
+  showPreviewDot?: boolean;
   /** 是否禁用 */
   disabled?: boolean;
   /** 自定义 CSS 类名 */
@@ -65,11 +67,18 @@ export const ColorPicker = ({
   presets = DEFAULT_PRESETS,
   showPresets = true,
   showInput = true,
+  showPreviewDot = false,
   disabled = false,
   className = '',
 }: ColorPickerProps) => {
   // 本地草稿：HEX 输入框的受控值，允许临时非法输入，校验通过才回写
   const [draft, setDraft] = useState(value);
+  // 用户是否正在输入（输入框获得焦点期间视为正在输入）
+  const isEditingRef = useRef(false);
+  // 外部 value 变化且用户未在编辑时同步草稿（避免与色彩面板不同步）
+  useEffect(() => {
+    if (!isEditingRef.current) setDraft(value);
+  }, [value]);
   // 草稿是否非法（用于输入框边框提示）
   const isDraftInvalid = !HEX_PATTERN.test(draft.trim());
 
@@ -90,7 +99,7 @@ export const ColorPicker = ({
   };
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
+    <div className={cn('color-picker flex flex-col gap-3', className)}>
       {/* 色彩面板（react-colorful 自带层级样式，禁用时降低不透明度） */}
       <div className={cn('react-colorful-wrapper', disabled && 'pointer-events-none opacity-50')}>
         <HexColorPicker
@@ -101,29 +110,42 @@ export const ColorPicker = ({
 
       {/* HEX 输入 + 预设色板 */}
       {showInput && (
-        <div className="flex items-center gap-2">
+        <div className="color-picker-hex flex items-center gap-2">
           <span className="text-xs text-muted-text">HEX</span>
           <input
             type="text"
             value={draft}
             disabled={disabled}
+            onFocus={() => {
+              isEditingRef.current = true;
+            }}
             onChange={(e) => handleInputChange(e.target.value)}
-            onBlur={() => setDraft(value)}
+            onBlur={() => {
+              isEditingRef.current = false;
+              setDraft(value);
+            }}
             spellCheck={false}
             aria-invalid={isDraftInvalid}
             className={cn(
-              'h-8 flex-1 rounded-md border bg-card px-2 font-mono text-xs text-foreground',
+              'h-8 flex-1 !rounded !border-border/70 !bg-card !px-2 !font-mono !text-xs !text-foreground',
               'focus:outline-none focus:ring-2',
               isDraftInvalid ? 'border-danger/40 focus:ring-danger/30' : 'border-subtle focus:ring-primary/30',
               disabled && 'cursor-not-allowed opacity-60',
             )}
             placeholder="#RRGGBB"
           />
+          {showPreviewDot && !disabled && (
+            <div
+              className="color-picker-show inline-block h-7 w-7 ml-3 shrink-0 rounded border border-border/60 shadow-soft-card"
+              style={{ backgroundColor: value }}
+              aria-hidden
+            />
+          )}
         </div>
       )}
 
       {showPresets && presets.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="color-picker-presets flex items-center justify-between">
           {presets.map((hex) => {
             const active = value.toLowerCase() === hex.toLowerCase();
             return (
@@ -136,7 +158,7 @@ export const ColorPicker = ({
                 aria-pressed={active}
                 title={hex}
                 className={cn(
-                  'h-6 w-6 rounded-md border transition-all',
+                  'h-6 w-6 shrink-0 rounded-md border transition-all',
                   active
                     ? 'border-primary ring-2 ring-primary/40'
                     : 'border-subtle hover:border-primary/50',

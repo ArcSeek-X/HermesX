@@ -1,9 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { SidebarNav } from '../SidebarNav';
 
-const mockLogout = vi.fn().mockResolvedValue(undefined);
 const mockGetAlphaSiftStatus = vi.fn().mockResolvedValue({ enabled: false, available: false, installSpecIsDefault: false });
 const mockThemeToggle = vi.fn(({ collapsed }: { collapsed?: boolean }) => (
   <button type="button">{collapsed ? '切换主题(折叠)' : '切换主题'}</button>
@@ -14,7 +13,6 @@ const completionBadgeState = { value: true };
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     authEnabled: true,
-    logout: mockLogout,
   }),
 }));
 
@@ -152,17 +150,15 @@ describe('SidebarNav', () => {
     expect(signalsLink).toHaveClass('font-medium');
   });
 
-  it('opens the logout confirmation and confirms logout', async () => {
+  it('does not render a logout entry (logout lives in UserMenu)', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
         <SidebarNav />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '退出' }));
-
-    expect(await screen.findByRole('heading', { name: '退出登录' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '确认退出' }));
-    expect(mockLogout).toHaveBeenCalled();
+    // 退出登录入口位于右上角 UserMenu，不在侧边导航内
+    expect(screen.queryByRole('button', { name: '退出' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '退出登录' })).not.toBeInTheDocument();
   });
 });

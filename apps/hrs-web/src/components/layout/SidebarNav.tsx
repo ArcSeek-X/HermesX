@@ -1,15 +1,14 @@
 /**
  * 侧边导航组件（SidebarNav）
  *
- * 应用的主导航菜单，支持两种展示形态：
+ * 应用主导航菜单，支持两种展示形态：
  * - variant="default"：标准列表模式，用于移动端抽屉
- * - variant="rail"：精简轨道模式，图标居中，用于桌面端固定侧边栏
+ * - variant="rail"：精简轨道模式（图标居中），用于桌面端固定侧边栏
  *
- * 功能：
- * 1. 渲染导航项列表（首页、板块分析、K线、对话、选股、持仓等）
- * 2. 根据 AlphaSift 配置状态动态显示/隐藏「选股」入口
- * 3. 对话页面支持未读完成标记（StatusDot 红点）
- * 4. 主题切换 / 语言切换 / 退出登录已由顶部 Header 操作区统一提供，本组件不再重复放置
+ * 主要职责：
+ * 1. 渲染导航项列表（首页、板块分析、K线、对话、选股、持仓等），顺序见 NAV_ITEMS
+ * 2. 依据 AlphaSift 功能开关动态显隐「选股」入口
+ * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
 import React, { useEffect, useState } from 'react';
 import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, Gauge, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Search, Settings2 } from 'lucide-react';
@@ -20,11 +19,10 @@ import { useAgentChatStore } from '../../stores/agentChatStore';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import { cn } from '../../utils/cn';
-import { ConfirmDialog } from '../common/ConfirmDialog';
 import { StatusDot } from '../common/StatusDot';
 
 type SidebarNavProps = {
-  /** 是否折叠（仅显示图标，隐藏文字） */
+  /** 是否折叠：仅显示图标，隐藏文字标签 */
   collapsed?: boolean;
   /** 导航点击回调，常用于移动端点击后关闭抽屉 */
   onNavigate?: () => void;
@@ -49,9 +47,8 @@ type NavItem = {
 };
 
 /**
- * 导航项配置列表
- * 顺序即为菜单展示顺序
- * 'screening' 项受 AlphaSift 开关控制，关闭时被过滤掉
+ * 导航项配置列表，数组顺序即为菜单展示顺序。
+ * 'screening'（选股）受 AlphaSift 开关控制，关闭时从列表中过滤。
  */
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', labelKey: 'layout.nav.home', to: '/home', icon: Home, exact: true },
@@ -69,20 +66,17 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
-  const { authEnabled, logout } = useAuth();
   const { t } = useUiLanguage();
-  // 对话完成标记（有新的 AI 回复完成时显示红点）
+  // 对话完成标记：有新的 AI 回复完成时显示红点
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
-  // 退出登录二次确认弹窗
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  // AlphaSift 功能是否启用，控制「选股」入口的显隐
+  // AlphaSift 是否启用，控制「选股」入口显隐
   const [showAlphaSiftNav, setShowAlphaSiftNav] = useState(false);
 
   /**
-   * 查询 AlphaSift 启用状态，并监听配置变更事件
-   * - 组件挂载时主动查询一次
-   * - 监听 ALPHASIFT_CONFIG_CHANGED_EVENT 和 SYSTEM_CONFIG_CHANGED_EVENT 事件，实时响应配置变更
-   * - 通过 active 标志防止异步回调在组件卸载后更新状态
+   * 查询 AlphaSift 启用状态并监听配置变更：
+   * - 挂载时主动查询一次
+   * - 监听 ALPHASIFT_CONFIG_CHANGED_EVENT / SYSTEM_CONFIG_CHANGED_EVENT，实时响应配置变更
+   * - 用 active 标志避免异步回调在组件卸载后更新状态
    */
   useEffect(() => {
     let active = true;
@@ -116,23 +110,24 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
   const navItems = showAlphaSiftNav ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.key !== 'screening');
   const isRail = variant === 'rail';
 
-  // ===== 样式常量预计算（根据 variant 和 collapsed 状态组合）=====
+  // ===== 样式常量（按 variant / collapsed 预组合）=====
 
-  // 导航项基础样式：控制布局、圆角、间距、文字颜色
+  // 导航项基础样式：布局、圆角、间距、默认文字色
   const itemBaseClass = cn(
-    'group relative flex h-[var(--nav-item-height)] w-full items-center overflow-hidden rounded-2xl border border-transparent text-sm leading-none text-secondary-text transition-all',
+    'group relative mx-auto flex h-[var(--nav-item-height)] items-center overflow-hidden rounded-2xl border border-transparent text-sm leading-none text-secondary-text transition-all',
     isRail
-      ? 'justify-center gap-2.5 px-2'
+      ? collapsed
+        ? 'w-full justify-center px-0'
+        : 'w-fit justify-center gap-2.5 px-3'
       : collapsed
-        ? 'justify-center px-0'
-        : 'gap-3 px-[var(--nav-item-padding-x)]'
+        ? 'w-full justify-center px-0'
+        : 'w-fit gap-3 px-[var(--nav-item-padding-x)]'
   );
-  // 交互态样式：hover 背景 + 文字变亮
+  // 交互态：hover 背景 + 文字变亮
   const itemInteractiveClass = cn(
-    itemBaseClass,
     'hover:bg-[var(--nav-hover-bg)] hover:text-foreground'
   );
-  // 激活态样式：高亮边框 + 背景 + 主色文字
+  // 激活态：高亮边框 + 背景 + 主色文字
   const itemActiveClass = 'border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] font-medium text-[hsl(var(--primary))]';
   // 图标尺寸：rail 模式略小
   const itemIconClass = cn(isRail ? 'h-[18px] w-[18px]' : 'h-5 w-5', 'shrink-0');
@@ -140,8 +135,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
   const itemLabelClass = cn('truncate', isRail ? 'text-center' : '');
 
   return (
-    <div className="flex h-full flex-col">
-      {/* ===== 品牌 Logo 区域 ===== */}
+    <div className="hrs-side-container flex h-full flex-col">
+      {/* 品牌 Logo 区域 */}
       <div
         className={cn(
           'flex items-center',
@@ -151,20 +146,25 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
       >
         <div
           className={cn(
-            'flex items-center justify-center bg-primary-gradient text-[hsl(var(--primary-foreground))] shadow-[0_12px_28px_var(--nav-brand-shadow)]',
+            'flex items-center justify-center text-white shadow-[0_12px_28px_var(--nav-brand-shadow)]',
             isRail ? 'h-9 w-9 rounded-[1rem]' : 'h-10 w-10 rounded-2xl'
           )}
+          style={{
+            // 背景基于当前主色 --primary 生成渐变，随主题色切换联动
+            background:
+              'linear-gradient(135deg, hsl(var(--primary) / 0.96), hsl(var(--primary) / 0.78))',
+          }}
         >
           <BarChart3 className={cn(isRail ? 'h-[19px] w-[19px]' : 'h-5 w-5')} />
         </div>
-        {/* 折叠模式下隐藏品牌文字 */}
+        {/* 折叠时隐藏品牌文字 */}
         {!collapsed ? (
           <p className={cn('min-w-0 truncate font-semibold text-foreground', isRail ? 'text-[0.95rem] leading-none' : 'text-sm')}>HRS</p>
         ) : null}
       </div>
 
-      {/* ===== 导航项列表 ===== */}
-      <nav className={cn('flex flex-col gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
+      {/* 导航项列表 */}
+      <nav className={cn('flex flex-col items-center gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
         {navItems.map(({ key, labelKey, to, icon: Icon, exact, badge }) => {
           const label = t(labelKey);
           return (
@@ -176,6 +176,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
             aria-label={label}
             className={({ isActive }) =>
               cn(
+                itemBaseClass,
                 itemInteractiveClass,
                 isActive ? itemActiveClass : ''
               )
@@ -184,7 +185,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
             {({ isActive }) => (
               <>
                 <Icon className={cn(itemIconClass, isActive ? 'text-[var(--nav-icon-active)]' : 'text-current')} />
-                {/* 折叠模式下隐藏文字标签 */}
+                {/* 折叠时隐藏文字标签 */}
                 {!collapsed ? <span className={itemLabelClass}>{label}</span> : null}
                 {/* 对话完成未读标记：右上角红点 */}
                 {badge === 'completion' && completionBadge ? (
@@ -203,26 +204,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
           </NavLink>
         );
         })}
-
       </nav>
-
-      {/* 说明：主题切换 / 语言切换 / 退出登录 已上移到顶部 Header 操作区，此处不再重复提供 */}
-
-      {/* 退出登录二次确认弹窗 */}
-      <ConfirmDialog
-        isOpen={showLogoutConfirm}
-        title={t('layout.logoutTitle')}
-        message={t('layout.logoutMessage')}
-        confirmText={t('layout.logoutConfirm')}
-        cancelText={t('common.cancel')}
-        isDanger
-        onConfirm={() => {
-          setShowLogoutConfirm(false);
-          onNavigate?.();
-          void logout();
-        }}
-        onCancel={() => setShowLogoutConfirm(false)}
-      />
     </div>
   );
 };

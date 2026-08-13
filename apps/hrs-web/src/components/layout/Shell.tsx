@@ -17,7 +17,7 @@
  *    - 主内容区域全宽显示
  * 3. 桌面端（>= lg 断点，即 >= 1024px）：
  *    - 左侧显示固定侧边栏（不随内容区滚动）
- *    - 侧边栏宽度：展开 136px / 折叠 64px（当前默认展开）
+ *    - 侧边栏宽度：展开 136px / 折叠 64px，由用户点击页头折叠按钮控制，状态持久化到 localStorage
  *    - 主内容区域紧邻侧边栏右侧
  * 4. 响应式切换：
  *    - 当窗口从移动端放大到桌面端（>= 1024px）时，自动关闭抽屉，
@@ -51,6 +51,7 @@ import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SidebarNav';
 import { cn } from '../../utils/cn';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useCachedState } from '../../hooks/useCachedState';
 
 /** Shell 组件的属性定义 */
 type ShellProps = {
@@ -77,8 +78,8 @@ type ShellProps = {
 export const Shell: React.FC<ShellProps> = ({ children }) => {
   /** 移动端抽屉导航的展开/收起状态 */
   const [mobileOpen, setMobileOpen] = useState(false);
-  /** 侧边栏折叠状态：true=折叠（64px）/ false=展开（136px），当前固定为展开，预留折叠能力 */
-  const collapsed = false;
+  /** 桌面端侧边栏折叠状态：true=折叠（64px）/ false=展开（136px），通过 useCachedState 持久化到 localStorage */
+  const [collapsed, setCollapsed] = useCachedState<boolean>('layout.sidebarCollapsed', false);
   /** 国际化翻译函数，用于获取多语言文本 */
   const { t } = useUiLanguage();
 
@@ -112,16 +113,16 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
       {/* flex 行布局：左侧侧边栏 + 右侧列 */}
       {/* h-[calc(100vh-1.5rem)]：固定高度，不滚动；滚动发生在内部 hrs-page-container 上 */}
       {/* 响应式内边距：px-3 py-3 → sm:px-4 sm:py-4 → lg:px-5 */}
-      <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px] px-3 py-3 sm:px-4 sm:py-4 lg:px-4">
+      <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px] px-3 pb-3 sm:px-4 sm:pb-4 lg:px-4">
         {/* ===== 左侧：桌面端固定侧边栏（仅 >= lg 断点显示）===== */}
         {/* self-start：高度自适应内容，不拉伸填满容器 */}
         {/* 圆角 1.5rem + 半透明背景 + 毛玻璃模糊 + 柔和阴影，终端风格视觉 */}
         {/* transition-[width] 支持折叠/展开时的宽度过渡动画（200ms） */}
         <aside
           className={cn(
-            'hrs-side h-full z-40 hidden shrink-0 overflow-visible self-start rounded-[1.5rem] border border-[var(--shell-sidebar-border)] bg-card/72 p-2.5 shadow-soft-card backdrop-blur-sm transition-[width] duration-200 lg:flex',
-            // 宽度：折叠 64px / 展开 136px
-            collapsed ? 'w-[64px]' : 'w-[136px]'
+            'hrs-side h-full z-40 hidden p-2.5 mt-2 shrink-0 overflow-visible self-start border border-[var(--shell-sidebar-border)] bg-card/72 shadow-soft-card backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
+            // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
+            collapsed ? 'w-[64px] rounded-2xl items-center justify-center' : 'w-[136px] rounded-[1.5rem]'
           )}
           aria-label={t('layout.desktopSidebar')}
         >
@@ -136,15 +137,22 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
           {/* ===== 顶部页头（固定，不随内容区滚动）===== */}
           <ShellHeader
             collapsed={collapsed}
-            onToggleSidebar={() => undefined}
+            onToggleSidebar={() => setCollapsed((c) => !c)}
             onOpenMobileNav={() => setMobileOpen(true)}
+            className = {
+             "px-4 md:px-3 lg:px-4"
+            }
           />
 
           {/* ===== 主内容区域（滚动容器）===== */}
           {/* min-h-0：允许 flex 子元素收缩，使 overflow-y-auto 生效 */}
           {/* bg-background：确保 padding 区域不透明，遮挡滚动内容 */}
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
-          <main className="hrs-page-container min-h-0 min-w-0 flex-1 overflow-y-auto bg-background touch-pan-y">
+          <main className="hrs-page-container 
+            min-h-0 min-w-0 
+            px-4 md:px-3 lg:px-4 pt-4 pb-8   
+            flex-1 overflow-y-auto bg-background touch-pan-y"
+          >
             {/* 优先渲染 children（直接包裹模式），否则渲染 <Outlet />（路由模式） */}
             {children ?? <Outlet />}
           </main>
