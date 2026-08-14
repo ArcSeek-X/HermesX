@@ -14,6 +14,22 @@
     system-ui,
     -apple-system,
     sans-serif;
+  /* 等宽字体变量：Tailwind v4 的 font-mono 工具类解析 var(--font-mono)，
+     未定义时字体声明失效并回退到继承的非等宽字体（历史坑，勿删） */
+  /* --font-mono:
+    ui-monospace,
+    "SF Mono",
+    "JetBrains Mono",
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace; */
+
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -136,6 +152,7 @@
   --nav-indicator-shadow: hsl(var(--primary) / 0.52);
   --nav-badge-bg: hsl(var(--primary));
   --nav-brand-shadow: hsl(var(--primary) / 0.2);
+  --nav-divider: hsl(var(--foreground) / 0.09);
 
   /* Shell Sidebar Custom */
   --shell-sidebar-border: hsl(193 100% 43% / 0.35);
@@ -219,16 +236,6 @@
   --settings-border-strong: hsl(218 18% 68% / 0.98);
   --settings-border-overlay: hsl(218 22% 72% / 0.92);
   --settings-accent-shadow: hsl(190 100% 50% / 0.08);
-  --settings-primary-border: hsl(190 100% 50% / 0.26);
-  --settings-primary-gradient:
-    linear-gradient(135deg, hsl(190 100% 50% / 0.96), hsl(191 100% 40% / 0.96));
-  --settings-primary-text: hsl(205 71% 6%);
-  --settings-primary-shadow: hsl(190 100% 50% / 0.2);
-  --settings-primary-shadow-hover: hsl(190 100% 50% / 0.22);
-  --settings-secondary-border: hsl(218 22% 74% / 0.96);
-  --settings-secondary-bg: hsl(214 36% 95% / 0.98);
-  --settings-secondary-border-hover: hsl(190 100% 50% / 0.38);
-  --settings-secondary-bg-hover: hsl(190 100% 50% / 0.12);
   --settings-glow-hover: hsl(190 100% 50% / 0.38);
   --settings-skeleton-strong: hsl(218 20% 84% / 0.92);
   --settings-skeleton-soft: hsl(218 22% 92% / 0.96);
@@ -424,6 +431,7 @@
   --nav-indicator-shadow: hsl(var(--primary) / 0.8);
   --nav-badge-bg: hsl(var(--primary));
   --nav-brand-shadow: hsl(var(--primary) / 0.24);
+  --nav-divider: hsl(var(--foreground) / 0.08);
 
   /* Home page related (Dark theme) */
   --home-loading-ring-track: hsl(var(--primary) / 0.2);
@@ -492,16 +500,6 @@
   --settings-border-strong: hsl(0 0% 100% / 0.2);
   --settings-border-overlay: hsl(0 0% 100% / 0.45);
   --settings-accent-shadow: hsl(190 100% 50% / 0.1);
-  --settings-primary-border: hsl(190 100% 50% / 0.26);
-  --settings-primary-gradient:
-    linear-gradient(135deg, hsl(190 100% 50% / 0.96), hsl(191 100% 40% / 0.96));
-  --settings-primary-text: hsl(205 71% 6%);
-  --settings-primary-shadow: hsl(190 100% 50% / 0.2);
-  --settings-primary-shadow-hover: hsl(190 100% 50% / 0.22);
-  --settings-secondary-border: hsl(0 0% 100% / 0.08);
-  --settings-secondary-bg: hsl(0 0% 100% / 0.03);
-  --settings-secondary-border-hover: hsl(190 100% 50% / 0.3);
-  --settings-secondary-bg-hover: hsl(190 100% 50% / 0.06);
   --settings-glow-hover: hsl(190 100% 50% / 0.38);
   --settings-skeleton-strong: hsl(0 0% 100% / 0.1);
   --settings-skeleton-soft: hsl(0 0% 100% / 0.06);
@@ -2138,26 +2136,30 @@ textarea {
 }
 
 .settings-button-primary {
-  border-color: var(--settings-primary-border);
-  background: var(--settings-primary-gradient);
-  color: var(--settings-primary-text);
-  box-shadow: 0 12px 28px var(--settings-primary-shadow);
+  border-color: hsl(var(--primary) / 0.26);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.96),
+    hsl(var(--primary) / 0.78)
+  );
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 12px 28px hsl(var(--primary) / 0.2);
 }
 
 .settings-button-primary:hover {
-  box-shadow: 0 18px 34px var(--settings-primary-shadow-hover);
+  box-shadow: 0 18px 34px hsl(var(--primary) / 0.22);
 }
 
 .settings-button-secondary {
-  border-color: var(--settings-secondary-border);
-  background: var(--settings-secondary-bg);
-  color: var(--text-secondary-text);
+  border-color: hsl(var(--primary) / 0.26);
+  background: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
 }
 
 .settings-button-secondary:hover {
-  border-color: var(--settings-secondary-border-hover);
-  background: var(--settings-secondary-bg-hover);
-  color: var(--text-primary);
+  border-color: hsl(var(--primary) / 0.42);
+  background: hsl(var(--primary) / 0.16);
+  color: hsl(var(--primary));
 }
 
 .settings-glow-cyan-hover:hover {
@@ -2169,13 +2171,13 @@ textarea {
 }
 
 .settings-accent-badge {
-  border-color: var(--settings-primary-border);
+  border-color: hsl(var(--primary) / 0.26);
   background: hsl(var(--primary) / 0.1);
   color: hsl(var(--primary));
 }
 
 .settings-accent-badge-soft {
-  border-color: var(--settings-primary-border);
+  border-color: hsl(var(--primary) / 0.26);
   background: hsl(var(--primary) / 0.08);
   color: hsl(var(--primary));
 }
