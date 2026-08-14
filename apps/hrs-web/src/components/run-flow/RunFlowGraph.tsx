@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowEdge, RunFlowLane, RunFlowNode, RunFlowStatus } from '../../types/runFlow';
+import { toCnOrEn } from '../../utils/uiLanguage';
 import {
   compactText,
   formatDateTime,
@@ -797,7 +798,7 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
                   </span>
                   {node.startedAt ? (
                     <span className="mt-1 block w-full min-w-0 truncate text-[11px] text-muted-text">
-                      {t('runFlow.graph.startedAt')}: {formatDateTime(node.startedAt, language, t)}
+                      {t('runFlow.graph.startedAt')}: {formatDateTime(node.startedAt, toCnOrEn(language), t)}
                     </span>
                   ) : null}
                 </button>

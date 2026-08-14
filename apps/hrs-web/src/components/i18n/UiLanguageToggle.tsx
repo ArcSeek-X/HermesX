@@ -1,6 +1,7 @@
 import type React from 'react';
 import { Languages } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import type { UiLanguage } from '../../i18n/uiText';
 import { cn } from '../../utils/cn';
 
 type UiLanguageToggleVariant = 'default' | 'nav' | 'rail';
@@ -28,10 +29,14 @@ export const UiLanguageToggle: React.FC<UiLanguageToggleProps> = ({
   labelClassName,
 }) => {
   const { language, setLanguage, t } = useUiLanguage();
-  const nextLanguage = language === 'zh' ? 'en' : 'zh';
+  // 三语循环切换：简体中文 -> 繁體中文 -> English -> 简体中文
+  const nextLanguage: UiLanguage =
+    language === 'zh' ? 'zh-Hant' : language === 'zh-Hant' ? 'en' : 'zh';
+  const shortLabel =
+    language === 'zh' ? t('language.short.zh') : language === 'zh-Hant' ? t('language.short.zhHant') : t('language.short.en');
   const isNavVariant = variant === 'nav';
   const isRailVariant = variant === 'rail';
-  const label = language === 'zh' ? t('language.uiLanguage') : t('language.current');
+  const label = language === 'zh' ? t('language.chineseSimplified') : language === 'zh-Hant' ? t('language.chineseTraditional') : t('language.english');
 
   return (
     <div className={cn('relative', isRailVariant ? 'w-full' : '', wrapperClassName)}>
@@ -56,7 +61,7 @@ export const UiLanguageToggle: React.FC<UiLanguageToggleProps> = ({
       >
         <Languages className={iconClassName ?? cn('shrink-0', isRailVariant ? 'h-[18px] w-[18px]' : isNavVariant ? 'h-5 w-5' : iconOnly ? 'h-4 w-4' : 'h-4 w-4')} />
         {isRailVariant ? (
-          <span className={cn('text-sm', labelClassName ?? 'truncate')}>{language === 'zh' ? t('language.short.zh') : t('language.short.en')}</span>
+          <span className={cn('text-sm', labelClassName ?? 'truncate')}>{shortLabel}</span>
         ) : isNavVariant ? (
           collapsed ? null : <span className={cn('text-sm', labelClassName ?? 'truncate')}>{label}</span>
         ) : iconOnly ? null : (

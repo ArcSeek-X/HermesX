@@ -22,6 +22,16 @@ const categoryTitleMap: Record<UiLanguage, Record<SystemConfigCategory, string>>
   backtest: '回测配置',
   uncategorized: '其他',
   },
+  'zh-Hant': {
+  base: '基礎設置',
+  data_source: '數據源',
+  ai_model: 'AI 模型',
+  notification: '通知渠道',
+  system: '系統設置',
+  agent: 'Agent 設置',
+  backtest: '回測配置',
+  uncategorized: '其他',
+  },
   en: {
     base: 'Base settings',
     data_source: 'Data sources',
@@ -44,6 +54,16 @@ const categoryDescriptionMap: Record<UiLanguage, Partial<Record<SystemConfigCate
   agent: '管理 Agent 模式、策略与多 Agent 编排配置。',
   backtest: '管理回测开关、评估窗口和引擎参数。',
   uncategorized: '其他未归类的配置项。',
+  },
+  'zh-Hant': {
+  base: '管理自選股與基礎運行參數。',
+  data_source: '管理行情數據源與優先級策略。',
+  ai_model: '管理模型服務、模型名稱與推理參數。',
+  notification: '管理機器人、Webhook 和消息推送配置。',
+  system: '管理調度、日誌、端口等系統級參數。',
+  agent: '管理 Agent 模式、策略與多 Agent 編排配置。',
+  backtest: '管理回測開關、評估窗口和引擎參數。',
+  uncategorized: '其他未歸類的配置項。',
   },
   en: {
     base: 'Manage watchlists and base runtime parameters.',

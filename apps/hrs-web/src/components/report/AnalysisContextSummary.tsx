@@ -290,7 +290,7 @@ const formatLimitation = (
 
   const label = BLOCK_LABELS[language][key] || key;
   const statusLabel = (text.status as Record<string, string>)[status] || status;
-  return language === 'zh' ? `${label}：${statusLabel}` : `${label}: ${statusLabel}`;
+  return language !== 'en' ? `${label}：${statusLabel}` : `${label}: ${statusLabel}`;
 };
 
 const formatMissingReason = (

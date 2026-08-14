@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Info, X } from 'lucide-react';
 import { Badge, Button, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowNode, RunFlowStatus } from '../../types/runFlow';
+import { toCnOrEn } from '../../utils/uiLanguage';
 import {
   formatDateTime,
   formatDuration,
@@ -167,10 +168,10 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
   };
   const addTimeRows = () => {
     if (node.startedAt) {
-      detailRows.push([t('runFlow.nodeDetails.startedAt'), formatDateTime(node.startedAt, language, t)]);
+      detailRows.push([t('runFlow.nodeDetails.startedAt'), formatDateTime(node.startedAt, toCnOrEn(language), t)]);
     }
     if (node.endedAt) {
-      detailRows.push([t('runFlow.nodeDetails.endedAt'), formatDateTime(node.endedAt, language, t)]);
+      detailRows.push([t('runFlow.nodeDetails.endedAt'), formatDateTime(node.endedAt, toCnOrEn(language), t)]);
     }
   };
 
@@ -282,7 +283,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
                     <td className="px-3 py-2 text-secondary-text">
                       {typeof attempt.recordCount === 'number' ? attempt.recordCount : t('runFlow.valueUnavailable')}
                     </td>
-                    <td className="px-3 py-2 text-secondary-text">{formatDateTime(attempt.startedAt, language, t)}</td>
+                    <td className="px-3 py-2 text-secondary-text">{formatDateTime(attempt.startedAt, toCnOrEn(language), t)}</td>
                   </tr>
                 ))}
               </tbody>

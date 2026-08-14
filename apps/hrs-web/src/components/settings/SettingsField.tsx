@@ -226,7 +226,7 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
   const helpContent = getSettingsHelpContent(schema?.helpKey, schema?.description, language);
   const localizationKey = schema?.key ?? item.key;
   const fallbackTitle = schema?.title ?? item.key;
-  const title = language === 'zh'
+  const title = language !== 'en'
     ? getFieldTitleZh(localizationKey, getFieldTitleZh(item.key, fallbackTitle))
     : fallbackTitle;
   const description = language === 'en'

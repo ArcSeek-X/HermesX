@@ -24,6 +24,7 @@ import {
 } from '../../locales/featureText';
 import type { AlertRuleItem, AlertType, MarketRegion } from '../../types/alerts';
 import { formatDateTime } from '../../utils/format';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 // 启用状态筛选：全部 / 仅启用 / 仅停用
 export type AlertRuleEnabledFilter = 'all' | 'enabled' | 'disabled';
@@ -40,15 +41,15 @@ export interface AlertRuleBusyState {
 
 // 根据规则类型与参数，把 parameters 还原成人类可读的一行文本
 function formatParameters(rule: AlertRuleItem, language: UiLanguage): string {
-  const directionLabels = ALERT_DIRECTION_LABELS[language];
+  const directionLabels = ALERT_DIRECTION_LABELS[toCnOrEn(language)];
   if (rule.alertType === 'market_light_status') {
     const statuses = rule.parameters.statuses ?? [];
     return statuses.length > 0
-      ? statuses.map((status) => ALERT_MARKET_LIGHT_STATUS_LABELS[language][status] ?? status).join(' / ')
+      ? statuses.map((status) => ALERT_MARKET_LIGHT_STATUS_LABELS[toCnOrEn(language)][status] ?? status).join(' / ')
       : '--';
   }
   if (rule.alertType === 'market_light_score_drop') {
-    return formatUiText(ALERT_LIST_TEXT[language].scoreDropAtLeast, { value: rule.parameters.minDrop ?? '--' });
+    return formatUiText(ALERT_LIST_TEXT[toCnOrEn(language)].scoreDropAtLeast, { value: rule.parameters.minDrop ?? '--' });
   }
   if (rule.alertType === 'price_cross') {
     return `${rule.parameters.direction === 'below' ? directionLabels.belowPrice : directionLabels.abovePrice} ${rule.parameters.price ?? '--'}`;
@@ -88,10 +89,10 @@ function isCoolingDown(rule: AlertRuleItem): boolean {
 
 // 把 target 字段按范围转成展示文案：市场=区域名，自选股=default，组合账户=账户/全部账户
 function formatTarget(rule: AlertRuleItem, language: UiLanguage): string {
-  if (rule.targetScope === 'market') return ALERT_MARKET_REGION_LABELS[language][rule.target as MarketRegion] ?? rule.target;
+  if (rule.targetScope === 'market') return ALERT_MARKET_REGION_LABELS[toCnOrEn(language)][rule.target as MarketRegion] ?? rule.target;
   if (rule.targetScope === 'watchlist') return 'default';
   if (rule.targetScope === 'portfolio_account' || rule.targetScope === 'portfolio_holdings') {
-    const text = ALERT_LIST_TEXT[language];
+    const text = ALERT_LIST_TEXT[toCnOrEn(language)];
     return rule.target === 'all'
       ? text.allAccounts
       : formatUiText(text.accountTarget, { target: rule.target });
@@ -139,7 +140,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
   busyRule = null,
 }) => {
   const { language } = useUiLanguage();
-  const text = ALERT_LIST_TEXT[language];
+  const text = ALERT_LIST_TEXT[toCnOrEn(language)];
   // 等待二次确认的待删除规则
   const [pendingDelete, setPendingDelete] = useState<AlertRuleItem | null>(null);
   // 总页数：至少为 1，避免除以 0
@@ -165,7 +166,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
         <Select
           label={text.enabledFilter}
           value={enabledFilter}
-          options={ALERT_ENABLED_FILTER_OPTIONS[language]}
+          options={ALERT_ENABLED_FILTER_OPTIONS[toCnOrEn(language)]}
           onChange={(value) => {
             onEnabledFilterChange(value as AlertRuleEnabledFilter);
           }}
@@ -173,7 +174,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
         <Select
           label={text.alertTypeFilter}
           value={alertTypeFilter}
-          options={ALERT_TYPE_FILTER_OPTIONS[language]}
+          options={ALERT_TYPE_FILTER_OPTIONS[toCnOrEn(language)]}
           onChange={(value) => {
             onAlertTypeFilterChange(value as AlertTypeFilter);
           }}
@@ -214,13 +215,13 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
                   </td>
                   <td className="px-3 py-3 text-secondary-text">
                     <div className="font-mono">{formatTarget(rule, language)}</div>
-                    <div className="mt-1 text-xs">{ALERT_SCOPE_LABELS[language][rule.targetScope] ?? rule.targetScope}</div>
+                    <div className="mt-1 text-xs">{ALERT_SCOPE_LABELS[toCnOrEn(language)][rule.targetScope] ?? rule.targetScope}</div>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex flex-col items-start gap-1">
-                      <Badge variant="info">{ALERT_TYPE_LABELS[language][rule.alertType]}</Badge>
+                      <Badge variant="info">{ALERT_TYPE_LABELS[toCnOrEn(language)][rule.alertType]}</Badge>
                       <Badge variant={rule.severity === 'critical' ? 'danger' : rule.severity === 'warning' ? 'warning' : 'default'}>
-                        {ALERT_SEVERITY_LABELS[language][rule.severity] ?? rule.severity}
+                        {ALERT_SEVERITY_LABELS[toCnOrEn(language)][rule.severity] ?? rule.severity}
                       </Badge>
                     </div>
                   </td>

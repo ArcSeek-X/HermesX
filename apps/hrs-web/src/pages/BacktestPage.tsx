@@ -13,7 +13,7 @@ import type { ParsedApiError } from '../api/error';
 import { getParsedApiError } from '../api/error';
 import { ApiErrorAlert, Card, Badge, EmptyState, Pagination, StatusDot, Tooltip } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { formatUiText, type UiLanguage } from '../i18n/uiText';
+import { formatUiText } from '../i18n/uiText';
 import {
   BACKTEST_DIRECTION_EXPECTED_LABELS,
   BACKTEST_MOVEMENT_LABELS,
@@ -32,6 +32,7 @@ import type {
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../utils/decisionAction';
 import { getMarketPhaseSummaryLabel } from '../utils/marketPhase';
 import { usePreference } from '../hooks/usePreference';
+import { toCnOrEn } from '../utils/uiLanguage';
 
 /** 回测页面标准输入框样式类名 */
 const BACKTEST_INPUT_CLASS =
@@ -40,7 +41,7 @@ const BACKTEST_INPUT_CLASS =
 const BACKTEST_COMPACT_INPUT_CLASS =
   'input-surface input-focus-glow h-10 rounded-xl border bg-transparent px-3 py-2 text-xs transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
 /** 回测页面多语言文本类型别名 */
-type BacktestText = (typeof BACKTEST_TEXT)[UiLanguage];
+type BacktestText = (typeof BACKTEST_TEXT)['zh' | 'en'];
 
 // ============ Helpers ============
 
@@ -61,8 +62,8 @@ function pct(value?: number | null): string {
  * @param language - 当前 UI 语言
  * @returns 市场阶段标签文本
  */
-function phaseLabel(row: BacktestResultItem, language: UiLanguage): string {
-  const label = getMarketPhaseSummaryLabel(row.marketPhaseSummary, language);
+function phaseLabel(row: BacktestResultItem, language: 'zh' | 'en'): string {
+  const label = getMarketPhaseSummaryLabel(row.marketPhaseSummary, toCnOrEn(language));
   if (label) {
     // 移除标签前缀，仅保留阶段名称
     return label
@@ -70,7 +71,7 @@ function phaseLabel(row: BacktestResultItem, language: UiLanguage): string {
       .replace('市场阶段：', '')
       .replace('Market phase: ', '');
   }
-  return (row.marketPhase ? BACKTEST_PHASE_LABELS[language][row.marketPhase] : undefined) || row.marketPhase || '--';
+  return (row.marketPhase ? BACKTEST_PHASE_LABELS[toCnOrEn(language)][row.marketPhase] : undefined) || row.marketPhase || '--';
 }
 
 /**
@@ -120,8 +121,8 @@ function labelFromMap(value: string | null | undefined, labels: Record<string, s
  * @param language - 当前 UI 语言
  * @returns 对应颜色的 Badge 组件
  */
-function outcomeBadge(outcome: string | undefined, language: UiLanguage) {
-  const labels = BACKTEST_OUTCOME_LABELS[language];
+function outcomeBadge(outcome: string | undefined, language: 'zh' | 'en') {
+  const labels = BACKTEST_OUTCOME_LABELS[toCnOrEn(language)];
   if (!outcome) return <Badge variant="default">--</Badge>;
   switch (outcome) {
     case 'win':
@@ -141,8 +142,8 @@ function outcomeBadge(outcome: string | undefined, language: UiLanguage) {
  * @param language - 当前 UI 语言
  * @returns 对应颜色的 Badge 组件
  */
-function statusBadge(status: string, language: UiLanguage) {
-  const labels = BACKTEST_STATUS_LABELS[language];
+function statusBadge(status: string, language: 'zh' | 'en') {
+  const labels = BACKTEST_STATUS_LABELS[toCnOrEn(language)];
   switch (status) {
     case 'completed':
       return <Badge variant="success">{labels.completed}</Badge>;
@@ -162,8 +163,8 @@ function statusBadge(status: string, language: UiLanguage) {
  * @param language - 当前 UI 语言
  * @returns 对应颜色的 Badge 组件
  */
-function actualMovementBadge(movement: string | null | undefined, language: UiLanguage) {
-  const labels = BACKTEST_MOVEMENT_LABELS[language];
+function actualMovementBadge(movement: string | null | undefined, language: 'zh' | 'en') {
+  const labels = BACKTEST_MOVEMENT_LABELS[toCnOrEn(language)];
   switch (movement) {
     case 'up':
       return <Badge variant="success">{labels.up}</Badge>;
@@ -240,11 +241,11 @@ const MetricRow: React.FC<{ label: string; value: string; accent?: boolean }> = 
  * @param language - 当前 UI 语言
  * @returns 阶段分布文本；无数据时返回 null
  */
-function phaseBreakdownText(metrics: PerformanceMetrics, language: UiLanguage): string | null {
+function phaseBreakdownText(metrics: PerformanceMetrics, language: 'zh' | 'en'): string | null {
   const breakdown = metrics.diagnostics?.phaseBreakdown;
   if (!breakdown || typeof breakdown !== 'object') return null;
   const item = breakdown as Record<string, unknown>;
-  const phaseLabels = BACKTEST_PHASE_LABELS[language];
+  const phaseLabels = BACKTEST_PHASE_LABELS[toCnOrEn(language)];
   // 按盘前/盘中/盘后/未知顺序拼接各阶段数量
   const parts = [
     [phaseLabels.premarket, item.premarket],
@@ -265,9 +266,9 @@ function phaseBreakdownText(metrics: PerformanceMetrics, language: UiLanguage): 
  * @param title - 卡片标题
  * @param language - 当前 UI 语言
  */
-const PerformanceCard: React.FC<{ metrics: PerformanceMetrics; title: string; language: UiLanguage }> = ({ metrics, title, language }) => {
-  const text = BACKTEST_TEXT[language];
-  const phaseText = phaseBreakdownText(metrics, language);
+const PerformanceCard: React.FC<{ metrics: PerformanceMetrics; title: string; language: 'zh' | 'en' }> = ({ metrics, title, language }) => {
+  const text = BACKTEST_TEXT[toCnOrEn(language)];
+  const phaseText = phaseBreakdownText(metrics, toCnOrEn(language));
   return (
     <Card variant="gradient" padding="md" className="animate-fade-in">
       {/* 卡片标题 */}
@@ -317,8 +318,8 @@ const PerformanceCard: React.FC<{ metrics: PerformanceMetrics; title: string; la
  * @param data - 回测运行响应数据
  * @param language - 当前 UI 语言
  */
-const RunSummary: React.FC<{ data: BacktestRunResponse; language: UiLanguage }> = ({ data, language }) => {
-  const text = BACKTEST_TEXT[language];
+const RunSummary: React.FC<{ data: BacktestRunResponse; language: 'zh' | 'en' }> = ({ data, language }) => {
+  const text = BACKTEST_TEXT[toCnOrEn(language)];
   return (
   <div className="backtest-summary animate-fade-in">
     <span className="label">{text.processed} <span className="value">{data.processed}</span></span>
@@ -356,9 +357,9 @@ const BacktestPage: React.FC = () => {
   // 当前 UI 语言及通用翻译函数（来自全局语言上下文）
   const { language, t } = useUiLanguage();
   // 当前语言对应的回测页面多语言文本
-  const text = BACKTEST_TEXT[language];
+  const text = BACKTEST_TEXT[toCnOrEn(language)];
   // 市场阶段筛选下拉选项列表
-  const phaseFilterOptions = BACKTEST_PHASE_FILTER_OPTIONS[language];
+  const phaseFilterOptions = BACKTEST_PHASE_FILTER_OPTIONS[toCnOrEn(language)];
   // 决策操作建议标签映射（用于表格中展示 AI 预测的操作建议文案）
   const actionLabels = buildDecisionActionLabelMap(t);
 
@@ -699,7 +700,7 @@ const BacktestPage: React.FC = () => {
         {/* 回测运行结果摘要（仅运行后展示） */}
         {runResult && (
           <div className="mt-2 max-w-4xl">
-            <RunSummary data={runResult} language={language} />
+            <RunSummary data={runResult} language={toCnOrEn(language)} />
           </div>
         )}
         {/* 回测运行错误提示（仅运行失败时展示） */}
@@ -723,7 +724,7 @@ const BacktestPage: React.FC = () => {
               <div className="backtest-spinner sm" />
             </div>
           ) : overallPerf ? (
-            <PerformanceCard metrics={overallPerf} title={text.overallPerformance} language={language} />
+            <PerformanceCard metrics={overallPerf} title={text.overallPerformance} language={toCnOrEn(language)} />
           ) : (
             <EmptyState
               title={text.noMetricsTitle}
@@ -733,7 +734,7 @@ const BacktestPage: React.FC = () => {
           )}
 
           {stockPerf && (
-            <PerformanceCard metrics={stockPerf} title={`${stockPerf.code || codeFilter}`} language={language} />
+            <PerformanceCard metrics={stockPerf} title={`${stockPerf.code || codeFilter}`} language={toCnOrEn(language)} />
           )}
         </div>
 
@@ -815,7 +816,7 @@ const BacktestPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="backtest-table-cell text-secondary-text">{row.analysisDate || '--'}</td>
-                          <td className="backtest-table-cell text-secondary-text">{phaseLabel(row, language)}</td>
+                          <td className="backtest-table-cell text-secondary-text">{phaseLabel(row, toCnOrEn(language))}</td>
                           <td className="backtest-table-cell max-w-[220px] text-foreground">
                             {predictionParts.length ? (
                               <Tooltip
@@ -838,7 +839,7 @@ const BacktestPage: React.FC = () => {
                           </td>
                           <td className="backtest-table-cell">
                             <div className="flex items-center gap-2">
-                              {actualMovementBadge(row.actualMovement, language)}
+                              {actualMovementBadge(row.actualMovement, toCnOrEn(language))}
                               <span className={
                                 row.actualReturnPct != null
                                   ? row.actualReturnPct > 0 ? 'text-success' : row.actualReturnPct < 0 ? 'text-danger' : 'text-secondary-text'
@@ -852,12 +853,12 @@ const BacktestPage: React.FC = () => {
                             <span className="flex items-center gap-2">
                               {boolIcon(row.directionCorrect, text)}
                               <span className="text-muted-text">
-                                {row.directionExpected ? labelFromMap(row.directionExpected, BACKTEST_DIRECTION_EXPECTED_LABELS[language]) : ''}
+                                {row.directionExpected ? labelFromMap(row.directionExpected, BACKTEST_DIRECTION_EXPECTED_LABELS[toCnOrEn(language)]) : ''}
                               </span>
                             </span>
                           </td>
-                          <td className="backtest-table-cell">{outcomeBadge(row.outcome, language)}</td>
-                          <td className="backtest-table-cell">{statusBadge(row.evalStatus, language)}</td>
+                          <td className="backtest-table-cell">{outcomeBadge(row.outcome, toCnOrEn(language))}</td>
+                          <td className="backtest-table-cell">{statusBadge(row.evalStatus, toCnOrEn(language))}</td>
                         </tr>
                       );
                     })}

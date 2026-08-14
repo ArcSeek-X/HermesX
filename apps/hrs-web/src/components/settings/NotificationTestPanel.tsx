@@ -11,6 +11,7 @@ import type {
 } from '../../types/systemConfig';
 import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select } from '../';
 import { SettingsSectionCard } from './SettingsSectionCard';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 function getChannelOptions(language: 'zh' | 'en'): Array<{ value: NotificationTestChannel; label: string }> {
   return [
@@ -117,7 +118,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         <Select
           label={t('settings.notificationTestChannel')}
           value={channel}
-          options={getChannelOptions(language)}
+          options={getChannelOptions(toCnOrEn(language))}
           disabled={disabled || isTesting}
           onChange={(value) => setChannel(value as NotificationTestChannel)}
         />

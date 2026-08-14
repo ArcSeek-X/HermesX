@@ -8,6 +8,17 @@
 
 import type { UiLanguage } from '../i18n/uiText';
 
+/**
+ * 将界面语言收敛为「简体中文 / 英文」二元，供仅支持中英双语的本地字典与
+ * 格式化函数使用。繁體中文(zh-Hant)回退到简体中文(zh)，避免索引/参数类型报错。
+ *
+ * @param language - 当前界面语言
+ * @returns 'zh' | 'en'
+ */
+export function toCnOrEn(language: UiLanguage): 'zh' | 'en' {
+  return language === 'en' ? 'en' : 'zh';
+}
+
 /** 界面语言在 localStorage 中的存储键名 */
 export const UI_LANGUAGE_STORAGE_KEY = 'hrs.uiLanguage';
 
@@ -15,10 +26,10 @@ export const UI_LANGUAGE_STORAGE_KEY = 'hrs.uiLanguage';
  * 将任意输入规范化为受支持的语言枚举，非法值返回 null。
  *
  * @param value - 待检查的值
- * @returns 'zh' | 'en' 或 null
+ * @returns 'zh' | 'zh-Hant' | 'en' 或 null
  */
 export function normalizeUiLanguage(value?: string | null): UiLanguage | null {
-  if (value === 'zh' || value === 'en') {
+  if (value === 'zh' || value === 'zh-Hant' || value === 'en') {
     return value;
   }
   return null;
@@ -89,6 +100,10 @@ function getBrowserUiLanguage(navigatorLike?: Pick<Navigator, 'language' | 'lang
   for (const candidate of languageCandidates) {
     const normalized = candidate.toLowerCase();
     if (normalized.startsWith('zh')) {
+      // 繁體中文區域（台灣/香港/澳門）走 zh-Hant，其余简体走 zh
+      if (normalized.startsWith('zh-tw') || normalized.startsWith('zh-hant') || normalized.startsWith('zh-hk') || normalized.startsWith('zh-mo')) {
+        return 'zh-Hant';
+      }
       return 'zh';
     }
     if (normalized.startsWith('en')) {

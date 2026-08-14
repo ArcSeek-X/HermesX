@@ -5,6 +5,7 @@ import { DashboardPanelHeader } from '../dashboard';
 import type { TaskInfo } from '../../types/analysis';
 import { getRequestedPhaseLabel } from '../../utils/marketPhase';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 /**
  * 任务项组件属性
@@ -32,7 +33,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
   const statusTone = isCancelRequested ? 'warning' : isProcessing ? 'info' : 'neutral';
   const progress = Math.max(0, Math.min(100, task.progress || 0));
   const traceId = (task.traceId || '').trim();
-  const requestedPhaseLabel = getRequestedPhaseLabel(task.analysisPhase, language);
+  const requestedPhaseLabel = getRequestedPhaseLabel(task.analysisPhase, toCnOrEn(language));
   const requestedPhaseVariant = task.analysisPhase === 'auto' ? 'default' : 'info';
 
   return (

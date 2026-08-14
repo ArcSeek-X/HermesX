@@ -6,11 +6,13 @@
  * 切换后由 useUiLanguage 持久化到 localStorage 并触发全站文案重渲染。
  */
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import type { UiLanguage } from '../../../i18n/uiText';
 
 export const LanguageMenu = () => {
   const { t, language, setLanguage } = useUiLanguage();
-  const nextLanguage = language === 'zh' ? 'en' : 'zh';
-  const isChinese = language === 'zh';
+  // 三语循环切换：简体中文 -> 繁體中文 -> English -> 简体中文
+  const nextLanguage: UiLanguage = language === 'zh' ? 'zh-Hant' : language === 'zh-Hant' ? 'en' : 'zh';
+  const shortLabel = language === 'zh' ? t('language.short.zh') : language === 'zh-Hant' ? t('language.short.zhHant') : t('language.short.en');
 
   return (
     <button
@@ -24,7 +26,7 @@ export const LanguageMenu = () => {
         aria-hidden
         className="text-[12px] font-semibold leading-none tracking-tight"
       >
-        {isChinese ? '文' : 'EN'}
+        {shortLabel}
       </span>
     </button>
   );

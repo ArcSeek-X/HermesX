@@ -32,6 +32,7 @@ import {
 } from '../../utils/decisionSignalLabels';
 import { parseDecisionSignalDate } from '../../utils/decisionSignalTime';
 import { buildTimelineData, type TimelineDatum } from '../../utils/decisionSignalTimeline';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 // Y 轴 rank（多空倾向排名）-> 标签映射，范围为 -3（强烈卖出）到 3（强烈买入）。
 const RANK_LABELS: Record<number, string> = {
@@ -54,8 +55,11 @@ const STATUS_LABEL_KEYS: Record<DecisionSignalStatus, UiTextKey> = {
 };
 
 // 语言 -> Intl 区域标识的映射。
+// 语言 -> Intl 区域标识的映射。
+// 繁体使用 'zh-Hant'（不绑定特定地区的 BCP-47 标签），与 UiLanguage 类型保持一致。
 const LOCALE_BY_LANGUAGE: Record<UiLanguage, string> = {
   zh: 'zh-CN',
+  'zh-Hant': 'zh-Hant',
   en: 'en-US',
 };
 
@@ -73,7 +77,7 @@ export type DecisionSignalTimelineProps = {
 function formatDateTime(value: string | null | undefined, language: UiLanguage): string {
   const date = parseDecisionSignalDate(value);
   if (!date) return '-';
-  return new Intl.DateTimeFormat(LOCALE_BY_LANGUAGE[language], {
+  return new Intl.DateTimeFormat(LOCALE_BY_LANGUAGE[toCnOrEn(language)], {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',

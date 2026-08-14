@@ -7,6 +7,7 @@ import { formatDateTime } from '../../utils/format';
 import { getMarketPhaseSummaryLabel } from '../../utils/marketPhase';
 import { truncateStockName } from '../../utils/stockName';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 interface HistoryListItemProps {
   item: HistoryItem;
@@ -36,7 +37,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
     t('history.sentiment'),
     actionLabels,
   );
-  const phaseLabel = getMarketPhaseSummaryLabel(item.marketPhaseSummary, language)
+  const phaseLabel = getMarketPhaseSummaryLabel(item.marketPhaseSummary, toCnOrEn(language))
     ?.replace('市场阶段: ', '')
     .replace('市场阶段：', '')
     .replace('Market phase: ', '');

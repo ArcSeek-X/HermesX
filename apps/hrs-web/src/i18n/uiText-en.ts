@@ -36,8 +36,11 @@ const en: Record<UiTextKey, string> = {
 
   'language.current': 'English',
   'language.english': 'English',
+  'language.chineseSimplified': 'Simplified Chinese',
+  'language.chineseTraditional': 'Traditional Chinese',
   'language.short.en': 'EN',
   'language.short.zh': '中',
+  'language.short.zhHant': '繁',
   'language.toggle': 'Switch UI language',
   'language.uiLanguage': 'UI language',
 

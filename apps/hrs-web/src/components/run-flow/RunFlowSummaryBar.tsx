@@ -4,6 +4,7 @@ import { Badge, StatusDot } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowSnapshot } from '../../types/runFlow';
 import { compactText, formatDateTime, formatDuration, getRunFlowStatusLabel, RUN_FLOW_STATUS_STYLE } from './utils';
+import { toCnOrEn } from '../../utils/uiLanguage';
 
 interface RunFlowSummaryBarProps {
   snapshot: RunFlowSnapshot;
@@ -70,7 +71,7 @@ export const RunFlowSummaryBar: React.FC<RunFlowSummaryBarProps> = ({ snapshot }
               </span>
             ) : null}
             <span className="home-accent-chip px-2 py-0.5">
-              {t('runFlow.summary.generatedAt')}: {formatDateTime(snapshot.generatedAt, language, t)}
+              {t('runFlow.summary.generatedAt')}: {formatDateTime(snapshot.generatedAt, toCnOrEn(language), t)}
             </span>
           </div>
         </div>

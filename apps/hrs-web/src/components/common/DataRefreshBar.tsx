@@ -23,19 +23,21 @@
  *     snapshotTime={selectedTime}
  *     loading={loading}
  *     onRefresh={handleRefreshAll}
+ *     onCountdownEnd={handleCountdownEnd}
  *   />
  */
 
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { Button } from '../basic/Button';
 
 /** DataRefreshBar 组件的 Props 定义 */
 interface DataRefreshBarProps {
   /** 最后一次数据更新时间；为空时不展示「更新于」 */
   lastUpdate?: Date | null;
-  /** 自动刷新倒计时（秒）；实时模式下展示「Ns 后自动刷新」 */
+  /** 自动刷新倒计时（秒）；实时模式下展示「Ns 后自动刷新」。当值从正数变为 0 时触发 onCountdownEnd */
   countdown?: number;
   /** 快照时间；非空字符串表示当前处于快照模式，展示「快照模式：<时间>」 */
   snapshotTime?: string;
@@ -43,6 +45,8 @@ interface DataRefreshBarProps {
   loading?: boolean;
   /** 点击手动刷新按钮时触发的回调（由调用方实现真实的数据刷新） */
   onRefresh: () => void;
+  /** 倒计时结束（countdown 从正数递减到 0）时触发的回调；可选，未传则不触发 */
+  onCountdownEnd?: () => void;
   /** 自定义 CSS 类名，用于覆盖默认布局（如对齐、外边距） */
   className?: string;
 }
@@ -64,6 +68,7 @@ const formatTime = (date: Date): string => {
  * @param props.snapshotTime - 快照时间（空串表示实时模式）
  * @param props.loading - 是否加载中
  * @param props.onRefresh - 手动刷新回调
+ * @param props.onCountdownEnd - 倒计时结束（countdown 递减到 0）回调，可选
  * @param props.className - 可选自定义样式
  * @returns 更新时间提示 + 手动刷新按钮的组合控件
  */
@@ -73,10 +78,25 @@ export const DataRefreshBar: React.FC<DataRefreshBarProps> = ({
   snapshotTime = '',
   loading = false,
   onRefresh,
+  onCountdownEnd,
   className = '',
 }) => {
   // 按钮点击态：点击后 200ms 触发一次缩放动画，纯 UI 反馈
   const [btnActive, setBtnActive] = useState(false);
+  // 记录上一次的 countdown，用于检测「从正数递减到 0」的跳变
+  const prevCountdownRef = useRef<number | undefined>(undefined);
+
+  /**
+   * 倒计时结束监听：当 countdown 从正数（>0）变为 0 时，触发 onCountdownEnd 回调。
+   * 调用方需在倒计时归零时把 countdown 置为 0（而非立即重置）以触发该回调。
+   */
+  useEffect(() => {
+    const prev = prevCountdownRef.current;
+    if (onCountdownEnd && prev != null && prev > 0 && countdown === 0) {
+      onCountdownEnd();
+    }
+    prevCountdownRef.current = countdown;
+  }, [countdown, onCountdownEnd]);
 
   const handleClick = () => {
     setBtnActive(true);
@@ -95,22 +115,25 @@ export const DataRefreshBar: React.FC<DataRefreshBarProps> = ({
         {!isSnapshot && countdown != null && ` · ${countdown}s 后自动刷新`}
         {isSnapshot && <span className="text-cyan"> · 快照模式：{snapshotTime}</span>}
       </span>
-      {/* 手动刷新按钮：触发外部传入的刷新逻辑 */}
-      <button
-        type="button"
+      {/* 手动刷新按钮：触发外部传入的刷新逻辑
+          注意：不把页面级 loading 透传给 Button 的 isLoading，否则 loading 期间按钮被
+          disabled 会吞掉点击（isLoading -> disabled + pointer-events-none）。
+          这里 loading 仅用于图标旋转与文案提示，点击始终可达，保证手动刷新一定触发。 */}
+      <Button
+        variant="outline"
+        size="sm"
         onClick={handleClick}
-        disabled={loading}
         className={cn(
-          'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-150',
+          'inline-flex items-center gap-1.5 transition-all duration-150',
           btnActive
             ? 'border-cyan/60 bg-cyan/15 text-cyan scale-95'
-            : 'border-subtle text-muted-text hover:text-foreground hover:border-cyan/50',
-          'disabled:opacity-50',
+            : 'hover:text-foreground hover:border-cyan/50',
+          loading && 'opacity-70',
         )}
       >
         <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
         {loading ? '刷新中...' : '手动刷新'}
-      </button>
+      </Button>
     </div>
   );
 };
