@@ -87,6 +87,17 @@ const zh = {
   'layout.route.home.title': '首页', // 首页路由标题
   'layout.route.sectorAnalysis.description': '板块涨跌、资金流向与热点追踪', // 板块分析路由描述
   'layout.route.sectorAnalysis.title': '板块分析', // 板块分析路由标题
+
+  // ---- 板块分析页 TAB（sector.tab.*）----
+  'sector.tab.board': '板块', // 板块分析一级 TAB：板块
+  'sector.tab.cloudMap': '云图', // 板块分析一级 TAB：云图
+  'sector.tab.fund': '资金', // 板块分析一级 TAB：资金
+  'sector.tab.boardIndustry': '行业板块', // 「板块」二级 TAB：行业板块
+  'sector.tab.boardConcept': '概念板块', // 「板块」二级 TAB：概念板块
+  'sector.tab.cloudSector': '板块云图', // 「云图」二级 TAB：板块云图
+  'sector.tab.cloudStock': '个股云图', // 「云图」二级 TAB：个股云图
+  'sector.tab.cloudEtf': 'ETF 云图', // 「云图」二级 TAB：ETF 云图
+  'sector.tab.cloudConcept': '概念云图', // 「云图」二级 TAB：概念云图
   'layout.route.portfolio.description': '组合快照、手工录入与风险分析', // 持仓路由描述
   'layout.route.portfolio.title': '持仓', // 持仓路由标题
   'layout.route.settings.description': '系统配置、模型与认证管理', // 设置路由描述
@@ -208,6 +219,12 @@ const zh = {
   'login.loginFailed': '登录失败', // 登录失败提示
   'login.loginPassword': '登录密码', // 登录密码标签
   'login.loginPasswordPlaceholder': '请输入密码', // 登录密码占位符
+  'login.username': '账号', // 账号标签
+  'login.usernamePlaceholder': '请输入账号', // 账号占位符
+  'login.usernameRequired': '请输入账号', // 账号必填校验提示
+  'login.passwordRequired': '请输入密码', // 密码必填校验提示
+  'login.showPassword': '显示密码', // 显示密码按钮提示
+  'login.hidePassword': '隐藏密码', // 隐藏密码按钮提示
   'login.loginSubmit': '授权进入工作台', // 登录提交按钮
   'login.loginSubmitting': '正在建立连接...', // 登录提交中状态
   'login.pageTitle': '登录 - HRS', // 登录页标题

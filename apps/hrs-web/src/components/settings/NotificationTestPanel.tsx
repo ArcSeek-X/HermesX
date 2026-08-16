@@ -122,26 +122,30 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
           disabled={disabled || isTesting}
           onChange={(value) => setChannel(value as NotificationTestChannel)}
         />
-        <Input
-          label={t('settings.notificationTestTitle')}
-          value={title}
-          maxLength={80}
-          disabled={disabled || isTesting}
-          onChange={(event) => {
-            setIsTitleEdited(true);
-            setTitle(event.target.value);
-          }}
-        />
-        <Input
-          label={t('settings.notificationTestTimeout')}
-          type="number"
-          min={1}
-          max={120}
-          value={timeoutSeconds}
-          disabled={disabled || isTesting}
-          onChange={(event) => setTimeoutSeconds(event.target.value)}
-          onBlur={() => setTimeoutSeconds(String(clampTimeout(timeoutSeconds)))}
-        />
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTitle')}</label>
+          <Input
+            value={title}
+            maxLength={80}
+            disabled={disabled || isTesting}
+            onChange={(event) => {
+              setIsTitleEdited(true);
+              setTitle(event.target.value);
+            }}
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTimeout')}</label>
+          <Input
+            type="number"
+            min={1}
+            max={120}
+            value={timeoutSeconds}
+            disabled={disabled || isTesting}
+            onChange={(event) => setTimeoutSeconds(event.target.value)}
+            onBlur={() => setTimeoutSeconds(String(clampTimeout(timeoutSeconds)))}
+          />
+        </div>
       </div>
 
       <label className="block">

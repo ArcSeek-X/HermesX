@@ -120,7 +120,7 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
         {/* transition-[width] 支持折叠/展开时的宽度过渡动画（200ms） */}
         <aside
           className={cn(
-            'hrs-side h-full z-40 hidden p-2.5 mt-2 shrink-0 overflow-visible self-start border border-[var(--shell-sidebar-border)] bg-card/72 shadow-soft-card backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
+            'hrs-side h-full z-40 hidden p-2.5 mt-2 shrink-0 overflow-visible self-start border border-[var(--shell-sidebar-border)] bg-card/72 shadow-shell-sidebar backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
             // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
             collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[136px] rounded-xl'
           )}

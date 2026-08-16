@@ -1,0 +1,66 @@
+/* ============================================================
+   Tailwind v4: 修复 @config 对 hsl(var(--x)) 的颜色解包问题
+   ------------------------------------------------------------
+   v4 的 @config 兼容层会把 colors 中 hsl(var(--x)) 形式的值解包
+   成 var(--x)；而本项目主题变量均为「HSL 分量」（如
+   --border: 117 28% 84%），直接 var() 引用不是合法颜色，导致
+   border-border、bg-background、text-foreground 等工具类生成的
+   border-color / background-color / color 声明整体无效（浏览器
+   回退到 currentColor / transparent）。
+
+   这里用 @theme inline 重新声明同名 token 并保留 hsl() 包裹：
+   inline 模式会把值原样内联进工具类，产出
+   border-color: hsl(var(--border)) 这类合法颜色，且运行时仍跟随
+   :root / .dark 切换。需与 tailwind.config.js theme.extend.colors
+   保持同步。
+   ============================================================ */
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  /* --color-muted: hsl(var(--muted)); */
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  /* --color-accent: hsl(var(--accent)); */
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  /* 金融终端自定义语义色（对应 tailwind.config.js colors 扩展） */
+  --color-base: hsl(var(--background));
+  --color-elevated: hsl(var(--elevated));
+  --color-hover: hsl(var(--hover));
+  --color-secondary-bg: hsl(var(--secondary));
+  /* --color-muted-bg: hsl(var(--muted)); */
+  --color-secondary-text: hsl(var(--secondary-text));
+  --color-muted-text: hsl(var(--muted-text));
+  --color-cyan: hsl(var(--primary));
+  --color-cyan-dim: hsl(var(--primary) / 0.8);
+  --color-cyan-glow: hsl(var(--primary) / 0.4);
+  --color-purple: hsl(var(--accent));
+  --color-purple-dim: hsl(var(--accent) / 0.8);
+  --color-purple-glow: hsl(var(--accent) / 0.3);
+  --color-success: hsl(var(--success));
+  --color-success-dim: hsl(var(--success) / 0.8);
+  --color-success-glow: hsl(var(--success) / 0.3);
+  --color-warning: hsl(var(--warning));
+  --color-warning-dim: hsl(var(--warning) / 0.8);
+  --color-warning-glow: hsl(var(--warning) / 0.3);
+  --color-danger: hsl(var(--destructive));
+  --color-danger-dim: hsl(var(--destructive) / 0.8);
+  --color-danger-glow: hsl(var(--destructive) / 0.3);
+  /* 设计令牌（dim / subtle 系列，bg 与 border 共用） */
+  --color-dim: hsl(var(--border-dim-raw) / 0.06);
+  --color-subtle: hsl(var(--bg-subtle-raw) / 0.05);
+  --color-subtle-hover: hsl(var(--bg-subtle-raw) / 0.1);
+  --color-subtle-soft: hsl(var(--bg-subtle-raw) / 0.03);
+  --color-subtle-active: hsl(var(--bg-subtle-raw) / 0.15);
+}

@@ -5,9 +5,15 @@
  *
  * 作用：
  * 以卡片网格形式展示 A 股行业板块或概念板块列表，支持：
- * - 行业板块 / 概念板块切换
- * - 关键词搜索（按板块名称过滤）
+ * - 行业板块 / 概念板块切换（由父组件通过二级 TAB 控制，组件本身不再维护切换器）
+ * - 关键词搜索（按板块名称过滤，由父组件通过搜索框传入，搜索框 UI 嵌入二级 TAB 右侧插槽）
  * - 每张卡片展示：排名、板块名称、涨跌幅、总市值、换手率、涨跌家数
+ *
+ * 设计说明：
+ * 板块类型（industry/concept）改为受控：由父页面统一经「板块」一级 TAB 下的
+ * 二级 TAB 驱动，组件仅消费 `boardType`。
+ * 搜索关键词同样上提到父页面，搜索框 UI 由父页面渲染到二级 TAB 右侧插槽，
+ * 保证全局交互一致；本组件只负责消费关键词做过滤。
  *
  * 数据来源：
  * 通过 fetchBoardList API 从后端获取，后端代理东财 push2.eastmoney.com clist 接口。
@@ -18,7 +24,6 @@
  */
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, Building2, Lightbulb } from 'lucide-react';
 import { Card } from '../';
 import {
   fetchBoardList,
@@ -26,23 +31,27 @@ import {
 } from '../../api/sectorData';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../constants/colors';
 
-/** 板块类型切换选项 */
-const BOARD_TYPE_OPTIONS = [
-  { key: 'industry' as const, label: '行业板块', icon: Building2 },
-  { key: 'concept' as const, label: '概念板块', icon: Lightbulb },
-];
+/** 板块类型：industry 行业 / concept 概念 */
+export type BoardType = 'industry' | 'concept';
+
+interface SectorBoardCardsProps {
+  /** 当前板块类型（受控，由父页面二级 TAB 驱动） */
+  boardType: BoardType;
+  /** 搜索关键词（由父页面通过二级 TAB 右侧插槽输入，本组件据此过滤） */
+  searchKeyword?: string;
+}
 
 /**
- * 板块卡片列表组件
+ * 板块卡片列表组件（受控）
  *
- * 展示行业或概念板块的卡片网格，支持搜索过滤和类型切换。
- * 卡片按涨跌幅降序排列（由后端排序）。
+ * 展示行业或概念板块的卡片网格，支持搜索过滤。板块类型（行业/概念）
+ * 由父页面的二级 TAB 控制，搜索框 UI 也由父页面渲染在二级 TAB 右侧插槽；
+ * 本组件仅消费类型与搜索词。卡片按涨跌幅降序排列（由后端排序）。
  */
-export const SectorBoardCards: React.FC = () => {
-  /** 当前板块类型：industry 行业 / concept 概念 */
-  const [boardType, setBoardType] = useState<'industry' | 'concept'>('industry');
-  /** 搜索关键词 */
-  const [searchKeyword, setSearchKeyword] = useState('');
+export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
+  boardType,
+  searchKeyword = '',
+}) => {
   /** 板块列表数据 */
   const [boards, setBoards] = useState<BoardListItem[]>([]);
   /** 加载状态 */
@@ -50,13 +59,12 @@ export const SectorBoardCards: React.FC = () => {
   /** 错误信息 */
   const [error, setError] = useState<string | null>(null);
 
-  /** 加载板块列表数据 */
-  const loadBoards = useCallback(async (type?: 'industry' | 'concept') => {
-    const sectorType = type ?? boardType;
+  /** 加载板块列表数据（类型以受控 prop 为准） */
+  const loadBoards = useCallback(async (type: BoardType) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchBoardList(sectorType);
+      const data = await fetchBoardList(type);
       setBoards(data.boards);
     } catch (e) {
       console.error('Failed to load board list:', e);
@@ -65,15 +73,9 @@ export const SectorBoardCards: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [boardType]);
-
-  /** 切换板块类型时重新加载数据 */
-  const handleTypeChange = useCallback((type: 'industry' | 'concept') => {
-    setBoardType(type);
-    setSearchKeyword('');
   }, []);
 
-  /** 板块类型切换时触发数据加载 */
+  /** 受控类型变化时触发数据加载（类型由父页面二级 TAB 驱动） */
   useEffect(() => {
     loadBoards(boardType);
   }, [boardType, loadBoards]);
@@ -110,45 +112,7 @@ export const SectorBoardCards: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* ===== 控制栏：类型切换 + 搜索框 ===== */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        {/* 板块类型切换按钮组 */}
-        <div className="flex items-center gap-1 rounded-lg border border-subtle bg-bg-elevated p-1">
-          {BOARD_TYPE_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            const isActive = boardType === opt.key;
-            return (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => handleTypeChange(opt.key)}
-                className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  isActive
-                    ? 'bg-cyan/15 text-cyan'
-                    : 'text-muted-text hover:text-foreground hover:bg-white/5'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 搜索框 */}
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-text" />
-          <input
-            type="text"
-            placeholder="搜索板块..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-subtle bg-bg-elevated text-foreground placeholder:text-muted-text focus:outline-none focus:border-cyan/50 transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* ===== 卡片网格 ===== */}
+      {/* ===== 卡片网格（搜索框与类型切换器由父页面统一渲染在二级 TAB 与其右侧插槽）===== */}
       {loading && boards.length === 0 ? (
         <div className="flex items-center justify-center py-24">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />

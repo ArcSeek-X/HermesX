@@ -38,58 +38,66 @@ describe('LoginPage', () => {
     useSearchParamsMock.mockReturnValue([new URLSearchParams('redirect=%2Fsettings')]);
   });
 
-  // 用例 1：首次设置场景下，两次密码不一致时应拦截提交并提示错误，且不应调用登录
-  it('blocks first-time setup when confirmation does not match', async () => {
-    const login = vi.fn();
-    // 模拟「尚未设置密码」的首次设置态，login 用于断言是否被调用
-    useAuthMock.mockReturnValue({
-      login,
-      passwordSet: false,
-      setupState: 'no_password',
-    });
-
-    render(<LoginPage />);
-
-    // 在两个密码框填入不一致的值，并点击「完成设置并登录」
-    fireEvent.change(screen.getByLabelText('管理员密码'), { target: { value: 'passwd6' } });
-    fireEvent.change(screen.getByLabelText('确认密码'), { target: { value: 'passwd7' } });
-    fireEvent.click(screen.getByRole('button', { name: '完成设置并登录' }));
-
-    // 断言：出现「两次输入的密码不一致」提示；login 未被调用（提交被拦截）
-    expect(await screen.findByText('两次输入的密码不一致')).toBeInTheDocument();
-    expect(login).not.toHaveBeenCalled();
-    // 断言：两个密码框的错误态样式（data-appearance=login）被应用
-    expect(screen.getByLabelText('管理员密码')).toHaveAttribute('data-appearance', 'login');
-    expect(screen.getByLabelText('确认密码')).toHaveAttribute('data-appearance', 'login');
-  });
-
-  // 用例 2：已设置密码且登录成功时，应跳转到 redirect 指向的页面（/settings）
+  // 用例 1：登录成功时，应跳转到 redirect 指向的页面（/settings）
   it('navigates to redirect after a successful login', async () => {
-    // 模拟「已启用、已设置密码」的登录态，login 返回成功
+    // 模拟登录态：login 返回成功
     useAuthMock.mockReturnValue({
       login: vi.fn().mockResolvedValue({ success: true }),
-      passwordSet: true,
-      setupState: 'enabled',
     });
 
     render(<LoginPage />);
 
-    // 填入登录密码并点击「授权进入工作台」
+    // 填入账号与登录密码，并点击「授权进入工作台」
+    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'admin' } });
     fireEvent.change(screen.getByLabelText('登录密码'), { target: { value: 'passwd6' } });
     fireEvent.click(screen.getByRole('button', { name: '授权进入工作台' }));
 
     // 断言：navigate 以 replace 方式跳转到 /settings
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/settings', { replace: true }));
-    // 断言：登录密码框处于正常（login）外观态，未报错
-    expect(screen.getByLabelText('登录密码')).toHaveAttribute('data-appearance', 'login');
+    // 断言：登录密码框未处于错误态
+    expect(screen.getByLabelText('登录密码')).not.toHaveAttribute('aria-invalid');
   });
 
-  // 用例 3：登录页不应在根节点内联覆盖主题 CSS 变量，否则会破坏浅色模式
+  // 用例 2：账号为空时提交，应展示必填校验错误且不发起登录
+  it('shows a validation error and does not login when account is empty', async () => {
+    // 模拟登录态：login 为 spy，用于断言未被调用
+    const loginSpy = vi.fn().mockResolvedValue({ success: true });
+    useAuthMock.mockReturnValue({ login: loginSpy });
+
+    render(<LoginPage />);
+
+    // 只填密码、留空账号，点击「授权进入工作台」
+    fireEvent.change(screen.getByLabelText('登录密码'), { target: { value: 'passwd6' } });
+    fireEvent.click(screen.getByRole('button', { name: '授权进入工作台' }));
+
+    // 断言：展示账号必填提示，且 login 未被调用
+    expect(await screen.findByText('请输入账号')).toBeInTheDocument();
+    expect(loginSpy).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // 用例 3：密码为空时提交，应展示必填校验错误且不发起登录
+  it('shows a validation error and does not login when password is empty', async () => {
+    // 模拟登录态：login 为 spy，用于断言未被调用
+    const loginSpy = vi.fn().mockResolvedValue({ success: true });
+    useAuthMock.mockReturnValue({ login: loginSpy });
+
+    render(<LoginPage />);
+
+    // 只填账号、留空密码，点击「授权进入工作台」
+    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'admin' } });
+    fireEvent.click(screen.getByRole('button', { name: '授权进入工作台' }));
+
+    // 断言：展示密码必填提示，且 login 未被调用
+    expect(await screen.findByText('请输入密码')).toBeInTheDocument();
+    expect(loginSpy).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // 用例 4：登录页不应在根节点内联覆盖主题 CSS 变量，否则会破坏浅色模式
   it('does not override login theme tokens inline so light mode can take effect', () => {
     useAuthMock.mockReturnValue({
       login: vi.fn(),
-      passwordSet: true,
-      setupState: 'enabled',
     });
 
     const { container } = render(<LoginPage />);

@@ -3,6 +3,8 @@ export * from './Card';
 export * from './Checkbox';
 export * from './Toolbar';
 export { Input } from './Input';
+export * from './PasswordInput';
+export { InputTest } from './InputTest';
 export * from './Loading';
 export * from './Select';
 export * from './Badge';

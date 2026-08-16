@@ -87,6 +87,17 @@ const zh = {
   'layout.route.home.title': '首頁', // 首頁路由標題
   'layout.route.sectorAnalysis.description': '板塊漲跌、資金流向與热點追踪', // 板塊分析路由描述
   'layout.route.sectorAnalysis.title': '板塊分析', // 板塊分析路由標題
+
+  // ---- 板塊分析頁 TAB（sector.tab.*）----
+  'sector.tab.board': '板塊', // 板塊分析一級 TAB：板塊
+  'sector.tab.cloudMap': '雲圖', // 板塊分析一級 TAB：雲圖
+  'sector.tab.fund': '資金', // 板塊分析一級 TAB：資金
+  'sector.tab.boardIndustry': '行業板塊', // 「板塊」二級 TAB：行業板塊
+  'sector.tab.boardConcept': '概念板塊', // 「板塊」二級 TAB：概念板塊
+  'sector.tab.cloudSector': '板塊雲圖', // 「雲圖」二級 TAB：板塊雲圖
+  'sector.tab.cloudStock': '個股雲圖', // 「雲圖」二級 TAB：個股雲圖
+  'sector.tab.cloudEtf': 'ETF 雲圖', // 「雲圖」二級 TAB：ETF 雲圖
+  'sector.tab.cloudConcept': '概念雲圖', // 「雲圖」二級 TAB：概念雲圖
   'layout.route.portfolio.description': '組合快照、手工錄入與風險分析', // 持倉路由描述
   'layout.route.portfolio.title': '持倉', // 持倉路由標題
   'layout.route.settings.description': '系統配置、模型與認證管理', // 設定路由描述
@@ -208,6 +219,12 @@ const zh = {
   'login.loginFailed': '登入失敗', // 登入失敗提示
   'login.loginPassword': '登入密碼', // 登入密碼標簽
   'login.loginPasswordPlaceholder': '請輸入密碼', // 登入密碼占位符
+  'login.username': '帳號', // 帳號標簽
+  'login.usernamePlaceholder': '請輸入帳號', // 帳號占位符
+  'login.usernameRequired': '請輸入帳號', // 帳號必填校驗提示
+  'login.passwordRequired': '請輸入密碼', // 密碼必填校驗提示
+  'login.showPassword': '顯示密碼', // 顯示密碼按鈕提示
+  'login.hidePassword': '隱藏密碼', // 隱藏密碼按鈕提示
   'login.loginSubmit': '授權進入工作臺', // 登入提交按鈕
   'login.loginSubmitting': '正在建立連接...', // 登入提交中狀態
   'login.pageTitle': '登入 - HRS', // 登入頁標題

@@ -5,7 +5,7 @@ import { getParsedApiError, isParsedApiError, type ParsedApiError } from '../../
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
-import { Badge, Button, Input, Checkbox } from '../';
+import { Badge, Button, Checkbox, PasswordInput } from '../';
 import { SettingsAlert } from './SettingsAlert';
 import { SettingsSectionCard } from './SettingsSectionCard';
 
@@ -131,8 +131,9 @@ export const AuthSettingsCard: React.FC = () => {
             {(setupState === 'password_retained' && desiredEnabled) || 
              (setupState === 'enabled' && !desiredEnabled) ? (
               <div className="space-y-3">
-                <Input
-                  label={t('settings.authCurrentPassword')}
+                <label htmlFor="auth-current-password" className="mb-2 block text-sm font-medium text-foreground">{t('settings.authCurrentPassword')}</label>
+                <PasswordInput
+                  id="auth-current-password"
                   type="password"
                   allowTogglePassword
                   iconType="password"
@@ -141,8 +142,10 @@ export const AuthSettingsCard: React.FC = () => {
                   autoComplete="current-password"
                   disabled={isSubmitting}
                   placeholder={t('settings.authPasswordPlaceholder')}
-                  hint={setupState === 'password_retained' ? t('settings.authPasswordHintRetained') : t('settings.authPasswordHintOff')}
                 />
+                <p className="mt-2 text-xs text-secondary-text">
+                  {setupState === 'password_retained' ? t('settings.authPasswordHintRetained') : t('settings.authPasswordHintOff')}
+                </p>
               </div>
             ) : null}
 
@@ -150,8 +153,9 @@ export const AuthSettingsCard: React.FC = () => {
             {setupState === 'no_password' && desiredEnabled ? (
               <>
                 <div className="space-y-3">
-                  <Input
-                    label={t('settings.authSetPassword')}
+                  <label htmlFor="auth-set-password" className="mb-2 block text-sm font-medium text-foreground">{t('settings.authSetPassword')}</label>
+                  <PasswordInput
+                    id="auth-set-password"
                     type="password"
                     allowTogglePassword
                     iconType="password"
@@ -163,8 +167,9 @@ export const AuthSettingsCard: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-3">
-                  <Input
-                    label={t('settings.changePasswordConfirm')}
+                  <label htmlFor="auth-confirm-password" className="mb-2 block text-sm font-medium text-foreground">{t('settings.changePasswordConfirm')}</label>
+                  <PasswordInput
+                    id="auth-confirm-password"
                     type="password"
                     allowTogglePassword
                     iconType="password"

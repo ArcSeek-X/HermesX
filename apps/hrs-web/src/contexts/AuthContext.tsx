@@ -28,8 +28,8 @@ type AuthContextValue = {
   isLoading: boolean;
   /** 加载错误信息 */
   loadError: ParsedApiError | null;
-  /** 登录方法，passwordConfirm 仅在首次设置密码时需要 */
-  login: (password: string, passwordConfirm?: string) => Promise<{ success: boolean; error?: ParsedApiError }>;
+  /** 登录方法 */
+  login: (password: string) => Promise<{ success: boolean; error?: ParsedApiError }>;
   /** 修改密码方法，需提供当前密码和新密码（含确认） */
   changePassword: (
     currentPassword: string,
@@ -123,16 +123,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 登录方法
    * 调用后端登录接口，成功后刷新认证状态
    * @param password - 管理员密码
-   * @param passwordConfirm - 确认密码（仅在首次设置时需要）
    * @returns 登录结果，包含 success 标志和可能的错误信息
    */
   const login = useCallback(
-    async (
-      password: string,
-      passwordConfirm?: string
-    ): Promise<{ success: boolean; error?: ParsedApiError }> => {
+    async (password: string): Promise<{ success: boolean; error?: ParsedApiError }> => {
       try {
-        await authApi.login(password, passwordConfirm);
+        await authApi.login(password);
         await fetchStatus();
         return { success: true };
       } catch (err: unknown) {

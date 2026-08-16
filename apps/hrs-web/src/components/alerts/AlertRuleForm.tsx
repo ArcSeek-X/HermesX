@@ -465,23 +465,27 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
   const renderTargetControl = () => {
     if (targetScope === 'single_symbol') {
       return (
-        <Input
-          label={text.targetCode}
-          value={target}
-          onChange={(event) => setTarget(event.target.value)}
-          placeholder="600519 / AAPL / hk00700"
-          disabled={isSubmitting}
-        />
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">{text.targetCode}</label>
+          <Input
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+            placeholder="600519 / AAPL / hk00700"
+            disabled={isSubmitting}
+          />
+        </div>
       );
     }
     if (targetScope === 'watchlist') {
       return (
-        <Input
-          label={text.target}
-          value="default"
-          onChange={() => undefined}
-          disabled
-        />
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">{text.target}</label>
+          <Input
+            value="default"
+            onChange={() => undefined}
+            disabled
+          />
+        </div>
       );
     }
     if (targetScope === 'market') {
@@ -514,13 +518,15 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     <Card title={text.cardTitle} subtitle={text.cardSubtitle} variant="bordered" padding="md">
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(event)}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label={text.ruleName}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={text.ruleNamePlaceholder}
-            disabled={isSubmitting}
-          />
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">{text.ruleName}</label>
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={text.ruleNamePlaceholder}
+              disabled={isSubmitting}
+            />
+          </div>
           <Select
             label={text.targetScope}
             value={targetScope}
@@ -558,15 +564,17 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setPriceDirection(value as 'above' | 'below')}
             />
-            <Input
-              label={text.priceThreshold}
-              type="number"
-              min="0"
-              step="0.0001"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.priceThreshold}</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.0001"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -579,28 +587,32 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setChangeDirection(value as 'up' | 'down')}
             />
-            <Input
-              label={text.changePctThreshold}
-              type="number"
-              min="0"
-              step="0.01"
-              value={changePct}
-              onChange={(event) => setChangePct(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.changePctThreshold}</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={changePct}
+                onChange={(event) => setChangePct(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
         {alertType === 'volume_spike' ? (
-          <Input
-            label={text.volumeMultiplier}
-            type="number"
-            min="0"
-            step="0.01"
-            value={multiplier}
-            onChange={(event) => setMultiplier(event.target.value)}
-            disabled={isSubmitting}
-          />
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">{text.volumeMultiplier}</label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={multiplier}
+              onChange={(event) => setMultiplier(event.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
         ) : null}
 
         {alertType === 'ma_price_cross' ? (
@@ -612,16 +624,18 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
-            <Input
-              label={text.maWindow}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={window}
-              onChange={(event) => setWindow(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.maWindow}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={window}
+                onChange={(event) => setWindow(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -634,26 +648,30 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
-            <Input
-              label={text.rsiPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={period}
-              onChange={(event) => setPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.rsiThreshold}
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={threshold}
-              onChange={(event) => setThreshold(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.rsiPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={period}
+                onChange={(event) => setPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.rsiThreshold}</label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={threshold}
+                onChange={(event) => setThreshold(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -666,36 +684,42 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setCrossDirection(value as 'bullish_cross' | 'bearish_cross')}
             />
-            <Input
-              label={text.fastPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={fastPeriod}
-              onChange={(event) => setFastPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.slowPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={slowPeriod}
-              onChange={(event) => setSlowPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.signalPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={signalPeriod}
-              onChange={(event) => setSignalPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.fastPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={fastPeriod}
+                onChange={(event) => setFastPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.slowPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={slowPeriod}
+                onChange={(event) => setSlowPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.signalPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={signalPeriod}
+                onChange={(event) => setSignalPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -708,36 +732,42 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setCrossDirection(value as 'bullish_cross' | 'bearish_cross')}
             />
-            <Input
-              label={text.kdjPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={period}
-              onChange={(event) => setPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.kPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={kPeriod}
-              onChange={(event) => setKPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.dPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={dPeriod}
-              onChange={(event) => setDPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.kdjPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={period}
+                onChange={(event) => setPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.kPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={kPeriod}
+                onChange={(event) => setKPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.dPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={dPeriod}
+                onChange={(event) => setDPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -750,24 +780,28 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
-            <Input
-              label={text.cciPeriod}
-              type="number"
-              min="2"
-              max="250"
-              step="1"
-              value={period}
-              onChange={(event) => setPeriod(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={text.cciThreshold}
-              type="number"
-              step="0.01"
-              value={threshold}
-              onChange={(event) => setThreshold(event.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.cciPeriod}</label>
+              <Input
+                type="number"
+                min="2"
+                max="250"
+                step="1"
+                value={period}
+                onChange={(event) => setPeriod(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">{text.cciThreshold}</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={threshold}
+                onChange={(event) => setThreshold(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -799,16 +833,18 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         ) : null}
 
         {alertType === 'market_light_score_drop' ? (
-          <Input
-            label={text.scoreDropThreshold}
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={minDrop}
-            onChange={(event) => setMinDrop(event.target.value)}
-            disabled={isSubmitting}
-          />
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">{text.scoreDropThreshold}</label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={minDrop}
+              onChange={(event) => setMinDrop(event.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
         ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

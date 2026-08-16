@@ -4,7 +4,7 @@ import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
 import { systemConfigApi } from '../../api/systemConfig';
 import type { LLMCapabilityCheck, LLMCapabilityCheckResult } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select, StatusDot, Tooltip } from '../';
+import { ApiErrorAlert, Badge, Button, InlineAlert, Input, PasswordInput, Select, StatusDot, Tooltip } from '../';
 import type { ChannelProtocol } from './llmProviderTemplates';
 import {
   LLM_PROVIDER_CAPABILITY_LABELS,
@@ -642,7 +642,7 @@ const ChannelRow: React.FC<ChannelRowProps> = ({
               helpKey="settings.llm_channel.api_key"
               examples={['LLM_DEEPSEEK_API_KEY=sk-xxxx', 'LLM_OPENAI_API_KEYS=sk-key-1,sk-key-2']}
             />
-          <Input
+          <PasswordInput
             id={apiKeyInputId}
             type="password"
             allowTogglePassword
@@ -726,12 +726,12 @@ const ChannelRow: React.FC<ChannelRowProps> = ({
               disabled={busy}
               onChange={(e) => onUpdate(index, 'models', e.target.value)}
               placeholder={preset?.placeholderModels || MODEL_PLACEHOLDERS_BY_PROTOCOL[channel.protocol]}
-              hint={
-                discoveredModels.length > 0
-                  ? '如有自定义模型名未出现在列表中，可继续手动补充，保存格式仍为逗号分隔。'
-                  : '若渠道不支持自动发现或请求失败，可直接手动填写模型列表。'
-              }
             />
+            <p className="mt-2 text-xs text-secondary-text">
+              {discoveredModels.length > 0
+                ? '如有自定义模型名未出现在列表中，可继续手动补充，保存格式仍为逗号分隔。'
+                : '若渠道不支持自动发现或请求失败，可直接手动填写模型列表。'}
+            </p>
             </div>
 
             {manualOnlyModels.length > 0 ? (

@@ -7,9 +7,8 @@
  *   1. 通过 useStockIndex 加载本地股票索引，useAutocomplete（股票搜索自动补全）做
  *      代码/中文名/拼音全拼/拼音简拼/别名的本地模糊匹配，并渲染下拉候选列表；
  *   2. 支持键盘导航（↑/↓ 移动高亮、Enter 提交、Esc 收起）、IME 输入法组合态处理；
- *   3. 多层降级保护：索引加载失败（fallback）、搜索运行时异常（runtimeFallback）、
- *      渲染异常（ErrorBoundary）时，一律退化为普通输入框（FallbackInput），
- *      保证搜索输入能力不整体失效；
+ *   3. 渲染异常（ErrorBoundary）捕获后整体不挂载搜索框，避免破损 UI 扩散；
+ *      （原多层降级退化为普通输入框的逻辑已移除，搜索框统一使用 HeroUI SearchField）
  *   4. 下拉框通过 createPortal 挂到 document.body，避免被父级 overflow 裁剪。
  *
  * 对外契约：
@@ -26,10 +25,7 @@ import { useAutocomplete } from '../../hooks/useAutocomplete';
 import { SuggestionsList } from './SuggestionsList';
 import { cn } from '../../utils/cn';
 import type { Market } from '../../types/stockIndex';
-
-/** 输入框统一样式类：圆角、聚焦光晕、禁用态等（两种模式共用，保证外观一致） */
-const AUTOCOMPLETE_INPUT_CLASS =
-  'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+import { SearchField } from '@heroui/react';
 
 /** StockAutocomplete 组件对外 Props */
 export interface StockAutocompleteProps {
@@ -58,75 +54,6 @@ export interface StockAutocompleteProps {
   onClear?: () => void;
 }
 
-/**
- * FallbackInput —— 降级用的普通输入框
- *
- * 触发场景：股票索引加载失败/加载中、自动补全运行时异常、组件渲染异常时，
- * 由外层统一退化为本组件。功能最小化：仅支持输入、回车提交、清除按钮，
- * 提交时把当前输入原文交给 onSubmit（由调用方走后端搜索解析）。
- */
-function FallbackInput({
-  value,
-  displayValue,
-  onChange,
-  onSubmit,
-  onClear,
-  disabled = false,
-  placeholder = '输入股票代码或名称',
-  ariaLabel,
-  className,
-}: StockAutocompleteProps) {
-  // 编辑状态：用户正在编辑时使用原始输入值，避免 displayValue 覆盖编辑
-  const [editingValue, setEditingValue] = useState<string | null>(null);
-  // 输入框显示内容优先级：编辑中的原文 > displayValue（如"名称（代码）"）> value
-  const inputValue = editingValue ?? displayValue ?? value;
-  return (
-    <div className="relative">
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => {
-          const raw = e.target.value;
-          setEditingValue(raw); // 记录编辑态，显示用户输入原文
-          onChange(raw);        // 同步给外部（调用方解析并更新 value）
-        }}
-        onKeyDown={(e) => {
-          // 回车提交：有输入内容时把当前值交回 onSubmit（外部会做后端搜索解析）
-          if (e.key === 'Enter' && !disabled && value) {
-            e.preventDefault(); // 阻止表单默认提交，避免页面刷新
-            setEditingValue(null);
-            onSubmit(value);
-          }
-        }}
-        onBlur={() => setEditingValue(null)}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        disabled={disabled}
-        className={cn(
-          AUTOCOMPLETE_INPUT_CLASS,
-          inputValue && onClear && 'pr-9', // 有清除按钮时预留右侧空间
-          className
-        )}
-        data-autocomplete-mode="fallback"
-      />
-      {/* 清除按钮：有内容时显示 X 图标 */}
-      {inputValue && onClear && !disabled && (
-        <button
-          type="button"
-          onClick={() => {
-            setEditingValue(null);
-            onClear();
-          }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-muted-text transition-colors hover:bg-foreground/10 hover:text-foreground"
-          aria-label="清除输入"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      )}
-    </div>
-  );
-}
-
 /** 错误边界 Props：在 StockAutocompleteProps 基础上追加 children */
 interface StockAutocompleteBoundaryProps extends StockAutocompleteProps {
   children: ReactNode;
@@ -141,8 +68,7 @@ interface StockAutocompleteBoundaryState {
  * StockAutocompleteBoundary —— 渲染错误边界（class 组件）
  *
  * 作用：捕获 StockAutocompleteInner 渲染期异常（如 hooks 契约不匹配、候选数据异常），
- * 一旦捕获立即降级渲染 FallbackInput，避免整个页面因搜索框白屏。
- * 这是"最后一道防线"：正常情况下 fallback/runtimeFallback 已覆盖降级路径。
+ * 一旦捕获则整体不挂载搜索框（不再降级为普通输入框），避免破损 UI 扩散到页面其它区域。
  */
 class StockAutocompleteBoundary extends Component<
   StockAutocompleteBoundaryProps,
@@ -161,11 +87,9 @@ class StockAutocompleteBoundary extends Component<
   }
 
   override render() {
-    // 已降级：剥离 children 后把其余 Props 交给 FallbackInput
+    // 渲染异常时已移除降级输入框，异常状态下整体不挂载搜索框，避免破损 UI
     if (this.state.hasError) {
-      const { children, ...fallbackProps } = this.props;
-      void children;
-      return <FallbackInput {...fallbackProps} />;
+      return null;
     }
 
     // 正常渲染子树
@@ -196,8 +120,8 @@ function StockAutocompleteInner({
   ariaLabel,
   className,
 }: StockAutocompleteProps) {
-  // 股票索引：加载本地 /stocks.index.json；fallback=true 时降级为普通输入框
-  const { index, loading, fallback } = useStockIndex();
+  // 股票索引：加载本地 /stocks.index.json
+  const { index, loading } = useStockIndex();
   // 自动补全逻辑：本地模糊搜索（代码/名称/拼音/简拼/别名）+ 键盘高亮 + IME 状态
   const {
     // query,             // 内部查询词由 setQuery 维护，组件未直接读取
@@ -212,7 +136,6 @@ function StockAutocompleteInner({
     // reset,             // 整体重置由外部触发（清空按钮走 onClear）
     isComposing,          // 是否处于输入法组合输入中
     setIsComposing,       // 设置输入法组合状态
-    runtimeFallback,      // 搜索逻辑异常降级标记
     error: autocompleteError, // 自动补全运行时错误
   } = useAutocomplete(index);
 
@@ -354,74 +277,73 @@ function StockAutocompleteInner({
     setTimeout(() => closeSuggestions(), 200);
   };
 
-  // 降级路径：索引加载中/加载失败（fallback）或搜索运行时异常（runtimeFallback）时，
-  // 渲染普通输入框，仅保留"输入 + 回车提交 + 清除"基础能力
-  if (fallback || loading || runtimeFallback) {
-    return (
-      <FallbackInput
-        value={value}
-        displayValue={displayValue}
-        onChange={onChange}
-        onSubmit={onSubmit}
-        onClear={onClear}
-        disabled={disabled}
-        placeholder={placeholder}
-        ariaLabel={ariaLabel}
-        className={className}
-      />
-    );
-  }
-
-  // 正常模式：自动补全输入框 + 清除按钮 + 加载指示 + 下拉候选列表
+  // 自动补全输入框 + 清除按钮 + 加载指示 + 下拉候选列表
+  // 基于 HeroUI InputGroup：外层 wrapper 复用项目输入框样式类，
+  // 基于 HeroUI SearchField：受控根组件管理输入值，Group 承载视觉框样式，
+  // 内置 SearchIcon + ClearButton（ClearButton 自动清空并触发根 onChange），
+  // Input 挂键盘/IME/焦点逻辑与 combobox 无障碍语义，下拉展开时去掉下圆角
   return (
     <div className="relative stock-autocomplete">
-      <input
-        ref={inputRef}
-        type="text"
+      <SearchField
+        name="stock-search"
         value={inputValue}
-        onChange={(e) => {
-          const raw = e.target.value;
+        // react-aria SearchField 受控回调，raw 为最新输入文本
+        onChange={(raw: string) => {
           setEditingValue(raw); // 标记正在编辑，使用原始输入值
           onChange(raw);
-        }}
-        onKeyDown={handleKeyDown}
-        onCompositionStart={handleCompositionStart}
-        onCompositionEnd={handleCompositionEnd}
-        onFocus={() => {
-          // 重新聚焦时若下拉已展开，重算一次位置（布局可能已变化）
-          if (isOpen) {
-            updateDropdownPosition();
+          // 清空时同步外部 onClear 语义（原清除按钮点击逻辑）
+          if (raw === '' && onClear) {
+            setEditingValue(null);
+            onClear();
           }
         }}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        disabled={disabled}
-        className={cn(
-          AUTOCOMPLETE_INPUT_CLASS,
-          isOpen && "rounded-b-none", // 下拉展开时去掉下圆角，与列表无缝衔接
-          inputValue && onClear && 'pr-9',
-          className
-        )}
-        // 无障碍：combobox 语义 + 展开状态与下拉列表关联
-        aria-autocomplete="none"
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-controls="suggestions-list"
-      />
+      >
 
-      {/* 清除按钮：有内容时显示 X 图标 */}
-      {inputValue && onClear && !disabled && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-muted-text transition-colors hover:bg-foreground/10 hover:text-foreground z-10"
-          aria-label="清除输入"
+
+
+        <SearchField.Group
+          className={cn(
+            /** 输入框统一样式类：圆角、聚焦光晕、禁用态等（两种模式共用，外观修改一致） */
+            'input-surface input-focus-glow h-11 w-full rounded-md border  **:!shadow-none !shadow-none bg-transparent text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+            isOpen && 'rounded-b-none', // 下拉展开时去掉下圆角，与列表无缝衔接
+            className,
+          )}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      )}
+          <SearchField.SearchIcon />
+          <SearchField.Input
+            ref={inputRef}
+            type="text"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            className="![overflow:visible] ![text-overflow:clip]"
+            disabled={disabled}
+            placeholder={placeholder}
+            aria-label={ariaLabel}
+            onKeyDown={handleKeyDown}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
+            onFocus={() => {
+              // 重新聚焦时若下拉已展开，重算一次位置（布局可能已变化）
+              if (isOpen) {
+                updateDropdownPosition();
+              }
+            }}
+            onBlur={handleBlur}
+            // 无障碍：combobox 语义 + 展开状态与下拉列表关联
+            aria-autocomplete="none"
+            role="combobox"
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
+            aria-controls="suggestions-list"
+          />
+          {/* 清除按钮：有内容且可清除时显示（ClearButton 自动清空并触发根 onChange） */}
+          {inputValue && onClear && !disabled && (
+            <SearchField.ClearButton aria-label="清除输入" />
+          )}
+        </SearchField.Group>
+      </SearchField>
 
       {/* Loading indicator：索引加载中显示转圈（正常模式下加载完才渲染列表） */}
       {loading && (

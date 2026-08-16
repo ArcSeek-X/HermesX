@@ -84,35 +84,18 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertFalse(data["passwordSet"])
         self.assertFalse(data["loggedIn"])
 
-    def test_login_first_time_set_initial_password(self) -> None:
+    def test_login_without_stored_password_returns_401(self) -> None:
         response = asyncio.run(
             auth_endpoint.auth_login(
                 self._build_request(),
-                auth_endpoint.LoginRequest(password="newpass123", passwordConfirm="newpass123"),
+                auth_endpoint.LoginRequest(password="newpass123"),
             )
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("hrs_session=", response.headers["set-cookie"])
-        self.assertIn(b'"ok":true', response.body)
-
-    def test_login_first_time_mismatch_rejected(self) -> None:
-        response = asyncio.run(
-            auth_endpoint.auth_login(
-                self._build_request(),
-                auth_endpoint.LoginRequest(password="pass1", passwordConfirm="pass2"),
-            )
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn(b'"error":"password_mismatch"', response.body)
+        self.assertEqual(response.status_code, 401)
+        self.assertIn(b'"error":"invalid_password"', response.body)
 
     def test_login_after_set_normal_login(self) -> None:
-        first_response = asyncio.run(
-            auth_endpoint.auth_login(
-                self._build_request(),
-                auth_endpoint.LoginRequest(password="mypass456", passwordConfirm="mypass456"),
-            )
-        )
-        self.assertEqual(first_response.status_code, 200)
+        auth.set_initial_password("mypass456")
 
         response = asyncio.run(
             auth_endpoint.auth_login(
@@ -124,13 +107,7 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(b'"ok":true', response.body)
 
     def test_login_wrong_password_returns_401(self) -> None:
-        first_response = asyncio.run(
-            auth_endpoint.auth_login(
-                self._build_request(),
-                auth_endpoint.LoginRequest(password="correct", passwordConfirm="correct"),
-            )
-        )
-        self.assertEqual(first_response.status_code, 200)
+        auth.set_initial_password("correct")
 
         response = asyncio.run(
             auth_endpoint.auth_login(
@@ -146,10 +123,11 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn("hrs_session=", response.headers["set-cookie"])
 
     def test_logout_invalidates_existing_session(self) -> None:
+        auth.set_initial_password("passwd6")
         login_response = asyncio.run(
             auth_endpoint.auth_login(
                 self._build_request(),
-                auth_endpoint.LoginRequest(password="passwd6", passwordConfirm="passwd6"),
+                auth_endpoint.LoginRequest(password="passwd6"),
             )
         )
         self.assertEqual(login_response.status_code, 200)
@@ -170,10 +148,11 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(b'"error":"internal_error"', response.body)
 
     def test_change_password_requires_session(self) -> None:
+        auth.set_initial_password("oldpass6")
         first_response = asyncio.run(
             auth_endpoint.auth_login(
                 self._build_request(),
-                auth_endpoint.LoginRequest(password="oldpass6", passwordConfirm="oldpass6"),
+                auth_endpoint.LoginRequest(password="oldpass6"),
             )
         )
         self.assertEqual(first_response.status_code, 200)
@@ -190,10 +169,11 @@ class AuthApiTestCase(unittest.TestCase):
         self.assertIn(response.status_code, (200, 204))
 
     def test_change_password_wrong_current_rejected(self) -> None:
+        auth.set_initial_password("actual6")
         first_response = asyncio.run(
             auth_endpoint.auth_login(
                 self._build_request(),
-                auth_endpoint.LoginRequest(password="actual6", passwordConfirm="actual6"),
+                auth_endpoint.LoginRequest(password="actual6"),
             )
         )
         self.assertEqual(first_response.status_code, 200)

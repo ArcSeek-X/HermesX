@@ -35,7 +35,7 @@ const Probe = () => {
     <div>
       <span data-testid="status">{auth.loggedIn ? 'logged-in' : 'logged-out'}</span>
       <span data-testid="password-set">{auth.passwordSet ? 'set' : 'unset'}</span>
-      <button type="button" onClick={() => void auth.login('passwd6', 'passwd6')}>
+      <button type="button" onClick={() => void auth.login('passwd6')}>
         trigger-login
       </button>
       <button type="button" onClick={() => void auth.logout()}>

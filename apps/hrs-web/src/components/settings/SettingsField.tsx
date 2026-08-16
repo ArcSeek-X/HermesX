@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type React from 'react';
-import { Badge, Button, Select, Input } from '../';
+import { Badge, Button, PasswordInput, Select } from '../';
 import type { ConfigValidationIssue, SystemConfigFieldSchema, SystemConfigItem } from '../../types/systemConfig';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { getSettingsHelpContent } from '../../locales/settingsHelp';
@@ -136,7 +136,7 @@ function renderFieldControl(
           {values.map((entry, index) => (
             <div className="flex items-center gap-2" key={`${item.key}-${index}`}>
               <div className="flex-1">
-                <Input
+                <PasswordInput
                   type="password"
                   allowTogglePassword
                   iconType={iconType}
@@ -185,7 +185,7 @@ function renderFieldControl(
     }
 
     return (
-      <Input
+      <PasswordInput
         type="password"
         allowTogglePassword
         iconType={iconType}

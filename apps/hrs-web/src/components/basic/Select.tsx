@@ -4,13 +4,18 @@
  * ===================================
  *
  * 作用：
- * 封装 Ant Design Select 组件，统一项目的暗色主题样式：
+ * 基于原生 <select> 实现的下拉选择器，统一项目的暗色主题样式：
  * - 自动适配深色背景、边框和文字颜色
- * - 支持下拉面板的暗色主题样式
- * - 支持可选的标签、搜索和空状态提示
+ * - 支持可选的标签、禁用状态
+ *
+ * 说明：
+ * - 原实现基于 Ant Design Select，项目移除 antd 依赖后改用原生 <select>，
+ *   对外 props 接口保持不变（value / onChange / options / label 等）。
+ * - searchable / searchPlaceholder / emptyText 为兼容保留字段：
+ *   原生 <select> 不支持输入搜索，当前实现忽略这些 prop。
  */
 import React from 'react';
-import { Select as AntSelect } from 'antd';
+import { ChevronDown } from 'lucide-react';
 
 /** 下拉选项的数据结构 */
 interface SelectOption {
@@ -38,18 +43,18 @@ interface SelectProps {
   disabled?: boolean;
   /** 自定义 CSS 类名 */
   className?: string;
-  /** 是否启用搜索功能 */
+  /** 是否启用搜索功能（原生实现不支持，保留兼容） */
   searchable?: boolean;
-  /** 搜索框占位符 */
+  /** 搜索框占位符（原生实现不支持，保留兼容） */
   searchPlaceholder?: string;
-  /** 无数据时的提示文本 */
+  /** 无数据时的提示文本（原生实现不支持，保留兼容） */
   emptyText?: string;
 }
 
 /**
  * 下拉选择器组件
  *
- * 对 Ant Design Select 进行主题封装，统一使用 CSS 变量控制颜色，
+ * 基于原生 <select> 实现，使用与项目输入框一致的 CSS 主题样式，
  * 确保与项目暗色主题一致。
  *
  * @param props - 组件属性
@@ -63,8 +68,6 @@ export const Select: React.FC<SelectProps> = ({
   placeholder = '请选择',
   disabled = false,
   className = '',
-  searchable = false,
-  emptyText = '暂无数据',
 }) => {
   return (
     <div className={className}>
@@ -74,22 +77,29 @@ export const Select: React.FC<SelectProps> = ({
           {label}
         </label>
       )}
-      <AntSelect
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        showSearch={searchable}
-        notFoundContent={emptyText}
-        className="w-full"
-        style={{
-          backgroundColor: 'var(--bg-elevated)',
-          borderColor: 'var(--border-subtle)',
-          color: 'var(--text-primary)',
-        }}
-        options={options}
-        popupClassName="dark-theme-select-dropdown"
-      />
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className="input-surface input-focus-glow w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-9 text-sm text-foreground transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {placeholder && !value && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          aria-hidden
+          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text"
+        />
+      </div>
     </div>
   );
 };

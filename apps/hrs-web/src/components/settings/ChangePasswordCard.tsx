@@ -4,7 +4,7 @@ import type { ParsedApiError } from '../../api/error';
 import { isParsedApiError } from '../../api/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { Button, Input } from '../';
+import { Button, PasswordInput } from '../';
 import { SettingsAlert } from './SettingsAlert';
 import { SettingsSectionCard } from './SettingsSectionCard';
 
@@ -66,12 +66,12 @@ export const ChangePasswordCard: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-3">
-            <Input
+            <label htmlFor="change-pass-current" className="mb-2 block text-sm font-medium text-foreground">{t('settings.changePasswordCurrent')}</label>
+            <PasswordInput
               id="change-pass-current"
               type="password"
               allowTogglePassword
               iconType="password"
-              label={t('settings.changePasswordCurrent')}
               placeholder={t('settings.changePasswordCurrentPlaceholder')}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -81,29 +81,29 @@ export const ChangePasswordCard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <Input
+            <label htmlFor="change-pass-new" className="mb-2 block text-sm font-medium text-foreground">{t('settings.changePasswordNew')}</label>
+            <PasswordInput
               id="change-pass-new"
               type="password"
               allowTogglePassword
               iconType="password"
-              label={t('settings.changePasswordNew')}
-              hint={t('settings.changePasswordNewHint')}
               placeholder={t('settings.changePasswordNewPlaceholder')}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={isSubmitting}
               autoComplete="new-password"
             />
+            <p className="mt-2 text-xs text-secondary-text">{t('settings.changePasswordNewHint')}</p>
           </div>
         </div>
 
         <div className="space-y-3 md:max-w-md">
-          <Input
+          <label htmlFor="change-pass-confirm" className="mb-2 block text-sm font-medium text-foreground">{t('settings.changePasswordConfirm')}</label>
+          <PasswordInput
             id="change-pass-confirm"
             type="password"
             allowTogglePassword
             iconType="password"
-            label={t('settings.changePasswordConfirm')}
             placeholder={t('settings.changePasswordConfirmPlaceholder')}
             value={newPasswordConfirm}
             onChange={(e) => setNewPasswordConfirm(e.target.value)}

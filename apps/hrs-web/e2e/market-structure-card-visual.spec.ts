@@ -99,7 +99,7 @@ async function buildRealComponentFixture(): Promise<{
     fixtureDir,
     path.join(sourceRoot, 'components/report/MarketStructureCard.tsx'),
   );
-  const cssImport = toImportPath(fixtureDir, path.join(sourceRoot, 'index.css'));
+  const cssImport = toImportPath(fixtureDir, path.join(sourceRoot, 'style', 'index.css'));
   const typeImport = toImportPath(fixtureDir, path.join(sourceRoot, 'types/analysis.ts'));
 
   writeFile(

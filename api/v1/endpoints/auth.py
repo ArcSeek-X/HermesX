@@ -40,12 +40,11 @@ router = APIRouter()
 
 
 class LoginRequest(BaseModel):
-    """Login request body. For first-time setup use password + password_confirm."""
+    """Login request body."""
 
     model_config = {"populate_by_name": True}
 
     password: str = Field(default="", description="Admin password")
-    password_confirm: str | None = Field(default=None, alias="passwordConfirm", description="Confirm (first-time)")
 
 
 class ChangePasswordRequest(BaseModel):
@@ -356,11 +355,11 @@ async def auth_update_settings(request: Request, body: AuthSettingsRequest):
 
 @router.post(
     "/login",
-    summary="Login or set initial password",
-    description="Verify password and set session cookie. If password not set yet, accepts password+passwordConfirm.",
+    summary="Login",
+    description="Verify password and set session cookie.",
 )
 async def auth_login(request: Request, body: LoginRequest):
-    """Verify password or set initial password, set cookie on success. Returns 401 or 429 on failure."""
+    """Verify password and set session cookie on success. Returns 401 or 429 on failure."""
     if not is_auth_enabled():
         return JSONResponse(
             status_code=400,
@@ -384,31 +383,12 @@ async def auth_login(request: Request, body: LoginRequest):
             },
         )
 
-    password_set = is_password_set()
-
-    if not password_set:
-        # First-time setup: require passwordConfirm
-        confirm = (body.password_confirm or "").strip()
-        if password != confirm:
-            record_login_failure(ip)
-            return JSONResponse(
-                status_code=400,
-                content={"error": "password_mismatch", "message": "Passwords do not match"},
-            )
-        err = set_initial_password(password)
-        if err:
-            record_login_failure(ip)
-            return JSONResponse(
-                status_code=400,
-                content={"error": "invalid_password", "message": err},
-            )
-    else:
-        if not verify_password(password):
-            record_login_failure(ip)
-            return JSONResponse(
-                status_code=401,
-                content={"error": "invalid_password", "message": "密码错误"},
-            )
+    if not verify_password(password):
+        record_login_failure(ip)
+        return JSONResponse(
+            status_code=401,
+            content={"error": "invalid_password", "message": "密码错误"},
+        )
 
     clear_rate_limit(ip)
     session_val = create_session()

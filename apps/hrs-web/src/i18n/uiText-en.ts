@@ -90,6 +90,17 @@ const en: Record<UiTextKey, string> = {
   'layout.route.home.title': 'Home',
   'layout.route.sectorAnalysis.description': 'Sector performance, capital flow, and hotspot tracking',
   'layout.route.sectorAnalysis.title': 'Sector Analysis',
+
+  // ---- Sector Analysis page tabs (sector.tab.*) ----
+  'sector.tab.board': 'Sector', // Primary tab: Sector
+  'sector.tab.cloudMap': 'Cloud Map', // Primary tab: Cloud Map
+  'sector.tab.fund': 'Fund', // Primary tab: Fund
+  'sector.tab.boardIndustry': 'Industry', // "Sector" secondary tab: Industry
+  'sector.tab.boardConcept': 'Concept', // "Sector" secondary tab: Concept
+  'sector.tab.cloudSector': 'Sector Cloud', // "Cloud Map" secondary tab: Sector Cloud
+  'sector.tab.cloudStock': 'Stock Cloud', // "Cloud Map" secondary tab: Stock Cloud
+  'sector.tab.cloudEtf': 'ETF Cloud', // "Cloud Map" secondary tab: ETF Cloud
+  'sector.tab.cloudConcept': 'Concept Cloud', // "Cloud Map" secondary tab: Concept Cloud
   'layout.route.portfolio.description': 'Portfolio snapshots, manual entries, and risk analysis',
   'layout.route.portfolio.title': 'Portfolio',
   'layout.route.settings.description': 'System config, models, and authentication',
@@ -211,6 +222,12 @@ const en: Record<UiTextKey, string> = {
   'login.loginFailed': 'Login failed',
   'login.loginPassword': 'Password',
   'login.loginPasswordPlaceholder': 'Enter password',
+  'login.username': 'Account',
+  'login.usernamePlaceholder': 'Enter account',
+  'login.usernameRequired': 'Please enter your account',
+  'login.passwordRequired': 'Please enter your password',
+  'login.showPassword': 'Show password',
+  'login.hidePassword': 'Hide password',
   'login.loginSubmit': 'Enter workspace',
   'login.loginSubmitting': 'Connecting...',
   'login.pageTitle': 'Login - HRS',

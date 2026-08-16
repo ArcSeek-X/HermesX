@@ -58,13 +58,9 @@ export const authApi = {
     return data;
   },
 
-  /** 登录（首次开启鉴权时也可带上 passwordConfirm 完成初始化设置） */
-  async login(password: string, passwordConfirm?: string): Promise<void> {
-    const body: { password: string; passwordConfirm?: string } = { password };
-    if (passwordConfirm !== undefined) {
-      body.passwordConfirm = passwordConfirm;
-    }
-    await apiClient.post('/api/v1/auth/login', body);
+  /** 登录：校验密码并建立会话 */
+  async login(password: string): Promise<void> {
+    await apiClient.post('/api/v1/auth/login', { password });
   },
 
   /** 修改密码（需提供当前密码 + 两次新密码确认） */

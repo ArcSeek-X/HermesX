@@ -14,7 +14,6 @@ import React, { useEffect, useState } from 'react';
 import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, Gauge, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Search, Settings2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
-import { useAuth } from '../../contexts/AuthContext';
 import { useAgentChatStore } from '../../stores/agentChatStore';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
