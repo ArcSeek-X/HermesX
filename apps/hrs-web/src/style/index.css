@@ -73,7 +73,6 @@
     monospace; */
 
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   line-height: 1.5;
   font-weight: 400;
@@ -183,10 +182,8 @@
   --muted-text: 224 12% 35%;
 
   --color-cyan: hsl(var(--primary));
-  --color-cyan-dim: hsl(var(--primary) / 0.8);
   --color-cyan-glow: hsl(var(--primary) / 0.18);
   --color-purple: 247 84% 66%;
-  --color-purple-dim: 247 84% 56%;
   --color-purple-glow: hsl(247 84% 66% / 0.18);
   --color-success: 152 69% 40%;
   --color-warning: 37 92% 50%;
@@ -234,7 +231,6 @@
   --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.06);
   --border-default: var(--border-dim);
   --border-hover: hsl(var(--primary) / 0.24);
-  --border-selected: hsl(var(--primary) / 0.32);
 
   /* Surface variants */
   --surface-1: hsl(var(--card));
@@ -261,15 +257,11 @@
      ============================================================ */
   --nav-active-bg: hsl(var(--primary) / 0.09);
   --nav-active-border: hsl(var(--primary) / 0.24);
-  --nav-active-shadow: hsl(var(--primary) / 0.04);
   --nav-hover-bg: hsl(var(--primary) / 0.05);
   --nav-icon-active: hsl(var(--primary));
   --nav-item-height: 2.75rem;
   --nav-item-padding-x: 1rem;
-  --nav-indicator-width: 0.25rem;
-  --nav-indicator-bg: hsl(var(--primary));
   --nav-indicator-shadow: hsl(var(--primary) / 0.52);
-  --nav-badge-bg: hsl(var(--primary));
   --nav-brand-shadow: hsl(var(--primary) / 0.2);
   --nav-divider: hsl(var(--foreground) / 0.09);
 
@@ -278,7 +270,6 @@
 
   /* Shell Sidebar Custom（Shell 侧边栏定制） */
   --shell-sidebar-border: hsl(var(--primary) / 0.35);
-  --shell-sidebar-shadow: 0 12px 24px hsl(var(--primary) / 0.1), 0 3px 8px hsl(var(--primary) / 0.06);
 
   /* ============================================================
      Home page related（Home 首页 / 仪表盘相关令牌）
@@ -305,7 +296,6 @@
   --home-accent-border: hsl(var(--primary) / 0.2);
   --home-accent-border-hover: hsl(var(--primary) / 0.28);
   --home-accent-text: hsl(var(--primary));
-  --home-secondary-accent-text: hsl(247 84% 66%);
   --home-title-accent: hsl(247 84% 66%);
   --home-price-up: hsl(0 88% 62%);
   --home-price-down: hsl(149 100% 42%);
@@ -348,7 +338,6 @@
   --home-rail-border: hsl(218 24% 82% / 0.9);
   --home-rail-bg: linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(214 36% 97% / 0.98));
   --home-rail-shadow: 0 14px 30px hsl(220 22% 34% / 0.09), 0 4px 10px hsl(220 18% 28% / 0.05);
-  --home-history-glow: hsl(193 100% 43% / 0.14);
   --autocomplete-hover-bg: #04d1f6;
 
   /* ============================================================
@@ -423,8 +412,6 @@
   --login-bg-main: hsl(214 34% 96%);
   --login-bg-card: hsl(210 43% 92% / 0.78);
   --login-border-card: hsl(221 28% 28% / 0.58);
-  --login-border-input: hsl(201 56% 46% / 0.7);
-  --login-border-focus: hsl(var(--primary) / 0.48);
   --login-error-text: hsl(var(--destructive));
   --login-error-bg: hsl(var(--destructive) / 0.1);
   --login-error-border: hsl(var(--destructive) / 0.2);
@@ -455,8 +442,6 @@
   --login-input-toggle-active-bg: hsl(var(--primary) / 0.14);
   --login-input-toggle-active-border: hsl(var(--primary) / 0.34);
   --login-input-toggle-active-text: hsl(205 88% 28%);
-  --login-grid-line: hsl(214 20% 55% / 0.08);
-  --login-grid-mask: radial-gradient(ellipse 80% 50% at 50% 50%, #000 70%, transparent 100%);
 
   /* 底部球形光晕（参考 Next-Gen AI Studio 风格装饰） */
   --login-arc-primary: hsl(225 60% 84%);
@@ -508,10 +493,8 @@
   --muted-text: 228 10% 48%;
 
   --color-cyan: hsl(var(--primary));
-  --color-cyan-dim: hsl(var(--primary) / 0.8);
   --color-cyan-glow: hsl(var(--primary) / 0.4);
   --color-purple: 247 84% 72%;
-  --color-purple-dim: 247 84% 62%;
   --color-purple-glow: hsl(247 84% 72% / 0.3);
   --color-success: 152 69% 40%;
   --color-warning: 37 92% 50%;
@@ -562,7 +545,6 @@
   --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.15);
   --border-default: var(--border-dim);
   --border-hover: hsl(var(--primary) / 0.34);
-  --border-selected: hsl(var(--primary) / 0.46);
 
   /* Dark theme surface variants */
   --surface-1: hsl(var(--card));
@@ -583,21 +565,16 @@
   /* Navigation related (Dark theme) */
   --nav-active-bg: hsl(var(--primary) / 0.11);
   --nav-active-border: hsl(var(--primary) / 0.3);
-  --nav-active-shadow: hsl(var(--primary) / 0.05);
   --nav-hover-bg: hsl(var(--primary) / 0.06);
   --nav-icon-active: hsl(var(--primary));
   --nav-item-height: 2.75rem;
   --nav-item-padding-x: 1rem;
-  --nav-indicator-width: 0.25rem;
-  --nav-indicator-bg: hsl(var(--primary));
   --nav-indicator-shadow: hsl(var(--primary) / 0.8);
-  --nav-badge-bg: hsl(var(--primary));
   --nav-brand-shadow: hsl(var(--primary) / 0.24);
   --nav-divider: hsl(var(--foreground) / 0.08);
 
   /* Shell Sidebar Custom (Dark theme) */
   --shell-sidebar-border: hsl(var(--primary) / 0.32);
-  --shell-sidebar-shadow: 0 18px 48px hsl(var(--primary) / 0.18);
 
   /* Home page related (Dark theme) */
   --home-loading-ring-track: hsl(var(--primary) / 0.2);
@@ -617,7 +594,6 @@
   --home-accent-border: hsl(var(--primary) / 0.22);
   --home-accent-border-hover: hsl(var(--primary) / 0.34);
   --home-accent-text: hsl(var(--primary));
-  --home-secondary-accent-text: hsl(247 84% 72%);
   --home-title-accent: hsl(247 84% 72%);
   --home-price-up: hsl(0 88% 64%);
   --home-price-down: hsl(149 100% 44%);
@@ -707,8 +683,6 @@
   --login-bg-main: #000000;
   --login-bg-card: hsl(228 35% 9% / 0.72);
   --login-border-card: hsl(222 45% 70% / 0.14);
-  --login-border-input: hsl(0 0% 100% / 0.1);
-  --login-border-focus: hsl(222 85% 70% / 0.5);
   --login-error-text: hsl(var(--destructive));
   --login-error-bg: hsl(var(--destructive) / 0.1);
   --login-error-border: hsl(var(--destructive) / 0.2);
@@ -739,8 +713,6 @@
   --login-input-toggle-active-bg: hsl(222 60% 28% / 0.35);
   --login-input-toggle-active-border: hsl(222 70% 60% / 0.5);
   --login-input-toggle-active-text: hsl(222 90% 86%);
-  --login-grid-line: hsl(222 40% 60% / 0.05);
-  --login-grid-mask: radial-gradient(ellipse 80% 50% at 50% 50%, #000 70%, transparent 100%);
 
   /* 底部球形光晕（参考 Next-Gen AI Studio 蓝色球弧光晕） */
   --login-arc-primary: hsl(232 72% 44%);
