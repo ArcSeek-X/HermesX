@@ -34,8 +34,11 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+  
   /* 金融终端自定义语义色（对应 tailwind.config.js colors 扩展） */
-  --color-base: hsl(var(--background));
+  /* --color-base: hsl(var(--background)); */
+  --color-base: hsl(var(--text-primary));
+
   --color-elevated: hsl(var(--elevated));
   --color-hover: hsl(var(--hover));
   --color-secondary-bg: hsl(var(--secondary));

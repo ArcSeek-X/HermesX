@@ -18,6 +18,15 @@
 }
 
 @layer components {
+  /* 指数卡片：1px 淡灰外边框，颜色取自设计令牌 --border-subtle（亮色 foreground/0.08，暗色 /0.04） */
+  .hrs-index-card {
+    border: 1px solid var(--border-subtle) !important;
+  }
+
+
+
+
+
 
 }
 /* ============ Circular Gauge ============ */
@@ -137,6 +146,16 @@
     transform 0.2s ease,
     color 0.2s ease;
 }
+
+.gcx{
+  color: var(--input-surface-text, var(--text-primary));
+  font-size: 40px;
+}
+
+
+
+
+
 
 .input-surface::placeholder {
   color: var(--input-surface-placeholder, var(--text-muted-text));
@@ -505,8 +524,9 @@ textarea {
   position: relative;
   border-radius: 1rem;
   padding: 1px;
+  /* 渐变方向由调用方通过 --gradient-angle 控制，默认 135deg（左上角对角线） */
   background: linear-gradient(
-    180deg,
+    var(--gradient-angle, 135deg),
     var(--border-accent) 0%,
     var(--border-purple) 50%,
     var(--border-dim) 100%
@@ -518,7 +538,7 @@ textarea {
   height: 100%;
   border-radius: calc(1rem - 1px);
   background: linear-gradient(
-    180deg,
+    135deg,
     hsl(var(--elevated) / 0.98),
     hsl(var(--card) / 0.98)
   );
