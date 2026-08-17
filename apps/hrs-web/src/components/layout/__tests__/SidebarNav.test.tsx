@@ -150,14 +150,14 @@ describe('SidebarNav', () => {
     expect(signalsLink).toHaveClass('font-medium');
   });
 
-  it('does not render a logout entry (logout lives in UserMenu)', () => {
+  it('does not render a logout entry (logout lives in UserSetting)', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
         <SidebarNav />
       </MemoryRouter>,
     );
 
-    // 退出登录入口位于右上角 UserMenu，不在侧边导航内
+    // 退出登录入口位于右上角 UserSetting，不在侧边导航内
     expect(screen.queryByRole('button', { name: '退出' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '退出登录' })).not.toBeInTheDocument();
   });

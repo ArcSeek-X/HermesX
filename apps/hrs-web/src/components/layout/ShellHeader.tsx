@@ -117,7 +117,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             onClear={() => setStockQuery('')}
             placeholder={t('kline.searchPlaceholder')}
             ariaLabel={t('kline.searchPlaceholder')}
-            className="h-9 text-xs w-60 "
+            className="h-9 text-xs w-60"
           />
           <ThemeSetting />
           <LanguageSwitch />

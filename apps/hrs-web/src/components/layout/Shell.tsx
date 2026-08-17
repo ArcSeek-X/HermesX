@@ -115,14 +115,14 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
       {/* 响应式内边距：px-3 py-3 → sm:px-4 sm:py-4 → lg:px-5 */}
       <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px] px-3 pb-3 sm:px-4 sm:pb-4 lg:px-4">
         {/* ===== 左侧：桌面端固定侧边栏（仅 >= lg 断点显示）===== */}
-        {/* self-start：高度自适应内容，不拉伸填满容器 */}
+        {/* h-[calc(100%-0.5rem)]：扣除 mt-2 后撑满内容高度，底部与容器 padding-bottom 对齐，避免侵入底部留白 */}
         {/* 圆角 1.5rem + 半透明背景 + 毛玻璃模糊 + 柔和阴影，终端风格视觉 */}
         {/* transition-[width] 支持折叠/展开时的宽度过渡动画（200ms） */}
         <aside
           className={cn(
-            'hrs-side h-full z-40 hidden p-2.5 mt-2 shrink-0 overflow-visible self-start border border-[var(--shell-sidebar-border)] bg-card/72 shadow-shell-sidebar backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
+            'hrs-side z-40 hidden p-2.5 mt-2 mr-4 h-[calc(100%-0.5rem)] shrink-0 overflow-visible border border-[var(--shell-sidebar-border)] bg-card/72 shadow-shell-sidebar backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
             // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
-            collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[136px] rounded-xl'
+            collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[136px] rounded-lg'
           )}
           aria-label={t('layout.desktopSidebar')}
         >
@@ -133,15 +133,13 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
         {/* ===== 右侧列：页头 + 主内容区 ===== */}
         {/* flex-col 纵向排列，flex-1 占据侧边栏之外的所有剩余宽度，高度拉伸填满容器 */}
         {/* lg:pl-3：桌面端与侧边栏之间保留 12px 间距 */}
-        <div className="flex min-h-0 flex-1 flex-col lg:pl-3">
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* ===== 顶部页头（固定，不随内容区滚动）===== */}
           <ShellHeader
             collapsed={collapsed}
             onToggleSidebar={() => setCollapsed((c) => !c)}
             onOpenMobileNav={() => setMobileOpen(true)}
-            className = {
-             "px-4 md:px-3 lg:px-4"
-            }
+          
           />
 
           {/* ===== 主内容区域（滚动容器）===== */}
@@ -150,7 +148,7 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
           <main className="hrs-page-container 
             min-h-0 min-w-0 
-            px-4 md:px-3 lg:px-4 pt-4 pb-8   
+            pt-4 pb-8   
             flex-1 overflow-y-auto bg-background touch-pan-y"
           >
             {/* 优先渲染 children（直接包裹模式），否则渲染 <Outlet />（路由模式） */}
