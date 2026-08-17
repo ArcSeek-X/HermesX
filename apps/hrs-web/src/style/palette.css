@@ -1,0 +1,685 @@
+/* Tailwind v4 strategy: keep theme extensions in tailwind.config.js via @config until a dedicated @theme/@utility migration. */
+
+/* =====================================================================
+   全局样式文件总览（index.css）
+   ---------------------------------------------------------------------
+   本文件是 hrs-web 的唯一全局样式入口，采用 Tailwind CSS v4 语法
+   （@import "tailwindcss"），按以下顺序组织：
+
+   1. THEME VARIABLES（主题变量）
+      - :root  ->  浅色主题（默认）设计令牌，全部使用 HSL 分量，
+                   工具类通过 hsl(var(--x) / 透明度) 解析
+      - .dark  ->  深色主题变量覆盖（由 next-themes 在 <html> 上
+                   切换 .dark 类激活）
+      - 其中与 HeroUI 同名的变量（--background / --foreground /
+                   --border 等）会被本项目 unlayered 声明覆盖，
+                   说明见 :root 顶部注释块
+
+   2. GLOBAL STYLES（全局基础样式）
+      - Financial Terminal Tokens（仪表盘 / 终端风组件令牌）
+      - Base Styles（@layer base 元素默认样式）
+      - @layer components（标题、圆环仪表、输入框、徽章、列表、
+        滚动条、动画、毛玻璃面板、通用工具类等）
+
+   3. NEW UI COMPONENT UTILITIES（页面 / 组件定制样式）
+      - Terminal / Home / Chat / Settings / Backtest 等模块专属类
+      - 股票涨跌颜色工具类（红涨绿跌，全局统一配色）
+
+   主题切换机制：ThemeProvider（next-themes，attribute="class"）
+   通过切换 <html> 上的 .dark 类来激活对应变量集。
+   ===================================================================== */
+
+/* =========================================
+   1. THEME VARIABLES (Base/Classic)
+   ========================================= */
+:root {
+  /* ============================================================
+     浅色主题（Light / Default）变量集
+     ------------------------------------------------------------
+     本段所有颜色均以「HSL 分量」存储（三个数值 + 百分比，例如
+     --background: 216 33% 97%），使用时必须用 hsl() 包裹：
+       hsl(var(--background))           → 实色
+       hsl(var(--background) / 0.6)     → 60% 透明度
+     这样写法的好处：Tailwind 工具类（border-border/60 等）可以
+     通过 alpha 通道叠加透明度，而无需维护多份颜色副本。
+     ============================================================ */
+
+
+  /* ============================================================
+     ⚠️ HeroUI (@heroui/styles) 同名变量冲突说明
+     ------------------------------------------------------------
+     HeroUI v3 的主题变量（themes/default/variables.css）声明在
+     @heroui/styles 内部的 theme layer（:root / .dark 内），使用
+     通用名（--background、--foreground、--danger 等，非 --heroui-* 前缀）。
+
+     本项目 :root / .dark 也声明了同名变量，且位于 @layer 之外
+     （unlayered）。CSS 规则中 unlayered 优先级恒高于任何 @layer，
+     因此【项目变量会单向覆盖 HeroUI 的 theme layer 同名变量】。
+
+     值格式差异：项目变量是 HSL 分量（如 `216 33% 97%`，必须用
+     hsl(var(--background)) 包裹）；HeroUI 变量是自包含颜色值
+     （oklch(...) / var(...)）。同名变量被覆盖后，直接 var(--x)
+     引用的 HeroUI 组件（Alert / Button 语义色、focus ring、背景、
+     边框、圆角等）可能拿到无效颜色或错误圆角。
+
+     本项目与 HeroUI 同名、会被本项目覆盖的变量（定义已集中到同一区块）：
+       浅色 :root 中定义（10 个）：
+         --background / --foreground / --muted / --accent /
+         --accent-foreground / --border / --radius / --success /
+         --warning / --danger
+       深色 .dark 中定义（9 个，.dark 无 --radius）：
+         --background / --foreground / --muted / --accent /
+         --accent-foreground / --border / --success / --warning /
+         --danger
+       定义位置：
+         :root 与 .dark 各自的 "HSL tokens used by Tailwind-based
+         components" 段开头，位于 "与 HeroUI 同名冲突的变量
+         （集中定义）" 注释之下连续排列；
+         --success / --warning / --danger 值为 var(--color-*)。
+
+     不冲突的说明：
+       --primary / --ring / --card / --input / --destructive /
+       --secondary / --popover 等与 HeroUI 不同名（HeroUI 用
+       --focus / --ring-offset-width 等），无覆盖问题；
+       --autocomplete-hover-bg 与 HeroUI 的 --autocomplete-trigger-bg
+       不同名，也无冲突。
+
+     规避方案（任选，当前未实施）：
+       1. 本项目通用名变量改为带前缀命名（如 --hrs-background）；
+       2. 按需引入 @heroui/styles/components/*.css 并隔离变量；
+       3. 先实际渲染 HeroUI 组件逐项核对，确认无失效再决定是否改造。
+     ============================================================ */
+
+  /* ============================================================
+     HSL tokens used by Tailwind-based components
+     以下变量供 Tailwind 工具类与组件类引用，全部为 HSL 分量。
+     语义命名遵循 shadcn/ui 惯例（background / foreground /
+     primary / secondary / muted / accent / destructive / card /
+     popover / input / ring 等），本项目同时复用到金融终端的
+     自定义语义（elevated / hover / secondary-text / muted-text）。
+     ------------------------------------------------------------
+     ⚠️ 其中 --background / --foreground / --muted / --accent /
+     --accent-foreground / --border / --radius / --success /
+     --warning / --danger 与 HeroUI 同名，被本项目 unlayered
+     声明覆盖，冲突说明见上方大注释块。
+     ============================================================ */
+
+  /* ====== ⚠️ 与 HeroUI 同名冲突的变量（集中定义，说明见 :root 顶部注释块） ====== */
+ /* 页面主背景色（浅灰蓝），用于 body、卡片底等大面积底色。HSL 三元组：色相/饱和度/亮度 */
+  /* --background: 216 33% 97%;  */
+  /* 主前景/正文文字色（深蓝灰），用于标题、主要文本 */
+  /* --foreground: 228 35% 12%;  */
+   /* 强调态上的文字色（比 foreground 稍浅），配合 --accent 使用 */
+  /* --accent-foreground: 228 35% 16%; */
+   /* 边框/分割线颜色（中性灰蓝），用于 border、divide、输入框描边等 */
+  /* --border: 217 28% 84%; */
+   /* 全局圆角基准值，组件圆角通常基于此缩放 */
+  --radius: 1rem;
+
+
+  /* 弱化的背景/分隔底色（比 background 略深），常用于 hover 态、次要区块底 */
+  /* --muted: 214 30% 94%;  */
+  /* 强调态背景色（第二弱背景），用于选中项、悬浮高亮等辅助底色 */
+  /* --accent: 214 32% 93%;  */
+  /* ====== ⚠️ 与 HeroUI 同名冲突的变量（集中定义，说明见 :root 顶部注释块） ====== */
+
+
+
+
+  /* 非冲突的 shadcn 风格语义色：卡片 / 弹层 / 主色 / 次级 / 破坏性 / 输入框 / 焦点环 */
+  --card: 0 0% 100%;
+  --card-foreground: 228 35% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 228 35% 12%;
+  --primary: 193 100% 43%;
+  --primary-foreground: 216 33% 97%;
+  --secondary: 214 32% 91%;
+  --secondary-foreground: 228 35% 16%;
+  --muted-foreground: 224 12% 42%;
+  --destructive: 349 82% 56%;
+  --destructive-foreground: 210 33% 98%;
+  --input: 217 28% 84%;
+  --ring: 193 100% 43%;
+  --elevated: 0 0% 100%;
+  --hover: 214 29% 90%;
+  --secondary-text: 224 18% 28%;
+  --muted-text: 224 12% 35%;
+
+  --color-cyan: hsl(var(--primary));
+  --color-cyan-glow: hsl(var(--primary) / 0.18);
+  --color-purple: 247 84% 66%;
+  --color-purple-glow: hsl(247 84% 66% / 0.18);
+  --color-success: 152 69% 40%;
+  --color-warning: 37 92% 50%;
+  --color-danger: 0 90% 55%;
+  --color-danger-alert-text: 349 82% 35%; /* Darker red for light mode */
+  --color-danger-alert-border: 349 82% 56%;
+  --color-danger-alert-bg: 349 82% 56%;
+  /* Tailwind-compatible accent colors (Light theme) */
+  --color-cyan-400: 188 78% 41%;
+  --color-emerald-400: 152 69% 40%;
+  --color-red-400: 0 90% 55%;
+  --color-amber-400: 37 92% 50%;
+
+  /* Sentiment indicator colors (Fear & Greed Index) - Adjustable via CSS */
+  --sentiment-greed: var(--color-cyan);
+  --sentiment-neutral: var(--color-purple);
+  --sentiment-fear: var(--color-danger);
+
+  /* Stock market colors (红涨绿跌) */
+  --stock-up: 4 82% 59%;       /* #ef5350 - 上涨红色 */
+  --stock-down: 170 63% 40%;   /* #26a69a - 下跌绿色 */
+  --stock-flat: 0 0% 60%;      /* #999999 - 平盘灰色 */
+
+  /* Sentiment indicator glow effect - Intensity adjustable via CSS */
+  --glow-spread: 8px;
+  --glow-intensity: 0.18;
+  --sentiment-greed-glow: hsl(var(--sentiment-greed) / var(--glow-intensity));
+  --sentiment-neutral-glow: hsl(var(--sentiment-neutral) / var(--glow-intensity));
+  --sentiment-fear-glow: hsl(var(--sentiment-fear) / var(--glow-intensity));
+
+  --bg-base: hsl(var(--background));
+  --bg-card: hsl(var(--card));
+  --bg-elevated: hsl(var(--elevated));
+  --bg-hover: hsl(var(--hover));
+
+  /* New: Design token color sources (Raw HSL values) */
+  --bg-subtle-raw: var(--foreground);
+  --border-dim-raw: var(--foreground);
+  --border-subtle-raw: var(--foreground);
+
+  /* Design tokens (Ready to use HSL strings) */
+  --bg-subtle: hsl(var(--bg-subtle-raw) / 0.03);
+  --border-dim: hsl(var(--border-dim-raw) / 0.05);
+  --border-subtle: hsl(var(--border-subtle-raw) / 0.04);
+  --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.06);
+  --border-default: var(--border-dim);
+  --border-hover: hsl(var(--primary) / 0.24);
+
+  /* Surface variants */
+  --surface-1: hsl(var(--card));
+  --surface-2: hsl(var(--elevated));
+  --surface-3: hsl(var(--hover));
+
+  /* State overlay colors */
+  --overlay-hover: hsl(var(--foreground) / 0.05);
+  --overlay-selected: hsl(var(--primary) / 0.1);
+
+  /* Compatibility preservation */
+  --border-accent: hsl(var(--primary) / 0.7);
+  --border-purple: hsl(247 84% 66% / 0.24);
+  --border-cyan: hsl(var(--primary));
+  --text-primary: hsl(var(--foreground));
+  --text-secondary-text: hsl(var(--secondary-text));
+  --text-muted-text: hsl(var(--muted-text));
+
+  /* ============================================================
+     Navigation related（侧边导航相关令牌）
+     用于 SidebarNav 的高亮 / 悬停 / 图标 / 指示条 / 徽标配色，
+     统一基于主色（--primary，青色）按透明度派生，保证导航高亮
+     与整体品牌色一致。
+     ============================================================ */
+  --nav-active-bg: hsl(var(--primary) / 0.09);
+  --nav-active-border: hsl(var(--primary) / 0.24);
+  --nav-hover-bg: hsl(var(--primary) / 0.05);
+  --nav-icon-active: hsl(var(--primary));
+  --nav-item-height: 2.75rem;
+  --nav-item-padding-x: 1rem;
+  --nav-indicator-shadow: hsl(var(--primary) / 0.52);
+  --nav-brand-shadow: hsl(var(--primary) / 0.2);
+  --nav-divider: hsl(var(--foreground) / 0.09);
+
+  /* Shell Sidebar Custom */
+  --shell-sidebar-border: hsl(193 100% 43% / 0.35);
+
+  /* Shell Sidebar Custom（Shell 侧边栏定制） */
+  --shell-sidebar-border: hsl(var(--primary) / 0.35);
+
+  /* ============================================================
+     Home page related（Home 首页 / 仪表盘相关令牌）
+     覆盖：加载指示器、抽屉遮罩、快捷操作（AI 分析 / 日报）、
+     强调色 chip、价格与策略配色、面板卡片、历史记录条目、
+     分割线、Prose 排版边框、阴影层级、Hero 横幅、侧栏等。
+     均以 HSL 分量 + hsl() 包裹，便于统一调透明度和换肤。
+     ============================================================ */
+  /* Home page related (using HSL format) */
+  --home-loading-ring-track: hsl(var(--primary) / 0.2);
+  --home-loading-ring-head: hsl(var(--primary));
+  --page-drawer-overlay-bg: hsl(0 0% 0% / 0.6);
+  --home-mobile-overlay-bg: var(--page-drawer-overlay-bg);
+  --home-action-ai-bg: hsl(var(--primary) / 0.1);
+  --home-action-ai-border: hsl(var(--primary) / 0.2);
+  --home-action-ai-text: hsl(var(--primary));
+  --home-action-ai-hover-bg: hsl(var(--primary) / 0.18);
+  --home-action-report-bg: hsl(247 84% 66% / 0.1);
+  --home-action-report-border: hsl(247 84% 66% / 0.2);
+  --home-action-report-text: hsl(247 84% 66%);
+  --home-action-report-hover-bg: hsl(247 84% 66% / 0.18);
+  --home-accent-bg: hsl(var(--primary) / 0.1);
+  --home-accent-bg-hover: hsl(var(--primary) / 0.16);
+  --home-accent-border: hsl(var(--primary) / 0.2);
+  --home-accent-border-hover: hsl(var(--primary) / 0.28);
+  --home-accent-text: hsl(var(--primary));
+  --home-title-accent: hsl(247 84% 66%);
+  --home-price-up: hsl(0 88% 62%);
+  --home-price-down: hsl(149 100% 42%);
+  --home-strategy-buy: hsl(149 100% 42%);
+  --home-strategy-secondary: hsl(var(--primary));
+  --home-strategy-stop: hsl(346 100% 63%);
+  --home-strategy-take: hsl(38 100% 52%);
+  --home-panel-border: hsl(218 24% 82% / 0.92);
+  --home-panel-border-hover: hsl(193 100% 43% / 0.2);
+  --home-panel-border-selected: hsl(193 100% 43% / 0.34);
+  --home-panel-gradient-start: hsl(193 100% 43% / 0.1);
+  --home-panel-gradient-mid: hsl(247 84% 66% / 0.08);
+  --home-panel-gradient-end: hsl(218 22% 78% / 0.08);
+  --home-panel-selected-shadow:
+    0 0 0 1px hsl(193 100% 43% / 0.08),
+    0 10px 24px hsl(220 24% 36% / 0.1);
+  --home-panel-subtle-bg: hsl(214 32% 98% / 0.98);
+  --home-panel-subtle-bg-hover: hsl(214 36% 96% / 0.99);
+  --home-history-item-bg: hsl(0 0% 100% / 0.82);
+  --home-history-item-hover-bg: hsl(214 34% 96% / 0.99);
+  --home-history-item-selected-bg:
+    linear-gradient(180deg, hsl(193 100% 43% / 0.08), hsl(214 42% 96% / 0.98));
+  --home-divider-border: hsl(218 24% 84% / 0.9);
+  --home-surface-button-bg: hsl(214 36% 97% / 0.98);
+  --home-surface-button-bg-hover: hsl(214 40% 95% / 0.99);
+  --home-surface-button-border: hsl(218 24% 84% / 0.94);
+  --home-surface-button-border-hover: hsl(193 100% 43% / 0.22);
+  --home-state-icon-muted: hsl(var(--muted-text) / 0.85);
+  --home-prose-border: hsl(var(--foreground) / 0.1);
+  --home-prose-border-strong: hsl(var(--foreground) / 0.16);
+  --home-prose-blockquote-border: hsl(247 84% 66% / 0.28);
+  --home-prose-blockquote-bg: hsl(247 84% 66% / 0.08);
+  --home-panel-shadow: 0 14px 32px hsl(220 22% 34% / 0.08), 0 4px 10px hsl(220 18% 28% / 0.04);
+  --home-panel-shadow-hover: 0 18px 40px hsl(220 24% 32% / 0.12), 0 6px 16px hsl(220 20% 28% / 0.06);
+  --home-hero-border: hsl(193 100% 43% / 0.32);
+  --home-hero-gradient-start: hsl(193 100% 43% / 0.24);
+  --home-hero-gradient-mid: hsl(247 84% 66% / 0.14);
+  --home-hero-gradient-end: hsl(218 22% 82% / 0.14);
+  --home-hero-shadow: 0 18px 44px hsl(220 24% 34% / 0.12), 0 8px 18px hsl(220 20% 30% / 0.06);
+  --home-rail-border: hsl(218 24% 82% / 0.9);
+  --home-rail-bg: linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(214 36% 97% / 0.98));
+  --home-rail-shadow: 0 14px 30px hsl(220 22% 34% / 0.09), 0 4px 10px hsl(220 18% 28% / 0.05);
+  --autocomplete-hover-bg: #04d1f6;
+
+  /* ============================================================
+     Shadows（通用阴影令牌）
+     --shadow-soft-card / --shadow-soft-card-strong：卡片柔和阴影，
+     供 .shadow-soft-card 等工具类引用。
+     ------------------------------------------------------------
+     Settings 设置页令牌：表面（surface）底色、边框、骨架屏、
+     输入框边框与焦点环、强调色辉光，覆盖设置卡片 / 弹层 / 表单。
+     ------------------------------------------------------------
+     Chat UI Tokens（Chat 页对话令牌）：用户 / AI 头像与气泡配色。
+     ------------------------------------------------------------
+     Backtest 专用（回测工作台令牌）：边框、青色强调、辉光、
+     加载指示器、表格底色。
+     ------------------------------------------------------------
+     Login Page Tokens（登录页令牌）：背景、卡片、输入框、错误
+     提示、文案与品牌渐变。
+     ============================================================ */
+  /* Shadows (using HSL format) */
+  --shadow-soft-card: 0 12px 24px hsl(220 20% 34% / 0.09), 0 3px 8px hsl(220 16% 28% / 0.05);
+  --shadow-soft-card-strong: 0 18px 34px hsl(220 20% 32% / 0.12), 0 6px 16px hsl(220 16% 28% / 0.07);
+  --settings-surface: hsl(0 0% 100% / 0.97);
+  --settings-surface-hover: hsl(214 44% 95% / 0.99);
+  --settings-surface-strong: hsl(0 0% 100% / 0.99);
+  --settings-surface-panel: hsl(213 48% 97% / 0.99);
+  --settings-surface-overlay: hsl(214 36% 94% / 0.88);
+  --settings-surface-overlay-soft: hsl(214 34% 95% / 0.94);
+  --settings-surface-overlay-muted: hsl(214 30% 93% / 0.97);
+  --settings-border: hsl(218 24% 78% / 0.94);
+  --settings-border-soft: hsl(218 22% 84% / 0.94);
+  --settings-border-strong: hsl(218 18% 68% / 0.98);
+  --settings-border-overlay: hsl(218 22% 72% / 0.92);
+  --settings-accent-shadow: hsl(190 100% 50% / 0.08);
+  --settings-glow-hover: hsl(190 100% 50% / 0.38);
+  --settings-skeleton-strong: hsl(218 20% 84% / 0.92);
+  --settings-skeleton-soft: hsl(218 22% 92% / 0.96);
+  --input-surface-bg: var(--bg-card);
+  --input-surface-border: hsl(218 24% 80% / 0.92);
+  --input-surface-border-hover: hsl(218 20% 70% / 0.92);
+  --input-surface-border-focus: hsl(var(--primary) / 0.38);
+  --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.15);
+  --settings-input-rest-border: hsl(218 22% 82% / 0.72);
+  --gradient-primary:
+    linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.74));
+
+  /* Chat UI Tokens (Light) */
+  --chat-avatar-user-bg: hsl(var(--primary) / 0.5 );
+  --chat-avatar-user-fg: #041118;
+  --chat-avatar-user-border: hsl(var(--primary) / 0.3);
+  --chat-avatar-ai-bg: hsl(var(--primary) / 0.1);
+  --chat-avatar-ai-fg: hsl(var(--foreground)/ 0.8 );
+  --chat-avatar-ai-border: hsl(var(--primary) / 0.2);
+  
+  --chat-bubble-user-bg: hsl(var(--primary) / 0.1);
+  --chat-bubble-user-border: hsl(var(--primary) / 0.2);
+  --chat-bubble-ai-bg: hsl(var(--card) / 0.85);
+  --chat-bubble-ai-border: hsl(var(--foreground) / 0.2);
+
+  /* Backtest专用 */
+  --backtest-border-dim: hsl(var(--foreground) / 0.05);
+  --backtest-border-subtle: hsl(var(--foreground) / 0.06);
+  --backtest-border-light: hsl(var(--foreground) / 0.10);
+  --backtest-border-cyan-soft: hsl(var(--primary) / 0.40);
+  --backtest-bg-cyan-subtle: hsl(var(--primary) / 0.10);
+  --backtest-shadow-cyan-glow: 0 0 8px hsl(var(--primary) / 0.15);
+  --backtest-shadow-cyan-glow-strong: 0 0 4px hsl(var(--primary) / 0.60);
+  --backtest-spinner-track: hsl(var(--primary) / 0.20);
+  --backtest-spinner-head: hsl(var(--primary));
+  --backtest-table-bg: hsl(var(--card) / 0.72);
+
+  /* Login Page Tokens (Light) */
+  --login-bg-main: hsl(214 34% 96%);
+  --login-bg-card: hsl(210 43% 92% / 0.78);
+  --login-border-card: hsl(221 28% 28% / 0.58);
+  --login-error-text: hsl(var(--destructive));
+  --login-error-bg: hsl(var(--destructive) / 0.1);
+  --login-error-border: hsl(var(--destructive) / 0.2);
+  --login-text-primary: hsl(223 36% 12%);
+  --login-text-secondary: hsl(220 17% 28%);
+  --login-text-muted: hsl(221 18% 32% / 0.72);
+  --login-accent-soft: hsl(var(--primary) / 0.08);
+  --login-accent-border: hsl(220 22% 32% / 0.72);
+  --login-accent-text: hsl(223 36% 18%);
+  --login-accent-glow: hsl(var(--primary) / 0.18);
+  --login-brand-start: hsl(222 36% 16%);
+  --login-brand-end: hsl(205 88% 48%);
+  --login-brand-button-start: hsl(194 78% 56%);
+  --login-brand-button-end: hsl(213 88% 56%);
+  --login-brand-button-start-hover: hsl(194 82% 52%);
+  --login-brand-button-end-hover: hsl(213 90% 52%);
+  --login-button-text: hsl(210 40% 98%);
+  --login-label-text: hsl(223 36% 14%);
+  --login-hint-text: hsl(220 14% 34% / 0.9);
+  --login-input-icon: hsl(205 66% 38% / 0.86);
+  --login-input-toggle-bg: hsl(210 44% 96% / 0.92);
+  --login-input-toggle-border: hsl(208 42% 46% / 0.32);
+  --login-input-toggle-text: hsl(220 24% 22% / 0.82);
+  --login-input-toggle-border-hover: hsl(205 82% 46% / 0.42);
+  --login-input-toggle-bg-hover: hsl(205 100% 92% / 0.98);
+  --login-input-toggle-text-hover: hsl(205 88% 34%);
+  --login-input-toggle-ring: hsl(var(--primary) / 0.22);
+  --login-input-toggle-active-bg: hsl(var(--primary) / 0.14);
+  --login-input-toggle-active-border: hsl(var(--primary) / 0.34);
+  --login-input-toggle-active-text: hsl(205 88% 28%);
+
+  /* 底部球形光晕（参考 Next-Gen AI Studio 风格装饰） */
+  --login-arc-primary: hsl(225 60% 84%);
+  --login-arc-glow: hsl(222 70% 68% / 0.4);
+  --login-arc-core: hsl(222 85% 62% / 0.45);
+}
+
+.dark {
+  /* ============================================================
+     深色主题（Dark）变量覆盖
+     ------------------------------------------------------------
+     由 next-themes（attribute="class" + defaultTheme="dark"）在
+     <html> 上添加 .dark 类后激活，覆盖 :root 中的同名字段。
+
+     ⚠️ 注意：--border 在深色下为 226 19% 20%（偏深黑），若 header /
+     搜索框 / 功能按钮边框使用 border-border/60~70（即
+     hsl(var(--border) / 0.6~0.7)），叠加透明度后会呈现明显深色
+     边框，这是"边框变深"现象的根源，调色时应优先调这里。
+     ============================================================ */
+  /* ====== ⚠️ 与 HeroUI 同名冲突的变量（集中定义，说明见 :root 顶部注释块） ====== */
+  --background: 228 35% 7%;
+  --foreground: 210 33% 98%;
+  --accent-foreground: 210 33% 98%;
+  --border: 226 19% 20%;
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --danger: var(--color-danger);
+  /* --muted: 230 18% 14%;
+  --accent: 231 18% 16%; */
+
+  /* ====== ⚠️ 与 HeroUI 同名冲突的变量（集中定义，说明见 :root 顶部注释块） ====== */
+  
+  --card: 230 24% 10%;
+  --card-foreground: 210 33% 98%;
+  --popover: 230 24% 10%;
+  --popover-foreground: 210 33% 98%;
+  --primary: 190 100% 50%;
+  --primary-foreground: 228 35% 8%;
+  --secondary: 231 19% 15%;
+  --secondary-foreground: 210 33% 94%;
+  --muted-foreground: 228 13% 66%;
+  --destructive: 349 100% 63%;
+  --destructive-foreground: 210 33% 98%;
+  --input: 226 19% 20%;
+  --ring: 190 100% 50%;
+  --elevated: 230 22% 12%;
+  --hover: 231 20% 16%;
+  --secondary-text: 228 16% 72%;
+  --muted-text: 228 10% 48%;
+
+  --color-cyan: hsl(var(--primary));
+  --color-cyan-glow: hsl(var(--primary) / 0.4);
+  --color-purple: 247 84% 72%;
+  --color-purple-glow: hsl(247 84% 72% / 0.3);
+  --color-success: 152 69% 40%;
+  --color-warning: 37 92% 50%;
+  --color-danger: 0 90% 55%;
+  --color-danger-alert-text: 349 100% 75%; /* Bright/light pink for dark mode */
+  --color-danger-alert-border: 349 100% 63%;
+  --color-danger-alert-bg: 349 100% 63%;
+  --autocomplete-hover-bg: #2dcae6;
+  /* Tailwind-compatible accent colors (Dark theme) */
+  --color-cyan-400: 188 78% 41%;
+  --color-emerald-400: 152 69% 40%;
+  --color-red-400: 0 90% 55%;
+  --color-amber-400: 37 92% 50%;
+
+  /* Sentiment indicator colors (Dark theme) - Adjustable via CSS */
+  --sentiment-greed: var(--color-cyan);
+  --sentiment-neutral: var(--color-purple);
+  --sentiment-fear: var(--color-danger);
+
+  /* Stock market colors (红涨绿跌) - Dark theme */
+  --stock-up: 4 82% 59%;       /* #ef5350 - 上涨红色 */
+  --stock-down: 170 63% 40%;   /* #26a69a - 下跌绿色 */
+  --stock-flat: 0 0% 60%;      /* #999999 - 平盘灰色 */
+
+  /* Sentiment indicator glow effect (Dark theme) - Stronger glow
+     深色下辉光更强：扩散半径与不透明度都比浅色主题更高，
+     让恐慌 / 中性 / 贪婪指示灯在深色背景上更醒目 */
+  --glow-spread: 12px;
+  --glow-intensity: 0.3;
+  --sentiment-greed-glow: hsl(var(--sentiment-greed) / var(--glow-intensity));
+  --sentiment-neutral-glow: hsl(var(--sentiment-neutral) / var(--glow-intensity));
+  --sentiment-fear-glow: hsl(var(--sentiment-fear) / var(--glow-intensity));
+
+  --bg-base: hsl(var(--background));
+  --bg-card: hsl(var(--card));
+  --bg-elevated: hsl(var(--elevated));
+  --bg-hover: hsl(var(--hover));
+
+  /* Dark theme design token color sources */
+  --bg-subtle-raw: var(--foreground);
+  --border-dim-raw: var(--foreground);
+  --border-subtle-raw: var(--foreground);
+
+  /* Dark theme design tokens (Ready to use) */
+  --bg-subtle: hsl(var(--bg-subtle-raw) / 0.05);
+  --border-dim: hsl(var(--border-dim-raw) / 0.06);
+  --border-subtle: hsl(var(--border-subtle-raw) / 0.08);
+  --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.15);
+  --border-default: var(--border-dim);
+  --border-hover: hsl(var(--primary) / 0.34);
+
+  /* Dark theme surface variants */
+  --surface-1: hsl(var(--card));
+  --surface-2: hsl(var(--elevated));
+  --surface-3: hsl(var(--hover));
+
+  --overlay-hover: hsl(var(--foreground) / 0.08);
+  --overlay-selected: hsl(var(--primary) / 0.15);
+
+  /* Compatibility preservation */
+  --border-accent: hsl(var(--primary) / 0.8);
+  --border-purple: hsl(247 84% 72% / 0.28);
+  --border-cyan: hsl(var(--primary));
+  --text-primary: hsl(var(--foreground));
+  --text-secondary-text: hsl(var(--secondary-text));
+  --text-muted-text: hsl(var(--muted-text));
+
+  /* Navigation related (Dark theme) */
+  --nav-active-bg: hsl(var(--primary) / 0.11);
+  --nav-active-border: hsl(var(--primary) / 0.3);
+  --nav-hover-bg: hsl(var(--primary) / 0.06);
+  --nav-icon-active: hsl(var(--primary));
+  --nav-item-height: 2.75rem;
+  --nav-item-padding-x: 1rem;
+  --nav-indicator-shadow: hsl(var(--primary) / 0.8);
+  --nav-brand-shadow: hsl(var(--primary) / 0.24);
+  --nav-divider: hsl(var(--foreground) / 0.08);
+
+  /* Shell Sidebar Custom (Dark theme) */
+  --shell-sidebar-border: hsl(var(--primary) / 0.32);
+
+  /* Home page related (Dark theme) */
+  --home-loading-ring-track: hsl(var(--primary) / 0.2);
+  --home-loading-ring-head: hsl(var(--primary));
+  --page-drawer-overlay-bg: hsl(0 0% 0% / 0.6);
+  --home-mobile-overlay-bg: var(--page-drawer-overlay-bg);
+  --home-action-ai-bg: hsl(var(--primary) / 0.1);
+  --home-action-ai-border: hsl(var(--primary) / 0.2);
+  --home-action-ai-text: hsl(var(--primary));
+  --home-action-ai-hover-bg: hsl(var(--primary) / 0.2);
+  --home-action-report-bg: hsl(247 84% 72% / 0.1);
+  --home-action-report-border: hsl(247 84% 72% / 0.2);
+  --home-action-report-text: hsl(247 84% 72%);
+  --home-action-report-hover-bg: hsl(247 84% 72% / 0.2);
+  --home-accent-bg: hsl(var(--primary) / 0.1);
+  --home-accent-bg-hover: hsl(var(--primary) / 0.18);
+  --home-accent-border: hsl(var(--primary) / 0.22);
+  --home-accent-border-hover: hsl(var(--primary) / 0.34);
+  --home-accent-text: hsl(var(--primary));
+  --home-title-accent: hsl(247 84% 72%);
+  --home-price-up: hsl(0 88% 64%);
+  --home-price-down: hsl(149 100% 44%);
+  --home-strategy-buy: hsl(149 100% 44%);
+  --home-strategy-secondary: hsl(var(--primary));
+  --home-strategy-stop: hsl(346 100% 66%);
+  --home-strategy-take: hsl(38 100% 58%);
+  --home-panel-border: hsl(var(--foreground) / 0.1);
+  --home-panel-border-hover: hsl(var(--primary) / 0.34);
+  --home-panel-border-selected: hsl(var(--primary) / 0.46);
+  --home-panel-gradient-start: hsl(var(--primary) / 0.3);
+  --home-panel-gradient-mid: hsl(247 84% 72% / 0.24);
+  --home-panel-gradient-end: hsl(var(--foreground) / 0.08);
+  --home-panel-selected-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.14),
+    0 4px 16px hsl(var(--primary) / 0.16);
+  --home-panel-subtle-bg: hsl(var(--foreground) / 0.03);
+  --home-panel-subtle-bg-hover: hsl(var(--foreground) / 0.05);
+  --home-history-item-bg: hsl(var(--foreground) / 0.03);
+  --home-history-item-hover-bg: hsl(var(--foreground) / 0.06);
+  --home-history-item-selected-bg:
+    linear-gradient(180deg, hsl(247 84% 72% / 0.14), hsl(var(--primary) / 0.1));
+  --home-divider-border: hsl(var(--foreground) / 0.1);
+  --home-surface-button-bg: hsl(var(--foreground) / 0.03);
+  --home-surface-button-bg-hover: hsl(var(--foreground) / 0.06);
+  --home-surface-button-border: hsl(var(--foreground) / 0.1);
+  --home-surface-button-border-hover: hsl(var(--primary) / 0.28);
+  --home-state-icon-muted: hsl(var(--muted-text) / 0.85);
+  --home-prose-border: hsl(var(--foreground) / 0.12);
+  --home-prose-border-strong: hsl(var(--foreground) / 0.18);
+  --home-prose-blockquote-border: hsl(247 84% 72% / 0.3);
+  --home-prose-blockquote-bg: hsl(247 84% 72% / 0.1);
+
+  /* Shadows (Dark theme) */
+  --shadow-soft-card: 0 18px 48px hsl(215 25% 10% / 0.4);
+  --shadow-soft-card-strong: 0 24px 56px hsl(215 25% 10% / 0.5);
+  --settings-surface: hsl(0 0% 100% / 0.02);
+  --settings-surface-hover: hsl(0 0% 100% / 0.05);
+  --settings-surface-strong: hsl(var(--card) / 0.92);
+  --settings-surface-panel: hsl(var(--elevated) / 0.62);
+  --settings-surface-overlay: hsl(var(--background) / 0.22);
+  --settings-surface-overlay-soft: hsl(var(--background) / 0.15);
+  --settings-surface-overlay-muted: hsl(var(--background) / 0.12);
+  --settings-border: hsl(0 0% 100% / 0.1);
+  --settings-border-soft: hsl(0 0% 100% / 0.08);
+  --settings-border-strong: hsl(0 0% 100% / 0.2);
+  --settings-border-overlay: hsl(0 0% 100% / 0.45);
+  --settings-accent-shadow: hsl(190 100% 50% / 0.1);
+  --settings-glow-hover: hsl(190 100% 50% / 0.38);
+  --settings-skeleton-strong: hsl(0 0% 100% / 0.1);
+  --settings-skeleton-soft: hsl(0 0% 100% / 0.06);
+  --input-surface-bg: var(--bg-card);
+  --input-surface-border: hsl(var(--border) / 0.82);
+  --input-surface-border-hover: rgba(255, 255, 255, 0.18);
+  --input-surface-border-focus: hsl(var(--primary) / 0.45);
+  --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.18);
+  --settings-input-rest-border: hsl(var(--border) / 0.58);
+  --gradient-primary:
+    linear-gradient(135deg, rgba(0, 212, 255, 0.96), rgba(0, 168, 204, 0.96));
+
+  /* Chat UI Tokens (Dark) */
+  --chat-avatar-user-bg: hsl(var(--primary) / 0.8);
+  --chat-avatar-user-fg: hsl(var(--foreground) / 0.9);
+  --chat-avatar-user-border: hsl(var(--primary) / 0.15); /* Lower brightness/opacity for dark mode */
+  --chat-avatar-ai-bg: hsl(var(--primary) / 0.8);
+  --chat-avatar-ai-fg: hsl(var(--foreground) / 0.9);
+  --chat-avatar-ai-border: hsl(0 0% 100% / 0.1); /* Low opacity white for dark mode */
+  
+  --chat-bubble-user-bg: hsl(var(--primary) / 0.1);
+  --chat-bubble-user-border: hsl(var(--primary) / 0.2);
+  --chat-bubble-ai-bg: hsl(var(--card) / 0.72);
+  --chat-bubble-ai-border: hsl(0 0% 100% / 0.12); /* Semi-transparent border for dark mode */
+
+  /* Backtest专用 */
+  --backtest-border-dim: hsl(var(--foreground) / 0.06);
+  --backtest-border-subtle: hsl(var(--foreground) / 0.08);
+  --backtest-border-light: hsl(var(--foreground) / 0.12);
+  --backtest-border-cyan-soft: hsl(var(--primary) / 0.40);
+  --backtest-bg-cyan-subtle: hsl(var(--primary) / 0.10);
+  --backtest-shadow-cyan-glow: 0 0 8px hsl(var(--primary) / 0.25);
+  --backtest-shadow-cyan-glow-strong: 0 0 4px hsl(var(--primary) / 0.75);
+  --backtest-spinner-track: hsl(var(--primary) / 0.25);
+  --backtest-spinner-head: hsl(var(--primary));
+  --backtest-table-bg: hsl(var(--card) / 0.82);
+
+  /* Login Page Tokens (Dark - Blue Orb Arc Style) */
+  --login-bg-main: #000000;
+  --login-bg-card: hsl(228 35% 9% / 0.72);
+  --login-border-card: hsl(222 45% 70% / 0.14);
+  --login-error-text: hsl(var(--destructive));
+  --login-error-bg: hsl(var(--destructive) / 0.1);
+  --login-error-border: hsl(var(--destructive) / 0.2);
+  --login-text-primary: hsl(0 0% 100%);
+  --login-text-secondary: hsl(222 25% 72%);
+  --login-text-muted: hsl(222 18% 50%);
+  --login-accent-soft: hsl(222 85% 60% / 0.12);
+  --login-accent-border: hsl(222 60% 68% / 0.32);
+  --login-accent-text: hsl(222 90% 82%);
+  --login-accent-glow: hsl(222 85% 60% / 0.3);
+  --login-brand-start: hsl(222 85% 62%);
+  --login-brand-end: hsl(235 90% 60%);
+  --login-brand-button-start: hsl(222 88% 56%);
+  --login-brand-button-end: hsl(235 92% 52%);
+  --login-brand-button-start-hover: hsl(222 92% 62%);
+  --login-brand-button-end-hover: hsl(235 95% 58%);
+  --login-button-text: hsl(210 33% 98%);
+  --login-label-text: hsl(0 0% 100%);
+  --login-hint-text: hsl(222 25% 72%);
+  --login-input-icon: hsl(222 90% 80% / 0.9);
+  --login-input-toggle-bg: hsl(222 25% 13% / 0.92);
+  --login-input-toggle-border: hsl(0 0% 100% / 0.1);
+  --login-input-toggle-text: hsl(222 85% 78% / 0.9);
+  --login-input-toggle-border-hover: hsl(222 70% 65% / 0.45);
+  --login-input-toggle-bg-hover: hsl(222 60% 22% / 0.55);
+  --login-input-toggle-text-hover: hsl(222 90% 84%);
+  --login-input-toggle-ring: hsl(222 70% 60% / 0.28);
+  --login-input-toggle-active-bg: hsl(222 60% 28% / 0.35);
+  --login-input-toggle-active-border: hsl(222 70% 60% / 0.5);
+  --login-input-toggle-active-text: hsl(222 90% 86%);
+
+  /* 底部球形光晕（参考 Next-Gen AI Studio 蓝色球弧光晕） */
+  --login-arc-primary: hsl(232 72% 44%);
+  --login-arc-glow: hsl(220 100% 62% / 0.7);
+  --login-arc-core: hsl(222 100% 66% / 0.8);
+}

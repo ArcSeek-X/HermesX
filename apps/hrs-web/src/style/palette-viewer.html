@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>palette.css 设计令牌对照表</title>
+<style>
+  /* ========== 内联 palette.css 变量定义（与源文件同步） ========== */
+  :root {
+    /* 浅色被注释的同名冲突变量按 index.css 注释补回，保证 light 可渲染 */
+    --background: 216 33% 97%;
+    --foreground: 228 35% 12%;
+    --accent-foreground: 228 35% 16%;
+    --border: 217 28% 84%;
+    --muted: 214 30% 94%;
+    --accent: 214 32% 93%;
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --danger: var(--color-danger);
+    --radius: 1rem;
+    --card: 0 0% 100%;
+    --card-foreground: 228 35% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 228 35% 12%;
+    --primary: 193 100% 43%;
+    --primary-foreground: 216 33% 97%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 228 35% 16%;
+    --muted-foreground: 224 12% 42%;
+    --destructive: 349 82% 56%;
+    --destructive-foreground: 210 33% 98%;
+    --input: 217 28% 84%;
+    --ring: 193 100% 43%;
+    --elevated: 0 0% 100%;
+    --hover: 214 29% 90%;
+    --secondary-text: 224 18% 28%;
+    --muted-text: 224 12% 35%;
+    --color-cyan: hsl(var(--primary));
+    --color-cyan-glow: hsl(var(--primary) / 0.18);
+    --color-purple: 247 84% 66%;
+    --color-purple-glow: hsl(247 84% 66% / 0.18);
+    --color-success: 152 69% 40%;
+    --color-warning: 37 92% 50%;
+    --color-danger: 0 90% 55%;
+    --color-danger-alert-text: 349 82% 35%;
+    --color-danger-alert-border: 349 82% 56%;
+    --color-danger-alert-bg: 349 82% 56%;
+    --color-cyan-400: 188 78% 41%;
+    --color-emerald-400: 152 69% 40%;
+    --color-red-400: 0 90% 55%;
+    --color-amber-400: 37 92% 50%;
+    --sentiment-greed: var(--color-cyan);
+    --sentiment-neutral: var(--color-purple);
+    --sentiment-fear: var(--color-danger);
+    --stock-up: 4 82% 59%;
+    --stock-down: 170 63% 40%;
+    --stock-flat: 0 0% 60%;
+    --glow-spread: 8px;
+    --glow-intensity: 0.18;
+    --sentiment-greed-glow: hsl(var(--sentiment-greed) / var(--glow-intensity));
+    --sentiment-neutral-glow: hsl(var(--sentiment-neutral) / var(--glow-intensity));
+    --sentiment-fear-glow: hsl(var(--sentiment-fear) / var(--glow-intensity));
+    --bg-base: hsl(var(--background));
+    --bg-card: hsl(var(--card));
+    --bg-elevated: hsl(var(--elevated));
+    --bg-hover: hsl(var(--hover));
+    --bg-subtle-raw: var(--foreground);
+    --border-dim-raw: var(--foreground);
+    --border-subtle-raw: var(--foreground);
+    --bg-subtle: hsl(var(--bg-subtle-raw) / 0.03);
+    --border-dim: hsl(var(--border-dim-raw) / 0.05);
+    --border-subtle: hsl(var(--border-subtle-raw) / 0.04);
+    --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.06);
+    --border-default: var(--border-dim);
+    --border-hover: hsl(var(--primary) / 0.24);
+    --surface-1: hsl(var(--card));
+    --surface-2: hsl(var(--elevated));
+    --surface-3: hsl(var(--hover));
+    --overlay-hover: hsl(var(--foreground) / 0.05);
+    --overlay-selected: hsl(var(--primary) / 0.1);
+    --border-accent: hsl(var(--primary) / 0.7);
+    --border-purple: hsl(247 84% 66% / 0.24);
+    --border-cyan: hsl(var(--primary));
+    --text-primary: hsl(var(--foreground));
+    --text-secondary-text: hsl(var(--secondary-text));
+    --text-muted-text: hsl(var(--muted-text));
+    --nav-active-bg: hsl(var(--primary) / 0.09);
+    --nav-active-border: hsl(var(--primary) / 0.24);
+    --nav-hover-bg: hsl(var(--primary) / 0.05);
+    --nav-icon-active: hsl(var(--primary));
+    --nav-item-height: 2.75rem;
+    --nav-item-padding-x: 1rem;
+    --nav-indicator-shadow: hsl(var(--primary) / 0.52);
+    --nav-brand-shadow: hsl(var(--primary) / 0.2);
+    --nav-divider: hsl(var(--foreground) / 0.09);
+    --shell-sidebar-border: hsl(193 100% 43% / 0.35);
+    --home-loading-ring-track: hsl(var(--primary) / 0.2);
+    --home-loading-ring-head: hsl(var(--primary));
+    --page-drawer-overlay-bg: hsl(0 0% 0% / 0.6);
+    --home-mobile-overlay-bg: var(--page-drawer-overlay-bg);
+    --home-action-ai-bg: hsl(var(--primary) / 0.1);
+    --home-action-ai-border: hsl(var(--primary) / 0.2);
+    --home-action-ai-text: hsl(var(--primary));
+    --home-action-ai-hover-bg: hsl(var(--primary) / 0.18);
+    --home-action-report-bg: hsl(247 84% 66% / 0.1);
+    --home-action-report-border: hsl(247 84% 66% / 0.2);
+    --home-action-report-text: hsl(247 84% 66%);
+    --home-action-report-hover-bg: hsl(247 84% 66% / 0.18);
+    --home-accent-bg: hsl(var(--primary) / 0.1);
+    --home-accent-bg-hover: hsl(var(--primary) / 0.16);
+    --home-accent-border: hsl(var(--primary) / 0.2);
+    --home-accent-border-hover: hsl(var(--primary) / 0.28);
+    --home-accent-text: hsl(var(--primary));
+    --home-title-accent: hsl(247 84% 66%);
+    --home-price-up: hsl(0 88% 62%);
+    --home-price-down: hsl(149 100% 42%);
+    --home-strategy-buy: hsl(149 100% 42%);
+    --home-strategy-secondary: hsl(var(--primary));
+    --home-strategy-stop: hsl(346 100% 63%);
+    --home-strategy-take: hsl(38 100% 52%);
+    --home-panel-border: hsl(218 24% 82% / 0.92);
+    --home-panel-border-hover: hsl(193 100% 43% / 0.2);
+    --home-panel-border-selected: hsl(193 100% 43% / 0.34);
+    --home-panel-gradient-start: hsl(193 100% 43% / 0.1);
+    --home-panel-gradient-mid: hsl(247 84% 66% / 0.08);
+    --home-panel-gradient-end: hsl(218 22% 78% / 0.08);
+    --home-panel-selected-shadow: 0 0 0 1px hsl(193 100% 43% / 0.08), 0 10px 24px hsl(220 24% 36% / 0.1);
+    --home-panel-subtle-bg: hsl(214 32% 98% / 0.98);
+    --home-panel-subtle-bg-hover: hsl(214 36% 96% / 0.99);
+    --home-history-item-bg: hsl(0 0% 100% / 0.82);
+    --home-history-item-hover-bg: hsl(214 34% 96% / 0.99);
+    --home-history-item-selected-bg: linear-gradient(180deg, hsl(193 100% 43% / 0.08), hsl(214 42% 96% / 0.98));
+    --home-divider-border: hsl(218 24% 84% / 0.9);
+    --home-surface-button-bg: hsl(214 36% 97% / 0.98);
+    --home-surface-button-bg-hover: hsl(214 40% 95% / 0.99);
+    --home-surface-button-border: hsl(218 24% 84% / 0.94);
+    --home-surface-button-border-hover: hsl(193 100% 43% / 0.22);
+    --home-state-icon-muted: hsl(var(--muted-text) / 0.85);
+    --home-prose-border: hsl(var(--foreground) / 0.1);
+    --home-prose-border-strong: hsl(var(--foreground) / 0.16);
+    --home-prose-blockquote-border: hsl(247 84% 66% / 0.28);
+    --home-prose-blockquote-bg: hsl(247 84% 66% / 0.08);
+    --home-panel-shadow: 0 14px 32px hsl(220 22% 34% / 0.08), 0 4px 10px hsl(220 18% 28% / 0.04);
+    --home-panel-shadow-hover: 0 18px 40px hsl(220 24% 32% / 0.12), 0 6px 16px hsl(220 20% 28% / 0.06);
+    --home-hero-border: hsl(193 100% 43% / 0.32);
+    --home-hero-gradient-start: hsl(193 100% 43% / 0.24);
+    --home-hero-gradient-mid: hsl(247 84% 66% / 0.14);
+    --home-hero-gradient-end: hsl(218 22% 82% / 0.14);
+    --home-hero-shadow: 0 18px 44px hsl(220 24% 34% / 0.12), 0 8px 18px hsl(220 20% 30% / 0.06);
+    --home-rail-border: hsl(218 24% 82% / 0.9);
+    --home-rail-bg: linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(214 36% 97% / 0.98));
+    --home-rail-shadow: 0 14px 30px hsl(220 22% 34% / 0.09), 0 4px 10px hsl(220 18% 28% / 0.05);
+    --autocomplete-hover-bg: #04d1f6;
+    --shadow-soft-card: 0 12px 24px hsl(220 20% 34% / 0.09), 0 3px 8px hsl(220 16% 28% / 0.05);
+    --shadow-soft-card-strong: 0 18px 34px hsl(220 20% 32% / 0.12), 0 6px 16px hsl(220 16% 28% / 0.07);
+    --settings-surface: hsl(0 0% 100% / 0.97);
+    --settings-surface-hover: hsl(214 44% 95% / 0.99);
+    --settings-surface-strong: hsl(0 0% 100% / 0.99);
+    --settings-surface-panel: hsl(213 48% 97% / 0.99);
+    --settings-surface-overlay: hsl(214 36% 94% / 0.88);
+    --settings-surface-overlay-soft: hsl(214 34% 95% / 0.94);
+    --settings-surface-overlay-muted: hsl(214 30% 93% / 0.97);
+    --settings-border: hsl(218 24% 78% / 0.94);
+    --settings-border-soft: hsl(218 22% 84% / 0.94);
+    --settings-border-strong: hsl(218 18% 68% / 0.98);
+    --settings-border-overlay: hsl(218 22% 72% / 0.92);
+    --settings-accent-shadow: hsl(190 100% 50% / 0.08);
+    --settings-glow-hover: hsl(190 100% 50% / 0.38);
+    --settings-skeleton-strong: hsl(218 20% 84% / 0.92);
+    --settings-skeleton-soft: hsl(218 22% 92% / 0.96);
+    --input-surface-bg: var(--bg-card);
+    --input-surface-border: hsl(218 24% 80% / 0.92);
+    --input-surface-border-hover: hsl(218 20% 70% / 0.92);
+    --input-surface-border-focus: hsl(var(--primary) / 0.38);
+    --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.15);
+    --settings-input-rest-border: hsl(218 22% 82% / 0.72);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.74));
+    --chat-avatar-user-bg: hsl(var(--primary) / 0.5 );
+    --chat-avatar-user-fg: #041118;
+    --chat-avatar-user-border: hsl(var(--primary) / 0.3);
+    --chat-avatar-ai-bg: hsl(var(--primary) / 0.1);
+    --chat-avatar-ai-fg: hsl(var(--foreground)/ 0.8 );
+    --chat-avatar-ai-border: hsl(var(--primary) / 0.2);
+    --chat-bubble-user-bg: hsl(var(--primary) / 0.1);
+    --chat-bubble-user-border: hsl(var(--primary) / 0.2);
+    --chat-bubble-ai-bg: hsl(var(--card) / 0.85);
+    --chat-bubble-ai-border: hsl(var(--foreground) / 0.2);
+    --backtest-border-dim: hsl(var(--foreground) / 0.05);
+    --backtest-border-subtle: hsl(var(--foreground) / 0.06);
+    --backtest-border-light: hsl(var(--foreground) / 0.10);
+    --backtest-border-cyan-soft: hsl(var(--primary) / 0.40);
+    --backtest-bg-cyan-subtle: hsl(var(--primary) / 0.10);
+    --backtest-shadow-cyan-glow: 0 0 8px hsl(var(--primary) / 0.15);
+    --backtest-shadow-cyan-glow-strong: 0 0 4px hsl(var(--primary) / 0.60);
+    --backtest-spinner-track: hsl(var(--primary) / 0.20);
+    --backtest-spinner-head: hsl(var(--primary));
+    --backtest-table-bg: hsl(var(--card) / 0.72);
+    --login-bg-main: hsl(214 34% 96%);
+    --login-bg-card: hsl(210 43% 92% / 0.78);
+    --login-border-card: hsl(221 28% 28% / 0.58);
+    --login-error-text: hsl(var(--destructive));
+    --login-error-bg: hsl(var(--destructive) / 0.1);
+    --login-error-border: hsl(var(--destructive) / 0.2);
+    --login-text-primary: hsl(223 36% 12%);
+    --login-text-secondary: hsl(220 17% 28%);
+    --login-text-muted: hsl(221 18% 32% / 0.72);
+    --login-accent-soft: hsl(var(--primary) / 0.08);
+    --login-accent-border: hsl(220 22% 32% / 0.72);
+    --login-accent-text: hsl(223 36% 18%);
+    --login-accent-glow: hsl(var(--primary) / 0.18);
+    --login-brand-start: hsl(222 36% 16%);
+    --login-brand-end: hsl(205 88% 48%);
+    --login-brand-button-start: hsl(194 78% 56%);
+    --login-brand-button-end: hsl(213 88% 56%);
+    --login-brand-button-start-hover: hsl(194 82% 52%);
+    --login-brand-button-end-hover: hsl(213 90% 52%);
+    --login-button-text: hsl(210 40% 98%);
+    --login-label-text: hsl(223 36% 14%);
+    --login-hint-text: hsl(220 14% 34% / 0.9);
+    --login-input-icon: hsl(205 66% 38% / 0.86);
+    --login-input-toggle-bg: hsl(210 44% 96% / 0.92);
+    --login-input-toggle-border: hsl(208 42% 46% / 0.32);
+    --login-input-toggle-text: hsl(220 24% 22% / 0.82);
+    --login-input-toggle-border-hover: hsl(205 82% 46% / 0.42);
+    --login-input-toggle-bg-hover: hsl(205 100% 92% / 0.98);
+    --login-input-toggle-text-hover: hsl(205 88% 34%);
+    --login-input-toggle-ring: hsl(var(--primary) / 0.22);
+    --login-input-toggle-active-bg: hsl(var(--primary) / 0.14);
+    --login-input-toggle-active-border: hsl(var(--primary) / 0.34);
+    --login-input-toggle-active-text: hsl(205 88% 28%);
+    --login-arc-primary: hsl(225 60% 84%);
+    --login-arc-glow: hsl(222 70% 68% / 0.4);
+    --login-arc-core: hsl(222 85% 62% / 0.45);
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  }
+
+  .dark {
+    --background: 228 35% 7%;
+    --foreground: 210 33% 98%;
+    --accent-foreground: 210 33% 98%;
+    --border: 226 19% 20%;
+    --muted: 230 18% 14%;
+    --accent: 231 18% 16%;
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --danger: var(--color-danger);
+    --radius: 1rem;
+    --card: 230 24% 10%;
+    --card-foreground: 210 33% 98%;
+    --popover: 230 24% 10%;
+    --popover-foreground: 210 33% 98%;
+    --primary: 190 100% 50%;
+    --primary-foreground: 228 35% 8%;
+    --secondary: 231 19% 15%;
+    --secondary-foreground: 210 33% 94%;
+    --muted-foreground: 228 13% 66%;
+    --destructive: 349 100% 63%;
+    --destructive-foreground: 210 33% 98%;
+    --input: 226 19% 20%;
+    --ring: 190 100% 50%;
+    --elevated: 230 22% 12%;
+    --hover: 231 20% 16%;
+    --secondary-text: 228 16% 72%;
+    --muted-text: 228 10% 48%;
+    --color-cyan: hsl(var(--primary));
+    --color-cyan-glow: hsl(var(--primary) / 0.4);
+    --color-purple: 247 84% 72%;
+    --color-purple-glow: hsl(247 84% 72% / 0.3);
+    --color-success: 152 69% 40%;
+    --color-warning: 37 92% 50%;
+    --color-danger: 0 90% 55%;
+    --color-danger-alert-text: 349 100% 75%;
+    --color-danger-alert-border: 349 100% 63%;
+    --color-danger-alert-bg: 349 100% 63%;
+    --autocomplete-hover-bg: #2dcae6;
+    --color-cyan-400: 188 78% 41%;
+    --color-emerald-400: 152 69% 40%;
+    --color-red-400: 0 90% 55%;
+    --color-amber-400: 37 92% 50%;
+    --sentiment-greed: var(--color-cyan);
+    --sentiment-neutral: var(--color-purple);
+    --sentiment-fear: var(--color-danger);
+    --stock-up: 4 82% 59%;
+    --stock-down: 170 63% 40%;
+    --stock-flat: 0 0% 60%;
+    --glow-spread: 12px;
+    --glow-intensity: 0.3;
+    --sentiment-greed-glow: hsl(var(--sentiment-greed) / var(--glow-intensity));
+    --sentiment-neutral-glow: hsl(var(--sentiment-neutral) / var(--glow-intensity));
+    --sentiment-fear-glow: hsl(var(--sentiment-fear) / var(--glow-intensity));
+    --bg-base: hsl(var(--background));
+    --bg-card: hsl(var(--card));
+    --bg-elevated: hsl(var(--elevated));
+    --bg-hover: hsl(var(--hover));
+    --bg-subtle-raw: var(--foreground);
+    --border-dim-raw: var(--foreground);
+    --border-subtle-raw: var(--foreground);
+    --bg-subtle: hsl(var(--bg-subtle-raw) / 0.05);
+    --border-dim: hsl(var(--border-dim-raw) / 0.06);
+    --border-subtle: hsl(var(--border-subtle-raw) / 0.08);
+    --border-subtle-hover: hsl(var(--border-subtle-raw) / 0.15);
+    --border-default: var(--border-dim);
+    --border-hover: hsl(var(--primary) / 0.34);
+    --surface-1: hsl(var(--card));
+    --surface-2: hsl(var(--elevated));
+    --surface-3: hsl(var(--hover));
+    --overlay-hover: hsl(var(--foreground) / 0.08);
+    --overlay-selected: hsl(var(--primary) / 0.15);
+    --border-accent: hsl(var(--primary) / 0.8);
+    --border-purple: hsl(247 84% 72% / 0.28);
+    --border-cyan: hsl(var(--primary));
+    --text-primary: hsl(var(--foreground));
+    --text-secondary-text: hsl(var(--secondary-text));
+    --text-muted-text: hsl(var(--muted-text));
+    --nav-active-bg: hsl(var(--primary) / 0.11);
+    --nav-active-border: hsl(var(--primary) / 0.3);
+    --nav-hover-bg: hsl(var(--primary) / 0.06);
+    --nav-icon-active: hsl(var(--primary));
+    --nav-item-height: 2.75rem;
+    --nav-item-padding-x: 1rem;
+    --nav-indicator-shadow: hsl(var(--primary) / 0.8);
+    --nav-brand-shadow: hsl(var(--primary) / 0.24);
+    --nav-divider: hsl(var(--foreground) / 0.08);
+    --shell-sidebar-border: hsl(var(--primary) / 0.32);
+    --home-loading-ring-track: hsl(var(--primary) / 0.2);
+    --home-loading-ring-head: hsl(var(--primary));
+    --page-drawer-overlay-bg: hsl(0 0% 0% / 0.6);
+    --home-mobile-overlay-bg: var(--page-drawer-overlay-bg);
+    --home-action-ai-bg: hsl(var(--primary) / 0.1);
+    --home-action-ai-border: hsl(var(--primary) / 0.2);
+    --home-action-ai-text: hsl(var(--primary));
+    --home-action-ai-hover-bg: hsl(var(--primary) / 0.2);
+    --home-action-report-bg: hsl(247 84% 72% / 0.1);
+    --home-action-report-border: hsl(247 84% 72% / 0.2);
+    --home-action-report-text: hsl(247 84% 72%);
+    --home-action-report-hover-bg: hsl(247 84% 72% / 0.2);
+    --home-accent-bg: hsl(var(--primary) / 0.1);
+    --home-accent-bg-hover: hsl(var(--primary) / 0.18);
+    --home-accent-border: hsl(var(--primary) / 0.22);
+    --home-accent-border-hover: hsl(var(--primary) / 0.34);
+    --home-accent-text: hsl(var(--primary));
+    --home-title-accent: hsl(247 84% 72%);
+    --home-price-up: hsl(0 88% 64%);
+    --home-price-down: hsl(149 100% 44%);
+    --home-strategy-buy: hsl(149 100% 44%);
+    --home-strategy-secondary: hsl(var(--primary));
+    --home-strategy-stop: hsl(346 100% 66%);
+    --home-strategy-take: hsl(38 100% 58%);
+    --home-panel-border: hsl(var(--foreground) / 0.1);
+    --home-panel-border-hover: hsl(var(--primary) / 0.34);
+    --home-panel-border-selected: hsl(var(--primary) / 0.46);
+    --home-panel-gradient-start: hsl(var(--primary) / 0.3);
+    --home-panel-gradient-mid: hsl(247 84% 72% / 0.24);
+    --home-panel-gradient-end: hsl(var(--foreground) / 0.08);
+    --home-panel-selected-shadow: 0 0 0 1px hsl(var(--primary) / 0.14), 0 4px 16px hsl(var(--primary) / 0.16);
+    --home-panel-subtle-bg: hsl(var(--foreground) / 0.03);
+    --home-panel-subtle-bg-hover: hsl(var(--foreground) / 0.05);
+    --home-history-item-bg: hsl(var(--foreground) / 0.03);
+    --home-history-item-hover-bg: hsl(var(--foreground) / 0.06);
+    --home-history-item-selected-bg: linear-gradient(180deg, hsl(247 84% 72% / 0.14), hsl(var(--primary) / 0.1));
+    --home-divider-border: hsl(var(--foreground) / 0.1);
+    --home-surface-button-bg: hsl(var(--foreground) / 0.03);
+    --home-surface-button-bg-hover: hsl(var(--foreground) / 0.06);
+    --home-surface-button-border: hsl(var(--foreground) / 0.1);
+    --home-surface-button-border-hover: hsl(var(--primary) / 0.28);
+    --home-state-icon-muted: hsl(var(--muted-text) / 0.85);
+    --home-prose-border: hsl(var(--foreground) / 0.12);
+    --home-prose-border-strong: hsl(var(--foreground) / 0.18);
+    --home-prose-blockquote-border: hsl(247 84% 72% / 0.3);
+    --home-prose-blockquote-bg: hsl(247 84% 72% / 0.1);
+    --home-panel-shadow: 0 18px 48px hsl(215 25% 10% / 0.4);
+    --home-panel-shadow-hover: 0 24px 56px hsl(215 25% 10% / 0.5);
+    --home-hero-border: hsl(var(--primary) / 0.32);
+    --home-hero-gradient-start: hsl(var(--primary) / 0.3);
+    --home-hero-gradient-mid: hsl(247 84% 72% / 0.24);
+    --home-hero-gradient-end: hsl(var(--foreground) / 0.08);
+    --home-hero-shadow: 0 18px 44px hsl(220 24% 34% / 0.12), 0 8px 18px hsl(220 20% 30% / 0.06);
+    --home-rail-border: hsl(218 24% 82% / 0.9);
+    --home-rail-bg: linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(214 36% 97% / 0.98));
+    --home-rail-shadow: 0 14px 30px hsl(220 22% 34% / 0.09), 0 4px 10px hsl(220 18% 28% / 0.05);
+    --autocomplete-hover-bg: #2dcae6;
+    --shadow-soft-card: 0 18px 48px hsl(215 25% 10% / 0.4);
+    --shadow-soft-card-strong: 0 24px 56px hsl(215 25% 10% / 0.5);
+    --settings-surface: hsl(0 0% 100% / 0.02);
+    --settings-surface-hover: hsl(0 0% 100% / 0.05);
+    --settings-surface-strong: hsl(var(--card) / 0.92);
+    --settings-surface-panel: hsl(var(--elevated) / 0.62);
+    --settings-surface-overlay: hsl(var(--background) / 0.22);
+    --settings-surface-overlay-soft: hsl(var(--background) / 0.15);
+    --settings-surface-overlay-muted: hsl(var(--background) / 0.12);
+    --settings-border: hsl(0 0% 100% / 0.1);
+    --settings-border-soft: hsl(0 0% 100% / 0.08);
+    --settings-border-strong: hsl(0 0% 100% / 0.2);
+    --settings-border-overlay: hsl(0 0% 100% / 0.45);
+    --settings-accent-shadow: hsl(190 100% 50% / 0.1);
+    --settings-glow-hover: hsl(190 100% 50% / 0.38);
+    --settings-skeleton-strong: hsl(0 0% 100% / 0.1);
+    --settings-skeleton-soft: hsl(0 0% 100% / 0.06);
+    --input-surface-bg: var(--bg-card);
+    --input-surface-border: hsl(var(--border) / 0.82);
+    --input-surface-border-hover: rgba(255, 255, 255, 0.18);
+    --input-surface-border-focus: hsl(var(--primary) / 0.45);
+    --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.18);
+    --settings-input-rest-border: hsl(var(--border) / 0.58);
+    --gradient-primary: linear-gradient(135deg, rgba(0, 212, 255, 0.96), rgba(0, 168, 204, 0.96));
+    --chat-avatar-user-bg: hsl(var(--primary) / 0.8);
+    --chat-avatar-user-fg: hsl(var(--foreground) / 0.9);
+    --chat-avatar-user-border: hsl(var(--primary) / 0.15);
+    --chat-avatar-ai-bg: hsl(var(--primary) / 0.8);
+    --chat-avatar-ai-fg: hsl(var(--foreground) / 0.9);
+    --chat-avatar-ai-border: hsl(0 0% 100% / 0.1);
+    --chat-bubble-user-bg: hsl(var(--primary) / 0.1);
+    --chat-bubble-user-border: hsl(var(--primary) / 0.2);
+    --chat-bubble-ai-bg: hsl(var(--card) / 0.72);
+    --chat-bubble-ai-border: hsl(0 0% 100% / 0.12);
+    --backtest-border-dim: hsl(var(--foreground) / 0.06);
+    --backtest-border-subtle: hsl(var(--foreground) / 0.08);
+    --backtest-border-light: hsl(var(--foreground) / 0.12);
+    --backtest-border-cyan-soft: hsl(var(--primary) / 0.40);
+    --backtest-bg-cyan-subtle: hsl(var(--primary) / 0.10);
+    --backtest-shadow-cyan-glow: 0 0 8px hsl(var(--primary) / 0.25);
+    --backtest-shadow-cyan-glow-strong: 0 0 4px hsl(var(--primary) / 0.75);
+    --backtest-spinner-track: hsl(var(--primary) / 0.25);
+    --backtest-spinner-head: hsl(var(--primary));
+    --backtest-table-bg: hsl(var(--card) / 0.82);
+    --login-bg-main: #000000;
+    --login-bg-card: hsl(228 35% 9% / 0.72);
+    --login-border-card: hsl(222 45% 70% / 0.14);
+    --login-error-text: hsl(var(--destructive));
+    --login-error-bg: hsl(var(--destructive) / 0.1);
+    --login-error-border: hsl(var(--destructive) / 0.2);
+    --login-text-primary: hsl(0 0% 100%);
+    --login-text-secondary: hsl(222 25% 72%);
+    --login-text-muted: hsl(222 18% 50%);
+    --login-accent-soft: hsl(222 85% 60% / 0.12);
+    --login-accent-border: hsl(222 60% 68% / 0.32);
+    --login-accent-text: hsl(222 90% 82%);
+    --login-accent-glow: hsl(222 85% 60% / 0.3);
+    --login-brand-start: hsl(222 85% 62%);
+    --login-brand-end: hsl(235 90% 60%);
+    --login-brand-button-start: hsl(222 88% 56%);
+    --login-brand-button-end: hsl(235 92% 52%);
+    --login-brand-button-start-hover: hsl(222 92% 62%);
+    --login-brand-button-end-hover: hsl(235 95% 58%);
+    --login-button-text: hsl(210 33% 98%);
+    --login-label-text: hsl(0 0% 100%);
+    --login-hint-text: hsl(222 25% 72%);
+    --login-input-icon: hsl(222 90% 80% / 0.9);
+    --login-input-toggle-bg: hsl(222 25% 13% / 0.92);
+    --login-input-toggle-border: hsl(0 0% 100% / 0.1);
+    --login-input-toggle-text: hsl(222 85% 78% / 0.9);
+    --login-input-toggle-border-hover: hsl(222 70% 65% / 0.45);
+    --login-input-toggle-bg-hover: hsl(222 60% 22% / 0.55);
+    --login-input-toggle-text-hover: hsl(222 90% 84%);
+    --login-input-toggle-ring: hsl(222 70% 60% / 0.28);
+    --login-input-toggle-active-bg: hsl(222 60% 28% / 0.35);
+    --login-input-toggle-active-border: hsl(222 70% 60% / 0.5);
+    --login-input-toggle-active-text: hsl(222 90% 86%);
+    --login-arc-primary: hsl(232 72% 44%);
+    --login-arc-glow: hsl(220 100% 62% / 0.7);
+    --login-arc-core: hsl(222 100% 66% / 0.8);
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  }
+
+  /* ========== 页面样式 ========== */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    transition: background .25s, color .25s;
+  }
+  .header {
+    position: sticky; top: 0; z-index: 10;
+    background: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 0 24px;
+  }
+  .nav {
+    display: flex; gap: 4px; align-items: center;
+    height: 56px;
+  }
+  .nav-item {
+    padding: 8px 16px; cursor: pointer; border-radius: 8px;
+    color: hsl(var(--muted-foreground));
+    font-size: 14px; font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: hsl(var(--primary) / 0.08); color: hsl(var(--foreground)); }
+  .nav-item.active {
+    color: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.12);
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  .theme-toggle {
+    margin-left: auto;
+    padding: 7px 14px; cursor: pointer; border-radius: 8px;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 13px;
+  }
+  .theme-toggle:hover { background: hsl(var(--primary) / 0.1); }
+
+  .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .page[hidden] { display: none; }
+  .title { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+  .subtitle {
+    font-size: 13px; color: hsl(var(--muted-foreground));
+    margin: 0 0 20px; line-height: 1.6; max-width: 1000px;
+  }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 18px; cursor: pointer; border-radius: 8px;
+    border: 1px solid hsl(var(--border)); background: transparent;
+    color: hsl(var(--muted-foreground)); font-size: 14px;
+  }
+  .tab.active { color: hsl(var(--primary)); background: hsl(var(--primary) / 0.1); border-color: hsl(var(--primary) / 0.3); }
+
+  .toolbar { margin-bottom: 16px; }
+  .search {
+    width: 320px; max-width: 100%; padding: 9px 12px;
+    border-radius: 8px; border: 1px solid hsl(var(--border));
+    background: hsl(var(--background)); color: hsl(var(--foreground));
+    font-size: 14px;
+  }
+  .search:focus { outline: none; border-color: hsl(var(--primary) / 0.5); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid hsl(var(--border)); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid hsl(var(--border) / 0.6); vertical-align: middle; }
+  thead th {
+    background: hsl(var(--elevated)); color: hsl(var(--foreground));
+    font-weight: 600; white-space: nowrap; position: sticky; top: 0;
+  }
+  tbody tr:hover { background: hsl(var(--primary) / 0.04); }
+  .idx { width: 48px; text-align: right; color: hsl(var(--muted-foreground)); }
+  .col-type { width: 84px; }
+  .col-style { width: 84px; }
+  .col-name { width: 250px; }
+  .col-val { width: 220px; }
+  .col-rgba { width: 170px; }
+  .col-swatch { width: 70px; }
+  .col-meaning { width: auto; min-width: 320px; }
+  .name { font-family: var(--font-mono); font-size: 12px; color: hsl(var(--primary)); word-break: break-all; }
+  .val { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+  .rgba { font-family: var(--font-mono); font-size: 12px; color: hsl(var(--muted-foreground)); }
+  .kind-color { color: hsl(152 69% 40%); font-weight: 600; }
+  .kind-noncolor { color: hsl(var(--muted-foreground)); }
+  .swatch {
+    display: inline-block; width: 44px; height: 24px; border-radius: 5px;
+    border: 1px solid hsl(var(--border) / 0.8);
+  }
+  .swatch.none { border-style: dashed; display: inline-flex; align-items: center; justify-content: center; }
+  .swatch.none span { font-size: 10px; color: hsl(var(--muted-foreground)); }
+  .group-tag {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+    font-size: 11px; background: hsl(var(--primary) / 0.1); color: hsl(var(--primary));
+    white-space: nowrap;
+  }
+  .empty { padding: 30px; text-align: center; color: hsl(var(--muted-foreground)); }
+  .note {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 8px;
+    background: hsl(var(--primary) / 0.06); border: 1px solid hsl(var(--primary) / 0.2);
+    font-size: 12px; color: hsl(var(--foreground)); line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <header class="header">
+    <nav class="nav">
+      <div class="nav-item active" data-nav="palette">调色盘参数</div>
+      <div class="nav-item" data-nav="heroui">HeroUI比对</div>
+      <button class="theme-toggle" id="themeToggle">🌙 深色 (Dark)</button>
+    </nav>
+  </header>
+
+  <!-- ============ 调色盘参数 ============ -->
+  <section class="page" id="page-palette">
+    <h1 class="title">palette.css 设计令牌对照表</h1>
+    <p class="subtitle">
+      本表对应 <code>src/style/palette.css</code>（由 <code>index.css</code> 通过 <code>@import "./palette.css"</code> 引入），
+      是 hrs-web 的主题令牌（设计变量）核心来源。每一行展示参数在「浅色 / 深色」下的真实取值与色块，
+      帮助你直观感知每个参数的作用与具体颜色表现。颜色参数会转换并展示 RGBA；非颜色参数仅展示原始值。
+    </p>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="color">颜色参数</button>
+      <button class="tab" data-tab="noncolor">非颜色参数</button>
+    </div>
+
+    <div class="toolbar">
+      <input class="search" id="searchColor" placeholder="搜索参数名称筛选…" />
+    </div>
+    <div class="table-wrap">
+      <table id="tableColor">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="col-type">类型</th>
+            <th class="col-style">所属风格</th>
+            <th class="col-name">参数名称</th>
+            <th class="col-meaning">参数含义</th>
+            <th class="col-val">参数值</th>
+            <th class="col-rgba">参数值 RGBA</th>
+            <th class="col-swatch">颜色块</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyColor"></tbody>
+      </table>
+    </div>
+
+    <div class="toolbar" style="margin-top:24px;">
+      <input class="search" id="searchNonColor" placeholder="搜索参数名称筛选…" />
+    </div>
+    <div class="table-wrap">
+      <table id="tableNonColor" hidden>
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="col-type">类型</th>
+            <th class="col-style">所属风格</th>
+            <th class="col-name">参数名称</th>
+            <th class="col-meaning">参数含义</th>
+            <th class="col-val">参数值</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyNonColor"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ HeroUI 比对 ============ -->
+  <section class="page" id="page-heroui" hidden>
+    <h1 class="title">palette.css × HeroUI 同名参数比对</h1>
+    <p class="subtitle">
+      本项目 <code>index.css</code> 与 <code>palette.css</code> 中的同名变量（如 <code>--background</code>、<code>--border</code>、<code>--danger</code> 等）
+      位于 <code>@layer</code> 之外（unlayered），优先级恒高于 HeroUI 的 theme layer，因此会<strong>单向覆盖</strong> HeroUI 的同名变量。
+      右侧「HeroUI 参数」列出 HeroUI v3 默认主题在<strong>当前主题</strong>下的取值（来自其 published 主题变量），用于显性比对本项目覆盖后可能造成的色差 / 失效。
+      HeroUI 值为其默认主题实际声明，深色取值取自其 GitHub 仓库 <code>themes/default/variables.css</code>。
+    </p>
+
+    <div class="toolbar">
+      <input class="search" id="searchHero" placeholder="搜索参数名称筛选…" />
+    </div>
+    <div class="table-wrap">
+      <table id="tableHero">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="col-style">所属风格</th>
+            <th class="col-name">参数名称</th>
+            <th class="col-meaning">参数含义</th>
+            <th class="col-val">HRS 的参数值</th>
+            <th class="col-swatch">HRS 颜色块</th>
+            <th class="col-val">HeroUI 的参数</th>
+            <th class="col-swatch">HeroUI 颜色块</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyHero"></tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      说明：HeroUI 使用 oklch / 自包含颜色（如 <code>oklch(0.97 0.005 255)</code>），其颜色块由浏览器直接解析渲染；
+      本项目的同名变量为 HSL 分量（<code>193 100% 43%</code>），已自动补 <code>hsl()</code> 后渲染。
+      两者格式不同但都显示为实色，便于直接对照覆盖前后的视觉差异。
+    </p>
+  </section>
+
+<script>
+  /* ========== 参数数据：[name, meaning, group, isColor] ========== */
+  const VARS = [
+    // 同名冲突 + 基础语义
+    ['--background', '页面主背景色', 'Base', true],
+    ['--foreground', '主前景/正文文字色', 'Base', true],
+    ['--muted', '弱化背景/分隔底色', 'Base', true],
+    ['--accent', '强调态背景色', 'Base', true],
+    ['--accent-foreground', '强调态上的文字色', 'Base', true],
+    ['--border', '边框/分割线颜色', 'Base', true],
+    ['--radius', '全局圆角基准值', 'Base', false],
+    ['--success', '成功色（=color-success）', 'Base', true],
+    ['--warning', '警告色（=color-warning）', 'Base', true],
+    ['--danger', '危险色（=color-danger）', 'Base', true],
+    ['--card', '卡片表面底色', 'Base', true],
+    ['--card-foreground', '卡片内文字色', 'Base', true],
+    ['--popover', '弹层底色', 'Base', true],
+    ['--popover-foreground', '弹层文字色', 'Base', true],
+    ['--primary', '品牌主色（青）', 'Base', true],
+    ['--primary-foreground', '主色上的文字色', 'Base', true],
+    ['--secondary', '次级表面底色', 'Base', true],
+    ['--secondary-foreground', '次级表面文字色', 'Base', true],
+    ['--muted-foreground', '弱化文字色', 'Base', true],
+    ['--destructive', '破坏性/危险红', 'Base', true],
+    ['--destructive-foreground', '危险色上的文字', 'Base', true],
+    ['--input', '输入框底色/边框', 'Base', true],
+    ['--ring', '焦点环颜色', 'Base', true],
+    ['--elevated', '抬升表面底色', 'Base', true],
+    ['--hover', '悬停态底色', 'Base', true],
+    ['--secondary-text', '次级文字色', 'Base', true],
+    ['--muted-text', '弱化文字色', 'Base', true],
+    // 通用色板
+    ['--color-cyan', '青色', 'Color', true],
+    ['--color-cyan-glow', '青色辉光', 'Color', true],
+    ['--color-purple', '紫色', 'Color', true],
+    ['--color-purple-glow', '紫色辉光', 'Color', true],
+    ['--color-success', '成功绿', 'Color', true],
+    ['--color-warning', '警告黄', 'Color', true],
+    ['--color-danger', '危险红', 'Color', true],
+    ['--color-danger-alert-text', '危险警示文字', 'Color', true],
+    ['--color-danger-alert-border', '危险警示边框', 'Color', true],
+    ['--color-danger-alert-bg', '危险警示底色', 'Color', true],
+    ['--color-cyan-400', '青400', 'Color', true],
+    ['--color-emerald-400', '绿400', 'Color', true],
+    ['--color-red-400', '红400', 'Color', true],
+    ['--color-amber-400', '琥珀400', 'Color', true],
+    // 情绪/股票
+    ['--sentiment-greed', '贪婪情绪色', 'Sentiment', true],
+    ['--sentiment-neutral', '中性情绪色', 'Sentiment', true],
+    ['--sentiment-fear', '恐慌情绪色', 'Sentiment', true],
+    ['--stock-up', '涨（红）', 'Sentiment', true],
+    ['--stock-down', '跌（绿）', 'Sentiment', true],
+    ['--stock-flat', '平盘灰', 'Sentiment', true],
+    ['--glow-spread', '辉光扩散半径', 'Sentiment', false],
+    ['--glow-intensity', '辉光强度', 'Sentiment', false],
+    ['--sentiment-greed-glow', '贪婪辉光', 'Sentiment', true],
+    ['--sentiment-neutral-glow', '中性辉光', 'Sentiment', true],
+    ['--sentiment-fear-glow', '恐慌辉光', 'Sentiment', true],
+    // 设计令牌
+    ['--bg-base', '页面主背景', 'Design', true],
+    ['--bg-card', '卡片背景', 'Design', true],
+    ['--bg-elevated', '抬升背景', 'Design', true],
+    ['--bg-hover', '悬停背景', 'Design', true],
+    ['--bg-subtle-raw', '弱化底色源', 'Design', true],
+    ['--border-dim-raw', '暗边框色源', 'Design', true],
+    ['--border-subtle-raw', '细边框色源', 'Design', true],
+    ['--bg-subtle', '弱化背景', 'Design', true],
+    ['--border-dim', '暗边框', 'Design', true],
+    ['--border-subtle', '细边框', 'Design', true],
+    ['--border-subtle-hover', '细边框悬停', 'Design', true],
+    ['--border-default', '默认边框', 'Design', true],
+    ['--border-hover', '悬停边框（主色）', 'Design', true],
+    ['--surface-1', '表面层级1', 'Design', true],
+    ['--surface-2', '表面层级2', 'Design', true],
+    ['--surface-3', '表面层级3', 'Design', true],
+    ['--overlay-hover', '悬停蒙层', 'Design', true],
+    ['--overlay-selected', '选中蒙层', 'Design', true],
+    ['--border-accent', '强调边框', 'Design', true],
+    ['--border-purple', '紫边框', 'Design', true],
+    ['--border-cyan', '青边框', 'Design', true],
+    ['--text-primary', '主文字', 'Design', true],
+    ['--text-secondary-text', '次文字', 'Design', true],
+    ['--text-muted-text', '弱化文字', 'Design', true],
+    // 导航
+    ['--nav-active-bg', '导航激活背景', 'Nav', true],
+    ['--nav-active-border', '导航激活边框', 'Nav', true],
+    ['--nav-hover-bg', '导航悬停背景', 'Nav', true],
+    ['--nav-icon-active', '导航激活图标色', 'Nav', true],
+    ['--nav-item-height', '导航项高度', 'Nav', false],
+    ['--nav-item-padding-x', '导航项横向内边距', 'Nav', false],
+    ['--nav-indicator-shadow', '导航指示条阴影', 'Nav', true],
+    ['--nav-brand-shadow', '导航品牌阴影', 'Nav', true],
+    ['--nav-divider', '导航分割线', 'Nav', true],
+    ['--shell-sidebar-border', 'Shell 侧栏边框', 'Nav', true],
+    // Home
+    ['--home-loading-ring-track', 'Home加载环轨道', 'Home', true],
+    ['--home-loading-ring-head', 'Home加载环头部', 'Home', true],
+    ['--page-drawer-overlay-bg', '抽屉遮罩背景', 'Home', true],
+    ['--home-mobile-overlay-bg', '移动端遮罩背景', 'Home', true],
+    ['--home-action-ai-bg', 'AI操作按钮背景', 'Home', true],
+    ['--home-action-ai-border', 'AI操作按钮边框', 'Home', true],
+    ['--home-action-ai-text', 'AI操作按钮文字', 'Home', true],
+    ['--home-action-ai-hover-bg', 'AI操作按钮悬停背景', 'Home', true],
+    ['--home-action-report-bg', '日报操作按钮背景', 'Home', true],
+    ['--home-action-report-border', '日报操作按钮边框', 'Home', true],
+    ['--home-action-report-text', '日报操作按钮文字', 'Home', true],
+    ['--home-action-report-hover-bg', '日报操作按钮悬停背景', 'Home', true],
+    ['--home-accent-bg', 'Home强调背景', 'Home', true],
+    ['--home-accent-bg-hover', 'Home强调悬停背景', 'Home', true],
+    ['--home-accent-border', 'Home强调边框', 'Home', true],
+    ['--home-accent-border-hover', 'Home强调悬停边框', 'Home', true],
+    ['--home-accent-text', 'Home强调文字', 'Home', true],
+    ['--home-title-accent', 'Home标题强调色', 'Home', true],
+    ['--home-price-up', 'Home涨幅红', 'Home', true],
+    ['--home-price-down', 'Home跌幅绿', 'Home', true],
+    ['--home-strategy-buy', '策略买入绿', 'Home', true],
+    ['--home-strategy-secondary', '策略次色（青）', 'Home', true],
+    ['--home-strategy-stop', '策略止损红', 'Home', true],
+    ['--home-strategy-take', '策略止盈黄', 'Home', true],
+    ['--home-panel-border', '面板边框', 'Home', true],
+    ['--home-panel-border-hover', '面板边框悬停', 'Home', true],
+    ['--home-panel-border-selected', '面板选中边框', 'Home', true],
+    ['--home-panel-gradient-start', '面板渐变起始', 'Home', true],
+    ['--home-panel-gradient-mid', '面板渐变中间', 'Home', true],
+    ['--home-panel-gradient-end', '面板渐变结束', 'Home', true],
+    ['--home-panel-selected-shadow', '面板选中阴影', 'Home', false],
+    ['--home-panel-subtle-bg', '面板弱化背景', 'Home', true],
+    ['--home-panel-subtle-bg-hover', '面板弱化悬停背景', 'Home', true],
+    ['--home-history-item-bg', '历史项背景', 'Home', true],
+    ['--home-history-item-hover-bg', '历史项悬停背景', 'Home', true],
+    ['--home-history-item-selected-bg', '历史项选中背景', 'Home', false],
+    ['--home-divider-border', 'Home分割线边框', 'Home', true],
+    ['--home-surface-button-bg', 'Home表面按钮背景', 'Home', true],
+    ['--home-surface-button-bg-hover', 'Home表面按钮悬停背景', 'Home', true],
+    ['--home-surface-button-border', 'Home表面按钮边框', 'Home', true],
+    ['--home-surface-button-border-hover', 'Home表面按钮悬停边框', 'Home', true],
+    ['--home-state-icon-muted', 'Home状态图标弱化色', 'Home', true],
+    ['--home-prose-border', 'Prose边框', 'Home', true],
+    ['--home-prose-border-strong', 'Prose强边框', 'Home', true],
+    ['--home-prose-blockquote-border', 'Prose引用边框', 'Home', true],
+    ['--home-prose-blockquote-bg', 'Prose引用背景', 'Home', true],
+    ['--home-panel-shadow', '面板阴影', 'Home', false],
+    ['--home-panel-shadow-hover', '面板悬停阴影', 'Home', false],
+    ['--home-hero-border', 'Hero边框', 'Home', true],
+    ['--home-hero-gradient-start', 'Hero渐变起始', 'Home', true],
+    ['--home-hero-gradient-mid', 'Hero渐变中间', 'Home', true],
+    ['--home-hero-gradient-end', 'Hero渐变结束', 'Home', true],
+    ['--home-hero-shadow', 'Hero阴影', 'Home', false],
+    ['--home-rail-border', '侧栏边框', 'Home', true],
+    ['--home-rail-bg', '侧栏背景', 'Home', false],
+    ['--home-rail-shadow', '侧栏阴影', 'Home', false],
+    ['--autocomplete-hover-bg', '自动补全悬停底色', 'Home', true],
+    // Shadow / Settings / Input
+    ['--shadow-soft-card', '卡片柔和阴影', 'Shadow', false],
+    ['--shadow-soft-card-strong', '卡片强阴影', 'Shadow', false],
+    ['--settings-surface', '设置表面底色', 'Settings', true],
+    ['--settings-surface-hover', '设置表面悬停', 'Settings', true],
+    ['--settings-surface-strong', '设置强表面', 'Settings', true],
+    ['--settings-surface-panel', '设置面板表面', 'Settings', true],
+    ['--settings-surface-overlay', '设置遮罩表面', 'Settings', true],
+    ['--settings-surface-overlay-soft', '设置遮罩柔表面', 'Settings', true],
+    ['--settings-surface-overlay-muted', '设置遮罩弱化', 'Settings', true],
+    ['--settings-border', '设置边框', 'Settings', true],
+    ['--settings-border-soft', '设置柔边框', 'Settings', true],
+    ['--settings-border-strong', '设置强边框', 'Settings', true],
+    ['--settings-border-overlay', '设置遮罩边框', 'Settings', true],
+    ['--settings-accent-shadow', '设置强调阴影', 'Settings', true],
+    ['--settings-glow-hover', '设置悬停辉光', 'Settings', true],
+    ['--settings-skeleton-strong', '设置骨架强', 'Settings', true],
+    ['--settings-skeleton-soft', '设置骨架柔', 'Settings', true],
+    ['--input-surface-bg', '输入框表面背景', 'Settings', true],
+    ['--input-surface-border', '输入框表面边框', 'Settings', true],
+    ['--input-surface-border-hover', '输入框悬停边框', 'Settings', true],
+    ['--input-surface-border-focus', '输入框焦点边框', 'Settings', true],
+    ['--input-surface-focus-ring', '输入框焦点环', 'Settings', false],
+    ['--settings-input-rest-border', '设置输入框静止边框', 'Settings', true],
+    ['--gradient-primary', '主色渐变', 'Settings', false],
+    // Chat
+    ['--chat-avatar-user-bg', '用户头像背景', 'Chat', true],
+    ['--chat-avatar-user-fg', '用户头像文字', 'Chat', true],
+    ['--chat-avatar-user-border', '用户头像边框', 'Chat', true],
+    ['--chat-avatar-ai-bg', 'AI头像背景', 'Chat', true],
+    ['--chat-avatar-ai-fg', 'AI头像文字', 'Chat', true],
+    ['--chat-avatar-ai-border', 'AI头像边框', 'Chat', true],
+    ['--chat-bubble-user-bg', '用户气泡背景', 'Chat', true],
+    ['--chat-bubble-user-border', '用户气泡边框', 'Chat', true],
+    ['--chat-bubble-ai-bg', 'AI气泡背景', 'Chat', true],
+    ['--chat-bubble-ai-border', 'AI气泡边框', 'Chat', true],
+    // Backtest
+    ['--backtest-border-dim', '回测暗边框', 'Backtest', true],
+    ['--backtest-border-subtle', '回测细边框', 'Backtest', true],
+    ['--backtest-border-light', '回测亮边框', 'Backtest', true],
+    ['--backtest-border-cyan-soft', '回测青柔边框', 'Backtest', true],
+    ['--backtest-bg-cyan-subtle', '回测青柔背景', 'Backtest', true],
+    ['--backtest-shadow-cyan-glow', '回测青辉光', 'Backtest', false],
+    ['--backtest-shadow-cyan-glow-strong', '回测青强辉光', 'Backtest', false],
+    ['--backtest-spinner-track', '回测加载轨道', 'Backtest', true],
+    ['--backtest-spinner-head', '回测加载头部', 'Backtest', true],
+    ['--backtest-table-bg', '回测表格背景', 'Backtest', true],
+    // Login
+    ['--login-bg-main', '登录主背景', 'Login', true],
+    ['--login-bg-card', '登录卡片背景', 'Login', true],
+    ['--login-border-card', '登录卡片边框', 'Login', true],
+    ['--login-error-text', '登录错误文字', 'Login', true],
+    ['--login-error-bg', '登录错误背景', 'Login', true],
+    ['--login-error-border', '登录错误边框', 'Login', true],
+    ['--login-text-primary', '登录主文字', 'Login', true],
+    ['--login-text-secondary', '登录次文字', 'Login', true],
+    ['--login-text-muted', '登录弱化文字', 'Login', true],
+    ['--login-accent-soft', '登录强调柔背景', 'Login', true],
+    ['--login-accent-border', '登录强调边框', 'Login', true],
+    ['--login-accent-text', '登录强调文字', 'Login', true],
+    ['--login-accent-glow', '登录强调辉光', 'Login', true],
+    ['--login-brand-start', '品牌渐变起始', 'Login', true],
+    ['--login-brand-end', '品牌渐变结束', 'Login', true],
+    ['--login-brand-button-start', '品牌按钮起始', 'Login', true],
+    ['--login-brand-button-end', '品牌按钮结束', 'Login', true],
+    ['--login-brand-button-start-hover', '品牌按钮悬停起始', 'Login', true],
+    ['--login-brand-button-end-hover', '品牌按钮悬停结束', 'Login', true],
+    ['--login-button-text', '登录按钮文字', 'Login', true],
+    ['--login-label-text', '登录标签文字', 'Login', true],
+    ['--login-hint-text', '登录提示文字', 'Login', true],
+    ['--login-input-icon', '登录输入框图标', 'Login', true],
+    ['--login-input-toggle-bg', '登录输入框切换背景', 'Login', true],
+    ['--login-input-toggle-border', '登录输入框切换边框', 'Login', true],
+    ['--login-input-toggle-text', '登录输入框切换文字', 'Login', true],
+    ['--login-input-toggle-border-hover', '登录输入框切换悬停边框', 'Login', true],
+    ['--login-input-toggle-bg-hover', '登录输入框切换悬停背景', 'Login', true],
+    ['--login-input-toggle-text-hover', '登录输入框切换悬停文字', 'Login', true],
+    ['--login-input-toggle-ring', '登录输入框切换焦点环', 'Login', true],
+    ['--login-input-toggle-active-bg', '登录输入框切换激活背景', 'Login', true],
+    ['--login-input-toggle-active-border', '登录输入框切换激活边框', 'Login', true],
+    ['--login-input-toggle-active-text', '登录输入框切换激活文字', 'Login', true],
+    ['--login-arc-primary', '登录弧光主色', 'Login', true],
+    ['--login-arc-glow', '登录弧光辉光', 'Login', true],
+    ['--login-arc-core', '登录弧光核心', 'Login', true],
+    // Font
+    ['--font-mono', '等宽字体栈', 'Font', false],
+  ];
+
+  /* ========== HeroUI 比对数据 ==========
+     [name, meaning, hrsColor, herouiLight, herouiDark]
+     heroui 值来自 HeroUI v3 默认主题（light/dark）实际声明（oklch / var） */
+  const HEROUI = [
+    ['--background', '页面主背景色', true,
+      'oklch(1 0 0)', 'oklch(0.145 0 0)'],
+    ['--foreground', '主前景/正文文字色', true,
+      'oklch(0.145 0 0)', 'oklch(0.985 0 0)'],
+    ['--muted', '弱化背景/分隔底色', true,
+      'oklch(0.97 0.005 255)', 'oklch(0.269 0 0)'],
+    ['--accent', '强调态背景色', true,
+      'oklch(0.97 0.005 255)', 'oklch(0.269 0 0)'],
+    ['--accent-foreground', '强调态上的文字色', true,
+      'oklch(0.205 0 0)', 'oklch(0.985 0 0)'],
+    ['--border', '边框/分割线颜色', true,
+      'oklch(0.922 0 0)', 'oklch(1 0 0 / 10%)'],
+    ['--radius', '全局圆角基准值', false,
+      '0.5rem', '0.5rem'],
+    ['--success', '成功色', true,
+      'oklch(0.596 0.145 163)', 'oklch(0.696 0.17 162)'],
+    ['--warning', '警告色', true,
+      'oklch(0.828 0.155 84)', 'oklch(0.824 0.16 84)'],
+    ['--danger', '危险色', true,
+      'oklch(0.704 0.191 22)', 'oklch(0.704 0.191 22)'],
+  ];
+
+  /* ========== 工具函数 ========== */
+  const html = document.documentElement;
+
+  function isBareHsl(v) {
+    return /^[\d.]+(?:\s+[\d.]+%){2,3}$/.test(v.trim());
+  }
+  // 把任意颜色值解析成浏览器实色 rgb()/rgba()，用于显示与 RGBA 读取
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(probe);
+  function resolveColor(raw) {
+    if (!raw) return '';
+    let color = isBareHsl(raw) ? `hsl(${raw})` : raw;
+    probe.style.background = 'transparent';
+    probe.style.background = color;
+    // 若浏览器无法解析（如部分 var 嵌套在静态上下文），回退原值
+    const cs = getComputedStyle(probe).backgroundColor;
+    return cs && cs !== 'rgba(0, 0, 0, 0)' ? cs : color;
+  }
+  function getVar(name) {
+    return getComputedStyle(html).getPropertyValue(name).trim();
+  }
+  function styleLabel() {
+    return html.classList.contains('dark') ? '深色' : '浅色';
+  }
+
+  // oklch(L C H / alpha) -> rgb()/rgba()，避免依赖浏览器 oklch 支持，杜绝回退成黑色
+  function oklchToRgb(str) {
+    const m = String(str).match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)/);
+    if (!m) return null;
+    const L = parseFloat(m[1]);
+    const C = parseFloat(m[2]);
+    const H = parseFloat(m[3]);
+    const a = (m[4] ? parseFloat(m[4]) / (m[4].includes('%') ? 100 : 1) : 1);
+    const hr = (H * Math.PI) / 180;
+    const A = C * Math.cos(hr);
+    const B = C * Math.sin(hr);
+    const l_ = L + 0.3963377774 * A + 0.2158037573 * B;
+    const m_ = L - 0.1055613458 * A - 0.0638541728 * B;
+    const s_ = L - 0.0894841775 * A - 1.2914855480 * B;
+    const l = l_ * l_ * l_;
+    const mm = m_ * m_ * m_;
+    const s = s_ * s_ * s_;
+    let R = 4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s;
+    let G = -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s;
+    let Bl = -0.0041960863 * l - 0.7034186147 * mm + 1.7076147010 * s;
+    const gamma = (x) => {
+      x = Math.max(0, Math.min(1, x));
+      return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+    };
+    const r = Math.round(gamma(R) * 255);
+    const g = Math.round(gamma(G) * 255);
+    const b = Math.round(gamma(Bl) * 255);
+    return a >= 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+  // 统一把任意颜色声明转成可渲染值：oklch->rgb，其余（hsl/var/#/linear-gradient）原样
+  function toDisplayColor(val) {
+    if (!val) return '';
+    const conv = oklchToRgb(val);
+    return conv || val;
+  }
+
+  /* ========== 渲染：调色盘 颜色参数 ========== */
+  const tbodyColor = document.getElementById('tbodyColor');
+  const tbodyNonColor = document.getElementById('tbodyNonColor');
+  const searchColor = document.getElementById('searchColor');
+  const searchNonColor = document.getElementById('searchNonColor');
+
+  function renderPalette() {
+    const q = (searchColor.value || '').trim().toLowerCase();
+    const cs = getComputedStyle(html);
+    let i = 0;
+    tbodyColor.innerHTML = '';
+    VARS.forEach(([name, meaning, group, isColor]) => {
+      if (!isColor) return;
+      if (q && !name.toLowerCase().includes(q)) return;
+      i++;
+      const raw = cs.getPropertyValue(name).trim();
+      const rgba = resolveColor(raw) || '—';
+      const swatch = `<span class="swatch" style="background:${resolveColor(raw)}"></span>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="idx">${i}</td>
+        <td class="col-type"><span class="kind-color">颜色</span></td>
+        <td class="col-style">${styleLabel()}</td>
+        <td class="col-name name">${name}</td>
+        <td class="col-meaning">${meaning}<span class="group-tag">${group}</span></td>
+        <td class="col-val val">${raw || '(未定义)'}</td>
+        <td class="col-rgba rgba">${rgba}</td>
+        <td class="col-swatch">${swatch}</td>`;
+      tbodyColor.appendChild(tr);
+    });
+    if (i === 0) tbodyColor.innerHTML = `<tr><td colspan="8" class="empty">无匹配参数</td></tr>`;
+
+    // 非颜色
+    const q2 = (searchNonColor.value || '').trim().toLowerCase();
+    let j = 0;
+    tbodyNonColor.innerHTML = '';
+    VARS.forEach(([name, meaning, group, isColor]) => {
+      if (isColor) return;
+      if (q2 && !name.toLowerCase().includes(q2)) return;
+      j++;
+      const raw = cs.getPropertyValue(name).trim();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="idx">${j}</td>
+        <td class="col-type"><span class="kind-noncolor">非颜色</span></td>
+        <td class="col-style">${styleLabel()}</td>
+        <td class="col-name name">${name}</td>
+        <td class="col-meaning">${meaning}<span class="group-tag">${group}</span></td>
+        <td class="col-val val">${raw || '(未定义)'}</td>`;
+      tbodyNonColor.appendChild(tr);
+    });
+    if (j === 0) tbodyNonColor.innerHTML = `<tr><td colspan="6" class="empty">无匹配参数</td></tr>`;
+  }
+
+  /* ========== 渲染：HeroUI 比对 ========== */
+  const tbodyHero = document.getElementById('tbodyHero');
+  const searchHero = document.getElementById('searchHero');
+
+  function renderHero() {
+    const q = (searchHero.value || '').trim().toLowerCase();
+    const cs = getComputedStyle(html);
+    const isDark = html.classList.contains('dark');
+    let i = 0;
+    tbodyHero.innerHTML = '';
+    HEROUI.forEach(([name, meaning, isColor, hl, hd]) => {
+      if (q && !name.toLowerCase().includes(q)) return;
+      i++;
+      const hrsRaw = cs.getPropertyValue(name).trim();
+      const hrsSwatch = isColor
+        ? `<span class="swatch" style="background:${resolveColor(hrsRaw)}"></span>`
+        : `<span class="swatch none"><span>非颜色</span></span>`;
+      const herouiVal = isDark ? hd : hl;
+      const herouiSwatch = isColor
+        ? `<span class="swatch" style="background:${toDisplayColor(herouiVal)}"></span>`
+        : `<span class="swatch none"><span>非颜色</span></span>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="idx">${i}</td>
+        <td class="col-style">${styleLabel()}</td>
+        <td class="col-name name">${name}</td>
+        <td class="col-meaning">${meaning}</td>
+        <td class="col-val val">${hrsRaw || '(未定义)'}</td>
+        <td class="col-swatch">${hrsSwatch}</td>
+        <td class="col-val val">${herouiVal}</td>
+        <td class="col-swatch">${herouiSwatch}</td>`;
+      tbodyHero.appendChild(tr);
+    });
+    if (i === 0) tbodyHero.innerHTML = `<tr><td colspan="8" class="empty">无匹配参数</td></tr>`;
+  }
+
+  function renderAll() {
+    renderPalette();
+    renderHero();
+  }
+
+  /* ========== 事件 ========== */
+  // nav 切换
+  document.querySelectorAll('.nav-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+      el.classList.add('active');
+      const nav = el.dataset.nav;
+      document.getElementById('page-palette').hidden = nav !== 'palette';
+      document.getElementById('page-heroui').hidden = nav !== 'heroui';
+    });
+  });
+  // tab 切换
+  document.querySelectorAll('.tab').forEach((el) => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      el.classList.add('active');
+      const tab = el.dataset.tab;
+      document.getElementById('tableColor').hidden = tab !== 'color';
+      document.getElementById('tableNonColor').hidden = tab !== 'noncolor';
+      document.getElementById('searchColor').parentElement.style.display = tab === 'color' ? '' : 'none';
+      document.getElementById('searchNonColor').parentElement.style.display = tab === 'noncolor' ? '' : 'none';
+      if (tab === 'color') searchColor.focus();
+      else searchNonColor.focus();
+    });
+  });
+  // 搜索
+  searchColor.addEventListener('input', renderPalette);
+  searchNonColor.addEventListener('input', renderPalette);
+  searchHero.addEventListener('input', renderHero);
+  // 主题切换
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.addEventListener('click', () => {
+    const dark = html.classList.toggle('dark');
+    themeToggle.textContent = dark ? '☀️ 浅色 (Light)' : '🌙 深色 (Dark)';
+    requestAnimationFrame(renderAll);
+  });
+
+  // 初始
+  renderAll();
+</script>
+</body>
+</html>
