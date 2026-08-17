@@ -30,6 +30,7 @@ import './App.css';
  */
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ReviewPage = lazy(() => import('./pages/reviewPage'));
+const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
 const BacktestPage = lazy(() => import('./pages/BacktestPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage'));
@@ -122,6 +123,8 @@ const AppContent: React.FC = () => {
         <Route path="/home" element={<HomePage />} />
         {/* 复盘：历史复盘与大盘回顾 */}
         <Route path="/review" element={<ReviewPage />} />
+        {/* 自选：自选股列表与行情跟踪 */}
+        <Route path="/watchlist" element={<WatchlistPage />} />
         {/* 板块分析 */}
         <Route path="/sector-analysis" element={<SectorAnalysisPage />} />
         {/* K 线行情 */}

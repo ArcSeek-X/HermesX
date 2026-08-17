@@ -67,6 +67,7 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.dashboard': 'Overview',
   'layout.nav.home': 'Home',
   'layout.nav.review': 'Review',
+  'layout.nav.watchlist': 'Watchlist',
   'layout.nav.kline': 'K-Line',
   'layout.nav.sectorAnalysis': 'Sector',
   'layout.nav.stockCloud': 'Stock Cloud',
@@ -91,6 +92,8 @@ const en: Record<UiTextKey, string> = {
   'layout.route.home.title': 'Home',
   'layout.route.review.description': 'Historical reviews and market recap',
   'layout.route.review.title': 'Review',
+  'layout.route.watchlist.description': 'Watchlist stocks and market tracking',
+  'layout.route.watchlist.title': 'Watchlist',
   'layout.route.sectorAnalysis.description': 'Sector performance, capital flow, and hotspot tracking',
   'layout.route.sectorAnalysis.title': 'Sector Analysis',
 

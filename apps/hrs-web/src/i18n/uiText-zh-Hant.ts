@@ -64,6 +64,7 @@ const zh = {
   'layout.nav.dashboard': '總覽', // 總覽導航項
   'layout.nav.home': '首頁', // 首頁導航項
   'layout.nav.review': '復盤', // 復盤導航項
+  'layout.nav.watchlist': '自選', // 自選導航項
   'layout.nav.kline': 'K 线', // K 线導航項
   'layout.nav.sectorAnalysis': '板塊', // 板塊分析導航項
   'layout.nav.stockCloud': '個股雲圖', // 個股雲圖導航項
@@ -88,6 +89,8 @@ const zh = {
   'layout.route.home.title': '首頁', // 首頁路由標題
   'layout.route.review.description': '歷史復盤與大盤回顧', // 復盤路由描述
   'layout.route.review.title': '復盤', // 復盤路由標題
+  'layout.route.watchlist.description': '自選股列表與行情追蹤', // 自選路由描述
+  'layout.route.watchlist.title': '自選', // 自選路由標題
   'layout.route.sectorAnalysis.description': '板塊漲跌、資金流向與热點追踪', // 板塊分析路由描述
   'layout.route.sectorAnalysis.title': '板塊分析', // 板塊分析路由標題
 
