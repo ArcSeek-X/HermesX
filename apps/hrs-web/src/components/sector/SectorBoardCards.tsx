@@ -6,7 +6,8 @@
  * 作用：
  * 以卡片网格形式展示 A 股行业板块或概念板块列表，支持：
  * - 行业板块 / 概念板块切换（由父组件通过二级 TAB 控制，组件本身不再维护切换器）
- * - 关键词搜索（按板块名称过滤，由父组件通过搜索框传入，搜索框 UI 嵌入二级 TAB 右侧插槽）
+ * - 关键词搜索（按「板块名称 / 名称全拼 / 拼音首字母缩写」综合匹配，由父组件通过搜索框传入，
+ *   搜索框 UI 嵌入二级 TAB 右侧插槽；匹配逻辑见下方 filteredBoards）
  * - 每张卡片展示：排名、板块名称、涨跌幅、总市值、换手率、涨跌家数
  *
  * 设计说明：
@@ -24,6 +25,9 @@
  */
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+// 前端拼音工具：用于把板块中文名动态转换为全拼 / 首字母缩写，
+// 从而支撑「板块名称 / 全拼 / 拼音缩写」的综合搜索（后端 BoardListItem 仅含 name，无预存拼音字段）。
+import { pinyin } from 'pinyin-pro';
 import { Card } from '../';
 import {
   fetchBoardList,
@@ -80,13 +84,40 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
     loadBoards(boardType);
   }, [boardType, loadBoards]);
 
-  /** 根据搜索关键词过滤板块列表 */
+  /**
+   * 按搜索关键词综合匹配板块列表。
+   *
+   * 匹配维度（均不区分大小写）：
+   * - 板块名称（中文 contains）
+   * - 名称全拼（如「电子」→ dianzi）
+   * - 名称拼音首字母缩写（如「电子」→ dz）
+   * 命中任一维度即保留，因此搜出 N 个就渲染 N 个卡片（不去重、不截断）。
+   */
   const filteredBoards = useMemo(() => {
-    if (!searchKeyword.trim()) return boards;
-    const keyword = searchKeyword.toLowerCase();
-    return boards.filter((item) =>
-      item.name.toLowerCase().includes(keyword)
-    );
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return boards;
+
+    return boards.filter((item) => {
+      const name = item.name.toLowerCase();
+      // 1. 名称直接包含
+      if (name.includes(keyword)) return true;
+
+      // 2. 全拼 / 首字母缩写（仅当输入为纯字母时才转换，避免中文/混合输入下的无意义开销）
+      if (/^[a-z]+$/.test(keyword)) {
+        // 全拼：逐字转写为无声调拼音后拼接，如「电子」→ "dianzi"
+        const full = pinyin(item.name, { toneType: 'none', type: 'array' })
+          .join('')
+          .toLowerCase();
+        if (full.includes(keyword)) return true;
+
+        // 首字母缩写：取每个字的首字母拼接，如「电子」→ "dz"
+        const abbr = pinyin(item.name, { pattern: 'first', toneType: 'none', type: 'array' })
+          .join('')
+          .toLowerCase();
+        if (abbr.includes(keyword)) return true;
+      }
+      return false;
+    });
   }, [boards, searchKeyword]);
 
   /** 格式化涨跌幅文本（带正负号） */

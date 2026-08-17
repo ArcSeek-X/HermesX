@@ -158,7 +158,6 @@ const LoginCard: React.FC = () => {
                 placeholder={t('login.loginPasswordPlaceholder')}
                 autoComplete="current-password"
                 autoFocus
-                className="text-base!"
               />
               <InputGroup.Suffix>
                 {/* 密码可见性切换按钮：不参与表单提交 */}

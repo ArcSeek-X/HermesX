@@ -14,7 +14,6 @@
  * market-fund-flow（大盘主力）、board-list（最强板块），均通过后端代理。
  */
 import type { ReactNode } from 'react';
-import { motion } from 'motion/react';
 import { AnimatedValue } from '../../utils/animate.tsx';
 import type {
   BoardListItem,
@@ -22,6 +21,7 @@ import type {
   NorthboundFlowData,
 } from '../../api/sectorData';
 import { formatAmountRounding, formatPercent, formatSignedAmount, getChangeColorClass } from '../../utils/format';
+import AnimCard from '../common/Card/AnimCard';
 
 /** 通用统计卡片 props */
 export type MarketStatCardProps = {
@@ -59,14 +59,7 @@ export function MarketStatCard({ title, titleClassName, value, valueKey, valueCl
   // 未传时字符串值用自身文本，JSX 值用固定标识（避免对 React 元素 JSON.stringify 触发循环引用崩溃）
   const animatedKey = valueKey ?? (typeof value === 'string' ? value : '__jsx-value__');
   return (
-    <motion.div
-      className="hrs-index-card relative overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]
-        before:content-[''] before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:pointer-events-none
-        before:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_44%),radial-gradient(circle_at_top_right,rgba(105,178,255,0.12),transparent_34%)]"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
-    >
+    <AnimCard ordinal={ordinal} gradientBackground className="hrs-index-card">
       {/* 内容层抬升到 ::before 之上，避免渐变被 bg-card 背景遮盖 */}
       <div className="relative z-10 flex flex-col p-4 h-full">
         <div className={titleClassName ?? 'text-xs text-muted-text'}>{title}</div>
@@ -78,7 +71,7 @@ export function MarketStatCard({ title, titleClassName, value, valueKey, valueCl
         </div>
         <div className="mt-auto text-xs text-secondary-text leading-4">{meta}</div>
       </div>
-    </motion.div>
+    </AnimCard>
   );
 }
 

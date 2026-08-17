@@ -8,10 +8,10 @@
  *
  * 行情经后端 /api/v1/sector/market-indices 代理自东方财富。
  */
-import { motion } from 'motion/react';
 import type { MarketIndexItem } from '../../api/sectorData';
 import { formatAmount, formatPercent, formatPricePoint, getChangeColorClass } from '../../utils/format';
 import { AnimatedValue } from '../../utils/animate.tsx';
+import AnimCard from '../common/Card/AnimCard';
 
 /** IndexCard 入参 */
 export type IndexCardProps = {
@@ -95,14 +95,7 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
       : null;
 
   return (
-    <motion.div
-      className="hrs-index-card relative overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]
-        before:content-[''] before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:pointer-events-none
-        before:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_44%),radial-gradient(circle_at_top_right,rgba(105,178,255,0.12),transparent_34%)]"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
-    >
+    <AnimCard ordinal={ordinal} gradientBackground className="hrs-index-card">
       {/* 内容层置于 ::before 渐变之上，避免被 bg-card 遮盖 */}
       <div className="relative z-10 flex flex-col justify-between p-4 h-full">
         {/* 指数名称 */}
@@ -127,6 +120,6 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
           <AuxMetricRow {...useAmountOrAmplitudeMetric(idx, amplitude)} />
         </div>
       </div>
-    </motion.div>
+    </AnimCard>
   );
 }
