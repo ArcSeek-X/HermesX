@@ -63,6 +63,7 @@ const zh = {
   'layout.nav.decisionSignals': 'AI 建议', // AI 建议导航项
   'layout.nav.dashboard': '总览', // 总览导航项
   'layout.nav.home': '首页', // 首页导航项
+  'layout.nav.review': '复盘', // 复盘导航项
   'layout.nav.kline': 'K 线', // K 线导航项
   'layout.nav.sectorAnalysis': '板块', // 板块分析导航项
   'layout.nav.stockCloud': '个股云图', // 个股云图导航项
@@ -85,6 +86,8 @@ const zh = {
   'layout.route.dashboard.title': '总览', // 总览路由标题
   'layout.route.home.description': '股票分析与历史报告工作台', // 首页路由描述
   'layout.route.home.title': '首页', // 首页路由标题
+  'layout.route.review.description': '历史复盘与大盘回顾', // 复盘路由描述
+  'layout.route.review.title': '复盘', // 复盘路由标题
   'layout.route.sectorAnalysis.description': '板块涨跌、资金流向与热点追踪', // 板块分析路由描述
   'layout.route.sectorAnalysis.title': '板块分析', // 板块分析路由标题
 

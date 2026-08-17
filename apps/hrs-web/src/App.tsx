@@ -29,6 +29,7 @@ import './App.css';
  * 每个页面都是独立 chunk，只有访问对应路由时才会下载，降低首屏体积。
  */
 const HomePage = lazy(() => import('./pages/HomePage'));
+const ReviewPage = lazy(() => import('./pages/reviewPage'));
 const BacktestPage = lazy(() => import('./pages/BacktestPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage'));
@@ -119,6 +120,8 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Navigate to="/home" replace />} />
         {/* 首页：分析任务入口与历史记录 */}
         <Route path="/home" element={<HomePage />} />
+        {/* 复盘：历史复盘与大盘回顾 */}
+        <Route path="/review" element={<ReviewPage />} />
         {/* 板块分析 */}
         <Route path="/sector-analysis" element={<SectorAnalysisPage />} />
         {/* K 线行情 */}
