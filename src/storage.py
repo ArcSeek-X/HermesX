@@ -1338,6 +1338,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._ensure_intelligence_item_scope_values()
             self._ensure_schema_migration_record()
             self._ensure_intelligence_items_unique_index()
+            _ensure_watchlist_schema(self)
 
             self._initialized = True
             logger.info(f"数据库初始化完成: {db_url}")
@@ -3674,6 +3675,88 @@ def _coerce_llm_usage_non_negative_int(value: Any) -> Optional[int]:
             return None
         return int(text)
     return None
+
+
+class WatchlistGroup(Base):
+    """自选股分类表。
+
+    每个分类有唯一名称、排序权重与时间戳，支持新增/编辑/删除。
+    """
+
+    __tablename__ = 'stock_watchlist_group'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), nullable=False, unique=True, index=True)
+    sort_order = Column(Integer, nullable=False, default=0, index=True)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "sort_order": self.sort_order,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class WatchlistItem(Base):
+    """自选股表。
+
+    每条记录挂在某个分类下，含股票代码、冗余名称、备注、分类内顺序与时间戳。
+    同一分类下股票代码唯一，可移动到其它分类（改 group_id）。
+    """
+
+    __tablename__ = 'stock_watchlist_item'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(
+        Integer,
+        ForeignKey('stock_watchlist_group.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    stock_code = Column(String(32), nullable=False, index=True)
+    stock_name = Column(String(64))
+    note = Column(Text)
+    sort_order = Column(Integer, nullable=False, default=0, index=True)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('group_id', 'stock_code', name='uix_watchlist_item_group_code'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "group_id": self.group_id,
+            "stock_code": self.stock_code,
+            "stock_name": self.stock_name,
+            "note": self.note,
+            "sort_order": self.sort_order,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+def _ensure_watchlist_schema(self: 'DatabaseManager') -> None:
+    """Ensure watchlist tables/indexes exist (idempotent).
+
+    表与约束主要由 Base.metadata.create_all 创建；此处兜底确保索引存在，
+    兼容已有库未触发 create_all 的场景。
+    """
+    if not self._is_sqlite_engine:
+        return
+    try:
+        with self._engine.begin() as connection:
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS idx_watchlist_item_group "
+                "ON stock_watchlist_item(group_id)"
+            )
+    except Exception as exc:  # pragma: no cover - 防御性兜底
+        logger.warning("ensure watchlist schema failed: %s", exc)
 
 
 if __name__ == "__main__":

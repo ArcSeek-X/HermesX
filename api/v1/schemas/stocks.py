@@ -28,6 +28,8 @@ class StockQuote(BaseModel):
     prev_close: Optional[float] = Field(None, description="昨收价")
     volume: Optional[float] = Field(None, description="成交量（股）")
     amount: Optional[float] = Field(None, description="成交额（元）")
+    turnover_rate: Optional[float] = Field(None, description="换手率（%）")
+    total_mv: Optional[float] = Field(None, description="总市值（元）")
     update_time: Optional[str] = Field(None, description="更新时间")
     
     model_config = ConfigDict(json_schema_extra={

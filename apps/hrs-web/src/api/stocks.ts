@@ -73,4 +73,37 @@ export const stocksApi = {
     }
     throw new Error('请提供文件或粘贴文本');
   },
+
+  /**
+   * 获取单只股票实时行情（自选股列表展示用）。
+   * 后端返回 StockQuote，含现价/涨跌额/涨跌幅/成交额/换手率/总市值等。
+   */
+  async getQuote(stockCode: string): Promise<StockQuote | null> {
+    try {
+      const { data } = await apiClient.get<StockQuote>(
+        `/api/v1/stocks/${encodeURIComponent(stockCode)}/quote`,
+      );
+      return data;
+    } catch {
+      return null;
+    }
+  },
 };
+
+/** 实时行情（与后端 StockQuote 对齐） */
+export interface StockQuote {
+  stockCode: string;
+  stockName?: string | null;
+  currentPrice: number;
+  change?: number | null;
+  changePercent?: number | null;
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  prevClose?: number | null;
+  volume?: number | null;
+  amount?: number | null;
+  turnoverRate?: number | null;
+  totalMv?: number | null;
+  updateTime?: string | null;
+}
