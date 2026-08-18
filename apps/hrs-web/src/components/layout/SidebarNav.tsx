@@ -6,7 +6,7 @@
  * - variant="rail"：精简轨道模式（图标居中），用于桌面端固定侧边栏
  *
  * 主要职责：
- * 1. 渲染导航项列表（首页、复盘、自选、板块分析、K线、对话、选股、持仓等），顺序见 NAV_ITEMS
+ * 1. 渲染导航项列表（首页、总览、板块、自选、K线、问股、复盘、持仓、AI 建议、回测、告警、用量等），顺序见 NAV_ITEMS
  * 2. 依据 AlphaSift 功能开关动态显隐「选股」入口
  * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
@@ -47,22 +47,22 @@ type NavItem = {
 
 /**
  * 导航项配置列表，数组顺序即为菜单展示顺序。
- * 'screening'（选股）受 AlphaSift 开关控制，关闭时从列表中过滤。
+ * 'screening'（选股）受 AlphaSift 开关控制，关闭时从列表中过滤；开启时位于列表末尾。
  */
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', labelKey: 'layout.nav.home', to: '/home', icon: Home, exact: true },
-  { key: 'review', labelKey: 'layout.nav.review', to: '/review', icon: History },
-  { key: 'watchlist', labelKey: 'layout.nav.watchlist', to: '/watchlist', icon: Star },
   { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard', to: '/stock-dashboard', icon: LayoutDashboard },
   { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis', to: '/sector-analysis', icon: LayoutGrid },
+  { key: 'watchlist', labelKey: 'layout.nav.watchlist', to: '/watchlist', icon: Star },
   { key: 'kline', labelKey: 'layout.nav.kline', to: '/kline', icon: CandlestickChart },
   { key: 'chat', labelKey: 'layout.nav.chat', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
-  { key: 'screening', labelKey: 'layout.nav.screening', to: '/screening', icon: Search },
+  { key: 'review', labelKey: 'layout.nav.review', to: '/review', icon: History },
   { key: 'portfolio', labelKey: 'layout.nav.portfolio', to: '/portfolio', icon: BriefcaseBusiness },
   { key: 'decision-signals', labelKey: 'layout.nav.decisionSignals', to: '/decision-signals', icon: Activity },
   { key: 'backtest', labelKey: 'layout.nav.backtest', to: '/backtest', icon: BarChart3 },
   { key: 'alerts', labelKey: 'layout.nav.alerts', to: '/alerts', icon: Bell },
   { key: 'usage', labelKey: 'layout.nav.usage', to: '/usage', icon: Gauge },
+  { key: 'screening', labelKey: 'layout.nav.screening', to: '/screening', icon: Search },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {

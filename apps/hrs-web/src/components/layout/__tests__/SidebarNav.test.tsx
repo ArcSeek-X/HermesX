@@ -58,7 +58,7 @@ describe('SidebarNav', () => {
     expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
   });
 
-  it('places screening directly after chat when AlphaSift is enabled', async () => {
+  it('places screening at the end of the nav list when AlphaSift is enabled', async () => {
     mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: true, available: false, installSpecIsDefault: false });
 
     render(
@@ -69,8 +69,8 @@ describe('SidebarNav', () => {
 
     await screen.findByRole('link', { name: '选股' });
     const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
-    // 选股项紧跟问股项之后；home/总览等项顺序由 NAV_ITEMS 决定，此处只验证相对位置
-    expect(hrefs.indexOf('/screening')).toBe(hrefs.indexOf('/chat') + 1);
+    // 选股项紧跟用量之后（末尾的 /settings 为独立入口）；其余项顺序由 NAV_ITEMS 决定，此处只验证相对位置
+    expect(hrefs.indexOf('/screening')).toBe(hrefs.indexOf('/usage') + 1);
   });
 
   it('refreshes the screening navigation item after any config save event', async () => {

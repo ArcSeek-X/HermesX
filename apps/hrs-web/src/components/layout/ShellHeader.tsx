@@ -44,18 +44,18 @@ type ShellHeaderProps = {
  */
 const TITLES: Record<string, { title: UiTextKey; description: UiTextKey }> = {
   '/home': { title: 'layout.route.home.title', description: 'layout.route.home.description' },
-  '/review': { title: 'layout.route.review.title', description: 'layout.route.review.description' },
-  '/watchlist': { title: 'layout.route.watchlist.title', description: 'layout.route.watchlist.description' },
   '/stock-dashboard': { title: 'layout.route.dashboard.title', description: 'layout.route.dashboard.description' },
   '/sector-analysis': { title: 'layout.route.sectorAnalysis.title', description: 'layout.route.sectorAnalysis.description' },
+  '/watchlist': { title: 'layout.route.watchlist.title', description: 'layout.route.watchlist.description' },
   '/kline': { title: 'layout.route.kline.title', description: 'layout.route.kline.description' },
   '/chat': { title: 'layout.route.chat.title', description: 'layout.route.chat.description' },
+  '/review': { title: 'layout.route.review.title', description: 'layout.route.review.description' },
   '/portfolio': { title: 'layout.route.portfolio.title', description: 'layout.route.portfolio.description' },
   '/decision-signals': { title: 'layout.route.decisionSignals.title', description: 'layout.route.decisionSignals.description' },
-  '/screening': { title: 'layout.route.screening.title', description: 'layout.route.screening.description' },
   '/backtest': { title: 'layout.route.backtest.title', description: 'layout.route.backtest.description' },
   '/alerts': { title: 'layout.route.alerts.title', description: 'layout.route.alerts.description' },
   '/usage': { title: 'layout.route.usage.title', description: 'layout.route.usage.description' },
+  '/screening': { title: 'layout.route.screening.title', description: 'layout.route.screening.description' },
   '/settings': { title: 'layout.route.settings.title', description: 'layout.route.settings.description' },
 };
 
