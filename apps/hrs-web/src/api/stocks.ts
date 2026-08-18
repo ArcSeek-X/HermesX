@@ -1,4 +1,5 @@
 import apiClient from './index';
+import { toCamelCase } from './utils';
 
 /**
  * 股票工具类 API。
@@ -80,10 +81,10 @@ export const stocksApi = {
    */
   async getQuote(stockCode: string): Promise<StockQuote | null> {
     try {
-      const { data } = await apiClient.get<StockQuote>(
+      const { data } = await apiClient.get<Record<string, unknown>>(
         `/api/v1/stocks/${encodeURIComponent(stockCode)}/quote`,
       );
-      return data;
+      return toCamelCase<StockQuote>(data);
     } catch {
       return null;
     }

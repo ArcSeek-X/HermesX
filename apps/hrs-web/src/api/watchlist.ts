@@ -62,7 +62,11 @@ export async function updateGroup(
   id: number,
   payload: { name?: string; sortOrder?: number },
 ): Promise<WatchlistGroup> {
-  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/groups/${id}`, payload);
+  // 请求体使用 snake_case，与后端 schema 字段对齐（项目约定）
+  const body: Record<string, unknown> = {};
+  if (payload.name !== undefined) body.name = payload.name;
+  if (payload.sortOrder !== undefined) body.sort_order = payload.sortOrder;
+  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/groups/${id}`, body);
   return toCamelCase<WatchlistGroup>(data);
 }
 
@@ -83,7 +87,13 @@ export async function createItem(
   groupId: number,
   payload: { stockCode: string; stockName?: string; note?: string },
 ): Promise<WatchlistItem> {
-  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/groups/${groupId}/items`, payload);
+  // 请求体使用 snake_case，与后端 WatchlistItemCreate schema 字段对齐（项目约定）
+  const body: Record<string, unknown> = {
+    stock_code: payload.stockCode,
+  };
+  if (payload.stockName !== undefined) body.stock_name = payload.stockName;
+  if (payload.note !== undefined) body.note = payload.note;
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/groups/${groupId}/items`, body);
   return toCamelCase<WatchlistItem>(data);
 }
 
@@ -92,7 +102,11 @@ export async function updateItem(
   id: number,
   payload: { note?: string; stockName?: string },
 ): Promise<WatchlistItem> {
-  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/items/${id}`, payload);
+  // 请求体使用 snake_case，与后端 WatchlistItemUpdate schema 字段对齐（项目约定）
+  const body: Record<string, unknown> = {};
+  if (payload.note !== undefined) body.note = payload.note;
+  if (payload.stockName !== undefined) body.stock_name = payload.stockName;
+  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/items/${id}`, body);
   return toCamelCase<WatchlistItem>(data);
 }
 

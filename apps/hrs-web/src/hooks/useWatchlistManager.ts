@@ -37,6 +37,17 @@ const EMPTY_QUOTE: WatchlistQuote = {
   totalMv: null,
 };
 
+function quoteFromStockQuote(q: Awaited<ReturnType<typeof stocksApi.getQuote>> | null): WatchlistQuote {
+  if (!q) return { ...EMPTY_QUOTE };
+  return {
+    currentPrice: q.currentPrice ?? null,
+    changePercent: q.changePercent ?? null,
+    amount: q.amount ?? null,
+    turnoverRate: q.turnoverRate ?? null,
+    totalMv: q.totalMv ?? null,
+  };
+}
+
 export interface UseWatchlistManagerResult {
   // 分类
   groups: WatchlistGroup[];
@@ -106,37 +117,32 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
 
   const loadItems = useCallback(async (groupId: number) => {
     setItemsLoading(true);
+    // 先清空列表，等行情全部加载并处理完毕后再一次性渲染，避免中途渲染空行情占位
+    setItems([]);
     try {
       const base = await fetchItems(groupId);
       const withQuote: WatchlistItemWithQuote[] = base.map((it) => ({ ...it, quote: { ...EMPTY_QUOTE } }));
-      setItems(withQuote);
 
-      // 并发拉取实时行情，按代码合并
+      // 先并发拉取全部实时行情；等所有数据加载并处理完毕后再一次性渲染列表
       if (withQuote.length > 0) {
         setQuotesLoading(true);
         try {
           const quotes = await Promise.all(
-            withQuote.map((it) => stocksApi.getQuote(it.stockCode)),
+            withQuote.map((it) =>
+              stocksApi.getQuote(it.stockCode).catch(() => null),
+            ),
           );
-          setItems((prev) =>
-            prev.map((it, i) => {
-              const q = quotes[i];
-              if (!q) return it;
-              return {
-                ...it,
-                quote: {
-                  currentPrice: q.currentPrice ?? null,
-                  changePercent: q.changePercent ?? null,
-                  amount: q.amount ?? null,
-                  turnoverRate: q.turnoverRate ?? null,
-                  totalMv: q.totalMv ?? null,
-                },
-              };
-            }),
-          );
+          const merged = withQuote.map((it, i) => {
+            const q = quotes[i];
+            if (!q) return it;
+            return { ...it, quote: quoteFromStockQuote(q) };
+          });
+          setItems(merged);
         } finally {
           setQuotesLoading(false);
         }
+      } else {
+        setItems(withQuote);
       }
     } finally {
       setItemsLoading(false);
@@ -190,11 +196,18 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     async (groupId: number, payload: { stockCode: string; stockName?: string; note?: string }) => {
       const item = await apiCreateItem(groupId, payload);
       if (groupId === activeGroupId) {
-        setItems((prev) => [{ ...item, quote: { ...EMPTY_QUOTE } }, ...prev]);
+        // 立即拉取新增股票的实时行情并合并；行情失败不影响新增成功，仍用空行情占位
+        let quote: Awaited<ReturnType<typeof stocksApi.getQuote>> | null = null;
+        try {
+          quote = await stocksApi.getQuote(item.stockCode);
+        } catch {
+          quote = null;
+        }
+        setItems((prev) => [{ ...item, quote: quoteFromStockQuote(quote) }, ...prev]);
       }
-      await loadItems(groupId);
+      return item;
     },
-    [activeGroupId, loadItems],
+    [activeGroupId],
   );
 
   const editItemNote = useCallback(async (id: number, note: string) => {

@@ -6,16 +6,15 @@
 
 import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { AppPage, PageHeader } from '../components';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { AppPage } from '../components';
 import { useWatchlistManager } from '../hooks/useWatchlistManager';
 import WatchlistGroupPanel from '../components/watchlist/WatchlistGroupPanel';
 import WatchlistStockTable from '../components/watchlist/WatchlistStockTable';
 import AnimCard from '../components/common/Card/AnimCard';
 import StockAutocomplete from '../components/StockAutocomplete/StockAutocomplete';
-import { Button } from '../components/basic/Button';
-import { Select } from '../components/basic/Select';
+import { ApiErrorAlert, Button, Select } from '../components';
 import { type WatchlistItemWithQuote } from '../api/watchlist';
+import { getParsedApiError, type ParsedApiError } from '../api/error';
 
 type SortKey = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';
 
@@ -59,7 +58,6 @@ function sortItems(items: WatchlistItemWithQuote[], key: SortKey): WatchlistItem
 }
 
 const WatchlistPage: React.FC = () => {
-  const { t } = useUiLanguage();
   const {
     groups,
     groupsLoading,
@@ -84,6 +82,7 @@ const WatchlistPage: React.FC = () => {
   const [addCode, setAddCode] = useState('');
   const [addName, setAddName] = useState('');
   const [addNote, setAddNote] = useState('');
+  const [addError, setAddError] = useState<ParsedApiError | null>(null);
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? null;
 
@@ -104,11 +103,16 @@ const WatchlistPage: React.FC = () => {
 
   const confirmAdd = async () => {
     if (!addCode || activeGroupId == null) return;
-    await addItem(activeGroupId, { stockCode: addCode, stockName: addName, note: addNote });
-    setAddCode('');
-    setAddName('');
-    setAddNote('');
-    setAddOpen(false);
+    setAddError(null);
+    try {
+      await addItem(activeGroupId, { stockCode: addCode, stockName: addName, note: addNote });
+      setAddCode('');
+      setAddName('');
+      setAddNote('');
+      setAddOpen(false);
+    } catch (err) {
+      setAddError(getParsedApiError(err));
+    }
   };
 
   return (
@@ -219,6 +223,11 @@ const WatchlistPage: React.FC = () => {
                   className="mt-1 w-full rounded border border-subtle bg-card px-2 py-1.5 text-sm text-text outline-none focus:border-primary"
                 />
               </div>
+              {addError ? (
+                <div className="mb-4">
+                  <ApiErrorAlert error={addError} onDismiss={() => setAddError(null)} />
+                </div>
+              ) : null}
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" size="md" onClick={() => setAddOpen(false)}>
                   取消

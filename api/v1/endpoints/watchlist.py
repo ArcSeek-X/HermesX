@@ -22,6 +22,7 @@ from src.storage import (
     WatchlistGroup,
     WatchlistItem,
 )
+from src.data.stock_index_loader import get_stock_name_index_map
 
 # 数据库访问入口（与 api/deps.py、history.py 等保持一致）
 db = DatabaseManager.get_instance()
@@ -171,11 +172,29 @@ def list_items(group_id: int) -> List[dict]:
         return [r.to_dict() for r in rows]
 
 
+def _is_valid_stock_code(code: str) -> bool:
+    """核验股票编号是否在股票主数据（stocks.index.json）中存在。
+
+    使用 ``get_stock_name_index_map`` 的键（canonicalCode，如 ``603019.SH``、
+    ``00700.HK``、``AAPL``）直接匹配，覆盖 A 股/港股/美股等全市场。
+    若索引加载失败（异常），采取宽松放行，避免主数据缺失拖垮新增功能。
+    """
+    if not code:
+        return False
+    try:
+        name_map = get_stock_name_index_map()
+        return code in name_map
+    except Exception as exc:  # pragma: no cover - 索引加载异常时降级
+        logging.getLogger(__name__).warning("[自选股] 股票索引核验失败，降级放行：%s", exc)
+        return True
+
+
 @router.post(
     "/groups/{group_id}/items",
     response_model=WatchlistItemOut,
     summary="新增自选股到分类",
     responses={
+        400: {"description": "股票代码无效或未收录"},
         404: {"description": "分类不存在"},
         409: {"description": "该分类下股票已存在"},
     },
@@ -184,6 +203,13 @@ def create_item(group_id: int, payload: WatchlistItemCreate) -> dict:
     stock_code = payload.stock_code.strip()
     if not stock_code:
         raise HTTPException(status_code=422, detail={"error": "invalid_code", "message": "股票代码不能为空"})
+
+    # 编号合法性核验：确保股票编号真实存在，避免脏数据入库
+    if not _is_valid_stock_code(stock_code):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "invalid_code", "message": f"股票代码无效或未收录：{stock_code}"},
+        )
 
     with db.get_session() as session:
         group = session.get(WatchlistGroup, group_id)

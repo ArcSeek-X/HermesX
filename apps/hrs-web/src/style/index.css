@@ -2,7 +2,6 @@
 @import "@heroui/styles";
 @import "./palette.css";
 @config "../../tailwind.config.js";
-
 @import "./hsl-inline.css";
 @import "./global.scss";
 

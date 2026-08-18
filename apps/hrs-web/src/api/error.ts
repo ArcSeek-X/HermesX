@@ -19,6 +19,7 @@ export type ApiErrorCategory =
   | 'upstream_timeout'
   | 'upstream_network'
   | 'local_connection_failed'
+  | 'duplicate_item'
   | 'http_error'
   | 'unknown';
 
@@ -172,6 +173,13 @@ function extractErrorCode(data: unknown): string | null {
   }
 
   return pickString(data.error, data.code);
+}
+
+function parsedDuplicateMessage(payloadText: string | null): string | null {
+  if (!payloadText) return null;
+  // 后端 duplicate_item 的消息形如「分类下已存在股票 603019.SH」「目标分类下已存在该股票」
+  // 统一收敛为精简提示，去掉多余标点
+  return payloadText.replace(/[。.]$/, '') + '，请勿重复添加。';
 }
 
 export function extractErrorPayloadText(data: unknown): string | null {
@@ -531,6 +539,16 @@ export function parseApiError(error: unknown): ParsedApiError {
       rawMessage,
       status,
       category: 'local_connection_failed',
+    });
+  }
+
+  if (errorCode === 'duplicate_item' || includesAny(matchText, ['已存在', 'duplicate_item'])) {
+    return createParsedApiError({
+      title: '已存在',
+      message: parsedDuplicateMessage(payloadText) ?? '该分组下已存在此股票，请勿重复添加。',
+      rawMessage,
+      status,
+      category: 'duplicate_item',
     });
   }
 
