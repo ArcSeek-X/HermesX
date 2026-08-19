@@ -26,20 +26,21 @@ import { cn } from '../../utils/cn';
 
 /**
  * 按钮属性。
- * 继承自原生 <button> 的所有属性（onClick / type / disabled / aria-* 等均可直接使用），
  * 并在此基础上扩展了以下项目专用字段。
  */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-subtle' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
-  size?: 'xsm' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
   isLoading?: boolean;
   /** 加载态自定义文案；未提供时回退到 i18n 的 'common.processing'。 */
   loadingText?: string;
   /** 是否启用青色发光效果（glow）。默认 false。 */
   glow?: boolean;
+  /** 是否禁用按钮（HeroUI 语义字段）。与原生 disabled 二选一，统一走 isDisabled 透传给 HeroUI。 */
+  isDisabled?: boolean;
 }
 
 /**
@@ -48,11 +49,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  * 未分层的 `button { font: inherit }` 规则，确保字号稳定生效。
  */
 const BUTTON_SIZE_STYLES = {
-  xsm: 'h-6 rounded-xsm px-2 !text-xs',
-  sm: 'h-7 rounded-sm px-3 !text-xs',
-  md: 'h-8 rounded-md px-4 !text-xs',
-  lg: 'h-10 rounded-xl px-5 text-sm',
-  xl: 'h-12 rounded-xl px-6 text-sm',
+  xs: 'h-7 rounded-sm px-2 !text-xs',
+  sm: 'h-8 rounded-sm px-3 !text-xs',
+  md: 'h-9 rounded-sm px-4 !text-xs',
+  lg: 'h-10 rounded-sm px-5 !text-sm',
+  xl: 'h-12 rounded-sm px-6 !text-sm',
 } as const;
 
 /**
@@ -70,19 +71,22 @@ const ACTION_REPORT_STYLES = 'bg-[var(--home-action-report-bg)] border border-[v
  *   - 主操作类：primary（主色渐变）、gradient（青→紫渐变）、settings-primary（设置面板主按钮，跟随 --primary）
  *   - 次操作类：secondary（卡片底 + 边框）、settings-secondary（设置面板次按钮，跟随 --primary）
  *   - 轻量类：outline（描边）、ghost（透明、最弱）
- *   - 危险类：danger（实心红）、danger-subtle（淡红描边）
+ *   - 危险类：danger（实心红）、danger-soft（淡红描边）
  *   - 业务专用：action-primary / action-secondary / home-action-ai / home-action-report（首页 workspace 用）
  */
 const BUTTON_VARIANT_STYLES = {
-  primary: 'border border-cyan/30 bg-primary-gradient text-primary-foreground shadow-lg shadow-cyan/20 hover:brightness-105',
-  secondary: 'border border-border/70 bg-card text-foreground shadow-soft-card hover:bg-hover',
+  primary: 'border border-cyan/30 bg-primary-gradient text-primary-foreground shadow-md shadow-cyan/20 hover:brightness-120',
+  secondary: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
+  tertiary: 'border border-border/70 bg-transparent text-foreground shadow-soft-card hover:bg-hover/50',
+  outline: 'border border-cyan/25 text-cyan bg-white hover:bg-cyan/10',
+  ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:text-foreground',
+  danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-md shadow-danger/20 hover:brightness-105',
+  'danger-soft': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
   'settings-primary': 'border settings-button-primary hover:brightness-105 hover:shadow-xl',
   'settings-secondary': 'border settings-button-secondary hover:translate-y-[-1px]',
-  outline: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
-  ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:text-foreground',
-  gradient: 'border border-cyan/20 bg-gradient-to-r from-cyan to-purple text-primary-foreground shadow-lg shadow-cyan/20 hover:brightness-105',
-  danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-lg shadow-danger/20 hover:brightness-105',
-  'danger-subtle': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
+
+
+  gradient: 'border border-cyan/20 bg-gradient-to-r from-cyan to-purple text-primary-foreground shadow-md shadow-cyan/20 hover:brightness-105',
   'action-primary': ACTION_AI_STYLES,
   'action-secondary': ACTION_REPORT_STYLES,
   'home-action-ai': ACTION_AI_STYLES,
@@ -94,15 +98,15 @@ const BUTTON_VARIANT_STYLES = {
  * 负责把 size / variant / glow / className 等合并为最终 className，
  * 并处理 loading 态（渲染旋转图标 + 文案）。
  */
-export const Button: React.FC<ButtonProps> = ({
+export const HrsButton: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
-  size = 'md',
+  size = 'sm',
   isLoading = false,
   loadingText,
   glow = false,
   className = '',
-  disabled,
+  isDisabled,
   type = 'button',
   ...props
 }) => {
@@ -114,6 +118,7 @@ export const Button: React.FC<ButtonProps> = ({
   // aria-busy 供辅助技术识别加载态；统一并入 props 透传给 HeroUI Button。
   const passthroughProps = {
     ...props,
+    variant,
     'data-variant': variant,
     'aria-busy': isLoading || undefined,
     className: cn(
@@ -125,7 +130,7 @@ export const Button: React.FC<ButtonProps> = ({
       'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none',
       // 尺寸档位样式
       BUTTON_SIZE_STYLES[size],
-      // 视觉变体样式
+      // 视觉变体样式（项目自定义 Tailwind 类，覆盖 HeroUI 默认 variant 外观）
       BUTTON_VARIANT_STYLES[variant],
       // 发光效果（可选）
       glowStyles,
@@ -134,13 +139,18 @@ export const Button: React.FC<ButtonProps> = ({
     ),
   } as React.ComponentProps<typeof HeroButton>;
 
+
+
+
+  console.log('passthroughProps', passthroughProps);
+  // variant	'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'danger'
+
+
   return (
     <HeroButton
       // 复用 HeroUI 底座：原生属性（onClick / aria-* / data-* / className 等）直接透传
       {...passthroughProps}
-      // HeroUI 的 type / disabled 语义化字段
-      type={type}
-      isDisabled={disabled || isLoading}
+      isDisabled={isDisabled || isLoading}
       // HeroUI 的 pending 态：加载期间禁止指针事件
       isPending={isLoading}
     >
