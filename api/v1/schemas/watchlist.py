@@ -9,9 +9,11 @@
 2. 定义自选股条目的请求/响应模型
 """
 
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
+
+from api.v1.schemas.common import PaginatedResponse
 
 
 # === 分类 ===
@@ -79,3 +81,17 @@ class SimpleSuccess(BaseModel):
     """通用成功响应"""
 
     success: bool = True
+
+
+class WatchlistItemsQueryRequest(BaseModel):
+    """自选股分页查询请求"""
+
+    group_id: int = Field(..., description="分类 ID")
+    pageSize: int = Field(20, ge=1, le=100, description="每页数量")
+    pageNum: int = Field(1, ge=1, description="当前页码")
+
+
+class WatchlistItemsPaginatedResponse(PaginatedResponse):
+    """自选股分页查询响应"""
+
+    list: List[WatchlistItemOut] = Field(default_factory=list, description="自选股列表")
