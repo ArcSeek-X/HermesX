@@ -44,6 +44,7 @@ const StockScreeningPage = lazy(() => import('./pages/StockScreeningPage'));
 const SectorAnalysisPage = lazy(() => import('./pages/SectorAnalysisPage'));
 const StockKLinePage = lazy(() => import('./pages/StockKLinePage'));
 const StockDashboardPage = lazy(() => import('./pages/StockDashboardPage'));
+const CodeTestPage = lazy(() => import('./pages/CodeTestPage'));
 
 /**
  * 路由内部组件，必须位于 <Router> 之内，才能使用 useLocation / useAuth 等钩子。
@@ -143,6 +144,8 @@ const AppContent: React.FC = () => {
         <Route path="/alerts" element={<AlertsPage />} />
         {/* Token 用量 */}
         <Route path="/usage" element={<TokenUsagePage />} />
+        {/* 测试页 */}
+        <Route path="/codeTest" element={<CodeTestPage />} />
         {/* 系统设置 */}
         <Route path="/settings" element={<SettingsPage />} />
         {/* 兜底：未匹配任何路由时展示 404 */}
