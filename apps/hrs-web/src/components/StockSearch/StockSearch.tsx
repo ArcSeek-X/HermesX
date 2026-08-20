@@ -1,5 +1,5 @@
 /**
- * StockAutocomplete —— 股票代码/名称搜索输入框组件
+ * StockSearch —— 股票代码/名称搜索输入框组件
  *
  * 文件作用：
  * 提供带"输入即提示"的股票搜索输入框，是整个前端复用的搜索入口（K 线页、聊天页等）。
@@ -17,18 +17,18 @@
  */
 
 import { Component, useRef, useEffect, useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
+import type { KeyboardEvent, ErrorInfo, ReactNode } from 'react';
+import { SearchField } from '@heroui/react';
 import { createPortal } from 'react-dom';
 import { useStockIndex } from '../../hooks/useStockIndex';
 import { useAutocomplete } from '../../hooks/useAutocomplete';
 import { SuggestionsList } from './SuggestionsList';
 import { cn } from '../../utils/cn';
-import type { Market } from '../../types/stockIndex';
-import { SearchField } from '@heroui/react';
+import type { Market } from '../../types/market';
 
-/** StockAutocomplete 组件对外 Props */
-export interface StockAutocompleteProps {
+
+/** StockSearch 组件对外 Props */
+export interface StockSearchProps {
   /** 输入值（用于搜索逻辑，通常是解析后的纯代码） */
   value: string;
   /** 输入框展示值（可选，如"中科曙光（603019）"，缺省时回退到 value） */
@@ -48,36 +48,38 @@ export interface StockAutocompleteProps {
   placeholder?: string;
   /** 无障碍标签（aria-label） */
   ariaLabel?: string;
+  /** 尺寸：xs | sm | md | lg，控制输入框高度、字体大小与圆角（默认 md） */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 附加 CSS 类名 */
   className?: string;
   /** 点击清除按钮时的回调 */
   onClear?: () => void;
 }
 
-/** 错误边界 Props：在 StockAutocompleteProps 基础上追加 children */
-interface StockAutocompleteBoundaryProps extends StockAutocompleteProps {
+/** 错误边界 Props：在 StockSearchProps 基础上追加 children */
+interface StockSearchBoundaryProps extends StockSearchProps {
   children: ReactNode;
 }
 
 /** 错误边界 State：仅记录是否发生渲染异常 */
-interface StockAutocompleteBoundaryState {
+interface StockSearchBoundaryState {
   hasError: boolean;
 }
 
 /**
- * StockAutocompleteBoundary —— 渲染错误边界（class 组件）
+ * StockSearchBoundary —— 渲染错误边界（class 组件）
  *
- * 作用：捕获 StockAutocompleteInner 渲染期异常（如 hooks 契约不匹配、候选数据异常），
+ * 作用：捕获 StockSearchInner 渲染期异常（如 hooks 契约不匹配、候选数据异常），
  * 一旦捕获则整体不挂载搜索框（不再降级为普通输入框），避免破损 UI 扩散到页面其它区域。
  */
-class StockAutocompleteBoundary extends Component<
-  StockAutocompleteBoundaryProps,
-  StockAutocompleteBoundaryState
+class StockSearchBoundary extends Component<
+  StockSearchBoundaryProps,
+  StockSearchBoundaryState
 > {
-  override state: StockAutocompleteBoundaryState = { hasError: false };
+  override state: StockSearchBoundaryState = { hasError: false };
 
   /** 渲染出错时进入降级状态 */
-  static getDerivedStateFromError(): StockAutocompleteBoundaryState {
+  static getDerivedStateFromError(): StockSearchBoundaryState {
     return { hasError: true };
   }
 
@@ -98,7 +100,7 @@ class StockAutocompleteBoundary extends Component<
 }
 
 /**
- * StockAutocompleteInner —— 自动补全输入框主体
+ * StockSearchInner —— 自动补全输入框主体
  *
  * 数据流：
  *   useStockIndex() 提供本地股票索引 → useAutocomplete(index) 提供
@@ -109,7 +111,7 @@ class StockAutocompleteBoundary extends Component<
  *     用 justSelectedRef 跳过同步，避免选中后重复触发搜索；
  *   - 下拉框用 fixed 定位 + createPortal 渲染，随滚动/缩放实时重算位置。
  */
-function StockAutocompleteInner({
+function StockSearchInner({
   value,
   displayValue,
   onChange,
@@ -118,8 +120,9 @@ function StockAutocompleteInner({
   disabled = false,
   placeholder = '输入股票代码或名称',
   ariaLabel,
+  size = 'sm',
   className,
-}: StockAutocompleteProps) {
+}: StockSearchProps) {
   // 股票索引：加载本地 /stocks.index.json
   const { index, loading } = useStockIndex();
   // 自动补全逻辑：本地模糊搜索（代码/名称/拼音/简拼/别名）+ 键盘高亮 + IME 状态
@@ -133,13 +136,26 @@ function StockAutocompleteInner({
     highlightPrevious,    // 高亮上移
     highlightNext,        // 高亮下移
     close,                // 关闭下拉
-    // reset,             // 整体重置由外部触发（清空按钮走 onClear）
     isComposing,          // 是否处于输入法组合输入中
     setIsComposing,       // 设置输入法组合状态
     error: autocompleteError, // 自动补全运行时错误
   } = useAutocomplete(index);
 
+  // size -> 输入框尺寸/字体/圆角映射
+  // 用 ! 强制前缀确保高度/圆角覆盖 HeroUI Group 自带样式；高度只作用于 Group，
+  // Input 用 h-full 跟随 Group 撑满，避免两者写死高度冲突导致外观不生效。
+  const SIZE_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
+    xs: '!h-7 !rounded-xs !text-xs ',
+    sm: '!h-8 !rounded-sm !text-xs ',
+    md: '!h-9 !rounded-md !text-sm ',
+    lg: '!h-10 !rounded-md !text-sm ',
+    xl: '!h-12 !rounded-md !text-sm ',
+  };
+
+
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null); // SearchField.Group DOM，用于下拉框宽度/位置对齐
   const prevValueRef = useRef(value);      // 上一次的外部 value，用于比较是否真变化
   const justSelectedRef = useRef(false);  // 标记刚刚完成了选择，阻止同步效应重新触发搜索
   // 下拉框定位（fixed）：top/left/width，随输入框位置与尺寸变化重算
@@ -148,18 +164,19 @@ function StockAutocompleteInner({
   // 避免 displayValue（如"名称（代码）"）覆盖用户的编辑操作
   const [editingValue, setEditingValue] = useState<string | null>(null);
 
-  /** 依据输入框当前 DOM 位置计算下拉框的 fixed 定位 */
+  /** 依据 SearchField.Group 当前 DOM 位置计算下拉框的 fixed 定位 */
+  // 使用 Group 而非 Input 的边界，保证下拉框宽度与视觉外框（含搜索图标/清除按钮）对齐。
   const updateDropdownPosition = () => {
-    if (!inputRef.current) {
+    if (!groupRef.current) {
       setDropdownStyle(null);
       return;
     }
 
-    const rect = inputRef.current.getBoundingClientRect();
+    const rect = groupRef.current.getBoundingClientRect();
     setDropdownStyle({
-      top: rect.bottom,   // 下拉框紧贴输入框下沿
+      top: rect.bottom,           // 下拉框紧贴输入框外框下沿
       left: rect.left,
-      width: `${rect.width}px`, // 与输入框同宽
+      width: `${rect.width}px`,   // 与输入搜索框外框同宽
     });
   };
 
@@ -283,7 +300,7 @@ function StockAutocompleteInner({
   // 内置 SearchIcon + ClearButton（ClearButton 自动清空并触发根 onChange），
   // Input 挂键盘/IME/焦点逻辑与 combobox 无障碍语义，下拉展开时去掉下圆角
   return (
-    <div className="relative stock-autocomplete">
+    <div className="hrs-stock-search relative stock-autocomplete">
       <SearchField
         name="stock-search"
         value={inputValue}
@@ -298,14 +315,14 @@ function StockAutocompleteInner({
           }
         }}
       >
-
-
-
         <SearchField.Group
+          ref={groupRef}
           className={cn(
-            /** 输入框统一样式类：圆角、聚焦光晕、禁用态等（两种模式共用，外观修改一致） */
-            'input-surface input-focus-glow h-11 w-full rounded-md border  **:!shadow-none !shadow-none bg-transparent text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
-            isOpen && 'rounded-b-none', // 下拉展开时去掉下圆角，与列表无缝衔接
+            /** 输入框统一样式类：尺寸/圆角/字体跟随 size 映射，聚焦光晕、禁用态等（两种模式共用，外观修改一致） */
+            SIZE_CLASS[size],
+            'w-full flex items-center transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+            // 下拉展开时去掉下圆角与下边框，与下拉列表共用一条底边，避免圆角/边框错位
+            isOpen && '!rounded-b-none border-b-0',
             className,
           )}
         >
@@ -317,7 +334,7 @@ function StockAutocompleteInner({
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            className="![overflow:visible] ![text-overflow:clip]"
+            className={cn('h-full ![overflow:visible] ![text-overflow:clip]')}
             disabled={disabled}
             placeholder={placeholder}
             aria-label={ariaLabel}
@@ -355,6 +372,7 @@ function StockAutocompleteInner({
       {/* Suggestion dropdown list：下拉候选列表，通过 Portal 挂到 body，避免被父级裁剪 */}
       {isOpen && dropdownStyle && createPortal(
         <SuggestionsList
+          size={size}
           suggestions={suggestions}
           highlightedIndex={highlightedIndex}
           onSelect={(s) => {
@@ -371,6 +389,7 @@ function StockAutocompleteInner({
             });
           }}
           onMouseEnter={(index) => setHighlightedIndex(index)}
+          onMouseLeave={() => setHighlightedIndex(-1)}
           style={{ position: 'fixed', ...dropdownStyle }}
         />,
         document.body
@@ -380,18 +399,18 @@ function StockAutocompleteInner({
 }
 
 /**
- * StockAutocomplete 对外入口
+ * StockSearch 对外入口
  *
  * 用错误边界包裹内部实现：渲染期任何异常都会降级为普通输入框，
  * 保证搜索输入功能可用性，不拖垮整个页面。
  */
-export function StockAutocomplete(props: StockAutocompleteProps) {
+export function StockSearch(props: StockSearchProps) {
   return (
-    <StockAutocompleteBoundary {...props}>
-      <StockAutocompleteInner {...props} />
-    </StockAutocompleteBoundary>
+    <StockSearchBoundary {...props}>
+      <StockSearchInner {...props} />
+    </StockSearchBoundary>
   );
 }
 
 /** 默认导出（与具名导出等价） */
-export default StockAutocomplete;
+export default StockSearch;

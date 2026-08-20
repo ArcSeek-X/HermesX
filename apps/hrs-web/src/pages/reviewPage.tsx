@@ -14,7 +14,7 @@ import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
 import { ApiErrorAlert, Button, Drawer, EmptyState, InlineAlert } from '../components';
 import { DashboardStateBlock } from '../components/dashboard';
-import { StockAutocomplete } from '../components/StockAutocomplete';
+import { StockSearch } from '../components/StockSearch';
 import { StockHistoryTrendDrawer } from '../components/history';
 import { ReportMarkdownDrawer } from '../components/report/ReportMarkdownDrawer';
 import { MarketReviewReportView } from '../components/report/MarketReviewReportView';
@@ -1592,7 +1592,7 @@ const HomePage: React.FC = () => {
                 </svg>
               </button>
               <div className="relative min-w-0 flex-1">
-                <StockAutocomplete
+                <StockSearch
                   value={query}
                   onChange={setQuery}
                   onSubmit={(stockCode, stockName, selectionSource) => {

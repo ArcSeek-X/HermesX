@@ -39,9 +39,9 @@ vi.mock('echarts', () => {
   };
 });
 
-// ---- mock StockAutocomplete，暴露 onSubmit 为可点击按钮 ----
-vi.mock('../../components/StockAutocomplete/StockAutocomplete', () => ({
-  StockAutocomplete: ({
+// ---- mock StockSearch，暴露 onSubmit 为可点击按钮 ----
+vi.mock('../../components/StockSearch/StockSearch', () => ({
+  StockSearch: ({
     onSubmit,
   }: {
     onSubmit: (code: string, name?: string) => void;

@@ -1,11 +1,13 @@
 /**
  * Stock Index Type Definitions
  *
- * Stock data index for autocomplete functionality
+ * Stock data index for autocomplete functionality.
+ *
+ * Note: Common market / asset identifiers (Market / AssetType) are defined in
+ * ./market and re-used here, since they are project-wide concepts rather than
+ * stock-index-specific.
  */
-
-export type Market = 'CN' | 'HK' | 'US' | 'JP' | 'KR' | 'INDEX' | 'ETF' | 'BSE';
-export type AssetType = 'stock' | 'index' | 'etf';
+import type { AssetType, Market } from './market';
 
 /**
  * Stock index item (full format)

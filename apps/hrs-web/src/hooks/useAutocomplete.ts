@@ -8,7 +8,7 @@
  *   - 候选列表（suggestions）与下拉开关（isOpen）、键盘高亮索引（highlightedIndex）
  *   - 键盘上下选择（highlightPrevious/highlightNext）、回车确认（handleSelect）
  *   - IME 输入法组合态（isComposing）、运行时降级标记（runtimeFallback）
- * 调用方：StockAutocomplete 搜索框组件（K 线页、聊天页等复用）。
+ * 调用方：StockSearch 搜索框组件（K 线页、聊天页等复用）。
  *
  * 注意：本文件是"股票索引搜索"版本；曾因误被替换为"通用 fetcher 自动补全"版本
  * 导致搜索框组件渲染崩溃并永久降级，请勿再混淆。
@@ -118,7 +118,7 @@ export function useAutocomplete(
       setHighlightedIndex(-1);
     } catch (caught) {
       // 搜索逻辑异常（理论上不该发生）：记录错误并进入降级模式，
-      // 调用方（StockAutocomplete）会退化为普通输入框，保证搜索功能不整体失效
+      // 调用方（StockSearch）会退化为普通输入框，保证搜索功能不整体失效
       const runtimeError = caught instanceof Error ? caught : new Error('Autocomplete search failed');
       console.error('Autocomplete search failed. Falling back to plain input.', runtimeError);
       setError(runtimeError);

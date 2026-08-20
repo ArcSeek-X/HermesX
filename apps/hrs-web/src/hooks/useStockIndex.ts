@@ -8,7 +8,7 @@
  *   - index：股票索引数据（供 searchStocks 本地模糊匹配使用）
  *   - loading / loaded：加载中 / 是否已完成加载
  *   - error / fallback：加载失败的错误信息与降级标记
- * 调用方：搜索框自动补全（StockAutocomplete）、聊天页股票识别（ChatPage）、
+ * 调用方：搜索框自动补全（StockSearch）、聊天页股票识别（ChatPage）、
  * 决策信号页热门候选（DecisionSignalsPage）等。
  *
  * 注意：本文件是"股票索引"版本；曾因误被替换为"大盘指数概览"版本

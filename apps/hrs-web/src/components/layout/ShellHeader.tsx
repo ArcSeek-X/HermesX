@@ -22,7 +22,7 @@ import type { UiTextKey } from '../../i18n/uiText';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
-import { StockAutocomplete } from '../StockAutocomplete/StockAutocomplete';
+import { StockSearch } from '../StockSearch/StockSearch';
 import { setStorageItem } from '../../utils/storage';
 import { cn } from '../../utils/cn';
 
@@ -106,8 +106,43 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 
         {/* 右侧操作区：股票搜索 / 主题设置 / 中英文切换 / 个人设置 */}
         <div className="flex items-center gap-2">
-          <StockAutocomplete
+          <StockSearch
             value={stockQuery}
+            size="xs"
+            onChange={setStockQuery}
+            onSubmit={(code) => {
+              if (!code) return;
+              // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
+              setStorageItem('kline.stockCode', code, 'session');
+              setStockQuery('');
+              navigate('/kline');
+            }}
+            onClear={() => setStockQuery('')}
+            placeholder={t('kline.searchPlaceholder')}
+            ariaLabel={t('kline.searchPlaceholder')}
+            className="h-9 text-xs w-60"
+          />
+           
+          <StockSearch
+            value={stockQuery}
+            size="sm"
+            onChange={setStockQuery}
+            onSubmit={(code) => {
+              if (!code) return;
+              // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
+              setStorageItem('kline.stockCode', code, 'session');
+              setStockQuery('');
+              navigate('/kline');
+            }}
+            onClear={() => setStockQuery('')}
+            placeholder={t('kline.searchPlaceholder')}
+            ariaLabel={t('kline.searchPlaceholder')}
+            className="h-9 text-xs w-60"
+          />
+           
+          <StockSearch
+            value={stockQuery}
+            size="xl"
             onChange={setStockQuery}
             onSubmit={(code) => {
               if (!code) return;

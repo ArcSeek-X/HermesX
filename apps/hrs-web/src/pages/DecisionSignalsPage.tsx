@@ -47,7 +47,7 @@ import {
 } from '../components/decision-signals/DecisionSignalDisplay'; // 决策信号展示组件
 import { DecisionSignalProfileCalibration } from '../components/decision-signals/DecisionSignalProfileCalibration'; // 策略校准展示
 import { DecisionSignalTimeline } from '../components/decision-signals/DecisionSignalTimeline'; // 时间线组件
-import { StockAutocomplete } from '../components/StockAutocomplete'; // 股票自动补全输入
+import { StockSearch } from '../components/StockSearch'; // 股票自动补全输入
 import { useUiLanguage } from '../contexts/UiLanguageContext'; // UI 语言上下文
 import { useStockIndex } from '../hooks/useStockIndex'; // 股票索引 Hook
 import { usePreference } from '../hooks/usePreference'; // 用户偏好持久化 Hook
@@ -68,7 +68,8 @@ import type {
   DecisionProfile,
   DecisionProfileDisplay,
 } from '../types/decisionSignals'; // 决策信号类型定义
-import type { Market, StockIndexItem } from '../types/stockIndex'; // 股票索引类型
+import type { Market } from '../types/market';
+import type { StockIndexItem } from '../types/stockIndex'; // 股票索引类型
 import { cn } from '../utils/cn'; // className 合并工具
 import { buildDecisionActionLabelMap } from '../utils/decisionAction'; // 决策动作标签构建
 import {
@@ -1419,7 +1420,7 @@ const DecisionSignalsPage: React.FC = () => {
             }}
           >
             <div className="min-w-0 flex-1">
-              <StockAutocomplete
+              <StockSearch
                 value={stockDraft}
                 onChange={setStockDraft}
                 onSubmit={handleStockSubmit}

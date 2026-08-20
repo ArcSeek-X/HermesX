@@ -1,11 +1,11 @@
 /**
- * StockAutocomplete component tests.
+ * StockSearch component tests.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type React from 'react';
-import { StockAutocomplete } from '../StockAutocomplete';
+import { StockSearch } from '../StockSearch';
 import type { StockIndexItem, StockSuggestion } from '../../../types/stockIndex';
 
 let stockIndexHookImpl: () => {
@@ -110,7 +110,7 @@ const jpSuggestion = {
   score: 60,
 };
 
-describe('StockAutocomplete', () => {
+describe('StockSearch', () => {
   const mockOnChange = vi.fn();
   const mockOnSubmit = vi.fn();
 
@@ -144,7 +144,7 @@ describe('StockAutocomplete', () => {
 
   it('renders the input element', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -157,7 +157,7 @@ describe('StockAutocomplete', () => {
 
   it('renders a custom placeholder', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -171,7 +171,7 @@ describe('StockAutocomplete', () => {
 
   it('renders the current value', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value="600519"
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -184,7 +184,7 @@ describe('StockAutocomplete', () => {
 
   it('supports the disabled state', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -198,7 +198,7 @@ describe('StockAutocomplete', () => {
 
   it('calls onChange when the input changes', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -213,7 +213,7 @@ describe('StockAutocomplete', () => {
 
   it('applies a custom class name', () => {
     const { container } = render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -227,7 +227,7 @@ describe('StockAutocomplete', () => {
 
   it('exposes the expected accessibility attributes', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -241,7 +241,7 @@ describe('StockAutocomplete', () => {
 
   it('applies an accessible label to the autocomplete input', () => {
     render(
-      <StockAutocomplete
+      <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
@@ -263,7 +263,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value=""
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -294,7 +294,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value=""
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -325,7 +325,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="600519"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -358,7 +358,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value=""
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -391,7 +391,7 @@ describe('StockAutocomplete', () => {
 
       render(
         <form onSubmit={formSubmit}>
-          <StockAutocomplete
+          <StockSearch
             value="600519"
             onChange={mockOnChange}
             onSubmit={mockOnSubmit}
@@ -409,7 +409,7 @@ describe('StockAutocomplete', () => {
   describe('IME support', () => {
     it('handles composition start and end events', () => {
       render(
-        <StockAutocomplete
+        <StockSearch
           value=""
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -447,7 +447,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="6005"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -480,7 +480,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="6005"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -517,7 +517,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="00700"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -554,7 +554,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="920493"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -593,7 +593,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="000660"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -627,7 +627,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="000660"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -649,7 +649,7 @@ describe('StockAutocomplete', () => {
       };
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="META"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
@@ -691,7 +691,7 @@ describe('StockAutocomplete', () => {
       });
 
       render(
-        <StockAutocomplete
+        <StockSearch
           value="TEST"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}

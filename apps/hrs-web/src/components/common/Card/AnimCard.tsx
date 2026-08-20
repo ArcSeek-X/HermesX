@@ -16,6 +16,10 @@ export type AnimCardProps = {
   gradBorderAngle?: number;
   /** 渐变背景（左上角淡蓝色径向渐变 + 顶部白色线性高光），默认关闭 */
   gradientBackground?: boolean;
+  /** 卡片根元素 id（用于锚点定位、测试选择器等） */
+  id?: string;
+  /** 附加到卡片根元素的内联样式 */
+  style?: CSSProperties;
 };
 
 const baseStyle = 'relative flex overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]';
@@ -37,6 +41,8 @@ export default function AnimCard({
   variant = 'default',
   gradBorderAngle = 135,
   gradientBackground = false,
+  id,
+  style,
   children,
 }: AnimCardProps) {
 
@@ -45,7 +51,8 @@ export default function AnimCard({
     return (
       <motion.div
         className={cn('hrs-animCard', variantStyles.gradient, className)}
-        style={{ '--gradient-angle': `${gradBorderAngle}deg` } as CSSProperties}
+        style={{ '--gradient-angle': `${gradBorderAngle}deg`, ...style } as CSSProperties}
+        id={id}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
@@ -65,6 +72,8 @@ export default function AnimCard({
         gradientBackground && gradientBackgroundStyle,
         className,
       )}
+      id={id}
+      style={style}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
