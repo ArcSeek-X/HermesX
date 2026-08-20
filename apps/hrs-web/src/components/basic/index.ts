@@ -11,3 +11,5 @@ export * from './Badge';
 export * from './Tooltip';
 export * from './Switch';
 export * from './ColorPicker';
+export { HrsButton } from './HrsButton';
+export * from './Modal';
