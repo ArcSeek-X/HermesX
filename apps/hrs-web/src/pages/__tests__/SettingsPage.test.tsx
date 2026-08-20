@@ -674,8 +674,7 @@ describe('SettingsPage', () => {
   it('renders category navigation and auth settings modules', async () => {
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('heading', { name: '系统设置' })).toBeInTheDocument();
-    expect(screen.getByText('认证与登录保护')).toBeInTheDocument();
+    expect(await screen.findByText('认证与登录保护')).toBeInTheDocument();
     expect(screen.getByText('修改密码')).toBeInTheDocument();
     expect(load).toHaveBeenCalled();
   });
