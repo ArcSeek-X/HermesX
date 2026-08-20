@@ -43,6 +43,15 @@ export type WatchlistItemWithQuote = WatchlistItem & {
   quote?: WatchlistQuote;
 };
 
+/** 分页查询响应 */
+export interface WatchlistItemsPaginatedResponse {
+  list: WatchlistItem[];
+  total: number;
+  pageSize: number;
+  pages: number;
+  pageNum: number;
+}
+
 const BASE = '/api/v1/watchlist';
 
 /** 列出所有分类 */
@@ -76,10 +85,18 @@ export async function deleteGroup(id: number): Promise<{ success: boolean }> {
   return toCamelCase<{ success: boolean }>(data);
 }
 
-/** 获取某分类下的自选股 */
-export async function fetchItems(groupId: number): Promise<WatchlistItem[]> {
-  const { data } = await apiClient.get<Record<string, unknown>[]>(`${BASE}/groups/${groupId}/items`);
-  return toCamelCase<WatchlistItem[]>(data);
+/** 分页查询某分类下的自选股 */
+export async function fetchItemsPaginated(
+  groupId: number,
+  pageNum: number,
+  pageSize: number,
+): Promise<WatchlistItemsPaginatedResponse> {
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/items/query`, {
+    group_id: groupId,
+    pageNum,
+    pageSize,
+  });
+  return toCamelCase<WatchlistItemsPaginatedResponse>(data);
 }
 
 /** 新增自选股到分类 */
