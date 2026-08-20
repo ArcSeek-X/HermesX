@@ -148,7 +148,7 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
           <main className="hrs-page-container 
             min-h-0 min-w-0 
-            pt-4 pb-8   
+            pt-4
             flex-1 overflow-y-auto bg-background touch-pan-y"
           >
             {/* 优先渲染 children（直接包裹模式），否则渲染 <Outlet />（路由模式） */}
