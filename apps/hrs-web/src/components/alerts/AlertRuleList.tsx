@@ -264,7 +264,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
                       </Button>
                       <Button
                         size="xsm"
-                        variant="danger-subtle"
+                        variant="danger-soft"
                         aria-label={formatUiText(text.deleteAria, { name: rule.name })}
                         onClick={() => setPendingDelete(rule)}
                         disabled={isRuleBusy(rule)}
