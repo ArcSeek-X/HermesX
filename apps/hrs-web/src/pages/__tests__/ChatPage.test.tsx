@@ -703,10 +703,9 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: '问股' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '历史对话' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '导出会话' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '发送到已配置的通知机器人/邮箱' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '历史对话' })).toBeInTheDocument();
   });
 
   it('exports the current session from the header action', async () => {
@@ -1956,7 +1955,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: '问股' })).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText(/分析 600519/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/分析 600519/)).toHaveValue('');
     expect(historyApi.getDetail).not.toHaveBeenCalled();
   });
