@@ -25,7 +25,8 @@ import { LogOut, Settings2, UserCog } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useAuth } from '../../../hooks';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
-import { ConfirmDialog } from '../..';
+import { ConfirmDialog, Modal, HrsButton } from '../..';
+
 
 export const UserSetting = () => {
   // 是否开启登录鉴权（未开启则不显示「退出登录」）
@@ -40,6 +41,7 @@ export const UserSetting = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   // 组件根节点引用，用于「点击外部关闭」判断
   const ref = useRef<HTMLDivElement>(null);
+
 
   // 下拉菜单打开时，挂载全局监听：点击外部 / 按下 Esc 收起菜单
   useEffect(() => {
@@ -135,6 +137,32 @@ export const UserSetting = () => {
         }}
         onCancel={() => setShowLogoutConfirm(false)}
       />
+
+      {/* <Modal
+        isOpen={showLogoutConfirm}
+        onClose={() => {
+          console.log(3333333333333)
+          setShowLogoutConfirm(false);
+        }}
+      >
+        <Modal.Header>
+          <Modal.Heading>{t('layout.logoutTitle')}</Modal.Heading>
+          <p className="mt-1 text-sm leading-5 text-muted">{t('layout.logoutMessage')}</p>
+        </Modal.Header>
+
+        <Modal.Footer>
+          <HrsButton variant="secondary" onClick={() => setShowLogoutConfirm(false)}>
+            取消
+          </HrsButton>
+          <HrsButton variant="danger" onClick={() => {
+            setShowLogoutConfirm(false);
+            void logout();
+          }}>
+            确认
+          </HrsButton>
+        </Modal.Footer>
+      </Modal> */}
+
     </div>
   );
 };

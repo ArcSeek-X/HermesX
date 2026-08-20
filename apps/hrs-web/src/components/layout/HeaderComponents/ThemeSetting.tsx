@@ -11,13 +11,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Palette } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
-import { cn } from '../../../utils/cn';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useThemeColor } from '../../../hooks/useThemeColor';
 import { ColorPicker } from '../../basic/ColorPicker';
 import { Button } from '../../basic/Button';
+import { TabNav } from '../../common/TabNav';
 
 /** 主题模式选项 */
 const THEME_MODES = [
@@ -43,15 +42,19 @@ const PRIMARY_PRESETS = [
 export const ThemeSetting = () => {
   const { t } = useUiLanguage();
   const { theme, setTheme } = useTheme();
+  // 选中态用本地 state 驱动 TabNav，避免直接依赖 next-themes 的 theme：
+  // setTheme 会连带切换 <html> 的 dark/light class，打断 react-aria indicator 的
+  // 连续挂载/卸载快照链，导致 tab 切换无滑动动画。本地 state 同步更新可恢复滑动。
+  const [modeState, setModeState] = useState<string>(theme ?? 'system');
+  useEffect(() => {
+    if (theme) setModeState(theme);
+  }, [theme]);
   const { color, setColor, reset } = useThemeColor();
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   // 弹层定位：top 紧贴触发按钮底部、right 与按钮右边缘对齐
   const [popoverStyle, setPopoverStyle] = useState<{ top: number; right: number } | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   /** 依据触发按钮的位置计算弹层 fixed 定位 */
   const updatePopoverPosition = () => {
@@ -104,7 +107,7 @@ export const ThemeSetting = () => {
     };
   }, [open]);
 
-  const activeMode = mounted ? theme ?? 'system' : 'system';
+
 
   return (
     <div className="hrs-theme-setting relative">
@@ -131,34 +134,27 @@ export const ThemeSetting = () => {
           style={{ top: popoverStyle.top, right: popoverStyle.right }}
         >
           <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.menu')}</div>
-          <div className="theme-mode-switch relative mb-4 flex items-center gap-1 rounded-lg border border-subtle bg-bg-elevated p-1">
-            {THEME_MODES.map((mode) => {
-              const active = activeMode === mode.value;
-              return (
-                <button
-                  key={mode.value}
-                  type="button"
-                  onClick={() => setTheme(mode.value)}
-                  className={cn(
-                    'theme-mode-item relative z-10 flex-1 rounded-md px-2 py-1.5 text-xs !text-xs font-medium transition-colors',
-                    active ? 'text-cyan' : 'text-muted-text hover:text-foreground'
-                  )}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="theme-mode-highlight"
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 rounded-md bg-cyan/15"
-                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10">{t(mode.labelKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-
+         
+          <TabNav
+            items={THEME_MODES.map((mode) => ({ value: mode.value, label: t(mode.labelKey) }))}
+            value={modeState}
+            onChange={(mode) => {
+              setModeState(mode);
+              // 延后一帧再切换 <html> 的 dark/light class：
+              // 否则 next-themes 切换主题会重渲染 ThemeProvider，打断 react-aria
+              // SelectionIndicator 的"旧 indicator 卸载存快照→新 indicator 挂载读快照"链，
+              // 导致模块级 prevSnapshot 被清空，tab 切换无滑动动画。
+              requestAnimationFrame(() => setTheme(mode));
+            }}
+            variant="primary"
+            ariaLabel={t('theme.menu')}
+            className='mb-3'
+            tabsClassName="theme-mode-switch w-full"
+          />
+       
+         
           <div className="mb-2 text-xs font-medium text-muted-text">{t('theme.primary')}</div>
+
           <ColorPicker
             value={color}
             onChange={setColor}
