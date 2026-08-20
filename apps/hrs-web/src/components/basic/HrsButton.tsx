@@ -30,7 +30,7 @@ import { cn } from '../../utils/cn';
  */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
@@ -44,16 +44,16 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * 各尺寸档位对应的 Tailwind 类名（高度、圆角、内边距、字号）。
+ * 各尺寸档位对应的 Tailwind 类名（高度、圆角、内边距、字号、字重）。
  * 注：字号使用 !text-xs / text-sm，! 用于对抗 index.css 中
  * 未分层的 `button { font: inherit }` 规则，确保字号稳定生效。
  */
 const BUTTON_SIZE_STYLES = {
-  xs: 'h-7 rounded-sm px-2 !text-xs',
-  sm: 'h-8 rounded-sm px-3 !text-xs',
-  md: 'h-9 rounded-sm px-4 !text-xs',
-  lg: 'h-10 rounded-sm px-5 !text-sm',
-  xl: 'h-12 rounded-sm px-6 !text-sm',
+  xs: 'h-7 rounded-sm px-2 !text-xs !font-medium',
+  sm: 'h-8 rounded-sm px-3 !text-xs !font-medium',
+  md: 'h-9 rounded-sm px-4 !text-xs !font-medium',
+  lg: 'h-10 rounded-sm px-5 !text-sm !font-semibold',
+  xl: 'h-12 rounded-sm px-6 !text-sm !font-bold',
 } as const;
 
 /**
@@ -75,10 +75,11 @@ const ACTION_REPORT_STYLES = 'bg-[var(--home-action-report-bg)] border border-[v
  *   - 业务专用：action-primary / action-secondary / home-action-ai / home-action-report（首页 workspace 用）
  */
 const BUTTON_VARIANT_STYLES = {
-  primary: 'border border-cyan/30 bg-primary-gradient text-primary-foreground shadow-md shadow-cyan/20 hover:brightness-120',
-  secondary: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
-  tertiary: 'border border-border/70 bg-transparent text-foreground shadow-soft-card hover:bg-hover/50',
+  primary: 'border border-cyan/30 bg-gradient-cyan text-primary-foreground shadow-sm shadow-cyan/20 hover:brightness-120',
+  secondary: 'border border-border/80 bg-transparent text-foreground shadow-sm hover:text-cyan hover:bg-cyan/10 hover:border-cyan/25',
+  tertiary: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
   outline: 'border border-cyan/25 text-cyan bg-white hover:bg-cyan/10',
+  
   ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:text-foreground',
   danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-md shadow-danger/20 hover:brightness-105',
   'danger-soft': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
@@ -108,6 +109,7 @@ export const HrsButton: React.FC<ButtonProps> = ({
   className = '',
   isDisabled,
   type = 'button',
+  onClick,
   ...props
 }) => {
   // 用于读取 i18n 文案（loading 默认文案等）
@@ -122,13 +124,13 @@ export const HrsButton: React.FC<ButtonProps> = ({
     'data-variant': variant,
     'aria-busy': isLoading || undefined,
     className: cn(
-      // 基础样式：内联弹性布局、居中、字重、过渡动画
-      'hrs-button inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-all duration-200',
+      // 基础样式：内联弹性布局、居中、过渡动画（字重由 fontWeight 属性控制）
+      'hrs-button inline-flex cursor-pointer items-center justify-center gap-2 transition-all duration-200',
       // 键盘焦点环（可访问性）
       'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 focus-visible:ring-offset-0',
       // 禁用态：禁止事件、禁用光标、降透明度、取消位移
       'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none',
-      // 尺寸档位样式
+      // 尺寸档位样式（含字重）
       BUTTON_SIZE_STYLES[size],
       // 视觉变体样式（项目自定义 Tailwind 类，覆盖 HeroUI 默认 variant 外观）
       BUTTON_VARIANT_STYLES[variant],
@@ -140,16 +142,12 @@ export const HrsButton: React.FC<ButtonProps> = ({
   } as React.ComponentProps<typeof HeroButton>;
 
 
-
-
-  console.log('passthroughProps', passthroughProps);
-  // variant	'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'danger'
-
-
   return (
     <HeroButton
-      // 复用 HeroUI 底座：原生属性（onClick / aria-* / data-* / className 等）直接透传
+      // 复用 HeroUI 底座：原生属性（aria-* / data-* / className 等）直接透传
       {...passthroughProps}
+      // HeroUI 使用 onPress 而非 onClick，将 onClick 桥接到 onPress
+      onPress={onClick ? () => onClick({} as React.MouseEvent<HTMLButtonElement>) : undefined}
       isDisabled={isDisabled || isLoading}
       // HeroUI 的 pending 态：加载期间禁止指针事件
       isPending={isLoading}
