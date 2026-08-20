@@ -31,8 +31,8 @@ export type IndexCardProps = {
 function AuxMetricRow({ label, value, valueKey }: { label: string; value: string; valueKey: string }) {
   return (
     <div className="flex items-center justify-between text-label">
-      <span className="text-muted-text">{label}</span>
-      <span className="text-foreground tabular-nums">
+      <span className="text-xs text-muted-text truncate">{label}</span>
+      <span className="text-xs text-secondary-text tabular-nums">
         <AnimatedValue valueKey={valueKey}>{value}</AnimatedValue>
       </span>
     </div>
