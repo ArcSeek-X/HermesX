@@ -4,7 +4,6 @@
  * @module pages
  */
 import React from 'react';
-import { History } from 'lucide-react';
 import { AppPage, Card, PageHeader } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
@@ -19,18 +18,7 @@ const ReviewPage: React.FC = () => {
 
   return (
     <AppPage>
-      <PageHeader
-        eyebrow={t('layout.nav.review')}
-        title={t('layout.route.review.title')}
-        description={t('layout.route.review.description')}
-      />
-      <Card className="mt-4 flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <History className="h-6 w-6" />
-        </div>
-        <h2 className="mt-4 text-lg font-semibold text-foreground">{t('layout.route.review.title')}</h2>
-        <p className="mt-2 max-w-md text-sm text-secondary-text">{t('layout.route.review.description')}</p>
-      </Card>
+     首页
     </AppPage>
   );
 };
