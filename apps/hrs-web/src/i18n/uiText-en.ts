@@ -75,6 +75,7 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.settings': 'Settings',
   'layout.nav.screening': 'Screening',
   'layout.nav.usage': 'Usage',
+  'layout.nav.codeTest': 'Test',
   'layout.navMenu': 'Navigation',
   'layout.newChatMessage': 'New Ask update',
   'layout.openNav': 'Open navigation',

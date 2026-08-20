@@ -72,6 +72,7 @@ const zh = {
   'layout.nav.settings': '設定', // 設定導航項
   'layout.nav.screening': '選股', // 選股導航項
   'layout.nav.usage': '用量', // 用量導航項
+  'layout.nav.codeTest': '測試', // 測試頁導航項
   'layout.navMenu': '導航菜單', // 導航菜單標簽
   'layout.newChatMessage': '問股有新消息', // 問股新消息提示
   'layout.openNav': '打開導航菜單', // 打開導航菜單提示

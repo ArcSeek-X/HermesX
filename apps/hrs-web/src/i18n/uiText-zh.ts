@@ -72,6 +72,7 @@ const zh = {
   'layout.nav.settings': '设置', // 设置导航项
   'layout.nav.screening': '选股', // 选股导航项
   'layout.nav.usage': '用量', // 用量导航项
+  'layout.nav.codeTest': '测试', // 测试页导航项
   'layout.navMenu': '导航菜单', // 导航菜单标签
   'layout.newChatMessage': '问股有新消息', // 问股新消息提示
   'layout.openNav': '打开导航菜单', // 打开导航菜单提示
