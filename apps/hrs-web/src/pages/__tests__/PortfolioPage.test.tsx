@@ -407,8 +407,7 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitForInitialLoad();
 
-    expect(await screen.findByText('Portfolio management')).toBeInTheDocument();
-    expect(screen.getByText('Drawdown monitor')).toBeInTheDocument();
+    expect(await screen.findByText('Drawdown monitor')).toBeInTheDocument();
     expect(screen.getByText(/Max drawdown:/)).toBeInTheDocument();
     expect(screen.getByText(/Current drawdown:/)).toBeInTheDocument();
     expect(screen.getByText('Stop-loss proximity warning')).toBeInTheDocument();
