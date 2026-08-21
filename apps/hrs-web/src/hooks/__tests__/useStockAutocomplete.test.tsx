@@ -1,10 +1,10 @@
 /**
- * useAutocomplete hook tests.
+ * useStockAutocomplete hook tests.
  */
 
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAutocomplete } from '../useAutocomplete';
+import { useStockAutocomplete } from '../useStockAutocomplete';
 import type { StockIndexItem } from '../../types/stockIndex';
 
 const searchStocksMock = vi.fn();
@@ -28,7 +28,7 @@ const mockIndex: StockIndexItem[] = [
   },
 ];
 
-describe('useAutocomplete', () => {
+describe('useStockAutocomplete', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
@@ -43,7 +43,7 @@ describe('useAutocomplete', () => {
       throw new Error('Search exploded');
     });
 
-    const { result } = renderHook(() => useAutocomplete(mockIndex, { debounceMs: 10 }));
+    const { result } = renderHook(() => useStockAutocomplete(mockIndex, { debounceMs: 10 }));
 
     act(() => {
       result.current.setQuery('600519');
@@ -72,7 +72,7 @@ describe('useAutocomplete', () => {
       },
     ]);
 
-    const { result } = renderHook(() => useAutocomplete(mockIndex, { debounceMs: 10 }));
+    const { result } = renderHook(() => useStockAutocomplete(mockIndex, { debounceMs: 10 }));
 
     act(() => {
       result.current.setQuery('600519');

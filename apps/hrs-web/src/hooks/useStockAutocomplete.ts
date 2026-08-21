@@ -1,5 +1,5 @@
 /**
- * useAutocomplete —— 股票搜索（自动搜索补全）
+ * useStockAutocomplete —— 股票搜索（自动搜索补全）
  *
  * 文件作用：
  * 管理搜索框"输入即提示"的完整交互逻辑：接收股票索引（来自 useStockIndex），
@@ -17,10 +17,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { StockIndexItem, StockSuggestion } from '../types/stockIndex';
 import { searchStocks } from '../utils/searchStocks';
-import { SEARCH_CONFIG } from '../utils/stockIndexFields';
+import { SEARCH_CONFIG } from '../utils/stockIndexSchema';
 
-/** useAutocomplete 可配置项 */
-export interface UseAutocompleteOptions {
+/** useStockAutocomplete 可配置项 */
+export interface UseStockAutocompleteOptions {
   /** 触发搜索的最小输入长度（低于该长度不匹配，默认取 SEARCH_CONFIG.MIN_QUERY_LENGTH=2） */
   minLength?: number;
   /** 输入防抖延迟（毫秒，默认取 SEARCH_CONFIG.DEBOUNCE_MS=200） */
@@ -29,8 +29,8 @@ export interface UseAutocompleteOptions {
   limit?: number;
 }
 
-/** useAutocomplete 返回的状态与方法集合 */
-export interface UseAutocompleteResult {
+/** useStockAutocomplete 返回的状态与方法集合 */
+export interface UseStockAutocompleteResult {
   /** 当前输入文本 */
   query: string;
   /** 更新输入文本（内部带防抖，防抖结束后触发搜索） */
@@ -68,12 +68,12 @@ export interface UseAutocompleteResult {
  *
  * @param index   股票索引数据（由 useStockIndex 提供）
  * @param options 配置项（最小长度 / 防抖 / 结果上限，均可省略走默认值）
- * @returns 自动补全状态与方法（见 UseAutocompleteResult）
+ * @returns 自动补全状态与方法（见 UseStockAutocompleteResult）
  */
-export function useAutocomplete(
+export function useStockAutocomplete(
   index: StockIndexItem[],
-  options: UseAutocompleteOptions = {}
-): UseAutocompleteResult {
+  options: UseStockAutocompleteOptions = {}
+): UseStockAutocompleteResult {
   // 从配置项取值，缺省时使用股票索引字段表里统一定义的默认值
   const {
     minLength = SEARCH_CONFIG.MIN_QUERY_LENGTH,
@@ -218,4 +218,4 @@ export function useAutocomplete(
 /**
  * 默认导出 Hook（与具名导出等价，便于按需 import 风格使用）
  */
-export default useAutocomplete;
+export default useStockAutocomplete;

@@ -11,7 +11,7 @@
 
 import type { StockIndexItem, StockSuggestion } from '../types/stockIndex';
 import { normalizeQuery } from './normalizeQuery';
-import { MATCH_SCORE, SEARCH_CONFIG } from './stockIndexFields';
+import { MATCH_SCORE, SEARCH_CONFIG } from './stockIndexSchema';
 
 /** 搜索选项 */
 export interface SearchOptions {

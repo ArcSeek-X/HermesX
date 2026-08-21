@@ -39,8 +39,8 @@ vi.mock('../../../hooks/useStockIndex', () => ({
   useStockIndex: () => stockIndexHookImpl(),
 }));
 
-vi.mock('../../../hooks/useAutocomplete', () => ({
-  useAutocomplete: () => autocompleteHookImpl(),
+vi.mock('../../../hooks/useStockAutocomplete', () => ({
+  useStockAutocomplete: () => autocompleteHookImpl(),
 }));
 
 const mockIndex: StockIndexItem[] = [

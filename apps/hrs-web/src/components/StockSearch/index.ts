@@ -3,5 +3,5 @@
  */
 export { StockSearch } from './StockSearch';
 export type { StockSearchProps } from './StockSearch';
-export { SuggestionsList } from './SuggestionsList';
-export type { SuggestionsListProps } from './SuggestionsList';
+export { StockSearchList } from './StockSearchList';
+export type { StockSearchListProps } from './StockSearchList';

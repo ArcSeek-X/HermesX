@@ -21,7 +21,7 @@ const ROUNDED_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
   xl: 'rounded-b-xl',
 };
 
-export interface SuggestionsListProps {
+export interface StockSearchListProps {
   /** 候选建议列表 */
   suggestions: StockSuggestion[];
   /** 当前高亮项索引（键盘/鼠标悬停选中项），-1 表示无高亮 */
@@ -38,7 +38,7 @@ export interface SuggestionsListProps {
   style?: CSSProperties;
 }
 
-export function SuggestionsList({
+export function StockSearchList({
   suggestions,
   highlightedIndex,
   onSelect,
@@ -46,7 +46,7 @@ export function SuggestionsList({
   onMouseLeave,
   size = 'md',
   style,
-}: SuggestionsListProps) {
+}: StockSearchListProps) {
   // 无候选时不渲染，避免空下拉框
   if (suggestions.length === 0) {
     return null;
@@ -155,4 +155,4 @@ function MatchTypeBadge({ matchType }: { matchType: string }) {
   );
 }
 
-export default SuggestionsList;
+export default StockSearchList;

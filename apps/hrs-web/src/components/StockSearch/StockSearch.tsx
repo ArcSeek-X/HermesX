@@ -4,7 +4,7 @@
  * 文件作用：
  * 提供带"输入即提示"的股票搜索输入框，是整个前端复用的搜索入口（K 线页、聊天页等）。
  * 组件职责：
- *   1. 通过 useStockIndex 加载本地股票索引，useAutocomplete（股票搜索自动补全）做
+ *   1. 通过 useStockIndex 加载本地股票索引，useStockAutocomplete（股票搜索自动补全）做
  *      代码/中文名/拼音全拼/拼音简拼/别名的本地模糊匹配，并渲染下拉候选列表；
  *   2. 支持键盘导航（↑/↓ 移动高亮、Enter 提交、Esc 收起）、IME 输入法组合态处理；
  *   3. 渲染异常（ErrorBoundary）捕获后整体不挂载搜索框，避免破损 UI 扩散；
@@ -21,8 +21,9 @@ import type { KeyboardEvent, ErrorInfo, ReactNode } from 'react';
 import { SearchField } from '@heroui/react';
 import { createPortal } from 'react-dom';
 import { useStockIndex } from '../../hooks/useStockIndex';
-import { useAutocomplete } from '../../hooks/useAutocomplete';
-import { SuggestionsList } from './SuggestionsList';
+import { useStockAutocomplete } from '../../hooks/useStockAutocomplete';
+import { SEARCH_CONFIG } from '../../utils/stockIndexSchema';
+import { StockSearchList } from './StockSearchList';
 import { cn } from '../../utils/cn';
 import type { Market } from '../../types/market';
 
@@ -103,7 +104,7 @@ class StockSearchBoundary extends Component<
  * StockSearchInner —— 自动补全输入框主体
  *
  * 数据流：
- *   useStockIndex() 提供本地股票索引 → useAutocomplete(index) 提供
+ *   useStockIndex() 提供本地股票索引 → useStockAutocomplete(index) 提供
  *   候选列表/下拉开关/键盘高亮/IME 状态 → 本组件负责把它们绑定到输入框交互上。
  *
  * 关键交互细节：
@@ -139,7 +140,7 @@ function StockSearchInner({
     isComposing,          // 是否处于输入法组合输入中
     setIsComposing,       // 设置输入法组合状态
     error: autocompleteError, // 自动补全运行时错误
-  } = useAutocomplete(index);
+  } = useStockAutocomplete(index);
 
   // size -> 输入框尺寸/字体/圆角映射
   // 用 ! 强制前缀确保高度/圆角覆盖 HeroUI Group 自带样式；高度只作用于 Group，
@@ -235,7 +236,7 @@ function StockSearchInner({
   /**
    * 键盘事件处理：
    * - 输入法组合期间（isComposing）不响应，避免中文输入时误触快捷键；
-   * - ↑/↓：移动高亮（useAutocomplete 内部做循环）；
+   * - ↑/↓：移动高亮（useStockAutocomplete 内部做循环）；
    * - Enter：有高亮项时提交该项，否则把输入原文直接提交；
    * - Esc：收起下拉。
    */
@@ -342,7 +343,11 @@ function StockSearchInner({
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
             onFocus={() => {
-              // 重新聚焦时若下拉已展开，重算一次位置（布局可能已变化）
+              // 输入框已有内容时，重新聚焦即触发一次查询并展开下拉框（如候选变化/窗口变动）
+              if (inputValue.length >= SEARCH_CONFIG.MIN_QUERY_LENGTH) {
+                setQuery(inputValue);
+              }
+              // 若下拉已展开，重算一次位置（布局可能已变化）
               if (isOpen) {
                 updateDropdownPosition();
               }
@@ -371,7 +376,7 @@ function StockSearchInner({
 
       {/* Suggestion dropdown list：下拉候选列表，通过 Portal 挂到 body，避免被父级裁剪 */}
       {isOpen && dropdownStyle && createPortal(
-        <SuggestionsList
+        <StockSearchList
           size={size}
           suggestions={suggestions}
           highlightedIndex={highlightedIndex}

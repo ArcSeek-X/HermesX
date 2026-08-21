@@ -4,7 +4,7 @@
  * 避免散落的相对路径 import，便于后续重构目录结构。
  */
 export { useAuth } from './useAuth';
-export { useAutocomplete } from './useAutocomplete';
+export { useStockAutocomplete } from './useStockAutocomplete';
 export { useCachedState } from './useCachedState';
 export { useDashboardLifecycle } from './useDashboardLifecycle';
 export { useHomeDashboardState } from './useHomeDashboardState';

@@ -7,7 +7,7 @@
  */
 
 import type { StockIndexData, StockIndexItem, StockIndexTuple } from '../types/stockIndex';
-import { INDEX_FIELD } from './stockIndexFields';
+import { INDEX_FIELD } from './stockIndexSchema';
 
 /** 索引加载结果：包含解析后的数据、是否成功、错误信息以及是否进入降级模式 */
 export interface IndexLoadResult {

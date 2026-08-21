@@ -62,6 +62,6 @@ export const MATCH_SCORE = {
 export const SEARCH_CONFIG = {
   DEFAULT_LIMIT: 10,      // 默认返回结果数
   DEBOUNCE_MS: 200,       // 防抖延迟（毫秒）
-  MIN_QUERY_LENGTH: 2,    // 最小查询长度
+  MIN_QUERY_LENGTH: 2,    // 最小查询长度，既输入查询最少要2个字符，才会触发查询
   ACTIVE_ONLY: true,      // 仅展示在市股票
 } as const;
