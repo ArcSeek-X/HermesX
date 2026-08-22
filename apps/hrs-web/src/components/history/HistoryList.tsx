@@ -138,7 +138,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                 <span className="text-[11px] text-muted-text select-none">{t('common.selectAllCurrent')}</span>
               </label>
               <Button
-                variant="danger-subtle"
+                variant="danger-soft"
                 size="xsm"
                 onClick={onDeleteSelected}
                 disabled={selectedCount === 0 || isDeleting}
