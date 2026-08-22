@@ -108,7 +108,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         <div className="flex items-center gap-2">
           <StockSearch
             value={stockQuery}
-            size="xs"
+            size="sm"
             onChange={setStockQuery}
             onSubmit={(code) => {
               if (!code) return;
@@ -123,7 +123,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             className="h-9 text-xs w-60"
           />
            
-          <StockSearch
+          {/* <StockSearch
             value={stockQuery}
             size="sm"
             onChange={setStockQuery}
@@ -155,7 +155,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             placeholder={t('kline.searchPlaceholder')}
             ariaLabel={t('kline.searchPlaceholder')}
             className="h-9 text-xs w-60"
-          />
+          /> */}
           <ThemeSetting />
           <LanguageSwitch />
           <UserSetting/>
