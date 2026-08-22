@@ -120,7 +120,7 @@ export const StockBar: React.FC<StockBarProps> = ({
                 <span className="text-[11px] text-muted-text select-none">{t('common.selectAllCurrent')}</span>
               </label>
               <Button
-                variant="danger-subtle"
+                variant="danger-soft"
                 size="xsm"
                 onClick={() => void handleDeleteSelected()}
                 disabled={selectedCount === 0 || isDeleting}
