@@ -304,6 +304,7 @@ function StockSearchInner({
     <div className="hrs-stock-search relative stock-autocomplete">
       <SearchField
         name="stock-search"
+        aria-label={ariaLabel ?? placeholder ?? '搜索股票'}
         value={inputValue}
         // react-aria SearchField 受控回调，raw 为最新输入文本
         onChange={(raw: string) => {
@@ -321,7 +322,17 @@ function StockSearchInner({
           className={cn(
             /** 输入框统一样式类：尺寸/圆角/字体跟随 size 映射，聚焦光晕、禁用态等（两种模式共用，外观修改一致） */
             SIZE_CLASS[size],
-            'w-full flex items-center transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+          
+            'w-full flex items-center transition-all border disabled:cursor-not-allowed disabled:opacity-60',
+
+            ' focus:outline-none',
+            // 外部阴影调淡：覆盖默认 surface 阴影
+            '!shadow-xs',
+            // 聚焦时外框不变色，仅保留一圈更淡的聚焦光圈反馈
+            'focus:!border-border focus:!shadow-[0_0_0_2px_hsl(var(--primary)/0.10)]',
+            'disabled:cursor-not-allowed disabled:opacity-60',
+           
+
             // 下拉展开时去掉下圆角与下边框，与下拉列表共用一条底边，避免圆角/边框错位
             isOpen && '!rounded-b-none border-b-0',
             className,
@@ -335,7 +346,7 @@ function StockSearchInner({
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            className={cn('h-full ![overflow:visible] ![text-overflow:clip]')}
+            className={cn('h-full !placeholder:text-xs ![overflow:visible] ![text-overflow:clip]')}
             disabled={disabled}
             placeholder={placeholder}
             aria-label={ariaLabel}
