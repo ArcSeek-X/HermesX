@@ -373,7 +373,7 @@ export const ReportOverview: React.FC<ReportOverviewProps> = ({
                 <span className="label-uppercase">{t('report.watchlist')}</span>
                 <div className="text-xs text-muted-text font-mono">{meta.stockCode}</div>
                 <Button
-                  variant={watchlist.isInWatchlist(meta.stockCode) ? 'danger-subtle' : 'secondary'}
+                  variant={watchlist.isInWatchlist(meta.stockCode) ? 'danger-soft' : 'secondary'}
                   size="sm"
                   isLoading={watchlist.isActioning}
                   onClick={() => watchlist.onToggle(meta.stockCode)}
