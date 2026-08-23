@@ -103,23 +103,33 @@ const CodeTestPage: React.FC = () => {
                     ))}
                 </div>
 
-                {/* 便捷封装：danger 错误 Toast */}
+                {/* 便捷方法：info / success / warning / danger（variant 预设） */}
                 <div className="mt-2 flex flex-col gap-2 border-t border-border/60 pt-4">
-                    <span className="text-xs font-medium text-muted">便捷方法（showToast.danger）</span>
+                    <span className="text-xs font-medium text-muted">便捷方法（showToast.{'{'}info | success | warning | danger{'}'}，variant 预设）</span>
                     <div className="flex flex-wrap items-center gap-2">
-                        <HrsButton
-                            variant="danger"
-                            size="sm"
-                            onClick={() =>
-                                showToast.danger({
-                                    title: 'showToast.danger 便捷封装',
-                                    description: '固定 variant 为 danger，可直接传入对象（含 placement）。',
-                                    placement: 'bottom end',
-                                })
-                            }
-                        >
-                            showToast.danger
-                        </HrsButton>
+                        {(
+                            [
+                                { method: 'info' as const, buttonVariant: 'primary' as const, title: 'info（accent）', description: '信息/强调风格，等价 variant: accent。' },
+                                { method: 'success' as const, buttonVariant: 'primary' as const, title: 'success', description: '成功风格，等价 variant: success。' },
+                                { method: 'warning' as const, buttonVariant: 'secondary' as const, title: 'warning', description: '警告风格，等价 variant: warning。' },
+                                { method: 'danger' as const, buttonVariant: 'danger' as const, title: 'danger', description: '错误风格，等价 variant: danger。' },
+                            ]
+                        ).map(({ method, buttonVariant, title, description }) => (
+                            <HrsButton
+                                key={method}
+                                variant={buttonVariant}
+                                size="sm"
+                                onClick={() =>
+                                    showToast[method]({
+                                        title: `showToast.${method} · ${title}`,
+                                        description,
+                                        placement: 'top start',
+                                    })
+                                }
+                            >
+                                showToast.{method}
+                            </HrsButton>
+                        ))}
                     </div>
                 </div>
             </div>
