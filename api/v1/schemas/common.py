@@ -9,9 +9,11 @@
 2. 提供统一的响应格式
 """
 
-from typing import Optional, Any
+from typing import Optional, Any, Generic, List, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
+
+T = TypeVar("T")
 
 
 class RootResponse(BaseModel):
@@ -72,3 +74,16 @@ class SuccessResponse(BaseModel):
             "data": None
         }
     })
+
+
+class PaginatedResponse(BaseModel):
+    """通用分页响应模型。
+
+    统一的分页响应格式，供所有支持分页的列表接口使用。
+    """
+
+    list: List[Any] = Field(default_factory=list, description="数据列表")
+    total: int = Field(0, description="总条数")
+    pageSize: int = Field(20, description="每页数量")
+    pages: int = Field(0, description="总页数")
+    pageNum: int = Field(1, description="当前页码")
