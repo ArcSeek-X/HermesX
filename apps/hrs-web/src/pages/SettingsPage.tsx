@@ -13,7 +13,7 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { ApiErrorAlert, Button, ConfirmDialog, EmptyState } from '../components/common';
+import { ApiErrorAlert, Button, ConfirmDialog, EmptyState } from '../components';
 import {
   AgentBackendStatusPanel,
   AuthSettingsCard,
@@ -1846,11 +1846,10 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="settings-page min-h-full px-4 pb-6 pt-4 md:px-6">
-      {/* ===== 页面头部：标题 + 重置/保存按钮 ===== */}
+      {/* ===== 页面头部：描述 + 重置/保存按钮（页面标题已由顶部 header 展示）===== */}
       <div className="mb-4 rounded-lg border settings-border bg-card/90 px-4 py-4 shadow-soft-card backdrop-blur-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">{t('settings.pageTitle')}</h1>
             <p className="max-w-3xl text-xs leading-5 text-muted-text sm:text-sm sm:leading-6">
               {t('settings.pageDescription')}
             </p>
