@@ -11,7 +11,7 @@ import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
 import type { ParsedApiError } from '../api/error';
 import { getParsedApiError } from '../api/error';
-import { ApiErrorAlert, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '../components/common';
+import { ApiErrorAlert, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '../components';
 import { PortfolioSignalSummary } from '../components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
@@ -59,6 +59,7 @@ import type {
 import { areStockCodesEquivalent, normalizeStockCode } from '../utils/stockCode';
 import { parseDecisionSignalDate } from '../utils/decisionSignalTime';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../utils/decisionAction';
+import { toCnOrEn } from '../utils/uiLanguage';
 
 /** 饼图颜色调色板 */
 const PIE_COLORS = ['#00d4ff', '#00ff88', '#ffaa00', '#ff7a45', '#7f8cff', '#ff4466'];
@@ -260,7 +261,7 @@ async function loadPortfolioSignalLookup(lookup: PortfolioSignalLookup): Promise
  */
 const PortfolioPage: React.FC = () => {
   const { language, t } = useUiLanguage();
-  const text = PORTFOLIO_TEXT[language];
+  const text = PORTFOLIO_TEXT[toCnOrEn(language)];
   const decisionActionLabels = useMemo(() => buildDecisionActionLabelMap(t), [t]); // 决策动作标签映射表
 
   // 设置页面标题
@@ -1142,7 +1143,7 @@ const PortfolioPage: React.FC = () => {
   // 快照数据质量提示：当数据为部分口径时，将限制标签拼接为本地化提示文本
   const snapshotQualityMessage = snapshot?.dataQuality === 'partial' && snapshot.limitations?.length
     ? snapshot.limitations
-      .map((limitation) => formatPortfolioLimitation(limitation, language))
+      .map((limitation) => formatPortfolioLimitation(limitation, toCnOrEn(language)))
       .join(language === 'en' ? '; ' : '；')
     : null;
 
@@ -1151,7 +1152,6 @@ const PortfolioPage: React.FC = () => {
       {/* ===== 页面标题与账户选择区 ===== */}
       <section className="space-y-3">
         <div className="space-y-2">
-          <h1 className="text-xl md:text-2xl font-semibold text-foreground">{text.title}</h1>
           <p className="text-xs md:text-sm text-secondary">
             {text.description}
           </p>
