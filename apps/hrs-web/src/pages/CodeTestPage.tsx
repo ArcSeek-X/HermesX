@@ -9,11 +9,24 @@ import { useState } from 'react';
 import { AppPage, Input, HrsButton, Modal, Chip } from '../components';
 import { Button } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
-import { showErrorToast, type ToastPlacement } from '../components/basic/Toast';
+import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
 /**
  * 测试页面组件
  * 当前为占位内容，可在开发过程中按需挂载待验证的组件与逻辑。
  */
+
+/** 把 Toast 主题配色映射到 HrsButton 支持的 variant */
+const toastVariantToButton: Record<
+    ToastVariant,
+    'primary' | 'secondary' | 'danger' | 'ghost'
+> = {
+    default: 'ghost',
+    accent: 'primary',
+    success: 'primary',
+    warning: 'secondary',
+    danger: 'danger',
+};
+
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
     const [newName] = useState('');
@@ -44,34 +57,70 @@ const CodeTestPage: React.FC = () => {
     return (
         <AppPage>
 
-          {/* ============ 错误 Toast（浮层）组件演示 ============ */}
+
+
+            {/* ============ 错误 Toast（浮层）组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
-                <h3 className="text-sm font-medium text-primary-text">错误 Toast（浮层）组件演示</h3>
+                <h3 className="text-sm font-medium text-primary-text">Toast（浮层）组件演示</h3>
                 <p className="text-xs text-muted">
-                    命令式触发，应用根（App.tsx）已挂载一次 {'<Toast />'} 宿主。点击按钮在视口对应角落弹出 danger 浮层，默认 6s 自动消失。
+                    命令式触发，应用根（App.tsx）已挂载一次 {'<Toast />'} 宿主。下方按「主题配色 × 弹出位置」矩阵演示：每行一种配色，点击行内不同方位按钮即可在视口对应角落弹出对应风格的浮层，默认 6s 自动消失。
                 </p>
-                <div className="flex flex-wrap items-center gap-2">
-                    {(['top start', 'top', 'top end', 'bottom start', 'bottom', 'bottom end'] as ToastPlacement[]).map((placement) => (
+
+                {/* 主题配色 × 位置 矩阵 */}
+                <div className="flex flex-col gap-3">
+                    {(
+                        [
+                            { variant: 'default' as ToastVariant, label: 'Default' },
+                            { variant: 'accent' as ToastVariant, label: 'Accent' },
+                            { variant: 'success' as ToastVariant, label: 'Success' },
+                            { variant: 'warning' as ToastVariant, label: 'Warning' },
+                            { variant: 'danger' as ToastVariant, label: 'Danger' },
+                        ]
+                    ).map(({ variant, label }) => (
+                        <div key={variant} className="flex flex-wrap items-center gap-2">
+                            <span className="w-16 shrink-0 text-xs font-medium text-muted">{label}</span>
+                            {(['top start', 'top', 'top end', 'bottom start', 'bottom', 'bottom end'] as ToastPlacement[]).map((placement) => (
+                                <HrsButton
+                                    key={placement}
+                                    variant={toastVariantToButton[variant]}
+                                    size="sm"
+                                    onClick={() =>
+                                        showToast({
+                                            title: `${label} 提示（${placement}）`,
+                                            description:
+                                                '这是一段用户友好的描述文案，用于演示 Toast 浮层在不同主题配色与弹出位置下的视觉效果。',
+                                            rawMessage:
+                                                'Raw server error: 500 Internal Server Error at /api/v1/watchlist，详细堆栈信息略。',
+                                            variant,
+                                            placement,
+                                        })
+                                    }
+                                >
+                                    {placement}
+                                </HrsButton>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+
+                {/* 便捷封装：danger 错误 Toast */}
+                <div className="mt-2 flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs font-medium text-muted">便捷方法（showToast.danger）</span>
+                    <div className="flex flex-wrap items-center gap-2">
                         <HrsButton
-                            key={placement}
                             variant="danger"
                             size="sm"
                             onClick={() =>
-                                showErrorToast(
-                                    {
-                                        title: `错误提示（${placement}）`,
-                                        message: '这是一段用户友好的错误描述文案。',
-                                        rawMessage: 'Raw server error: 500 Internal Server Error at /api/v1/watchlist',
-                                        status: 500,
-                                        category: 'unknown',
-                                    },
-                                    placement
-                                )
+                                showToast.danger({
+                                    title: 'showToast.danger 便捷封装',
+                                    description: '固定 variant 为 danger，可直接传入对象（含 placement）。',
+                                    placement: 'bottom end',
+                                })
                             }
                         >
-                            {placement}
+                            showToast.danger
                         </HrsButton>
-                    ))}
+                    </div>
                 </div>
             </div>
 
@@ -288,7 +337,7 @@ const CodeTestPage: React.FC = () => {
 
             </div>
 
-  
+
 
 
         </AppPage >
