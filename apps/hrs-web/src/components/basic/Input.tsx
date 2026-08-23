@@ -60,21 +60,38 @@ export const Input = ({
   // 原生属性 + 固定样式统一透传给 HeroUI Input。
   // 注：HeroUI v3 基于 react-aria-components，其 Input props 类型在部分 IDE 解析下不完整，
   // 因此以 object 类型透传，保证原生属性（含 value / type / onChange 等）正常下发。
+  //
+  // 受控警告防护：HeroUI(react-aria) 在「传了 value 但未传 onChange/readOnly」时会告警
+  // "provided a value prop to a form field without an onChange handler"。
+  // 此时语义即为「只读展示」，这里自动补 readOnly，消除告警且不改变既有视觉/行为。
+  const isReadOnlyView = props.value !== undefined && props.onChange === undefined;
   const heroProps = {
     id: inputId,
     className: cn(
       'hrs-input w-50',
-      'input-surface input-focus-glow border bg-transparent transition-all',
-      sizeClasses[size],
-      'focus:outline-none',
-      // 外部阴影调淡：覆盖默认 surface 阴影
-      '!shadow-sm',
-      // 聚焦时外框不变色，仅保留一圈更淡的聚焦光圈反馈
-      'focus:!border-border focus:!shadow-[0_0_0_2px_hsl(var(--primary)/0.10)]',
-      'disabled:cursor-not-allowed disabled:opacity-60',
+      'hrs-input-surface border',
+
+      // 'input-surface input-focus-glow border bg-transparent transition-all',
+      // 'focus:outline-none',
+      // // 外部阴影调淡：覆盖默认 surface 阴影
+      // '!shadow-xs',
+      // // 聚焦时外框不变色，仅保留一圈更淡的聚焦光圈反馈
+      // 'focus:!border-border focus:!shadow-[0_0_0_2px_hsl(var(--primary)/0.10)]',
+      // 'disabled:cursor-not-allowed disabled:opacity-60',
+
+      // '!placeholder:text-muted / 0.1',
+
+       sizeClasses[size],
       className,
     ),
     ...props,
+    readOnly: props.readOnly ?? (isReadOnlyView ? true : undefined),
+    // 占位符颜色由全局 .input-surface::placeholder 经 CSS 变量控制，Tailwind placeholder: 工具类会被其覆盖；
+    // 这里以内联变量覆盖使其更淡（/0.1 透明度），且仅作用于当前输入框实例。
+    style: {
+      ...(props.style as React.CSSProperties | undefined),
+      '--input-surface-placeholder': 'hsl(var(--muted-text) / 0.6)',
+    } as React.CSSProperties,
   };
 
   return (
