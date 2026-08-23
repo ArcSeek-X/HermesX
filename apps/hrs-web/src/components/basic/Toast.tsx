@@ -213,7 +213,7 @@ const ToastContent: React.FC<{
     return (
         <AnimCard
             className={cn(
-                'hrs-toast-content relative w-full !min-h-0 overflow-hidden rounded-md shadow-md backdrop-blur',
+                'hrs-toast-content relative w-full !min-h-0 overflow-hidden rounded-md shadow-md border-none backdrop-blur',
                 variantStyles.bg,
                 className
             )}
@@ -221,7 +221,7 @@ const ToastContent: React.FC<{
             {/* 上层内容区：左边内缩 8px（ml-[2]），露出外层语义色边 */}
             <div
                 role={variant === 'danger' || variant === 'warning' ? 'alert' : 'status'}
-                className={cn('flex w-full min-w-0 flex-col rounded ml-2 px-3 py-2', variantStyles.surface)}
+                className={cn('flex w-full min-w-0 flex-col rounded-md ml-2 px-3 py-2', variantStyles.surface)}
             >
                 {/* header：图标 + title + 关闭按钮（三者水平居中对齐） */}
                 <div className="flex items-center gap-2.5">
@@ -401,7 +401,7 @@ export const Toast: React.FC = () => {
     // 注册自动关闭定时器 / 清理已消失 toast 的定时器
     React.useEffect(() => {
         items.forEach((item) => {
-            const dur = item.options.duration ?? 3000;
+            const dur = item.options.duration ?? 0;//3000
             if (dur > 0 && !timers.current.has(item.id)) {
                 const handle = setTimeout(() => dismissToast(item.id), dur);
                 timers.current.set(item.id, handle);
