@@ -11,8 +11,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import AnimCard from '../common/Card/AnimCard';
-import { Button } from '../basic/Button';
-import { Input } from '../basic/Input';
+import { HrsButton, Input } from '../index';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { WatchlistGroup } from '../../api/watchlist';
 
@@ -84,18 +83,18 @@ export default function WatchlistGroupPanel({
       {/* 新增分组 */}
       <div className="flex items-center gap-2 mb-3">
         <Input
+           className="flex-1"
           placeholder="新分组名称"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void handleCreate();
           }}
-          className="flex-1"
         />
-        <Button variant="primary" size="md" isLoading={adding} onClick={handleCreate}>
-          <Plus className="h-4 w-4" />
+        <HrsButton variant="primary"  isLoading={adding} onClick={handleCreate}>
+          <Plus className="h-4 w-4 m-0" />
           新增
-        </Button>
+        </HrsButton>
       </div>
 
       {/* 分类列表（一层平铺） */}
@@ -131,12 +130,12 @@ export default function WatchlistGroupPanel({
                       autoFocus
                       className="flex-1"
                     />
-                    <Button variant="ghost" size="sm" onClick={commitEdit} aria-label="保存">
+                    <HrsButton variant="ghost" size="sm" onClick={commitEdit} aria-label="保存">
                       <Check className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={cancelEdit} aria-label="取消">
+                    </HrsButton>
+                    <HrsButton variant="ghost" size="sm" onClick={cancelEdit} aria-label="取消">
                       <X className="h-4 w-4" />
-                    </Button>
+                    </HrsButton>
                   </div>
                 ) : (
                   <>
@@ -145,7 +144,7 @@ export default function WatchlistGroupPanel({
                       className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
+                      <HrsButton
                         variant="ghost"
                         size="sm"
                         onClick={() => startEdit(g)}
@@ -153,8 +152,8 @@ export default function WatchlistGroupPanel({
                         className="!px-1.5"
                       >
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      </HrsButton>
+                      <HrsButton
                         variant="ghost"
                         size="sm"
                         onClick={() => setPendingDelete(g)}
@@ -162,7 +161,7 @@ export default function WatchlistGroupPanel({
                         className="!px-1.5 text-danger hover:bg-danger/10"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </HrsButton>
                     </span>
                   </>
                 )}
