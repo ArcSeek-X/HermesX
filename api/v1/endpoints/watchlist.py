@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from src.storage import (
     DatabaseManager,
@@ -23,6 +23,7 @@ from src.storage import (
     WatchlistItem,
 )
 from src.data.stock_index_loader import get_stock_name_index_map
+from src.utils.pagination import PaginationParams, compute_pages, paginate_response
 
 # 数据库访问入口（与 api/deps.py、history.py 等保持一致）
 db = DatabaseManager.get_instance()
@@ -34,6 +35,8 @@ from api.v1.schemas.watchlist import (
     WatchlistItemUpdate,
     WatchlistItemMove,
     WatchlistItemOut,
+    WatchlistItemsQueryRequest,
+    WatchlistItemsPaginatedResponse,
     SimpleSuccess,
 )
 
@@ -151,6 +154,43 @@ def delete_group(group_id: int) -> dict:
 
 
 # === 自选股 CRUD ===
+
+@router.post(
+    "/items/query",
+    response_model=WatchlistItemsPaginatedResponse,
+    summary="分页查询自选股",
+    responses={404: {"description": "分类不存在"}},
+)
+def query_items(payload: WatchlistItemsQueryRequest) -> dict:
+    """分页查询某分类下的自选股。
+
+    入参（body）：group_id, pageSize, pageNum
+    出参：list, total, pageSize, pages, pageNum
+    """
+    paging = PaginationParams(page_num=payload.pageNum, page_size=payload.pageSize)
+
+    with db.get_session() as session:
+        group = session.get(WatchlistGroup, payload.group_id)
+        if group is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "分类不存在"})
+
+        # 查询总数
+        total = session.execute(
+            select(func.count(WatchlistItem.id))
+            .where(WatchlistItem.group_id == payload.group_id)
+        ).scalar() or 0
+
+        # 分页查询
+        rows = session.execute(
+            select(WatchlistItem)
+            .where(WatchlistItem.group_id == payload.group_id)
+            .order_by(WatchlistItem.sort_order.asc(), WatchlistItem.id.asc())
+            .offset(paging.offset)
+            .limit(paging.limit)
+        ).scalars().all()
+
+        items = [r.to_dict() for r in rows]
+        return paginate_response(items, total, payload.pageNum, payload.pageSize)
 
 @router.get(
     "/groups/{group_id}/items",
