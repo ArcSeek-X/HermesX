@@ -15,55 +15,68 @@
    保持同步。
    ============================================================ */
 @theme inline {
+  /* ========== shadcn 标准语义色（对应 tailwind.config.js colors 扩展） ========== */
+  /* 边框 / 分割线 */
   --color-border: hsl(var(--border));
+  /* 输入框描边（HeroUI/shadcn 标准，当前 src 未直接使用，保留生态兼容） */
   --color-input: hsl(var(--input));
+  /* 焦点环（ring-primary/ring-cyan 用 --color-primary，此独立 token 保留生态兼容） */
   --color-ring: hsl(var(--ring));
+  /* 页面主背景（body/卡片底） */
   --color-background: hsl(var(--background));
+  /* 主前景/正文文字 */
   --color-foreground: hsl(var(--foreground));
+  /* 主强调色（按钮/链接/选中态） */
   --color-primary: hsl(var(--primary));
+  /* 主强调色上的文字 */
   --color-primary-foreground: hsl(var(--primary-foreground));
+  /* 次级强调/辅助底色 */
   --color-secondary: hsl(var(--secondary));
+  /* 次级底色上的文字 */
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   /* --color-muted: hsl(var(--muted)); */
+  /* 弱化文字（说明/占位） */
   --color-muted-foreground: hsl(var(--muted-foreground));
   /* --color-accent: hsl(var(--accent)); */
+  /* 强调底色上的文字 */
   --color-accent-foreground: hsl(var(--accent-foreground));
+  /* 破坏性/危险语义色（删除、报错） */
   --color-destructive: hsl(var(--destructive));
+  /* 破坏性语义色上的文字 */
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  /* 弹层背景（Popover/Dropdown） */
   --color-popover: hsl(var(--popover));
+  /* 弹层背景上的文字 */
   --color-popover-foreground: hsl(var(--popover-foreground));
+  /* 卡片背景 */
   --color-card: hsl(var(--card));
+  /* 卡片背景上的文字 */
   --color-card-foreground: hsl(var(--card-foreground));
-  
-  /* 金融终端自定义语义色（对应 tailwind.config.js colors 扩展） */
+
+  /* ========== 金融终端自定义语义色（对应 tailwind.config.js colors 扩展） ========== */
+  /* 基础底/文字主色（取自 --text-primary，即 foreground 的主题换肤值） */
   /* --color-base: hsl(var(--background)); */
   --color-base: hsl(var(--text-primary));
-
+  /* 浮起卡片/弹层背景 */
   --color-elevated: hsl(var(--elevated));
+  /* 悬浮/hover 底色 */
   --color-hover: hsl(var(--hover));
-  --color-secondary-bg: hsl(var(--secondary));
-  /* --color-muted-bg: hsl(var(--muted)); */
+  /* 次级文字 */
   --color-secondary-text: hsl(var(--secondary-text));
+  /* 弱化/说明文字 */
   --color-muted-text: hsl(var(--muted-text));
+  /* 主品牌青（信息/链接/高亮，等同 --color-primary） */
   --color-cyan: hsl(var(--primary));
-  --color-cyan-dim: hsl(var(--primary) / 0.8);
-  --color-cyan-glow: hsl(var(--primary) / 0.4);
+  /* 紫色（情绪/强调等，等同 --color-accent） */
   --color-purple: hsl(var(--accent));
-  --color-purple-dim: hsl(var(--accent) / 0.8);
-  --color-purple-glow: hsl(var(--accent) / 0.3);
+  /* 成功绿 */
   --color-success: hsl(var(--success));
-  --color-success-dim: hsl(var(--success) / 0.8);
-  --color-success-glow: hsl(var(--success) / 0.3);
+  /* 警告黄 */
   --color-warning: hsl(var(--warning));
-  --color-warning-dim: hsl(var(--warning) / 0.8);
-  --color-warning-glow: hsl(var(--warning) / 0.3);
+  /* 危险红（等同 --color-destructive） */
   --color-danger: hsl(var(--destructive));
-  --color-danger-dim: hsl(var(--destructive) / 0.8);
-  --color-danger-glow: hsl(var(--destructive) / 0.3);
-  /* 设计令牌（dim / subtle 系列，bg 与 border 共用） */
-  --color-dim: hsl(var(--border-dim-raw) / 0.06);
+  /* 极弱分隔/底色（前景色 5% 透明） */
   --color-subtle: hsl(var(--bg-subtle-raw) / 0.05);
+  /* 弱分隔 hover 态（前景色 10% 透明） */
   --color-subtle-hover: hsl(var(--bg-subtle-raw) / 0.1);
-  --color-subtle-soft: hsl(var(--bg-subtle-raw) / 0.03);
-  --color-subtle-active: hsl(var(--bg-subtle-raw) / 0.15);
 }
