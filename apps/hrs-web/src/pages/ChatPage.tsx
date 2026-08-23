@@ -31,7 +31,7 @@ import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { agentApi } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { ApiErrorAlert, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '../components/common';
+import { ApiErrorAlert, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '../components';
 import { createParsedApiError, getParsedApiError } from '../api/error';
 import type { AgentStatusResponse, SkillInfo } from '../api/agent';
 import { DashboardStateBlock } from '../components/dashboard';
@@ -1254,7 +1254,7 @@ const ChatPage: React.FC = () => {
         {/* --- 页头区域：标题、后端标识、导出/发送按钮、介绍文案 --- */}
         <header className="mb-4 flex-shrink-0 space-y-3">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-hover transition-colors text-secondary-text hover:text-foreground"
@@ -1287,7 +1287,6 @@ const ChatPage: React.FC = () => {
                   d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                 />
               </svg>
-              问股
               {agentStatus ? (
                 <Badge
                   variant={agentStatus.backend === 'codex_app_server' ? 'warning' : 'history'}
@@ -1296,7 +1295,7 @@ const ChatPage: React.FC = () => {
                   {t(agentStatus.backend === 'codex_app_server' ? 'chat.codexBackendBadge' : 'chat.defaultBackendBadge')}
                 </Badge>
               ) : null}
-            </h1>
+            </div>
             {messages.length > 0 && (
               <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
                 <Tooltip content="导出会话为 Markdown 文件">
@@ -1843,7 +1842,7 @@ const ChatPage: React.FC = () => {
                 />
                 {loading && agentStatus?.backend === 'codex_app_server' ? (
                   <Button
-                    variant="danger-subtle"
+                    variant="danger-soft"
                     onClick={stopStream}
                     disabled={stopping}
                     className="flex-shrink-0"
