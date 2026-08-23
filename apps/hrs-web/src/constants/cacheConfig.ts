@@ -16,36 +16,43 @@
  * - sessionStorage: 'hrs-state-'（页面状态，会话级）
  */
 
-/** 各 API 路径的缓存 TTL（秒） */
+/** 各 API 路径的缓存 TTL（秒）
+ *
+ * 注意：键名必须与 axios 实际请求的相对路径一致（含 /api/v1 前缀），
+ * 否则前缀匹配失配，会全部回落到 DEFAULT_CACHE_TTL 导致缓存策略错乱。
+ */
 export const CACHE_TTL_MAP: Record<string, number> = {
   // 实时行情 — 30 秒
-  '/kline/': 30,
-  '/kline/search': 300,       // 股票搜索变化不频繁，5 分钟
+  '/api/v1/kline/': 30,
+  '/api/v1/kline/search': 300,       // 股票搜索变化不频繁，5 分钟
 
   // 板块数据 — 30 秒（市场概览）/ 5 分钟（云图数据）
-  '/sector/market-overview': 30,
-  '/sector/concept-scale': 300,
-  '/sector/etf-scale': 300,
-  '/sector/indices': 30,
+  '/api/v1/sector/market-overview': 30,
+  '/api/v1/sector/concept-scale': 300,
+  '/api/v1/sector/etf-scale': 300,
+  '/api/v1/sector/indices': 30,
 
   // 用户私有数据 — 不缓存（保证数据一致性）
-  '/portfolio': 0,
-  '/alerts': 0,
+  '/api/v1/portfolio': 0,
+  '/api/v1/alerts': 0,
+
+  // 鉴权状态 — 不缓存（保证登录/登出/密码变更状态即时生效）
+  '/api/v1/auth': 0,
 
   // AI 聊天 — 不缓存（流式响应）
-  '/chat': 0,
+  '/api/v1/agent/chat': 0,
 
   // 回测结果 — 10 分钟（计算结果变化不频繁）
-  '/backtest': 600,
+  '/api/v1/backtest': 600,
 
   // 决策信号 — 5 分钟
-  '/decision-signals': 300,
+  '/api/v1/decision-signals': 300,
 
   // 股票筛选 — 1 分钟
-  '/screening': 60,
+  '/api/v1/screening': 60,
 
   // Token 用量 — 1 分钟
-  '/usage': 60,
+  '/api/v1/usage': 60,
 };
 
 /** 默认 TTL（未匹配到规则时使用） */
