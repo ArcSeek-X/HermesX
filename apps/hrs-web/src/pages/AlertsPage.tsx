@@ -18,7 +18,7 @@ import {
   type AlertTypeFilter,
 } from '../components/alerts/AlertRuleList';
 import { AlertTriggerHistory } from '../components/alerts/AlertTriggerHistory';
-import { ApiErrorAlert, AppPage, Card, EmptyState, InlineAlert, Loading, PageHeader } from '../components';
+import { InlineTipCard, AppPage, Card, EmptyState, InlineAlert, Loading, PageHeader } from '../components';
 import type {
   AlertNotificationItem,
   AlertRuleCreateRequest,
@@ -348,7 +348,7 @@ const AlertsPage: React.FC = () => {
       />
 
       {/* ===== 错误与成功提示区 ===== */}
-      {createError ? <ApiErrorAlert error={createError} onDismiss={() => setCreateError(null)} /> : null}
+      {createError ? <InlineTipCard variant="danger" error={createError} onDismiss={() => setCreateError(null)} /> : null}
       {createSuccess ? (
         <InlineAlert
           title="创建成功"
@@ -361,7 +361,7 @@ const AlertsPage: React.FC = () => {
           )}
         />
       ) : null}
-      {rulesError ? <ApiErrorAlert error={rulesError} onDismiss={() => setRulesError(null)} /> : null}
+      {rulesError ? <InlineTipCard variant="danger" error={rulesError} onDismiss={() => setRulesError(null)} /> : null}
 
       {/* ===== 规则表单与列表区 ===== */}
       <div className="grid items-stretch gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -401,11 +401,11 @@ const AlertsPage: React.FC = () => {
       </div>
 
       {/* ===== 触发历史区 ===== */}
-      {triggersError ? <ApiErrorAlert error={triggersError} onDismiss={() => setTriggersError(null)} /> : null}
+      {triggersError ? <InlineTipCard variant="danger" error={triggersError} onDismiss={() => setTriggersError(null)} /> : null}
       <AlertTriggerHistory triggers={triggers} isLoading={triggersLoading} />
 
       {/* ===== 通知尝试记录区 ===== */}
-      {notificationsError ? <ApiErrorAlert error={notificationsError} onDismiss={() => setNotificationsError(null)} /> : null}
+      {notificationsError ? <InlineTipCard variant="danger" error={notificationsError} onDismiss={() => setNotificationsError(null)} /> : null}
       <Card title="通知尝试记录" subtitle="通知结果" variant="bordered" padding="md">
         {notificationsLoading ? <Loading label="正在加载通知尝试记录" /> : null}
         {!notificationsLoading && notifications.length === 0 ? (

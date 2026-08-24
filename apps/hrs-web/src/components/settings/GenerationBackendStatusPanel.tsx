@@ -5,7 +5,7 @@ import { systemConfigApi } from '../../api/systemConfig';
 import { getParsedApiError, type ParsedApiError } from '../../api/error';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { GenerationBackendStatus, GenerationBackendStatusResponse, SystemConfigUpdateItem, TestGenerationBackendResponse } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button } from '../';
+import { InlineTipCard, Badge, Button } from '../';
 import { SettingsAlert } from './SettingsAlert';
 
 type Translate = ReturnType<typeof useUiLanguage>['t'];
@@ -199,7 +199,7 @@ export const GenerationBackendStatusPanel: React.FC<GenerationBackendStatusPanel
           </Button>
         </div>
       </div>
-      {error ? <ApiErrorAlert error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" error={error} /> : null}
       {smokeResult ? (
         <SettingsAlert
           title={smokeResult.success ? t('settings.generationBackendSmokePassed') : t('settings.generationBackendSmokeFailed')}

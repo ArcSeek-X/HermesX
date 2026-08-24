@@ -9,7 +9,7 @@ import type {
   TestNotificationChannelResponse,
   SystemConfigUpdateItem,
 } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select } from '../';
+import { InlineTipCard, Badge, Button, InlineAlert, Input, Select } from '../';
 import { SettingsSectionCard } from './SettingsSectionCard';
 import { toCnOrEn } from '../../utils/uiLanguage';
 
@@ -163,7 +163,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         />
       </label>
 
-      {error ? <ApiErrorAlert error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" error={error} /> : null}
 
       {result ? (
         <div className="space-y-3">

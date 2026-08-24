@@ -31,7 +31,7 @@ import {
 import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
 import { historyApi } from '../api/history'; // 历史记录 API
 import {
-  ApiErrorAlert,
+  InlineTipCard,
   AppPage,
   Card,
   ConfirmDialog,
@@ -1249,7 +1249,7 @@ const DecisionSignalsPage: React.FC = () => {
             message={t('decisionSignals.reassessUnsupported')}
           />
         ) : null}
-        {reassessError ? <ApiErrorAlert className="mt-3" error={reassessError} /> : null}
+        {reassessError ? <InlineTipCard variant="danger" className="mt-3" error={reassessError} /> : null}
         {reassessPersistBlocked ? (
           <div className="mt-3 space-y-2">
             <InlineAlert
@@ -1570,7 +1570,8 @@ const DecisionSignalsPage: React.FC = () => {
         <Card title={t('decisionSignals.statsTitle')} subtitle={t('decisionSignals.statsDescription')} padding="md">
           <p className="mb-3 text-sm text-secondary-text">{t('decisionSignals.statsGlobalScope')}</p>
           {statsError ? (
-            <ApiErrorAlert
+            <InlineTipCard
+              variant="danger"
               error={{ ...statsError, title: t('decisionSignals.statsErrorTitle') }}
               actionLabel={t('common.retry')}
               onAction={() => void loadOutcomeStats()}
@@ -1624,7 +1625,7 @@ const DecisionSignalsPage: React.FC = () => {
               icon={<Activity className="h-6 w-6" />}
             />
           ) : null}
-          {latestError ? <ApiErrorAlert className="mt-3" error={latestError} /> : null}
+          {latestError ? <InlineTipCard variant="danger" className="mt-3" error={latestError} /> : null}
           {latestSearched && !latestLoading && !latestError && latestItems.length === 0 ? (
             <EmptyState
               className="mt-4 border-none bg-transparent py-6 shadow-none"
@@ -1732,7 +1733,8 @@ const DecisionSignalsPage: React.FC = () => {
         </Card>
 
         {error ? (
-          <ApiErrorAlert
+          <InlineTipCard
+            variant="danger"
             error={{ ...error, title: t('decisionSignals.errorTitle') }}
             actionLabel={t('common.retry')}
             onAction={() => void loadSignals()}

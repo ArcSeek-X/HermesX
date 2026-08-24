@@ -303,8 +303,8 @@ describe('AlertsPage', () => {
     expect(screen.getByText('停用规则')).toBeInTheDocument();
   });
 
-  // 用例 8：规则列表接口失败时，应通过 ApiErrorAlert 展示解析后的错误标题与消息
-  it('renders API errors through ApiErrorAlert', async () => {
+  // 用例 8：规则列表接口失败时，应通过 InlineTipCard 展示解析后的错误标题与消息
+  it('renders API errors through InlineTipCard', async () => {
     listRules.mockRejectedValueOnce({ parsedError });
 
     render(<AlertsPage />);

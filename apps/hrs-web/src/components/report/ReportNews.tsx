@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
-import { ApiErrorAlert, Card } from '../';
+import { InlineTipCard, Card } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { historyApi } from '../../api/history';
 import type { NewsIntelItem, ReportLanguage } from '../../types/analysis';
@@ -97,7 +97,8 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
       </p>
 
       {error && !isLoading && (
-        <ApiErrorAlert
+        <InlineTipCard
+          variant="danger"
           error={error}
           actionLabel={text.retry}
           onAction={() => void fetchNews()}

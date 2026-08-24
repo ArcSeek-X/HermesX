@@ -11,7 +11,7 @@ export * from './PageHeader';
 export * from './EyeToggleIcon';
 export * from './Drawer';
 export * from './ScrollArea';
-export * from './ApiErrorAlert';
+export * from './InlineTipCard';
 export * from './Collapsible';
 export * from './ScoreGauge';
 export * from './JsonViewer';

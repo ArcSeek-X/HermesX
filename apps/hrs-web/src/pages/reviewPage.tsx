@@ -12,7 +12,7 @@ import { analysisApi, DuplicateTaskError } from '../api/analysis';
 import { historyApi } from '../api/history';
 import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { ApiErrorAlert, Button, Drawer, EmptyState, InlineAlert } from '../components';
+import { InlineTipCard, Button, Drawer, EmptyState, InlineAlert } from '../components';
 import { DashboardStateBlock } from '../components/dashboard';
 import { StockSearch } from '../components/StockSearch';
 import { StockHistoryTrendDrawer } from '../components/history';
@@ -1805,7 +1805,8 @@ const HomePage: React.FC = () => {
             {/* 大盘回顾错误提示 */}
             {marketReviewError ? (
               <div className="mb-3">
-                <ApiErrorAlert
+                <InlineTipCard
+                  variant="danger"
                   error={marketReviewError}
                   className="mb-1"
                   onDismiss={() => setMarketReviewError(null)}
@@ -1825,7 +1826,8 @@ const HomePage: React.FC = () => {
 
             {/* 通用错误提示 */}
             {error ? (
-              <ApiErrorAlert
+              <InlineTipCard
+                variant="danger"
                 error={error}
                 className="mb-3"
                 onDismiss={clearError}

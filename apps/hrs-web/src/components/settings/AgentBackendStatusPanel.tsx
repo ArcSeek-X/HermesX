@@ -7,7 +7,7 @@ import type {
   AgentBackendStatusResponse,
   SystemConfigUpdateItem,
 } from '../../types/systemConfig';
-import { ApiErrorAlert, Badge, Button } from '../';
+import { InlineTipCard, Badge, Button } from '../';
 import { SettingsAlert } from './SettingsAlert';
 
 interface AgentBackendStatusPanelProps {
@@ -153,7 +153,7 @@ export function AgentBackendStatusPanel({
           variant="warning"
         />
       ) : null}
-      {error ? <ApiErrorAlert error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" error={error} /> : null}
       {status ? (
         <div className="rounded-xl border settings-border bg-background/35 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">

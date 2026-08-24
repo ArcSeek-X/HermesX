@@ -31,7 +31,7 @@ import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { agentApi } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { ApiErrorAlert, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '../components';
+import { InlineTipCard, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '../components';
 import { createParsedApiError, getParsedApiError } from '../api/error';
 import type { AgentStatusResponse, SkillInfo } from '../api/agent';
 import { DashboardStateBlock } from '../components/dashboard';
@@ -698,7 +698,7 @@ const ChatPage: React.FC = () => {
       : agentStatus?.backend === 'codex_app_server'
         ? t('chat.codexUnavailableMessage')
         : t('chat.defaultUnavailableMessage');
-  // 构造 Agent 不可用时的结构化错误对象，供 ApiErrorAlert 展示
+  // 构造 Agent 不可用时的结构化错误对象，供 InlineTipCard 展示
   const agentUnavailableError = agentConfirmedUnavailable
     ? createParsedApiError({
         title: t('chat.agentBackendUnavailableTitle'),
@@ -1625,7 +1625,7 @@ const ChatPage: React.FC = () => {
           <div className="border-t border-white/6 bg-card/88 p-4 md:p-6 relative z-20">
             <div className="space-y-3">
               {/* --- 错误与状态提示：聊天错误、取消、超时、停止失败 --- */}
-              {chatError ? <ApiErrorAlert error={chatError} /> : null}
+              {chatError ? <InlineTipCard variant="danger" error={chatError} /> : null}
               {terminalStatus === 'cancelled' ? (
                 <div role="status" className="rounded-xl border border-slate-500/20 bg-slate-500/5 px-4 py-3 text-sm">
                   {t('chat.analysisStopped')}
@@ -1644,7 +1644,8 @@ const ChatPage: React.FC = () => {
               {/* --- Agent 状态提示：不可用、状态获取失败、检查中、追问上下文加载中 --- */}
               {agentUnavailableError ? (
                 <div className="space-y-2">
-                  <ApiErrorAlert
+                  <InlineTipCard
+                    variant="danger"
                     error={agentUnavailableError}
                     actionLabel={t('chat.openAgentSettings')}
                     onAction={() => navigate('/settings?category=agent')}

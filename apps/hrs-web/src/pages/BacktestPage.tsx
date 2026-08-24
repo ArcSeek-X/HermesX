@@ -11,7 +11,7 @@ import { Check, Minus, X } from 'lucide-react';
 import { backtestApi } from '../api/backtest';
 import type { ParsedApiError } from '../api/error';
 import { getParsedApiError } from '../api/error';
-import { ApiErrorAlert, Card, Badge, EmptyState, Pagination, StatusDot, Tooltip } from '../components';
+import { InlineTipCard, Card, Badge, EmptyState, Pagination, StatusDot, Tooltip } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
 import {
@@ -705,7 +705,7 @@ const BacktestPage: React.FC = () => {
         )}
         {/* 回测运行错误提示（仅运行失败时展示） */}
         {runError && (
-          <ApiErrorAlert error={runError} className="mt-2 max-w-4xl" />
+          <InlineTipCard variant="danger" error={runError} className="mt-2 max-w-4xl" />
         )}
         {/* 当前模式说明文案：单日验证模式 / 多日窗口模式 */}
         <p className="mt-2 text-xs text-muted-text">
@@ -742,7 +742,7 @@ const BacktestPage: React.FC = () => {
         <section className="min-h-0 flex-1 overflow-y-auto">
           {/* 页面级错误提示（拉取结果/绩效失败时展示） */}
           {pageError ? (
-            <ApiErrorAlert error={pageError} className="mb-3" />
+            <InlineTipCard variant="danger" error={pageError} className="mb-3" />
           ) : null}
           {/* 加载中状态 */}
           {isLoadingResults ? (

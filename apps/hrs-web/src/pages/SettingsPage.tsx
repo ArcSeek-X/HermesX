@@ -13,7 +13,7 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { ApiErrorAlert, Button, ConfirmDialog, EmptyState } from '../components';
+import { InlineTipCard, Button, ConfirmDialog, EmptyState } from '../components';
 import {
   AgentBackendStatusPanel,
   AuthSettingsCard,
@@ -582,7 +582,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
           </div>
         </div>
 
-        {error ? <ApiErrorAlert error={error} /> : null}
+        {error ? <InlineTipCard variant="danger" error={error} /> : null}
 
         {isLoading && !status ? (
           <p className="text-sm text-muted-text">{t('common.loading')}</p>
@@ -648,7 +648,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
             {firstStockCode ? t('settings.setupGuideSmokeNotReady') : t('settings.setupGuideSmokeNeedsStock')}
           </p>
         ) : null}
-        {smokeError ? <ApiErrorAlert error={smokeError} /> : null}
+        {smokeError ? <InlineTipCard variant="danger" error={smokeError} /> : null}
         {!smokeError && smokeSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={smokeSuccess} variant="success" />
         ) : null}
@@ -1036,8 +1036,8 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
             ))}
           </div>
         ) : null}
-        {statusError ? <ApiErrorAlert error={statusError} /> : null}
-        {runNowError ? <ApiErrorAlert error={runNowError} /> : null}
+        {statusError ? <InlineTipCard variant="danger" error={statusError} /> : null}
+        {runNowError ? <InlineTipCard variant="danger" error={runNowError} /> : null}
         {!runNowError && runNowSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={runNowSuccess} variant="success" />
         ) : null}
@@ -1888,7 +1888,8 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {saveError ? (
-          <ApiErrorAlert
+          <InlineTipCard
+            variant="danger"
             className="mt-3"
             error={saveError}
             actionLabel={retryAction === 'save' ? t('settings.saveRetry') : undefined}
@@ -1899,7 +1900,8 @@ const SettingsPage: React.FC = () => {
 
       {/* ===== 加载错误提示区 ===== */}
       {loadError ? (
-        <ApiErrorAlert
+        <InlineTipCard
+          variant="danger"
           error={loadError}
           actionLabel={retryAction === 'load' ? t('common.retry') : t('settings.reload')}
           onAction={() => void retry()}
@@ -1982,7 +1984,7 @@ const SettingsPage: React.FC = () => {
                 </div>
                 {alphaSiftActionError ? (
                   <div className="mt-3">
-                    <ApiErrorAlert error={alphaSiftActionError} />
+                    <InlineTipCard variant="danger" error={alphaSiftActionError} />
                   </div>
                 ) : null}
                 {!alphaSiftActionError && alphaSiftActionSuccess ? (
@@ -2152,7 +2154,8 @@ const SettingsPage: React.FC = () => {
                     {t('settings.envDockerNote')}
                   </p>
                   {envBackupActionError ? (
-                    <ApiErrorAlert
+                    <InlineTipCard
+                      variant="danger"
                       error={envBackupActionError}
                       actionLabel={envBackupActionError.status === 409 ? t('settings.reload') : undefined}
                       onAction={envBackupActionError.status === 409 ? () => void load() : undefined}
@@ -2276,7 +2279,7 @@ const SettingsPage: React.FC = () => {
                   presentation="toast"
                 />
               )
-            : <ApiErrorAlert error={toast.error} />}
+            : <InlineTipCard variant="danger" error={toast.error} />}
         </div>
       ) : null}
       <ConfirmDialog

@@ -11,7 +11,7 @@ import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
 import type { ParsedApiError } from '../api/error';
 import { getParsedApiError } from '../api/error';
-import { ApiErrorAlert, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '../components';
+import { InlineTipCard, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '../components';
 import { PortfolioSignalSummary } from '../components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
@@ -1226,7 +1226,7 @@ const PortfolioPage: React.FC = () => {
       </section>
 
       {/* ===== 全局提示区（错误/风险/写入/分析提示）===== */}
-      {error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
+      {error ? <InlineTipCard variant="danger" error={error} onDismiss={() => setError(null)} /> : null}
       {riskWarning ? (
         <InlineAlert
           variant="warning"
