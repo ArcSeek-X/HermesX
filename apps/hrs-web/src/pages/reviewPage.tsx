@@ -1741,25 +1741,20 @@ const HomePage: React.FC = () => {
         {/* ===== 系统初始化不完整提示区 ===== */}
         {setupNeedsAction ? (
           <div className="px-3 pb-2 md:px-4">
-            <InlineAlert
+             <InlineTipCard
               variant="warning"
-              title={t('review.setupIncomplete')}
-              message={
-                setupMissingLabels
+              content={{
+                title: t('review.setupIncomplete'),
+                message: setupMissingLabels
                   ? t('review.setupMissingWithLabels', { labels: setupMissingLabels })
-                  : t('review.setupMissingGeneric')
-              }
-              action={(
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => navigate('/settings')}
-                >
-                  {t('review.goSettings')}
-                </Button>
-              )}
-              className="rounded-xl px-3 py-2 text-xs shadow-none"
+                  : t('review.setupMissingGeneric'),
+                rawMessage: setupMissingLabels
+                  ? t('review.setupMissingWithLabels', { labels: setupMissingLabels })
+                  : t('review.setupMissingGeneric'),
+                category: 'missing_params',
+              }}
+              actionLabel={t('review.goSettings')}
+              onAction={() => navigate('/settings')}
             />
           </div>
         ) : null}
@@ -1807,7 +1802,7 @@ const HomePage: React.FC = () => {
               <div className="mb-3">
                 <InlineTipCard
                   variant="danger"
-                  error={marketReviewError}
+                  content={marketReviewError}
                   className="mb-1"
                   onDismiss={() => setMarketReviewError(null)}
                 />
@@ -1828,7 +1823,7 @@ const HomePage: React.FC = () => {
             {error ? (
               <InlineTipCard
                 variant="danger"
-                error={error}
+                content={error}
                 className="mb-3"
                 onDismiss={clearError}
               />
