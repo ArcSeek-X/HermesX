@@ -7,7 +7,7 @@
  *   + 主体（描述+查看详情+右侧操作插槽），定位走视口浮层（placement 固定到上/下 × 左/中/右 6 方位）。
  *
  * 与 InlineTipCard 的区别：
- *   - InlineTipCard：内联插入页面 DOM 流（placement="inside"），由调用方就地渲染。
+ *   - InlineTipCard：内联插入页面 DOM 流，由调用方就地渲染。
  *   - Toast：固定在视口角落，通过 <Toast /> 挂在 body 下的 portal 渲染，
  *     用命令式 showToast() 在任意位置（如 API 拦截器）触发，零第三方依赖。
  *
