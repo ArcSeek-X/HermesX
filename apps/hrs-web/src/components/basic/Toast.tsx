@@ -6,8 +6,8 @@
  *   视觉上参考 HeroUI Toast 风格：圆角卡片 + 语义色边/淡色底/图标 + 头部（图标+标题+关闭按钮）
  *   + 主体（描述+查看详情+右侧操作插槽），定位走视口浮层（placement 固定到上/下 × 左/中/右 6 方位）。
  *
- * 与 ApiErrorAlert 的区别：
- *   - ApiErrorAlert：内联插入页面 DOM 流（placement="inside"），由调用方就地渲染。
+ * 与 InlineTipCard 的区别：
+ *   - InlineTipCard：内联插入页面 DOM 流（placement="inside"），由调用方就地渲染。
  *   - Toast：固定在视口角落，通过 <Toast /> 挂在 body 下的 portal 渲染，
  *     用命令式 showToast() 在任意位置（如 API 拦截器）触发，零第三方依赖。
  *
@@ -221,7 +221,7 @@ const ToastContent: React.FC<{
             {/* 上层内容区：左边内缩 8px（ml-[2]），露出外层语义色边 */}
             <div
                 role={variant === 'danger' || variant === 'warning' ? 'alert' : 'status'}
-                className={cn('flex w-full min-w-0 flex-col rounded-md ml-2 px-3 py-2', variantStyles.surface)}
+                className={cn('flex w-full min-w-0 flex-col rounded-md ml-1 px-3 py-2', variantStyles.surface)}
             >
                 {/* header：图标 + title + 关闭按钮（三者水平居中对齐） */}
                 <div className="flex items-center gap-2.5">
