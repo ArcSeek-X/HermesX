@@ -29,18 +29,18 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
   const displayedRegions = value ?? [];
 
   const regionLabels: Record<MarketReviewRegion, string> = {
-    cn: t('home.marketRegionCn'),
-    hk: t('home.marketRegionHk'),
-    us: t('home.marketRegionUs'),
-    jp: t('home.marketRegionJp'),
-    kr: t('home.marketRegionKr'),
+    cn: t('review.marketRegionCn'),
+    hk: t('review.marketRegionHk'),
+    us: t('review.marketRegionUs'),
+    jp: t('review.marketRegionJp'),
+    kr: t('review.marketRegionKr'),
   };
 
   const formatRegions = (regions: MarketReviewRegion[]) => (
     regions.map((region) => regionLabels[region]).join(' + ')
   );
   const triggerLabel = value === undefined
-    ? t('home.marketRegionServerDefault')
+    ? t('review.marketRegionServerDefault')
     : formatRegions([...displayedRegions]);
 
   const close = useCallback((restoreFocus = false) => {
@@ -102,7 +102,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
         aria-haspopup="dialog"
         aria-expanded={menuOpen}
         aria-controls={menuOpen ? 'market-review-region-menu' : undefined}
-        aria-label={t('home.marketRegionSelector')}
+        aria-label={t('review.marketRegionSelector')}
         onClick={() => setOpen((current) => !current)}
         className={cn(
           'flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-subtle bg-surface/60 px-3 text-left text-xs text-secondary-text transition-colors',
@@ -122,7 +122,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
         <div
           id="market-review-region-menu"
           role="dialog"
-          aria-label={t('home.marketRegionSelector')}
+          aria-label={t('review.marketRegionSelector')}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
@@ -132,8 +132,8 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
           className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-subtle bg-surface/95 p-2 shadow-2xl shadow-black/25 backdrop-blur-xl"
         >
           <div className="border-b border-subtle px-2.5 py-2">
-            <p className="text-sm font-semibold text-foreground">{t('home.marketRegionTitle')}</p>
-            <p className="mt-1 text-xs leading-5 text-muted-text">{t('home.marketRegionDescription')}</p>
+            <p className="text-sm font-semibold text-foreground">{t('review.marketRegionTitle')}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-text">{t('review.marketRegionDescription')}</p>
           </div>
 
           <div className="space-y-1 py-2">
@@ -150,9 +150,9 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
             >
               <RotateCcw className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1">
-                <span className="block font-medium">{t('home.marketRegionServerDefault')}</span>
+                <span className="block font-medium">{t('review.marketRegionServerDefault')}</span>
                 <span className="mt-0.5 block truncate text-xs text-muted-text">
-                  {t('home.marketRegionDefaultUnavailable')}
+                  {t('review.marketRegionDefaultUnavailable')}
                 </span>
               </span>
               <Check className={cn('h-4 w-4', value === undefined ? 'opacity-100' : 'opacity-0')} aria-hidden="true" />
@@ -171,7 +171,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
                   aria-hidden="true"
                 />
               </span>
-              <span className="font-medium">{t('home.marketRegionAll')}</span>
+              <span className="font-medium">{t('review.marketRegionAll')}</span>
             </button>
 
             <div className="grid grid-cols-1 gap-1 pt-1 sm:grid-cols-2">
@@ -198,7 +198,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
           </div>
 
           <p className="px-2.5 pb-1 text-[11px] leading-4 text-muted-text">
-            {t('home.marketRegionOneTimeHint')}
+            {t('review.marketRegionOneTimeHint')}
           </p>
         </div>
       ) : null}

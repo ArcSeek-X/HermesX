@@ -63,7 +63,7 @@ export interface ToastOptions {
     className?: string;
     /** 浮层方位，默认 "top" */
     placement?: ToastPlacement;
-    }
+}
 
 /**
  * 把 placement 映射为 fixed 浮层的 inline style。
@@ -241,7 +241,9 @@ const ToastContent: React.FC<{
                         type="button"
                         aria-label={t('common.close')}
                         onClick={onDismiss}
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-text transition hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center 
+                            text-muted-text/60 transition-colors hover:bg-surface-2 hover:text-muted-text
+                            focus:outline-none"
                     >
                         <CloseIcon className="h-3.5 w-3.5" />
                     </button>
@@ -326,30 +328,30 @@ function getSnapshot(): ToastItem[] {
 
 /** showToast 及其便捷方法（variant 预设）的调用接口 */
 export interface ShowToastAPI {
-  /** 以单对象入参触发一个 Toast */
-  (options: ToastOptions): string;
-  /** info 便捷封装：固定 variant 为 accent（信息/强调风格） */
-  info: (options: Omit<ToastOptions, 'variant'>) => string;
-  /** success 便捷封装：固定 variant 为 success */
-  success: (options: Omit<ToastOptions, 'variant'>) => string;
-  /** warning 便捷封装：固定 variant 为 warning */
-  warning: (options: Omit<ToastOptions, 'variant'>) => string;
-  /** danger 便捷封装：固定 variant 为 danger */
-  danger: (options: Omit<ToastOptions, 'variant'>) => string;
+    /** 以单对象入参触发一个 Toast */
+    (options: ToastOptions): string;
+    /** info 便捷封装：固定 variant 为 accent（信息/强调风格） */
+    info: (options: Omit<ToastOptions, 'variant'>) => string;
+    /** success 便捷封装：固定 variant 为 success */
+    success: (options: Omit<ToastOptions, 'variant'>) => string;
+    /** warning 便捷封装：固定 variant 为 warning */
+    warning: (options: Omit<ToastOptions, 'variant'>) => string;
+    /** danger 便捷封装：固定 variant 为 danger */
+    danger: (options: Omit<ToastOptions, 'variant'>) => string;
 }
 
 /** 触发函数本体：向模块级队列追加一条 Toast 并通知宿主刷新 */
 function toastFn(options: ToastOptions): string {
-  const id = `toast-${++seq}`;
-  toastItems = [
-    ...toastItems,
-    {
-      id,
-      options,
-    },
-  ];
-  emitChange();
-  return id;
+    const id = `toast-${++seq}`;
+    toastItems = [
+        ...toastItems,
+        {
+            id,
+            options,
+        },
+    ];
+    emitChange();
+    return id;
 }
 
 /**
@@ -360,10 +362,10 @@ function toastFn(options: ToastOptions): string {
  * @returns       toast id，可用于 dismissToast
  */
 export const showToast: ShowToastAPI = Object.assign(toastFn, {
-  info: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'accent' }),
-  success: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'success' }),
-  warning: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'warning' }),
-  danger: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'danger' }),
+    info: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'accent' }),
+    success: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'success' }),
+    warning: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'warning' }),
+    danger: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'danger' }),
 });
 
 /** 手动关闭指定 Toast。 */

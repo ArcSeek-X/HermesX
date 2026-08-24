@@ -244,60 +244,60 @@ const zh = {
   'login.setupTitle': '設定初始密碼', // 初始密碼設定標題
   'login.validationFailed': '驗證未通過', // 驗證失敗提示
 
-  'home.analyze': '分析', // 分析按鈕
-  'home.analyzing': '分析中', // 分析中狀態
-  'home.askAi': '追問 AI', // 追問 AI 按鈕
-  'home.defaultStrategyDescription': '沿用系統預設分析框架', // 預設策略描述
-  'home.defaultStrategyName': '預設策略', // 預設策略名稱
-  'home.duplicateTask': '任務已存在', // 重復任務提示
-  'home.goSettings': '去配置', // 跳轉設定按鈕
-  'home.historyButton': '歷史記錄', // 歷史記錄按鈕
-  'home.historyTrend': '歷史趨勢', // 歷史趨勢入口
-  'home.inputInvalid': '輸入有誤', // 輸入无效提示
-  'home.loadingReport': '載入報告中...', // 報告載入中狀態
-  'home.marketReview': '大盤復盘', // 大盤復盘入口
-  'home.marketReviewCompleted': '大盤復盘已完成', // 大盤復盘完成提示
-  'home.marketReviewCompletedWithReport': '大盤復盘任務已完成，結果如下：', // 大盤復盘完成含結果
-  'home.marketReviewCompletedWithoutReport': '大盤復盘任務已完成，結果已生成並按配置推送。', // 大盤復盘完成无結果展示
-  'home.marketReviewFailed': '大盤復盘執行失敗。', // 大盤復盘失敗提示
-  'home.marketReviewHistoryEmptyDescription': '运行大盤復盘後，這裡會集中展示歷史記錄。', // 大盤復盘歷史空狀態描述
-  'home.marketReviewHistoryEmptyTitle': '暫无大盤復盘', // 大盤復盘歷史空狀態標題
-  'home.marketReviewHistoryTitle': '大盤復盘歷史', // 大盤復盘歷史標題
-  'home.marketReviewInProgress': '大盤復盘進行中', // 大盤復盘進行中狀態
-  'home.marketReviewSubmitted': '大盤復盘已提交', // 大盤復盘已提交提示
-  'home.marketReviewSubmittedWithRegion': '{message}；實际市场：{region}', // 大盤復盘提交含市场
-  'home.marketReviewTimeout': '大盤復盘已超時', // 大盤復盘超時提示
-  'home.marketReviewTimeoutMessage': '任務长時間未返回最终結果，請在任務列表/歷史中查看。', // 大盤復盘超時說明
-  'home.marketReviewUnknownStatus': '大盤復盘狀態異常', // 大盤復盘狀態異常提示
-  'home.marketRegionAll': '全部市场', // 全部市场選項
-  'home.marketRegionCn': 'A 股', // A 股市场
-  'home.marketRegionDefaultUnavailable': '由伺服器在提交時决定', // 市场預設值不可用說明
-  'home.marketRegionDescription': '選擇本次復盘覆盖的市场，可單選或多選。', // 市场選擇說明
-  'home.marketRegionHk': '港股', // 港股市场
-  'home.marketRegionJp': '日股', // 日股市场
-  'home.marketRegionKr': '韩股', // 韩股市场
-  'home.marketRegionOneTimeHint': '仅影响本次触發，不會修改全局配置。', // 市场選擇一次性提示
-  'home.marketRegionSelector': '選擇大盤復盘市场', // 市场選擇器標題
-  'home.marketRegionServerDefault': '伺服器預設', // 伺服器預設市场
-  'home.marketRegionTitle': '本次復盘市场', // 本次復盘市场標題
-  'home.marketRegionUs': '美股', // 美股市场
-  'home.notify': '推送通知', // 推送通知選項
-  'home.pageTitle': '每日選股分析 - HRS', // 首頁文檔標題
-  'home.placeholder': '輸入股票代碼或名稱，如 600519、贵州茅臺、AAPL', // 股票輸入框占位符
-  'home.progressActive': '進行中', // 任務進行中狀態
-  'home.reanalyze': '重新分析', // 重新分析按鈕
-  'home.rerunMarketReview': '重新復盘', // 重新復盘按鈕
-  'home.fullReport': '完整分析報告', // 完整報告入口
-  'home.setupIncomplete': '基础配置未完成', // 配置未完成提示
-  'home.setupMissingGeneric': '还缺少基础配置，完成後即可開始最小可用分析。', // 缺少配置通用提示
-  'home.setupMissingWithLabels': '还缺少 {labels}，完成後即可開始最小可用分析。', // 缺少配置含標簽提示
-  'home.startAnalysisDescription': '輸入股票代碼進行分析，或從左側選擇歷史報告查看。', // 開始分析描述
-  'home.startAnalysisTitle': '開始分析', // 開始分析標題
-  'home.strategy': '策略', // 策略標簽
-  'home.submitMarketReview': '提交中', // 大盤復盘提交中狀態
-  'home.taskStatus': '任務狀態：{status}（{progress}）', // 任務狀態文案
-  'home.taskStatusWithRegion': '任務狀態：{status}（{progress}）；實际市场：{region}', // 任務狀態含市场
-  'home.unknownTaskStatus': '收到未知任務狀態：{status}', // 未知任務狀態提示
+  'review.analyze': '分析', // 分析按鈕
+  'review.analyzing': '分析中', // 分析中狀態
+  'review.askAi': '追問 AI', // 追問 AI 按鈕
+  'review.defaultStrategyDescription': '沿用系統預設分析框架', // 預設策略描述
+  'review.defaultStrategyName': '預設策略', // 預設策略名稱
+  'review.duplicateTask': '任務已存在', // 重復任務提示
+  'review.goSettings': '去配置', // 跳轉設定按鈕
+  'review.historyButton': '歷史記錄', // 歷史記錄按鈕
+  'review.historyTrend': '歷史趨勢', // 歷史趨勢入口
+  'review.inputInvalid': '輸入有誤', // 輸入无效提示
+  'review.loadingReport': '載入報告中...', // 報告載入中狀態
+  'review.marketReview': '大盤復盘', // 大盤復盘入口
+  'review.marketReviewCompleted': '大盤復盘已完成', // 大盤復盘完成提示
+  'review.marketReviewCompletedWithReport': '大盤復盘任務已完成，結果如下：', // 大盤復盘完成含結果
+  'review.marketReviewCompletedWithoutReport': '大盤復盘任務已完成，結果已生成並按配置推送。', // 大盤復盘完成无結果展示
+  'review.marketReviewFailed': '大盤復盘執行失敗。', // 大盤復盘失敗提示
+  'review.marketReviewHistoryEmptyDescription': '运行大盤復盘後，這裡會集中展示歷史記錄。', // 大盤復盘歷史空狀態描述
+  'review.marketReviewHistoryEmptyTitle': '暫无大盤復盘', // 大盤復盘歷史空狀態標題
+  'review.marketReviewHistoryTitle': '大盤復盘歷史', // 大盤復盘歷史標題
+  'review.marketReviewInProgress': '大盤復盘進行中', // 大盤復盘進行中狀態
+  'review.marketReviewSubmitted': '大盤復盘已提交', // 大盤復盘已提交提示
+  'review.marketReviewSubmittedWithRegion': '{message}；實际市场：{region}', // 大盤復盘提交含市场
+  'review.marketReviewTimeout': '大盤復盘已超時', // 大盤復盘超時提示
+  'review.marketReviewTimeoutMessage': '任務长時間未返回最终結果，請在任務列表/歷史中查看。', // 大盤復盘超時說明
+  'review.marketReviewUnknownStatus': '大盤復盘狀態異常', // 大盤復盘狀態異常提示
+  'review.marketRegionAll': '全部市场', // 全部市场選項
+  'review.marketRegionCn': 'A 股', // A 股市场
+  'review.marketRegionDefaultUnavailable': '由伺服器在提交時决定', // 市场預設值不可用說明
+  'review.marketRegionDescription': '選擇本次復盘覆盖的市场，可單選或多選。', // 市场選擇說明
+  'review.marketRegionHk': '港股', // 港股市场
+  'review.marketRegionJp': '日股', // 日股市场
+  'review.marketRegionKr': '韩股', // 韩股市场
+  'review.marketRegionOneTimeHint': '仅影响本次触發，不會修改全局配置。', // 市场選擇一次性提示
+  'review.marketRegionSelector': '選擇大盤復盘市场', // 市场選擇器標題
+  'review.marketRegionServerDefault': '伺服器預設', // 伺服器預設市场
+  'review.marketRegionTitle': '本次復盘市场', // 本次復盘市场標題
+  'review.marketRegionUs': '美股', // 美股市场
+  'review.notify': '推送通知', // 推送通知選項
+  'review.pageTitle': '每日選股分析 - HRS', // 首頁文檔標題
+  'review.placeholder': '輸入股票代碼或名稱，如 600519、贵州茅臺、AAPL', // 股票輸入框占位符
+  'review.progressActive': '進行中', // 任務進行中狀態
+  'review.reanalyze': '重新分析', // 重新分析按鈕
+  'review.rerunMarketReview': '重新復盘', // 重新復盘按鈕
+  'review.fullReport': '完整分析報告', // 完整報告入口
+  'review.setupIncomplete': '基础配置未完成', // 配置未完成提示
+  'review.setupMissingGeneric': '还缺少基础配置，完成後即可開始最小可用分析。', // 缺少配置通用提示
+  'review.setupMissingWithLabels': '还缺少 {labels}，完成後即可開始最小可用分析。', // 缺少配置含標簽提示
+  'review.startAnalysisDescription': '輸入股票代碼進行分析，或從左側選擇歷史報告查看。', // 開始分析描述
+  'review.startAnalysisTitle': '開始分析', // 開始分析標題
+  'review.strategy': '策略', // 策略標簽
+  'review.submitMarketReview': '提交中', // 大盤復盘提交中狀態
+  'review.taskStatus': '任務狀態：{status}（{progress}）', // 任務狀態文案
+  'review.taskStatusWithRegion': '任務狀態：{status}（{progress}）；實际市场：{region}', // 任務狀態含市场
+  'review.unknownTaskStatus': '收到未知任務狀態：{status}', // 未知任務狀態提示
 
   'decisionSignals.action': '動作', // 信號動作標簽
   'decisionSignals.active': '有效', // 有效信號狀態

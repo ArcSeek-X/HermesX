@@ -72,7 +72,6 @@ const zh = {
   'layout.nav.settings': '设置', // 设置导航项
   'layout.nav.screening': '选股', // 选股导航项
   'layout.nav.usage': '用量', // 用量导航项
-  'layout.nav.codeTest': '测试', // 测试页导航项
   'layout.navMenu': '导航菜单', // 导航菜单标签
   'layout.newChatMessage': '问股有新消息', // 问股新消息提示
   'layout.openNav': '打开导航菜单', // 打开导航菜单提示
@@ -244,60 +243,60 @@ const zh = {
   'login.setupTitle': '设置初始密码', // 初始密码设置标题
   'login.validationFailed': '验证未通过', // 验证失败提示
 
-  'home.analyze': '分析', // 分析按钮
-  'home.analyzing': '分析中', // 分析中状态
-  'home.askAi': '追问 AI', // 追问 AI 按钮
-  'home.defaultStrategyDescription': '沿用系统默认分析框架', // 默认策略描述
-  'home.defaultStrategyName': '默认策略', // 默认策略名称
-  'home.duplicateTask': '任务已存在', // 重复任务提示
-  'home.goSettings': '去配置', // 跳转设置按钮
-  'home.historyButton': '历史记录', // 历史记录按钮
-  'home.historyTrend': '历史趋势', // 历史趋势入口
-  'home.inputInvalid': '输入有误', // 输入无效提示
-  'home.loadingReport': '加载报告中...', // 报告加载中状态
-  'home.marketReview': '大盘复盘', // 大盘复盘入口
-  'home.marketReviewCompleted': '大盘复盘已完成', // 大盘复盘完成提示
-  'home.marketReviewCompletedWithReport': '大盘复盘任务已完成，结果如下：', // 大盘复盘完成含结果
-  'home.marketReviewCompletedWithoutReport': '大盘复盘任务已完成，结果已生成并按配置推送。', // 大盘复盘完成无结果展示
-  'home.marketReviewFailed': '大盘复盘执行失败。', // 大盘复盘失败提示
-  'home.marketReviewHistoryEmptyDescription': '运行大盘复盘后，这里会集中展示历史记录。', // 大盘复盘历史空状态描述
-  'home.marketReviewHistoryEmptyTitle': '暂无大盘复盘', // 大盘复盘历史空状态标题
-  'home.marketReviewHistoryTitle': '大盘复盘历史', // 大盘复盘历史标题
-  'home.marketReviewInProgress': '大盘复盘进行中', // 大盘复盘进行中状态
-  'home.marketReviewSubmitted': '大盘复盘已提交', // 大盘复盘已提交提示
-  'home.marketReviewSubmittedWithRegion': '{message}；实际市场：{region}', // 大盘复盘提交含市场
-  'home.marketReviewTimeout': '大盘复盘已超时', // 大盘复盘超时提示
-  'home.marketReviewTimeoutMessage': '任务长时间未返回最终结果，请在任务列表/历史中查看。', // 大盘复盘超时说明
-  'home.marketReviewUnknownStatus': '大盘复盘状态异常', // 大盘复盘状态异常提示
-  'home.marketRegionAll': '全部市场', // 全部市场选项
-  'home.marketRegionCn': 'A 股', // A 股市场
-  'home.marketRegionDefaultUnavailable': '由服务器在提交时决定', // 市场默认值不可用说明
-  'home.marketRegionDescription': '选择本次复盘覆盖的市场，可单选或多选。', // 市场选择说明
-  'home.marketRegionHk': '港股', // 港股市场
-  'home.marketRegionJp': '日股', // 日股市场
-  'home.marketRegionKr': '韩股', // 韩股市场
-  'home.marketRegionOneTimeHint': '仅影响本次触发，不会修改全局配置。', // 市场选择一次性提示
-  'home.marketRegionSelector': '选择大盘复盘市场', // 市场选择器标题
-  'home.marketRegionServerDefault': '服务器默认', // 服务器默认市场
-  'home.marketRegionTitle': '本次复盘市场', // 本次复盘市场标题
-  'home.marketRegionUs': '美股', // 美股市场
-  'home.notify': '推送通知', // 推送通知选项
-  'home.pageTitle': '每日选股分析 - HRS', // 首页文档标题
-  'home.placeholder': '输入股票代码或名称，如 600519、贵州茅台、AAPL', // 股票输入框占位符
-  'home.progressActive': '进行中', // 任务进行中状态
-  'home.reanalyze': '重新分析', // 重新分析按钮
-  'home.rerunMarketReview': '重新复盘', // 重新复盘按钮
-  'home.fullReport': '完整分析报告', // 完整报告入口
-  'home.setupIncomplete': '基础配置未完成', // 配置未完成提示
-  'home.setupMissingGeneric': '还缺少基础配置，完成后即可开始最小可用分析。', // 缺少配置通用提示
-  'home.setupMissingWithLabels': '还缺少 {labels}，完成后即可开始最小可用分析。', // 缺少配置含标签提示
-  'home.startAnalysisDescription': '输入股票代码进行分析，或从左侧选择历史报告查看。', // 开始分析描述
-  'home.startAnalysisTitle': '开始分析', // 开始分析标题
-  'home.strategy': '策略', // 策略标签
-  'home.submitMarketReview': '提交中', // 大盘复盘提交中状态
-  'home.taskStatus': '任务状态：{status}（{progress}）', // 任务状态文案
-  'home.taskStatusWithRegion': '任务状态：{status}（{progress}）；实际市场：{region}', // 任务状态含市场
-  'home.unknownTaskStatus': '收到未知任务状态：{status}', // 未知任务状态提示
+  'review.analyze': '分析', // 分析按钮
+  'review.analyzing': '分析中', // 分析中状态
+  'review.askAi': '追问 AI', // 追问 AI 按钮
+  'review.defaultStrategyDescription': '沿用系统默认分析框架', // 默认策略描述
+  'review.defaultStrategyName': '默认策略', // 默认策略名称
+  'review.duplicateTask': '任务已存在', // 重复任务提示
+  'review.goSettings': '去配置', // 跳转设置按钮
+  'review.historyButton': '历史记录', // 历史记录按钮
+  'review.historyTrend': '历史趋势', // 历史趋势入口
+  'review.inputInvalid': '输入有误', // 输入无效提示
+  'review.loadingReport': '加载报告中...', // 报告加载中状态
+  'review.marketReview': '大盘复盘', // 大盘复盘入口
+  'review.marketReviewCompleted': '大盘复盘已完成', // 大盘复盘完成提示
+  'review.marketReviewCompletedWithReport': '大盘复盘任务已完成，结果如下：', // 大盘复盘完成含结果
+  'review.marketReviewCompletedWithoutReport': '大盘复盘任务已完成，结果已生成并按配置推送。', // 大盘复盘完成无结果展示
+  'review.marketReviewFailed': '大盘复盘执行失败。', // 大盘复盘失败提示
+  'review.marketReviewHistoryEmptyDescription': '运行大盘复盘后，这里会集中展示历史记录。', // 大盘复盘历史空状态描述
+  'review.marketReviewHistoryEmptyTitle': '暂无大盘复盘', // 大盘复盘历史空状态标题
+  'review.marketReviewHistoryTitle': '大盘复盘历史', // 大盘复盘历史标题
+  'review.marketReviewInProgress': '大盘复盘进行中', // 大盘复盘进行中状态
+  'review.marketReviewSubmitted': '大盘复盘已提交', // 大盘复盘已提交提示
+  'review.marketReviewSubmittedWithRegion': '{message}；实际市场：{region}', // 大盘复盘提交含市场
+  'review.marketReviewTimeout': '大盘复盘已超时', // 大盘复盘超时提示
+  'review.marketReviewTimeoutMessage': '任务长时间未返回最终结果，请在任务列表/历史中查看。', // 大盘复盘超时说明
+  'review.marketReviewUnknownStatus': '大盘复盘状态异常', // 大盘复盘状态异常提示
+  'review.marketRegionAll': '全部市场', // 全部市场选项
+  'review.marketRegionCn': 'A 股', // A 股市场
+  'review.marketRegionDefaultUnavailable': '由服务器在提交时决定', // 市场默认值不可用说明
+  'review.marketRegionDescription': '选择本次复盘覆盖的市场，可单选或多选。', // 市场选择说明
+  'review.marketRegionHk': '港股', // 港股市场
+  'review.marketRegionJp': '日股', // 日股市场
+  'review.marketRegionKr': '韩股', // 韩股市场
+  'review.marketRegionOneTimeHint': '仅影响本次触发，不会修改全局配置。', // 市场选择一次性提示
+  'review.marketRegionSelector': '选择大盘复盘市场', // 市场选择器标题
+  'review.marketRegionServerDefault': '服务器默认', // 服务器默认市场
+  'review.marketRegionTitle': '本次复盘市场', // 本次复盘市场标题
+  'review.marketRegionUs': '美股', // 美股市场
+  'review.notify': '推送通知', // 推送通知选项
+  'review.pageTitle': '每日选股分析 - HRS', // 首页文档标题
+  'review.placeholder': '输入股票代码或名称，如 600519、贵州茅台、AAPL', // 股票输入框占位符
+  'review.progressActive': '进行中', // 任务进行中状态
+  'review.reanalyze': '重新分析', // 重新分析按钮
+  'review.rerunMarketReview': '重新复盘', // 重新复盘按钮
+  'review.fullReport': '完整分析报告', // 完整报告入口
+  'review.setupIncomplete': '基础配置未完成', // 配置未完成提示
+  'review.setupMissingGeneric': '还缺少基础配置，完成后即可开始最小可用分析。', // 缺少配置通用提示
+  'review.setupMissingWithLabels': '还缺少 {labels}，完成后即可开始最小可用分析。', // 缺少配置含标签提示
+  'review.startAnalysisDescription': '输入股票代码进行分析，或从左侧选择历史报告查看。', // 开始分析描述
+  'review.startAnalysisTitle': '开始分析', // 开始分析标题
+  'review.strategy': '策略', // 策略标签
+  'review.submitMarketReview': '提交中', // 大盘复盘提交中状态
+  'review.taskStatus': '任务状态：{status}（{progress}）', // 任务状态文案
+  'review.taskStatusWithRegion': '任务状态：{status}（{progress}）；实际市场：{region}', // 任务状态含市场
+  'review.unknownTaskStatus': '收到未知任务状态：{status}', // 未知任务状态提示
 
   'decisionSignals.action': '动作', // 信号动作标签
   'decisionSignals.active': '有效', // 有效信号状态

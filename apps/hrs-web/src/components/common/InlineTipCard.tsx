@@ -193,7 +193,9 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                             type="button"
                             aria-label={t('common.close')}
                             onClick={onDismiss}
-                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-text transition hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center 
+                            text-muted-text/60 transition-colors hover:bg-surface-2 hover:text-muted-text
+                            focus:outline-none"
                         >
                             <CloseIcon className="h-3.5 w-3.5" />
                         </button>

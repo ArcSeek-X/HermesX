@@ -447,7 +447,7 @@ const HomePage: React.FC = () => {
 
   // 设置页面标题
   useEffect(() => {
-    document.title = t('home.pageTitle');
+    document.title = t('review.pageTitle');
   }, [t]);
 
   /**
@@ -558,7 +558,7 @@ const HomePage: React.FC = () => {
   /** 策略选项列表：默认策略 + 所有可用策略 */
   const strategyOptions = useMemo(
     () => [
-      { id: '', name: t('home.defaultStrategyName'), description: t('home.defaultStrategyDescription') },
+      { id: '', name: t('review.defaultStrategyName'), description: t('review.defaultStrategyDescription') },
       ...analysisSkills.map((skill) => ({
         id: skill.id,
         name: skill.name,
@@ -1039,8 +1039,8 @@ const HomePage: React.FC = () => {
           setMarketReviewPayload(null);
           setMarketReviewNotice({
             variant: 'danger',
-            title: t('home.marketReviewTimeout'),
-            message: t('home.marketReviewTimeoutMessage'),
+            title: t('review.marketReviewTimeout'),
+            message: t('review.marketReviewTimeoutMessage'),
           });
           scrollMarketReviewFeedbackIntoView();
           return false;
@@ -1056,13 +1056,13 @@ const HomePage: React.FC = () => {
             setMarketReviewPayload(null);
             const progress = typeof status.progress === 'number'
               ? `${status.progress}%`
-              : t('home.progressActive');
+              : t('review.progressActive');
             setMarketReviewNotice({
               variant: 'warning',
-              title: t('home.marketReviewInProgress'),
+              title: t('review.marketReviewInProgress'),
               message: status.region
-                ? t('home.taskStatusWithRegion', { status: status.status, progress, region: status.region })
-                : t('home.taskStatus', { status: status.status, progress }),
+                ? t('review.taskStatusWithRegion', { status: status.status, progress, region: status.region })
+                : t('review.taskStatus', { status: status.status, progress }),
             });
             return true;
           }
@@ -1077,8 +1077,8 @@ const HomePage: React.FC = () => {
             setMarketReviewPayload(status.marketReviewPayload ?? null);
             setMarketReviewNotice({
               variant: 'success',
-              title: t('home.marketReviewCompleted'),
-              message: marketReviewText ? t('home.marketReviewCompletedWithReport') : t('home.marketReviewCompletedWithoutReport'),
+              title: t('review.marketReviewCompleted'),
+              message: marketReviewText ? t('review.marketReviewCompletedWithReport') : t('review.marketReviewCompletedWithoutReport'),
             });
             setMarketReviewError(null);
             await refreshMarketReviewHistory(true);
@@ -1097,7 +1097,7 @@ const HomePage: React.FC = () => {
                   status: 500,
                   data: {
                     error: 'market_review_failed',
-                    message: status.error || t('home.marketReviewFailed'),
+                    message: status.error || t('review.marketReviewFailed'),
                   },
                 },
               }),
@@ -1113,8 +1113,8 @@ const HomePage: React.FC = () => {
           setMarketReviewPayload(null);
           setMarketReviewNotice({
             variant: 'danger',
-            title: t('home.marketReviewUnknownStatus'),
-            message: t('home.unknownTaskStatus', { status: status.status }),
+            title: t('review.marketReviewUnknownStatus'),
+            message: t('review.unknownTaskStatus', { status: status.status }),
           });
           scrollMarketReviewFeedbackIntoView();
           return false;
@@ -1171,8 +1171,8 @@ const HomePage: React.FC = () => {
       });
       setMarketReviewNotice({
         variant: 'success',
-        title: t('home.marketReviewSubmitted'),
-        message: t('home.marketReviewSubmittedWithRegion', {
+        title: t('review.marketReviewSubmitted'),
+        message: t('review.marketReviewSubmittedWithRegion', {
           message: result.message,
           region: result.region,
         }),
@@ -1494,7 +1494,7 @@ const HomePage: React.FC = () => {
     const marketReviewItem: StockBarItem = {
       id: latestMarketReview.id,
       stockCode: 'MARKET',
-      stockName: latestMarketReview.stockName || t('home.marketReview'),
+      stockName: latestMarketReview.stockName || t('review.marketReview'),
       reportType: 'market_review',
       sentimentScore: latestMarketReview.sentimentScore,
       operationAdvice: latestMarketReview.operationAdvice,
@@ -1585,7 +1585,7 @@ const HomePage: React.FC = () => {
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="md:hidden -ml-1 flex-shrink-0 rounded-lg p-1.5 text-secondary-text transition-colors hover:bg-hover hover:text-foreground"
-                aria-label={t('home.historyButton')}
+                aria-label={t('review.historyButton')}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -1598,7 +1598,7 @@ const HomePage: React.FC = () => {
                   onSubmit={(stockCode, stockName, selectionSource) => {
                     handleSubmitAnalysis(stockCode, stockName, selectionSource);
                   }}
-                  placeholder={t('home.placeholder')}
+                  placeholder={t('review.placeholder')}
                   disabled={isAnalyzing}
                   className={inputError ? 'border-danger/50' : undefined}
                 />
@@ -1618,7 +1618,7 @@ const HomePage: React.FC = () => {
                     className="home-surface-button flex h-10 max-w-[8.5rem] items-center gap-1.5 rounded-xl px-3 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-[11rem]"
                   >
                     <SlidersHorizontal className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-                    <span className="truncate">{selectedStrategy?.name || t('home.strategy')}</span>
+                    <span className="truncate">{selectedStrategy?.name || t('review.strategy')}</span>
                   </button>
                   {strategyMenuOpen ? (
                     <div
@@ -1670,19 +1670,19 @@ const HomePage: React.FC = () => {
                   onChange={(e) => setNotify(e.target.checked)}
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
-                {t('home.notify')}
+                {t('review.notify')}
               </label>
               <Button
                 type="button"
                 variant="secondary"
                 size="md"
                 isLoading={isSubmittingMarketReview}
-                loadingText={t('home.submitMarketReview')}
+                loadingText={t('review.submitMarketReview')}
                 onClick={() => void handleTriggerMarketReview()}
                 className="h-10 flex-1 whitespace-nowrap md:flex-none"
               >
                 <BarChart3 className="h-4 w-4" aria-hidden="true" />
-                {t('home.marketReview')}
+                {t('review.marketReview')}
               </Button>
               <button
                 type="button"
@@ -1696,10 +1696,10 @@ const HomePage: React.FC = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    {t('home.analyzing')}
+                    {t('review.analyzing')}
                   </>
                 ) : (
-                  t('home.analyze')
+                  t('review.analyze')
                 )}
               </button>
             </div>
@@ -1712,7 +1712,7 @@ const HomePage: React.FC = () => {
             {inputError ? (
               <InlineAlert
                 variant="danger"
-                title={t('home.inputInvalid')}
+                title={t('review.inputInvalid')}
                 message={inputError}
                 className="rounded-xl px-3 py-2 text-xs shadow-none"
               />
@@ -1720,7 +1720,7 @@ const HomePage: React.FC = () => {
             {!inputError && duplicateError && duplicateBannerVisible ? (
               <InlineAlert
                 variant="warning"
-                title={t('home.duplicateTask')}
+                title={t('review.duplicateTask')}
                 message={duplicateError}
                 action={(
                   <button
@@ -1743,11 +1743,11 @@ const HomePage: React.FC = () => {
           <div className="px-3 pb-2 md:px-4">
             <InlineAlert
               variant="warning"
-              title={t('home.setupIncomplete')}
+              title={t('review.setupIncomplete')}
               message={
                 setupMissingLabels
-                  ? t('home.setupMissingWithLabels', { labels: setupMissingLabels })
-                  : t('home.setupMissingGeneric')
+                  ? t('review.setupMissingWithLabels', { labels: setupMissingLabels })
+                  : t('review.setupMissingGeneric')
               }
               action={(
                 <Button
@@ -1756,7 +1756,7 @@ const HomePage: React.FC = () => {
                   size="sm"
                   onClick={() => navigate('/settings')}
                 >
-                  {t('home.goSettings')}
+                  {t('review.goSettings')}
                 </Button>
               )}
               className="rounded-xl px-3 py-2 text-xs shadow-none"
@@ -1836,7 +1836,7 @@ const HomePage: React.FC = () => {
             {/* ===== 报告加载中状态 ===== */}
             {!marketReviewReport && isLoadingReport ? (
               <div className="flex h-full flex-col items-center justify-center">
-                <DashboardStateBlock title={t('home.loadingReport')} loading />
+                <DashboardStateBlock title={t('review.loadingReport')} loading />
               </div>
             ) : !marketReviewReport && selectedReport ? (
               /* ===== 报告展示区：操作按钮 + 历史趋势/报告摘要 ===== */
@@ -1854,7 +1854,7 @@ const HomePage: React.FC = () => {
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        {t('home.reanalyze')}
+                        {t('review.reanalyze')}
                       </Button>
                       <Button
                         variant="home-action-ai"
@@ -1865,7 +1865,7 @@ const HomePage: React.FC = () => {
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
-                        {t('home.askAi')}
+                        {t('review.askAi')}
                       </Button>
                     </>
                   ) : (
@@ -1874,11 +1874,11 @@ const HomePage: React.FC = () => {
                       size="sm"
                       disabled={isSubmittingMarketReview}
                       isLoading={isSubmittingMarketReview}
-                      loadingText={t('home.submitMarketReview')}
+                      loadingText={t('review.submitMarketReview')}
                       onClick={() => void handleTriggerMarketReview()}
                     >
                       <BarChart3 className="h-4 w-4" />
-                      {t('home.rerunMarketReview')}
+                      {t('review.rerunMarketReview')}
                     </Button>
                   )}
                   <Button
@@ -1895,7 +1895,7 @@ const HomePage: React.FC = () => {
                     }}
                   >
                     <BarChart3 className="h-4 w-4" />
-                    {t('home.historyTrend')}
+                    {t('review.historyTrend')}
                   </Button>
                   <Button
                     variant="home-action-ai"
@@ -1906,7 +1906,7 @@ const HomePage: React.FC = () => {
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    {t('home.fullReport')}
+                    {t('review.fullReport')}
                   </Button>
                 </div>
                 {/* 历史趋势抽屉 或 报告摘要展示 */}
@@ -1945,8 +1945,8 @@ const HomePage: React.FC = () => {
               /* ===== 空状态：引导用户开始分析 ===== */
               <div className="flex h-full items-center justify-center">
                 <EmptyState
-                  title={t('home.startAnalysisTitle')}
-                  description={t('home.startAnalysisDescription')}
+                  title={t('review.startAnalysisTitle')}
+                  description={t('review.startAnalysisDescription')}
                   className="max-w-xl border-dashed"
                   icon={(
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
