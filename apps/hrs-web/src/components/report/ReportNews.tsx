@@ -102,7 +102,6 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
           error={error}
           actionLabel={text.retry}
           onAction={() => void fetchNews()}
-          dismissLabel={text.dismiss}
         />
       )}
 

@@ -33,6 +33,7 @@ import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
 import AnimCard from './Card/AnimCard';
 import { HrsButton } from '../basic/HrsButton';
+import { CloseIcon } from '@heroui/react';
 
 /**
  * 视觉风格枚举（与 `Toast.tsx` 中的 `ToastVariant` 保持一致，便于两个组件视觉同源）。
@@ -60,8 +61,6 @@ interface InlineTipCardProps {
     actionLabel?: string;
     /** 点击操作按钮时的回调（如重新发起请求）。 */
     onAction?: () => void;
-    /** 关闭按钮文案；不传时回退到多语言文案 `common.close`。 */
-    dismissLabel?: string;
     /** 点击关闭按钮时的回调（如清空错误状态、隐藏告警）。 */
     onDismiss?: () => void;
 }
@@ -136,7 +135,6 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
     variant = 'default',
     actionLabel,
     onAction,
-    dismissLabel,
     onDismiss,
 }) => {
     const { t } = useUiLanguage();
@@ -150,8 +148,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
     // 详情面板展开状态（默认收起）。
     const [detailsOpen, setDetailsOpen] = useState(false);
 
-    // 当同时传入 onDismiss 与文案（自定义或默认多语言）时，渲染右侧关闭按钮。
-    const dismissText = dismissLabel ?? t('common.close');
+    // 当传入 onDismiss 时，渲染右侧图标关闭按钮（参考 Toast.tsx 的关闭按钮样式）。
     const showDismiss = !!onDismiss;
 
     return (
@@ -179,7 +176,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                 )}
             >
                 {/*
-                    头部：title（语义色字） + 右侧关闭按钮（文字，保留 dismissLabel 入参能力）。
+                    头部：title（语义色字） + 右侧图标关闭按钮（参考 Toast.tsx）。
                     注：此处未复刻 Toast 的"图标圆圈"，以保持 InlineTipCard 的轻量内联风格。
                 */}
                 <div className="flex items-center gap-2.5">
@@ -190,17 +187,15 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                         </p>
                     </div>
 
-                    {/* 关闭按钮：保留入参能力，使用语义色 hover 高亮 */}
+                    {/* 关闭按钮（图标）：复用 Toast.tsx 的样式与 CloseIcon */}
                     {showDismiss ? (
                         <button
                             type="button"
+                            aria-label={t('common.close')}
                             onClick={onDismiss}
-                            className={cn(
-                                'inline-flex h-6 shrink-0 items-center justify-center rounded-md px-2 text-xs transition',
-                                'text-muted-text hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40'
-                            )}
+                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-text transition hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                         >
-                            {dismissText}
+                            <CloseIcon className="h-3.5 w-3.5" />
                         </button>
                     ) : null}
                 </div>
