@@ -75,7 +75,7 @@ const BUTTON_VARIANT_STYLES = {
   'settings-primary': 'border settings-button-primary hover:brightness-105 hover:shadow-xl',
   'settings-secondary': 'border settings-button-secondary hover:translate-y-[-1px]',
   outline: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
-  ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:text-foreground',
+  ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:opacity-80 hover:text-foreground',
   gradient: 'border border-cyan/20 bg-gradient-to-r from-cyan to-purple text-primary-foreground shadow-lg shadow-cyan/20 hover:brightness-105',
   danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-lg shadow-danger/20 hover:brightness-105',
   'danger-subtle': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
@@ -116,7 +116,9 @@ export const Button: React.FC<ButtonProps> = ({
       data-variant={variant}
       className={cn(
         // 基础样式：内联弹性布局、居中、字重、过渡动画
-        'hrs-button inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-all duration-200',
+        // leading-none 收紧行高到字号本身，配合 items-center 让文字精确垂直居中
+        // （否则受全局 `button { font: inherit }` 的继承 line-height 影响，文字会视觉偏上）
+        'hrs-button inline-flex cursor-pointer items-center justify-center font-medium leading-none transition-all duration-200',
         // 键盘焦点环（可访问性）
         'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 focus-visible:ring-offset-0',
         // 禁用态：禁止事件、禁用光标、降透明度、取消位移
