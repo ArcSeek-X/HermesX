@@ -1,5 +1,5 @@
 // 基础组件统一通过 basic/index 桶文件导出（供仍从 common 引用的页面兼容，basic 亦可独立引用）
-export * from '../basic';
+export * from '../basic/Index';
 export * from './AppPage';
 export * from './SectionCard';
 export * from './StatCard';
