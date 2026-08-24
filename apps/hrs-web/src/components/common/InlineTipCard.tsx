@@ -59,8 +59,8 @@ const CARD_BUTTON_VARIANT_MAPPING: Record<InlineTipCardVariant, HrsButtonVariant
  * 入参保持不变以兼容现有调用方；新增可选 `variant` 以承载本次样式重构的能力。
  */
 interface InlineTipCardProps {
-    /** 已解析好的 API 错误信息（必须包含 title、message、rawMessage 等字段）。 */
-    error: ParsedApiError;
+    /** 已解析好的提示内容（必须包含 title、message、rawMessage 等字段；不一定是错误，也可承载成功/警告等提示）。 */
+    content: ParsedApiError;
     /** 透传到最外层容器的额外 className，用于外部覆盖/追加样式。 */
     className?: string;
     /**
@@ -142,7 +142,7 @@ const alertRoleFor = (variant: InlineTipCardVariant): 'alert' | 'status' =>
  *   - 详情：用 state 控制展开/收起（与 Toast 一致；不再使用浏览器原生 <details>，便于控制动画与样式）。
  */
 export const InlineTipCard: React.FC<InlineTipCardProps> = ({
-    error,
+    content,
     className = '',
     variant = 'default',
     actionLabel,
@@ -156,7 +156,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
     // 是否展示「详细信息」展开面板：
     // 仅当原始报错信息存在，且与给用户看的 message 文案不一致时才展示，
     // 避免展示与提示文案重复、无意义的内容。
-    const showDetails = !!error.rawMessage.trim() && error.rawMessage.trim() !== error.message.trim();
+    const showDetails = !!content.rawMessage.trim() && content.rawMessage.trim() !== content.message.trim();
     // 详情面板展开状态（默认收起）。
     const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -195,7 +195,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                     {/* title 块，flex-1 占满剩余空间，truncate 防止溢出 */}
                     <div className="min-w-0 flex-1">
                         <p className={cn('truncate text-sm font-semibold leading-5', variantStyles.title)}>
-                            {error.title}
+                            {content.title}
                         </p>
                     </div>
 
@@ -221,7 +221,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                 <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
                         {/* 给用户看的友好文案：与 Toast 一致用 muted-text + line-clamp-3，避免单条 toast/alert 占太高 */}
-                        <p className="line-clamp-3 text-xs leading-4 text-muted-text">{error.message}</p>
+                        <p className="line-clamp-3 text-xs leading-4 text-muted-text">{content.message}</p>
 
                         {showDetails ? (
                             <button
@@ -274,7 +274,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                 {showDetails && detailsOpen ? (
                     <div className="rounded-md border border-border/60 bg-surface-2/60 px-2 py-1">
                         <pre className="whitespace-pre-wrap break-words text-xs leading-5 text-muted-text">
-                            {error.rawMessage}
+                            {content.rawMessage}
                         </pre>
                     </div>
                 ) : null}

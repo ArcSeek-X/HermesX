@@ -1249,7 +1249,7 @@ const DecisionSignalsPage: React.FC = () => {
             message={t('decisionSignals.reassessUnsupported')}
           />
         ) : null}
-        {reassessError ? <InlineTipCard variant="danger" className="mt-3" error={reassessError} /> : null}
+        {reassessError ? <InlineTipCard variant="danger" className="mt-3" content={reassessError} /> : null}
         {reassessPersistBlocked ? (
           <div className="mt-3 space-y-2">
             <InlineAlert
@@ -1572,7 +1572,7 @@ const DecisionSignalsPage: React.FC = () => {
           {statsError ? (
             <InlineTipCard
               variant="danger"
-              error={{ ...statsError, title: t('decisionSignals.statsErrorTitle') }}
+              content={{ ...statsError, title: t('decisionSignals.statsErrorTitle') }}
               actionLabel={t('common.retry')}
               onAction={() => void loadOutcomeStats()}
             />
@@ -1625,7 +1625,7 @@ const DecisionSignalsPage: React.FC = () => {
               icon={<Activity className="h-6 w-6" />}
             />
           ) : null}
-          {latestError ? <InlineTipCard variant="danger" className="mt-3" error={latestError} /> : null}
+          {latestError ? <InlineTipCard variant="danger" className="mt-3" content={latestError} /> : null}
           {latestSearched && !latestLoading && !latestError && latestItems.length === 0 ? (
             <EmptyState
               className="mt-4 border-none bg-transparent py-6 shadow-none"
@@ -1724,7 +1724,7 @@ const DecisionSignalsPage: React.FC = () => {
                 items={timelineItems}
                 selectedId={selected?.item.id ?? null}
                 loading={timelineLoading}
-                error={timelineError?.message ?? null}
+                content={timelineError?.message ?? null}
                 truncated={timelineTruncated}
                 onSelect={(selectedItem) => setSelected({ source: 'timeline', item: selectedItem })}
               />
@@ -1735,7 +1735,7 @@ const DecisionSignalsPage: React.FC = () => {
         {error ? (
           <InlineTipCard
             variant="danger"
-            error={{ ...error, title: t('decisionSignals.errorTitle') }}
+            content={{ ...error, title: t('decisionSignals.errorTitle') }}
             actionLabel={t('common.retry')}
             onAction={() => void loadSignals()}
           />

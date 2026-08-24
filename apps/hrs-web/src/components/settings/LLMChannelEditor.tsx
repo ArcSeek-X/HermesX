@@ -2490,7 +2490,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
             />
           ) : null}
 
-          {saveMessage?.type === 'error' ? <InlineTipCard variant="danger" error={saveMessage.error} /> : null}
+          {saveMessage?.type === 'error' ? <InlineTipCard variant="danger" content={saveMessage.error} /> : null}
         </div>
       ) : null}
     </div>

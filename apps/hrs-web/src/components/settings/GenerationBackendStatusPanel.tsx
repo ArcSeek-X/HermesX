@@ -199,7 +199,7 @@ export const GenerationBackendStatusPanel: React.FC<GenerationBackendStatusPanel
           </Button>
         </div>
       </div>
-      {error ? <InlineTipCard variant="danger" error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" content={error} /> : null}
       {smokeResult ? (
         <SettingsAlert
           title={smokeResult.success ? t('settings.generationBackendSmokePassed') : t('settings.generationBackendSmokeFailed')}

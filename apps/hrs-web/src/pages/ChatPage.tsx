@@ -1625,7 +1625,7 @@ const ChatPage: React.FC = () => {
           <div className="border-t border-white/6 bg-card/88 p-4 md:p-6 relative z-20">
             <div className="space-y-3">
               {/* --- 错误与状态提示：聊天错误、取消、超时、停止失败 --- */}
-              {chatError ? <InlineTipCard variant="danger" error={chatError} /> : null}
+              {chatError ? <InlineTipCard variant="danger" content={chatError} /> : null}
               {terminalStatus === 'cancelled' ? (
                 <div role="status" className="rounded-xl border border-slate-500/20 bg-slate-500/5 px-4 py-3 text-sm">
                   {t('chat.analysisStopped')}
@@ -1646,7 +1646,7 @@ const ChatPage: React.FC = () => {
                 <div className="space-y-2">
                   <InlineTipCard
                     variant="danger"
-                    error={agentUnavailableError}
+                    content={agentUnavailableError}
                     actionLabel={t('chat.openAgentSettings')}
                     onAction={() => navigate('/settings?category=agent')}
                   />

@@ -582,7 +582,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
           </div>
         </div>
 
-        {error ? <InlineTipCard variant="danger" error={error} /> : null}
+        {error ? <InlineTipCard variant="danger" content={error} /> : null}
 
         {isLoading && !status ? (
           <p className="text-sm text-muted-text">{t('common.loading')}</p>
@@ -648,7 +648,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
             {firstStockCode ? t('settings.setupGuideSmokeNotReady') : t('settings.setupGuideSmokeNeedsStock')}
           </p>
         ) : null}
-        {smokeError ? <InlineTipCard variant="danger" error={smokeError} /> : null}
+        {smokeError ? <InlineTipCard variant="danger" content={smokeError} /> : null}
         {!smokeError && smokeSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={smokeSuccess} variant="success" />
         ) : null}
@@ -1036,8 +1036,8 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
             ))}
           </div>
         ) : null}
-        {statusError ? <InlineTipCard variant="danger" error={statusError} /> : null}
-        {runNowError ? <InlineTipCard variant="danger" error={runNowError} /> : null}
+        {statusError ? <InlineTipCard variant="danger" content={statusError} /> : null}
+        {runNowError ? <InlineTipCard variant="danger" content={runNowError} /> : null}
         {!runNowError && runNowSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={runNowSuccess} variant="success" />
         ) : null}
@@ -1891,7 +1891,7 @@ const SettingsPage: React.FC = () => {
           <InlineTipCard
             variant="danger"
             className="mt-3"
-            error={saveError}
+            content={saveError}
             actionLabel={retryAction === 'save' ? t('settings.saveRetry') : undefined}
             onAction={retryAction === 'save' ? () => void retry() : undefined}
           />
@@ -1902,7 +1902,7 @@ const SettingsPage: React.FC = () => {
       {loadError ? (
         <InlineTipCard
           variant="danger"
-          error={loadError}
+          content={loadError}
           actionLabel={retryAction === 'load' ? t('common.retry') : t('settings.reload')}
           onAction={() => void retry()}
           className="mb-4"
@@ -1931,7 +1931,7 @@ const SettingsPage: React.FC = () => {
               <FirstRunSetupCard
                 status={setupStatus}
                 isLoading={isRefreshingSetupStatus}
-                error={setupStatusError}
+                content={setupStatusError}
                 firstStockCode={firstSetupStockCode}
                 isSaving={isSaving}
                 isRunningSmoke={isRunningSetupSmoke}
@@ -1984,7 +1984,7 @@ const SettingsPage: React.FC = () => {
                 </div>
                 {alphaSiftActionError ? (
                   <div className="mt-3">
-                    <InlineTipCard variant="danger" error={alphaSiftActionError} />
+                    <InlineTipCard variant="danger" content={alphaSiftActionError} />
                   </div>
                 ) : null}
                 {!alphaSiftActionError && alphaSiftActionSuccess ? (
@@ -2156,7 +2156,7 @@ const SettingsPage: React.FC = () => {
                   {envBackupActionError ? (
                     <InlineTipCard
                       variant="danger"
-                      error={envBackupActionError}
+                      content={envBackupActionError}
                       actionLabel={envBackupActionError.status === 409 ? t('settings.reload') : undefined}
                       onAction={envBackupActionError.status === 409 ? () => void load() : undefined}
                     />
@@ -2279,7 +2279,7 @@ const SettingsPage: React.FC = () => {
                   presentation="toast"
                 />
               )
-            : <InlineTipCard variant="danger" error={toast.error} />}
+            : <InlineTipCard variant="danger" content={toast.error} />}
         </div>
       ) : null}
       <ConfirmDialog

@@ -247,7 +247,7 @@ const TokenUsagePage: React.FC = () => {
         />
 
         {/* ===== 错误提示区 ===== */}
-        {error ? <InlineTipCard variant="danger" error={error} actionLabel={t('common.retry')} onAction={() => void loadDashboard()} /> : null}
+        {error ? <InlineTipCard variant="danger" content={error} actionLabel={t('common.retry')} onAction={() => void loadDashboard()} /> : null}
 
         {/* ===== 骨架屏（首次加载中）===== */}
         {loading && !dashboard ? (

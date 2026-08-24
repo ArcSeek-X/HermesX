@@ -1226,7 +1226,7 @@ const PortfolioPage: React.FC = () => {
       </section>
 
       {/* ===== 全局提示区（错误/风险/写入/分析提示）===== */}
-      {error ? <InlineTipCard variant="danger" error={error} onDismiss={() => setError(null)} /> : null}
+      {error ? <InlineTipCard variant="danger" content={error} onDismiss={() => setError(null)} /> : null}
       {riskWarning ? (
         <InlineAlert
           variant="warning"

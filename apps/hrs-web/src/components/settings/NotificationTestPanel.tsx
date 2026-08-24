@@ -163,7 +163,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         />
       </label>
 
-      {error ? <InlineTipCard variant="danger" error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" content={error} /> : null}
 
       {result ? (
         <div className="space-y-3">

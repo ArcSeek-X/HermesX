@@ -348,7 +348,7 @@ const AlertsPage: React.FC = () => {
       />
 
       {/* ===== 错误与成功提示区 ===== */}
-      {createError ? <InlineTipCard variant="danger" error={createError} onDismiss={() => setCreateError(null)} /> : null}
+      {createError ? <InlineTipCard variant="danger" content={createError} onDismiss={() => setCreateError(null)} /> : null}
       {createSuccess ? (
         <InlineAlert
           title="创建成功"
@@ -361,7 +361,7 @@ const AlertsPage: React.FC = () => {
           )}
         />
       ) : null}
-      {rulesError ? <InlineTipCard variant="danger" error={rulesError} onDismiss={() => setRulesError(null)} /> : null}
+      {rulesError ? <InlineTipCard variant="danger" content={rulesError} onDismiss={() => setRulesError(null)} /> : null}
 
       {/* ===== 规则表单与列表区 ===== */}
       <div className="grid items-stretch gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -401,11 +401,11 @@ const AlertsPage: React.FC = () => {
       </div>
 
       {/* ===== 触发历史区 ===== */}
-      {triggersError ? <InlineTipCard variant="danger" error={triggersError} onDismiss={() => setTriggersError(null)} /> : null}
+      {triggersError ? <InlineTipCard variant="danger" content={triggersError} onDismiss={() => setTriggersError(null)} /> : null}
       <AlertTriggerHistory triggers={triggers} isLoading={triggersLoading} />
 
       {/* ===== 通知尝试记录区 ===== */}
-      {notificationsError ? <InlineTipCard variant="danger" error={notificationsError} onDismiss={() => setNotificationsError(null)} /> : null}
+      {notificationsError ? <InlineTipCard variant="danger" content={notificationsError} onDismiss={() => setNotificationsError(null)} /> : null}
       <Card title="通知尝试记录" subtitle="通知结果" variant="bordered" padding="md">
         {notificationsLoading ? <Loading label="正在加载通知尝试记录" /> : null}
         {!notificationsLoading && notifications.length === 0 ? (

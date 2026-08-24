@@ -153,7 +153,7 @@ export function AgentBackendStatusPanel({
           variant="warning"
         />
       ) : null}
-      {error ? <InlineTipCard variant="danger" error={error} /> : null}
+      {error ? <InlineTipCard variant="danger" content={error} /> : null}
       {status ? (
         <div className="rounded-xl border settings-border bg-background/35 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
