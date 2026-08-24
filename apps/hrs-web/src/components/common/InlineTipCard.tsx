@@ -32,7 +32,7 @@ import type { ParsedApiError } from '../../api/error';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
 import AnimCard from './Card/AnimCard';
-import { HrsButton } from '../basic/HrsButton';
+import { HrsButton, type HrsButtonVariant } from '../basic/HrsButton';
 import { CloseIcon } from '@heroui/react';
 
 /**
@@ -40,6 +40,18 @@ import { CloseIcon } from '@heroui/react';
  * 默认 `default`（中性灰）；错误告警场景需调用方显式传 `danger`。
  */
 type InlineTipCardVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
+
+/**
+ * 把 InlineTipCardVariant 映射到 HrsButton 支持的 variant（HrsButton 的 variant 枚举
+ * 不含 default / accent，需在此统一转换；warning / danger 用 soft 柔和档避免内联操作过刺眼）。
+ */
+const CARD_BUTTON_VARIANT_MAPPING: Record<InlineTipCardVariant, HrsButtonVariant> = {
+    default: 'secondary',
+    accent: 'primary',
+    success: 'success-soft',
+    warning: 'warning-soft',
+    danger: 'danger-soft',
+};
 
 /**
  * 组件属性定义。
@@ -245,7 +257,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                     {/* 操作按钮（如「重试」）：同时提供 actionLabel 与 onAction 才渲染，复用项目统一 HrsButton */}
                     {actionLabel && onAction ? (
                         <HrsButton
-                            variant={variant}
+                            variant={CARD_BUTTON_VARIANT_MAPPING[variant]}
                             size="sm"
                             onClick={onAction}
                             className={cn( 'shrink-0',)}

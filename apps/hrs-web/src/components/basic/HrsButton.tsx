@@ -28,9 +28,12 @@ import { cn } from '../../utils/cn';
  * 按钮属性。
  * 并在此基础上扩展了以下项目专用字段。
  */
+/** HrsButton 支持的视觉变体（语义化风格）。各变体样式见 BUTTON_VARIANT_STYLES。 */
+export type HrsButtonVariant = 'primary' | 'primary-soft' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'success' | 'success-soft' | 'warning' | 'warning-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
-  variant?: 'primary' | 'primary-soft' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'success' | 'success-soft' | 'warning' | 'warning-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+  variant?: HrsButtonVariant;
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
