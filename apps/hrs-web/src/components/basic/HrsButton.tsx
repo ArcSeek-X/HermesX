@@ -30,7 +30,7 @@ import { cn } from '../../utils/cn';
  */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+  variant?: 'primary' | 'primary-soft' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'success' | 'success-soft' | 'warning' | 'warning-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
@@ -75,18 +75,22 @@ const ACTION_REPORT_STYLES = 'bg-[var(--home-action-report-bg)] border border-[v
  *   - 业务专用：action-primary / action-secondary / home-action-ai / home-action-report（首页 workspace 用）
  */
 const BUTTON_VARIANT_STYLES = {
-  primary: 'border border-cyan/30 bg-gradient-cyan text-primary-foreground shadow-sm shadow-cyan/20 hover:brightness-120',
-  secondary: 'border border-border/80 bg-transparent text-foreground shadow-sm hover:text-cyan hover:bg-cyan/10 hover:border-cyan/25',
-  tertiary: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
-  outline: 'border border-cyan/25 text-cyan bg-white hover:bg-cyan/10',
-  
-  ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:text-foreground',
+  primary: 'border border-cyan/30 bg-gradient-cyan text-primary-foreground shadow-md shadow-cyan/20 hover:brightness-120',
+  'primary-soft': 'border border-cyan/60 bg-cyan/10 text-cyan hover:bg-cyan/15',
+  secondary: 'border border-cyan/25 bg-transparent text-cyan hover:bg-cyan/10',
+  outline: ' bg-transparent text-foreground hover:bg-cyan/10 hover:bg-subtle',
+  ghost: 'border-none bg-transparent text-foreground hover:bg-cyan/10 hover:bg-subtle',
+
   danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-md shadow-danger/20 hover:brightness-105',
   'danger-soft': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
+  success: 'border border-success/40 bg-success text-destructive-foreground shadow-md shadow-success/20 hover:brightness-105',
+  'success-soft': 'border border-success/60 bg-success/10 text-success hover:bg-success/15',
+  warning: 'border border-warning/40 bg-warning text-destructive-foreground shadow-md shadow-warning/20 hover:brightness-105',
+  'warning-soft': 'border border-warning/60 bg-warning/10 text-warning hover:bg-warning/15',
+
+
   'settings-primary': 'border settings-button-primary hover:brightness-105 hover:shadow-xl',
   'settings-secondary': 'border settings-button-secondary hover:translate-y-[-1px]',
-
-
   gradient: 'border border-cyan/20 bg-gradient-to-r from-cyan to-purple text-primary-foreground shadow-md shadow-cyan/20 hover:brightness-105',
   'action-primary': ACTION_AI_STYLES,
   'action-secondary': ACTION_REPORT_STYLES,

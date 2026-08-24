@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { AppPage, Input, HrsButton, Modal, Chip } from '../components';
 import { Button } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
@@ -110,8 +110,8 @@ const CodeTestPage: React.FC = () => {
                         {(
                             [
                                 { method: 'info' as const, buttonVariant: 'primary' as const, title: 'info（accent）', description: '信息/强调风格，等价 variant: accent。' },
-                                { method: 'success' as const, buttonVariant: 'primary' as const, title: 'success', description: '成功风格，等价 variant: success。' },
-                                { method: 'warning' as const, buttonVariant: 'secondary' as const, title: 'warning', description: '警告风格，等价 variant: warning。' },
+                                { method: 'success' as const, buttonVariant: 'success' as const, title: 'success', description: '成功风格，等价 variant: success。' },
+                                { method: 'warning' as const, buttonVariant: 'warning' as const, title: 'warning', description: '警告风格，等价 variant: warning。' },
                                 { method: 'danger' as const, buttonVariant: 'danger' as const, title: 'danger', description: '错误风格，等价 variant: danger。' },
                             ]
                         ).map(({ method, buttonVariant, title, description }) => (
@@ -302,51 +302,42 @@ const CodeTestPage: React.FC = () => {
                     size="lg"
                     value={newName}
                 />
-
-                <HrsButton variant="primary" size="xs" onClick={clsickFn}>
-                    xs - 尺寸按钮 - primary
-                </HrsButton>
-                <HrsButton variant="secondary" size="sm">
-                    sm - 尺寸按钮钮 - secondary
-                </HrsButton>
-                <HrsButton variant="tertiary" size="xs">
-                    xs - 尺寸按钮钮 - tertiary
-                </HrsButton>
-                <HrsButton variant="outline" size="md">
-                    MD - 尺寸按钮钮 - outline
-                </HrsButton>
-                <HrsButton variant="ghost" size="lg">
-                    lg - 尺寸按钮钮 - ghost
-                </HrsButton>
-                <HrsButton variant="danger" size="lg">
-                    lg - 尺寸按钮钮 - danger
-                </HrsButton>
-                <HrsButton variant="danger-soft" size="xl">
-                    xl - 尺寸按钮钮 - danger-soft
-                </HrsButton>
-                <HrsButton variant="settings-primary" size="sm">
-                    sm - 尺寸按钮钮 - ettings-primary
-                </HrsButton>
-                <HrsButton variant="settings-secondary" size="sm">
-                    sm - 尺寸按钮钮 - settings-secondary
-                </HrsButton>
-                <HrsButton variant="home-action-report" size="sm">
-                    sm - 尺寸按钮钮 - home-action-report
-                </HrsButton>
-                <p>测试</p>
-
-                <Button variant="primary">HeroUI - Primary</Button>
-                <Button variant="secondary">HeroUI - secondary</Button>
-                <Button variant="tertiary">HeroUI - tertiary</Button>
-                <Button variant="outline">HeroUI - outline</Button>
-                <Button variant="ghost">HeroUI - ghost</Button>
-                <Button variant="danger">HeroUI - danger</Button>
-                <Button variant="danger-soft">HeroUI - danger-soft</Button>
-
-
-
             </div>
 
+            <div className="rounded-lg border border-border/70 bg-card/75 p-6">
+                <p className="mb-4 text-xs font-medium text-muted">按钮 Variant × Size 矩阵（行=variant，列=size；单元格内文字为该 size 缩写）</p>
+                <div className="grid grid-cols-[minmax(7rem,auto)_repeat(5,minmax(0,1fr))] gap-x-3 gap-y-2 items-center">
+                    <div />
+                    {(['xs', 'sm', 'md', 'lg', 'xl'] as const).map((size) => (
+                        <div key={size} className="text-center text-xs font-semibold text-muted-text">
+                            {size}
+                        </div>
+                    ))}
+                    {(
+                        [
+                            'secondary', 'outline', 'ghost', 'primary', 'primary-soft',
+                            'success', 'success-soft', 'warning', 'warning-soft', 'danger', 'danger-soft',
+                            // 'settings-primary', 'settings-secondary',
+                            // 'action-primary', 'action-secondary', 'home-action-ai', 'home-action-report',
+                        ] as const
+                    ).map((variant) => (
+                        <Fragment key={variant}>
+                            <div className="text-xs font-medium text-foreground">{variant}</div>
+                            {(['xs', 'sm', 'md', 'lg', 'xl'] as const).map((size) => (
+                                <div key={size} className="flex justify-center">
+                                    <HrsButton
+                                        variant={variant}
+                                        size={size}
+                                        onClick={variant === 'primary' ? clsickFn : undefined}
+                                    >
+                                        {size}
+                                    </HrsButton>
+                                </div>
+                            ))}
+                        </Fragment>
+                    ))}
+                </div>
+            </div>
 
 
 

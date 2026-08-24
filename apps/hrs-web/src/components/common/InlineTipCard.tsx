@@ -206,7 +206,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                     主体：description + 查看详情 + 右侧 action 按钮（若提供）。
                     左缩进 `pl-[34px]` 与头部图标宽度（24 + 8 gap + 2 左内缩 = 34）对齐，让 description 与 title 同样从图标后开始。
                 */}
-                <div className="flex items-end gap-3">
+                <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
                         {/* 给用户看的友好文案：与 Toast 一致用 muted-text + line-clamp-3，避免单条 toast/alert 占太高 */}
                         <p className="line-clamp-3 text-xs leading-4 text-muted-text">{error.message}</p>
@@ -245,7 +245,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                     {/* 操作按钮（如「重试」）：同时提供 actionLabel 与 onAction 才渲染，复用项目统一 HrsButton */}
                     {actionLabel && onAction ? (
                         <HrsButton
-                            variant="danger"
+                            variant={variant}
                             size="sm"
                             onClick={onAction}
                             className={cn( 'shrink-0',)}
