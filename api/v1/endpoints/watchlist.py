@@ -30,7 +30,7 @@ db = DatabaseManager.get_instance()
 from api.v1.schemas.watchlist import (
     WatchlistGroupCreate,
     WatchlistGroupUpdate,
-    WatchlistGroupOut,
+    WatchlistGroupList,
     WatchlistItemCreate,
     WatchlistItemUpdate,
     WatchlistItemMove,
@@ -51,29 +51,59 @@ def _now() -> datetime:
     return datetime.now()
 
 
+# 分组编码企业 ID（企业体系未实现前默认 01）
+ENTERPRISE_ID = "01"
+
+
+def _gen_group_code(session, enterprise_id: str = ENTERPRISE_ID) -> str:
+    """生成分组编码：WG-{enterpriseId}-{yyyyMMdd}-{6位流水号}。
+
+    流水号为当日该企业内已存在同类编码的数量 + 1，格式化为 6 位（000001 起）。
+    """
+    date_str = _now().strftime("%Y%m%d")
+    prefix = f"WG-{enterprise_id}-{date_str}-"
+    count = session.execute(
+        select(func.count(WatchlistGroup.id)).where(WatchlistGroup.group_code.like(f"{prefix}%"))
+    ).scalar() or 0
+    return f"{prefix}{count + 1:06d}"
+
+
 # === 分类 CRUD ===
 
 @router.get(
-    "/groups",
-    response_model=List[WatchlistGroupOut],
+    "/get_group_list",
+    response_model=List[WatchlistGroupList],
     summary="列出所有自选股分类",
-    description="按 sort_order 升序返回所有分类",
+    description="按 sort_order 升序返回所有未删除分类，并实时统计每个分类下的个股数量",
 )
-def list_groups() -> List[dict]:
+def get_watchlist_groups() -> List[dict]:
     with db.get_session() as session:
         rows = session.execute(
-            select(WatchlistGroup).order_by(WatchlistGroup.sort_order.asc(), WatchlistGroup.id.asc())
+            select(WatchlistGroup)
+            .where(WatchlistGroup.delete_flag == 0)
+            .order_by(WatchlistGroup.sort_order.asc(), WatchlistGroup.id.asc())
         ).scalars().all()
-        return [r.to_dict() for r in rows]
+        result = []
+        for group in rows:
+            d = group.to_dict()
+            count = session.execute(
+                select(func.count(WatchlistItem.id)).where(
+                    WatchlistItem.group_id == group.id,
+                    WatchlistItem.delete_flag == 0,
+                )
+            ).scalar() or 0
+            d["item_count"] = count
+            result.append(d)
+        return result
 
 
 @router.post(
-    "/groups",
-    response_model=WatchlistGroupOut,
+    "/create_group",
+    response_model=WatchlistGroupList,
     summary="新增自选股分类",
     responses={409: {"description": "分类名称已存在"}},
 )
-def create_group(payload: WatchlistGroupCreate) -> dict:
+def create_watchlist_group(payload: WatchlistGroupCreate) -> dict:
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail={"error": "invalid_name", "message": "分类名称不能为空"})
@@ -93,23 +123,37 @@ def create_group(payload: WatchlistGroupCreate) -> dict:
         ).scalars().all()
         next_order = (max(max_order) + 1) if max_order else 0
 
-        group = WatchlistGroup(name=name, sort_order=next_order, created_at=_now(), updated_at=_now())
+        group = WatchlistGroup(
+            name=name,
+            sort_order=payload.sort_order if payload.sort_order is not None else next_order,
+            group_code=_gen_group_code(session),
+            description=payload.description or '',
+            delete_flag=0,
+            create_date_time=_now(),
+            update_date_time=_now(),
+        )
         session.add(group)
         session.flush()
         result = group.to_dict()
+        result["item_count"] = 0
         session.commit()
         return result
 
 
-@router.put(
-    "/groups/{group_id}",
-    response_model=WatchlistGroupOut,
-    summary="编辑自选股分类",
+@router.post(
+    "/update_group",
+    response_model=WatchlistGroupList,
+    summary="编辑自选股分类（按 group_code 定位）",
     responses={404: {"description": "分类不存在"}, 409: {"description": "分类名称已存在"}},
 )
-def update_group(group_id: int, payload: WatchlistGroupUpdate) -> dict:
+def update_watchlist_group(payload: WatchlistGroupUpdate) -> dict:
     with db.get_session() as session:
-        group = session.get(WatchlistGroup, group_id)
+        group = session.execute(
+            select(WatchlistGroup).where(
+                WatchlistGroup.group_code == payload.group_code,
+                WatchlistGroup.delete_flag == 0,
+            )
+        ).scalars().first()
         if group is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "分类不存在"})
 
@@ -119,7 +163,10 @@ def update_group(group_id: int, payload: WatchlistGroupUpdate) -> dict:
                 raise HTTPException(status_code=422, detail={"error": "invalid_name", "message": "分类名称不能为空"})
             if new_name != group.name:
                 dup = session.execute(
-                    select(WatchlistGroup).where(WatchlistGroup.name == new_name)
+                    select(WatchlistGroup).where(
+                        WatchlistGroup.name == new_name,
+                        WatchlistGroup.group_code != payload.group_code,
+                    )
                 ).scalars().first()
                 if dup is not None:
                     raise HTTPException(
@@ -128,27 +175,41 @@ def update_group(group_id: int, payload: WatchlistGroupUpdate) -> dict:
                     )
                 group.name = new_name
 
+        if payload.description is not None:
+            group.description = payload.description
         if payload.sort_order is not None:
             group.sort_order = payload.sort_order
 
-        group.updated_at = _now()
+        group.update_date_time = _now()
         result = group.to_dict()
         session.commit()
         return result
 
 
 @router.delete(
-    "/groups/{group_id}",
+    "/delete_group/{group_code}",
     response_model=SimpleSuccess,
-    summary="删除自选股分类",
+    summary="删除自选股分类（逻辑删除）",
     responses={404: {"description": "分类不存在"}},
 )
-def delete_group(group_id: int) -> dict:
+def delete_watchlist_group(group_code: str) -> dict:
     with db.get_session() as session:
-        group = session.get(WatchlistGroup, group_id)
+        group = session.execute(
+            select(WatchlistGroup).where(
+                WatchlistGroup.group_code == group_code,
+                WatchlistGroup.delete_flag == 0,
+            )
+        ).scalars().first()
         if group is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "分类不存在"})
-        session.delete(group)  # 级联删除其下股票（依赖外键 ON DELETE CASCADE）
+        # 逻辑删除：分类及其下自选股置 delete_flag=1
+        session.execute(
+            WatchlistItem.__table__.update()
+            .where(WatchlistItem.group_id == group.id)
+            .values(delete_flag=1, update_date_time=_now())
+        )
+        group.delete_flag = 1
+        group.update_date_time = _now()
         session.commit()
         return {"success": True}
 
@@ -156,12 +217,12 @@ def delete_group(group_id: int) -> dict:
 # === 自选股 CRUD ===
 
 @router.post(
-    "/items/query",
+    "/get_items_list",
     response_model=WatchlistItemsPaginatedResponse,
     summary="分页查询自选股",
     responses={404: {"description": "分类不存在"}},
 )
-def query_items(payload: WatchlistItemsQueryRequest) -> dict:
+def get_watchlist_items(payload: WatchlistItemsQueryRequest) -> dict:
     """分页查询某分类下的自选股。
 
     入参（body）：group_id, pageSize, pageNum
@@ -174,16 +235,16 @@ def query_items(payload: WatchlistItemsQueryRequest) -> dict:
         if group is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "分类不存在"})
 
-        # 查询总数
+        # 查询总数（仅未逻辑删除）
         total = session.execute(
             select(func.count(WatchlistItem.id))
-            .where(WatchlistItem.group_id == payload.group_id)
+            .where(WatchlistItem.group_id == payload.group_id, WatchlistItem.delete_flag == 0)
         ).scalar() or 0
 
-        # 分页查询
+        # 分页查询（仅未逻辑删除）
         rows = session.execute(
             select(WatchlistItem)
-            .where(WatchlistItem.group_id == payload.group_id)
+            .where(WatchlistItem.group_id == payload.group_id, WatchlistItem.delete_flag == 0)
             .order_by(WatchlistItem.sort_order.asc(), WatchlistItem.id.asc())
             .offset(paging.offset)
             .limit(paging.limit)
@@ -191,25 +252,6 @@ def query_items(payload: WatchlistItemsQueryRequest) -> dict:
 
         items = [r.to_dict() for r in rows]
         return paginate_response(items, total, payload.pageNum, payload.pageSize)
-
-@router.get(
-    "/groups/{group_id}/items",
-    response_model=List[WatchlistItemOut],
-    summary="获取某分类下的自选股",
-    responses={404: {"description": "分类不存在"}},
-)
-def list_items(group_id: int) -> List[dict]:
-    with db.get_session() as session:
-        group = session.get(WatchlistGroup, group_id)
-        if group is None:
-            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "分类不存在"})
-
-        rows = session.execute(
-            select(WatchlistItem)
-            .where(WatchlistItem.group_id == group_id)
-            .order_by(WatchlistItem.sort_order.asc(), WatchlistItem.id.asc())
-        ).scalars().all()
-        return [r.to_dict() for r in rows]
 
 
 def _is_valid_stock_code(code: str) -> bool:
@@ -230,7 +272,7 @@ def _is_valid_stock_code(code: str) -> bool:
 
 
 @router.post(
-    "/groups/{group_id}/items",
+    "/create_item/{id}",
     response_model=WatchlistItemOut,
     summary="新增自选股到分类",
     responses={
@@ -239,7 +281,8 @@ def _is_valid_stock_code(code: str) -> bool:
         409: {"description": "该分类下股票已存在"},
     },
 )
-def create_item(group_id: int, payload: WatchlistItemCreate) -> dict:
+def create_watchlist_item(id: int, payload: WatchlistItemCreate) -> dict:
+    group_id = id
     stock_code = payload.stock_code.strip()
     if not stock_code:
         raise HTTPException(status_code=422, detail={"error": "invalid_code", "message": "股票代码不能为空"})
@@ -272,10 +315,11 @@ def create_item(group_id: int, payload: WatchlistItemCreate) -> dict:
             group_id=group_id,
             stock_code=stock_code,
             stock_name=payload.stock_name,
-            note=payload.note,
+            description=payload.description,
             sort_order=0,
-            created_at=_now(),
-            updated_at=_now(),
+            delete_flag=0,
+            create_date_time=_now(),
+            update_date_time=_now(),
         )
         session.add(item)
         session.flush()
@@ -284,47 +328,48 @@ def create_item(group_id: int, payload: WatchlistItemCreate) -> dict:
         return result
 
 
-@router.put(
-    "/items/{item_id}",
+@router.post(
+    "/update_item/{id}",
     response_model=WatchlistItemOut,
     summary="编辑自选股（备注/名称）",
     responses={404: {"description": "自选股不存在"}},
 )
-def update_item(item_id: int, payload: WatchlistItemUpdate) -> dict:
+def update_watchlist_item(id: int, payload: WatchlistItemUpdate) -> dict:
     with db.get_session() as session:
-        item = session.get(WatchlistItem, item_id)
+        item = session.get(WatchlistItem, id)
         if item is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "自选股不存在"})
 
-        if payload.note is not None:
-            item.note = payload.note
+        if payload.description is not None:
+            item.description = payload.description
         if payload.stock_name is not None:
             item.stock_name = payload.stock_name
 
-        item.updated_at = _now()
+        item.update_date_time = _now()
         result = item.to_dict()
         session.commit()
         return result
 
 
 @router.delete(
-    "/items/{item_id}",
+    "/delete_item/{id}",
     response_model=SimpleSuccess,
-    summary="删除自选股",
+    summary="删除自选股（逻辑删除）",
     responses={404: {"description": "自选股不存在"}},
 )
-def delete_item(item_id: int) -> dict:
+def delete_watchlist_item(id: int) -> dict:
     with db.get_session() as session:
-        item = session.get(WatchlistItem, item_id)
+        item = session.get(WatchlistItem, id)
         if item is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "自选股不存在"})
-        session.delete(item)
+        item.delete_flag = 1
+        item.update_date_time = _now()
         session.commit()
         return {"success": True}
 
 
 @router.put(
-    "/items/{item_id}/move",
+    "/move_item/{id}",
     response_model=WatchlistItemOut,
     summary="移动自选股到其他分类",
     responses={
@@ -332,9 +377,9 @@ def delete_item(item_id: int) -> dict:
         409: {"description": "目标分类下已存在该股票"},
     },
 )
-def move_item(item_id: int, payload: WatchlistItemMove) -> dict:
+def move_watchlist_item(id: int, payload: WatchlistItemMove) -> dict:
     with db.get_session() as session:
-        item = session.get(WatchlistItem, item_id)
+        item = session.get(WatchlistItem, id)
         if item is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "自选股不存在"})
 
@@ -355,7 +400,7 @@ def move_item(item_id: int, payload: WatchlistItemMove) -> dict:
                     detail={"error": "duplicate_item", "message": "目标分类下已存在该股票"},
                 )
             item.group_id = payload.target_group_id
-            item.updated_at = _now()
+            item.update_date_time = _now()
 
         result = item.to_dict()
         session.commit()

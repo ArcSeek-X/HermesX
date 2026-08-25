@@ -13,9 +13,12 @@ import { toCamelCase } from './utils';
 export interface WatchlistGroup {
   id: number;
   name: string;
+  groupCode: string;
+  description: string;
   sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
+  itemCount: number;
+  createDateTime: string;
+  updateDateTime: string;
 }
 
 /** 自选股条目（不含实时行情） */
@@ -24,10 +27,10 @@ export interface WatchlistItem {
   groupId: number;
   stockCode: string;
   stockName: string | null;
-  note: string | null;
+  description: string | null;
   sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
+  createDateTime: string;
+  updateDateTime: string;
 }
 
 /** 实时行情（前端合并到条目上展示，字段对齐后端 StockQuote） */
@@ -54,44 +57,55 @@ export interface WatchlistItemsPaginatedResponse {
 
 const BASE = '/api/v1/watchlist';
 
-/** 列出所有分类 */
-export async function fetchGroups(): Promise<WatchlistGroup[]> {
-  const { data } = await apiClient.get<Record<string, unknown>[]>(`${BASE}/groups`);
+/** 列出所有分类（含每个分类的个股数量 itemCount） */
+export async function getWatchlistGroups(): Promise<WatchlistGroup[]> {
+  const { data } = await apiClient.get<Record<string, unknown>[]>(`${BASE}/get_group_list`);
   return toCamelCase<WatchlistGroup[]>(data);
 }
 
 /** 新增分类 */
-export async function createGroup(name: string): Promise<WatchlistGroup> {
-  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/groups`, { name });
-  return toCamelCase<WatchlistGroup>(data);
-}
-
-/** 编辑分类 */
-export async function updateGroup(
-  id: number,
-  payload: { name?: string; sortOrder?: number },
+export async function createWatchlistGroup(
+  name: string,
+  description?: string,
+  sortOrder?: number,
 ): Promise<WatchlistGroup> {
-  // 请求体使用 snake_case，与后端 schema 字段对齐（项目约定）
-  const body: Record<string, unknown> = {};
-  if (payload.name !== undefined) body.name = payload.name;
-  if (payload.sortOrder !== undefined) body.sort_order = payload.sortOrder;
-  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/groups/${id}`, body);
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/create_group`, {
+    name,
+    description,
+    sortOrder,
+  });
   return toCamelCase<WatchlistGroup>(data);
 }
 
-/** 删除分类（级联删除其下股票） */
-export async function deleteGroup(id: number): Promise<{ success: boolean }> {
-  const { data } = await apiClient.delete<Record<string, unknown>>(`${BASE}/groups/${id}`);
+/** 编辑分类（按 groupCode 定位） */
+export async function updateWatchlistGroup(params: {
+  groupCode: string;
+  name?: string;
+  description?: string;
+  sortOrder?: number;
+}): Promise<WatchlistGroup> {
+  // 请求体使用 snake_case，与后端 schema 字段对齐（项目约定）
+  const body: Record<string, unknown> = { group_code: params.groupCode };
+  if (params.name !== undefined) body.name = params.name;
+  if (params.description !== undefined) body.description = params.description;
+  if (params.sortOrder !== undefined) body.sort_order = params.sortOrder;
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/update_group`, body);
+  return toCamelCase<WatchlistGroup>(data);
+}
+
+/** 删除分类（按 groupCode 定位，级联删除其下股票） */
+export async function deleteWatchlistGroup(groupCode: string): Promise<{ success: boolean }> {
+  const { data } = await apiClient.delete<Record<string, unknown>>(`${BASE}/delete_group/${groupCode}`);
   return toCamelCase<{ success: boolean }>(data);
 }
 
 /** 分页查询某分类下的自选股 */
-export async function fetchItemsPaginated(
+export async function getWatchlistItems(
   groupId: number,
   pageNum: number,
   pageSize: number,
 ): Promise<WatchlistItemsPaginatedResponse> {
-  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/items/query`, {
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/get_items_list`, {
     group_id: groupId,
     pageNum,
     pageSize,
@@ -100,42 +114,42 @@ export async function fetchItemsPaginated(
 }
 
 /** 新增自选股到分类 */
-export async function createItem(
+export async function createWatchlistItem(
   groupId: number,
-  payload: { stockCode: string; stockName?: string; note?: string },
+  payload: { stockCode: string; stockName?: string; description?: string },
 ): Promise<WatchlistItem> {
   // 请求体使用 snake_case，与后端 WatchlistItemCreate schema 字段对齐（项目约定）
   const body: Record<string, unknown> = {
     stock_code: payload.stockCode,
   };
   if (payload.stockName !== undefined) body.stock_name = payload.stockName;
-  if (payload.note !== undefined) body.note = payload.note;
-  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/groups/${groupId}/items`, body);
+  if (payload.description !== undefined) body.description = payload.description;
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/create_item/${groupId}`, body);
   return toCamelCase<WatchlistItem>(data);
 }
 
 /** 编辑自选股（备注/名称） */
-export async function updateItem(
+export async function updateWatchlistItem(
   id: number,
-  payload: { note?: string; stockName?: string },
+  payload: { description?: string; stockName?: string },
 ): Promise<WatchlistItem> {
   // 请求体使用 snake_case，与后端 WatchlistItemUpdate schema 字段对齐（项目约定）
   const body: Record<string, unknown> = {};
-  if (payload.note !== undefined) body.note = payload.note;
+  if (payload.description !== undefined) body.description = payload.description;
   if (payload.stockName !== undefined) body.stock_name = payload.stockName;
-  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/items/${id}`, body);
+  const { data } = await apiClient.post<Record<string, unknown>>(`${BASE}/update_item/${id}`, body);
   return toCamelCase<WatchlistItem>(data);
 }
 
 /** 删除自选股 */
-export async function deleteItem(id: number): Promise<{ success: boolean }> {
-  const { data } = await apiClient.delete<Record<string, unknown>>(`${BASE}/items/${id}`);
+export async function deleteWatchlistItem(id: number): Promise<{ success: boolean }> {
+  const { data } = await apiClient.delete<Record<string, unknown>>(`${BASE}/delete_item/${id}`);
   return toCamelCase<{ success: boolean }>(data);
 }
 
 /** 移动自选股到其他分类 */
-export async function moveItem(id: number, targetGroupId: number): Promise<WatchlistItem> {
-  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/items/${id}/move`, {
+export async function moveWatchlistItem(id: number, targetGroupId: number): Promise<WatchlistItem> {
+  const { data } = await apiClient.put<Record<string, unknown>>(`${BASE}/move_item/${id}`, {
     target_group_id: targetGroupId,
   });
   return toCamelCase<WatchlistItem>(data);

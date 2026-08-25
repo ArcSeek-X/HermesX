@@ -29,7 +29,7 @@ export interface WatchlistStockTableProps {
   /** 加载态：接口调用中（含行情并发拉取）为 true，数据全部就绪后为 false */
   isLoading?: boolean;
   groups: WatchlistGroup[];
-  onEditNote: (id: number, note: string) => Promise<void> | void;
+  onEditDescription: (id: number, description: string) => Promise<void> | void;
   onDelete: (id: number) => Promise<void> | void;
   onMove: (id: number, targetGroupId: number) => Promise<void> | void;
   /** 分页配置对象，调用方需保证传入完整字段 */
@@ -49,7 +49,7 @@ export default function WatchlistStockTable({
   items,
   isLoading,
   groups,
-  onEditNote,
+  onEditDescription,
   onDelete,
   onMove,
   pagination,
@@ -163,8 +163,8 @@ export default function WatchlistStockTable({
       ),
     },
     {
-      key: 'note',
-      title: '备注',
+      key: 'description',
+      title: '描述',
       width: '16%',
       render: (it) => {
         const isEditingNote = editingId === it.id;
@@ -181,7 +181,7 @@ export default function WatchlistStockTable({
                     if (e.key === 'Escape') setEditingId(null);
                   }}
                   className="flex-1 min-w-0 rounded border border-primary/50 bg-card px-1.5 py-0.5 text-xs text-text outline-none"
-                  placeholder="备注"
+                  placeholder="描述"
                 />
                 <HrsButton
                   variant="primary"
@@ -194,10 +194,10 @@ export default function WatchlistStockTable({
             ) : (
               <span
                 className="text-text-secondary truncate block cursor-pointer hover:text-text"
-                title={it.note ?? '点击添加备注'}
-                onClick={(e) => { e.stopPropagation(); startEditNote(it.id, it.note); }}
+                title={it.description ?? '点击添加描述'}
+                onClick={(e) => { e.stopPropagation(); startEditNote(it.id, it.description); }}
               >
-                {it.note || '点击添加'}
+                {it.description || '点击添加'}
               </span>
             )}
           </div>
@@ -218,7 +218,7 @@ export default function WatchlistStockTable({
 
   /** 提交备注编辑：调用父级回调保存，成功后退出编辑态 */
   const commitEditNote = async (id: number) => {
-    await onEditNote(id, editingNote.trim());
+    await onEditDescription(id, editingNote.trim());
     setEditingId(null);
     setEditingNote('');
   };

@@ -12,16 +12,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  fetchGroups,
-  createGroup as apiCreateGroup,
-  updateGroup as apiUpdateGroup,
-  deleteGroup as apiDeleteGroup,
-  fetchItemsPaginated,
-  createItem as apiCreateItem,
-  updateItem as apiUpdateItem,
-  deleteItem as apiDeleteItem,
-  moveItem as apiMoveItem,
+  getWatchlistGroups,
+  createWatchlistGroup as apiCreateGroup,
+  updateWatchlistGroup as apiUpdateGroup,
+  deleteWatchlistGroup as apiDeleteGroup,
+  getWatchlistItems,
+  createWatchlistItem as apiCreateWatchlistItem,
+  updateWatchlistItem as apiUpdateItem,
+  deleteWatchlistItem as apiDeleteItem,
+  moveWatchlistItem as apiMoveItem,
   type WatchlistGroup,
+  type WatchlistItem,
   type WatchlistItemWithQuote,
   type WatchlistQuote,
 } from '../api/watchlist';
@@ -66,9 +67,9 @@ export interface UseWatchlistManagerResult {
   groups: WatchlistGroup[]; // 全部分类列表
   groupsLoading: boolean; // 分类加载中
   loadGroups: () => Promise<void>; // 重新拉取分类列表
-  createGroup: (name: string) => Promise<void>; // 新增分类
-  renameGroup: (id: number, name: string) => Promise<void>; // 重命名分类
-  removeGroup: (id: number) => Promise<void>; // 删除分类（后端级联删除其下股票）
+  createWatchlistGroup: (name: string, description?: string) => Promise<void>; // 新增分类
+  updateWatchlistGroup: (groupCode: string, payload: { name?: string; description?: string }) => Promise<void>; // 编辑分类（按 groupCode 定位）
+  deleteWatchlistGroup: (groupCode: string) => Promise<void>; // 删除分类（按 groupCode 定位，后端级联删除其下股票）
 
   // —— 当前选中分类 ——
   activeGroupId: number | null; // 当前选中的分类 id
@@ -79,8 +80,8 @@ export interface UseWatchlistManagerResult {
   itemsLoading: boolean; // 列表/行情整体加载中
   quotesLoading: boolean; // 仅行情并发拉取中
   loadItems: (groupId: number, pageNum?: number) => Promise<void>; // 加载某分类某一页
-  addItem: (groupId: number, payload: { stockCode: string; stockName?: string; note?: string }) => Promise<void>; // 新增自选股
-  editItemNote: (id: number, note: string) => Promise<void>; // 编辑备注
+  addItem: (groupId: number, payload: { stockCode: string; stockName?: string; description?: string }) => Promise<WatchlistItem>; // 新增自选股
+  editItemDescription: (id: number, description: string) => Promise<void>; // 编辑备注
   removeItem: (id: number) => Promise<void>; // 删除自选股
   moveItem: (id: number, targetGroupId: number) => Promise<void>; // 移动归类
 
@@ -143,7 +144,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
   const loadGroups = useCallback(async () => {
     setGroupsLoading(true);
     try {
-      const data = await fetchGroups();
+      const data = await getWatchlistGroups();
       setGroups(data);
       setActiveGroupId((prev) => {
         if (prev != null && data.some((g) => g.id === prev)) return prev;
@@ -168,7 +169,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     setItemsLoading(true);
     setItems([]); // 清空，加载期间表格展示「加载中…」
     try {
-      const result = await fetchItemsPaginated(groupId, page, pageSize);
+      const result = await getWatchlistItems(groupId, page, pageSize);
       setTotal(result.total); // 记录总数用于分页
       setPages(result.pages); // 记录总页数
 
@@ -222,29 +223,30 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
   }, [activeGroupId, pageNum, loadItems]);
 
   /** 新增分类：写入后追加到本地列表（按 sortOrder/id 排序），若此前无选中项则自动选中新建项 */
-  const createGroup = useCallback(
-    async (name: string) => {
-      const g = await apiCreateGroup(name);
+  const createWatchlistGroup = useCallback(
+    async (name: string, description?: string) => {
+      const g = await apiCreateGroup(name, description);
       setGroups((prev) => [...prev, g].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id));
       if (activeGroupId == null) setActiveGroupId(g.id);
     },
     [activeGroupId],
   );
 
-  /** 重命名分类：更新后替换本地列表中对应项 */
-  const renameGroup = useCallback(async (id: number, name: string) => {
-    const g = await apiUpdateGroup(id, { name });
-    setGroups((prev) => prev.map((x) => (x.id === id ? g : x)));
+  /** 编辑分类（按 groupCode 定位）：更新后替换本地列表中对应项 */
+  const updateWatchlistGroup = useCallback(async (groupCode: string, payload: { name?: string; description?: string }) => {
+    const g = await apiUpdateGroup({ groupCode, ...payload });
+    setGroups((prev) => prev.map((x) => (x.groupCode === groupCode ? g : x)));
   }, []);
 
-  /** 删除分类：后端会级联删除其下股票；本地同步移除并更新选中项，页码回到第 1 页 */
-  const removeGroup = useCallback(
-    async (id: number) => {
-      await apiDeleteGroup(id);
-      setGroups((prev) => prev.filter((x) => x.id !== id));
+  /** 删除分类（按 groupCode 定位，后端级联删除其下股票）：本地同步移除并更新选中项，页码回到第 1 页 */
+  const deleteWatchlistGroup = useCallback(
+    async (groupCode: string) => {
+      await apiDeleteGroup(groupCode);
+      const removed = groups.find((x) => x.groupCode === groupCode);
+      setGroups((prev) => prev.filter((x) => x.groupCode !== groupCode));
       setActiveGroupId((prev) => {
-        if (prev !== id) return prev;
-        const rest = groups.filter((x) => x.id !== id);
+        if (removed && prev !== removed.id) return prev;
+        const rest = groups.filter((x) => x.groupCode !== groupCode);
         return rest.length > 0 ? rest[0].id : null;
       });
       setPageNum(1);
@@ -260,8 +262,8 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
    * - 若新增到其它分类，则不改动当前列表（由用户切换分类时自然加载）。
    */
   const addItem = useCallback(
-    async (groupId: number, payload: { stockCode: string; stockName?: string; note?: string }) => {
-      const item = await apiCreateItem(groupId, payload);
+    async (groupId: number, payload: { stockCode: string; stockName?: string; description?: string }) => {
+      const item = await apiCreateWatchlistItem(groupId, payload);
       if (groupId === activeGroupId) {
         let quote: Awaited<ReturnType<typeof stocksApi.getQuote>> | null = null;
         try {
@@ -282,10 +284,10 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     setPageNum(1);
   }, []);
 
-  /** 编辑备注：更新后同步替换本地列表中该条的 note 字段 */
-  const editItemNote = useCallback(async (id: number, note: string) => {
-    const item = await apiUpdateItem(id, { note });
-    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, note: item.note } : x)));
+  /** 编辑备注：更新后同步替换本地列表中该条的 description 字段 */
+  const editItemDescription = useCallback(async (id: number, description: string) => {
+    const item = await apiUpdateItem(id, { description });
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, description: item.description } : x)));
   }, []);
 
   /** 删除自选股：后端删除后从本地列表移除该条 */
@@ -318,9 +320,9 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     groups,
     groupsLoading,
     loadGroups,
-    createGroup,
-    renameGroup,
-    removeGroup,
+    createWatchlistGroup,
+    updateWatchlistGroup,
+    deleteWatchlistGroup,
     activeGroupId,
     setActiveGroupId: handleSetActiveGroupId,
     items,
@@ -328,7 +330,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     quotesLoading,
     loadItems,
     addItem,
-    editItemNote,
+    editItemDescription,
     removeItem,
     moveItem,
     pageNum,

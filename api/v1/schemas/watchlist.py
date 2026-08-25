@@ -19,26 +19,33 @@ from api.v1.schemas.common import PaginatedResponse
 # === 分类 ===
 
 class WatchlistGroupCreate(BaseModel):
-    """新增分类请求"""
+    """新增分类请求（分组编码由服务端生成，前端无需传入）"""
 
     name: str = Field(..., min_length=1, max_length=50, description="分类名称")
-
-
-class WatchlistGroupUpdate(BaseModel):
-    """编辑分类请求"""
-
-    name: Optional[str] = Field(None, min_length=1, max_length=50, description="分类名称")
+    description: Optional[str] = Field(None, max_length=255, description="分类描述")
     sort_order: Optional[int] = Field(None, description="分类排序权重")
 
 
-class WatchlistGroupOut(BaseModel):
-    """分类响应"""
+class WatchlistGroupUpdate(BaseModel):
+    """编辑分类请求（按 group_code 定位分类）"""
+
+    group_code: str = Field(..., min_length=1, description="分组编码（服务端生成，企业内唯一）")
+    name: Optional[str] = Field(None, min_length=1, max_length=50, description="分类名称")
+    description: Optional[str] = Field(None, max_length=255, description="分类描述")
+    sort_order: Optional[int] = Field(None, description="分类排序权重")
+
+
+class WatchlistGroupList(BaseModel):
+    """分类列表项响应（数组元素）"""
 
     id: int
     name: str
+    description: str
+    group_code: str
+    item_count: int = Field(0, description="当前分组下的个股数量")
     sort_order: int
-    created_at: str
-    updated_at: str
+    create_date_time: str
+    update_date_time: str
 
 
 # === 自选股 ===
@@ -48,13 +55,13 @@ class WatchlistItemCreate(BaseModel):
 
     stock_code: str = Field(..., min_length=1, max_length=32, description="规范股票代码，如 600519.SH")
     stock_name: Optional[str] = Field(None, max_length=64, description="冗余股票名称")
-    note: Optional[str] = Field(None, max_length=255, description="用户备注")
+    description: Optional[str] = Field(None, description="自选股描述")
 
 
 class WatchlistItemUpdate(BaseModel):
     """编辑自选股请求"""
 
-    note: Optional[str] = Field(None, max_length=255, description="用户备注")
+    description: Optional[str] = Field(None, description="自选股描述")
     stock_name: Optional[str] = Field(None, max_length=64, description="冗余股票名称")
 
 
@@ -71,10 +78,10 @@ class WatchlistItemOut(BaseModel):
     group_id: int
     stock_code: str
     stock_name: Optional[str]
-    note: Optional[str]
+    description: Optional[str]
     sort_order: int
-    created_at: str
-    updated_at: str
+    create_date_time: str
+    update_date_time: str
 
 
 class SimpleSuccess(BaseModel):
