@@ -132,7 +132,7 @@ export const HrsButton: React.FC<ButtonProps> = ({
     'aria-busy': isLoading || undefined,
     className: cn(
       // 基础样式：内联弹性布局、居中、过渡动画（字重由 fontWeight 属性控制）
-      'hrs-button inline-flex cursor-pointer items-center justify-center gap-2 transition-all duration-200',
+      'hrs-button inline-flex cursor-pointer items-center justify-center gap-1 transition-all duration-200',
       // 键盘焦点环（可访问性）
       'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 focus-visible:ring-offset-0',
       // 禁用态：禁止事件、禁用光标、降透明度、取消位移
