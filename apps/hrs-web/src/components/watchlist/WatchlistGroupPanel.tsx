@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Layers3 } from 'lucide-react';
+import { Plus, Layers3 } from 'lucide-react';
 import AnimCard from '../common/Card/AnimCard';
 import { ListCard } from '../common/ListCard';
 import { HrsButton, Input } from '../index';
@@ -91,14 +91,14 @@ export default function WatchlistGroupPanel({
 
   return (
     <AnimCard className="flex flex-col p-4 h-full">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-base font-semibold text-text">分组</span>
+          <span className="text-lg font-semibold text-text">分组</span>
           <span className="text-xs text-text-secondary">({groups.length})</span>
         </div>
         <HrsButton variant="primary" size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 m-0" />
-          新增分类
+          新增
         </HrsButton>
       </div>
 
@@ -109,41 +109,21 @@ export default function WatchlistGroupPanel({
         ) : groups.length === 0 ? (
           <div className="text-sm text-text-secondary py-6 text-center">暂无分组，请先新增</div>
         ) : (
-          groups.map((g, index) => {
-            const isActive = g.id === activeGroupId;
+          groups.map((item, index) => {
+            const isActive = item.id === activeGroupId;
             return (
-              <div key={g.id} className="relative">
-                <ListCard
-                  icon={Layers3}
-                  title={g.name}
-                  description={g.description || '—'}
-                  count={g.itemCount}
-                  isActive={isActive}
-                  ordinal={index}
-                  onClick={() => onSelect(g.id)}
-                />
-                {/* 右上角操作区（包裹层） */}
-                <div className="absolute right-2 top-2 flex gap-1">
-                  <HrsButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEdit(g)}
-                    aria-label="编辑"
-                    className="!px-1.5"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </HrsButton>
-                  <HrsButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPendingDelete(g)}
-                    aria-label="删除"
-                    className="!px-1.5 text-danger hover:bg-danger/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </HrsButton>
-                </div>
-              </div>
+              <ListCard
+                key={item.id}
+                icon={Layers3}
+                title={item.name}
+                description={item.description || '—'}
+                count={item.itemCount}
+                isActive={isActive}
+                ordinal={index}
+                onClick={() => onSelect(item.id)}
+                onEdit={() => openEdit(item)}
+                onDelete={() => setPendingDelete(item)}
+              />
             );
           })
         )}
