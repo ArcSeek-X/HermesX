@@ -41,6 +41,7 @@
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Modal as HeroUIModal } from '@heroui/react';
 import { cn } from '../../utils/cn';
+import { Separator } from './Separator';
 
 /** 尺寸 → Dialog 圆角映射 */
 const SIZE_RADIUS_MAP: Record<string, string> = {
@@ -144,11 +145,8 @@ const HrsModal: React.FC<HrsModalProps> = ({
               </HeroUIModal.Header>
             )}
 
-            {/* Header 与 Body 之间的分割线：中间 20%-80% 实色，两端渐变到透明 */}
-            <div
-              className="my-3 h-px"
-              style={{ background: 'linear-gradient(to right, transparent, hsl(var(--border) / 0.6) 10%, hsl(var(--border) / 0.6) 90%, transparent)' }}
-            />
+            {/* Header 与 Body 之间的分割线：default 变体 + 两端渐隐 */}
+            <Separator className="my-3" gradient/>
 
             {/* Body */}
             <HeroUIModal.Body className={cn('hrs-modal-body', bodyClassName)}>
