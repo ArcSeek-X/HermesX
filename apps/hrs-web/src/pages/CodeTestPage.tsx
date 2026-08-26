@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, Input, HrsButton, Modal, Chip } from '../components';
+import { AppPage, Input, HrsButton, Modal, Chip, TextArea } from '../components';
 import { Button } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
@@ -30,6 +30,7 @@ const toastVariantToButton: Record<
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
     const [newName] = useState('');
+    const [text, setText] = useState('这是一段初始的多行文本内容，用于演示 TextArea 的受控用法。');
     const [isOpen, setIsOpen] = useState(false);
     // Chip 关闭演示：受控标签列表
     const [chips, setChips] = useState<string[]>([
@@ -56,7 +57,50 @@ const CodeTestPage: React.FC = () => {
 
     return (
         <AppPage>
+            {/* ============ TextArea 多行文本输入组件演示 ============ */}
+            <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+                <h3 className="text-sm font-medium text-primary-text">TextArea（多行文本输入）组件演示</h3>
+                <p className="text-xs text-muted">
+                    基于 HeroUI TextArea 封装，支持 xs/sm/md/lg 四档尺寸与 primary/secondary 两种变体，
+                    下方演示受控用法（共享同一状态）及不同尺寸、变体的视觉效果。
+                </p>
 
+                {/* 受控 + 不同尺寸 */}
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">size=&quot;xs&quot;（受控，当前 {text.length} 字）</span>
+                        <TextArea size="xs" value={text} onChange={(e) => setText(e.target.value)} placeholder="超紧凑尺寸" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">size=&quot;sm&quot;</span>
+                        <TextArea size="sm" value={text} onChange={(e) => setText(e.target.value)} placeholder="默认尺寸" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">size=&quot;md&quot;</span>
+                        <TextArea size="md" value={text} onChange={(e) => setText(e.target.value)} placeholder="中等尺寸" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">size=&quot;lg&quot;</span>
+                        <TextArea size="lg" value={text} onChange={(e) => setText(e.target.value)} placeholder="大尺寸" />
+                    </div>
+                </div>
+
+                {/* 变体 + 禁用 / 只读 */}
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">variant=&quot;secondary&quot;（无阴影，适配 Surface）</span>
+                        <TextArea variant="secondary" value={text} onChange={(e) => setText(e.target.value)} placeholder="Surface 内使用" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">disabled（禁用）</span>
+                        <TextArea disabled value={text} placeholder="禁用状态" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-secondary-text">只读展示（仅传 value 无 onChange，自动补 readOnly）</span>
+                        <TextArea value={text} placeholder="只读状态" />
+                    </div>
+                </div>
+            </div>
 
 
             {/* ============ 错误 Toast（浮层）组件演示 ============ */}
