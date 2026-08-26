@@ -61,9 +61,6 @@ import { useCachedState } from '../hooks/useCachedState';
 import { apiCache } from '../utils/apiCache';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
-/** 实时模式下自动刷新间隔（秒） */
-const AUTO_REFRESH_INTERVAL = 30;
-
 /**
  * 交易时段快照时间点（9:30 ~ 15:00，每 30 分钟一个）
  * 注意：13:00 不在数据源（shidaotec getMapData）的合法快照集合内，
@@ -154,8 +151,10 @@ const SectorAnalysisPage: React.FC = () => {
   const [treemapData, setTreemapData] = useState<SectorNode[]>([]);
   /** 云图数据加载状态 */
   const [loading, setLoading] = useState(false);
-  /** 最后一次数据更新时间 */
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  /** 最后一次数据更新时间
+   * 初始值取当前时间，保证「板块」TAB 等无独立加载入口的场景在进入页面时即显示「更新于」；
+   * 实际数据加载完成后会被各 load 函数覆盖为接口返回时间。 */
+  const [lastUpdate, setLastUpdate] = useState<Date>(() => new Date());
 
   /** 选中的快照时间（L2+L3 缓存：sessionStorage；空字符串表示实时模式） */
   const [selectedTime, setSelectedTime] = useCachedState<string>(
@@ -177,10 +176,10 @@ const SectorAnalysisPage: React.FC = () => {
     { storage: 'local' }
   );
 
-  /** 自动刷新倒计时（秒），仅实时模式有效 */
-  const [countdown, setCountdown] = useState(AUTO_REFRESH_INTERVAL);
   /** 个股云图加载错误提示（如请求到无快照的时间点） */
   const [stockError, setStockError] = useState<string | null>(null);
+  /** 板块卡片刷新序号：自增时触发 SectorBoardCards 重新拉取后端数据（无感刷新） */
+  const [boardRefreshKey, setBoardRefreshKey] = useState(0);
 
   // ===== 板块资金流状态（仅「资金」一级 TAB 下使用）=====
   /** 板块类型：industry 行业 / concept 概念 */
@@ -387,23 +386,14 @@ const SectorAnalysisPage: React.FC = () => {
     }
     if (primaryTabValue === 'sector-fund') {
       loadFundFlow();
+    } else if (primaryTabValue === 'sector') {
+      // 「板块」一级 TAB：刷新当前激活二级 TAB（industry/concept）的板块卡片数据
+      setBoardRefreshKey((k) => k + 1);
     } else {
-      // sector 一级 TAB 暂无独立数据接口，仅需刷新云图即可（云图默认二级 TAB 为板块云图）
+      // 「云图」一级 TAB：按当前激活二级 TAB（sector/stock/etf/concept）刷新对应云图
       loadActiveCloudMap(selectedTime || undefined);
     }
-  }, [primaryTabValue, loadFundFlow, loadActiveCloudMap, selectedTime]);
-
-  /** 手动刷新按钮回调（DataRefreshBar 内部负责点击动画）：刷新数据 + 重置倒计时 */
-  const handleManualRefresh = useCallback(() => {
-    refreshActiveTabData();
-    setCountdown(AUTO_REFRESH_INTERVAL);
-  }, [refreshActiveTabData]);
-
-  /** 倒计时归零回调（由 DataRefreshBar 在 countdown 变为 0 时触发）：刷新数据 + 重置倒计时 */
-  const handleCountdownEnd = useCallback(() => {
-    refreshActiveTabData();
-    setCountdown(AUTO_REFRESH_INTERVAL);
-  }, [refreshActiveTabData]);
+  }, [primaryTabValue, loadFundFlow, loadActiveCloudMap, selectedTime, setBoardRefreshKey]);
 
   // ===================================================================
   // 生命周期
@@ -418,21 +408,11 @@ const SectorAnalysisPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [primaryTabValue]);
 
-  /** 首次加载 + 实时模式下的 30 秒自动刷新（含倒计时） */
+  /** 首次加载 + TAB 切换时拉取云图数据；实时模式的自动刷新倒计时由 DataRefreshBar 内部管理 */
   useEffect(() => {
-    // 板块一级 TAB 无独立数据接口，无需在实时模式下轮询
-    if (primaryTabValue === 'sector') return;
-
+    // 板块一级 TAB 通过 loadActiveCloudMap（默认板块云图）加载数据，
+    // 自动刷新（含 30s 倒计时）已在 DataRefreshBar 内部自治，本处只负责触发数据加载
     loadActiveCloudMap(selectedTime || undefined);
-    setCountdown(AUTO_REFRESH_INTERVAL);
-
-    // 快照模式（指定了时间点）不启动倒计时，仅加载一次
-    if (!selectedTime) {
-      const timer = setInterval(() => {
-        setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
   }, [primaryTabValue, loadActiveCloudMap, selectedTime]);
 
   // ===================================================================
@@ -586,11 +566,10 @@ const SectorAnalysisPage: React.FC = () => {
             rightSlot={
               <DataRefreshBar
                 lastUpdate={lastUpdate}
-                countdown={countdown}
                 snapshotTime={selectedTime}
                 loading={loading}
-                onRefresh={handleManualRefresh}
-                onCountdownEnd={handleCountdownEnd}
+                onRefresh={refreshActiveTabData}
+                onCountdownEnd={refreshActiveTabData}
               />
             }
           />
@@ -637,7 +616,11 @@ const SectorAnalysisPage: React.FC = () => {
 
         {/* ===== 3. 板块卡片列表（仅「板块」一级 TAB；类型与搜索词均由二级 TAB 驱动）===== */}
         {primaryTabValue === 'sector' && (
-          <SectorBoardCards boardType={boardTab} searchKeyword={boardSearchKeyword} />
+          <SectorBoardCards
+            boardType={boardTab}
+            searchKeyword={boardSearchKeyword}
+            refreshKey={boardRefreshKey}
+          />
         )}
 
         {/* ===== 4. 云图内容（仅「云图」一级 TAB + 概览模式）===== */}

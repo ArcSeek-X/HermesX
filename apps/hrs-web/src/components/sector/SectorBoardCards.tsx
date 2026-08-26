@@ -43,6 +43,8 @@ interface SectorBoardCardsProps {
   boardType: BoardType;
   /** 搜索关键词（由父页面通过二级 TAB 右侧插槽输入，本组件据此过滤） */
   searchKeyword?: string;
+  /** 刷新序号：变化时强制重新拉取后端数据，用于父页面的无感刷新 */
+  refreshKey?: number;
 }
 
 /**
@@ -55,6 +57,7 @@ interface SectorBoardCardsProps {
 export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
   boardType,
   searchKeyword = '',
+  refreshKey = 0,
 }) => {
   /** 板块列表数据 */
   const [boards, setBoards] = useState<BoardListItem[]>([]);
@@ -79,10 +82,10 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
     }
   }, []);
 
-  /** 受控类型变化时触发数据加载（类型由父页面二级 TAB 驱动） */
+  /** 受控类型 / 刷新序号变化时触发数据加载（类型与刷新由父页面二级 TAB 驱动） */
   useEffect(() => {
     loadBoards(boardType);
-  }, [boardType, loadBoards]);
+  }, [boardType, refreshKey, loadBoards]);
 
   /**
    * 按搜索关键词综合匹配板块列表。
