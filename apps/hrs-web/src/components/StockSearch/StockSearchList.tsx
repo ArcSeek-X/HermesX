@@ -8,7 +8,7 @@
 
 import type { CSSProperties } from 'react';
 import type { StockSuggestion } from '../../types/stockIndex';
-import { Badge } from '../';
+import { Chip } from '../';
 import { cn } from '../../utils/cn';
 import AnimCard from '../common/Card/AnimCard';
 
@@ -109,15 +109,16 @@ export function StockSearchList({
 }
 
 // 市场标识 -> 中文标签 + 徽标配色（A股红、港股绿、美股青……）
+// variant/color 为 Chip 规格字段（color 仅作语义占位，真实配色由 className 透传自定义色实现） purple、indigo
 const MARKET_BADGE_CONFIG = {
-  CN: { label: 'A股', className: 'border-danger/25 bg-danger/10 text-danger' },
-  HK: { label: '港股', className: 'border-success/25 bg-success/10 text-success' },
-  US: { label: '美股', className: 'border-cyan/25 bg-cyan/10 text-cyan' },
-  JP: { label: '日股', className: 'border-indigo-500/25 bg-indigo-500/10 text-indigo-500' },
-  KR: { label: '韩股', className: 'border-rose-500/25 bg-rose-500/10 text-rose-500' },
-  INDEX: { label: '指数', className: 'border-purple/25 bg-purple/10 text-purple' },
-  ETF: { label: 'ETF', className: 'border-warning/25 bg-warning/10 text-warning' },
-  BSE: { label: '北交所', className: 'border-orange-500/25 bg-orange-500/10 text-orange-500' },
+  CN: { label: 'A股', variant: 'primary', color: 'danger' },
+  HK: { label: '港股', variant: 'primary', color: 'success' },
+  US: { label: '美股', variant: 'primary', color: 'indigo' },
+  JP: { label: '日股', variant: 'primary', color: 'purple' },
+  KR: { label: '韩股', variant: 'primary', color: 'purple' },
+  INDEX: { label: '指数', variant: 'primary', color: 'warning' },
+  ETF: { label: 'ETF', variant: 'primary', color: 'warning', },
+  BSE: { label: '北交所', variant: 'primary', color: 'blue' },
 } as const;
 
 // 市场徽标：显示市场中文名，颜色区分不同市场
@@ -130,28 +131,28 @@ function MarketBadge({ market }: { market: string }) {
   }
 
   return (
-    <Badge variant="default" size="sm" className={cn('text-sx rounded-sm min-w-[3rem] justify-center shadow-none', config.className)}>
+    <Chip variant={config.variant} color={config.color} size="xs" radius="sm" className={cn('min-w-[3rem] justify-center', config.className)}>
       {config.label}
-    </Badge>
+    </Chip>
   );
 }
 
 // 匹配类型徽标：根据匹配方式显示对应中文标签与配色
 function MatchTypeBadge({ matchType }: { matchType: string }) {
   const configMap = {
-    exact: { label: '精确', className: 'border-cyan/25 bg-cyan/10 text-cyan' },
-    prefix: { label: '前缀', className: 'border-purple/25 bg-purple/10 text-purple' },
-    contains: { label: '包含', className: 'border-warning/25 bg-warning/10 text-warning' },
-    fuzzy: { label: '模糊', className: 'border-border/55 bg-elevated/75 text-muted-text' },
-  };
+    exact: { label: '精确', color: 'accent', variant: 'primary' },
+    prefix: { label: '前缀', color: 'success', variant: 'soft' },
+    contains: { label: '包含', color: 'warning', variant: 'soft' },
+    fuzzy: { label: '模糊', color: 'default', variant: 'soft' },
+  } as const;
 
   // 未知匹配类型兜底为“模糊”
   const config = configMap[matchType as keyof typeof configMap] || configMap.fuzzy;
 
   return (
-    <Badge variant="default" size="sm" className={cn('text-sx rounded-sm shrink-0 shadow-none', config.className)}>
+    <Chip variant={config.variant} color={config.color} size="xs" radius="sm" className="shrink-0">
       {config.label}
-    </Badge>
+    </Chip>
   );
 }
 

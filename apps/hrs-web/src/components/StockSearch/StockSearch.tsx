@@ -9,7 +9,8 @@
  *   2. 支持键盘导航（↑/↓ 移动高亮、Enter 提交、Esc 收起）、IME 输入法组合态处理；
  *   3. 渲染异常（ErrorBoundary）捕获后整体不挂载搜索框，避免破损 UI 扩散；
  *      （原多层降级退化为普通输入框的逻辑已移除，搜索框统一使用 HeroUI SearchField）
- *   4. 下拉框通过 createPortal 挂到 document.body，避免被父级 overflow 裁剪。
+ *   4. 下拉框默认通过 createPortal 挂到 document.body 避免被父级裁剪；
+ *      可通过 originalRender 参数切换为原位渲染（不使用 portal）。
  *
  * 对外契约：
  *   - onChange：输入内容变化（原始文本）
@@ -55,6 +56,14 @@ export interface StockSearchProps {
   className?: string;
   /** 点击清除按钮时的回调 */
   onClear?: () => void;
+  /**
+   * 下拉候选列表渲染方式：
+   *   - true  -> 原位渲染（不使用 portal），作为当前组件 DOM 树的一部分；
+   *   - false（默认）-> 通过 createPortal 挂到 document.body，避免被父级 overflow/transform 裁切。
+   * 注意：无论哪种方式，StockSearchList 内部都会主动清除 react-aria Modal 设置的 inert，
+   * 以保证在弹窗内下拉的点击/键盘交互可用。
+   */
+  originalRender?: boolean;
 }
 
 /** 错误边界 Props：在 StockSearchProps 基础上追加 children */
@@ -123,6 +132,7 @@ function StockSearchInner({
   ariaLabel,
   size = 'sm',
   className,
+  originalRender = false,
 }: StockSearchProps) {
   // 股票索引：加载本地 /stocks.index.json
   const { index, loading } = useStockIndex();
@@ -237,7 +247,7 @@ function StockSearchInner({
    * 键盘事件处理：
    * - 输入法组合期间（isComposing）不响应，避免中文输入时误触快捷键；
    * - ↑/↓：移动高亮（useStockAutocomplete 内部做循环）；
-   * - Enter：有高亮项时提交该项，否则把输入原文直接提交；
+   * - Enter：有候选时优先选中高亮项；无高亮项但有候选时默认选中第一项（将中文名等输入自动转换为对应股票）；无任何候选时才把输入原文提交；
    * - Esc：收起下拉。
    */
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -256,9 +266,11 @@ function StockSearchInner({
       case 'Enter':
         e.preventDefault();
         setEditingValue(null); // 提交时清除编辑状态
-        if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-          // 有高亮项：提交该项（规范代码 + 名称 + 来源 autocomplete + 市场元信息）
-          const selected = suggestions[highlightedIndex];
+        if (suggestions.length > 0) {
+          // 有候选：优先取键盘高亮项，未高亮（highlightedIndex < 0）时默认取第一项，
+          // 这样输入中文名（如"中科曙光"）回车即可自动匹配并转换为对应股票代码，
+          // 而非把原始中文输入当代码提交。
+          const selected = suggestions[highlightedIndex] ?? suggestions[0];
           justSelectedRef.current = true; // 阻止同步效应重新触发搜索
           onChange(selected.displayCode);
           closeSuggestions();
@@ -267,7 +279,7 @@ function StockSearchInner({
             displayCode: selected.displayCode,
           });
         } else {
-          // 无高亮项：把输入原文直接提交（调用方会解析，如后端搜索）
+          // 无任何候选：把输入原文直接提交（调用方会解析，如后端搜索）
           onSubmit(value);
         }
         break;
@@ -385,31 +397,37 @@ function StockSearchInner({
         </div>
       )}
 
-      {/* Suggestion dropdown list：下拉候选列表，通过 Portal 挂到 body，避免被父级裁剪 */}
-      {isOpen && dropdownStyle && createPortal(
-        <StockSearchList
-          size={size}
-          suggestions={suggestions}
-          highlightedIndex={highlightedIndex}
-          onSelect={(s) => {
-            justSelectedRef.current = true; // 阻止同步效应重新触发搜索
-            setEditingValue(null); // 选择建议时清除编辑状态
-            // Update external value (shown in input box)
-            onChange(s.displayCode);
-            // Close dropdown list
-            closeSuggestions();
-            // Submit analysis
-            onSubmit(s.canonicalCode, s.nameZh, 'autocomplete', {
-              market: s.market,
-              displayCode: s.displayCode,
-            });
-          }}
-          onMouseEnter={(index) => setHighlightedIndex(index)}
-          onMouseLeave={() => setHighlightedIndex(-1)}
-          style={{ position: 'fixed', ...dropdownStyle }}
-        />,
-        document.body
-      )}
+      {/* Suggestion dropdown list：下拉候选列表。
+          originalRender=false（默认）-> createPortal 挂到 body，避免被父级 overflow/transform 裁切；
+          originalRender=true -> 原位渲染（不使用 portal），作为当前组件 DOM 树的一部分（为了避免model - react-aria Modal 设置的 inert问题）。
+          以保证在弹窗内下拉的点击/键盘交互可用。 */}
+      {isOpen && dropdownStyle && (() => {
+        // 抽取下拉列表元素，仅包裹方式（原位 / Portal 挂 body）随 originalRender 变化，避免重复书写
+        const dropdown = (
+          <StockSearchList
+            size={size}
+            suggestions={suggestions}
+            highlightedIndex={highlightedIndex}
+            onSelect={(s) => {
+              justSelectedRef.current = true; // 阻止同步效应重新触发搜索
+              setEditingValue(null); // 选择建议时清除编辑状态
+              // Update external value (shown in input box)
+              onChange(s.displayCode);
+              // Close dropdown list
+              closeSuggestions();
+              // Submit analysis
+              onSubmit(s.canonicalCode, s.nameZh, 'autocomplete', {
+                market: s.market,
+                displayCode: s.displayCode,
+              });
+            }}
+            onMouseEnter={(index) => setHighlightedIndex(index)}
+            onMouseLeave={() => setHighlightedIndex(-1)}
+            style={{ position: 'fixed', ...dropdownStyle }}
+          />
+        );
+        return originalRender ? dropdown : createPortal(dropdown, document.body);
+      })()}
     </div>
   );
 }
