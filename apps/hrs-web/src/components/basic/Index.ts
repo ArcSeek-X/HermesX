@@ -3,6 +3,7 @@ export * from './Card';
 export * from './Checkbox';
 export * from './Toolbar';
 export { Input } from './Input';
+export { TextArea } from './TextArea';
 export * from './PasswordInput';
 export { InputTest } from './InputTest';
 export * from './Loading';
