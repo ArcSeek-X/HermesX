@@ -6,8 +6,8 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, Input, HrsButton, Modal, Chip, TextArea } from '../components';
-import { Button } from '@heroui/react';
+import { AppPage, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOption, type HrsSelectSection } from '../components';
+import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
 /**
@@ -27,11 +27,65 @@ const toastVariantToButton: Record<
     danger: 'danger',
 };
 
+/** HrsSelect 基础单选演示：扁平选项（含禁用子项） */
+const selectMarketOptions: HrsSelectOption[] = [
+    { key: 'a', label: 'A 股' },
+    { key: 'hk', label: '港股' },
+    { key: 'us', label: '美股' },
+    { key: 'tw', label: '台股', disabled: true },
+];
+
+/** HrsSelect 分组演示：数据结构与扁平选项统一走 options 入口（每个分组有 title，分组间自动插入分割线） */
+const selectMarketSections: HrsSelectSection[] = [
+    {
+        key: 'asia',
+        title: '亚洲',
+        options: [
+            { key: 'cn', label: '上证指数' },
+            { key: 'hk', label: '恒生指数' },
+            { key: 'jp', label: '日经 225', disabled: true },
+        ],
+    },
+    {
+        key: 'europe',
+        title: '欧洲',
+        options: [
+            { key: 'uk', label: '富时 100' },
+            { key: 'de', label: 'DAX 30' },
+        ],
+    },
+    {
+        key: 'america',
+        title: '美洲',
+        options: [
+            { key: 'usa', label: '标普 500' },
+            { key: 'usa-tech', label: '纳斯达克 100' },
+        ],
+    },
+];
+
+/** HrsSelect 多选演示：扁平选项 */
+const selectMultiOptions: HrsSelectOption[] = [
+    { key: 'macd', label: 'MACD' },
+    { key: 'kdj', label: 'KDJ' },
+    { key: 'rsi', label: 'RSI' },
+    { key: 'boll', label: 'BOLL' },
+    { key: 'ma', label: 'MA 均线' },
+];
+
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
     const [newName] = useState('');
     const [text, setText] = useState('这是一段初始的多行文本内容，用于演示 TextArea 的受控用法。');
     const [isOpen, setIsOpen] = useState(false);
+    // HrsSelect 演示：基础受控单选（共享同一状态，用于对比各尺寸）
+    const [selectMarket, setSelectMarket] = useState<Key | null>('a');
+    // HrsSelect 演示：分组受控单选
+    const [selectIndex, setSelectIndex] = useState<Key | null>('usa');
+    // HrsSelect 演示：多选（受控，Key[]）
+    const [selectIndicators, setSelectIndicators] = useState<Key[]>(['macd']);
+    // HrsSelect 演示：校验态（未选择时展示错误提示）
+    const [selectStrategy, setSelectStrategy] = useState<Key | null>(null);
     // Chip 关闭演示：受控标签列表
     const [chips, setChips] = useState<string[]>([
         '科创50',
@@ -53,10 +107,111 @@ const CodeTestPage: React.FC = () => {
 
 
 
-
-
     return (
         <AppPage>
+            <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+
+
+            
+            </div>
+
+            {/* ============ HrsSelect 下拉选择器组件演示 ============ */}
+            <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+                <h3 className="text-sm font-medium text-primary-text">HrsSelect（下拉选择器）组件演示</h3>
+                <p className="text-xs text-muted">
+                    基于 HeroUI Select 封装，统一 options 数据入口、数据结构驱动渲染：扁平项与分组项可任意组合，
+                    含 options 数组的项自动识别为分组（渲染 title 分组标题，分组间自动插入分割线）；
+                    子项可通过 disabled 字段禁用（无法被选中）。
+                    基础入参遵循 HeroUI 规格（value / onChange / selectionMode / isDisabled / isInvalid 等）。
+                </p>
+
+                {/* 1. 基础受控单选：尺寸对比 + disabled 子项 */}
+                <div className="flex flex-col gap-3">
+                    <span className="text-xs text-secondary-text">
+                        基础受控单选（size xs / sm / md / lg 共享同一状态；「台股」为 disabled 子项，无法被选中）
+                    </span>
+                    <div className="flex flex-wrap items-start gap-4">
+                        {(['xs', 'sm', 'md', 'lg'] as const).map((size) => (
+                            <div key={size} className="w-56">
+                                <HrsSelect
+                                    size={size}
+                                    label={`市场（size=${size}）`}
+                                    placeholder="请选择市场"
+                                    options={selectMarketOptions}
+                                    value={selectMarket}
+                                    onChange={(value) => setSelectMarket(value as Key | null)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 2. 分组单选：统一 options 入口，含 options 数组的项动态识别为分组 */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-xs text-secondary-text">
+                        分组单选（同样通过 options 传入，数据结构含 options 数组即识别为分组：
+                        分组标题 title、分组间自动分隔、「日经 225」为 disabled）
+                    </span>
+                    <div className="w-72">
+                        <HrsSelect
+                            label="指数（按地区分组）"
+                            placeholder="请选择指数"
+                            options={selectMarketSections}
+                            value={selectIndex}
+                            onChange={(value) => setSelectIndex(value as Key | null)}
+                        />
+                    </div>
+                </div>
+
+                {/* 3. 多选：selectionMode="multiple"（受控 Key[]） + description 辅助说明 */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-xs text-secondary-text">
+                        多选（selectionMode=&quot;multiple&quot;，当前选中：{selectIndicators.length > 0 ? selectIndicators.join(' / ') : '无'}；
+                        description 为触发器下方的辅助说明文本）
+                    </span>
+                    <div className="w-72">
+                        <HrsSelect
+                            label="技术指标"
+                            placeholder="请选择技术指标"
+                            description="可组合多个指标进行叠加分析"
+                            selectionMode="multiple"
+                            options={selectMultiOptions}
+                            value={selectIndicators}
+                            onChange={(value) => setSelectIndicators(value as Key[])}
+                        />
+                    </div>
+                </div>
+
+                {/* 4. 校验态（errorMessage 优先于 description）+ 整组件禁用 */}
+                <div className="flex flex-wrap items-start gap-4">
+                    <div className="w-72">
+                        <HrsSelect
+                            label="策略（isInvalid 校验态）"
+                            placeholder="请选择策略"
+                            isRequired
+                            isInvalid={selectStrategy === null}
+                            description="未选择时展示错误提示，选择后切换为本说明"
+                            errorMessage={selectStrategy === null ? '请选择一个策略' : undefined}
+                            options={[
+                                { key: 'trend', label: '趋势跟踪' },
+                                { key: 'mean-revert', label: '均值回归' },
+                            ]}
+                            value={selectStrategy}
+                            onChange={(value) => setSelectStrategy(value as Key | null)}
+                        />
+                    </div>
+                    <div className="w-72">
+                        <HrsSelect
+                            label="禁用态（isDisabled）"
+                            placeholder="请选择"
+                            isDisabled
+                            options={selectMultiOptions}
+                            value="ma"
+                        />
+                    </div>
+                </div>
+            </div>
+
             {/* ============ TextArea 多行文本输入组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
                 <h3 className="text-sm font-medium text-primary-text">TextArea（多行文本输入）组件演示</h3>
