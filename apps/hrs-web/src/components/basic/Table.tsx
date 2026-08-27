@@ -71,6 +71,12 @@ export interface TableColumnDef<T> {
   /** 列宽度，支持像素值、百分比（如 '16%'）或 fr 单位（如 '1fr'） */
   width?: ColumnWidth;
   /**
+   * 是否为行标题列（无障碍语义，对应 HeroUI Column 的 isRowHeader）。
+   * 用于标记哪一列作为每一行的标题，屏幕阅读器据此朗读。
+   * 不传时：默认让第一列作为行头（满足 HeroUI「至少一列 isRowHeader」的约束）。
+   */
+  isRowHeader?: boolean;
+  /**
    * 自定义单元格渲染函数。
    * 传入行数据，返回要渲染的 React 节点。
    * 未提供时默认渲染 row[column.key] 的值。
@@ -272,6 +278,7 @@ export function Table<T extends { id: string | number }>({
                 key={col.key}
                 allowsSorting={col.allowsSorting}
                 width={col.width}
+                isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
               >
                 {col.allowsSorting ? (
                   <TableSortableColumnHeader
