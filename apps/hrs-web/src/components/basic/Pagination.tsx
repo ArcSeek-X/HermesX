@@ -113,7 +113,7 @@ export default function PaginationBar({
   }, [pages, safePage]);
 
   return (
-    <div className={`flex items-center justify-between px-3 py-2 border-t border-subtle !text-text-secondary ${className}`}> 
+    <div className={`flex items-center justify-between px-3 py-2 border-t border-subtle !text-foreground-soft ${className}`}> 
       <Pagination size={size}>
         <Pagination.Summary className={paginationTextClass}>
           {total === 0 ? '暂无数据' : `显示 ${start} - ${end} 条 / 共 ${total} 条`}
@@ -141,7 +141,7 @@ export default function PaginationBar({
                 <Pagination.Link
                   isActive={p === safePage}
                   onPress={() => onPageChange(p)}
-                  className={`bg-transparent hover:bg-transparent !text-text-secondary hover:text-primary ${paginationTextClass} ${p === safePage && activeClass ? activeClass : ''}`}
+                  className={`bg-transparent hover:bg-transparent !text-foreground-soft hover:text-primary ${paginationTextClass} ${p === safePage && activeClass ? activeClass : ''}`}
                 >
                   {p}
                 </Pagination.Link>

@@ -13,7 +13,10 @@ import { useState } from 'react';
 import { Plus, Layers3 } from 'lucide-react';
 import AnimCard from '../common/Card/AnimCard';
 import { ListCard } from '../common/ListCard';
-import { HrsButton, Input } from '../index';
+import { HrsButton, Input, TextArea } from '../index';
+import { Description, TextField } from '@heroui/react';
+
+
 import { Modal } from '../basic/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { WatchlistGroup } from '../../api/watchlist';
@@ -93,8 +96,8 @@ export default function WatchlistGroupPanel({
     <AnimCard className="flex flex-col p-4 h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-text">分组</span>
-          <span className="text-xs text-text-secondary">({groups.length})</span>
+          <span className="text-md font-semibold">分组</span>
+          <span className="text-xs text-foreground-soft">({groups.length})</span>
         </div>
         <HrsButton variant="primary" size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 m-0" />
@@ -105,9 +108,9 @@ export default function WatchlistGroupPanel({
       {/* 分类列表（一层平铺，使用 ListCard） */}
       <div className="flex-1 overflow-y-auto -mx-1 px-1 space-y-1.5">
         {loading && groups.length === 0 ? (
-          <div className="text-sm text-text-secondary py-6 text-center">加载中…</div>
+          <div className="text-sm text-foreground-soft py-6 text-center">加载中…</div>
         ) : groups.length === 0 ? (
-          <div className="text-sm text-text-secondary py-6 text-center">暂无分组，请先新增</div>
+          <div className="text-sm text-foreground-soft py-6 text-center">暂无分组，请先新增</div>
         ) : (
           groups.map((item, index) => {
             const isActive = item.id === activeGroupId;
@@ -136,11 +139,12 @@ export default function WatchlistGroupPanel({
         </Modal.Header>
         <Modal.Body>
           <div className="space-y-4">
-            <div className="space-y-1.5">
+            <TextField className="w-full" >
               <label className="text-sm font-medium text-text">
                 分类名称<span className="text-danger ml-0.5">*</span>
               </label>
               <Input
+                className="w-full"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="请输入分类名称"
@@ -153,19 +157,25 @@ export default function WatchlistGroupPanel({
               {!isNameValid && (
                 <p className="text-xs text-danger">分类名称不能为空</p>
               )}
-            </div>
-            <div className="space-y-1.5">
+            </TextField>
+            <TextField className="w-full">
               <label className="text-sm font-medium text-text">分类描述</label>
-              <Input
+              <TextArea
+                className="w-full"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="请输入分类描述（选填）"
-                maxLength={255}
+                aria-describedby="textarea-controlled-description"
+                rows={3}
+                maxLength={20}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && isNameValid) void handleSave();
                 }}
               />
-            </div>
+              <Description id="textarea-controlled-description">
+                {formDescription.length} / 20
+              </Description>
+            </TextField>
           </div>
         </Modal.Body>
         <Modal.Footer>
