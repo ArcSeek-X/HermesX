@@ -33,27 +33,20 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import {
-  TableRoot,
-  TableContent,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableSortableColumnHeader,
-  EmptyState,
-} from '@heroui/react';
+import type { ComponentProps } from 'react';
+import { Table as HeroTable, EmptyState } from '@heroui/react';
+import type { Key, SortDescriptor, Selection } from '@heroui/react';
 import { Inbox } from 'lucide-react';
 import PaginationBar from './Pagination';
-import type { Key, SortDescriptor, Selection } from '@heroui/react';
 import { cn } from '../../utils/cn';
 
+
 /**
- * 列宽度类型。
- * 支持数字（像素值）、百分比字符串、fr 单位字符串。
+ * 排序描述符接口。
+ * 描述当前排序的列和排序方向。
+ * 从 @heroui/react 导入以保持类型一致性。
  */
-type ColumnWidth = number | `${number}%` | `${number}fr`;
+export type { SortDescriptor } from '@heroui/react';
 
 /**
  * 表格列定义接口。
@@ -68,8 +61,17 @@ export interface TableColumnDef<T> {
   title: string;
   /** 是否支持排序，默认 false */
   allowsSorting?: boolean;
-  /** 列宽度，支持像素值、百分比（如 '16%'）或 fr 单位（如 '1fr'） */
-  width?: ColumnWidth;
+  /**
+   * 列最小宽度（像素），对应 HeroUI TableColumn 的 minWidth（必填，number）。
+   * 用于限制列在可调整 / 自适应时不会窄于该值。
+   */
+  minWidth: number;
+  /**
+   * 列默认宽度，对应 HeroUI TableColumn 的 defaultWidth（必填，string | number）。
+   * 在 Table 被 HeroUI.ResizableContainer 包裹时按各列 defaultWidth 的相对比例分配宽度。
+   * 支持像素数字（如 120）或 CSS 长度字符串（如 '15%'、'120px'）。
+   */
+  defaultWidth: string | number;
   /**
    * 是否为行标题列（无障碍语义，对应 HeroUI Column 的 isRowHeader）。
    * 用于标记哪一列作为每一行的标题，屏幕阅读器据此朗读。
@@ -84,19 +86,13 @@ export interface TableColumnDef<T> {
   render?: (row: T) => React.ReactNode;
 }
 
-/**
- * 排序描述符接口。
- * 描述当前排序的列和排序方向。
- * 从 @heroui/react 导入以保持类型一致性。
- */
-export type { SortDescriptor } from '@heroui/react';
 
 /**
  * 分页配置接口。
  * 传入后启用分页功能，渲染分页控件。
  * 采用受控模式：调用方管理页码状态，通过 onPageChange 接收翻页事件。
  */
-export interface PaginationConfig {
+export interface PaginationDef {
   /** 总条数 */
   total: number;
   /** 每页显示的行数 */
@@ -156,7 +152,7 @@ export interface TableProps<T extends { id: string | number }> {
    * 传入对象后启用分页功能，显示分页控件和统计信息。
    * 采用受控模式：调用方负责数据切片和页码管理。
    */
-  pagination?: PaginationConfig;
+  pagination?: PaginationDef;
 }
 
 /**
@@ -249,8 +245,8 @@ export function Table<T extends { id: string | number }>({
   const displayRows = rows;
 
   /**
-   * 表格容器样式。
-   * 当指定 maxHeight 时，在外层 div 设置最大高度并启用滚动。
+   * 滚动容器样式。
+   * 当指定 maxHeight 时，在 HeroTable.ScrollContainer 上设置最大高度并启用滚动。
    */
   const containerStyle = maxHeight
     ? {
@@ -260,65 +256,70 @@ export function Table<T extends { id: string | number }>({
     : undefined;
 
   return (
-    <div className="hrs-table flex flex-col w-full rounded-md" style={containerStyle}>
-      {/* HeroUI Table 主体 */}
-      <TableRoot variant={variant} className={cn('hrs-table__root', className)}>
-        <TableContent
-          aria-label="数据表格"
-          selectionMode={selectionMode === 'none' ? undefined : selectionMode}
-          selectedKeys={selectedKeys}
-          onSelectionChange={handleSelectionChange}
-          sortDescriptor={sortDescriptor}
-          onSortChange={onSortChange}
-        >
-          {/* 表头 */}
-          <TableHeader className="hrs-table__header">
-            {columns.map((col) => (
-              <TableColumn
-                key={col.key}
-                allowsSorting={col.allowsSorting}
-                width={col.width}
-                isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
-              >
-                {col.allowsSorting ? (
-                  <TableSortableColumnHeader
-                    sortDirection={
-                      sortDescriptor?.column === col.key
-                        ? sortDescriptor.direction
-                        : undefined
-                    }
-                  >
-                    {col.title}
-                  </TableSortableColumnHeader>
-                ) : (
-                  col.title
-                )}
-              </TableColumn>
-            ))}
-          </TableHeader>
+    <div className="hrs-table flex flex-col w-full rounded-md">
+      {/* HeroUI Table 主体（写法 A：Table → Table.ScrollContainer → Table.Content 三层递进） */}
+      <HeroTable variant={variant} className={cn('hrs-table__root', className)}>
+        <HeroTable.ScrollContainer style={containerStyle}>
+          <HeroTable.ResizableContainer>
+            <HeroTable.Content
+            className="hrs-table__content"
+              aria-label="数据表格"
+              selectionMode={selectionMode === 'none' ? undefined : selectionMode}
+              selectedKeys={selectedKeys}
+              onSelectionChange={handleSelectionChange}
+              sortDescriptor={sortDescriptor}
+              onSortChange={onSortChange}
+            >
+            {/* 表头 */}
+            <HeroTable.Header className="hrs-table__header">
+              {columns.map((col) => (
+                <HeroTable.Column
+                  key={col.key}
+                  allowsSorting={col.allowsSorting}
+                  defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
+                  isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
+                >
+                  {col.allowsSorting ? (
+                    <HeroTable.SortableColumnHeader
+                      sortDirection={
+                        sortDescriptor?.column === col.key
+                          ? sortDescriptor.direction
+                          : undefined
+                      }
+                    >
+                      {col.title}
+                    </HeroTable.SortableColumnHeader>
+                  ) : (
+                    col.title
+                  )}
+                </HeroTable.Column>
+              ))}
+            </HeroTable.Header>
 
-          {/* 表体 */}
-          <TableBody
-            className="hrs-table__body"
-            items={displayRows}
-            renderEmptyState={renderEmptyState ?? defaultEmptyState}
-          >
-            {/* 
-              使用 render props 模式，根据行数据渲染每一行。
-              HeroUI Table 要求通过 (item) => <TableRow> 的方式渲染。
-            */}
-            {(item) => (
-              <TableRow key={String(item.id)} columns={columns} className="">
-                {(col) => (
-                  <TableCell className="border-b border-subtle">
-                    {renderCell(item, col.key)}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </TableContent>
-      </TableRoot>
+            {/* 表体 */}
+            <HeroTable.Body
+              className="hrs-table__body"
+              items={displayRows}
+              renderEmptyState={renderEmptyState ?? defaultEmptyState}
+            >
+              {/* 
+                使用 render props 模式，根据行数据渲染每一行。
+                HeroUI Table 要求通过 (item) => <HeroTable.Row> 的方式渲染。
+              */}
+              {(item) => (
+                <HeroTable.Row key={String(item.id)} columns={columns} className="">
+                  {(col) => (
+                    <HeroTable.Cell className="border-b border-subtle">
+                      {renderCell(item, col.key)}
+                    </HeroTable.Cell>
+                  )}
+                </HeroTable.Row>
+              )}
+            </HeroTable.Body>
+          </HeroTable.Content>
+          </HeroTable.ResizableContainer>
+        </HeroTable.ScrollContainer>
+      </HeroTable>
       {/* 底部分页栏：加载完成（isLoading 消失）后才显示 */}
       {pagination && !isLoading && (
         <PaginationBar

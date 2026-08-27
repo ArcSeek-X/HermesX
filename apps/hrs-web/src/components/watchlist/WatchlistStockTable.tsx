@@ -18,7 +18,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HrsButton } from '../basic/HrsButton';
 import { Select } from '../basic/Select';
-import { Table, type TableColumnDef, type PaginationConfig } from '../basic/Table';
+import { Table, type TableColumnDef, type PaginationDef } from '../basic/Table';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { WatchlistItemWithQuote, WatchlistGroup } from '../../api/watchlist';
 // 复用全局格式化工具：涨跌幅、涨跌颜色 class（与全站行情展示保持一致）
@@ -33,7 +33,7 @@ export interface WatchlistStockTableProps {
   onDelete: (id: number) => Promise<void> | void;
   onMove: (id: number, targetGroupId: number) => Promise<void> | void;
   /** 分页配置对象，调用方需保证传入完整字段 */
-  pagination?: PaginationConfig;
+  pagination?: PaginationDef;
 }
 
 /** 数值格式化：自动按「亿 / 万」单位缩写，0 与缺失分别显示；用于成交额、总市值。 */
@@ -97,7 +97,8 @@ export default function WatchlistStockTable({
     {
       key: 'name',
       title: '股票名称',
-      width: '20%',
+      minWidth: 120,
+      defaultWidth: '20%',
       // 两行展示：主行显示股票名（缺名称时回退代码），副行显示代码
       render: (it) => (
         <div className="truncate pr-2">
@@ -109,7 +110,8 @@ export default function WatchlistStockTable({
     {
       key: 'price',
       title: '现价',
-      width: '12%',
+      minWidth: 80,
+      defaultWidth: '10%',
       // 现价按涨跌方向着色
       render: (it) => {
         const q = it.quote;
@@ -123,7 +125,8 @@ export default function WatchlistStockTable({
     {
       key: 'change',
       title: '涨跌幅',
-      width: '12%',
+      minWidth: 80,
+      defaultWidth: '10%',
       render: (it) => {
         const q = it.quote;
         return (
@@ -136,7 +139,8 @@ export default function WatchlistStockTable({
     {
       key: 'amount',
       title: '成交额',
-      width: '14%',
+      minWidth: 80,
+      defaultWidth: '10%',
       render: (it) => (
         <div className="text-text-secondary">{formatNumber(it.quote?.amount ?? null)}</div>
       ),
@@ -144,7 +148,8 @@ export default function WatchlistStockTable({
     {
       key: 'turnover',
       title: '换手率',
-      width: '12%',
+      minWidth: 80,
+      defaultWidth: '10%',
       render: (it) => {
         const q = it.quote;
         return (
@@ -157,7 +162,8 @@ export default function WatchlistStockTable({
     {
       key: 'mv',
       title: '总市值',
-      width: '14%',
+      minWidth: 80,
+      defaultWidth: '10%',
       render: (it) => (
         <div className="text-text-secondary">{formatNumber(it.quote?.totalMv ?? null)}</div>
       ),
@@ -165,7 +171,8 @@ export default function WatchlistStockTable({
     {
       key: 'description',
       title: '描述',
-      width: '16%',
+      minWidth: 300,
+      defaultWidth: '30%',
       render: (it) => {
         const isEditingNote = editingId === it.id;
         return (
@@ -237,32 +244,32 @@ export default function WatchlistStockTable({
       {/* 右键上下文菜单：通过 Portal 渲染到 body，避免被表格 overflow 裁切 */}
       {ctxMenu && typeof document !== 'undefined'
         ? createPortal(
-            <div
-              ref={ctxRef}
-              className="fixed z-[60] w-36 rounded-lg border border-border/70 bg-elevated py-1 shadow-xl"
-              style={{ top: ctxMenu.y, left: ctxMenu.x }}
+          <div
+            ref={ctxRef}
+            className="fixed z-[60] w-36 rounded-lg border border-border/70 bg-elevated py-1 shadow-xl"
+            style={{ top: ctxMenu.y, left: ctxMenu.x }}
+          >
+            <button
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-hover"
+              onClick={() => {
+                setMoveDialog({ item: ctxMenu.item, targetGroupId: '' });
+                setCtxMenu(null);
+              }}
             >
-              <button
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-hover"
-                onClick={() => {
-                  setMoveDialog({ item: ctxMenu.item, targetGroupId: '' });
-                  setCtxMenu(null);
-                }}
-              >
-                修改分组
-              </button>
-              <button
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger hover:bg-danger/10"
-                onClick={() => {
-                  setPendingDelete(ctxMenu.item);
-                  setCtxMenu(null);
-                }}
-              >
-                删除自选
-              </button>
-            </div>,
-            document.body,
-          )
+              修改分组
+            </button>
+            <button
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger hover:bg-danger/10"
+              onClick={() => {
+                setPendingDelete(ctxMenu.item);
+                setCtxMenu(null);
+              }}
+            >
+              删除自选
+            </button>
+          </div>,
+          document.body,
+        )
         : null}
 
       {/* 修改分组弹窗 */}
