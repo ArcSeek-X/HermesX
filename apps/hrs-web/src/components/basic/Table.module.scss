@@ -1,0 +1,37 @@
+// Table.module.scss
+// 表格组件局部样式（CSS Modules，编译期作用域哈希，不会污染全局）。
+// 通过 :global(.hrs-table) 限定到本组件顶层的全局类，不影响其他表格。
+
+// 四角单元格圆角清零值（如需调整统一改这里）
+$corner-radius: min(16px, var(--radius-xl));;
+
+.body {
+  // 移除 HeroUI 默认给四角单元格注入的圆角。
+  // HeroUI 在运行时给首行/末行的首列/末列单元格加 radius-2xl(32px)，
+  // 这里统一清零，四角圆角交由外层容器（ScrollContainer 自带 rounded-lg）控制。
+  // 注意：tr/td/th 由 HeroUI 渲染，不在本模块作用域内，需用 :global() 选中。
+  :global(tr:first-child) > :global(td:first-child),
+  :global(tr:first-child) > :global(th:first-child) {
+    border-start-start-radius: $corner-radius !important;
+  }
+  :global(tr:first-child) > :global(td:last-child),
+  :global(tr:first-child) > :global(th:last-child) {
+    border-start-end-radius: $corner-radius !important;
+  }
+  :global(tr:last-child) > :global(td:first-child),
+  :global(tr:last-child) > :global(th:first-child) {
+    border-end-start-radius: $corner-radius !important;
+  }
+  :global(tr:last-child) > :global(td:last-child),
+  :global(tr:last-child) > :global(th:last-child) {
+    border-end-end-radius: $corner-radius !important;
+  }
+}
+
+// 表头：文字颜色调淡。
+// 因此必须用 :global(th) 直接选中 th 才能生效。
+.header {
+  :global(th) {
+    color: hsl(var(--foreground) / 0.6) ;
+  }
+}
