@@ -214,11 +214,15 @@ const TRIGGER_BASE_STYLES =
 const POPOVER_STYLES =
     'border border-border bg-popover p-1 shadow-lg';
 
-/** 选项基础样式：圆角、悬浮高亮、选中态主色文字、禁用态降透明度 */
+/** 选项基础样式：圆角、悬浮高亮、选中态主色文字、禁用态降透明度
+ * 重要：鼠标 hover 项时 react-aria 仅给元素打 data-hovered=true 而非 data-focused=true，
+ * 若只设置 data-[focused=true]:bg-primary-faint，鼠标悬浮态会用 HeroUI 默认 hover 背景
+ * （dark 主题下偏浅色），会与深色背景产生一次「白色一闪」的切换。
+ * 因此同时挂 data-[hovered=true]:bg-primary-faint，让 hover 态由项目主题色接管。 */
 const ITEM_STYLES =
-    'rounded-sm px-2 py-1.5 text-foreground data-[focused=true]:bg-primary/10 data-[selected=true]:text-primary data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50';
+    'rounded-sm px-2 py-1.5 text-foreground bg-transparent hover:bg-primary-faintdata-[hovered=true]:bg-primary-faint data-[focused=true]:bg-primary-faint data-[selected=true]:text-primary data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50';
 
-/** 选中指示器样式：主色 + 展开时旋转 */
+/** 选中指示器样式（选中 - 打钩）：主色 + 展开时旋转 */
 const ITEM_INDICATOR_STYLES =
     'text-primary transition-transform duration-200';
 
@@ -340,19 +344,14 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
     value,
     defaultValue,
     onChange,
-    disabledKeys,
-    isDisabled,
-    isRequired,
-    isInvalid,
-    isOpen,
-    defaultOpen,
-    onOpenChange,
-    name,
-    autoComplete,
     fullWidth = true,
     renderItem,
     className,
     popoverClassName,
+    // 其余 HeroUI Select 规格的基础入参（disabledKeys / isDisabled /
+    // isRequired / isInvalid / isOpen / defaultOpen / onOpenChange / name /
+    // autoComplete 等）统一收集后透传给内部 HeroSelect
+    ...heroProps
 }) => {
     // 是否无任何可选项（数据源为空时在弹层内展示占位提示）
     const isEmpty = !options || options.length === 0;
@@ -365,16 +364,8 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
             value={value}
             defaultValue={defaultValue}
             onChange={onChange}
-            disabledKeys={disabledKeys}
-            isDisabled={isDisabled}
-            isRequired={isRequired}
-            isInvalid={isInvalid}
-            isOpen={isOpen}
-            defaultOpen={defaultOpen}
-            onOpenChange={onOpenChange}
-            name={name}
-            autoComplete={autoComplete}
             variant={variant}
+            {...heroProps}
             fullWidth={fullWidth}
             className={cn('hrs-select',className)}
         >

@@ -11,7 +11,8 @@ import WatchlistGroupPanel from '../components/watchlist/WatchlistGroupPanel';
 import WatchlistStockTable from '../components/watchlist/WatchlistStockTable';
 import StockSearch from '../components/StockSearch/StockSearch';
 import AnimCard from '../components/common/Card/AnimCard';
-import { AppPage, Modal, InlineTipCard, HrsButton, Input, Select, TextArea } from '../components';
+import { AppPage, Modal, InlineTipCard, HrsButton, Input, TextArea } from '../components';
+import { HrsSelect } from '../components/basic/HrsSelect';
 import { BookmarkFill } from "@gravity-ui/icons";
 import { Label, TextField, Description } from "@heroui/react";
 import { type WatchlistItemWithQuote } from '../api/watchlist';
@@ -19,12 +20,13 @@ import { getParsedApiError, type ParsedApiError } from '../api/error';
 
 type SortKey = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';
 
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'default', label: '默认' },
-  { value: 'changePercent', label: '涨幅' },
-  { value: 'amount', label: '成交额' },
-  { value: 'turnoverRate', label: '换手率' },
-  { value: 'totalMv', label: '市值' },
+/** 自选股排序搜索 - select-option下拉框内容 */
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'default', label: '默认' },
+  { key: 'changePercent', label: '涨幅' },
+  { key: 'amount', label: '成交额' },
+  { key: 'turnoverRate', label: '换手率' },
+  { key: 'totalMv', label: '市值' },
 ];
 
 /** 匹配关键词：名称 / 代码 / 拼音 / 拼音简拼 */
@@ -160,7 +162,7 @@ const WatchlistPage: React.FC = () => {
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-sm text-text-secondary">排序</span>
-              <Select
+              <HrsSelect
                 value={sortKey}
                 onChange={(v) => setSortKey(v as SortKey)}
                 options={SORT_OPTIONS}

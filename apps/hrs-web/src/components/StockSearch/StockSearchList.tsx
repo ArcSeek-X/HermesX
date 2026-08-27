@@ -76,7 +76,7 @@ export function StockSearchList({
             className={cn(
               'px-2 py-2 rounded-md cursor-pointer grid grid-cols-[auto_1fr_auto] gap-3 items-center',
               // 鼠标移入：淡淡主题色高亮
-              'hover:bg-[hsl(var(--primary)/0.05)]',
+              'hover:bg-primary-faint',
               // 键盘/鼠标选中态：主题色略深
               index === highlightedIndex && 'bg-[hsl(var(--primary)/0.1)]',
             )}
