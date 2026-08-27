@@ -39,6 +39,7 @@ import type { Key, SortDescriptor, Selection } from '@heroui/react';
 import { Inbox } from 'lucide-react';
 import PaginationBar from './Pagination';
 import { cn } from '../../utils/cn';
+import styles from './Table.module.scss';
 
 
 /**
@@ -84,6 +85,12 @@ export interface TableColumnDef<T> {
    * 未提供时默认渲染 row[column.key] 的值。
    */
   render?: (row: T) => React.ReactNode;
+  /**
+   * 单元格的自定义 className，透传给 <HeroTable.Cell> 的 className。
+   * 文档：Cell 继承自 React Aria Cell，支持 className（string，附加 CSS 类）。
+   * 与内置的 "border-b border-subtle" 通过 cn 合并。
+   */
+  cellClassName?: string;
 }
 
 
@@ -153,6 +160,8 @@ export interface TableProps<T extends { id: string | number }> {
    * 采用受控模式：调用方负责数据切片和页码管理。
    */
   pagination?: PaginationDef;
+  /** 表格行的自定义类名，透传给每一行 <HeroTable.Row> 的 className */
+  rowClassName?: string;
 }
 
 /**
@@ -175,6 +184,7 @@ export function Table<T extends { id: string | number }>({
   isLoading = false,
   maxHeight,
   pagination,
+  rowClassName = '',
 }: TableProps<T>) {
   /**
    * 处理选择变化。
@@ -256,13 +266,13 @@ export function Table<T extends { id: string | number }>({
     : undefined;
 
   return (
-    <div className="hrs-table flex flex-col w-full rounded-md">
+    <div className={cn('hrs-table flex flex-col w-full', styles.root)}>
       {/* HeroUI Table 主体（写法 A：Table → Table.ScrollContainer → Table.Content 三层递进） */}
-      <HeroTable variant={variant} className={cn('hrs-table__root', className)}>
+      <HeroTable variant={variant} className={cn('hrs-table__root rounded-md', className)}>
         <HeroTable.ScrollContainer style={containerStyle}>
           <HeroTable.ResizableContainer>
             <HeroTable.Content
-            className="hrs-table__content"
+              className="hrs-table__content rounded-md"
               aria-label="数据表格"
               selectionMode={selectionMode === 'none' ? undefined : selectionMode}
               selectedKeys={selectedKeys}
@@ -270,53 +280,55 @@ export function Table<T extends { id: string | number }>({
               sortDescriptor={sortDescriptor}
               onSortChange={onSortChange}
             >
-            {/* 表头 */}
-            <HeroTable.Header className="hrs-table__header">
-              {columns.map((col) => (
-                <HeroTable.Column
-                  key={col.key}
-                  allowsSorting={col.allowsSorting}
-                  defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
-                  isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
-                >
-                  {col.allowsSorting ? (
-                    <HeroTable.SortableColumnHeader
-                      sortDirection={
-                        sortDescriptor?.column === col.key
-                          ? sortDescriptor.direction
-                          : undefined
-                      }
-                    >
-                      {col.title}
-                    </HeroTable.SortableColumnHeader>
-                  ) : (
-                    col.title
-                  )}
-                </HeroTable.Column>
-              ))}
-            </HeroTable.Header>
+              {/* 表头 */}
+              <HeroTable.Header className={cn('hrs-table__header ', styles.header)}>
+                {columns.map((col) => (
+                  <HeroTable.Column
+                    key={col.key}
+                    allowsSorting={col.allowsSorting}
+                    defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
+                    isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
+                  >
+                    {col.allowsSorting ? (
+                      <HeroTable.SortableColumnHeader
+                        sortDirection={
+                          sortDescriptor?.column === col.key
+                            ? sortDescriptor.direction
+                            : undefined
+                        }
+                      >
+                        {col.title}
+                      </HeroTable.SortableColumnHeader>
+                    ) : (
+                      col.title
+                    )}
+                  </HeroTable.Column>
+                ))}
+              </HeroTable.Header>
 
-            {/* 表体 */}
-            <HeroTable.Body
-              className="hrs-table__body"
-              items={displayRows}
-              renderEmptyState={renderEmptyState ?? defaultEmptyState}
-            >
-              {/* 
+              {/* 表体 */}
+              <HeroTable.Body
+                className={cn('hrs-table__body', styles.body)}
+                items={displayRows}
+                renderEmptyState={renderEmptyState ?? defaultEmptyState}
+              >
+                {/* 
                 使用 render props 模式，根据行数据渲染每一行。
                 HeroUI Table 要求通过 (item) => <HeroTable.Row> 的方式渲染。
               */}
-              {(item) => (
-                <HeroTable.Row key={String(item.id)} columns={columns} className="">
-                  {(col) => (
-                    <HeroTable.Cell className="border-b border-subtle">
-                      {renderCell(item, col.key)}
-                    </HeroTable.Cell>
-                  )}
-                </HeroTable.Row>
-              )}
-            </HeroTable.Body>
-          </HeroTable.Content>
+                {(item) => (
+                  <HeroTable.Row key={String(item.id)} columns={columns}
+                    className={cn(`hrs-table__row__${String(item.id)}`, rowClassName)}
+                  >
+                    {(col) => (
+                      <HeroTable.Cell className={cn('border-b border-subtle', col.cellClassName)}>
+                        {renderCell(item, col.key)}
+                      </HeroTable.Cell>
+                    )}
+                  </HeroTable.Row>
+                )}
+              </HeroTable.Body>
+            </HeroTable.Content>
           </HeroTable.ResizableContainer>
         </HeroTable.ScrollContainer>
       </HeroTable>
