@@ -98,19 +98,19 @@ export default function WatchlistStockTable({
       key: 'name',
       title: '股票名称',
       minWidth: 120,
-      defaultWidth: '20%',
+      defaultWidth: '15%',
       // 两行展示：主行显示股票名（缺名称时回退代码），副行显示代码
       render: (it) => (
-        <div className="truncate pr-2">
-          <div className="text-text font-medium truncate">{it.stockName || it.stockCode}</div>
-          <div className="text-xs text-text-secondary truncate">{it.stockCode}</div>
+        <div className="group truncate pr-2 cursor-pointer">
+          <div className="font-semibold truncate group-hover:text-primary">{it.stockName || it.stockCode}</div>
+          <div className="text-xs truncate group-hover:text-primary">{it.stockCode}</div>
         </div>
       ),
     },
     {
       key: 'price',
       title: '现价',
-      minWidth: 80,
+      minWidth: 100,
       defaultWidth: '10%',
       // 现价按涨跌方向着色
       render: (it) => {
@@ -125,7 +125,7 @@ export default function WatchlistStockTable({
     {
       key: 'change',
       title: '涨跌幅',
-      minWidth: 80,
+      minWidth: 100,
       defaultWidth: '10%',
       render: (it) => {
         const q = it.quote;
@@ -139,21 +139,21 @@ export default function WatchlistStockTable({
     {
       key: 'amount',
       title: '成交额',
-      minWidth: 80,
-      defaultWidth: '10%',
+      minWidth: 120,
+      defaultWidth: '15%',
       render: (it) => (
-        <div className="text-text-secondary">{formatNumber(it.quote?.amount ?? null)}</div>
+        <div className="text-foreground-soft">{formatNumber(it.quote?.amount ?? null)}</div>
       ),
     },
     {
       key: 'turnover',
       title: '换手率',
-      minWidth: 80,
+     minWidth: 100,
       defaultWidth: '10%',
       render: (it) => {
         const q = it.quote;
         return (
-          <div className="text-text-secondary">
+          <div className="text-foreground-soft">
             {q?.turnoverRate != null ? `${q.turnoverRate.toFixed(2)}%` : '—'}
           </div>
         );
@@ -162,17 +162,17 @@ export default function WatchlistStockTable({
     {
       key: 'mv',
       title: '总市值',
-      minWidth: 80,
-      defaultWidth: '10%',
+      minWidth: 120,
+      defaultWidth: '15%',
       render: (it) => (
-        <div className="text-text-secondary">{formatNumber(it.quote?.totalMv ?? null)}</div>
+        <div className="text-foreground-soft">{formatNumber(it.quote?.totalMv ?? null)}</div>
       ),
     },
     {
       key: 'description',
       title: '描述',
-      minWidth: 300,
-      defaultWidth: '30%',
+      minWidth: 200,
+      defaultWidth: '25%',
       render: (it) => {
         const isEditingNote = editingId === it.id;
         return (
@@ -200,7 +200,7 @@ export default function WatchlistStockTable({
               </div>
             ) : (
               <span
-                className="text-text-secondary truncate block cursor-pointer hover:text-text"
+                className="text-foreground-soft truncate block cursor-pointer hover:text-text"
                 title={it.description ?? '点击添加描述'}
                 onClick={(e) => { e.stopPropagation(); startEditNote(it.id, it.description); }}
               >
