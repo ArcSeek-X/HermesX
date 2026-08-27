@@ -122,6 +122,7 @@ const isSelectSection = (
  * 并在此基础上扩展了统一数据源（options）与布局、提示类字段。
  */
 export interface HrsSelectProps {
+    // ============ 组件自有的语义化字段（由组件内部消费 / 加工） ============
     /**
      * 统一选项数据入口：扁平项（HrsSelectOption）与分组项（HrsSelectSection）
      * 可任意组合，组件根据每一项的数据结构动态解析渲染；
@@ -136,7 +137,7 @@ export interface HrsSelectProps {
     errorMessage?: string;
     /** 占位符文本，默认 '请选择' */
     placeholder?: string;
-    /** 尺寸档位（控制触发器高度与字号），默认 'md' */
+    /** 尺寸档位（控制触发器高度与字号），默认 'sm' */
     size?: HrsSelectSize;
     /** 视觉变体：primary 带阴影，secondary 低强调（适合放在卡片内），默认 'primary' */
     variant?: 'primary' | 'secondary';
@@ -148,25 +149,7 @@ export interface HrsSelectProps {
     defaultValue?: Key | Key[] | null;
     /** 选中值变更回调（HeroUI 规格：单选返回 Key | null，多选返回 Key[]） */
     onChange?: (value: Key | Key[] | null) => void;
-    /** 禁用项的 key 集合（HeroUI 规格） */
-    disabledKeys?: Iterable<Key>;
-    /** 是否禁用整个选择器（HeroUI 规格） */
-    isDisabled?: boolean;
-    /** 是否必填（HeroUI 规格，标签自动追加必填标记） */
-    isRequired?: boolean;
-    /** 是否为非法状态（HeroUI 规格） */
-    isInvalid?: boolean;
-    /** 下拉弹层展开状态（受控，HeroUI 规格） */
-    isOpen?: boolean;
-    /** 下拉弹层默认展开状态（非受控，HeroUI 规格） */
-    defaultOpen?: boolean;
-    /** 弹层展开状态变更回调（HeroUI 规格） */
-    onOpenChange?: (isOpen: boolean) => void;
-    /** 表单字段名（HeroUI 规格） */
-    name?: string;
-    /** 自动完成类型（HeroUI 规格） */
-    autoComplete?: string;
-    /** 是否占满父容器宽度（HeroUI 规格） */
+    /** 是否占满父容器宽度（HeroUI 规格），默认 true */
     fullWidth?: boolean;
     /** 自定义选项渲染函数（入参为单个选项，返回选项主内容，可选） */
     renderItem?: (option: HrsSelectOption) => React.ReactNode;
@@ -174,6 +157,19 @@ export interface HrsSelectProps {
     className?: string;
     /** 下拉弹层追加的 className */
     popoverClassName?: string;
+
+    // ============ 透传给 HeroUI Select 的基础入参 ============
+    // 以下字段组件内部不做任何加工，统一通过 ...heroProps 透传给底层 HeroSelect，
+    // 语义与 HeroUI Select 完全一致（禁用项 / 禁用态 / 必填 / 非法 / 弹层展开等）。
+    disabledKeys?: Iterable<Key>;
+    isDisabled?: boolean;
+    isRequired?: boolean;
+    isInvalid?: boolean;
+    isOpen?: boolean;
+    defaultOpen?: boolean;
+    onOpenChange?: (isOpen: boolean) => void;
+    name?: string;
+    autoComplete?: string;
 }
 
 /**
@@ -312,7 +308,7 @@ const buildListBoxChildren = (
             // w-auto 覆盖组件默认 w-full，避免满宽叠加 margin 溢出
             if (children.length > 0) {
                 children.push(
-                    <Separator key={`${item.key}__separator`} className="w-auto" gradient/>,
+                    <Separator key={`${item.key}__separator`} className="w-auto" gradient />,
                 );
             }
             children.push(renderSection(item, renderItem));
@@ -333,21 +329,21 @@ const buildListBoxChildren = (
  * 扁平 / 分组由数据结构动态解析。
  */
 export const HrsSelect: React.FC<HrsSelectProps> = ({
+    className,
+    popoverClassName,
     options,
+    value,
     label,
-    description,
-    errorMessage,
     placeholder = '请选择',
     size = 'sm',
     variant = 'primary',
     selectionMode = 'single',
-    value,
+    fullWidth = true,
+    description,
+    errorMessage,
     defaultValue,
     onChange,
-    fullWidth = true,
     renderItem,
-    className,
-    popoverClassName,
     // 其余 HeroUI Select 规格的基础入参（disabledKeys / isDisabled /
     // isRequired / isInvalid / isOpen / defaultOpen / onOpenChange / name /
     // autoComplete 等）统一收集后透传给内部 HeroSelect
@@ -360,6 +356,10 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
         <HeroSelect
             // ---- HeroUI 规格的基础入参（直接透传） ----
             placeholder={placeholder}
+            // 可访问性兜底：无可见 label 时，用 placeholder 作为 aria-label，
+            // 避免 HeroUI 报「must specify aria-label / aria-labelledby」；
+            // 若调用方通过 heroProps 显式传入 aria-label / aria-labelledby，会覆盖此兜底。
+            {...(!label ? { 'aria-label': placeholder } : {})}
             selectionMode={selectionMode}
             value={value}
             defaultValue={defaultValue}
@@ -367,13 +367,13 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
             variant={variant}
             {...heroProps}
             fullWidth={fullWidth}
-            className={cn('hrs-select',className)}
+            className={cn('hrs-select', className)}
         >
             {/* 标签（可选） */}
             {label && <Label className={LABEL_STYLES}>{label}</Label>}
 
             {/* 触发器：选中值 + 下拉箭头指示器 */}
-            <HeroSelect.Trigger className={cn('hrs-select-trigger',TRIGGER_BASE_STYLES, SIZE_TRIGGER_STYLES[size])}>
+            <HeroSelect.Trigger className={cn('hrs-select-trigger', TRIGGER_BASE_STYLES, SIZE_TRIGGER_STYLES[size])}>
                 <HeroSelect.Value />
                 {/* 箭头指示器：展开时旋转 180° */}
                 <HeroSelect.Indicator className="transition-transform duration-200 data-[open=true]:rotate-180" />
