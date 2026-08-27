@@ -60,21 +60,32 @@ export function ListCard({
     // 仅当确实提供了操作回调且处于 hover 态时，才用按钮替换计数徽标
     const showActions = hovered && (onEdit || onDelete);
     return (
-        <motion.button
-            type="button"
+        // 注意：根元素使用 div 而非 button，避免「button 嵌套 button」
+        // （内部编辑 / 删除按钮本身是 <button>，若根也是 button 会触发 hydration 错误）。
+        // 通过 role="button" + tabIndex + 键盘事件保留可点击卡片的可访问性。
+        <motion.div
+            role="button"
+            tabIndex={0}
             // 入场动画：淡入 + 上移，按 ordinal 错位延迟逐个加载
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
             className={cn(
                 'group flex w-full min-w-[9rem] flex-col items-stretch rounded-md border gap-1 px-3 pt-2 pb-3 text-left',
-                'transition-[background-color,border-color,box-shadow] duration-[600ms]',
+                'transition-[background-color,border-color,box-shadow] duration-[600ms] cursor-pointer outline-none',
+                'focus-visible:ring-2 focus-visible:ring-primary-glow',
                 'lg:min-w-0 lg:w-full lg:items-stretch',
                 isActive
                     ? 'border-primary-glow bg-primary-subtle shadow-[inset_3px_0_0_hsl(var(--primary)/0.74)]'
                     : 'border-transparent bg-transparent hover:bg-primary-faint',
             )}
             onClick={onClick}
+            onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             aria-current={isActive ? 'page' : undefined}
@@ -139,6 +150,6 @@ export function ListCard({
                     {description}
                 </span>
             ) : null}
-        </motion.button>
+        </motion.div>
     );
 }
