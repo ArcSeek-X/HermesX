@@ -10,8 +10,8 @@
  *   等），无需关心内部 Label、Trigger、Popover、ListBox 的组装细节。
  *
  * 描述：
- *   - 统一数据入口 options：既支持扁平选项 HrsSelectOption[]，也支持分组
- *     选项 HrsSelectSection[]（甚至两者混用），组件根据每一项的数据结构
+ *   - 统一数据入口 options：既支持扁平选项 HrsSelectOptionDef[]，也支持分组
+ *     选项 HrsSelectSectionDef[]（甚至两者混用），组件根据每一项的数据结构
  *     动态解析：含 options 数组的项识别为分组，渲染分组标题（title）
  *     并在每个分组前自动插入 <Separator /> 分割线，使用方无需手写；
  *   - 基础入参遵循 HeroUI Select 规格：value / defaultValue / onChange /
@@ -80,7 +80,7 @@ export type HrsSelectSize = 'xs' | 'sm' | 'md' | 'lg';
  * 下拉选项的数据结构（扁平项）。
  * disabled 为 true 的选项无法被选中（由数据结构驱动）。
  */
-export interface HrsSelectOption {
+export interface HrsSelectOptionDef {
     /** 选项唯一标识（对应 HeroUI ListBox.Item 的 id / value） */
     key: Key;
     /** 选项显示文本 */
@@ -95,25 +95,25 @@ export interface HrsSelectOption {
  * 每个分组之前由组件内部自动插入 <Separator /> 分割线
  * （首个渲染元素之前不插入）。
  */
-export interface HrsSelectSection {
+export interface HrsSelectSectionDef {
     /** 分组唯一标识 */
     key: string;
     /** 分组标题（渲染为分组 Header，可选） */
     title?: string;
     /** 该分组下的选项列表 */
-    options: HrsSelectOption[];
+    options: HrsSelectOptionDef[];
 }
 
 /** 统一的选项数据入口：扁平项与分组项可任意组合，由数据结构动态解析 */
-export type HrsSelectDataSource = Array<HrsSelectOption | HrsSelectSection>;
+export type HrsSelectDataSourceDef = Array<HrsSelectOptionDef | HrsSelectSectionDef>;
 
 /**
  * 数据结构解析：判断传入项是否为分组项。
  * 含 options 数组的项识别为分组，否则视为扁平选项。
  */
 const isSelectSection = (
-    item: HrsSelectOption | HrsSelectSection,
-): item is HrsSelectSection => 'options' in item && Array.isArray(item.options);
+    item: HrsSelectOptionDef | HrsSelectSectionDef,
+): item is HrsSelectSectionDef => 'options' in item && Array.isArray(item.options);
 
 /**
  * HrsSelect 组件属性。
@@ -124,11 +124,11 @@ const isSelectSection = (
 export interface HrsSelectProps {
     // ============ 组件自有的语义化字段（由组件内部消费 / 加工） ============
     /**
-     * 统一选项数据入口：扁平项（HrsSelectOption）与分组项（HrsSelectSection）
+     * 统一选项数据入口：扁平项（HrsSelectOptionDef）与分组项（HrsSelectSectionDef）
      * 可任意组合，组件根据每一项的数据结构动态解析渲染；
      * 含 options 数组的项识别为分组（渲染 title 分组标题与分割线）。
      */
-    options?: HrsSelectDataSource;
+    options?: HrsSelectDataSourceDef;
     /** 标签文本（显示在触发器上方，可选） */
     label?: string;
     /** 辅助说明文本（显示在触发器下方，可选） */
@@ -152,7 +152,7 @@ export interface HrsSelectProps {
     /** 是否占满父容器宽度（HeroUI 规格），默认 true */
     fullWidth?: boolean;
     /** 自定义选项渲染函数（入参为单个选项，返回选项主内容，可选） */
-    renderItem?: (option: HrsSelectOption) => React.ReactNode;
+    renderItem?: (option: HrsSelectOptionDef) => React.ReactNode;
     /** 根元素（Label + 触发器 + 提示文本）追加的 className */
     className?: string;
     /** 下拉弹层追加的 className */
@@ -238,7 +238,7 @@ const ERROR_MESSAGE_STYLES = 'text-xs text-danger';
 /**
  * 渲染单个选项。
  *
- * 内部负责把 HrsSelectOption 转换为 HeroUI ListBox.Item：
+ * 内部负责把 HrsSelectOptionDef 转换为 HeroUI ListBox.Item：
  * 普通选项渲染主文本，也支持通过 renderItem 完全自定义主内容。
  *
  * @param option - 选项数据
@@ -246,7 +246,7 @@ const ERROR_MESSAGE_STYLES = 'text-xs text-danger';
  * @returns ListBox.Item 元素
  */
 const renderOption = (
-    option: HrsSelectOption,
+    option: HrsSelectOptionDef,
     renderItem?: HrsSelectProps['renderItem'],
 ): React.ReactElement => (
     <ListBox.Item
@@ -272,7 +272,7 @@ const renderOption = (
  * @returns ListBox.Section 元素
  */
 const renderSection = (
-    section: HrsSelectSection,
+    section: HrsSelectSectionDef,
     renderItem?: HrsSelectProps['renderItem'],
 ): React.ReactElement => (
     <ListBox.Section key={section.key}>
@@ -296,7 +296,7 @@ const renderSection = (
  * @returns ListBox 子元素数组：[Item, Section, Separator, Section, ...]
  */
 const buildListBoxChildren = (
-    dataSource: HrsSelectDataSource,
+    dataSource: HrsSelectDataSourceDef,
     renderItem?: HrsSelectProps['renderItem'],
 ): React.ReactNode[] => {
     const children: React.ReactNode[] = [];

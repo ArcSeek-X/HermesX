@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOption, type HrsSelectSection } from '../components';
+import { AppPage, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef } from '../components';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
@@ -28,7 +28,7 @@ const toastVariantToButton: Record<
 };
 
 /** HrsSelect 基础单选演示：扁平选项（含禁用子项） */
-const selectMarketOptions: HrsSelectOption[] = [
+const selectMarketOptions: HrsSelectOptionDef[] = [
     { key: 'a', label: 'A 股' },
     { key: 'hk', label: '港股' },
     { key: 'us', label: '美股' },
@@ -36,7 +36,7 @@ const selectMarketOptions: HrsSelectOption[] = [
 ];
 
 /** HrsSelect 分组演示：数据结构与扁平选项统一走 options 入口（每个分组有 title，分组间自动插入分割线） */
-const selectMarketSections: HrsSelectSection[] = [
+const selectMarketSections: HrsSelectSectionDef[] = [
     {
         key: 'asia',
         title: '亚洲',
@@ -65,7 +65,7 @@ const selectMarketSections: HrsSelectSection[] = [
 ];
 
 /** HrsSelect 多选演示：扁平选项 */
-const selectMultiOptions: HrsSelectOption[] = [
+const selectMultiOptions: HrsSelectOptionDef[] = [
     { key: 'macd', label: 'MACD' },
     { key: 'kdj', label: 'KDJ' },
     { key: 'rsi', label: 'RSI' },

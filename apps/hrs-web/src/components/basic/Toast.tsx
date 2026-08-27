@@ -44,7 +44,7 @@ export type ToastPlacement =
 export type ToastVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
 
 /** Toast 内容与展示配置（命令式入参），同时作为 ToastContent 的内容契约 */
-export interface ToastOptions {
+export interface ToastDef {
     /** 主标题（必填） */
     title: string;
     /** 详细描述（必填） */
@@ -304,7 +304,7 @@ const ToastContent: React.FC<{
 
 interface ToastItem {
     id: string;
-    options: ToastOptions;
+    options: ToastDef;
 }
 
 let toastItems: ToastItem[] = [];
@@ -329,19 +329,19 @@ function getSnapshot(): ToastItem[] {
 /** showToast 及其便捷方法（variant 预设）的调用接口 */
 export interface ShowToastAPI {
     /** 以单对象入参触发一个 Toast */
-    (options: ToastOptions): string;
+    (options: ToastDef): string;
     /** info 便捷封装：固定 variant 为 accent（信息/强调风格） */
-    info: (options: Omit<ToastOptions, 'variant'>) => string;
+    info: (options: Omit<ToastDef, 'variant'>) => string;
     /** success 便捷封装：固定 variant 为 success */
-    success: (options: Omit<ToastOptions, 'variant'>) => string;
+    success: (options: Omit<ToastDef, 'variant'>) => string;
     /** warning 便捷封装：固定 variant 为 warning */
-    warning: (options: Omit<ToastOptions, 'variant'>) => string;
+    warning: (options: Omit<ToastDef, 'variant'>) => string;
     /** danger 便捷封装：固定 variant 为 danger */
-    danger: (options: Omit<ToastOptions, 'variant'>) => string;
+    danger: (options: Omit<ToastDef, 'variant'>) => string;
 }
 
 /** 触发函数本体：向模块级队列追加一条 Toast 并通知宿主刷新 */
-function toastFn(options: ToastOptions): string {
+function toastFn(options: ToastDef): string {
     const id = `toast-${++seq}`;
     toastItems = [
         ...toastItems,
@@ -362,10 +362,10 @@ function toastFn(options: ToastOptions): string {
  * @returns       toast id，可用于 dismissToast
  */
 export const showToast: ShowToastAPI = Object.assign(toastFn, {
-    info: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'accent' }),
-    success: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'success' }),
-    warning: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'warning' }),
-    danger: (options: Omit<ToastOptions, 'variant'>): string => toastFn({ ...options, variant: 'danger' }),
+    info: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'accent' }),
+    success: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'success' }),
+    warning: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'warning' }),
+    danger: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'danger' }),
 });
 
 /** 手动关闭指定 Toast。 */

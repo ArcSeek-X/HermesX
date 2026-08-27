@@ -15,7 +15,7 @@ export * from './Switch';
 export * from './ColorPicker';
 export { HrsButton } from './HrsButton';
 export { HrsSelect } from './HrsSelect';
-export type { HrsSelectOption, HrsSelectSection, HrsSelectDataSource, HrsSelectProps, HrsSelectSize } from './HrsSelect';
+export type { HrsSelectOptionDef, HrsSelectSectionDef, HrsSelectDataSourceDef, HrsSelectProps, HrsSelectSize } from './HrsSelect';
 export { Separator } from './Separator';
 export type { HrsSeparatorProps, HrsSeparatorOrientation, HrsSeparatorVariant } from './Separator';
 export * from './Modal';
