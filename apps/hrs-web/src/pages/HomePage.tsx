@@ -3,9 +3,13 @@
  * @description 系统首页
  * @module pages
  */
-import React from 'react';
-import { AppPage, Card, PageHeader } from '../components';
+import React, { useState } from 'react';
+import { AppPage } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { useTheme } from 'next-themes';
+import { useThemeColor } from '../hooks/useThemeColor';
+import LightBloom from '../components/vibeBack/LightBloom';
+import { StockSearch } from '../components/StockSearch';
 
 /**
  * 复盘页面组件
@@ -15,10 +19,36 @@ import { useUiLanguage } from '../contexts/UiLanguageContext';
  */
 const ReviewPage: React.FC = () => {
   const { t } = useUiLanguage();
+  // 取自系统主题主色（HEX），用户切换主色/主题时实时联动
+  const { color } = useThemeColor();
+  // 仅在暗色主题下展示 LightBloom 背景光晕
+  const { resolvedTheme } = useTheme();
+  // 首页股票搜索（受控）
+  const [query, setQuery] = useState('');
 
   return (
     <AppPage>
-     首页
+      {resolvedTheme === 'dark' && (
+        <LightBloom
+          style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+          background="transparent"
+          baseColor={color}
+        />
+      )}
+      <div className="relative h-full z-10 flex min-h-screen items-center justify-center  px-4">
+        <div className="w-full max-w-[640px]">
+          <StockSearch
+            className="mb-50"
+            value={query}
+            size="lg"
+            onChange={setQuery}
+            onSubmit={(code, name) => {
+              // TODO: 接入首页搜索提交逻辑
+              console.log('submit stock:', code, name);
+            }}
+          />
+        </div>
+      </div>
     </AppPage>
   );
 };
