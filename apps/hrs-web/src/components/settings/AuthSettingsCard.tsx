@@ -70,7 +70,7 @@ export const AuthSettingsCard: React.FC = () => {
         return;
       }
       if (password !== passwordConfirm) {
-        setError(t('login.passwordMismatch'));
+        setError(t('auth.login.passwordMismatch'));
         return;
       }
     }

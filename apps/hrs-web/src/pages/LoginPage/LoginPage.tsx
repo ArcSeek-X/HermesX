@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
 
   // 设置页面标题
   useEffect(() => {
-    document.title = t('login.pageTitle');
+    document.title = t('auth.login.pageTitle');
   }, [t]);
 
   // 3D 倾斜效果的鼠标位置值（归一化到 -0.5 ~ 0.5）

@@ -218,31 +218,32 @@ const zh = {
   'notFound.pageTitle': '页面未找到 - HRS', // 404 页面标题
   'notFound.title': '页面未找到', // 404 标题
 
-  'login.adminLogin': '管理员登录', // 管理员登录标题
-  'login.adminPassword': '管理员密码', // 管理员密码标签
-  'login.confirmPassword': '确认密码', // 确认密码标签
-  'login.confirmPasswordPlaceholder': '再次确认管理员密码', // 确认密码占位符
-  'login.loginDescription': '访问 HRS 量化决策引擎需要有效的身份凭证。', // 登录页描述
-  'login.loginFailed': '登录失败', // 登录失败提示
-  'login.loginPassword': '登录密码', // 登录密码标签
-  'login.loginPasswordPlaceholder': '请输入密码', // 登录密码占位符
-  'login.username': '账号', // 账号标签
-  'login.usernamePlaceholder': '请输入账号', // 账号占位符
-  'login.usernameRequired': '请输入账号', // 账号必填校验提示
-  'login.passwordRequired': '请输入密码', // 密码必填校验提示
-  'login.showPassword': '显示密码', // 显示密码按钮提示
-  'login.hidePassword': '隐藏密码', // 隐藏密码按钮提示
-  'login.loginSubmit': '授权进入工作台', // 登录提交按钮
-  'login.loginSubmitting': '正在建立连接...', // 登录提交中状态
-  'login.pageTitle': '登录 - HRS', // 登录页标题
-  'login.passwordMismatch': '两次输入的密码不一致', // 密码不一致提示
-  'login.setupDescription': '首次启用认证，请为系统工作台设置管理员密码。', // 初始密码设置描述
-  'login.setupFailed': '配置失败', // 初始设置失败提示
-  'login.setupPasswordPlaceholder': '请设置 6 位以上密码', // 初始密码占位符
-  'login.setupSubmit': '完成设置并登录', // 初始设置提交按钮
-  'login.setupSubmitting': '初始化中...', // 初始设置提交中状态
-  'login.setupTitle': '设置初始密码', // 初始密码设置标题
-  'login.validationFailed': '验证未通过', // 验证失败提示
+  // ---- 登录/注册类别（auth.login.* / auth.register.* 预留）----
+  'auth.login.adminLogin': '管理员登录', // 管理员登录标题
+  'auth.login.adminPassword': '管理员密码', // 管理员密码标签
+  'auth.login.confirmPassword': '确认密码', // 确认密码标签
+  'auth.login.confirmPasswordPlaceholder': '再次确认管理员密码', // 确认密码占位符
+  'auth.login.loginDescription': '访问 HRS 量化决策引擎需要有效的身份凭证。', // 登录页描述
+  'auth.login.loginFailed': '登录失败', // 登录失败提示
+  'auth.login.loginPassword': '登录密码', // 登录密码标签
+  'auth.login.loginPasswordPlaceholder': '请输入密码', // 登录密码占位符
+  'auth.login.username': '账号', // 账号标签
+  'auth.login.usernamePlaceholder': '请输入账号', // 账号占位符
+  'auth.login.usernameRequired': '请输入账号', // 账号必填校验提示
+  'auth.login.passwordRequired': '请输入密码', // 密码必填校验提示
+  'auth.login.showPassword': '显示密码', // 显示密码按钮提示
+  'auth.login.hidePassword': '隐藏密码', // 隐藏密码按钮提示
+  'auth.login.loginSubmit': '授权进入工作台', // 登录提交按钮
+  'auth.login.loginSubmitting': '正在建立连接...', // 登录提交中状态
+  'auth.login.pageTitle': '登录 - HRS', // 登录页标题
+  'auth.login.passwordMismatch': '两次输入的密码不一致', // 密码不一致提示
+  'auth.login.setupDescription': '首次启用认证，请为系统工作台设置管理员密码。', // 初始密码设置描述
+  'auth.login.setupFailed': '配置失败', // 初始设置失败提示
+  'auth.login.setupPasswordPlaceholder': '请设置 6 位以上密码', // 初始密码占位符
+  'auth.login.setupSubmit': '完成设置并登录', // 初始设置提交按钮
+  'auth.login.setupSubmitting': '初始化中...', // 初始设置提交中状态
+  'auth.login.setupTitle': '设置初始密码', // 初始密码设置标题
+  'auth.login.validationFailed': '验证未通过', // 验证失败提示
 
   'review.analyze': '分析', // 分析按钮
   'review.analyzing': '分析中', // 分析中状态

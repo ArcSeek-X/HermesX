@@ -50,7 +50,7 @@ const LoginCard: React.FC = () => {
         navigate(redirect, { replace: true });
       } else {
         // 登录失败，展示服务端返回的错误信息或默认失败提示
-        setError(result.error ?? t('login.loginFailed'));
+        setError(result.error ?? t('auth.login.loginFailed'));
       }
     } finally {
       // 无论成功失败，恢复按钮可点击状态
@@ -77,10 +77,10 @@ const LoginCard: React.FC = () => {
         <div className="mb-8">
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--login-text-primary)]">
             <Lock className="h-5 w-5 text-[var(--login-accent-text)]" />
-            <span>{t('login.adminLogin')}</span>
+            <span>{t('auth.login.adminLogin')}</span>
           </h1>
           <p className="mt-2 text-sm text-[var(--login-text-secondary)]">
-            {t('login.loginDescription')}
+            {t('auth.login.loginDescription')}
           </p>
         </div>
 
@@ -96,11 +96,11 @@ const LoginCard: React.FC = () => {
             fullWidth
             isRequired
           >
-            <Label>{t('login.username')}</Label>
+            <Label>{t('auth.login.username')}</Label>
             <Input
               id="username"
               prefixNode={<User className="h-4 w-4 text-muted-text/55" />}
-              placeholder={t('login.usernamePlaceholder')}
+              placeholder={t('auth.login.usernamePlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={isSubmitting}
@@ -118,11 +118,11 @@ const LoginCard: React.FC = () => {
             fullWidth
             isRequired
             validate={(value) => {
-              if (!value) return t('login.passwordRequired');
+              if (!value) return t('auth.login.passwordRequired');
               return null;
             }}
           >
-            <Label>{t('login.loginPassword')}</Label>
+            <Label>{t('auth.login.loginPassword')}</Label>
             {/* 输入框本体复用项目 PasswordInput：内置 Lock 图标与可见性切换，
                 其内部 Input 与 TextField 通过相同 id（password）建立 label 关联 */}
             <PasswordInput
@@ -130,7 +130,7 @@ const LoginCard: React.FC = () => {
               type="password"
               iconType="password"
               allowTogglePassword
-              placeholder={t('login.loginPasswordPlaceholder')}
+              placeholder={t('auth.login.loginPasswordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isSubmitting}
@@ -147,7 +147,7 @@ const LoginCard: React.FC = () => {
               className="overflow-hidden"
             >
               <SettingsAlert
-                title={t('login.validationFailed')}
+                title={t('auth.login.validationFailed')}
                 message={isParsedApiError(error) ? error.message : error}
                 variant="error"
                 className="!border-[var(--login-error-border)] !bg-[var(--login-error-bg)] !text-[var(--login-error-text)]"
@@ -167,10 +167,10 @@ const LoginCard: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t('login.loginSubmitting')}</span>
+                  <span>{t('auth.login.loginSubmitting')}</span>
                 </>
               ) : (
-                <span>{t('login.loginSubmit')}</span>
+                <span>{t('auth.login.loginSubmit')}</span>
               )}
             </div>
             <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />

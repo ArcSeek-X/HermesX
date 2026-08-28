@@ -218,31 +218,32 @@ const zh = {
   'notFound.pageTitle': '頁面未找到 - HRS', // 404 頁面標題
   'notFound.title': '頁面未找到', // 404 標題
 
-  'login.adminLogin': '管理员登入', // 管理员登入標題
-  'login.adminPassword': '管理员密碼', // 管理员密碼標簽
-  'login.confirmPassword': '確認密碼', // 確認密碼標簽
-  'login.confirmPasswordPlaceholder': '再次確認管理员密碼', // 確認密碼占位符
-  'login.loginDescription': '訪問 HRS 量化决策引擎需要有效的身份凭證。', // 登入頁描述
-  'login.loginFailed': '登入失敗', // 登入失敗提示
-  'login.loginPassword': '登入密碼', // 登入密碼標簽
-  'login.loginPasswordPlaceholder': '請輸入密碼', // 登入密碼占位符
-  'login.username': '帳號', // 帳號標簽
-  'login.usernamePlaceholder': '請輸入帳號', // 帳號占位符
-  'login.usernameRequired': '請輸入帳號', // 帳號必填校驗提示
-  'login.passwordRequired': '請輸入密碼', // 密碼必填校驗提示
-  'login.showPassword': '顯示密碼', // 顯示密碼按鈕提示
-  'login.hidePassword': '隱藏密碼', // 隱藏密碼按鈕提示
-  'login.loginSubmit': '授權進入工作臺', // 登入提交按鈕
-  'login.loginSubmitting': '正在建立連接...', // 登入提交中狀態
-  'login.pageTitle': '登入 - HRS', // 登入頁標題
-  'login.passwordMismatch': '两次輸入的密碼不一致', // 密碼不一致提示
-  'login.setupDescription': '首次啟用認證，請為系統工作臺設定管理员密碼。', // 初始密碼設定描述
-  'login.setupFailed': '配置失敗', // 初始設定失敗提示
-  'login.setupPasswordPlaceholder': '請設定 6 位以上密碼', // 初始密碼占位符
-  'login.setupSubmit': '完成設定並登入', // 初始設定提交按鈕
-  'login.setupSubmitting': '初始化中...', // 初始設定提交中狀態
-  'login.setupTitle': '設定初始密碼', // 初始密碼設定標題
-  'login.validationFailed': '驗證未通過', // 驗證失敗提示
+  // ---- 登入/註冊類別（auth.login.* / auth.register.* 預留）----
+  'auth.login.adminLogin': '管理员登入', // 管理员登入標題
+  'auth.login.adminPassword': '管理员密碼', // 管理员密碼標簽
+  'auth.login.confirmPassword': '確認密碼', // 確認密碼標簽
+  'auth.login.confirmPasswordPlaceholder': '再次確認管理员密碼', // 確認密碼占位符
+  'auth.login.loginDescription': '訪問 HRS 量化决策引擎需要有效的身份凭證。', // 登入頁描述
+  'auth.login.loginFailed': '登入失敗', // 登入失敗提示
+  'auth.login.loginPassword': '登入密碼', // 登入密碼標簽
+  'auth.login.loginPasswordPlaceholder': '請輸入密碼', // 登入密碼占位符
+  'auth.login.username': '帳號', // 帳號標簽
+  'auth.login.usernamePlaceholder': '請輸入帳號', // 帳號占位符
+  'auth.login.usernameRequired': '請輸入帳號', // 帳號必填校驗提示
+  'auth.login.passwordRequired': '請輸入密碼', // 密碼必填校驗提示
+  'auth.login.showPassword': '顯示密碼', // 顯示密碼按鈕提示
+  'auth.login.hidePassword': '隱藏密碼', // 隱藏密碼按鈕提示
+  'auth.login.loginSubmit': '授權進入工作臺', // 登入提交按鈕
+  'auth.login.loginSubmitting': '正在建立連接...', // 登入提交中狀態
+  'auth.login.pageTitle': '登入 - HRS', // 登入頁標題
+  'auth.login.passwordMismatch': '两次輸入的密碼不一致', // 密碼不一致提示
+  'auth.login.setupDescription': '首次啟用認證，請為系統工作臺設定管理员密碼。', // 初始密碼設定描述
+  'auth.login.setupFailed': '配置失敗', // 初始設定失敗提示
+  'auth.login.setupPasswordPlaceholder': '請設定 6 位以上密碼', // 初始密碼占位符
+  'auth.login.setupSubmit': '完成設定並登入', // 初始設定提交按鈕
+  'auth.login.setupSubmitting': '初始化中...', // 初始設定提交中狀態
+  'auth.login.setupTitle': '設定初始密碼', // 初始密碼設定標題
+  'auth.login.validationFailed': '驗證未通過', // 驗證失敗提示
 
   'review.analyze': '分析', // 分析按鈕
   'review.analyzing': '分析中', // 分析中狀態

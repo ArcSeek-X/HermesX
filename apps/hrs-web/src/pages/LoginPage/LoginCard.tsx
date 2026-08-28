@@ -82,7 +82,7 @@ const LoginCard: React.FC = () => {
         navigate(redirect, { replace: true });
       } else {
         // 登录失败，展示服务端返回的错误信息或默认失败提示
-        setError(result.error ?? t('login.loginFailed'));
+        setError(result.error ?? t('auth.login.loginFailed'));
       }
     } finally {
       // 无论成功失败，恢复按钮可点击状态
@@ -109,10 +109,10 @@ const LoginCard: React.FC = () => {
         <div className="mb-8">
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--login-text-primary)]">
             <Lock className="h-5 w-5 text-[var(--login-accent-text)]" />
-            <span>{t('login.adminLogin')}</span>
+            <span>{t('auth.login.adminLogin')}</span>
           </h1>
           <p className="mt-2 text-sm text-[var(--login-text-secondary)]">
-            {t('login.loginDescription')}
+            {t('auth.login.loginDescription')}
           </p>
         </div>
 
@@ -130,11 +130,11 @@ const LoginCard: React.FC = () => {
             onChange={setUsername}
             isDisabled={isSubmitting}
             fullWidth
-            validate={(value) => (!value.trim() ? t('login.usernameRequired') : null)}
+            validate={(value) => (!value.trim() ? t('auth.login.usernameRequired') : null)}
           >
-            <Label>{t('login.username')}</Label>
+            <Label>{t('auth.login.username')}</Label>
             <Input
-              placeholder={t('login.usernamePlaceholder')}
+              placeholder={t('auth.login.usernamePlaceholder')}
               autoComplete="username"
               className="rounded-md"
             />
@@ -149,13 +149,13 @@ const LoginCard: React.FC = () => {
             onChange={setPassword}
             isDisabled={isSubmitting}
             fullWidth
-            validate={(value) => (!value ? t('login.passwordRequired') : null)}
+            validate={(value) => (!value ? t('auth.login.passwordRequired') : null)}
           >
-            <Label>{t('login.loginPassword')}</Label>
+            <Label>{t('auth.login.loginPassword')}</Label>
             <InputGroup fullWidth className="rounded-md min-h-10">
               <InputGroup.Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder={t('login.loginPasswordPlaceholder')}
+                placeholder={t('auth.login.loginPasswordPlaceholder')}
                 autoComplete="current-password"
                 autoFocus
               />
@@ -163,7 +163,7 @@ const LoginCard: React.FC = () => {
                 {/* 密码可见性切换按钮：不参与表单提交 */}
                 <button
                   type="button"
-                  aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                  aria-label={showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="flex h-full items-center justify-center px-2 text-muted-text/60 transition-colors hover:text-muted-text focus-visible:outline-none"
                 >
@@ -189,7 +189,7 @@ const LoginCard: React.FC = () => {
                 status="danger"
                 className="!border-[var(--login-error-border)] !bg-[var(--login-error-bg)] !text-[var(--login-error-text)]"
               >
-                <Alert.Title>{t('login.validationFailed')}</Alert.Title>
+                <Alert.Title>{t('auth.login.validationFailed')}</Alert.Title>
                 <Alert.Description>
                   {isParsedApiError(error) ? error.message : error}
                 </Alert.Description>
@@ -210,10 +210,10 @@ const LoginCard: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <Spinner size="sm" />
-                  <span>{t('login.loginSubmitting')}</span>
+                  <span>{t('auth.login.loginSubmitting')}</span>
                 </>
               ) : (
-                <span>{t('login.loginSubmit')}</span>
+                <span>{t('auth.login.loginSubmit')}</span>
               )}
             </div>
             <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />

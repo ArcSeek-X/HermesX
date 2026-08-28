@@ -37,7 +37,7 @@ export const ChangePasswordCard: React.FC = () => {
       return;
     }
     if (newPassword !== newPasswordConfirm) {
-      setError(t('login.passwordMismatch'));
+      setError(t('auth.login.passwordMismatch'));
       return;
     }
 
