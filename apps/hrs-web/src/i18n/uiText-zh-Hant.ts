@@ -11,6 +11,8 @@ const zh = {
   'common.confirm': '確定', // 通用確認按鈕文案
   'common.delete': '刪除', // 通用刪除按鈕文案
   'common.deleting': '刪除中', // 刪除進行中狀態
+  'common.clear': '清除', // 通用清除文案
+  'common.clearing': '清除中', // 清除中狀態
   'common.details': '查看詳情', // 查看詳情入口
   'common.disabled': '未啟用', // 功能未啟用狀態
   'common.enabled': '已啟用', // 功能已啟用狀態
@@ -1029,6 +1031,8 @@ const zh = {
   'settings.viewConfigItems': '查看配置項', // 查看配置項按鈕
   'settings.envExportNote': '匯出內容仅包含目前已儲存配置，不包含頁面上尚未儲存的本地草稿。', // 匯出說明
   'settings.envDockerNote': 'Docker 部署中，`--env-file` / Compose `env_file` 只會在啟動時註入環境變量；此處匯出/匯入的是後端目前活跃的 `.env` 文件。若需要讓 WebUI 儲存值随容器重建保留，請將 `ENV_FILE` 指向 `/app/data/runtime.env` 等可寫數據卷文件，並避免啟動環境裡繼續保留同名旧值。', // Docker 環境變量說明
+  // ---- 組件類別（component.<組件註冊名>.<鍵名>）----
+  'component.StockSearch.placeholder': '輸入股票代碼或名稱', // 股票搜尋框默認占位符
 } as const;
 
 export type UiTextKey = keyof typeof zh;

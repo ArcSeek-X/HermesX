@@ -23,6 +23,7 @@ import { SearchField } from '@heroui/react';
 import { createPortal } from 'react-dom';
 import { useStockIndex } from '../../hooks/useStockIndex';
 import { useStockAutocomplete } from '../../hooks/useStockAutocomplete';
+import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { SEARCH_CONFIG } from '../../utils/stockIndexSchema';
 import { StockSearchList } from './StockSearchList';
 import { cn } from '../../utils/cn';
@@ -46,10 +47,6 @@ export interface StockSearchProps {
   ) => void;
   /** 是否禁用输入框 */
   disabled?: boolean;
-  /** 占位提示文案 */
-  placeholder?: string;
-  /** 无障碍标签（aria-label） */
-  ariaLabel?: string;
   /** 尺寸：xs | sm | md | lg，控制输入框高度、字体大小与圆角（默认 md） */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 附加 CSS 类名 */
@@ -128,12 +125,12 @@ function StockSearchInner({
   onSubmit,
   onClear,
   disabled = false,
-  placeholder = '输入股票代码或名称',
-  ariaLabel,
   size = 'sm',
   className,
   originalRender = false,
 }: StockSearchProps) {
+  // 界面语言：默认占位符与清除按钮无障碍标签走 i18n（规范：component.StockSearch.*）
+  const { t } = useUiLanguage();
   // 股票索引：加载本地 /stocks.index.json
   const { index, loading } = useStockIndex();
   // 自动补全逻辑：本地模糊搜索（代码/名称/拼音/简拼/别名）+ 键盘高亮 + IME 状态
@@ -199,6 +196,9 @@ function StockSearchInner({
 
   // 输入框显示值：编辑中显示用户原文，否则显示 displayValue（如"名称（代码）"）或 value
   const inputValue = editingValue ?? displayValue ?? value;
+
+  // 占位符：调用方未传时回退到当前语言的组件默认文案
+  const multilingual_placeholder =  t('component.StockSearch.placeholder');
 
   // 外部 value 与内部 query 同步：仅当 value 真正变化时把 setQuery 同步过去，
   // 保证外部受控值（如清空、选中后回填）能反映到内部搜索状态；
@@ -316,7 +316,7 @@ function StockSearchInner({
     <div className="hrs-stock-search relative stock-autocomplete">
       <SearchField
         name="stock-search"
-        aria-label={ariaLabel ?? placeholder ?? '搜索股票'}
+        aria-label="stock-search-Field"
         value={inputValue}
         // react-aria SearchField 受控回调，raw 为最新输入文本
         onChange={(raw: string) => {
@@ -334,7 +334,7 @@ function StockSearchInner({
           className={cn(
             /** 输入框统一样式类：尺寸/圆角/字体跟随 size 映射，聚焦光晕、禁用态等（两种模式共用，外观修改一致） */
             SIZE_CLASS[size],
-          
+
             'w-full flex items-center transition-all border disabled:cursor-not-allowed disabled:opacity-60',
 
             ' focus:outline-none',
@@ -343,7 +343,7 @@ function StockSearchInner({
             // 聚焦时外框不变色，仅保留一圈更淡的聚焦光圈反馈
             'focus:!border-border focus:!shadow-[0_0_0_2px_hsl(var(--primary)/0.10)]',
             'disabled:cursor-not-allowed disabled:opacity-60',
-           
+
 
             // 下拉展开时去掉下圆角与下边框，与下拉列表共用一条底边，避免圆角/边框错位
             isOpen && '!rounded-b-none border-b-0',
@@ -360,8 +360,8 @@ function StockSearchInner({
             autoCapitalize="off"
             className={cn('h-full !placeholder:text-xs ![overflow:visible] ![text-overflow:clip]')}
             disabled={disabled}
-            placeholder={placeholder}
-            aria-label={ariaLabel}
+            placeholder={multilingual_placeholder}
+            aria-label={multilingual_placeholder}
             onKeyDown={handleKeyDown}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
@@ -385,7 +385,7 @@ function StockSearchInner({
           />
           {/* 清除按钮：有内容且可清除时显示（ClearButton 自动清空并触发根 onChange） */}
           {inputValue && onClear && !disabled && (
-            <SearchField.ClearButton aria-label="清除输入" />
+            <SearchField.ClearButton aria-label={t('common.clear')} />
           )}
         </SearchField.Group>
       </SearchField>

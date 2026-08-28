@@ -14,6 +14,8 @@ const en: Record<UiTextKey, string> = {
   'common.confirm': 'OK',
   'common.delete': 'Delete',
   'common.deleting': 'Deleting',
+  'common.clear': 'Clear',
+  'common.clearing': 'Clearing',
   'common.details': 'View details',
   'common.disabled': 'Disabled',
   'common.enabled': 'Enabled',
@@ -1032,6 +1034,8 @@ const en: Record<UiTextKey, string> = {
   'settings.viewConfigItems': 'View fields',
   'settings.envExportNote': 'Exports include only currently saved configuration, not unsaved local drafts on the page.',
   'settings.envDockerNote': 'In Docker deployments, --env-file and Compose env_file inject environment variables only at startup. This export/import area uses the backend active .env file. To keep WebUI-saved values across container rebuilds, point ENV_FILE to a writable data-volume file such as /app/data/runtime.env and avoid keeping same-name old values in the startup environment.',
+  // ---- component category (component.<ComponentName>.<key>) ----
+  'component.StockSearch.placeholder': 'Enter a stock code or name',
 };
 
 export default en;
