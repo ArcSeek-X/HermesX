@@ -17,8 +17,9 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppPage, Card, Switch } from '../components/common';
-import { StockAutocomplete } from '../components/StockAutocomplete/StockAutocomplete';
+import { AppPage, Switch } from '../components';
+import AnimCard from '../components/common/Card/AnimCard';
+import { StockSearch } from '../components/StockSearch/StockSearch';
 import { KLineChart } from '../components/kline/KLineChart';
 import { StockInfoHeader } from '../components/kline/StockInfoHeader';
 import { PeriodSelector } from '../components/kline/PeriodSelector';
@@ -26,6 +27,7 @@ import { klineApi, type KLinePeriod } from '../api/kline';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useCachedState } from '../hooks/useCachedState';
 import { usePageState } from '../stores/PageStateStore';
+import type { Market } from '../types/market';
 
 /**
  * 个股 K 线页面组件
@@ -45,15 +47,14 @@ const StockKLinePage: React.FC = () => {
   const { state: pageState, setState: setPageState } = usePageState();
 
   /**
-   * 从显示值中提取纯股票代码
-   * 处理格式："名称（代码）" → "代码"，或直接返回输入值
+   * 从输入框文本提取纯股票代码：
+   * - "中科曙光（603019.SH）" → "603019.SH"（去掉名称与全角括号）
+   * - 其余情况原样返回（兼容带市场前缀如 SH.603019）
    */
   const extractStockCode = useCallback((raw: string): string => {
     const trimmed = raw.trim();
-    // 匹配全角括号格式：名称（代码）
     const match = trimmed.match(/.*[（](.+?)[）]$/);
     if (match) return match[1].trim();
-    // 否则返回原值（去除可能的市场前缀如 SH.603019）
     return trimmed.split('.').pop() || trimmed;
   }, []);
 
@@ -85,18 +86,17 @@ const StockKLinePage: React.FC = () => {
   const klineData = pageState.kline.klineData;
   const prevClose = pageState.kline.prevClose;
 
-  // 从 stockInfo 派生股票名称（用于输入框显示"名称（代码）"格式）
-  // 同时从 sessionStorage 恢复上次缓存的名称（避免 stockInfo 未加载时显示空）
-  const [cachedStockName, setCachedStockName] = useState(() => {
+  // 输入框展示标签：由 StockSearch 组件统一产出（"名称（规范代码）"，如"中科曙光（603019.SH）"），
+  // 本页只负责缓存与回传，不自行拼接格式（遵守组件规范）。
+  // 用途仅为初始化显示 / 返回本页时恢复上次展示。
+  const [cachedDisplayValue, setCachedDisplayValue] = useState(() => {
     try {
-      const stored = sessionStorage.getItem('hrs-state-kline.stockName');
+      const stored = sessionStorage.getItem('hrs-state-kline.displayValue');
       return stored ? JSON.parse(stored) : '';
     } catch {
       return '';
     }
   });
-  // 股票名称：优先使用 stockInfo 中的实时名称，其次使用 sessionStorage 缓存的名称
-  const stockName = stockInfo?.stock_name || cachedStockName;
 
   const [loading, setLoading] = useState(false); // 股票数据加载中状态
   const [error, setError] = useState<string | null>(null); // 数据加载错误信息
@@ -137,12 +137,6 @@ const StockKLinePage: React.FC = () => {
       // 如果已有更新的请求，丢弃本次结果
       if (requestId !== loadRequestRef.current) return;
 
-      // 保存股票名称到缓存（用于输入框显示"名称（代码）"格式）
-      if (info?.stock_name) {
-        setCachedStockName(info.stock_name);
-        try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(info.stock_name)); } catch { /* ignore */ }
-      }
-
       // 保存到 PageStateStore（L2 缓存）
       setPageState('kline', (prev) => ({
         ...prev,
@@ -161,7 +155,7 @@ const StockKLinePage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [t, setPageState, setCachedStockName]);
+  }, [t, setPageState]);
 
   /** 判断是否为有效股票代码（纯数字，可能带市场前缀） */
   const isStockCode = useCallback((value: string): boolean => {
@@ -171,9 +165,22 @@ const StockKLinePage: React.FC = () => {
 
   /** 搜索提交回调 */
   const handleSearchSubmit = useCallback(
-    async (code: string, name?: string) => {
+    async (
+      code: string,
+      _name?: string,
+      _source?: 'manual' | 'autocomplete',
+      metadata?: { market?: Market; displayCode?: string; displayLabel?: string },
+    ) => {
       const pureCode = code.split('.')[0].trim();
       autoLoadedRef.current = false; // 手动搜索时重置自动加载标记
+
+      // 缓存组件统一产出的展示标签（"名称（规范代码）"），仅用于返回本页时初始化显示
+      if (metadata?.displayLabel) {
+        setCachedDisplayValue(metadata.displayLabel);
+        try {
+          sessionStorage.setItem('hrs-state-kline.displayValue', JSON.stringify(metadata.displayLabel));
+        } catch { /* ignore */ }
+      }
 
       // 搜索时默认使用分时（1m）
       const searchPeriod: KLinePeriod = '1m';
@@ -184,9 +191,6 @@ const StockKLinePage: React.FC = () => {
           const results = await klineApi.searchStocks(pureCode);
           if (results && results.length > 0) {
             const resolved = results[0].code;
-            const resolvedName = results[0].name || name || '';
-            setCachedStockName(resolvedName);
-            try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(resolvedName)); } catch { /* ignore */ }
             setStockCode(resolved);
             setPeriod(searchPeriod);
             setShowSwitch(false); // 切换股票时重置全量数据开关
@@ -201,16 +205,19 @@ const StockKLinePage: React.FC = () => {
       }
 
       // 有效股票代码：使用传入的 name 或清空
-      if (name) {
-        setCachedStockName(name);
-        try { sessionStorage.setItem('hrs-state-kline.stockName', JSON.stringify(name)); } catch { /* ignore */ }
-      }
       setStockCode(pureCode);
       setPeriod(searchPeriod);
       setShowSwitch(false); // 切换股票时重置全量数据开关
       void loadStockData(pureCode, searchPeriod);
     },
-    [loadStockData, setPeriod, setStockCode, setCachedStockName, isStockCode, t],
+    [
+      loadStockData,
+      setPeriod,
+      setStockCode,
+      setCachedDisplayValue,
+      isStockCode,
+      t,
+    ],
   );
 
   /** 周期切换回调 */
@@ -298,31 +305,22 @@ const StockKLinePage: React.FC = () => {
   return (
     <AppPage>
       <div className="space-y-4">
-        {/* ===== 页面标题区 ===== */}
-        <div>
-          <h1 className="text-xl font-bold text-foreground">{t('kline.title')}</h1>
-        </div>
-
-        {/* ===== 搜索框区 ===== */}
+        {/* ===== 搜索框区（页面标题已由顶部 header 展示）===== */}
         <div className="max-w-md">
-          <StockAutocomplete
+          <StockSearch
             value={stockCode}
-            displayValue={
-              stockCode && stockName && /^\d{4,7}$/.test(stockCode)
-                ? `${stockName}（${stockCode}）`
-                : undefined
-            }
+            // 仅用于初始化显示：传入组件统一格式的展示标签（页面不自行拼接）
+            displayValue={cachedDisplayValue || undefined}
+            size="xl"
             onChange={(raw) => {
-              // 编辑过程中提取并更新 stockCode，确保 React 能正确重渲染
-              // extractStockCode 会处理 "名称（代码）" 格式，返回纯代码
-              const extracted = extractStockCode(raw);
-              setStockCode(extracted);
+              // 编辑时从输入文本提取纯代码并更新（兼容"名称（代码）"展示格式）
+              setStockCode(extractStockCode(raw));
             }}
             onSubmit={handleSearchSubmit}
             onClear={() => {
               setStockCode('');
-              setCachedStockName('');
-              try { sessionStorage.removeItem('hrs-state-kline.stockName'); } catch { /* ignore */ }
+              setCachedDisplayValue('');
+              try { sessionStorage.removeItem('hrs-state-kline.displayValue'); } catch { /* ignore */ }
               setPageState('kline', (prev) => ({
                 ...prev,
                 stockCode: '',
@@ -330,8 +328,6 @@ const StockKLinePage: React.FC = () => {
                 klineData: [],
               }));
             }}
-            placeholder={t('kline.searchPlaceholder')}
-            ariaLabel={t('kline.title')}
           />
         </div>
 
@@ -339,13 +335,13 @@ const StockKLinePage: React.FC = () => {
         {stockInfo && (
           <>
             {/* 股票信息头部 */}
-            <Card variant="bordered" padding="md">
+            <AnimCard className="p-5 min-h-0">
               <StockInfoHeader info={stockInfo} />
-            </Card>
+            </AnimCard>
 
             {/* K 线图 + 周期选择器 */}
-            <Card variant="bordered" padding="md">
-              <div className="space-y-3">
+            <AnimCard className="p-5 min-h-0">
+              <div className="space-y-3 w-full">
                 {/* K 线图（全宽铺满） */}
                 {loading ? (
                   <div className="flex items-center justify-center py-20">
@@ -385,7 +381,7 @@ const StockKLinePage: React.FC = () => {
                   <PeriodSelector period={period} onChange={handlePeriodChange} />
                 </div>
               </div>
-            </Card>
+            </AnimCard>
           </>
         )}
 
