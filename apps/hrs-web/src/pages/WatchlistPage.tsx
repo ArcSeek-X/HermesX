@@ -17,6 +17,7 @@ import { BookmarkFill } from "@gravity-ui/icons";
 import { Label, TextField, Description } from "@heroui/react";
 import { type WatchlistItemWithQuote } from '../api/watchlist';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { sortByOrder, sortByFieldDesc } from '../utils/sortFilter';
 
 type SortKey = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';
 
@@ -46,18 +47,6 @@ function matchKeyword(
     if (idx.pinyinShort.toLowerCase().includes(kw)) return true;
   }
   return false;
-}
-
-function sortItems(items: WatchlistItemWithQuote[], key: SortKey): WatchlistItemWithQuote[] {
-  const list = [...items];
-  if (key === 'default') {
-    return list.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-  }
-  return list.sort((a, b) => {
-    const av = a.quote?.[key] ?? -Infinity;
-    const bv = b.quote?.[key] ?? -Infinity;
-    return bv - av;
-  });
 }
 
 const WatchlistPage: React.FC = () => {
@@ -114,7 +103,11 @@ const WatchlistPage: React.FC = () => {
 
   const visibleTableList = useMemo(() => {
     const filtered = tableList.filter((it) => matchKeyword(it, keyword, indexByCode));
-    return sortItems(filtered, sortKey);
+    if (sortKey === 'default') {
+      return sortByOrder(filtered, (it) => it.sortOrder, (it) => it.id);
+    }
+    const quoteKey = sortKey as Exclude<SortKey, 'default'>;
+    return sortByFieldDesc(filtered, (it) => it.quote?.[quoteKey]);
   }, [tableList, keyword, sortKey, indexByCode]);
 
   const handleAddSubmit = (code: string, name?: string) => {
@@ -154,18 +147,18 @@ const WatchlistPage: React.FC = () => {
         {/* 右侧：自选股列表 */}
         <AnimCard className="flex flex-col p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-md font-semibold text-text">
+            <span className="text-md font-semibold">
               {activeGroup ? activeGroup.name : '分组'}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary">排序</span>
               <HrsSelect
                 value={sortKey}
                 onChange={(v) => setSortKey(v as SortKey)}
                 options={SORT_OPTIONS}
+                placeholder="排序"
               />
               <Input
                 className="w-64"
@@ -185,7 +178,7 @@ const WatchlistPage: React.FC = () => {
           </div>
 
           {activeGroupId == null ? (
-            <div className="py-16 text-center text-text-secondary text-sm">
+            <div className="py-16 text-center text-foreground-soft text-sm">
               请先选择或新增一个分组
             </div>
           ) : (
@@ -220,7 +213,6 @@ const WatchlistPage: React.FC = () => {
             <TextField className="w-full" variant="secondary">
               <Label>选择股票</Label>
               <StockSearch
-                placeholder="输入股票代码或名称"
                 value={addCode}
                 originalRender
                 onChange={setAddCode}
@@ -258,10 +250,9 @@ const WatchlistPage: React.FC = () => {
 
 
           {/* <div className="mb-3">
-            <label className="text-sm text-text-secondary">选择股票</label>
+            <label className="text-sm text-foreground-soft">选择股票</label>
             <div className="mt-1">
               <StockSearch
-                placeholder="输入股票代码或名称"
                 value={addCode}
                 onChange={setAddCode}
                 onSubmit={handleAddSubmit}
@@ -272,7 +263,7 @@ const WatchlistPage: React.FC = () => {
             )}
           </div>
           <div className="mb-4">
-            <label className="text-sm text-text-secondary">备注</label>
+            <label className="text-sm text-foreground-soft">备注</label>
             <Input
               value={addNote}
               onChange={(e) => setAddNote(e.target.value)}
