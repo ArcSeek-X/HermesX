@@ -1,19 +1,15 @@
 /**
  * StockSearch —— 股票代码/名称搜索输入框组件
  *
- * 文件作用：
- * 提供带"输入即提示"的股票搜索输入框，是整个前端复用的搜索入口（K 线页、聊天页等）。
- * 组件职责：
- *   1. 通过 useStockIndex 加载本地股票索引，useStockAutocomplete（股票搜索自动补全）做
- *      代码/中文名/拼音全拼/拼音简拼/别名的本地模糊匹配，并渲染下拉候选列表；
- *   2. 支持键盘导航（↑/↓ 移动高亮、Enter 提交、Esc 收起）、IME 输入法组合态处理；
- *   3. 渲染异常（ErrorBoundary）捕获后整体不挂载搜索框，避免破损 UI 扩散；
- *      （原多层降级退化为普通输入框的逻辑已移除，搜索框统一使用 HeroUI SearchField）
- *   4. 下拉框默认通过 createPortal 挂到 document.body 避免被父级裁剪；
- *      可通过 originalRender 参数切换为原位渲染（不使用 portal）。
+ * 整个前端复用的搜索入口（K 线页、聊天页、首页等）。职责：
+ *   1. 基于本地股票索引做代码/中文名/拼音全拼/简拼/别名的模糊匹配，渲染下拉候选；
+ *   2. 支持键盘导航（↑/↓ 高亮、Enter 提交、Esc 收起）与 IME 输入法组合态处理；
+ *   3. 渲染异常由 ErrorBoundary 捕获，避免破损 UI 扩散；
+ *   4. 下拉默认通过 createPortal 挂到 document.body 避免被父级裁剪；
+ *      可通过 originalRender 切换为原位渲染。
  *
  * 对外契约：
- *   - onChange：输入内容变化（原始文本）
+ *   - onChange(value)：输入内容变化（原始文本）
  *   - onSubmit(code, name, source, metadata)：提交搜索，code 为规范代码（如 600519.SH）
  */
 
@@ -34,16 +30,29 @@ import type { Market } from '../../types/market';
 export interface StockSearchProps {
   /** 输入值（用于搜索逻辑，通常是解析后的纯代码） */
   value: string;
-  /** 输入框展示值（可选，如"中科曙光（603019）"，缺省时回退到 value） */
+  /**
+   * 输入框展示值（可选）——组件唯一的展示通道。
+   *
+   * 【统一格式】"股票名称（规范代码）"，如"中科曙光（603019.SH）"；
+   *   规范代码带市场后缀（.SH/.SZ/.HK/.US），由组件内部统一拼装，调用方不应自行拼接。
+   *
+   * 【组件内自赋值】用户在下拉中选中（含回车选中）后，组件会自行把展示文案
+   *   写入本通道并立即显示，调用方无需维护展示状态。
+   *
+   * 【外部传入仅用于初始化显示】外部传入的值只作为"组件初始化 / 外部重置"时的展示文案；
+   *   一旦用户在组件内完成选择，展示文案以组件内部赋值为准（覆盖外部传入值）。
+   *
+   * 【优先级】编辑中原文 > 展示通道（displayValue） > value（纯代码）。
+   */
   displayValue?: string;
   /** 输入内容变化回调（参数为输入框原始文本） */
   onChange: (value: string) => void;
-  /** 提交回调：携带规范代码、名称、来源（手动输入/下拉选择）与元信息（市场、展示代码） */
+  /** 提交回调：携带规范代码、名称、来源（手动输入/下拉选择）与元信息（市场、展示代码、展示标签） */
   onSubmit: (
     code: string,
     name?: string,
     source?: 'manual' | 'autocomplete',
-    metadata?: { market?: Market; displayCode?: string },
+    metadata?: { market?: Market; displayCode?: string; displayLabel?: string },
   ) => void;
   /** 是否禁用输入框 */
   disabled?: boolean;
@@ -66,6 +75,20 @@ export interface StockSearchProps {
 /** 错误边界 Props：在 StockSearchProps 基础上追加 children */
 interface StockSearchBoundaryProps extends StockSearchProps {
   children: ReactNode;
+}
+
+/**
+ * 拼装选中股票在输入框中的展示标签："名称（规范代码）"，如"中科曙光（603019.SH）"。
+ *
+ * 说明：
+ * - 规范代码（canonicalCode）带市场后缀（.SH/.SZ/.HK/.US），信息最完整，便于用户二次确认，
+ *   因此展示用它而非纯数字 displayCode；
+ * - 名称缺失时退化为仅展示规范代码，避免渲染出"（603019.SH）"这种空名称格式。
+ */
+function buildDisplayLabel(nameZh?: string, canonicalCode?: string): string {
+  if (!canonicalCode) return nameZh ?? '';
+  if (!nameZh) return canonicalCode;
+  return `${nameZh}（${canonicalCode}）`;
 }
 
 /** 错误边界 State：仅记录是否发生渲染异常 */
@@ -168,9 +191,11 @@ function StockSearchInner({
   const justSelectedRef = useRef(false);  // 标记刚刚完成了选择，阻止同步效应重新触发搜索
   // 下拉框定位（fixed）：top/left/width，随输入框位置与尺寸变化重算
   const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: string } | null>(null);
-  // 编辑状态：用户正在编辑输入框时，使用原始输入值而非 displayValue
-  // 避免 displayValue（如"名称（代码）"）覆盖用户的编辑操作
+  // 编辑中原文：用户正在输入时优先使用，避免展示通道（"名称（代码）"）覆盖编辑操作
   const [editingValue, setEditingValue] = useState<string | null>(null);
+  // 展示通道（唯一）："股票名称（规范代码）"，如"中科曙光（603019.SH）"。
+  // 初始由外部 displayValue 同步（仅用于初始化显示），选中候选后由组件内自赋值。
+  const [displayText, setDisplayText] = useState(displayValue ?? '');
 
   /** 依据 SearchField.Group 当前 DOM 位置计算下拉框的 fixed 定位 */
   // 使用 Group 而非 Input 的边界，保证下拉框宽度与视觉外框（含搜索图标/清除按钮）对齐。
@@ -194,10 +219,20 @@ function StockSearchInner({
     setDropdownStyle(null);
   };
 
-  // 输入框显示值：编辑中显示用户原文，否则显示 displayValue（如"名称（代码）"）或 value
-  const inputValue = editingValue ?? displayValue ?? value;
+  // 外部 displayValue 变化（初始化 / 外部重置）时同步进展示通道；
+  // 组件内的选择不经由此处，故不会覆盖内部赋值（符合"外部传入仅用于初始化"）。
+  const prevDisplayValueRef = useRef(displayValue);
+  useEffect(() => {
+    if (prevDisplayValueRef.current !== displayValue) {
+      prevDisplayValueRef.current = displayValue;
+      setDisplayText(displayValue ?? '');
+    }
+  }, [displayValue]);
 
-  // 占位符：调用方未传时回退到当前语言的组件默认文案
+  // 显示值优先级：编辑中原文 > 展示通道 > value（纯代码）
+  const inputValue = editingValue ?? (displayText || undefined) ?? value;
+
+  // 占位符取自当前语言的组件默认文案
   const multilingual_placeholder =  t('component.StockSearch.placeholder');
 
   // 外部 value 与内部 query 同步：仅当 value 真正变化时把 setQuery 同步过去，
@@ -272,11 +307,15 @@ function StockSearchInner({
           // 而非把原始中文输入当代码提交。
           const selected = suggestions[highlightedIndex] ?? suggestions[0];
           justSelectedRef.current = true; // 阻止同步效应重新触发搜索
+          // 组件内自赋值：把"名称（规范代码）"写入唯一展示通道并立即显示
+          setDisplayText(buildDisplayLabel(selected.nameZh, selected.canonicalCode));
+          // value 保持纯代码（搜索语义），与展示通道解耦
           onChange(selected.displayCode);
           closeSuggestions();
           onSubmit(selected.canonicalCode, selected.nameZh, 'autocomplete', {
             market: selected.market,
             displayCode: selected.displayCode,
+            displayLabel: buildDisplayLabel(selected.nameZh, selected.canonicalCode),
           });
         } else {
           // 无任何候选：把输入原文直接提交（调用方会解析，如后端搜索）
@@ -318,11 +357,11 @@ function StockSearchInner({
         name="stock-search"
         aria-label="stock-search-Field"
         value={inputValue}
-        // react-aria SearchField 受控回调，raw 为最新输入文本
+        // 本回调仅由用户实际输入触发（选中回填走外部 onChange prop，不进此处）
         onChange={(raw: string) => {
           setEditingValue(raw); // 标记正在编辑，使用原始输入值
+          setDisplayText(''); // 清空展示通道，避免残留上一只股票名
           onChange(raw);
-          // 清空时同步外部 onClear 语义（原清除按钮点击逻辑）
           if (raw === '' && onClear) {
             setEditingValue(null);
             onClear();
@@ -397,10 +436,8 @@ function StockSearchInner({
         </div>
       )}
 
-      {/* Suggestion dropdown list：下拉候选列表。
-          originalRender=false（默认）-> createPortal 挂到 body，避免被父级 overflow/transform 裁切；
-          originalRender=true -> 原位渲染（不使用 portal），作为当前组件 DOM 树的一部分（为了避免model - react-aria Modal 设置的 inert问题）。
-          以保证在弹窗内下拉的点击/键盘交互可用。 */}
+      {/* 下拉候选列表：originalRender=false（默认）经 Portal 挂 body，避免被父级裁切；
+          originalRender=true 则原位渲染，并规避 react-aria Modal 的 inert 限制。 */}
       {isOpen && dropdownStyle && (() => {
         // 抽取下拉列表元素，仅包裹方式（原位 / Portal 挂 body）随 originalRender 变化，避免重复书写
         const dropdown = (
@@ -410,8 +447,10 @@ function StockSearchInner({
             highlightedIndex={highlightedIndex}
             onSelect={(s) => {
               justSelectedRef.current = true; // 阻止同步效应重新触发搜索
-              setEditingValue(null); // 选择建议时清除编辑状态
-              // Update external value (shown in input box)
+              setEditingValue(null); // 选择建议时清除编辑状态，让展示通道生效
+              // 组件内自赋值：把"名称（规范代码）"写入唯一展示通道并立即显示
+              setDisplayText(buildDisplayLabel(s.nameZh, s.canonicalCode));
+              // 回填纯代码给 value（搜索语义），与展示通道解耦
               onChange(s.displayCode);
               // Close dropdown list
               closeSuggestions();
@@ -419,6 +458,7 @@ function StockSearchInner({
               onSubmit(s.canonicalCode, s.nameZh, 'autocomplete', {
                 market: s.market,
                 displayCode: s.displayCode,
+                displayLabel: buildDisplayLabel(s.nameZh, s.canonicalCode),
               });
             }}
             onMouseEnter={(index) => setHighlightedIndex(index)}

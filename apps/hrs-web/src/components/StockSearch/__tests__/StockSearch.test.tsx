@@ -494,6 +494,8 @@ describe('StockSearch', () => {
       expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', {
         market: 'CN',
         displayCode: '600519',
+        // 统一展示格式："股票名称（规范代码）"
+        displayLabel: '贵州茅台（600519.SH）',
       });
     });
 
@@ -531,6 +533,7 @@ describe('StockSearch', () => {
       expect(mockOnSubmit).toHaveBeenCalledWith('00700.HK', '腾讯控股', 'autocomplete', {
         market: 'HK',
         displayCode: '00700',
+        displayLabel: '腾讯控股（00700.HK）',
       });
     });
 
@@ -568,6 +571,7 @@ describe('StockSearch', () => {
       expect(mockOnSubmit).toHaveBeenCalledWith('920493.BJ', '示例北交所股票', 'autocomplete', {
         market: 'BSE',
         displayCode: '920493',
+        displayLabel: '示例北交所股票（920493.BJ）',
       });
     });
   });
