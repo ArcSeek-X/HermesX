@@ -19,10 +19,24 @@ export default {
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        foreground: {
+          DEFAULT: 'hsl(var(--foreground))',
+          dim: 'hsl(var(--foreground) / 0.8)',
+          soft: 'hsl(var(--foreground) / 0.6)',
+          glow: 'hsl(var(--foreground) / 0.4)',
+          lightest: 'hsl(var(--foreground) / 0.2)',
+          subtle: 'hsl(var(--foreground) / 0.1)',
+          faint: 'hsl(var(--foreground) / 0.05)',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          dim: 'hsl(var(--primary) / 0.8)',
+          soft: 'hsl(var(--primary) / 0.6)',
+          glow: 'hsl(var(--primary) / 0.4)',
+          lightest: 'hsl(var(--primary) / 0.2)',
+          subtle: 'hsl(var(--primary) / 0.1)',
+          faint: 'hsl(var(--primary) / 0.05)',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -69,9 +83,9 @@ export default {
           glow: 'hsl(var(--warning) / 0.3)',
         },
         danger: {
-          DEFAULT: 'hsl(var(--destructive))',
-          dim: 'hsl(var(--destructive) / 0.8)',
-          glow: 'hsl(var(--destructive) / 0.3)',
+          DEFAULT: 'hsl(var(--danger))',
+          dim: 'hsl(var(--danger) / 0.8)',
+          glow: 'hsl(var(--danger) / 0.3)',
         },
         base: 'hsl(var(--background))',
         elevated: 'hsl(var(--elevated))',
@@ -92,11 +106,19 @@ export default {
         'overlay-hover': 'var(--overlay-hover)',
         'overlay-selected': 'var(--overlay-selected)',
       },
+
+      // borderColor: {
+      //   dim: 'var(--border-subtle)',
+      //   subtle: 'var(--border-subtle)',
+      //   'subtle-hover': 'var(--border-subtle)',
+      // },
+
       borderColor: {
         dim: 'hsl(var(--border-dim-raw) / 0.06)',
         subtle: 'hsl(var(--border-subtle-raw) / 0.08)',
         'subtle-hover': 'hsl(var(--border-subtle-raw) / 0.15)',
       },
+
       backgroundColor: {
         subtle: 'hsl(var(--bg-subtle-raw) / 0.05)',
         'subtle-hover': 'hsl(var(--bg-subtle-raw) / 0.1)',
@@ -129,7 +151,16 @@ export default {
       },
       fontSize: {
         xxs: '10px',
-        label: '11px',
+        xs: '0.75rem',// 12px
+        sm: '0.875rem',// 14px 
+        md: '1rem',//16px
+        lg: '1.125rem',//18px
+        xl: '1.25rem',//20px
+        '2xl': '1.5rem',//24px
+        '3xl': '1.875rem',//30px
+        '4xl': '2.25rem',//36px
+        '5xl': '3rem',//48px
+        '6xl': '4rem',//64px
       },
       spacing: {
         18: '4.5rem',
