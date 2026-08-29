@@ -42,11 +42,19 @@ type ShellHeaderProps = {
  * key 为路由路径，value 包含 title 和 description 两个 i18n key
  * 当路径不在映射表中时，回退到 appFallbackTitle / appFallbackDescription
  */
+/**
+ * 路径 -> 顶栏标题/描述的映射。
+ *
+ * **顺序与 SidebarNav 的 NAV_ITEMS 保持一致**（便于对照维护）；
+ * 未命中的路径会回退到兜底标题，因此新增菜单项时务必同步登记，
+ * /settings 不在主菜单中（由用户菜单进入），置于末尾。
+ */
 const TITLES: Record<string, { title: UiTextKey; description: UiTextKey }> = {
   '/home': { title: 'layout.route.home.title', description: 'layout.route.home.description' },
   '/stock-dashboard': { title: 'layout.route.dashboard.title', description: 'layout.route.dashboard.description' },
   '/sector-analysis': { title: 'layout.route.sectorAnalysis.title', description: 'layout.route.sectorAnalysis.description' },
   '/watchlist': { title: 'layout.route.watchlist.title', description: 'layout.route.watchlist.description' },
+  '/live-news': { title: 'layout.route.liveNews.title', description: 'layout.route.liveNews.description' },
   '/kline': { title: 'layout.route.kline.title', description: 'layout.route.kline.description' },
   '/chat': { title: 'layout.route.chat.title', description: 'layout.route.chat.description' },
   '/review': { title: 'layout.route.review.title', description: 'layout.route.review.description' },
@@ -56,6 +64,7 @@ const TITLES: Record<string, { title: UiTextKey; description: UiTextKey }> = {
   '/alerts': { title: 'layout.route.alerts.title', description: 'layout.route.alerts.description' },
   '/usage': { title: 'layout.route.usage.title', description: 'layout.route.usage.description' },
   '/screening': { title: 'layout.route.screening.title', description: 'layout.route.screening.description' },
+  '/codeTest': { title: 'layout.route.codeTest.title', description: 'layout.route.codeTest.description' },
   '/settings': { title: 'layout.route.settings.title', description: 'layout.route.settings.description' },
 };
 
