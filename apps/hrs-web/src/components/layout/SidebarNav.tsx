@@ -50,21 +50,21 @@ type NavItem = {
  * 'screening'（选股）受 AlphaSift 开关控制，关闭时从列表中过滤；开启时位于列表末尾。
  */
 const NAV_ITEMS: NavItem[] = [
-  { key: 'home', labelKey: 'layout.nav.home', to: '/home', icon: Home, exact: true },
-  { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard', to: '/stock-dashboard', icon: LayoutDashboard },
-  { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis', to: '/sector-analysis', icon: LayoutGrid },
-  { key: 'watchlist', labelKey: 'layout.nav.watchlist', to: '/watchlist', icon: Star },
-  { key: 'live-news', labelKey: 'layout.nav.liveNews', to: '/live-news', icon: Newspaper },
-  { key: 'kline', labelKey: 'layout.nav.kline', to: '/kline', icon: CandlestickChart },
-  { key: 'chat', labelKey: 'layout.nav.chat', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
-  { key: 'review', labelKey: 'layout.nav.review', to: '/review', icon: History },
-  { key: 'portfolio', labelKey: 'layout.nav.portfolio', to: '/portfolio', icon: BriefcaseBusiness },
-  { key: 'decision-signals', labelKey: 'layout.nav.decisionSignals', to: '/decision-signals', icon: Activity },
-  { key: 'backtest', labelKey: 'layout.nav.backtest', to: '/backtest', icon: BarChart3 },
-  { key: 'alerts', labelKey: 'layout.nav.alerts', to: '/alerts', icon: Bell },
-  { key: 'usage', labelKey: 'layout.nav.usage', to: '/usage', icon: Gauge },
-  { key: 'screening', labelKey: 'layout.nav.screening', to: '/screening', icon: Search },
-  { key: 'code-test', labelKey: 'layout.nav.codeTest', to: '/codeTest', icon: FlaskConical },
+  { key: 'home', labelKey: 'layout.nav.home.title', to: '/home', icon: Home, exact: true },
+  { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard.title', to: '/stock-dashboard', icon: LayoutDashboard },
+  { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis.title', to: '/sector-analysis', icon: LayoutGrid },
+  { key: 'watchlist', labelKey: 'layout.nav.watchlist.title', to: '/watchlist', icon: Star },
+  { key: 'live-news', labelKey: 'layout.nav.liveNews.title', to: '/live-news', icon: Newspaper },
+  { key: 'kline', labelKey: 'layout.nav.kline.title', to: '/kline', icon: CandlestickChart },
+  { key: 'chat', labelKey: 'layout.nav.chat.title', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
+  { key: 'review', labelKey: 'layout.nav.review.title', to: '/review', icon: History },
+  { key: 'portfolio', labelKey: 'layout.nav.portfolio.title', to: '/portfolio', icon: BriefcaseBusiness },
+  { key: 'decision-signals', labelKey: 'layout.nav.decisionSignals.title', to: '/decision-signals', icon: Activity },
+  { key: 'backtest', labelKey: 'layout.nav.backtest.title', to: '/backtest', icon: BarChart3 },
+  { key: 'alerts', labelKey: 'layout.nav.alerts.title', to: '/alerts', icon: Bell },
+  { key: 'usage', labelKey: 'layout.nav.usage.title', to: '/usage', icon: Gauge },
+  { key: 'screening', labelKey: 'layout.nav.screening.title', to: '/screening', icon: Search },
+  { key: 'code-test', labelKey: 'layout.nav.codeTest.title', to: '/codeTest', icon: FlaskConical },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
@@ -221,7 +221,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
         <NavLink
           to="/settings"
           onClick={onNavigate}
-          aria-label={t('layout.nav.settings')}
+          aria-label={t('layout.nav.settings.title')}
           className={({ isActive }) =>
             cn(
               itemBaseClass,
@@ -233,7 +233,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
           {({ isActive }) => (
             <>
               <Settings2 className={cn(itemIconClass, isActive ? 'text-[var(--nav-icon-active)]' : 'text-current')} />
-              {!collapsed ? <span className={itemLabelClass}>{t('layout.nav.settings')}</span> : null}
+              {!collapsed ? <span className={itemLabelClass}>{t('layout.nav.settings.title')}</span> : null}
             </>
           )}
         </NavLink>

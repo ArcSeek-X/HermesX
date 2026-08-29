@@ -20,7 +20,7 @@
 | 1 | 全局 common | `common.*`                                                          | 通用动作/状态/占位符：取消、确认、加载、暂无数据、重试等普适文案                                              | 27 key，合规                                                                                                |
 | 2 | 语言类别      | `language.*`                                                        | 语言切换、语言名称、语言简写                                                                 | 9 key，合规                                                                                                 |
 | 3 | 主题类别      | `theme.*`                                                           | 主题切换、主题模式、主色设置                                                                 | 9 key，合规                                                                                                 |
-| 4 | 布局与菜单     | `layout.*`（含 `layout.header.*` / `layout.nav.*` / `layout.route.*`） | 侧边栏、导航框架、一二级菜单（`layout.nav.`）、路由标题/描述（`layout.route.`）、头部操作区（`layout.header.`） | 62 key，合规；另有存量 `header.` 3 key 待迁入 `layout.header.`                                                      |
+| 4 | 布局与菜单     | `layout.*`（含 `layout.header.*` / `layout.nav.*`）                    | 侧边栏、导航框架、一二级菜单（`layout.nav.`）、头部操作区（`layout.header.`）                        | 62 key 含 `layout.nav.*` 34（17 项 × title/description）+ `layout.header.*` 3 + 布局直属；另有存量 `header.` 3 key 待迁入 `layout.header.` |
 | 5 | 组件类别      | `component.<组件名>.<具体内容>`                                            | 基础组件、业务组件、通用组件的内部文案                                                            | `component.runFlow.*` 106 / `component.taskPanel.*` 14 / `component.StockSearch.*` 1；存量 `stockBar.` 5 待迁 |
 | 6 | 登录/注册     | `auth.login.*`、`auth.register.*`（预留）                                | 登录页、初始密码设置页、注册页                                                                | 25 key（`auth.login.*`）；**V1.1 已由存量** **`login.`** **迁移完成**                                               |
 | 7 | 页面类别      | `<路由名>.<一级功能>[.<二级>]`                                               | 各页面专属文案                                                                        | 存量已基本合规；新增 `liveNews.` 18 key                                                                            |
@@ -59,14 +59,13 @@
 | `history.*`                   | 分析历史              | 19 key                                            |
 | `stockTrend.*`                | 个股趋势              | 32 key                                            |
 | `stockCloud.*`                | 个股云图              | 预留                                                |
-| `codeTest.*`                  | 测试页               | 当前主字典无该命名空间（仅 `layout.route.codeTest.*`）          |
+| `codeTest.*`                  | 测试页               | 当前主字典无该命名空间（V1.4 前曾为 `layout.route.codeTest.*`，V1.5 已删除） |
 | `notFound.*` / `routeError.*` | 404 / 路由错误（框架级页面） | 各 4 key                                           |
 
 ### 3.3 组件类别（第 5 类）
 
 - 格式：`component.<组件名>.<具体内容>`
-- **组件名统一使用 camelCase**（与组件导出名的 camelCase 形态一致，如 `runFlow` / `taskPanel`）。
-- 示例：`component.runFlow.drawerTitle`、`component.taskPanel.title`
+- **新增组件命名空间统一使用 camelCase**，示例：`component.runFlow.drawerTitle`、`component.taskPanel.title`
 - 仅被单一组件使用的文案挂组件命名空间；被 ≥2 个页面/组件复用的文案，上提到 `common.`（普适语义）或抽为独立组件命名空间。**为确保** **`common.`** **纯粹性，上提到** **`common.`** **需确认审核。**
 
 ### 3.4 登录/注册类别（第 6 类）
@@ -82,8 +81,14 @@
 | ----- | ----------------- | ---------------------- | ----- |
 | 布局直属  | `layout.<直属>`     | 侧边栏折叠/展开、登出、兜底标题等框架级文案 | 13    |
 | 头部操作区 | `layout.header.*` | 头部主题设置、语言、用户设置         | 3     |
-| 导航菜单  | `layout.nav.*`    | 侧边栏一二级菜单项              | 17    |
-| 路由标题  | `layout.route.*`  | 各路由的顶栏标题与描述            | 32    |
+| 导航菜单  | `layout.nav.<项>.title` / `.description` | 侧边栏菜单项；每项含名称与描述，17 项 → 34 key | 34    |
+
+**`layout.nav` 与顶栏标题的分工**：
+
+- `layout.nav.<项>.title/description`：**侧边栏菜单项**的名称与描述，**同时作为路由顶栏标题/描述**。
+- 历史上存在独立的 `layout.route.*`（路由级顶栏标题/描述，32 key，V1.5 删除），经核查无任何业务代码引用，属于死代码。
+- `ShellHeader.tsx` 的 `TITLES` 路由映射**统一取 `layout.nav.*`**，菜单与顶栏共用同一套文案，避免两处维护。
+  ⚠️ 因此新增菜单项时须同步登记进 `TITLES`，否则该路由的顶栏会回退到兜底标题。
 
 ## 4. 字典文件内的排列顺序
 
@@ -100,7 +105,8 @@
 | 第 1 类 common   | 命名空间字母序 A–Z                                                              | 仅 `common`，组内 key 再按字母序                                 |
 | 第 2 类 language | 命名空间字母序 A–Z                                                              | 仅 `language`                                            |
 | 第 3 类 theme    | 命名空间字母序 A–Z                                                              | 仅 `theme`                                               |
-| 第 4 类 布局与菜单    | **布局语义顺序**：`layout` 直属 → `layout.header` → `layout.nav` → `layout.route` | 由框架到细节、由外到内，符合阅读路径                                      |
+| 第 4 类 布局与菜单    | **布局语义顺序**：`layout` 直属 → `layout.header` → `layout.nav` | 由框架到细节、由外到内，符合阅读路径                                      |
+| 第 4 类 `layout.nav` 子域内 | **按项目名聚合，项目内 `title` 在前、`description` 在后** | 字母序会把 `description` 排在 `title` 之前，不利于对照阅读；按项目聚合后同一项的名称与描述相邻 |
 | 第 5 类 组件       | **组件注册名 A–Z**                                                            | 对齐 `component.<注册名>.` 契约，便于按组件定位                        |
 | 第 6 类 登录/注册    | 命名空间字母序 A–Z                                                              | 仅 `auth`                                                |
 | 第 7 类 页面       | 命名空间字母序 A–Z                                                              | 页面间无稳定业务序，字母序查找最快（如 `report` < `review` < `routeError`） |
@@ -145,7 +151,7 @@
 
 ## 7. 存量登记表（需要实时更新）
 
-统计基线：2026-08-29，主字典共 **1032 key / 26 个一级命名空间**（含新增 `alerts.pageTitle`）。
+统计基线：2026-08-30，主字典共 **1017 key / 26 个一级命名空间**（V1.5 删除无引用的 `layout.route.*` 32 key 后）。
 
 | 命名空间                                                                                                                                                                                                        | key 数                                                                 | 归属类别 | 合规性                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---- | ------------------------------------- |
@@ -154,7 +160,6 @@
 | `theme.`                                                                                                                                                                                                    | 9                                                                     | 3    | 合规，保持不动                               |
 | `layout.`                                                                                                                                                                                                   | 62                                                                    | 4    | 合规，保持不动                               |
 | `layout.header.`                                                                                                                                                                                            | 3                                                                     | 4    | 合规（V1.1 已由 `header.*` 迁移完成）           |
-| `component.StockSearch.*`                                                                                                                                                                                   | 1                                                                     | 5    | 命名待统一为 camelCase（历史遗留 PascalCase）     |
 | `component.runFlow.*`                                                                                                                                                                                       | 106                                                                   | 5    | 合规（V1.2 已由 `runFlow.` 迁移完成）           |
 | `component.taskPanel.*`                                                                                                                                                                                     | 14                                                                    | 5    | 合规（V1.2 已由 `taskPanel.` 迁移完成）         |
 | `stockBar.`                                                                                                                                                                                                 | 5                                                                     | 5    | **存量，待迁至** **`component.stockBar.*`** |
@@ -176,4 +181,7 @@
 | V1.0 | `2026-08-28` | 首次定稿，确立七大类别、页面/组件命名契约、存量登记表与渐进迁移约定                                                                                                                                                                                                                                                                                         |
 | V1.1 | `2026-08-29` | ① 调整第 4/5/6 类编号（布局菜单 / 组件 / 登录注册）；② 新增第 4 节「字典文件内的排列顺序」；③ 第 4 类新增 `layout.header.*` 子域与 `header.*` 迁移约定；④ 更新登记表：`login.`→`auth.login.` 迁移完成、`common` 27、`layout` 62、新增 `liveNews` 18 / `component` 1；⑤ 总则第 1 条补充禁止硬编码 `document.title` 等                                                                                   |
 | V1.2 | `2026-08-29` | ① 第 5 类存量 `runFlow.` / `taskPanel.` 迁移为 `component.runFlow.*` / `component.taskPanel.*`（共 120 key），组件名统一采用 camelCase；② 修复 `NotFoundPage` 硬编码，启用已有 key `notFound.pageTitle`；③ `notFound.pageTitle` 品牌名统一为 `HermesX`；④ 新增 `alerts.pageTitle`；⑤ `uiText-zh-Hant.ts` 内部变量 `zh`→`zhHant`，并移除与 `uiText-zh.ts` 重复的 `UiTextKey` 导出 |
+| V1.3 | `2026-08-29` | ① `layout.nav.*` 拆分为 `.title` / `.description` 两级，`description` 内容参考 `layout.route.*.description`（新增 17 条，繁体版使用真繁体，避免复制 route 中既有的简体残留）；② `component.StockSearch.placeholder` 由 PascalCase 统一为 camelCase（同步修改 `StockSearch.tsx` 调用点），至此第 5 类组件命名空间全部统一为 camelCase；③ 补充「改 key 大小写须同步核对调用点」的实操提醒                             |
+| V1.4 | `2026-08-30` | ① `ShellHeader.tsx` 的 `TITLES` 路由映射由 `layout.route.*` 改为 `layout.nav.*`，菜单与顶栏共用同一套文案；② 新增排序细则：`layout.nav` 子域按项目名聚合，且项目内 `title` 在前、`description` 在后（字母序会导致 description 在前）；③ 明确 `layout.nav` 与 `layout.route` 的分工，以及路由未登记进 `TITLES` 时顶栏回退兜底标题的风险 |
+| V1.5 | `2026-08-30` | ① 全局核查确认 `layout.route.*`（32 key）无任何业务代码引用，属死代码，已删除；② 同步更新第 4 类子域表、排序依据、存量登记表与基线计数（主字典回落至 1017 key）；③ 明确顶栏标题由 `layout.nav.*` 经 `ShellHeader.tsx` 的 `TITLES` 复用，不再保留独立 route 命名空间 |
 

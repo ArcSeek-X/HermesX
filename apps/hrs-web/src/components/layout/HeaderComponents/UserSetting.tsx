@@ -102,7 +102,7 @@ export const UserSetting = () => {
             className={menuItemClass}
           >
             <Settings2 className="h-4 w-4 shrink-0" />
-            {t('layout.nav.settings')}
+            {t('layout.nav.settings.title')}
           </button>
 
           {/* 菜单项：退出登录（仅开启鉴权时显示），点击后关闭菜单并弹出二次确认 */}

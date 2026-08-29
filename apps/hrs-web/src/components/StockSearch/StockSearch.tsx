@@ -152,7 +152,7 @@ function StockSearchInner({
   className,
   originalRender = false,
 }: StockSearchProps) {
-  // 界面语言：默认占位符与清除按钮无障碍标签走 i18n（规范：component.StockSearch.*）
+  // 界面语言：默认占位符与清除按钮无障碍标签走 i18n（规范：component.stockSearch.*）
   const { t } = useUiLanguage();
   // 股票索引：加载本地 /stocks.index.json
   const { index, loading } = useStockIndex();
@@ -233,7 +233,7 @@ function StockSearchInner({
   const inputValue = editingValue ?? (displayText || undefined) ?? value;
 
   // 占位符取自当前语言的组件默认文案
-  const multilingual_placeholder =  t('component.StockSearch.placeholder');
+  const multilingual_placeholder =  t('component.stockSearch.placeholder');
 
   // 外部 value 与内部 query 同步：仅当 value 真正变化时把 setQuery 同步过去，
   // 保证外部受控值（如清空、选中后回填）能反映到内部搜索状态；

@@ -50,22 +50,22 @@ type ShellHeaderProps = {
  * /settings 不在主菜单中（由用户菜单进入），置于末尾。
  */
 const TITLES: Record<string, { title: UiTextKey; description: UiTextKey }> = {
-  '/home': { title: 'layout.route.home.title', description: 'layout.route.home.description' },
-  '/stock-dashboard': { title: 'layout.route.dashboard.title', description: 'layout.route.dashboard.description' },
-  '/sector-analysis': { title: 'layout.route.sectorAnalysis.title', description: 'layout.route.sectorAnalysis.description' },
-  '/watchlist': { title: 'layout.route.watchlist.title', description: 'layout.route.watchlist.description' },
-  '/live-news': { title: 'layout.route.liveNews.title', description: 'layout.route.liveNews.description' },
-  '/kline': { title: 'layout.route.kline.title', description: 'layout.route.kline.description' },
-  '/chat': { title: 'layout.route.chat.title', description: 'layout.route.chat.description' },
-  '/review': { title: 'layout.route.review.title', description: 'layout.route.review.description' },
-  '/portfolio': { title: 'layout.route.portfolio.title', description: 'layout.route.portfolio.description' },
-  '/decision-signals': { title: 'layout.route.decisionSignals.title', description: 'layout.route.decisionSignals.description' },
-  '/backtest': { title: 'layout.route.backtest.title', description: 'layout.route.backtest.description' },
-  '/alerts': { title: 'layout.route.alerts.title', description: 'layout.route.alerts.description' },
-  '/usage': { title: 'layout.route.usage.title', description: 'layout.route.usage.description' },
-  '/screening': { title: 'layout.route.screening.title', description: 'layout.route.screening.description' },
-  '/codeTest': { title: 'layout.route.codeTest.title', description: 'layout.route.codeTest.description' },
-  '/settings': { title: 'layout.route.settings.title', description: 'layout.route.settings.description' },
+  '/home': { title: 'layout.nav.home.title', description: 'layout.nav.home.description' },
+  '/stock-dashboard': { title: 'layout.nav.dashboard.title', description: 'layout.nav.dashboard.description' },
+  '/sector-analysis': { title: 'layout.nav.sectorAnalysis.title', description: 'layout.nav.sectorAnalysis.description' },
+  '/watchlist': { title: 'layout.nav.watchlist.title', description: 'layout.nav.watchlist.description' },
+  '/live-news': { title: 'layout.nav.liveNews.title', description: 'layout.nav.liveNews.description' },
+  '/kline': { title: 'layout.nav.kline.title', description: 'layout.nav.kline.description' },
+  '/chat': { title: 'layout.nav.chat.title', description: 'layout.nav.chat.description' },
+  '/review': { title: 'layout.nav.review.title', description: 'layout.nav.review.description' },
+  '/portfolio': { title: 'layout.nav.portfolio.title', description: 'layout.nav.portfolio.description' },
+  '/decision-signals': { title: 'layout.nav.decisionSignals.title', description: 'layout.nav.decisionSignals.description' },
+  '/backtest': { title: 'layout.nav.backtest.title', description: 'layout.nav.backtest.description' },
+  '/alerts': { title: 'layout.nav.alerts.title', description: 'layout.nav.alerts.description' },
+  '/usage': { title: 'layout.nav.usage.title', description: 'layout.nav.usage.description' },
+  '/screening': { title: 'layout.nav.screening.title', description: 'layout.nav.screening.description' },
+  '/codeTest': { title: 'layout.nav.codeTest.title', description: 'layout.nav.codeTest.description' },
+  '/settings': { title: 'layout.nav.settings.title', description: 'layout.nav.settings.description' },
 };
 
 export const ShellHeader: React.FC<ShellHeaderProps> = ({
