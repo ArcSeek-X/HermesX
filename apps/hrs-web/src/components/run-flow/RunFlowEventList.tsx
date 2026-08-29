@@ -76,12 +76,12 @@ export const RunFlowEventList: React.FC<RunFlowEventListProps> = ({
     <div className="home-subpanel flex min-h-0 flex-col overflow-hidden p-3" data-testid="run-flow-events">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="label-uppercase">{t('runFlow.events.title')}</p>
+          <p className="label-uppercase">{t('component.runFlow.events.title')}</p>
           <p className="mt-1 text-xs text-muted-text">
-            {t('runFlow.events.count', { count: visibleEvents.length })}
+            {t('component.runFlow.events.count', { count: visibleEvents.length })}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5" aria-label={t('runFlow.events.filters')}>
+        <div className="flex flex-wrap items-center gap-1.5" aria-label={t('component.runFlow.events.filters')}>
           {filters.map((item) => {
             const Icon = FILTER_ICONS[item];
             return (
@@ -95,7 +95,7 @@ export const RunFlowEventList: React.FC<RunFlowEventListProps> = ({
                 className="h-7 px-2 text-xs"
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                {t(`runFlow.events.filter.${item}` as UiTextKey)}
+                {t(`component.runFlow.events.filter.${item}` as UiTextKey)}
               </Button>
             );
           })}
@@ -151,7 +151,7 @@ export const RunFlowEventList: React.FC<RunFlowEventListProps> = ({
               type="button"
               className="block w-full"
               onClick={() => onSelectNode(event.nodeId || '')}
-              aria-label={t('runFlow.events.openNode', { title: event.title })}
+              aria-label={t('component.runFlow.events.openNode', { title: event.title })}
             >
               {content}
             </button>
@@ -159,7 +159,7 @@ export const RunFlowEventList: React.FC<RunFlowEventListProps> = ({
         }) : (
           <div className="flex min-h-32 flex-col items-center justify-center rounded-lg border border-dashed border-subtle px-4 py-8 text-center text-sm text-secondary-text">
             <Filter className="mb-2 h-5 w-5 text-muted-text" aria-hidden="true" />
-            {t('runFlow.events.empty')}
+            {t('component.runFlow.events.empty')}
           </div>
         )}
       </div>

@@ -75,8 +75,8 @@ export const UserSetting = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={t('header.userSettings')}
-        title={t('header.userSettings')}
+        aria-label={t('layout.header.userSettings')}
+        title={t('layout.header.userSettings')}
         aria-haspopup="menu"
         aria-expanded={open}
         className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-border/70 bg-card/80 text-secondary-text shadow-soft-card transition-colors hover:bg-hover hover:text-foreground"
@@ -88,7 +88,7 @@ export const UserSetting = () => {
       {open && (
         <div
           role="menu"
-          aria-label={t('header.userSettings')}
+          aria-label={t('layout.header.userSettings')}
           className="absolute right-0 top-[calc(100%+8px)] z-50 w-44 rounded-xl border border-border/80 bg-card p-1.5 shadow-lg"
         >
           {/* 菜单项：跳转设置页，点击后先关闭菜单再跳转 */}

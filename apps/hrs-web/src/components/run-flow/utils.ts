@@ -38,66 +38,66 @@ export const RUN_FLOW_SEVERITY_STYLE: Record<RunFlowEventSeverity, {
 };
 
 const STATUS_LABEL_KEYS: Record<RunFlowStatus, UiTextKey> = {
-  pending: 'runFlow.status.pending',
-  running: 'runFlow.status.running',
-  success: 'runFlow.status.success',
-  failed: 'runFlow.status.failed',
-  degraded: 'runFlow.status.degraded',
-  fallback: 'runFlow.status.fallback',
-  timeout: 'runFlow.status.timeout',
-  cancel_requested: 'runFlow.status.cancelRequested',
-  cancelled: 'runFlow.status.cancelled',
-  skipped: 'runFlow.status.skipped',
-  unknown: 'runFlow.status.unknown',
+  pending: 'component.runFlow.status.pending',
+  running: 'component.runFlow.status.running',
+  success: 'component.runFlow.status.success',
+  failed: 'component.runFlow.status.failed',
+  degraded: 'component.runFlow.status.degraded',
+  fallback: 'component.runFlow.status.fallback',
+  timeout: 'component.runFlow.status.timeout',
+  cancel_requested: 'component.runFlow.status.cancelRequested',
+  cancelled: 'component.runFlow.status.cancelled',
+  skipped: 'component.runFlow.status.skipped',
+  unknown: 'component.runFlow.status.unknown',
 };
 
 const SEVERITY_LABEL_KEYS: Record<RunFlowEventSeverity, UiTextKey> = {
-  info: 'runFlow.severity.info',
-  success: 'runFlow.severity.success',
-  warning: 'runFlow.severity.warning',
-  danger: 'runFlow.severity.danger',
+  info: 'component.runFlow.severity.info',
+  success: 'component.runFlow.severity.success',
+  warning: 'component.runFlow.severity.warning',
+  danger: 'component.runFlow.severity.danger',
 };
 
 const EDGE_KIND_LABEL_KEYS: Record<RunFlowEdgeKind, UiTextKey> = {
-  data: 'runFlow.edge.data',
-  control: 'runFlow.edge.control',
-  fallback: 'runFlow.edge.fallback',
-  retry: 'runFlow.edge.retry',
+  data: 'component.runFlow.edge.data',
+  control: 'component.runFlow.edge.control',
+  fallback: 'component.runFlow.edge.fallback',
+  retry: 'component.runFlow.edge.retry',
 };
 
 const NODE_KIND_LABEL_KEYS: Record<RunFlowNodeKind, UiTextKey> = {
-  entry: 'runFlow.nodeKind.entry',
-  queue: 'runFlow.nodeKind.queue',
-  data_source: 'runFlow.nodeKind.dataSource',
-  analysis: 'runFlow.nodeKind.analysis',
-  model: 'runFlow.nodeKind.model',
-  artifact: 'runFlow.nodeKind.artifact',
-  notification: 'runFlow.nodeKind.notification',
+  entry: 'component.runFlow.nodeKind.entry',
+  queue: 'component.runFlow.nodeKind.queue',
+  data_source: 'component.runFlow.nodeKind.dataSource',
+  analysis: 'component.runFlow.nodeKind.analysis',
+  model: 'component.runFlow.nodeKind.model',
+  artifact: 'component.runFlow.nodeKind.artifact',
+  notification: 'component.runFlow.nodeKind.notification',
 };
 
 export const getRunFlowStatusLabel = (status: RunFlowStatus, t: RunFlowT): string =>
-  t(STATUS_LABEL_KEYS[status] || 'runFlow.status.unknown');
+  t(STATUS_LABEL_KEYS[status] || 'component.runFlow.status.unknown');
 
 export const getRunFlowSeverityLabel = (severity: RunFlowEventSeverity, t: RunFlowT): string =>
-  t(SEVERITY_LABEL_KEYS[severity] || 'runFlow.severity.info');
+  t(SEVERITY_LABEL_KEYS[severity] || 'component.runFlow.severity.info');
 
 export const getRunFlowEdgeKindLabel = (kind: RunFlowEdgeKind, t: RunFlowT): string =>
-  t(EDGE_KIND_LABEL_KEYS[kind] || 'runFlow.edge.control');
+  t(EDGE_KIND_LABEL_KEYS[kind] || 'component.runFlow.edge.control');
 
 export const getRunFlowNodeKindLabel = (kind: RunFlowNodeKind, t: RunFlowT): string =>
-  t(NODE_KIND_LABEL_KEYS[kind] || 'runFlow.nodeKind.analysis');
+  t(NODE_KIND_LABEL_KEYS[kind] || 'component.runFlow.nodeKind.analysis');
 
 export const formatDuration = (value: number | null | undefined, t: RunFlowT): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return t('runFlow.valueUnavailable');
+    return t('component.runFlow.valueUnavailable');
   }
   if (value < 1000) {
-    return t('runFlow.durationMs', { value });
+    return t('component.runFlow.durationMs', { value });
   }
   if (value < 60000) {
-    return t('runFlow.durationSeconds', { value: (value / 1000).toFixed(1) });
+    return t('component.runFlow.durationSeconds', { value: (value / 1000).toFixed(1) });
   }
-  return t('runFlow.durationMinutes', { value: (value / 60000).toFixed(1) });
+  return t('component.runFlow.durationMinutes', { value: (value / 60000).toFixed(1) });
 };
 
 export const formatDateTime = (
@@ -106,7 +106,7 @@ export const formatDateTime = (
   t: RunFlowT,
 ): string => {
   if (!value) {
-    return t('runFlow.valueUnavailable');
+    return t('component.runFlow.valueUnavailable');
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

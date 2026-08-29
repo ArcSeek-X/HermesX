@@ -115,8 +115,8 @@ export const ThemeSetting = () => {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={t('header.themeSettings')}
-        title={t('header.themeSettings')}
+        aria-label={t('layout.header.themeSettings')}
+        title={t('layout.header.themeSettings')}
         aria-haspopup="dialog"
         aria-expanded={open}
         className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-border/70 bg-card/80 text-secondary-text shadow-soft-card transition-colors hover:bg-hover hover:text-foreground"
@@ -128,7 +128,7 @@ export const ThemeSetting = () => {
       {open && popoverStyle && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
-          aria-label={t('header.themeSettings')}
+          aria-label={t('layout.header.themeSettings')}
           className="hrs-theme-popover fixed z-[130] w-[360px] rounded-xl border border-border/80 bg-card p-4 shadow-lg"
           ref={popoverRef}
           style={{ top: popoverStyle.top, right: popoverStyle.right }}

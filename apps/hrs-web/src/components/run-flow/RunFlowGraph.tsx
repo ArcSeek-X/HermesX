@@ -151,8 +151,8 @@ const isExpandableNode = (node: RunFlowNode): boolean => node.metadata?.topology
 
 const getEdgeLabel = (label: string | null | undefined, t: RunFlowT): string | null => {
   if (!label) return null;
-  if (label === '调用') return t('runFlow.edgeLabel.invoke');
-  if (label === '详情') return t('runFlow.edgeLabel.details');
+  if (label === '调用') return t('component.runFlow.edgeLabel.invoke');
+  if (label === '详情') return t('component.runFlow.edgeLabel.details');
   return label;
 };
 
@@ -633,8 +633,8 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
     <div className="home-subpanel overflow-hidden p-3" data-testid="run-flow-graph">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="label-uppercase">{t('runFlow.graph.title')}</p>
-          <p className="mt-1 text-xs text-muted-text">{t('runFlow.graph.description')}</p>
+          <p className="label-uppercase">{t('component.runFlow.graph.title')}</p>
+          <p className="mt-1 text-xs text-muted-text">{t('component.runFlow.graph.description')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {(['data', 'control', 'fallback', 'retry'] as const).map((kind) => (
@@ -771,7 +771,7 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
                   data-testid={`run-flow-node-${node.id}`}
                   onClick={() => onSelectNode?.(node)}
                   aria-pressed={selected}
-                  aria-label={t('runFlow.graph.nodeAria', { label: node.label, status: statusLabel })}
+                  aria-label={t('component.runFlow.graph.nodeAria', { label: node.label, status: statusLabel })}
                   data-layout-lane={node.laneIndex}
                   data-layout-row={node.row}
                   className={`box-border flex max-w-full min-w-0 flex-col items-start overflow-hidden rounded-lg border-2 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 ${nodeDensityClass} ${nodeStateClass} ${
@@ -798,7 +798,7 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
                   </span>
                   {node.startedAt ? (
                     <span className="mt-1 block w-full min-w-0 truncate text-[11px] text-muted-text">
-                      {t('runFlow.graph.startedAt')}: {formatDateTime(node.startedAt, toCnOrEn(language), t)}
+                      {t('component.runFlow.graph.startedAt')}: {formatDateTime(node.startedAt, toCnOrEn(language), t)}
                     </span>
                   ) : null}
                 </button>
@@ -806,7 +806,7 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
                   <button
                     type="button"
                     data-testid={`run-flow-node-${node.id}-toggle`}
-                    aria-label={expanded ? t('runFlow.graph.collapseNode', { label: node.label }) : t('runFlow.graph.expandNode', { label: node.label })}
+                    aria-label={expanded ? t('component.runFlow.graph.collapseNode', { label: node.label }) : t('component.runFlow.graph.expandNode', { label: node.label })}
                     aria-expanded={expanded}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -819,7 +819,7 @@ export const RunFlowGraph: React.FC<RunFlowGraphProps> = ({
                     ) : (
                       <ChevronRight className="h-2 w-2" aria-hidden="true" />
                     )}
-                    {expanded ? t('runFlow.graph.collapse') : t('runFlow.graph.expand')}
+                    {expanded ? t('component.runFlow.graph.collapse') : t('component.runFlow.graph.expand')}
                   </button>
                 ) : null}
               </div>

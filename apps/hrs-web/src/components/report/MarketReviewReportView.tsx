@@ -492,13 +492,13 @@ export const MarketReviewReportView: React.FC<MarketReviewReportViewProps> = ({
 
           <div className="flex shrink-0 items-center gap-2">
             {canOpenRunFlow ? (
-              <Tooltip content={runFlowText['runFlow.open']}>
+              <Tooltip content={runFlowText['component.runFlow.open']}>
                 <span className="inline-flex">
                   <button
                     type="button"
                     onClick={() => onOpenRunFlow(recordId)}
                     className="home-surface-button flex h-10 w-10 items-center justify-center rounded-lg text-secondary-text hover:text-foreground"
-                    aria-label={formatUiText(runFlowText['runFlow.openHistoryAria'], { recordId })}
+                    aria-label={formatUiText(runFlowText['component.runFlow.openHistoryAria'], { recordId })}
                   >
                     <Workflow className="h-5 w-5" aria-hidden="true" />
                   </button>

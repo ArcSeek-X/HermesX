@@ -25,10 +25,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
   const isCancelRequested = task.status === 'cancel_requested';
   const isCancelled = task.status === 'cancelled';
   const statusLabel = isCancelRequested
-    ? t('taskPanel.cancelRequested')
+    ? t('component.taskPanel.cancelRequested')
     : isCancelled
-      ? t('taskPanel.cancelled')
-      : isProcessing ? t('taskPanel.processing') : t('taskPanel.pending');
+      ? t('component.taskPanel.cancelled')
+      : isProcessing ? t('component.taskPanel.processing') : t('component.taskPanel.pending');
   const statusVariant = isCancelRequested ? 'warning' : isProcessing ? 'info' : 'default';
   const statusTone = isCancelRequested ? 'warning' : isProcessing ? 'info' : 'neutral';
   const progress = Math.max(0, Math.min(100, task.progress || 0));
@@ -42,11 +42,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
         <div className="flex min-w-0 items-start gap-2">
           <div className="shrink-0 pt-1.5">
             {isProcessing ? (
-              <StatusDot tone="info" pulse className="h-2.5 w-2.5" aria-label={t('taskPanel.processingAria')} />
+              <StatusDot tone="info" pulse className="h-2.5 w-2.5" aria-label={t('component.taskPanel.processingAria')} />
             ) : isCancelRequested ? (
-              <StatusDot tone="warning" pulse className="h-2.5 w-2.5" aria-label={t('taskPanel.cancelRequestedAria')} />
+              <StatusDot tone="warning" pulse className="h-2.5 w-2.5" aria-label={t('component.taskPanel.cancelRequestedAria')} />
             ) : isPending ? (
-              <StatusDot tone="neutral" className="h-2.5 w-2.5" aria-label={t('taskPanel.pendingAria')} />
+              <StatusDot tone="neutral" className="h-2.5 w-2.5" aria-label={t('component.taskPanel.pendingAria')} />
             ) : null}
           </div>
 
@@ -64,7 +64,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
 
         <div className="relative z-10 flex shrink-0 items-center gap-1.5">
           {onOpenRunFlow ? (
-            <Tooltip content={t('taskPanel.openRunFlow')}>
+            <Tooltip content={t('component.taskPanel.openRunFlow')}>
               <span className="inline-flex">
                 <Button
                   type="button"
@@ -75,7 +75,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
                     event.stopPropagation();
                     onOpenRunFlow(task);
                   }}
-                  aria-label={t('taskPanel.openRunFlowAria', {
+                  aria-label={t('component.taskPanel.openRunFlowAria', {
                     stock: task.stockName || task.stockCode,
                   })}
                 >
@@ -87,7 +87,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
           <Badge
             variant={statusVariant}
             className="min-w-[4.75rem] max-w-[7rem] justify-center gap-1.5 whitespace-nowrap shadow-none"
-            aria-label={t('taskPanel.statusAria', { status: statusLabel })}
+            aria-label={t('component.taskPanel.statusAria', { status: statusLabel })}
           >
             <StatusDot tone={statusTone} pulse={isProcessing || isCancelRequested} className="h-1.5 w-1.5 shrink-0" />
             <span className="min-w-0 truncate">{statusLabel}</span>
@@ -127,7 +127,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onOpenRunFlow }) => {
             className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-muted-text"
             data-testid="task-panel-diagnostics-summary"
           >
-            <span className="whitespace-nowrap">{t('taskPanel.diagnostics')}</span>
+            <span className="whitespace-nowrap">{t('component.taskPanel.diagnostics')}</span>
             <span className="min-w-0 truncate font-mono text-[11px] text-secondary-text">
               {traceId.length > 18 ? `${traceId.slice(0, 10)}...` : traceId}
             </span>
@@ -195,7 +195,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
       <div className="border-b border-subtle px-3 py-3">
         <DashboardPanelHeader
           className="mb-0"
-          title={title ?? t('taskPanel.title')}
+          title={title ?? t('component.taskPanel.title')}
           titleClassName="text-sm font-medium"
           leading={(
             <RefreshCw className="h-4 w-4 text-cyan" aria-hidden="true" />
@@ -206,13 +206,13 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
               {processingCount > 0 && (
                 <span className="flex items-center gap-1">
                   <StatusDot tone="info" pulse className="h-1.5 w-1.5" aria-label="进行中任务" />
-                  {t('taskPanel.processingTasks', { count: processingCount })}
+                  {t('component.taskPanel.processingTasks', { count: processingCount })}
                 </span>
               )}
               {pendingCount > 0 ? (
                 <span className="flex items-center gap-1">
                   <StatusDot tone="neutral" className="h-1.5 w-1.5" aria-label="等待中任务" />
-                  {t('taskPanel.pendingTasks', { count: pendingCount })}
+                  {t('component.taskPanel.pendingTasks', { count: pendingCount })}
                 </span>
               ) : null}
             </div>

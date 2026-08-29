@@ -91,8 +91,8 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
     return (
       <div className="flex min-h-[22rem] flex-col items-center justify-center text-center" data-testid="run-flow-panel-loading">
         <div className="home-spinner h-10 w-10 animate-spin border-[3px]" aria-hidden="true" />
-        <h3 className="mt-4 text-base font-semibold text-foreground">{t('runFlow.loadingTitle')}</h3>
-        <p className="mt-2 max-w-sm text-sm text-secondary-text">{t('runFlow.loadingDescription')}</p>
+        <h3 className="mt-4 text-base font-semibold text-foreground">{t('component.runFlow.loadingTitle')}</h3>
+        <p className="mt-2 max-w-sm text-sm text-secondary-text">{t('component.runFlow.loadingDescription')}</p>
       </div>
     );
   }
@@ -102,13 +102,13 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
       <div className="space-y-4" data-testid="run-flow-panel-error">
         <InlineAlert
           variant="danger"
-          title={error.title || t('runFlow.errorTitle')}
+          title={error.title || t('component.runFlow.errorTitle')}
           message={error.message}
           className="rounded-xl px-3 py-2 text-sm shadow-none"
         />
         <Button type="button" variant="secondary" size="sm" onClick={() => void refetch()}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          {t('runFlow.retry')}
+          {t('component.runFlow.retry')}
         </Button>
       </div>
     );
@@ -117,8 +117,8 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
   if (!snapshot) {
     return (
       <EmptyState
-        title={t('runFlow.emptyTitle')}
-        description={t('runFlow.emptyDescription')}
+        title={t('component.runFlow.emptyTitle')}
+        description={t('component.runFlow.emptyDescription')}
         icon={<Workflow className="h-6 w-6" aria-hidden="true" />}
         className="border-dashed"
       />
@@ -131,9 +131,9 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
     <div className="space-y-3" data-testid="run-flow-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="label-uppercase">{t('runFlow.eyebrow')}</p>
+          <p className="label-uppercase">{t('component.runFlow.eyebrow')}</p>
           <h2 className="mt-1 truncate text-lg font-semibold text-foreground">
-            {title || t('runFlow.title')}
+            {title || t('component.runFlow.title')}
           </h2>
         </div>
         <Button
@@ -142,10 +142,10 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
           size="sm"
           onClick={() => void refetch()}
           isLoading={isLoading}
-          loadingText={t('runFlow.refreshing')}
+          loadingText={t('component.runFlow.refreshing')}
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          {t('runFlow.refresh')}
+          {t('component.runFlow.refresh')}
         </Button>
       </div>
 
@@ -153,8 +153,8 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
 
       {!hasDetails ? (
         <EmptyState
-          title={t('runFlow.emptySnapshotTitle')}
-          description={t('runFlow.emptySnapshotDescription')}
+          title={t('component.runFlow.emptySnapshotTitle')}
+          description={t('component.runFlow.emptySnapshotDescription')}
           icon={<AlertCircle className="h-6 w-6" aria-hidden="true" />}
           className="border-dashed"
         />

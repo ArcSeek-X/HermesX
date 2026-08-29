@@ -28,6 +28,7 @@ import type {
   AlertType,
 } from '../types/alerts';
 import { formatDateTime } from '../utils/format';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { usePreference } from '../hooks/usePreference';
 
 /** 每页请求的数据条数 */
@@ -144,10 +145,11 @@ function formatNotificationStatus(notification: AlertNotificationItem): string {
  * 管理告警规则的 CRUD 操作、一次性测试，展示触发历史和通知尝试记录
  */
 const AlertsPage: React.FC = () => {
-  // 页面标题设置
+  const { t } = useUiLanguage();
+  // 页面标题设置：走 i18n 字典，禁止硬编码用户可见文案（见 I18N_NAMING 总则第 1 条）
   useEffect(() => {
-    document.title = '告警中心 - HRS';
-  }, []);
+    document.title = t('alerts.pageTitle');
+  }, [t]);
 
   const [rules, setRules] = useState<AlertRuleItem[]>([]); // 告警规则列表
   const [rulesTotal, setRulesTotal] = useState(0); // 告警规则总数（用于分页）

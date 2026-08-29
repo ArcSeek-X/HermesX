@@ -992,7 +992,7 @@ const HomePage: React.FC = () => {
     setRunFlowDrawer({
       open: true,
       source: { type: 'task', taskId: task.taskId },
-      title: t('runFlow.taskDrawerTitle', { stock }),
+      title: t('component.runFlow.taskDrawerTitle', { stock }),
     });
   }, [t]);
 
@@ -1006,7 +1006,7 @@ const HomePage: React.FC = () => {
     setRunFlowDrawer({
       open: true,
       source: { type: 'history', recordId },
-      title: t('runFlow.historyDrawerTitle', { stock }),
+      title: t('component.runFlow.historyDrawerTitle', { stock }),
     });
   }, [selectedReport, t]);
 
@@ -1972,7 +1972,7 @@ const HomePage: React.FC = () => {
         <Drawer
           isOpen={runFlowDrawer.open}
           onClose={closeRunFlowDrawer}
-          title={t('runFlow.drawerTitle')}
+          title={t('component.runFlow.drawerTitle')}
           width="max-w-[96vw]"
           zIndex={80}
         >

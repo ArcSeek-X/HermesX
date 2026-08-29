@@ -139,9 +139,9 @@ interface HomeStockWorkspaceProps {
  */
 function getTaskStatusLabel(task: TaskInfo | undefined, t: (key: UiTextKey, params?: UiTextParams) => string) {
   if (!task) return '';
-  if (task.status === 'processing') return t('taskPanel.processing');
-  if (task.status === 'pending') return t('taskPanel.pending');
-  if (task.status === 'cancel_requested') return t('taskPanel.cancelRequested');
+  if (task.status === 'processing') return t('component.taskPanel.processing');
+  if (task.status === 'pending') return t('component.taskPanel.pending');
+  if (task.status === 'cancel_requested') return t('component.taskPanel.cancelRequested');
   return task.status;
 }
 

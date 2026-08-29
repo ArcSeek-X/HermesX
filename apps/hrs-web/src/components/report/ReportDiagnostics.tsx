@@ -365,10 +365,10 @@ export const ReportDiagnostics: React.FC<ReportDiagnosticsProps> = ({
                   variant="ghost"
                   size="xsm"
                   onClick={() => onOpenRunFlow(recordId)}
-                  aria-label={formatUiText(runFlowText['runFlow.openHistoryAria'], { recordId })}
+                  aria-label={formatUiText(runFlowText['component.runFlow.openHistoryAria'], { recordId })}
                 >
                   <Workflow className="h-3.5 w-3.5" aria-hidden="true" />
-                  {runFlowText['runFlow.open']}
+                  {runFlowText['component.runFlow.open']}
                 </Button>
               ) : null}
               <Button

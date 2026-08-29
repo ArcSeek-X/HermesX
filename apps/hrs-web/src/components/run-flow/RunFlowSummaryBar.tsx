@@ -13,7 +13,7 @@ interface RunFlowSummaryBarProps {
 export const RunFlowSummaryBar: React.FC<RunFlowSummaryBarProps> = ({ snapshot }) => {
   const { language, t } = useUiLanguage();
   const style = RUN_FLOW_STATUS_STYLE[snapshot.status] || RUN_FLOW_STATUS_STYLE.unknown;
-  const title = snapshot.stockName || snapshot.stockCode || t('runFlow.valueUnavailable');
+  const title = snapshot.stockName || snapshot.stockCode || t('component.runFlow.valueUnavailable');
   const taskId = compactText(snapshot.taskId, 32);
   const traceId = compactText(snapshot.traceId || '', 32);
 
@@ -21,25 +21,25 @@ export const RunFlowSummaryBar: React.FC<RunFlowSummaryBarProps> = ({ snapshot }
     {
       key: 'elapsed',
       icon: Clock,
-      label: t('runFlow.summary.elapsed'),
+      label: t('component.runFlow.summary.elapsed'),
       value: formatDuration(snapshot.summary.elapsedMs, t),
     },
     {
       key: 'fallback',
       icon: GitBranch,
-      label: t('runFlow.summary.fallbackCount'),
+      label: t('component.runFlow.summary.fallbackCount'),
       value: String(snapshot.summary.fallbackCount ?? 0),
     },
     {
       key: 'failed',
       icon: MessageSquareText,
-      label: t('runFlow.summary.failedAttempts'),
+      label: t('component.runFlow.summary.failedAttempts'),
       value: String(snapshot.summary.failedAttempts ?? 0),
     },
     {
       key: 'sources',
       icon: Database,
-      label: t('runFlow.summary.dataSources'),
+      label: t('component.runFlow.summary.dataSources'),
       value: String(snapshot.summary.dataSourceCount ?? 0),
     },
   ];
@@ -58,20 +58,20 @@ export const RunFlowSummaryBar: React.FC<RunFlowSummaryBarProps> = ({ snapshot }
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-text">
             <span className="home-accent-chip px-2 py-0.5 font-mono">
-              {t('runFlow.summary.task')}: {taskId || t('runFlow.valueUnavailable')}
+              {t('component.runFlow.summary.task')}: {taskId || t('component.runFlow.valueUnavailable')}
             </span>
             {traceId ? (
               <span className="home-accent-chip px-2 py-0.5 font-mono">
-                {t('runFlow.summary.trace')}: {traceId}
+                {t('component.runFlow.summary.trace')}: {traceId}
               </span>
             ) : null}
             {snapshot.summary.model ? (
               <span className="home-accent-chip px-2 py-0.5">
-                {t('runFlow.summary.model')}: {compactText(snapshot.summary.model, 36)}
+                {t('component.runFlow.summary.model')}: {compactText(snapshot.summary.model, 36)}
               </span>
             ) : null}
             <span className="home-accent-chip px-2 py-0.5">
-              {t('runFlow.summary.generatedAt')}: {formatDateTime(snapshot.generatedAt, toCnOrEn(language), t)}
+              {t('component.runFlow.summary.generatedAt')}: {formatDateTime(snapshot.generatedAt, toCnOrEn(language), t)}
             </span>
           </div>
         </div>

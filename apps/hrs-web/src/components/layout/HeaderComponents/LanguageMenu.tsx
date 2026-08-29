@@ -18,8 +18,8 @@ export const LanguageMenu = () => {
     <button
       type="button"
       onClick={() => setLanguage(nextLanguage)}
-      aria-label={t('header.language')}
-      title={t('header.language')}
+      aria-label={t('layout.header.language')}
+      title={t('layout.header.language')}
       className="inline-flex h-9 w-9 select-none items-center justify-center rounded-[10px] border border-border/70 bg-card/80 text-secondary-text shadow-soft-card transition-colors hover:bg-hover hover:text-foreground"
     >
       <span

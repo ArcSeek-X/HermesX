@@ -6,6 +6,7 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
 
 /**
  * 404 页面未找到组件
@@ -15,11 +16,12 @@ import { useNavigate } from 'react-router-dom';
 const NotFoundPage: React.FC = () => {
   /** 路由导航函数，用于编程式跳转 */
   const navigate = useNavigate();
+  const { t } = useUiLanguage();
 
-  // 设置页面标题
+  // 设置页面标题：走 i18n 字典，禁止硬编码用户可见文案（见 I18N_NAMING 总则第 1 条）
   useEffect(() => {
-    document.title = '页面未找到 - HRS';
-  }, []);
+    document.title = t('notFound.pageTitle');
+  }, [t]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">

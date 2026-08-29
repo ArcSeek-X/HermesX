@@ -122,7 +122,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
       <aside className="home-subpanel p-4 text-sm text-secondary-text" data-testid="run-flow-node-details-empty">
         <div className="flex items-center gap-2">
           <Info className="h-4 w-4 text-cyan" aria-hidden="true" />
-          {t('runFlow.nodeDetails.empty')}
+          {t('component.runFlow.nodeDetails.empty')}
         </div>
       </aside>
     );
@@ -143,41 +143,41 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
   const blockScores = dataQuality?.blockScores || {};
   const canToggleExpanded = node.metadata?.topologyGroup === 'provider_attempts' && Boolean(onToggleExpanded);
   const formatDetailStatus = (status: string | undefined) => (
-    isRunFlowStatus(status) ? getRunFlowStatusLabel(status, t) : status || t('runFlow.valueUnavailable')
+    isRunFlowStatus(status) ? getRunFlowStatusLabel(status, t) : status || t('component.runFlow.valueUnavailable')
   );
-  const detailRows: DetailRow[] = [[t('runFlow.nodeDetails.kind'), getRunFlowNodeKindLabel(node.kind, t)]];
+  const detailRows: DetailRow[] = [[t('component.runFlow.nodeDetails.kind'), getRunFlowNodeKindLabel(node.kind, t)]];
   const addProviderRow = () => {
     if (node.provider) {
-      detailRows.push([t('runFlow.nodeDetails.provider'), node.provider]);
+      detailRows.push([t('component.runFlow.nodeDetails.provider'), node.provider]);
     }
   };
   const addDurationRow = () => {
     if (hasFiniteNumber(node.durationMs)) {
-      detailRows.push([t('runFlow.nodeDetails.duration'), formatDuration(node.durationMs, t)]);
+      detailRows.push([t('component.runFlow.nodeDetails.duration'), formatDuration(node.durationMs, t)]);
     }
   };
   const addAttemptRow = () => {
     if (hasFiniteNumber(node.attempts)) {
-      detailRows.push([t('runFlow.nodeDetails.attempts'), String(node.attempts)]);
+      detailRows.push([t('component.runFlow.nodeDetails.attempts'), String(node.attempts)]);
     }
   };
   const addRecordRow = () => {
     if (hasFiniteNumber(node.recordCount)) {
-      detailRows.push([t('runFlow.nodeDetails.recordCount'), String(node.recordCount)]);
+      detailRows.push([t('component.runFlow.nodeDetails.recordCount'), String(node.recordCount)]);
     }
   };
   const addTimeRows = () => {
     if (node.startedAt) {
-      detailRows.push([t('runFlow.nodeDetails.startedAt'), formatDateTime(node.startedAt, toCnOrEn(language), t)]);
+      detailRows.push([t('component.runFlow.nodeDetails.startedAt'), formatDateTime(node.startedAt, toCnOrEn(language), t)]);
     }
     if (node.endedAt) {
-      detailRows.push([t('runFlow.nodeDetails.endedAt'), formatDateTime(node.endedAt, toCnOrEn(language), t)]);
+      detailRows.push([t('component.runFlow.nodeDetails.endedAt'), formatDateTime(node.endedAt, toCnOrEn(language), t)]);
     }
   };
 
   if (isContextPackNode(node)) {
     if (typeof node.metadata?.packVersion === 'string') {
-      detailRows.push([t('runFlow.nodeDetails.version'), node.metadata.packVersion]);
+      detailRows.push([t('component.runFlow.nodeDetails.version'), node.metadata.packVersion]);
     }
     addTimeRows();
   } else if (node.kind === 'entry' || node.kind === 'queue') {
@@ -205,7 +205,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
     <aside className="home-subpanel p-4" data-testid="run-flow-node-details">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="label-uppercase">{t('runFlow.nodeDetails.title')}</p>
+          <p className="label-uppercase">{t('component.runFlow.nodeDetails.title')}</p>
           <h3 className="mt-1 truncate text-base font-semibold text-foreground">{node.label}</h3>
           {node.message ? (
             <p className="mt-2 text-sm leading-6 text-secondary-text">{node.message}</p>
@@ -226,7 +226,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-              {isExpanded ? t('runFlow.nodeDetails.collapseAttempts') : t('runFlow.nodeDetails.expandAttempts')}
+              {isExpanded ? t('component.runFlow.nodeDetails.collapseAttempts') : t('component.runFlow.nodeDetails.expandAttempts')}
             </Button>
           ) : null}
           <Badge variant={style.badge} className="gap-1.5 shadow-none">
@@ -239,7 +239,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
               variant="ghost"
               size="xsm"
               onClick={onClose}
-              aria-label={t('runFlow.nodeDetails.close')}
+              aria-label={t('component.runFlow.nodeDetails.close')}
               className="h-7 w-7 px-0"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -259,29 +259,29 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
 
       {attempts.length > 0 ? (
         <div className="mt-4">
-          <p className="label-uppercase">{t('runFlow.nodeDetails.attemptList')}</p>
+          <p className="label-uppercase">{t('component.runFlow.nodeDetails.attemptList')}</p>
           <div className="mt-2 overflow-x-auto rounded-lg border border-subtle">
             <table className="min-w-full divide-y divide-subtle text-left text-xs">
               <thead className="bg-base/45 text-muted-text">
                 <tr>
-                  <th className="px-3 py-2 font-medium">{t('runFlow.nodeDetails.column.name')}</th>
-                  <th className="px-3 py-2 font-medium">{t('runFlow.nodeDetails.column.status')}</th>
-                  <th className="px-3 py-2 font-medium">{t('runFlow.nodeDetails.column.duration')}</th>
-                  <th className="px-3 py-2 font-medium">{t('runFlow.nodeDetails.column.records')}</th>
-                  <th className="px-3 py-2 font-medium">{t('runFlow.nodeDetails.column.time')}</th>
+                  <th className="px-3 py-2 font-medium">{t('component.runFlow.nodeDetails.column.name')}</th>
+                  <th className="px-3 py-2 font-medium">{t('component.runFlow.nodeDetails.column.status')}</th>
+                  <th className="px-3 py-2 font-medium">{t('component.runFlow.nodeDetails.column.duration')}</th>
+                  <th className="px-3 py-2 font-medium">{t('component.runFlow.nodeDetails.column.records')}</th>
+                  <th className="px-3 py-2 font-medium">{t('component.runFlow.nodeDetails.column.time')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-subtle bg-base/20">
                 {attempts.map((attempt, index) => (
                   <tr key={attempt.id || `${attempt.label}-${index}`}>
                     <td className="px-3 py-2 text-foreground">
-                      <span className="block font-medium">{attempt.label || attempt.provider || t('runFlow.valueUnavailable')}</span>
+                      <span className="block font-medium">{attempt.label || attempt.provider || t('component.runFlow.valueUnavailable')}</span>
                       {attempt.provider ? <span className="mt-0.5 block text-muted-text">{attempt.provider}</span> : null}
                     </td>
                     <td className="px-3 py-2 text-secondary-text">{formatDetailStatus(attempt.status)}</td>
                     <td className="px-3 py-2 text-secondary-text">{formatDuration(attempt.durationMs, t)}</td>
                     <td className="px-3 py-2 text-secondary-text">
-                      {typeof attempt.recordCount === 'number' ? attempt.recordCount : t('runFlow.valueUnavailable')}
+                      {typeof attempt.recordCount === 'number' ? attempt.recordCount : t('component.runFlow.valueUnavailable')}
                     </td>
                     <td className="px-3 py-2 text-secondary-text">{formatDateTime(attempt.startedAt, toCnOrEn(language), t)}</td>
                   </tr>
@@ -294,13 +294,13 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
 
       {contextBlocks.length > 0 ? (
         <div className="mt-4">
-          <p className="label-uppercase">{t('runFlow.nodeDetails.contextBlocks')}</p>
+          <p className="label-uppercase">{t('component.runFlow.nodeDetails.contextBlocks')}</p>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {contextBlocks.map((block, index) => (
               <div key={block.id || `${block.label}-${index}`} className="rounded-lg border border-subtle bg-base/35 px-3 py-2 text-sm">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">{block.label || t('runFlow.valueUnavailable')}</p>
+                    <p className="truncate font-medium text-foreground">{block.label || t('component.runFlow.valueUnavailable')}</p>
                     {block.provider ? <p className="mt-0.5 truncate text-xs text-muted-text">{block.provider}</p> : null}
                   </div>
                   <span className="shrink-0 text-xs text-secondary-text">{formatDetailStatus(block.status)}</span>
@@ -314,27 +314,27 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
 
       {(dataQuality || Object.keys(contextCounts).length > 0 || Object.keys(contextStatusCounts).length > 0) ? (
         <div className="mt-4">
-          <p className="label-uppercase">{t('runFlow.nodeDetails.contextQuality')}</p>
+          <p className="label-uppercase">{t('component.runFlow.nodeDetails.contextQuality')}</p>
           <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             {typeof dataQuality?.overallScore === 'number' ? (
               <div className="rounded-lg border border-subtle bg-base/35 px-3 py-2">
-                <dt className="text-xs text-muted-text">{t('runFlow.nodeDetails.overallScore')}</dt>
+                <dt className="text-xs text-muted-text">{t('component.runFlow.nodeDetails.overallScore')}</dt>
                 <dd className="mt-1 text-foreground">{dataQuality.overallScore}</dd>
               </div>
             ) : null}
             {dataQuality?.level ? (
               <div className="rounded-lg border border-subtle bg-base/35 px-3 py-2">
-                <dt className="text-xs text-muted-text">{t('runFlow.nodeDetails.qualityLevel')}</dt>
+                <dt className="text-xs text-muted-text">{t('component.runFlow.nodeDetails.qualityLevel')}</dt>
                 <dd className="mt-1 text-foreground">{dataQuality.level}</dd>
               </div>
             ) : null}
             {[
-              ['available', 'success', t('runFlow.nodeDetails.count.available')],
-              ['missing', null, t('runFlow.nodeDetails.count.missing')],
-              ['partial', null, t('runFlow.nodeDetails.count.partial')],
-              ['degraded', null, t('runFlow.nodeDetails.count.degraded')],
-              ['fallback', null, t('runFlow.nodeDetails.count.fallback')],
-              ['skipped', null, t('runFlow.nodeDetails.count.skipped')],
+              ['available', 'success', t('component.runFlow.nodeDetails.count.available')],
+              ['missing', null, t('component.runFlow.nodeDetails.count.missing')],
+              ['partial', null, t('component.runFlow.nodeDetails.count.partial')],
+              ['degraded', null, t('component.runFlow.nodeDetails.count.degraded')],
+              ['fallback', null, t('component.runFlow.nodeDetails.count.fallback')],
+              ['skipped', null, t('component.runFlow.nodeDetails.count.skipped')],
             ].map(([key, statusKey, label]) => {
               const count = contextCounts[key || ''] ?? (statusKey ? contextStatusCounts[statusKey] : contextStatusCounts[key || '']);
               if (typeof count !== 'number') return null;
@@ -349,7 +349,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
 
           {Object.keys(blockScores).length > 0 ? (
             <div className="mt-3">
-              <p className="text-xs font-medium text-muted-text">{t('runFlow.nodeDetails.blockScores')}</p>
+              <p className="text-xs font-medium text-muted-text">{t('component.runFlow.nodeDetails.blockScores')}</p>
               <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                 {Object.entries(blockScores).map(([key, score]) => (
                   <div key={key} className="rounded-lg border border-subtle bg-base/35 px-3 py-2">
@@ -365,7 +365,7 @@ export const RunFlowNodeDetails: React.FC<RunFlowNodeDetailsProps> = ({
 
       {metadata.length > 0 ? (
         <div className="mt-4">
-          <p className="label-uppercase">{t('runFlow.nodeDetails.metadata')}</p>
+          <p className="label-uppercase">{t('component.runFlow.nodeDetails.metadata')}</p>
           <dl className="mt-2 grid grid-cols-1 gap-2 text-sm">
             {metadata.map(([key, value]) => (
               <div key={key} className="rounded-lg border border-subtle bg-base/35 px-3 py-2">
