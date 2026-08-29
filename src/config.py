@@ -836,6 +836,17 @@ class Config:
     news_intel_max_items_per_source: int = 50  # 单次每个资讯源最多采集条数
     news_intel_auto_fetch_enabled: bool = False  # 是否在分析前自动初始化并拉取本地资讯源
     newsnow_base_url: str = "https://newsnow.busiyi.world"  # NewsNow HTTP API base URL (数据源侧，不影响 LLM/provider base URL)
+
+    # === 华尔街见闻实时快讯（Live News）配置 ===
+    # 详见 docs/live-news.md：主数据源为华尔街见闻快讯接口，失败时降级到 NewsNow 聚合源。
+    wscn_live_news_enabled: bool = True  # 快讯能力总开关，关闭后所有快讯接口返回空且不抓取
+    wscn_live_news_base_url: str = "https://api-one.wallstcn.com"  # 快讯接口基址（数据源侧，不影响 LLM/provider base URL）
+    wscn_live_news_fetch_interval_sec: int = 300  # 后台定时抓取间隔（秒），0 表示关闭定时抓取
+    wscn_live_news_important_score: int = 2  # 重要级阈值：上游 score >= 该值视为「重要」
+    wscn_live_news_default_limit: int = 30  # 快讯列表默认每页条数
+    wscn_live_news_timeout_sec: float = 8.0  # 单频道请求超时（秒）
+    wscn_live_news_fallback_newsnow: bool = True  # 官方源失败时是否降级到 NewsNow 聚合源
+
     bias_threshold: float = 5.0  # 乖离率阈值（%），超过此值提示不追高
 
     # === Agent 模式配置 ===
@@ -1742,6 +1753,46 @@ class Config:
                 False,
             ),
             newsnow_base_url=((os.getenv('NEWSNOW_BASE_URL') or '').strip().rstrip('/') or 'https://newsnow.busiyi.world'),
+            wscn_live_news_enabled=parse_env_bool(
+                os.getenv('WSCN_LIVE_NEWS_ENABLED'),
+                True,
+            ),
+            wscn_live_news_base_url=(
+                (os.getenv('WSCN_LIVE_NEWS_BASE_URL') or '').strip().rstrip('/')
+                or 'https://api-one.wallstcn.com'
+            ),
+            wscn_live_news_fetch_interval_sec=parse_env_int(
+                os.getenv('WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC'),
+                300,
+                field_name='WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC',
+                minimum=0,
+                maximum=86400,
+            ),
+            wscn_live_news_important_score=parse_env_int(
+                os.getenv('WSCN_LIVE_NEWS_IMPORTANT_SCORE'),
+                2,
+                field_name='WSCN_LIVE_NEWS_IMPORTANT_SCORE',
+                minimum=1,
+                maximum=10,
+            ),
+            wscn_live_news_default_limit=parse_env_int(
+                os.getenv('WSCN_LIVE_NEWS_DEFAULT_LIMIT'),
+                30,
+                field_name='WSCN_LIVE_NEWS_DEFAULT_LIMIT',
+                minimum=1,
+                maximum=100,
+            ),
+            wscn_live_news_timeout_sec=parse_env_float(
+                os.getenv('WSCN_LIVE_NEWS_TIMEOUT_SEC'),
+                8.0,
+                field_name='WSCN_LIVE_NEWS_TIMEOUT_SEC',
+                minimum=1.0,
+                maximum=30.0,
+            ),
+            wscn_live_news_fallback_newsnow=parse_env_bool(
+                os.getenv('WSCN_LIVE_NEWS_FALLBACK_NEWSNOW'),
+                True,
+            ),
             bias_threshold=parse_env_float(os.getenv('BIAS_THRESHOLD'), 5.0, field_name='BIAS_THRESHOLD', minimum=1.0),
             agent_backend=(os.getenv('AGENT_BACKEND', 'auto') or 'auto').strip().lower(),
             agent_generation_backend=agent_generation_backend,

@@ -67,6 +67,7 @@ const zh = {
   'layout.nav.home': '首頁', // 首頁導航項
   'layout.nav.review': '復盤', // 復盤導航項
   'layout.nav.watchlist': '自選', // 自選導航項
+  'layout.nav.liveNews': '快訊', // 即時快訊導航項
   'layout.nav.kline': 'K 线', // K 线導航項
   'layout.nav.sectorAnalysis': '板塊', // 板塊分析導航項
   'layout.nav.stockCloud': '個股雲圖', // 個股雲圖導航項
@@ -1033,6 +1034,25 @@ const zh = {
   'settings.envDockerNote': 'Docker 部署中，`--env-file` / Compose `env_file` 只會在啟動時註入環境變量；此處匯出/匯入的是後端目前活跃的 `.env` 文件。若需要讓 WebUI 儲存值随容器重建保留，請將 `ENV_FILE` 指向 `/app/data/runtime.env` 等可寫數據卷文件，並避免啟動環境裡繼續保留同名旧值。', // Docker 環境變量說明
   // ---- 組件類別（component.<組件註冊名>.<鍵名>）----
   'component.StockSearch.placeholder': '輸入股票代碼或名稱', // 股票搜尋框默認占位符
+
+  // ---- 即時財經快訊（liveNews.*） ----
+  'liveNews.title': '快訊中心', // 快訊中心頁面標題
+  'liveNews.subtitle': '7x24 小時財經快訊，覆蓋要聞、A股、美股、港股、外匯、商品、債券與科技', // 頁面副標題
+  'liveNews.channelTabs': '快訊頻道', // 頻道 Tab 的無障礙標籤
+  'liveNews.searchPlaceholder': '搜尋快訊…', // 搜尋框占位符
+  'liveNews.importantOnly': '只看重要的', // 重要級篩選開關
+  'liveNews.importantTag': '重要', // 重要快訊標籤
+  'liveNews.refresh': '刷新', // 手動刷新按鈕
+  'liveNews.loadMore': '載入更多', // 載入更多按鈕
+  'liveNews.dateAll': '全部日期', // 日期篩選：不限
+  'liveNews.dateToday': '今天', // 日期篩選：今天
+  'liveNews.dateYesterday': '昨天', // 日期篩選：昨天
+  'liveNews.loading': '正在取得最新快訊…', // 載入中文案
+  'liveNews.empty': '暫無快訊', // 空態：目前頻道無資料
+  'liveNews.emptyImportant': '本頻道暫無重要快訊', // 空態：重要級篩選無結果
+  'liveNews.emptyKeyword': '未找到相關快訊', // 空態：關鍵詞搜尋無結果
+  'liveNews.emptyDate': '該日期暫無快訊', // 空態：指定日期無資料
+  'liveNews.degradedTip': '即時來源暫不可用，目前為聚合降級資料（無頻道分類與重要級）', // 降級提示
 } as const;
 
 export type UiTextKey = keyof typeof zh;

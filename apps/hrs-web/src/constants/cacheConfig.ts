@@ -36,6 +36,12 @@ export const CACHE_TTL_MAP: Record<string, number> = {
   '/api/v1/portfolio': 0,
   '/api/v1/alerts': 0,
 
+  // 实时快讯 — 不缓存（必须显式配置）
+  // 原因：未匹配到规则时会回落到 DEFAULT_CACHE_TTL(60s)，而快讯页是 30 秒轮询，
+  // 命中缓存会导致列表长时间不更新。设为 0 才能保证轮询拿到最新数据。
+  // 快讯的抓取频率由后端 ensure_live_news_fresh 节流，前端重复请求不会打爆上游。
+  '/api/v1/intelligence/live-news': 0,
+
   // 鉴权状态 — 不缓存（保证登录/登出/密码变更状态即时生效）
   '/api/v1/auth': 0,
 

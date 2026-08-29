@@ -67,6 +67,7 @@ const zh = {
   'layout.nav.home': '首页', // 首页导航项
   'layout.nav.review': '复盘', // 复盘导航项
   'layout.nav.watchlist': '自选', // 自选导航项
+  'layout.nav.liveNews': '快讯', // 实时快讯导航项
   'layout.nav.kline': 'K 线', // K 线导航项
   'layout.nav.sectorAnalysis': '板块', // 板块分析导航项
   'layout.nav.stockCloud': '个股云图', // 个股云图导航项
@@ -1033,6 +1034,25 @@ const zh = {
   'settings.envDockerNote': 'Docker 部署中，`--env-file` / Compose `env_file` 只会在启动时注入环境变量；此处导出/导入的是后端当前活跃的 `.env` 文件。若需要让 WebUI 保存值随容器重建保留，请将 `ENV_FILE` 指向 `/app/data/runtime.env` 等可写数据卷文件，并避免启动环境里继续保留同名旧值。', // Docker 环境变量说明
   // ---- 组件类别（component.<组件注册名>.<键名>）----
   'component.StockSearch.placeholder': '输入股票代码或名称', // 股票搜索框默认占位符
+
+  // ---- 实时财经快讯（liveNews.*） ----
+  'liveNews.title': '快讯中心', // 快讯中心页面标题
+  'liveNews.subtitle': '7x24 小时财经快讯，覆盖要闻、A股、美股、港股、外汇、商品、债券与科技', // 页面副标题
+  'liveNews.channelTabs': '快讯频道', // 频道 Tab 的无障碍标签
+  'liveNews.searchPlaceholder': '搜索快讯…', // 搜索框占位符
+  'liveNews.importantOnly': '只看重要的', // 重要级筛选开关
+  'liveNews.importantTag': '重要', // 重要快讯标签
+  'liveNews.refresh': '刷新', // 手动刷新按钮
+  'liveNews.loadMore': '加载更多', // 加载更多按钮
+  'liveNews.dateAll': '全部日期', // 日期筛选：不限
+  'liveNews.dateToday': '今天', // 日期筛选：今天
+  'liveNews.dateYesterday': '昨天', // 日期筛选：昨天
+  'liveNews.loading': '正在获取最新快讯…', // 加载中文案
+  'liveNews.empty': '暂无快讯', // 空态：当前频道无数据
+  'liveNews.emptyImportant': '本频道暂无重要快讯', // 空态：重要级筛选无结果（如科技频道实测无重要快讯）
+  'liveNews.emptyKeyword': '未找到相关快讯', // 空态：关键词搜索无结果
+  'liveNews.emptyDate': '该日期暂无快讯', // 空态：指定日期无数据
+  'liveNews.degradedTip': '实时源暂不可用，当前为聚合降级数据（无频道分类与重要级）', // 降级提示
 } as const;
 
 export type UiTextKey = keyof typeof zh;

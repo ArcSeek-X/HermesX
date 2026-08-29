@@ -1,14 +1,45 @@
 # -*- coding: utf-8 -*-
 """
 ===================================
-A股自选股智能分析系统 - 存储层
+自选股智能分析系统 - 存储层
 ===================================
 
+覆盖 A股 / 港股 / 美股 / 日股 / 韩股 / 台股，不限于单一市场。
+
 职责：
-1. 管理 SQLite 数据库连接（单例模式）
+1. 管理数据库连接与会话（进程内单例）
 2. 定义 ORM 数据模型
-3. 提供数据存取接口
-4. 实现智能更新逻辑（断点续传）
+3. 封装通用数据存取接口
+4. 提供幂等写入：按业务唯一键 upsert，重复抓取或中断后重跑都不会产生重复数据
+
+关于数据库后端：
+- 当前 ``Config.get_db_url()`` 固定返回 SQLite，实际运行只使用 SQLite；
+- 代码中保留的少量 ``_is_sqlite_engine`` 分支（如锁重试、``ON CONFLICT`` 语法）
+  属于兼容铺垫，**不等于已支持其它后端**；切换前需先补齐这些分支的替代实现。
+
+分层约定：
+- 本模块只做「连接管理 + ORM 模型 + 通用存取原语」，不包含业务编排；
+- 业务逻辑请放在 ``src/services/`` 与 ``src/repositories/``，不要在这里堆积
+  领域规则，否则模型层会与业务耦合、难以被多入口复用。
+
+存储约定（修改本文件时务必遵守）：
+
+1. **时间统一为 UTC naive**：所有 ``DateTime`` 列存储不带时区信息的 UTC 时间。
+   写入前用 :func:`to_utc_naive_datetime` 归一化，避免「东八区时间被当成 UTC」
+   与「同一字段混存带时区/不带时区」两类问题。``default=datetime.now`` 属于历史
+   遗留写法，新代码请优先使用 :func:`utc_naive_now`。
+2. **金额与比率**：金额统一为元，涨跌幅统一为百分比数值（1.5 表示 1.5%），
+   不做「小数/百分数」混用。
+3. **股票代码**：统一为纯代码字符串（如 ``600519``、``hk00700``、``AAPL``），
+   不带交易所后缀；跨市场代码在业务层做等价归一化，不在存储层隐式转换。
+4. **JSON 列**：以 ``Text`` 存储 JSON 字符串，读取方负责解析；模型只保证可存，
+   不保证结构，结构契约由对应 schema 定义。
+5. **软删除与保留期**：多数流水表不物理删除，改由保留期任务按时间清理。
+
+Schema 迁移：
+- ``CURRENT_SCHEMA_VERSION`` 为基线版本标记（记录在 ``schema_migrations`` 表）；
+- 基线之后的增量变更通过幂等的「补列 / 补索引」函数完成（见
+  ``_ensure_*`` 系列），启动时调用，失败仅告警不阻断，保证老库可平滑升级。
 """
 
 import atexit
@@ -64,7 +95,15 @@ from src.utils.sniper_points import extract_sniper_points, parse_sniper_value
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
+
+# 基线 schema 版本标记，记录在 schema_migrations 表。
+# 仅在「需要重建表结构」的破坏性变更时才递增；补列/补索引类变更不改动此值。
 CURRENT_SCHEMA_VERSION = "2026-06-05-create-all-baseline"
+
+# intelligence_items.scope_value 的空值哨兵。
+# 该列 NOT NULL 且带默认值，但显式写入空串会绕过默认值、让「按作用域查询」失效，
+# 因此统一用该常量表示「无作用域」，写入与查询两侧必须一致（见
+# IntelligenceRepository._normalize_scope_value）。
 INTELLIGENCE_ITEM_NULL_SCOPE_VALUE = "__hrs_null_scope__"
 
 # SQLAlchemy ORM 基类
@@ -104,6 +143,13 @@ class StockDaily(Base):
     
     存储每日行情数据和计算的技术指标
     支持多股票、多日期的唯一约束
+
+    使用约定：
+    - 存的是**日线全量历史**（自上市以来），不是滚动窗口，用于回测与技术分析；
+    - 写入走 upsert（唯一键 code+date 冲突即更新），因此重复抓取同一区间不会产生重复行；
+    - ``date`` 为交易日（Date 类型，非 DateTime），非交易日不会出现在本表；
+    - 技术指标（ma5/ma10/ma20/volume_ratio）由抓取侧计算后一并落库，
+      查询侧不再实时计算，避免每次读取重复运算。
     """
     __tablename__ = 'stock_daily'
     
@@ -113,7 +159,7 @@ class StockDaily(Base):
     # 股票代码（如 600519, 000001）
     code = Column(String(10), nullable=False, index=True)
     
-    # 交易日期
+    # 交易日期（Date，仅交易日）
     date = Column(Date, nullable=False, index=True)
     
     # OHLC 数据
@@ -133,16 +179,18 @@ class StockDaily(Base):
     ma20 = Column(Float)
     volume_ratio = Column(Float)  # 量比
     
-    # 数据来源
-    data_source = Column(String(50))  # 记录数据来源（如 AkshareFetcher）
+    # 数据来源：记录实际取到该行数据的 fetcher（如 AkshareFetcher）。
+    # 多数据源 fallback 时可用于追溯是哪一源供数，排障时很有用。
+    data_source = Column(String(50))
     
     # 更新时间
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
-    # 唯一约束：同一股票同一日期只能有一条数据
+    # 唯一约束：同一股票同一日期只能有一条数据（写入按此键 upsert）
     __table_args__ = (
         UniqueConstraint('code', 'date', name='uix_code_date'),
+        # 覆盖「按股票查区间」与「按日期查全市场」两类查询
         Index('ix_code_date', 'code', 'date'),
     )
     
@@ -218,51 +266,98 @@ class NewsIntel(Base):
 
 
 class IntelligenceSource(Base):
-    """可配置资讯源。"""
+    """可配置资讯源（RSS / Atom / NewsNow 等）。
+
+    一张源记录描述「从哪里抓、抓来的内容归属哪个作用域」。
+    抓取执行与健康状态回写由 ``IntelligenceService`` 负责，本表只承载配置与状态。
+
+    注意：**实时快讯不使用本表**（见 :class:`IntelligenceItem` 说明），
+    因为它需要按 8 个频道分别抓取，一条源记录无法表达，且会被通用抓取链路误抓。
+    """
 
     __tablename__ = 'intelligence_sources'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    # 源名称，唯一；创建内置源时靠它做幂等判断
     name = Column(String(100), nullable=False, unique=True, index=True)
+    # 协议类型：rss / atom / newsnow（决定用哪个解析器）
     source_type = Column(String(32), nullable=False, default='rss', index=True)
+    # 上游地址；抓取前会做 SSRF 校验（禁止内网/私网地址）
     url = Column(String(1000), nullable=False)
+    # 是否启用；仅启用的源会被批量拉取
     enabled = Column(Boolean, nullable=False, default=True, index=True)
+    # 作用域维度：symbol（个股）/ market（市场）/ sector（板块）
     scope_type = Column(String(32), nullable=False, default='market', index=True)
+    # 作用域取值：股票代码 / 板块名等；为空表示不绑定具体对象
     scope_value = Column(String(64), index=True)
+    # 市场：cn / hk / us / global
     market = Column(String(32), nullable=False, default='cn', index=True)
     description = Column(Text)
+    # 最近一次抓取状态（成功/失败标记），由 Service 定义取值
     last_status = Column(String(32))
+    # 最近一次失败原因；必须已脱敏，禁止写入含 token/密钥的上游原文
     last_error = Column(Text)
     last_fetched_at = Column(DateTime, index=True)
     created_at = Column(DateTime, default=datetime.now, index=True)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, index=True)
 
     __table_args__ = (
+        # 按「作用域 + 市场」查询某只股票/某个市场有哪些源
         Index('ix_intel_source_scope', 'scope_type', 'scope_value', 'market'),
     )
 
 
 class IntelligenceItem(Base):
-    """沉淀后的资讯 / 情报条目。"""
+    """沉淀后的资讯 / 情报条目。
+
+    **通用资讯与实时快讯共用本表**，靠 ``scope_type`` / ``scope_value`` 区分：
+
+    - 通用资讯：``scope_type`` 取 ``symbol`` / ``market`` / ``sector``，
+      一条资讯一行，``source_id`` 指向 :class:`IntelligenceSource`；
+    - 实时快讯：``scope_type`` 固定为 ``channel``，``scope_value`` 存频道短码
+      （``global`` / ``a-stock`` / ``tech`` 等，见 ``docs/live-news.md``）。
+      快讯不注册源，``source_id`` 为 NULL，靠 ``source_name`` 标识；
+      同一条快讯命中多个频道时**各存一行**，由唯一约束天然去重。
+
+    这样设计的好处是不新增表、不改动既有唯一约束（约束已含 ``scope_value``）。
+    """
 
     __tablename__ = 'intelligence_items'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    # 源外键；快讯链路为 NULL（源不注册到 intelligence_sources），删除源时置 NULL
     source_id = Column(Integer, ForeignKey('intelligence_sources.id', ondelete='SET NULL'), nullable=True, index=True)
+    # 源名称；source_id 为空时作为去重身份的一部分
     source_name = Column(String(100), index=True)
+    # 来源协议：rss / atom / newsnow / wscn_live_news（快讯官方源）
     source_type = Column(String(32), nullable=False, default='rss', index=True)
     title = Column(String(300), nullable=False)
     summary = Column(Text)
     url = Column(String(1000), nullable=False, index=True)
+    # 来源展示名（如「华尔街见闻」）
     source = Column(String(100))
+    # 上游发布时间（UTC naive）。注意单位差异：华尔街见闻为秒级时间戳、
+    # NewsNow 为毫秒级，归一化在 Service 层完成，入库后统一为 datetime
     published_at = Column(DateTime, index=True)
+    # 入库时间；保留期清理以该字段为基准（发布时间可能缺失或异常）
     fetched_at = Column(DateTime, default=datetime.now, index=True)
+    # 作用域维度：symbol / market / sector / channel（快讯）
     scope_type = Column(String(32), nullable=False, default='market', index=True)
+    # 作用域取值；空值统一折叠为 INTELLIGENCE_ITEM_NULL_SCOPE_VALUE
     scope_value = Column(String(64), nullable=False, default=INTELLIGENCE_ITEM_NULL_SCOPE_VALUE, index=True)
     market = Column(String(32), nullable=False, default='cn', index=True)
+    # 上游原始条目 JSON，用于排障与后续字段扩展时不丢信息
     raw_payload = Column(Text)
+    # 重要级（华尔街见闻快讯的 score：1=普通 / 2=重要 / 3=非常重要）。
+    # 仅快讯类数据源（wscn_live_news）会写入；RSS / Atom / NewsNow 因上游无此字段保持 NULL，
+    # 前端据此判断「重要级筛选」是否可用。详见 docs/live-news.md。
+    importance = Column(Integer, nullable=True, index=True)
 
     __table_args__ = (
+        # 去重键：同一来源 + 同一 URL + 同一作用域 + 同一市场只保留一条。
+        # scope_value 参与约束，因此「同一条快讯属于多个频道」可以各存一行且互不冲突。
+        # 注意：source_id 为 NULL 时 SQLite 的唯一约束不生效（NULL != NULL），
+        # 快讯的去重改由仓储层按 source_name 显式匹配后 upsert 保证。
         UniqueConstraint(
             'source_id',
             'url',
@@ -271,8 +366,12 @@ class IntelligenceItem(Base):
             'market',
             name='uix_intel_item_source_scope_url',
         ),
+        # 按「作用域 + 时间」查询某个股票/市场/频道的资讯
         Index('ix_intel_item_scope_time', 'scope_type', 'scope_value', 'market', 'published_at'),
+        # 保留期清理按 fetched_at 扫描
         Index('ix_intel_item_fetch_time', 'fetched_at'),
+        # 按「频道 + 重要级 + 发布时间」查询快讯列表的复合索引
+        Index('ix_intel_item_channel_importance_time', 'scope_value', 'importance', 'published_at'),
     )
 
 
@@ -281,14 +380,20 @@ class FundamentalSnapshot(Base):
     基本面上下文快照（P0 write-only）。
 
     仅用于写入，主链路不依赖读取该表，便于后续回测/画像扩展。
+
+    设计意图：分析时用到的基本面上下文若不落库，事后无法解释「当时依据什么
+    做出的判断」。本表就是这个留痕，等回测/画像能力成熟后再被消费。
     """
     __tablename__ = 'fundamental_snapshot'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     query_id = Column(String(64), nullable=False, index=True)
     code = Column(String(10), nullable=False, index=True)
+    # 基本面数据本体，JSON 字符串
     payload = Column(Text, nullable=False)
+    # 取数链路（先查了哪个源、失败后降级到哪个源），用于排障
     source_chain = Column(Text)
+    # 字段覆盖情况：哪些字段取到了、哪些缺失
     coverage = Column(Text)
     created_at = Column(DateTime, default=datetime.now, index=True)
 
@@ -306,39 +411,45 @@ class AnalysisHistory(Base):
     分析结果历史记录模型
 
     保存每次分析结果，支持按 query_id/股票代码检索
+
+    这是**主链路的核心落库表**：一次分析产出一条记录，回测、复盘、前端历史
+    列表都基于本表。报告正文等大字段随行存储，因此单条记录体积可能较大，
+    列表查询请避免 SELECT *。
     """
     __tablename__ = 'analysis_history'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # 关联查询链路
+    # 关联查询链路：同一次批量分析共享一个 query_id，用于串联多只股票
     query_id = Column(String(64), index=True)
 
     # 股票信息
     code = Column(String(10), nullable=False, index=True)
     name = Column(String(50))
+    # 报告类型（如 simple / full），决定报告渲染模板
     report_type = Column(String(16), index=True)
 
     # 核心结论
-    sentiment_score = Column(Integer)
-    operation_advice = Column(String(20))
-    trend_prediction = Column(String(50))
+    sentiment_score = Column(Integer)  # 情绪/综合评分，取值约定见 schemas 层
+    operation_advice = Column(String(20))  # 操作建议（如 买入/持有/观望）
+    trend_prediction = Column(String(50))  # 趋势判断
     analysis_summary = Column(Text)
 
-    # 详细数据
-    raw_result = Column(Text)
-    news_content = Column(Text)
-    context_snapshot = Column(Text)
+    # 详细数据：均为 JSON 字符串（结构由对应 schema 定义，本表不保证内容）
+    raw_result = Column(Text)  # 分析引擎原始输出
+    news_content = Column(Text)  # 分析时注入的新闻上下文
+    context_snapshot = Column(Text)  # 行情/基本面等上下文快照，供复盘复现
 
-    # 狙击点位（用于回测）
-    ideal_buy = Column(Float)
-    secondary_buy = Column(Float)
-    stop_loss = Column(Float)
-    take_profit = Column(Float)
+    # 狙击点位（用于回测）：均为价格，单位元
+    ideal_buy = Column(Float)  # 理想买点
+    secondary_buy = Column(Float)  # 次级买点
+    stop_loss = Column(Float)  # 止损位
+    take_profit = Column(Float)  # 止盈位
 
     created_at = Column(DateTime, default=datetime.now, index=True)
 
     __table_args__ = (
+        # 覆盖「按股票查历史分析」的常用查询
         Index('ix_analysis_code_time', 'code', 'created_at'),
     )
 
@@ -366,7 +477,11 @@ class AnalysisHistory(Base):
 
 
 class BacktestResult(Base):
-    """单条分析记录的回测结果。"""
+    """单条分析记录的回测结果。
+
+    与 :class:`AnalysisHistory` 为多对一关系：一次分析（含其狙击点位）对应一条
+    回测结果，用于评估当时给出的买卖点在后市表现如何。
+    """
 
     __tablename__ = 'backtest_results'
 
@@ -434,7 +549,12 @@ class BacktestResult(Base):
 
 
 class BacktestSummary(Base):
-    """回测汇总指标（按股票或全局）。"""
+    """回测汇总指标（按股票或全局）。
+
+    ``scope`` 区分汇总粒度：``overall`` 为全局汇总（此时 ``code`` 为空），
+    ``stock`` 为单只股票汇总。``engine_version`` 用于区分不同回测引擎口径，
+    口径变更时按版本分别统计，避免新旧结果混算。
+    """
 
     __tablename__ = 'backtest_summaries'
 
@@ -489,7 +609,7 @@ class BacktestSummary(Base):
 
 
 class PortfolioAccount(Base):
-    """Portfolio account metadata."""
+    """组合账户元数据（一个账户对应一套独立的持仓与流水）。"""
 
     __tablename__ = 'portfolio_accounts'
 
@@ -509,7 +629,11 @@ class PortfolioAccount(Base):
 
 
 class PortfolioTrade(Base):
-    """Executed trade events used as the source of truth for replay."""
+    """已成交事件流水，是持仓回放的**唯一事实来源**。
+
+    持仓（:class:`PortfolioPosition`）与成本批次（:class:`PortfolioPositionLot`）
+    都由本表重放推导得出；修正历史错误应新增反向流水，而不是直接改本表。
+    """
 
     __tablename__ = 'portfolio_trades'
 
@@ -537,7 +661,7 @@ class PortfolioTrade(Base):
 
 
 class PortfolioCashLedger(Base):
-    """Cash in/out events."""
+    """资金出入流水（充值/提现等，与交易无关的现金变动）。"""
 
     __tablename__ = 'portfolio_cash_ledger'
 
@@ -556,7 +680,10 @@ class PortfolioCashLedger(Base):
 
 
 class PortfolioCorporateAction(Base):
-    """Corporate actions that impact cash or share quantity."""
+    """公司行为（分红、送转股、拆并股等会影响现金或持股数量的事件）。
+
+    回放持仓时必须叠加本表，否则除权除息后成本与数量会算错。
+    """
 
     __tablename__ = 'portfolio_corporate_actions'
 
@@ -578,7 +705,7 @@ class PortfolioCorporateAction(Base):
 
 
 class PortfolioPosition(Base):
-    """Latest replayed position snapshot for each symbol in one account."""
+    """单账户下每个标的的最新持仓快照（由 :class:`PortfolioTrade` 回放得出）。"""
 
     __tablename__ = 'portfolio_positions'
 
@@ -610,7 +737,10 @@ class PortfolioPosition(Base):
 
 
 class PortfolioPositionLot(Base):
-    """Lot-level remaining quantities used by FIFO replay."""
+    """成本批次（FIFO 回放用的剩余数量）。
+
+    每次买入生成一个批次，卖出按 FIFO 依次扣减；用于计算真实盈亏与剩余成本。
+    """
 
     __tablename__ = 'portfolio_position_lots'
 
@@ -632,7 +762,10 @@ class PortfolioPositionLot(Base):
 
 
 class PortfolioDailySnapshot(Base):
-    """Daily account snapshot generated by read-time replay."""
+    """账户每日快照（由读取时回放生成并缓存）。
+
+    纯派生数据：可由流水重放重建，缓存只为避免每次读取都做全量回放。
+    """
 
     __tablename__ = 'portfolio_daily_snapshots'
 
@@ -664,7 +797,7 @@ class PortfolioDailySnapshot(Base):
 
 
 class PortfolioFxRate(Base):
-    """Cached FX rates used for cross-currency portfolio conversion."""
+    """汇率缓存，用于跨币种组合的换算。"""
 
     __tablename__ = 'portfolio_fx_rates'
 
@@ -701,7 +834,7 @@ class ConversationMessage(Base):
 
 
 class ConversationSummary(Base):
-    """Rolling summary for visible Agent chat history."""
+    """Agent 对话的滚动摘要（压缩早期消息，避免上下文无限增长）。"""
 
     __tablename__ = 'conversation_summaries'
 
@@ -716,7 +849,11 @@ class ConversationSummary(Base):
 
 
 class AgentProviderTurn(Base):
-    """Provider protocol trace required for thinking/tool-call roundtrip."""
+    """Agent 与模型交互的原始协议轨迹（thinking / tool-call 往返）。
+
+    仅用于排障与短期回溯，不做长期留存——写入时按会话 + provider + model
+    裁剪（见 :meth:`DatabaseManager._trim_agent_provider_turns`）。
+    """
 
     __tablename__ = 'agent_provider_turns'
 
@@ -741,12 +878,21 @@ class AgentProviderTurn(Base):
 
 
 class LLMUsage(Base):
-    """One row per litellm.completion() call — token-usage audit log."""
+    """每次 ``litellm.completion()`` 调用一行 —— token 用量审计日志。
+
+    用途：成本统计、用量趋势、按模型/调用类型归因。前端「用量」页面直接读本表。
+
+    隐私约定（**修改本表时务必遵守**）：
+
+    - 只存用量数字与必要的归因维度，**不存** prompt 正文、消息内容、请求头；
+    - ``provider_usage_json`` 存放的是**已脱敏**的上游用量快照；
+    - ``tokenizer_*`` 等自由文本列为兼容旧 schema 保留，新写入不再落值。
+    """
 
     __tablename__ = 'llm_usage'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    # 'analysis' | 'agent' | 'market_review'
+    # 调用类型：'analysis' | 'agent' | 'market_review'
     call_type = Column(String(32), nullable=False, index=True)
     model = Column(String(128), nullable=False)
     stock_code = Column(String(16), nullable=True)
@@ -755,15 +901,14 @@ class LLMUsage(Base):
     completion_tokens = Column(Integer, nullable=False, default=0)
     total_tokens = Column(Integer, nullable=False, default=0)
 
-    # Sanitized provider usage snapshot; raw prompts, messages, headers, and
-    # tokenizer free-text fields are intentionally not persisted here.
+    # 已脱敏的上游用量快照；刻意不落库 prompt / messages / headers 等自由文本
     provider_usage_json = Column(Text, nullable=True)
     provider_usage_schema_name = Column(String(64), nullable=True)
     provider_usage_schema_version = Column(String(32), nullable=True)
     provider_usage_observed_at = Column(String(32), nullable=True)
 
-    # Normalized telemetry values are derived from provider usage and may stay
-    # NULL when the provider payload is absent or explicitly invalid.
+    # 以下 normalized_* 为由上游用量推导出的归一化遥测值；
+    # 上游未返回或明确无效时保持 NULL，不做估算填充。
     normalized_prompt_tokens = Column(Integer, nullable=True)
     normalized_completion_tokens = Column(Integer, nullable=True)
     normalized_total_tokens = Column(Integer, nullable=True)
@@ -783,8 +928,7 @@ class LLMUsage(Base):
     provider_min_cache_tokens = Column(Integer, nullable=True)
     eligibility_confidence = Column(String(32), nullable=True)
 
-    # Kept nullable for schema compatibility; new writes do not store provider
-    # or proxy tokenizer free-text values.
+    # 为兼容旧 schema 保留可空；新写入不再存储 provider / 网关返回的 tokenizer 自由文本
     tokenizer_name = Column(String(128), nullable=True)
     tokenizer_version = Column(String(64), nullable=True)
 
@@ -887,15 +1031,18 @@ _LLM_PROMPT_CACHE_TELEMETRY_COLUMNS = {
 
 
 class AlertRuleRecord(Base):
-    """Persisted alert rule managed through the Alert API."""
+    """告警规则（通过 Alert API 持久化）。"""
 
     __tablename__ = 'alert_rules'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(64), nullable=False)
+    # 作用范围：single_symbol（单标的）/ watchlist（自选组）/ market（市场）
     target_scope = Column(String(32), nullable=False, default='single_symbol', index=True)
+    # 作用对象：股票代码 / 分组编码 / 市场标识，语义由 target_scope 决定
     target = Column(String(64), nullable=False, index=True)
     alert_type = Column(String(32), nullable=False, index=True)
+    # 规则参数，JSON 字符串（不同类型告警的键不同，由 schema 层校验）
     parameters = Column(Text, nullable=False, default='{}')
     severity = Column(String(16), nullable=False, default='warning', index=True)
     enabled = Column(Boolean, nullable=False, default=True, index=True)
@@ -911,10 +1058,10 @@ class AlertRuleRecord(Base):
 
 
 class AlertTriggerRecord(Base):
-    """Alert trigger history row.
+    """告警触发历史（一条规则的一次命中对应一行）。
 
-    P1 exposes read APIs and table shape; runtime writer integration lands in
-    later phases.
+    当前阶段已提供读取接口与表结构；运行期的写入接入在后续阶段完成，
+    因此本表可能暂时没有数据。
     """
 
     __tablename__ = 'alert_triggers'
@@ -937,10 +1084,9 @@ class AlertTriggerRecord(Base):
 
 
 class AlertNotificationRecord(Base):
-    """Notification attempt row for alert triggers.
+    """告警通知发送尝试记录（一次触发可能对应多次尝试/多个渠道）。
 
-    P1 exposes read APIs and table shape; runtime writer integration lands in
-    later phases.
+    当前阶段已提供读取接口与表结构；运行期的写入接入在后续阶段完成。
     """
 
     __tablename__ = 'alert_notifications'
@@ -962,7 +1108,11 @@ class AlertNotificationRecord(Base):
 
 
 class AlertCooldownRecord(Base):
-    """Persisted alert cooldown state for DB-managed alert rules."""
+    """告警冷却状态（避免同一规则在短时间内重复打扰）。
+
+    唯一键为 ``(rule_id, target, severity)``，即同一规则对同一对象、
+    同一严重级别只维护一条冷却记录。
+    """
 
     __tablename__ = 'alert_cooldowns'
 
@@ -984,7 +1134,15 @@ class AlertCooldownRecord(Base):
 
 
 class DecisionSignalRecord(Base):
-    """Persisted AI decision signal asset for Issue #1390 P1."""
+    """AI 决策信号资产。
+
+    记录一次决策信号的核心结论与上下文，供后续结果回填
+    （:class:`DecisionSignalOutcomeRecord`）与人工反馈
+    （:class:`DecisionSignalFeedbackRecord`）关联，形成「信号 -> 结果 -> 反馈」闭环。
+
+    信号一旦落库即视为**不可变快照**：后续行情变化不回改本表，
+    而是写入对应的结果表，以保证事后复盘能还原当时的判断依据。
+    """
 
     __tablename__ = 'decision_signals'
 
@@ -1078,7 +1236,11 @@ class DecisionSignalRecord(Base):
 
 
 class DecisionSignalOutcomeRecord(Base):
-    """Signal-level forward outcome for Issue #1390 P5."""
+    """单条决策信号的前瞻表现（按评估周期记录）。
+
+    与 :class:`DecisionSignalRecord` 为多对一：一条信号可有多个评估周期
+    （如 T+5 / T+10）的结果。
+    """
 
     __tablename__ = 'decision_signal_outcomes'
 
@@ -1119,7 +1281,7 @@ class DecisionSignalOutcomeRecord(Base):
 
 
 class DecisionSignalFeedbackRecord(Base):
-    """Latest user feedback for a decision signal."""
+    """用户对决策信号的最新反馈（每条信号至多一条，以最后反馈为准）。"""
 
     __tablename__ = 'decision_signal_feedback'
 
@@ -1134,7 +1296,11 @@ class DecisionSignalFeedbackRecord(Base):
 
 
 class SkillOpinionSampleRecord(Base):
-    """Immutable, low-sensitivity skill opinion sample for Issue #1904 P2 PR1."""
+    """SkillAgent 观点样本（不可变、低敏感度）。
+
+    只记录观点本身与归因所需的最小字段，不落敏感上下文；
+    样本写入后不再修改，表现评估由 :class:`SkillOpinionOutcomeRecord` 另行记录。
+    """
 
     __tablename__ = 'skill_opinion_samples'
 
@@ -1178,7 +1344,11 @@ class SkillOpinionSampleRecord(Base):
 
 
 class SkillOpinionOutcomeRecord(Base):
-    """Forward outcome for one immutable skill opinion sample and horizon."""
+    """单条 SkillAgent 观点样本在某一评估周期下的前瞻表现。
+
+    与 :class:`SkillOpinionSampleRecord` 为多对一：一个观点样本可对应
+    多个评估周期的结果，用于评估该 SkillAgent 的实际表现。
+    """
 
     __tablename__ = 'skill_opinion_outcomes'
 
@@ -1270,6 +1440,22 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     1. 管理数据库连接池
     2. 提供 Session 上下文管理
     3. 封装数据存取操作
+
+    单例语义：
+    - 通过元类 + ``__new__`` 保证进程内唯一实例；``__init__`` 用 ``_initialized``
+      做幂等保护，重复构造不会重建引擎（但仍可用 :meth:`reset_instance` 主动释放）；
+    - 引擎与 Session 工厂在多线程下共享，写入通过锁与重试保证串行安全。
+
+    并发与重试：
+    - SQLite 在并发写入时可能抛 ``database is locked``，写入统一走
+      :meth:`_run_write_transaction`（有限重试 + 退避），业务代码不要直接
+      开 session 写库，以免绕过重试导致随机失败；
+    - 读取使用 :meth:`get_session` 上下文管理器，用完即还连接池。
+
+    Schema 迁移：
+    - 初始化时会建表并记录基线版本；基线之后的增量变更由 ``_ensure_*`` 系列
+      幂等函数补齐（补列 / 补索引 / 重建表），失败仅记录日志不阻断启动，
+      保证老库升级后仍可运行。
     """
     
     _instance: Optional['DatabaseManager'] = None
@@ -1277,7 +1463,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     _initialized: bool = False
     
     def __new__(cls, *args, **kwargs):
-        """单例模式实现"""
+        """返回进程内唯一实例；首次构造时标记为未初始化。"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
@@ -1285,8 +1471,11 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     
     def __init__(self, db_url: Optional[str] = None):
         """
-        初始化数据库管理器
-        
+        初始化数据库管理器（幂等）。
+
+        重复构造时直接返回，不会重建引擎；需要切换数据库请先调用
+        :meth:`reset_instance`。
+
         Args:
             db_url: 数据库连接 URL（可选，默认从配置读取）
         """
@@ -1339,6 +1528,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._ensure_intelligence_item_scope_values()
             self._ensure_schema_migration_record()
             self._ensure_intelligence_items_unique_index()
+            self._ensure_intelligence_item_importance_column()
             _ensure_watchlist_schema(self)
 
             self._initialized = True
@@ -1359,6 +1549,11 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             raise
 
     def _ensure_schema_migration_record(self) -> None:
+        """记录基线 schema 版本（幂等）。
+
+        SQLite 走 ``ON CONFLICT DO NOTHING``；其它后端退化为普通插入，
+        触发唯一约束冲突时回滚并核对记录是否已存在（并发启动下的正常情况）。
+        """
         session = self._SessionLocal()
         values = {
             "version": CURRENT_SCHEMA_VERSION,
@@ -1459,6 +1654,14 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
                 )
 
     def _backfill_decision_signal_profile_from_metadata(self) -> None:
+        """把历史 ``decision_signals`` 的决策画像从 metadata JSON 回填到独立列。
+
+        早期版本把画像整体塞进 metadata 的 JSON 里，查询与统计都不方便；
+        本函数在启动时把历史行的画像字段提取出来写入专用列。
+
+        回填是**幂等**的：已有画像的行会跳过（计入 ``skipped_existing_profile_count``）。
+        各种「跳过 / 无法解析」的情况分别计数，便于在日志中确认回填是否完整。
+        """
         stats = {
             "candidate_count": 0,
             "backfilled_count": 0,
@@ -1566,6 +1769,21 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
         )
 
     def _ensure_intelligence_items_unique_index(self) -> None:
+        """对齐 ``intelligence_items`` 的唯一约束（启动时幂等执行）。
+
+        历史库上该表只有 ``url`` 单列唯一约束，而通用资讯与实时快讯共用此表后，
+        需要改为 ``(source_id, url, scope_type, scope_value, market)`` 复合唯一，
+        否则「同一条快讯属于多个频道」会被误判为重复而无法入库。
+
+        迁移分三种情况处理：
+
+        1. 已存在目标复合约束 -> 直接返回；
+        2. 存在其它形态的唯一约束 -> 不做破坏性变更，另行补建复合索引（见
+           :meth:`_ensure_intelligence_items_scoped_unique_index_once`）；
+        3. 只有旧的 ``url`` 单列约束 -> 重建表（见 :meth:`_rebuild_intelligence_items_table`）。
+
+        任何异常都只记录告警不抛出：索引形态不对只会影响去重，不应阻断应用启动。
+        """
         if not self._is_sqlite_engine:
             return
 
@@ -1589,14 +1807,27 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
         if has_target_index:
             return
         if unique_indexes and not has_legacy_url_unique:
-            # Table has other unique index shapes; avoid aggressive changes and add
-            # the expected scoped uniqueness directly.
+            # 表上存在其它形态的唯一约束，避免做破坏性变更，直接补建期望的复合唯一索引
             self._ensure_intelligence_items_scoped_unique_index_once()
             return
 
         self._rebuild_intelligence_items_table()
 
     def _rebuild_intelligence_items_table(self) -> None:
+        """重建 ``intelligence_items`` 表以建立复合唯一约束。
+
+        SQLite 不支持直接修改已有索引，只能「建新表 -> 拷数据 -> 删旧表 -> 改名」。
+        步骤：
+
+        1. 按当前 ORM 定义建临时表（表名带纳秒时间戳，避免并发重名）；
+        2. 全量拷贝旧表数据；
+        3. 删除旧表并把临时表改名为正式表；
+        4. 建复合唯一索引。
+
+        ⚠️ 该操作会**删除旧表**，属于破坏性迁移；仅当确认只有旧的单列 url 约束时
+        才会被调用（见 :meth:`_ensure_intelligence_items_unique_index`）。
+        拷贝过程中若中断可能丢数据，因此只在启动时执行一次。
+        """
         temporary_table = f"intelligence_items_recreate_tmp_{int(time.time() * 1_000_000_000)}"
         columns = [column.name for column in IntelligenceItem.__table__.columns]
         select_clause = ", ".join(f'"{column}"' for column in columns)
@@ -1631,6 +1862,13 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             )
 
     def _ensure_intelligence_items_scoped_unique_index_once(self) -> None:
+        """补建复合唯一索引 ``uix_intel_item_scope``（已存在则跳过）。
+
+        用于表上已存在「非旧 url 单列」形态的唯一约束、不适合重建表的场景。
+
+        ⚠️ 若表中已有违反该唯一性的数据（重复行），创建会失败并抛出；
+        失败由上层按告警处理，不阻断启动。
+        """
         target_index_name = "uix_intel_item_scope"
         with self._engine.begin() as connection:
             rows = connection.execute(
@@ -1648,6 +1886,14 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             )
 
     def _list_sqlite_unique_indexes(self, table_name: str):
+        """列出指定表上所有**唯一**索引的列组合。
+
+        Args:
+            table_name: 表名（调用方需保证为可信常量，避免 SQL 注入）。
+
+        Returns:
+            每个元素是一个列名的元组，如 ``[('url',), ('source_id', 'url', ...)]``。
+        """
         with self._engine.connect() as connection:
             rows = connection.execute(
                 text(f"PRAGMA index_list({table_name})")
@@ -1744,6 +1990,68 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
         except Exception as exc:
             logger.warning("资讯池 scope_value 回填失败，已跳过: %s", exc)
 
+    def _ensure_intelligence_item_importance_column(self) -> None:
+        """为存量 ``intelligence_items`` 表补齐 ``importance`` 列与快讯查询索引。
+
+        背景：``importance`` 用于承载华尔街见闻快讯的重要级（score）。新建的表由
+        ``create_all`` 直接带上该列，存量库需要在此补齐。
+
+        设计取舍：本方法**不阻断启动**。快讯是新增的可选能力，若补列失败（如数据库
+        只读、权限不足、并发启动竞争），只记录告警由上层降级处理，避免拖垮整个应用。
+        两种主流后端（SQLite / PostgreSQL）的 ``ALTER TABLE ADD COLUMN`` 与
+        ``CREATE INDEX IF NOT EXISTS`` 语法一致，故此处不做引擎分支。
+        """
+        table_name = IntelligenceItem.__tablename__
+        try:
+            inspector = inspect(self._engine)
+            if not inspector.has_table(table_name):
+                return
+            existing = {column["name"] for column in inspector.get_columns(table_name)}
+        except Exception as exc:  # noqa: BLE001 - 结构探测失败不应阻断启动
+            logger.warning("[Intelligence] 检查 %s 列信息失败，跳过 importance 补列: %s", table_name, exc)
+            return
+
+        if "importance" not in existing:
+            try:
+                with self._engine.begin() as connection:
+                    connection.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN importance INTEGER")
+                logger.info("[Intelligence] 已为 %s 补充 importance 列", table_name)
+            except Exception as exc:  # noqa: BLE001 - 并发启动可能已补列，需静默忽略
+                if not self._is_duplicate_column_error(exc, "importance"):
+                    logger.warning("[Intelligence] %s 补充 importance 列失败: %s", table_name, exc)
+
+        self._ensure_intelligence_item_importance_indexes()
+
+    def _ensure_intelligence_item_importance_indexes(self) -> None:
+        """创建快讯列表查询所需的复合索引（已存在时幂等跳过）。
+
+        索引面向的查询形态：按频道（scope_value）过滤，可选叠加重要级与时间范围，
+        按发布时间倒序分页。
+        """
+        expected_indexes = {
+            "ix_intel_item_channel_importance_time": ["scope_value", "importance", "published_at"],
+        }
+        table_name = IntelligenceItem.__tablename__
+        try:
+            with self._engine.begin() as connection:
+                for index_name, columns in expected_indexes.items():
+                    connection.exec_driver_sql(
+                        f"CREATE INDEX IF NOT EXISTS {index_name} "
+                        f"ON {table_name} ({', '.join(columns)})"
+                    )
+        except Exception as exc:  # noqa: BLE001 - 索引缺失只影响性能，不阻断启动
+            logger.warning("[Intelligence] 创建快讯查询索引失败，已跳过: %s", exc)
+
+    def _is_duplicate_column_error(self, exc: Exception, column: str) -> bool:
+        """判断异常是否为「列已存在」，用于幂等补列。
+
+        SQLite 走项目既有的判定逻辑；其余后端（如 PostgreSQL）退化为错误信息包含
+        ``duplicate column`` 关键字的粗粒度判断。
+        """
+        if self._is_sqlite_engine:
+            return self._is_sqlite_duplicate_column_error(exc, column)
+        return "duplicate column" in str(exc).lower()
+
     @classmethod
     def get_instance(cls) -> 'DatabaseManager':
         """获取单例实例"""
@@ -1797,6 +2105,10 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
                 cursor.close()
 
     def _is_file_sqlite_database(self) -> bool:
+        """判断是否为**文件型** SQLite（排除内存库 ``:memory:``）。
+
+        只有文件库才需要/能够开启 WAL 等持久化相关优化，内存库应跳过。
+        """
         database = (self._engine.url.database or "").strip()
         return bool(database) and database.lower() != ":memory:"
 
@@ -1805,15 +2117,36 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
         operation_name: str,
         write_operation: Callable[[Session], T],
     ) -> T:
+        """执行写入事务，并在 SQLite 锁冲突时自动重试。
+
+        这是**推荐的写入入口**：业务代码不要直接开 session 写库，否则会绕过
+        锁重试，在并发场景下随机抛出 ``database is locked``。
+
+        实现要点：
+
+        - 仅 SQLite 启用重试（其它后端由数据库自身处理并发）；
+        - 采用 ``BEGIN IMMEDIATE`` 提前拿到写锁，使「先查存在性再 upsert」
+          这类读-改-写序列处于同一个一致窗口，避免并发下重复插入；
+        - 重试采用指数退避，重试次数由配置控制。
+
+        Args:
+            operation_name: 操作名，仅用于日志定位。
+            write_operation: 实际写入逻辑，接收 session 并返回结果。
+
+        Returns:
+            ``write_operation`` 的返回值。
+
+        Raises:
+            OperationalError: 非锁冲突错误，或重试次数用尽后仍冲突。
+        """
         max_retries = self._sqlite_write_retry_max if self._is_sqlite_engine else 0
 
         for attempt in range(max_retries + 1):
             session = self.get_session()
             try:
                 if self._is_sqlite_engine:
-                    # Acquire the SQLite writer lock before any reads inside
-                    # `write_operation()` so pre-write existence checks and the
-                    # later upsert share one consistent write window.
+                    # 在任何读取之前先拿到 SQLite 写锁，使写入前的存在性检查与
+                    # 随后的 upsert 处于同一个一致窗口，避免并发下重复插入
                     session.connection().exec_driver_sql("BEGIN IMMEDIATE")
                 result = write_operation(session)
                 session.commit()
@@ -1845,6 +2178,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
 
     @staticmethod
     def _is_sqlite_locked_error(exc: OperationalError) -> bool:
+        """判断是否为 SQLite 锁冲突（可重试）错误。"""
         err_text = str(getattr(exc, "orig", exc)).lower()
         return any(
             token in err_text
@@ -1857,11 +2191,17 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
 
     @staticmethod
     def _is_sqlite_duplicate_column_error(exc: OperationalError, column: str) -> bool:
+        """判断是否为「列已存在」错误，用于幂等补列时忽略重复添加。"""
         err_text = str(getattr(exc, "orig", exc)).lower()
         return "duplicate column name" in err_text and column.lower() in err_text
 
     @staticmethod
     def _normalize_daily_date(value: Any) -> Any:
+        """把入参归一化为 ``date``，兼容字符串 / pandas.Timestamp / datetime。
+
+        ``stock_daily.date`` 是 Date 列，而数据源常返回字符串或 Timestamp，
+        入库前统一转换，避免同一日期因类型不同被当成两条记录。
+        """
         if isinstance(value, str):
             return datetime.strptime(value, '%Y-%m-%d').date()
         if isinstance(value, pd.Timestamp):
@@ -1872,6 +2212,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
 
     @staticmethod
     def _normalize_sql_value(value: Any) -> Any:
+        """把 NaN / NaT 等 pandas 缺失值转成 ``None``，避免写入非法的浮点 NaN。"""
         return None if pd.isna(value) else value
     
     def get_session(self) -> Session:
@@ -3023,6 +3364,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
 
     @staticmethod
     def _parse_sniper_value(value: Any) -> Optional[float]:
+        """解析狙击点数值（委托给 ``src/utils/sniper_points``，保持单一实现）。"""
         return parse_sniper_value(value)
 
     def _extract_sniper_points(self, result: Any) -> Dict[str, Optional[float]]:
@@ -3233,6 +3575,21 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
         model: str,
         keep: int,
     ) -> int:
+        """裁剪某个会话下同一 provider + model 的历史轮次，只保留最近 ``keep`` 条。
+
+        用于限制 Agent 调用轨迹的存储膨胀：轨迹只用于排障与短期回溯，
+        保留超出窗口的旧记录没有价值。
+
+        Args:
+            session: 会话（由调用方管理事务）。
+            session_id: 会话 ID。
+            provider: 模型提供商。
+            model: 模型名。
+            keep: 保留条数。
+
+        Returns:
+            实际删除的条数。
+        """
         old_ids_stmt = (
             select(AgentProviderTurn.id)
             .where(

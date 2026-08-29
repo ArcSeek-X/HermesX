@@ -22,6 +22,10 @@
 - ``POST   /sources/{id}/fetch`` 抓取单个源并入库（支持 dry_run）
 - ``POST   /sources/fetch-enabled``  抓取全部启用源（fail-open）
 - ``GET    /items``              分页查询已落库的资讯条目（支持作用域/市场/关键词/时间窗过滤）
+- ``GET    /live-news/channels`` 查询快讯频道列表（降级时只返回「要闻」）
+- ``GET    /live-news``          分页查询快讯（支持频道/重要级/关键词/日期过滤）
+- ``POST   /live-news/refresh``  手动触发快讯抓取（官方源失败自动降级 NewsNow）
+- ``GET    /live-news/{item_id}`` 查询单条快讯详情
 
 设计约束
 --------
@@ -33,6 +37,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -49,6 +54,11 @@ from api.v1.schemas.intelligence import (
     IntelligenceSourceTemplateCreateRequest,
     IntelligenceSourceTemplateListResponse,
     IntelligenceSourceTestResponse,
+    LiveNewsChannelsResponse,
+    LiveNewsItem,
+    LiveNewsListResponse,
+    LiveNewsRefreshRequest,
+    LiveNewsRefreshResponse,
 )
 from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.services.run_diagnostics import sanitize_diagnostic_text
@@ -212,3 +222,150 @@ def list_items(
         ))
     except Exception as exc:
         raise _internal_error("List intelligence items failed", exc)  # 仅内部异常可能触发 500
+
+
+# ---------------------------------------------------------------------------
+# 实时财经快讯（Live News）
+#
+# 数据源：华尔街见闻 7x24 快讯接口（主），失败时自动降级到 NewsNow 聚合源。
+# 降级后仅保留「要闻」单频道且无重要级，前端据此调整 Tab 与隐藏重要级筛选。
+# 接口契约与降级策略详见 docs/live-news.md。
+#
+# 注意路由顺序：/live-news/channels 与 /live-news/refresh 必须注册在
+# /live-news/{item_id} 之前，否则会被路径参数 {item_id} 优先匹配。
+# ---------------------------------------------------------------------------
+
+
+def _parse_day_start(raw: str) -> datetime:
+    """把 ``YYYY-MM-DD`` 解析为当天 00:00:00（服务端本地时区）。
+
+    Raises:
+        HTTPException: 400，日期格式非法。
+    """
+    try:
+        return datetime.strptime(raw.strip(), "%Y-%m-%d")
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "validation_error", "message": f"invalid date format, expected YYYY-MM-DD: {raw}"},
+        ) from exc
+
+
+def _parse_day_end(raw: str) -> datetime:
+    """把 ``YYYY-MM-DD`` 解析为当天 23:59:59，用于闭区间上界。"""
+    start = _parse_day_start(raw)
+    return start + timedelta(days=1) - timedelta(seconds=1)
+
+
+@router.get(
+    "/live-news/channels",
+    response_model=LiveNewsChannelsResponse,
+    responses={500: {"model": ErrorResponse}},
+    summary="List live news channels",
+)
+def list_live_news_channels() -> LiveNewsChannelsResponse:
+    """查询快讯频道列表（前端 Tab 的数据源）。
+
+    正常模式返回全部 8 个频道；官方源不可用处于降级模式时只返回「要闻」，
+    并置 ``degraded=True``，前端据此隐藏「只看重要的」开关并展示降级提示。
+    """
+    try:
+        return LiveNewsChannelsResponse(**IntelligenceService().live_news_channels())
+    except Exception as exc:
+        raise _internal_error("List live news channels failed", exc)
+
+
+@router.get(
+    "/live-news",
+    response_model=LiveNewsListResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="List live news items",
+)
+def list_live_news(
+    channel: str = Query(..., description="频道 ID，如 global-channel / a-stock-channel / tech-channel"),
+    important_only: bool = Query(False, description="只看重要的（score >= 阈值）"),
+    keyword: Optional[str] = Query(None, max_length=100, description="关键词，匹配标题与正文"),
+    date: Optional[str] = Query(None, description="精确查询某日，格式 YYYY-MM-DD；与 date_from/date_to 同时传时以本参数为准"),
+    date_from: Optional[str] = Query(None, description="起始日期 YYYY-MM-DD（含当天）"),
+    date_to: Optional[str] = Query(None, description="结束日期 YYYY-MM-DD（含当天）"),
+    cursor: Optional[str] = Query(None, description="分页游标，取上次响应的 next_cursor"),
+    limit: int = Query(30, ge=1, le=100, description="每页条数"),
+) -> LiveNewsListResponse:
+    """分页查询已落库的快讯，支持频道 / 重要级 / 关键词 / 日期区间过滤。"""
+    # 日期区间解析：date 优先级最高，其次 date_from / date_to 组合
+    published_from: Optional[datetime] = None
+    published_to: Optional[datetime] = None
+    try:
+        if date:
+            published_from = _parse_day_start(date)
+            published_to = _parse_day_end(date)
+        else:
+            if date_from:
+                published_from = _parse_day_start(date_from)
+            if date_to:
+                published_to = _parse_day_end(date_to)
+        service = IntelligenceService()
+        # 按需刷新：频道无数据时同步抓取保证首屏不空白，数据陈旧时后台异步刷新。
+        # 刷新失败只记日志，不影响本次查询（列表始终读库返回）。
+        service.ensure_live_news_fresh(channel)
+        return LiveNewsListResponse(**service.list_live_news(
+            channel=channel,
+            important_only=important_only,
+            keyword=keyword,
+            published_from=published_from,
+            published_to=published_to,
+            cursor=cursor,
+            limit=limit,
+        ))
+    except IntelligenceServiceError as exc:
+        raise _bad_request(exc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _internal_error("List live news failed", exc)
+
+
+@router.post(
+    "/live-news/refresh",
+    response_model=LiveNewsRefreshResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Refresh live news from upstream",
+)
+def refresh_live_news(request: LiveNewsRefreshRequest) -> LiveNewsRefreshResponse:
+    """手动触发快讯抓取并落库。
+
+    按频道逐个抓取（fail-open）：单频道失败不影响其他频道；
+    全部频道失败且允许降级时，自动改用 NewsNow 兜底源并标记 ``degraded=True``。
+    """
+    try:
+        return LiveNewsRefreshResponse(**IntelligenceService().refresh_live_news(channels=request.channels))
+    except IntelligenceServiceError as exc:
+        raise _bad_request(exc)
+    except Exception as exc:
+        raise _internal_error("Refresh live news failed", exc)
+
+
+@router.get(
+    "/live-news/{item_id}",
+    response_model=LiveNewsItem,
+    responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Get one live news item",
+)
+def get_live_news_item(item_id: int) -> LiveNewsItem:
+    """按快讯 ID 查询单条详情；未找到返回 404。
+
+    快讯 ID 未单独建列，但稳定出现在原文链接末尾（``.../livenews/<id>``），
+    由仓储层按 URL 后缀匹配，官方源与降级源均可命中。
+    """
+    try:
+        service = IntelligenceService()
+        row = service.repo.get_live_news_item_by_id(item_id)
+        if row is None:
+            raise _not_found(f"live news item not found: {item_id}")
+        # 复用服务层的取值辅助：避免 `0 or 默认值` 这类 falsy 陷阱
+        threshold = max(1, service._config_int("wscn_live_news_important_score", 2))
+        return LiveNewsItem(**service._live_news_item_to_dict(row, threshold=threshold))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _internal_error("Get live news item failed", exc)

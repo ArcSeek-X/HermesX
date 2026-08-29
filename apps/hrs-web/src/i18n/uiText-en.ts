@@ -70,6 +70,7 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.home': 'Home',
   'layout.nav.review': 'Review',
   'layout.nav.watchlist': 'Watchlist',
+  'layout.nav.liveNews': 'Newsflash',
   'layout.nav.kline': 'K-Line',
   'layout.nav.sectorAnalysis': 'Sector',
   'layout.nav.stockCloud': 'Stock Cloud',
@@ -1036,6 +1037,25 @@ const en: Record<UiTextKey, string> = {
   'settings.envDockerNote': 'In Docker deployments, --env-file and Compose env_file inject environment variables only at startup. This export/import area uses the backend active .env file. To keep WebUI-saved values across container rebuilds, point ENV_FILE to a writable data-volume file such as /app/data/runtime.env and avoid keeping same-name old values in the startup environment.',
   // ---- component category (component.<ComponentName>.<key>) ----
   'component.StockSearch.placeholder': 'Enter a stock code or name',
+
+  // ---- Live news (liveNews.*) ----
+  'liveNews.title': 'Newsflash',
+  'liveNews.subtitle': '24/7 financial newsflash across headlines, A-shares, US, HK, FX, commodities, bonds and tech',
+  'liveNews.channelTabs': 'Newsflash channels',
+  'liveNews.searchPlaceholder': 'Search newsflash…',
+  'liveNews.importantOnly': 'Important only',
+  'liveNews.importantTag': 'Important',
+  'liveNews.refresh': 'Refresh',
+  'liveNews.loadMore': 'Load more',
+  'liveNews.dateAll': 'All dates',
+  'liveNews.dateToday': 'Today',
+  'liveNews.dateYesterday': 'Yesterday',
+  'liveNews.loading': 'Fetching latest newsflash…',
+  'liveNews.empty': 'No newsflash yet',
+  'liveNews.emptyImportant': 'No important newsflash in this channel',
+  'liveNews.emptyKeyword': 'No matching newsflash found',
+  'liveNews.emptyDate': 'No newsflash on the selected date',
+  'liveNews.degradedTip': 'Live source unavailable — showing aggregated fallback data (no channel filter or importance level)',
 };
 
 export default en;

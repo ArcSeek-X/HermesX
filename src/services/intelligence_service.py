@@ -42,7 +42,7 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 from xml.etree import ElementTree as ET
 
@@ -53,6 +53,10 @@ from src.config import Config, get_config
 from src.repositories.intelligence_repo import IntelligenceRepository
 from src.storage import IntelligenceSource, INTELLIGENCE_ITEM_NULL_SCOPE_VALUE
 from src.services.run_diagnostics import sanitize_diagnostic_text
+from data_provider.wallstreetcn_live_news import (
+    LiveNewsFetchError,
+    WallstreetcnLiveNewsFetcher,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +82,8 @@ _DISABLE_REQUEST_PROXIES = {"http": None, "https": None}
 _DNS_GUARD_LOCK = threading.Lock()
 # 运行时自动抓取的最小间隔（1 小时），防止重复触发打爆上游
 _AUTO_FETCH_MIN_INTERVAL_SECONDS = 60 * 60
+# 快讯降级用的 NewsNow 源 ID：官方源不可用时改用该聚合源抓取「要闻」合并流
+_LIVE_NEWS_FALLBACK_SOURCE_ID = "wallstreetcn-quick"
 
 # 内置资讯源模板（标准 RSS/Atom 类）；NewsNow 源由下方定义动态拼装 URL
 _BUILTIN_SOURCE_TEMPLATES = [
@@ -991,3 +997,499 @@ class IntelligenceService:
     def _iso(value: Optional[datetime]) -> Optional[str]:
         """datetime -> ISO 字符串，None 原样返回。"""
         return value.isoformat() if value else None
+
+    # ==================================================================
+    # 实时财经快讯（Live News）
+    #
+    # 数据来源：华尔街见闻 7x24 快讯接口（主），失败自动降级到 NewsNow 聚合源（兜底）。
+    # 与通用资讯源的差异：
+    #  1. 快讯按「频道」拆分落库（一条快讯可属多个频道，各存一行）；
+    #  2. 快讯额外写入 importance（重要级），通用 RSS/Atom/NewsNow 源该列为 NULL；
+    #  3. 快讯不注册到 intelligence_sources，因此不会被 fetch_enabled_sources 误抓，
+    #     它拥有独立的抓取入口 refresh_live_news()。
+    # 完整设计与接口契约见 docs/live-news.md。
+    # ==================================================================
+
+    # 快讯数据源标识：官方源与降级源
+    _LIVE_NEWS_SOURCE_OFFICIAL = "wallstreetcn"
+    _LIVE_NEWS_SOURCE_FALLBACK = "newsnow"
+
+    # 快讯源名称（落库用）；降级时同样使用该名称，避免同一条快讯产生两套记录
+    _LIVE_NEWS_SOURCE_NAME = "华尔街见闻快讯"
+
+    # 进程内降级状态：由 refresh_live_news 写入，供频道列表与列表接口回显给前端
+    _live_news_state_lock = threading.Lock()
+    _live_news_degraded = False
+    _live_news_source = _LIVE_NEWS_SOURCE_OFFICIAL
+
+    # 按需刷新的进程内节流状态（见 ensure_live_news_fresh）
+    _live_news_fetch_lock = threading.Lock()
+    _live_news_last_fetch_at: Optional[datetime] = None
+
+    # 连续两次抓取之间的绝对最小间隔（秒）。
+    # 这是兜底保护：即便配置间隔被误设为 0 或极小值，也不会把请求打爆到上游。
+    _LIVE_NEWS_MIN_FETCH_INTERVAL_SECONDS = 60
+
+    @classmethod
+    def reset_live_news_state(cls) -> None:
+        """重置快讯的降级状态与抓取节流时间戳，主要用于测试隔离。"""
+        with cls._live_news_state_lock:
+            cls._live_news_degraded = False
+            cls._live_news_source = cls._LIVE_NEWS_SOURCE_OFFICIAL
+        with cls._live_news_fetch_lock:
+            cls._live_news_last_fetch_at = None
+
+    def live_news_channels(self) -> Dict[str, Any]:
+        """返回快讯频道列表（前端 Tab 的数据源）。
+
+        正常模式返回全部 8 个频道；降级模式只返回「要闻」，并置 ``degraded=True``，
+        前端据此隐藏「只看重要的」开关（降级源无重要级）并展示降级提示。
+        """
+        channels = WallstreetcnLiveNewsFetcher.list_channels()
+        with type(self)._live_news_state_lock:
+            degraded = bool(type(self)._live_news_degraded)
+            source = str(type(self)._live_news_source)
+        if degraded:
+            # 兜底源只有一条未分类合并流，仅保留「要闻」
+            channels = [item for item in channels if item["scope_value"] == "global"]
+        return {
+            "channels": [{"value": item["channel_id"], "label": item["label"]} for item in channels],
+            "degraded": degraded,
+            "source": source,
+        }
+
+    def list_live_news(
+        self,
+        *,
+        channel: str,
+        important_only: bool = False,
+        keyword: Optional[str] = None,
+        published_from: Optional[datetime] = None,
+        published_to: Optional[datetime] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """分页查询已落库的快讯。
+
+        Args:
+            channel: 频道 ID（上游形态，如 ``a-stock-channel``）。
+            important_only: 只返回重要快讯。
+            keyword: 关键词，匹配标题与正文。
+            published_from / published_to: 发布时间闭区间，用于「查询某日快讯」。
+            cursor: 分页游标，取上次响应的 ``next_cursor``。
+            limit: 每页条数，为空时取配置默认值。
+
+        Returns:
+            含 items / next_cursor / degraded / server_time / total 的字典。
+
+        Raises:
+            IntelligenceServiceError: 频道非法、游标格式错误或参数越界。
+        """
+        if not WallstreetcnLiveNewsFetcher.is_known_channel(channel):
+            raise IntelligenceServiceError(f"unsupported live news channel: {channel}")
+        scope_value = WallstreetcnLiveNewsFetcher.to_scope_value(channel)
+        threshold = max(1, self._config_int("wscn_live_news_important_score", 2))
+        if limit is None:
+            limit = self._config_int("wscn_live_news_default_limit", 30)
+        if limit < 1 or limit > 100:
+            raise IntelligenceServiceError("limit must be between 1 and 100")
+
+        cursor_key = self._parse_live_news_cursor(cursor)
+        rows, total = self.repo.list_live_news_items(
+            scope_value=scope_value,
+            important_only=bool(important_only),
+            important_threshold=threshold,
+            keyword=keyword,
+            published_from=published_from,
+            published_to=published_to,
+            cursor=cursor_key,
+            limit=limit,
+        )
+        items = [self._live_news_item_to_dict(row, threshold=threshold) for row in rows]
+        next_cursor = None
+        # 仅当本页取满且仍有剩余时才下发游标，避免前端多一次空请求
+        if rows and len(rows) >= limit and len(items) < total:
+            last = rows[-1]
+            if last.published_at is not None:
+                next_cursor = f"{int(last.published_at.replace(tzinfo=timezone.utc).timestamp())}|{last.id}"
+        with type(self)._live_news_state_lock:
+            degraded = bool(type(self)._live_news_degraded)
+        return {
+            "items": items,
+            "next_cursor": next_cursor,
+            "degraded": degraded,
+            "server_time": int(datetime.now(timezone.utc).timestamp()),
+            "total": int(total),
+        }
+
+    def refresh_live_news(self, channels: Optional[List[str]] = None) -> Dict[str, Any]:
+        """抓取快讯并落库（fail-open），官方源失败时整体降级到 NewsNow。
+
+        流程：按频道逐个抓取 -> 标准化并拆行 -> 批量 upsert -> 按保留期清理。
+        单频道失败会记入 errors 且不影响其他频道；若所有频道均失败且允许降级，
+        则改用 NewsNow 兜底源抓取一次并标记降级状态。
+
+        Args:
+            channels: 待抓取的频道 ID 列表；为空表示抓取全部 8 个频道。
+
+        Returns:
+            含 fetched_count / degraded / errors 的字典。
+        """
+        if not getattr(self.config, "wscn_live_news_enabled", True):
+            return {"fetched_count": 0, "degraded": False, "errors": [], "skipped": True, "reason": "disabled"}
+
+        all_channels = WallstreetcnLiveNewsFetcher.list_channels()
+        if channels:
+            selected = [item for item in all_channels if item["channel_id"] in set(channels)]
+            if not selected:
+                raise IntelligenceServiceError(f"no supported live news channel in: {channels}")
+        else:
+            selected = all_channels
+
+        now = datetime.now()
+        per_channel_limit = max(1, min(int(self.config.news_intel_max_items_per_source), 100))
+        item_fields: List[Dict[str, Any]] = []
+        errors: List[Dict[str, str]] = []
+        succeeded_channels = 0
+
+        for channel in selected:
+            try:
+                entries = self._fetch_live_news_channel(channel["channel_id"], limit=per_channel_limit)
+                item_fields.extend(
+                    self._live_news_entry_to_item_fields(entry, channel=channel, now=now)
+                    for entry in entries
+                )
+                succeeded_channels += 1
+            except Exception as exc:  # noqa: BLE001 - fail-open：单频道失败不影响其他频道
+                errors.append({"channel": channel["channel_id"], "error": self._sanitize_error(exc)})
+                logger.warning(
+                    "Live news channel fetch failed channel=%s: %s",
+                    channel["channel_id"],
+                    self._sanitize_error(exc),
+                )
+
+        degraded = False
+        # 全部频道均失败时启用兜底源，保证页面不至于完全空白
+        if succeeded_channels == 0 and getattr(self.config, "wscn_live_news_fallback_newsnow", True):
+            try:
+                item_fields = self._fetch_live_news_from_newsnow(now)
+                degraded = True
+                logger.warning("Live news official source unavailable; falling back to NewsNow")
+            except Exception as exc:  # noqa: BLE001 - 兜底也失败时返回空，绝不向外抛出
+                errors.append({"channel": "newsnow-fallback", "error": self._sanitize_error(exc)})
+                logger.warning("Live news NewsNow fallback failed: %s", self._sanitize_error(exc))
+
+        saved = 0
+        if item_fields:
+            # 一条快讯可属多个频道，需先展开成「一频道一行」再做 upsert
+            saved = self.repo.upsert_items(self._expand_live_news_fields(item_fields))
+            self.repo.apply_retention(self.config.news_intel_retention_days)
+
+        # 记录本轮生效的数据源，供频道列表与列表接口回显降级状态
+        self._set_live_news_state(degraded=degraded)
+        return {"fetched_count": int(saved), "degraded": degraded, "errors": errors}
+
+    def ensure_live_news_fresh(self, channel: str) -> None:
+        """按需刷新快讯：频道无数据时同步抓取，数据陈旧时后台异步刷新。
+
+        为什么不用 runtime_scheduler 的 background task：
+        该调度器的 background task 仅在 ``schedule_enabled=True`` 时才会随调度器启动，
+        而快讯是与「定时分析」无关的独立能力，不应被该开关牵连。因此这里采用
+        **惰性触发**：由列表接口在返回前判断是否需要刷新，把抓取成本摊到真实访问上。
+
+        节流规则（两道闸）：
+        1. 配置间隔 ``wscn_live_news_fetch_interval_sec``（默认 300s），为 0 时关闭自动抓取；
+        2. 绝对最小间隔 60s，避免配置异常或高频轮询把请求打爆到上游。
+
+        Args:
+            channel: 频道 ID；非法频道直接跳过，不抛异常（不因刷新影响查询主流程）。
+        """
+        if not WallstreetcnLiveNewsFetcher.is_known_channel(channel):
+            return
+        if not getattr(self.config, "wscn_live_news_enabled", True):
+            return
+        # 注意：不能用 `value or 默认值` 取值 —— 0 是合法配置（表示关闭自动抓取），
+        # 但会被 `or` 判为 falsy 而错误回退到默认值，导致开关失效。
+        interval = self._config_int("wscn_live_news_fetch_interval_sec", 300)
+        if interval <= 0:
+            # 0 表示关闭自动抓取，仅保留手动刷新入口
+            return
+
+        scope_value = WallstreetcnLiveNewsFetcher.to_scope_value(channel)
+        try:
+            has_data = self.repo.count_live_news_items(scope_value=scope_value) > 0
+        except Exception as exc:  # noqa: BLE001 - 探测失败按「无数据」处理，允许走抓取分支
+            logger.warning("Live news freshness probe failed channel=%s: %s", channel, self._sanitize_error(exc))
+            has_data = False
+
+        now = datetime.now()
+        cls = type(self)
+        with cls._live_news_fetch_lock:
+            last = cls._live_news_last_fetch_at
+            if last is not None:
+                elapsed = (now - last).total_seconds()
+                # 首屏（无数据）用最小间隔，保证冷启动能较快拿到数据；
+                # 常规刷新用配置间隔。
+                threshold = float(cls._LIVE_NEWS_MIN_FETCH_INTERVAL_SECONDS if not has_data else interval)
+                if elapsed < threshold:
+                    return
+            # 立即占位，防止同一时刻的并发请求重复触发抓取
+            cls._live_news_last_fetch_at = now
+
+        if has_data:
+            # 已有数据：后台异步刷新，本次请求仍返回库里的存量数据，不阻塞响应
+            self._run_live_news_refresh_in_background()
+            return
+        # 冷启动：同步抓取该频道，保证首屏不空白（单频道约 1 次上游请求）
+        try:
+            self.refresh_live_news(channels=[channel])
+        except Exception as exc:  # noqa: BLE001 - 刷新失败不应影响列表查询
+            logger.warning("Live news cold-start fetch failed channel=%s: %s", channel, self._sanitize_error(exc))
+
+    @staticmethod
+    def _run_live_news_refresh_in_background() -> None:
+        """在守护线程中执行一次全量快讯刷新（fire-and-forget，失败仅记日志）。"""
+
+        def _target() -> None:
+            try:
+                IntelligenceService().refresh_live_news()
+            except Exception as exc:  # noqa: BLE001 - 后台任务失败不外抛
+                logger.warning("Live news background refresh failed: %s", exc)
+
+        try:
+            thread = threading.Thread(target=_target, daemon=True, name="live-news-refresh")
+            thread.start()
+        except Exception as exc:  # noqa: BLE001 - 线程创建失败时放弃本次刷新
+            logger.warning("Live news background refresh could not start: %s", exc)
+
+    # ------------------------------------------------------------------
+    # 快讯：内部实现
+    # ------------------------------------------------------------------
+    def _config_int(self, name: str, default: int) -> int:
+        """读取整型快讯配置。
+
+        刻意避开 ``getattr(...) or default`` 写法：``0`` 与 ``""`` 是合法配置值
+        （例如抓取间隔为 0 表示关闭自动抓取），但会被 ``or`` 判为 falsy 而错误
+        地回退到默认值，导致开关静默失效。
+        """
+        value = getattr(self.config, name, None)
+        if value is None:
+            return int(default)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return int(default)
+
+    @classmethod
+    def _set_live_news_state(cls, *, degraded: bool) -> None:
+        """更新进程内降级状态。"""
+        with cls._live_news_state_lock:
+            cls._live_news_degraded = bool(degraded)
+            cls._live_news_source = cls._LIVE_NEWS_SOURCE_FALLBACK if degraded else cls._LIVE_NEWS_SOURCE_OFFICIAL
+
+    def _fetch_live_news_channel(self, channel_id: str, *, limit: int) -> List[Any]:
+        """抓取单个频道的快讯（官方源，含 SSRF 校验）。
+
+        Raises:
+            IntelligenceServiceError: URL 非法或抓取失败。
+        """
+        fetcher = WallstreetcnLiveNewsFetcher(
+            base_url=getattr(self.config, "wscn_live_news_base_url", "https://api-one.wallstcn.com"),
+            timeout=getattr(self.config, "wscn_live_news_timeout_sec", 8.0),
+            # 复用服务层带 DNS 复检的安全请求实现，防止 SSRF / DNS rebinding
+            request_get=self._get_with_validated_dns,
+        )
+        url = fetcher.build_url(channel_id, limit=limit)
+        self._validate_url(url)
+        try:
+            entries, _next_cursor, _polling_cursor = fetcher.fetch_channel(channel_id, limit=limit)
+        except LiveNewsFetchError as exc:
+            raise IntelligenceServiceError(str(exc)) from exc
+        return entries
+
+    def _fetch_live_news_from_newsnow(self, now: datetime) -> List[Dict[str, Any]]:
+        """从 NewsNow 兜底源抓取快讯并转成待入库字段。
+
+        兜底源只有一条未分类合并流，因此统一归属到「要闻」频道，
+        且**没有**重要级字段（importance 留空），前端会据此隐藏重要级筛选。
+        """
+        url = self._build_newsnow_url(_LIVE_NEWS_FALLBACK_SOURCE_ID)
+        fields = {
+            "name": self._LIVE_NEWS_SOURCE_NAME,
+            "source_type": "newsnow",
+            "url": url,
+            "scope_type": "market",
+            "scope_value": None,
+            "market": "cn",
+        }
+        entries = self._fetch_newsnow_entries(fields, limit=int(self.config.news_intel_max_items_per_source))
+        channel = {"channel_id": "global-channel", "scope_value": "global", "label": "要闻"}
+        return [
+            self._entry_to_live_news_fields(entry, channel=channel, now=now)
+            for entry in entries
+        ]
+
+    def _live_news_entry_to_item_fields(
+        self,
+        entry: Any,
+        *,
+        channel: Dict[str, str],
+        now: datetime,
+    ) -> Dict[str, Any]:
+        """把官方源的 LiveNewsEntry 转成待入库字段。
+
+        一条快讯按其 ``scope_values``（命中的 8 个已知频道）拆成多行；
+        若未命中任何已知频道，则归属到当前请求的频道，避免数据丢失。
+        """
+        scope_values = tuple(entry.scope_values)
+        if not scope_values:
+            scope_values = (channel.get("scope_value") or "global",)
+        return {
+            "source_id": None,
+            "source_name": self._LIVE_NEWS_SOURCE_NAME,
+            "source_type": self._LIVE_NEWS_SOURCE_OFFICIAL,
+            "title": (entry.title or entry.content)[:300],
+            "summary": entry.content[:2000],
+            "url": entry.uri,
+            "source": "华尔街见闻",
+            "published_at": self._timestamp_to_datetime(entry.display_time),
+            "fetched_at": now,
+            "scope_type": "channel",
+            # 多频道拆行由调用方展开，此处保留列表供 _expand_live_news_fields 使用
+            "scope_value": scope_values,
+            "market": "cn",
+            "importance": int(entry.score or 1),
+            "raw_payload": json.dumps({
+                "id": entry.item_id,
+                "score": entry.score,
+                "channels": list(entry.channels),
+                "author": entry.author,
+                "display_time": entry.display_time,
+            }, ensure_ascii=False),
+        }
+
+    def _entry_to_live_news_fields(
+        self,
+        entry: FeedEntry,
+        *,
+        channel: Dict[str, str],
+        now: datetime,
+    ) -> Dict[str, Any]:
+        """把 NewsNow 兜底源条目转成待入库字段（无重要级，固定归属「要闻」）。
+
+        注意：NewsNow 的 ``wallstreetcn-quick`` 源**没有** ``extra.info`` 摘要字段，
+        快讯全文就放在 ``title`` 中。因此 summary 需回退到 title，
+        否则降级数据的正文会全部为空。
+        """
+        return {
+            "source_id": None,
+            "source_name": self._LIVE_NEWS_SOURCE_NAME,
+            "source_type": self._LIVE_NEWS_SOURCE_FALLBACK,
+            "title": entry.title[:300],
+            # 兜底源正文缺失时回退标题，保证前端有内容可展示
+            "summary": (entry.summary or entry.title)[:2000],
+            "url": entry.url,
+            "source": "华尔街见闻",
+            "published_at": entry.published_at,
+            "fetched_at": now,
+            "scope_type": "channel",
+            "scope_value": (channel.get("scope_value") or "global",),
+            "market": "cn",
+            # 兜底源无重要级字段，留空以便前端隐藏「只看重要的」开关
+            "importance": None,
+            "raw_payload": json.dumps({"source": self._LIVE_NEWS_SOURCE_FALLBACK}, ensure_ascii=False),
+        }
+
+    @staticmethod
+    def _expand_live_news_fields(item_fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """把含多个 scope_value 的字段展开成多行，满足「一频道一行」的落库形态。"""
+        expanded: List[Dict[str, Any]] = []
+        for fields in item_fields:
+            scope_values = fields.get("scope_value")
+            if isinstance(scope_values, (list, tuple)):
+                values = [str(value) for value in scope_values if value]
+            else:
+                values = [str(scope_values)] if scope_values else ["global"]
+            for value in values:
+                row = dict(fields)
+                row["scope_value"] = value
+                expanded.append(row)
+        return expanded
+
+    def _live_news_item_to_dict(self, item: Any, *, threshold: int) -> Dict[str, Any]:
+        """快讯条目 ORM -> API 输出字典。
+
+        优先从 raw_payload 还原上游字段（channels / author / 原始 id），
+        raw_payload 缺失时退化为从 URL 与列字段推导，保证接口始终可用。
+        """
+        raw: Dict[str, Any] = {}
+        try:
+            parsed = json.loads(item.raw_payload) if item.raw_payload else {}
+            if isinstance(parsed, dict):
+                raw = parsed
+        except (TypeError, ValueError):
+            raw = {}
+
+        display_time = None
+        if item.published_at is not None:
+            display_time = int(item.published_at.replace(tzinfo=timezone.utc).timestamp())
+
+        # 原始快讯 ID：优先 raw_payload，其次从 livenews/<id> 形式的 URL 中解析
+        item_id = raw.get("id")
+        if item_id is None:
+            match = re.search(r"/livenews/(\d+)", str(item.url or ""))
+            item_id = int(match.group(1)) if match else item.id
+
+        score = raw.get("score")
+        if not isinstance(score, int):
+            score = int(item.importance) if item.importance is not None else 1
+        importance = item.importance
+
+        channels = raw.get("channels")
+        if not isinstance(channels, list):
+            channels = [item.scope_value] if item.scope_value else []
+
+        return {
+            "id": int(item_id),
+            "title": item.title or "",
+            "content": item.summary or "",
+            "display_time": display_time,
+            "score": int(score),
+            "important": bool(importance is not None and int(importance) >= int(threshold)),
+            "channels": [str(channel) for channel in channels],
+            "uri": item.url or "",
+            "author": raw.get("author"),
+        }
+
+    @staticmethod
+    def _parse_live_news_cursor(cursor: Optional[str]) -> Optional[Tuple[datetime, int]]:
+        """解析分页游标 ``<秒级时间戳>|<条目id>``。
+
+        返回 None 表示取第一页；格式非法时抛出面向调用方的校验错误。
+        """
+        raw = str(cursor or "").strip()
+        if not raw:
+            return None
+        parts = raw.split("|", 1)
+        if len(parts) != 2:
+            raise IntelligenceServiceError("invalid live news cursor")
+        try:
+            timestamp = int(parts[0])
+            item_id = int(parts[1])
+        except (TypeError, ValueError) as exc:
+            raise IntelligenceServiceError("invalid live news cursor") from exc
+        try:
+            cursor_time = datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(tzinfo=None)
+        except (OSError, OverflowError, ValueError) as exc:
+            raise IntelligenceServiceError("invalid live news cursor") from exc
+        return cursor_time, item_id
+
+    @staticmethod
+    def _timestamp_to_datetime(timestamp: Optional[int]) -> Optional[datetime]:
+        """秒级时间戳 -> UTC naive datetime；非法或缺失返回 None。"""
+        if timestamp is None:
+            return None
+        try:
+            return datetime.fromtimestamp(int(timestamp), tz=timezone.utc).replace(tzinfo=None)
+        except (OSError, OverflowError, ValueError, TypeError):
+            return None

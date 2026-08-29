@@ -11,7 +11,7 @@
  * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Search, Settings2, Star } from 'lucide-react';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, CandlestickChart, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Newspaper, Search, Settings2, Star } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -54,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard', to: '/stock-dashboard', icon: LayoutDashboard },
   { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis', to: '/sector-analysis', icon: LayoutGrid },
   { key: 'watchlist', labelKey: 'layout.nav.watchlist', to: '/watchlist', icon: Star },
+  { key: 'live-news', labelKey: 'layout.nav.liveNews', to: '/live-news', icon: Newspaper },
   { key: 'kline', labelKey: 'layout.nav.kline', to: '/kline', icon: CandlestickChart },
   { key: 'chat', labelKey: 'layout.nav.chat', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
   { key: 'review', labelKey: 'layout.nav.review', to: '/review', icon: History },

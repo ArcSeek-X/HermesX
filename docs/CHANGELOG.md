@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] 修复总览页港美/日韩 TAB 切换后页面加载失败：当东财对部分海外指数不返回数据导致实际返回数少于配置 secid 数时，IndexCardGrid 渲染循环越界访问 `undefined` 触发 RouteBoundary；改为按 `placeholderCount` 用真实数据 + `EMPTY_INDEX` 占位补齐，并对 `IndexCard` 的 `high/low/preClose` 做类型与有限值校验防止振幅派生炸错。
 - [修复] 总览页港美/日韩 TAB 移除数据源无实时行情的指数：日韩移除韩国KOSDAQ（`100.KQ11`，东财 rc=102 无数据），港美移除纳指金融100（`251.IXFN`，东财无响应）与纳指互联网（`251.IXNA`，东财 rc=102 无数据）；三者经东财、Yahoo Finance、腾讯证券三源交叉验证均无数据，前端占位数量同步调整为日韩 2、港美 6。
 - [修复] 总览页海外指数卡片成交额缺失时显示「成交 0.00亿」的问题：后端将东财 `f6` 为空标记或 `0` 时统一转为 `None`，前端据此降级显示由最高/最低/昨收派生的「振幅」，港美 6 个与日韩指数均生效。
+- [新功能] 新增实时财经快讯中心（`/live-news`）：接入华尔街见闻 7x24 快讯，提供要闻/A股/美股/港股/外汇/商品/债券/科技 8 个频道 Tab、重要级筛选、关键词搜索与按日过滤，官方源不可用时自动降级到 NewsNow 聚合源（降级时仅保留「要闻」且无重要级）。设计与接口契约见 `docs/live-news.md`。
+- [新功能] 新增快讯后端接口：`GET /api/v1/intelligence/live-news/channels`、`GET /api/v1/intelligence/live-news`、`POST /api/v1/intelligence/live-news/refresh`、`GET /api/v1/intelligence/live-news/{item_id}`，支持频道/重要级/关键词/日期区间过滤与 keyset 游标分页。
+- [改进] `intelligence_items` 新增 `importance` 列与频道查询复合索引，用于承载快讯重要级；存量库通过启动时幂等补列迁移，补列失败仅告警不阻断启动。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 

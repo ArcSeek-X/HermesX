@@ -165,9 +165,9 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 | **Fetcher 层**    | `data_provider/wallstreetcn_live_news.py` 🆕 | 纯 HTTP：8 频道拉取、`polling_cursor` 增量、`next_cursor` 翻页、超时重试 | **全部新增**                                |
 | **Service 层**    | `src/services/intelligence_service.py`       | 编排：**官方源 → 失败降级 NewsNow**；字段标准化；`importance` 计算         | **扩展**，新增 3 个方法                         |
 | **Repository 层** | `src/repositories/intelligence_repo.py`      | 落库与查询                                                   | **扩展**，新增按 channel / importance / 日期 查询 |
-| **Schema 层**     | `src/schemas/intelligence.py`                | Pydantic 出入参模型                                          | **扩展**，新增 4 个模型                         |
+| **Schema 层**     | `api/v1/schemas/intelligence.py`             | Pydantic 出入参模型                                          | **扩展**，新增 7 个模型                         |
 | **API 层**        | `api/v1/endpoints/intelligence.py`           | HTTP 暴露                                                 | **扩展**，新增 4 个路由（**不新建 endpoint 文件**）    |
-| **调度层**          | `src/services/runtime_scheduler.py`          | 定时抓取                                                    | **扩展**，挂现有 tick                         |
+| **刷新策略**        | `src/services/intelligence_service.py`       | 按需惰性刷新与节流                                             | **新增** `ensure_live_news_fresh()`，见 §4.4 |
 | **前端 API 层**     | `apps/hrs-web/src/api/liveNews.ts` 🆕        | 封装 HTTP 调用                                              | **全部新增**                                |
 | **前端 Hook 层**    | `apps/hrs-web/src/hooks/useLiveNews.ts` 🆕   | 轮询、分页、按日分组                                              | **全部新增**                                |
 | **前端页面层**        | `apps/hrs-web/src/pages/LiveNewsPage.tsx` 🆕 | 布局渲染                                                    | **全部新增**                                |
@@ -208,13 +208,45 @@ WallstreetcnLiveNewsFetcher  ──失败──▶  NewsNow Fetcher(兜底)
 
 > ⚠️ **历史深度依赖持续落库**：上游是滚动窗口，不补抓则永久丢失。启用后需持续累积，才能支撑「查询 8月26日」这类历史回溯。
 
-### 4.4 实时性方案（已选定：B1）
+### 4.4 实时性方案（已选定：B1，实现时调整为「按需惰性刷新」）
 
-采用 **后台定时抓取落库 + 前端轮询**：
+采用 **后端落库 + 前端轮询**，但抓取触发方式在实现时做了调整：
 
-- 后端：挂 `runtime_scheduler` 现有 tick，5 分钟抓取落库
 - 前端：`useLiveNews` 内 30 秒轮询 `GET /live-news`
 - 手动刷新：`POST /live-news/refresh`
+- 后端：**按需惰性刷新**（`ensure_live_news_fresh()`），而非挂在 `runtime_scheduler` 上
+
+#### 为什么不挂 `runtime_scheduler`（与原方案的偏差）
+
+原方案 §4.1 计划「挂现有 `runtime_scheduler` tick」。实现时发现该调度器的 background task
+**只有在 `schedule_enabled=True` 时才会随调度器启动**：
+
+```python
+# src/services/runtime_scheduler.py
+def start(self, *, run_immediately=False):
+    config = self._config_provider()
+    if not self._is_schedule_enabled(config):   # schedule_enabled 为 False 直接 return
+        self.stop()
+        return
+```
+
+快讯是与「定时分析」无关的独立能力，不应被 `schedule_enabled` 开关牵连
+（否则未开启定时分析的用户永远拿不到快讯）。因此改为**惰性触发**：
+
+| 场景             | 行为                                  | 理由                   |
+| -------------- | ----------------------------------- | -------------------- |
+| 频道无数据（冷启动）     | **同步**抓取该频道                         | 保证首屏不空白，单频道约 1 次上游请求 |
+| 有数据但超过配置间隔     | **后台线程**异步刷新全量                       | 不阻塞响应，本次先返回库存数据      |
+| `interval = 0` | 跳过自动抓取                              | 仅保留手动刷新入口            |
+
+**节流保护**（两道闸）：
+
+1. 配置间隔 `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC`（默认 300 秒）
+2. 绝对最小间隔 60 秒（`_LIVE_NEWS_MIN_FETCH_INTERVAL_SECONDS`），防止配置异常把请求打爆到上游
+
+> ⚠️ 实现要点：读取配置时不能用 `value or 默认值` 写法。`0` 是合法配置（关闭自动抓取），
+> 但会被 `or` 判为 falsy 而错误回退到默认值，导致开关静默失效。
+> 已由 `IntelligenceService._config_int()` 统一处理，`tests/test_live_news.py` 有对应回归用例。
 
 **本期不引入 SSE 推送**。项目虽有 `/api/v1/analysis/events` SSE 通道，但新增快讯推送通道会显著增加前后端复杂度，留作后续演进。
 
@@ -222,14 +254,29 @@ WallstreetcnLiveNewsFetcher  ──失败──▶  NewsNow Fetcher(兜底)
 
 ## 5. 数据库设计
 
-### 5.1 落表清单（复用 2 张已有表，不新建表）
+### 5.1 落表清单（实际只改 1 张表，不新建表）
 
 | 表名                     | 作用     | 本期改动                         |
 | ---------------------- | ------ | ---------------------------- |
-| `intelligence_sources` | 注册数据源  | **不改结构**，新增 2 行数据            |
 | `intelligence_items`   | 沉淀快讯条目 | **新增 1 列** `importance` + 索引 |
+| `intelligence_sources` | 注册数据源  | **本期不改**（见下方说明）             |
 
-### 5.2 `intelligence_sources`（已有，不改结构）
+#### 为什么不注册到 `intelligence_sources`（与原方案的偏差）
+
+原方案计划「新增 2 行数据」到 `intelligence_sources`。实现时改为**不注册**，快讯走独立抓取链路：
+
+| 维度      | 注册源                                     | **不注册（选定）**                             |
+| ------- | ---------------------------------------- | --------------------------------------- |
+| 多频道表达   | 一条源记录无法表达 8 个频道                          | 快讯以 `scope_type='channel'` 自行表达频道       |
+| 通用抓取链路  | `fetch_enabled_sources()` 会误抓（无对应协议分支而失败） | 互不影响，快讯有独立的 `refresh_live_news()`       |
+| 抓取语义    | 通用链路按「源」抓一次；快讯需按频道抓 8 次并拆多行               | 语义匹配                                    |
+| 源管理页语义  | 会混入「资讯源管理」列表                             | 不污染既有语义                                 |
+
+因此快讯落库时：`source_id = None`、`source_name = '华尔街见闻快讯'`、
+`source_type` 为 `wscn_live_news`（官方源）或 `newsnow`（降级源）。
+去重由 `upsert_items` 中「`source_id is None` 时按 `source_name` 匹配」的既有分支保证。
+
+### 5.2 `intelligence_sources`（已有结构，本期不改动）
 
 | 字段                                               | 类型                     | 说明                                                      |
 | ------------------------------------------------ | ---------------------- | ------------------------------------------------------- |
@@ -810,7 +857,7 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 | ------------- | ----------------------------------- | ----- | ------------------------------ | -------------------- |
 | 上游地址          | `WSCN_LIVE_NEWS_BASE_URL`           | str   | `https://api-one.wallstcn.com` | 官方接口基址               |
 | 功能开关          | `WSCN_LIVE_NEWS_ENABLED`            | bool  | `true`                         | 关闭则整个快讯能力停用          |
-| 抓取间隔          | `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` | int   | `300`                          | 后台定时抓取间隔（秒），`0` = 关闭 |
+| 抓取间隔          | `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` | int   | `300`                          | 按需刷新的节流间隔（秒），`0` = 关闭自动抓取（详见 §4.4） |
 | 重要级阈值         | `WSCN_LIVE_NEWS_IMPORTANT_SCORE`    | int   | `2`                            | `score >= 该值` 视为重要   |
 | 单页默认条数        | `WSCN_LIVE_NEWS_DEFAULT_LIMIT`      | int   | `30`                           | 列表默认每页条数             |
 | 请求超时          | `WSCN_LIVE_NEWS_TIMEOUT_SEC`        | float | `8.0`                          | 单频道请求超时              |
@@ -831,20 +878,28 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 
 ## 13. 实施计划
 
-| 阶段               | 内容                                       | 涉及文件                                                     |
-| ---------------- | ---------------------------------------- | -------------------------------------------------------- |
-| **① 配置**         | 新增 `WSCN_LIVE_NEWS_*` 配置项与解析             | `src/config.py`、`.env.example`                           |
-| **② Fetcher**    | 8 频道抓取 + cursor 增量 + 翻页 + 超时重试           | `data_provider/wallstreetcn_live_news.py` 🆕             |
-| **③ Schema**     | 4 个 Pydantic 模型                          | `src/schemas/intelligence.py`                            |
-| **④ Service**    | 编排、降级、字段标准化（`importance` / 频道短码 / 秒毫秒换算） | `src/services/intelligence_service.py`                   |
-| **⑤ Repository** | 新增 `importance` 列 + 索引；按频道/重要级/日期查询      | `src/repositories/intelligence_repo.py`、`src/storage.py` |
-| **⑥ API**        | 4 个新路由                                   | `api/v1/endpoints/intelligence.py`                       |
-| **⑦ 调度**         | 挂现有 tick，5 分钟抓取                          | `src/services/runtime_scheduler.py`                      |
-| **⑧ 前端类型 & API** | 类型定义 + 4 个 API 方法                        | `src/types/liveNews.ts` 🆕、`src/api/liveNews.ts` 🆕      |
-| **⑨ 前端 Hook**    | 2 个 Hook（轮询、分页、分组）                       | `src/hooks/useLiveNews.ts` 🆕                            |
-| **⑩ 前端页面**       | 页面 + 路由 + 侧边栏入口                          | `src/pages/LiveNewsPage.tsx` 🆕、`App.tsx`、`Shell.tsx`    |
-| **⑪ 测试**         | Service 单测 + 端点参数校验 + 前端渲染测试             | `tests/`、`apps/hrs-web/src/**/__tests__/`                |
-| **⑫ 文档**         | 本文档 + `docs/CHANGELOG.md` 追加一行           | 见 §14.4                                                  |
+| 阶段                  | 内容                                              | 涉及文件                                                          | 状态     |
+| ------------------- | ----------------------------------------------- | ------------------------------------------------------------- | ------ |
+| **① 配置**            | 新增 `WSCN_LIVE_NEWS_*` 配置项与解析                    | `src/config.py`、`.env.example`                                | ✅ 已完成  |
+| **② Fetcher**       | 8 频道抓取 + cursor 增量 + 翻页 + 超时重试                  | `data_provider/wallstreetcn_live_news.py` 🆕                  | ✅ 已完成  |
+| **③ Schema**        | 7 个 Pydantic 模型                                 | `api/v1/schemas/intelligence.py`                              | ✅ 已完成  |
+| **④ Service**       | 编排、降级、字段标准化（`importance` / 频道短码 / 秒毫秒换算）       | `src/services/intelligence_service.py`                        | ✅ 已完成  |
+| **⑤ Repository**    | 新增 `importance` 列 + 索引 + 迁移；按频道/重要级/日期查询       | `src/repositories/intelligence_repo.py`、`src/storage.py`      | ✅ 已完成  |
+| **⑥ API**           | 4 个新路由                                          | `api/v1/endpoints/intelligence.py`                            | ✅ 已完成  |
+| **⑦ 刷新策略**          | 按需惰性刷新 + 双闸节流（改为不挂 `runtime_scheduler`，见 §4.4） | `src/services/intelligence_service.py`                        | ✅ 已完成  |
+| **⑧ 前端类型 & API**    | 类型定义 + 4 个 API 方法                               | `src/types/liveNews.ts` 🆕、`src/api/liveNews.ts` 🆕           | ✅ 已完成  |
+| **⑨ 前端 Hook**       | 2 个 Hook（轮询、分页、防抖、分组）                           | `src/hooks/useLiveNews.ts` 🆕                                 | ✅ 已完成  |
+| **⑩ 前端页面**          | 页面 + 路由 + 侧边栏入口 + i18n（中/繁/英）                   | `src/pages/LiveNewsPage.tsx` 🆕、`App.tsx`、`SidebarNav.tsx`    | ✅ 已完成  |
+| **⑪ 测试**            | 后端单测 26 例（Fetcher / Service / 降级 / 边界）          | `tests/test_live_news.py` 🆕                                  | ✅ 已完成  |
+| **⑫ 文档**            | 本文档按实施结果校准 + `docs/CHANGELOG.md` 追加一行            | 见 §14.4                                                       | ⏳ 待合入时 |
+
+#### 实施中的三处偏差（已同步到对应章节）
+
+| #   | 原方案                          | 实际实现                    | 原因                                      | 详见        |
+| --- | ---------------------------- | ----------------------- | --------------------------------------- | --------- |
+| 1   | 挂 `runtime_scheduler` tick   | 改为按需惰性刷新                | 该调度器依赖 `schedule_enabled`，会牵连快讯能力        | §4.4      |
+| 2   | 注册 2 行数据到 `intelligence_sources` | 改为不注册，走独立链路             | 一条源记录无法表达 8 频道，且会被通用抓取链路误抓               | §5.1      |
+| 3   | Schema 放 `src/schemas/`      | 放 `api/v1/schemas/`     | 项目既有 intelligence schema 实际位置在此，保持一致    | §4.1      |
 
 ***
 
