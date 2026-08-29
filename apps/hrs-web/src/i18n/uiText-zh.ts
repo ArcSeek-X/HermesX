@@ -118,6 +118,8 @@ const zh = {
   'layout.route.usage.title': '用量', // 用量路由标题
   'layout.route.kline.description': '个股 K 线走势、技术指标与多周期分析', // K 线路由描述
   'layout.route.kline.title': '个股 K 线', // K 线路由标题
+  'layout.route.liveNews.description': '7x24 财经快讯，按频道筛选与重要级过滤', // 快讯路由描述
+  'layout.route.liveNews.title': '快讯', // 快讯路由标题
   'layout.logout': '退出', // 退出登录按钮
   'layout.logoutConfirm': '确认退出', // 退出确认按钮
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码登录。', // 退出确认提示文案
@@ -1042,7 +1044,8 @@ const zh = {
   'liveNews.searchPlaceholder': '搜索快讯…', // 搜索框占位符
   'liveNews.importantOnly': '只看重要的', // 重要级筛选开关
   'liveNews.importantTag': '重要', // 重要快讯标签
-  'liveNews.refresh': '刷新', // 手动刷新按钮
+  'liveNews.refresh': '刷新资讯', // 手动刷新按钮
+  'liveNews.refreshing': '刷新资讯中', // 刷新按钮加载态文案（HrsButton loadingText）
   'liveNews.loadMore': '加载更多', // 加载更多按钮
   'liveNews.dateAll': '全部日期', // 日期筛选：不限
   'liveNews.dateToday': '今天', // 日期筛选：今天

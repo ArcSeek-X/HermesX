@@ -17,33 +17,27 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Button } from '../components/basic/Button';
-import { Card } from '../components/basic/Card';
-import { Checkbox } from '../components/basic/Checkbox';
-import { Chip } from '../components/basic/Chip';
-import { Input } from '../components/basic/Input';
-import { Loading } from '../components/basic/Loading';
-import { Select } from '../components/basic/Select';
-import { TabNav } from '../components/common/TabNav';
+// 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
+import { Card, Checkbox, Chip, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, } from '../components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
 import type { LiveNewsItem } from '../types/liveNews';
 
 /** 把 `YYYY-MM-DD` 之类的键转为本地日期字符串（用于「今天/昨天」选项） */
 function formatDateValue(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 /** 把秒级时间戳格式化为 `HH:mm` */
 function formatTime(displayTime: number | null): string {
-  if (!displayTime) return '--:--';
-  const date = new Date(displayTime * 1000);
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${hour}:${minute}`;
+    if (!displayTime) return '--:--';
+    const date = new Date(displayTime * 1000);
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${hour}:${minute}`;
 }
 
 /**
@@ -51,221 +45,221 @@ function formatTime(displayTime: number | null): string {
  * 华尔街见闻的快讯常用「【标题】正文」的形式，拆分后更接近原站观感。
  */
 function splitLeadingTitle(content: string): { lead: string | null; rest: string } {
-  const match = /^【([^】]+)】\s*/.exec(content);
-  if (!match) return { lead: null, rest: content };
-  return { lead: match[1], rest: content.slice(match[0].length) };
+    const match = /^【([^】]+)】\s*/.exec(content);
+    if (!match) return { lead: null, rest: content };
+    return { lead: match[1], rest: content.slice(match[0].length) };
 }
 
 /** 单条快讯卡片（不额外封装成组件文件，按项目约定内联在页面内） */
 function LiveNewsRow({ item, showImportant }: { item: LiveNewsItem; showImportant: boolean }) {
-  const { t } = useUiLanguage();
-  const { lead, rest } = splitLeadingTitle(item.content || item.title);
-  // 快讯常无标题，展示时回退到正文
-  const body = rest || item.title;
-  const isImportant = showImportant && item.important;
+    const { t } = useUiLanguage();
+    const { lead, rest } = splitLeadingTitle(item.content || item.title);
+    // 快讯常无标题，展示时回退到正文
+    const body = rest || item.title;
+    const isImportant = showImportant && item.important;
 
-  return (
-    <Card className="mb-2 transition-colors hover:border-[var(--primary)]/40" padding="sm">
-      <a
-        href={item.uri || undefined}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex gap-3 no-underline"
-      >
-        {/* 左侧竖线：重要用主色，普通用中性色 */}
-        <span
-          aria-hidden
-          className={`mt-0.5 w-[3px] shrink-0 rounded-full ${
-            isImportant ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'
-          }`}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <time className="shrink-0 text-xs tabular-nums text-muted-text">
-              {formatTime(item.displayTime)}
-            </time>
-            {isImportant && (
-              <Chip size="sm" color="danger" variant="soft">
-                {t('liveNews.importantTag')}
-              </Chip>
-            )}
-            {item.author && (
-              <span className="truncate text-xs text-muted-text/70">{item.author}</span>
-            )}
-          </div>
-          <p className="mt-1 text-sm leading-relaxed text-foreground">
-            {lead && <span className="font-semibold">{lead}</span>}
-            {lead && body ? '　' : null}
-            {body}
-          </p>
-        </div>
-      </a>
-    </Card>
-  );
+    return (
+        <Card className="mb-2 transition-colors hover:border-[var(--primary)]/40" padding="sm">
+            <a
+                href={item.uri || undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex gap-3 no-underline"
+            >
+                {/* 左侧竖线：重要用主色，普通用中性色 */}
+                <span
+                    aria-hidden
+                    className={`mt-0.5 w-[3px] shrink-0 rounded-full ${isImportant ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'
+                        }`}
+                />
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <time className="shrink-0 text-xs tabular-nums text-muted-text">
+                            {formatTime(item.displayTime)}
+                        </time>
+                        {isImportant && (
+                            <Chip size="sm" color="danger" variant="soft">
+                                {t('liveNews.importantTag')}
+                            </Chip>
+                        )}
+                        {item.author && (
+                            <span className="truncate text-xs text-muted-text/70">{item.author}</span>
+                        )}
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground">
+                        {lead && <span className="font-semibold">{lead}</span>}
+                        {lead && body ? '　' : null}
+                        {body}
+                    </p>
+                </div>
+            </a>
+        </Card>
+    );
 }
 
 const LiveNewsPage: React.FC = () => {
-  const { t } = useUiLanguage();
-  const { channels, degraded, loading: channelsLoading } = useLiveNewsChannels();
+    const { t } = useUiLanguage();
+    const { channels, degraded, loading: channelsLoading } = useLiveNewsChannels();
 
-  const [activeChannel, setActiveChannel] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [importantOnly, setImportantOnly] = useState(false);
-  const [dateValue, setDateValue] = useState('');
+    const [activeChannel, setActiveChannel] = useState('');
+    const [keyword, setKeyword] = useState('');
+    const [importantOnly, setImportantOnly] = useState(false);
+    const [dateValue, setDateValue] = useState('');
 
-  // 日期下拉选项：全部 / 今天 / 昨天（按用户本地时区计算）
-  const dateOptions = useMemo(() => {
-    const today = new Date();
-    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-    return [
-      { value: '', label: t('liveNews.dateAll') },
-      { value: formatDateValue(today), label: t('liveNews.dateToday') },
-      { value: formatDateValue(yesterday), label: t('liveNews.dateYesterday') },
-    ];
-  }, [t]);
+    // 日期下拉选项：全部 / 今天 / 昨天（按用户本地时区计算）
+    // HrsSelect 的选项约定为 { key, label }，key 为空串表示「不限日期」
+    const dateOptions = useMemo<HrsSelectOptionDef[]>(() => {
+        const today = new Date();
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        return [
+            { key: '', label: t('liveNews.dateAll') },
+            { key: formatDateValue(today), label: t('liveNews.dateToday') },
+            { key: formatDateValue(yesterday), label: t('liveNews.dateYesterday') },
+        ];
+    }, [t]);
 
-  // 默认选中第一个频道（正常为「要闻」，降级时也只剩「要闻」）。
-  // 用派生值而非 effect 同步 setState，避免级联渲染。
-  const effectiveChannel = activeChannel || channels[0]?.value || '';
-  // 降级数据没有重要级字段，此时即便用户此前勾过也按未勾选处理，
-  // 防止停留在一个必然为空的筛选态。
-  const effectiveImportantOnly = importantOnly && !degraded;
+    // 默认选中第一个频道（正常为「要闻」，降级时也只剩「要闻」）。
+    // 用派生值而非 effect 同步 setState，避免级联渲染。
+    const effectiveChannel = activeChannel || channels[0]?.value || '';
+    // 降级数据没有重要级字段，此时即便用户此前勾过也按未勾选处理，
+    // 防止停留在一个必然为空的筛选态。
+    const effectiveImportantOnly = importantOnly && !degraded;
 
-  const {
-    grouped,
-    loading,
-    refreshing,
-    error,
-    hasMore,
-    degraded: listDegraded,
-    isEmpty,
-    loadMore,
-    refresh,
-  } = useLiveNews(effectiveChannel, {
-    importantOnly: effectiveImportantOnly,
-    keyword,
-    date: dateValue || null,
-  });
+    const {
+        grouped,
+        loading,
+        refreshing,
+        error,
+        hasMore,
+        degraded: listDegraded,
+        isEmpty,
+        loadMore,
+        refresh,
+    } = useLiveNews(effectiveChannel, {
+        importantOnly: effectiveImportantOnly,
+        keyword,
+        date: dateValue || null,
+    });
 
-  const tabItems = useMemo(
-    () => channels.map((channel) => ({ value: channel.value, label: channel.label })),
-    [channels]
-  );
+    const tabItems = useMemo(
+        () => channels.map((channel) => ({ value: channel.value, label: channel.label })),
+        [channels]
+    );
 
-  // 空态文案：按当前筛选条件给出更具体的提示
-  const emptyText = useMemo(() => {
-    if (effectiveImportantOnly) return t('liveNews.emptyImportant');
-    if (keyword.trim()) return t('liveNews.emptyKeyword');
-    if (dateValue) return t('liveNews.emptyDate');
-    return t('liveNews.empty');
-  }, [effectiveImportantOnly, keyword, dateValue, t]);
+    // 空态文案：按当前筛选条件给出更具体的提示
+    const emptyText = useMemo(() => {
+        if (effectiveImportantOnly) return t('liveNews.emptyImportant');
+        if (keyword.trim()) return t('liveNews.emptyKeyword');
+        if (dateValue) return t('liveNews.emptyDate');
+        return t('liveNews.empty');
+    }, [effectiveImportantOnly, keyword, dateValue, t]);
 
-  return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6">
-      <header className="mb-4">
-        <h1 className="text-xl font-semibold text-foreground">{t('liveNews.title')}</h1>
-        <p className="mt-1 text-xs text-muted-text">{t('liveNews.subtitle')}</p>
-      </header>
+    return (
+        <div className="mx-auto w-full">
+            <header className="mb-4">
+                <h1 className="text-xl font-semibold text-foreground">{t('liveNews.title')}</h1>
+                <p className="mt-1 text-xs text-muted-text">{t('liveNews.subtitle')}</p>
+            </header>
 
-      {/* 降级提示：官方源不可用时告知用户能力已收敛 */}
-      {(degraded || listDegraded) && (
-        <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-300">
-          {t('liveNews.degradedTip')}
-        </div>
-      )}
+            {/* 降级提示：官方源不可用时告知用户能力已收敛 */}
+            {(degraded || listDegraded) && (
+                <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-300">
+                    {t('liveNews.degradedTip')}
+                </div>
+            )}
 
-      {/* 频道 Tab：数据来源于后端，降级时自动收敛为单 Tab */}
-      {channelsLoading ? (
-        <div className="py-4">
-          <Loading label={t('liveNews.loading')} />
-        </div>
-      ) : (
-        tabItems.length > 0 && (
-          <TabNav
-            items={tabItems}
-            value={effectiveChannel}
-            onChange={setActiveChannel}
-            variant="secondary"
-            ariaLabel={t('liveNews.channelTabs')}
-          />
-        )
-      )}
+            {/* 频道 Tab：数据来源于后端，降级时自动收敛为单 Tab */}
+            {channelsLoading ? (
+                <div className="py-4">
+                    <Loading label={t('liveNews.loading')} />
+                </div>
+            ) : (
+                tabItems.length > 0 && (
+                    <TabNav
+                        items={tabItems}
+                        value={effectiveChannel}
+                        onChange={setActiveChannel}
+                        variant="secondary"
+                        ariaLabel={t('liveNews.channelTabs')}
+                    />
+                )
+            )}
 
-      {/* 工具条：搜索 / 只看重要的 / 日期 / 刷新 */}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Input
-          type="text"
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          placeholder={t('liveNews.searchPlaceholder')}
-          aria-label={t('liveNews.searchPlaceholder')}
-          className="h-9 min-w-[180px] flex-1"
-        />
-        {/* 降级数据无重要级字段，此时隐藏该开关 */}
-        {!degraded && (
-          <Checkbox
-            checked={importantOnly}
-            onChange={(event) => setImportantOnly(event.target.checked)}
-            label={t('liveNews.importantOnly')}
-            containerClassName="shrink-0"
-          />
-        )}
-        <Select
-          value={dateValue}
-          onChange={setDateValue}
-          options={dateOptions}
-          className="w-[130px] shrink-0"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          isLoading={refreshing}
-          onClick={() => {
-            void refresh();
-          }}
-        >
-          {t('liveNews.refresh')}
-        </Button>
-      </div>
-
-      {/* 内容区：按日期分组 */}
-      <div className="mt-4">
-        {loading ? (
-          <div className="py-10">
-            <Loading label={t('liveNews.loading')} />
-          </div>
-        ) : error ? (
-          <div className="py-10 text-center text-sm text-danger">{error}</div>
-        ) : isEmpty ? (
-          <div className="py-16 text-center text-sm text-muted-text">{emptyText}</div>
-        ) : (
-          grouped.map((group) => (
-            <section key={group.date} className="mb-4">
-              <div className="mb-2 flex items-center gap-3">
-                <h2 className="text-sm font-medium text-foreground">{group.label}</h2>
-                <span className="h-px flex-1 bg-[var(--border)]" />
-              </div>
-              {group.items.map((item) => (
-                <LiveNewsRow
-                  key={`${group.date}-${item.id}`}
-                  item={item}
-                  showImportant={!degraded}
+            {/* 工具条：搜索 / 只看重要的 / 日期 / 刷新 */}
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Input
+                    type="text"
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
+                    placeholder={t('liveNews.searchPlaceholder')}
+                    aria-label={t('liveNews.searchPlaceholder')}
+                    className="h-9 min-w-[180px] flex-1"
                 />
-              ))}
-            </section>
-          ))
-        )}
+                {/* 降级数据无重要级字段，此时隐藏该开关 */}
+                {!degraded && (
+                    <Checkbox
+                        checked={importantOnly}
+                        onChange={(event) => setImportantOnly(event.target.checked)}
+                        label={t('liveNews.importantOnly')}
+                        containerClassName="shrink-0"
+                    />
+                )}
+                <HrsSelect
+                    value={dateValue}
+                    // 单选模式下回调返回 Key | null；非字符串（多选数组 / null）统一按「不限日期」处理
+                    onChange={(value) => setDateValue(typeof value === 'string' ? value : '')}
+                    options={dateOptions}
+                    size="sm"
+                    className="w-[130px] shrink-0"
+                />
+                <HrsButton
+                    size="sm"
+                    isLoading={refreshing}
+                    loadingText={t('liveNews.refreshing')}
+                    onClick={() => { void refresh(); }}
+                >
+                    {t('liveNews.refresh')}
+                </HrsButton>
+            </div>
 
-        {hasMore && !loading && (
-          <div className="mt-4 flex justify-center">
-            <Button variant="ghost" size="sm" onClick={loadMore}>
-              {t('liveNews.loadMore')}
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+            {/* 内容区：按日期分组 */}
+            <div className="mt-4">
+                {loading ? (
+                    <div className="py-10">
+                        <Loading label={t('liveNews.loading')} />
+                    </div>
+                ) : error ? (
+                    <div className="py-10 text-center text-sm text-danger">{error}</div>
+                ) : isEmpty ? (
+                    <div className="py-16 text-center text-sm text-muted-text">{emptyText}</div>
+                ) : (
+                    grouped.map((group) => (
+                        <section key={group.date} className="mb-4">
+                            <div className="mb-2 flex items-center gap-3">
+                                <h2 className="text-sm font-medium text-foreground">{group.label}</h2>
+                                <span className="h-px flex-1 bg-[var(--border)]" />
+                            </div>
+                            {group.items.map((item) => (
+                                <LiveNewsRow
+                                    key={`${group.date}-${item.id}`}
+                                    item={item}
+                                    showImportant={!degraded}
+                                />
+                            ))}
+                        </section>
+                    ))
+                )}
+
+                {hasMore && !loading && (
+                    <div className="mt-4 flex justify-center">
+                        <HrsButton variant="ghost" size="sm" onClick={loadMore}>
+                            {t('liveNews.loadMore')}
+                        </HrsButton>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 };
 
 export default LiveNewsPage;

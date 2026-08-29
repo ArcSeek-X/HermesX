@@ -118,6 +118,8 @@ const zh = {
   'layout.route.usage.title': '用量', // 用量路由標題
   'layout.route.kline.description': '個股 K 线走勢、技術指標與多週期分析', // K 线路由描述
   'layout.route.kline.title': '個股 K 线', // K 线路由標題
+  'layout.route.liveNews.description': '7x24 財經快訊，依頻道篩選與重要級過濾', // 快訊路由描述
+  'layout.route.liveNews.title': '快訊', // 快訊路由標題
   'layout.logout': '登出', // 登出登入按鈕
   'layout.logoutConfirm': '確認登出', // 登出確認按鈕
   'layout.logoutMessage': '確認登出目前登入狀態吗？登出後需要重新輸入密碼登入。', // 登出確認提示文案
@@ -1042,7 +1044,8 @@ const zh = {
   'liveNews.searchPlaceholder': '搜尋快訊…', // 搜尋框占位符
   'liveNews.importantOnly': '只看重要的', // 重要級篩選開關
   'liveNews.importantTag': '重要', // 重要快訊標籤
-  'liveNews.refresh': '刷新', // 手動刷新按鈕
+  'liveNews.refresh': '刷新資訊', // 手動刷新按鈕
+  'liveNews.refreshing': '刷新資訊中', // 刷新按鈕載入態文案（HrsButton loadingText）
   'liveNews.loadMore': '載入更多', // 載入更多按鈕
   'liveNews.dateAll': '全部日期', // 日期篩選：不限
   'liveNews.dateToday': '今天', // 日期篩選：今天

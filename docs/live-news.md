@@ -84,10 +84,10 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 | A股  | `a-stock-channel`   | 30 | 08-28 23:03 | 6/30         | 现货钯金涨8.00%…PVC夜盘收涨约3.1%…★美联储主席凯文·沃什警告称，通胀并未出现有意义的放缓                                             |
 | 美股  | `us-stock-channel`  | 30 | 08-28 23:03 | 14/30        | 现货钯金涨8.00%…美股超大规模云服务商指数涨超2.4%…据知情人士透露，Notion计划今年员工规模扩大约30%                                      |
 | 港股  | `hk-stock-channel`  | 30 | 08-28 22:24 | 10/30        | ★沃什就通胀目标发表评论后，市场对加息预期正在升温沃什讲话之际，现货黄金跌超0.9%，刷新日低至4543.90美元/盎司旭辉控股集团公告，上半年已确认收入约人民币45.37亿         |
-| 外汇  | `forex-channel`     | 30 | 08-28 22:35 | 17/30        | 从海关总署获悉，我国对上合组织其他成员国进出口保持稳定增长★市场对美联储加息的预期正在升温现货黄金跌超0.9%…                                        |
-| 商品  | `commodity-channel` | 30 | 08-28 23:00 | 7/30         | PVC夜盘收涨约3.1%，焦煤涨约3.1%…特朗普称计划授权农民和牧场主自行加工食品★沃什在杰克逊霍尔央行年会首秀之际，美国10年期国债收益率呈V形反转                    |
-| 债券  | `bond-channel`      | 30 | 08-28 22:37 | 11/30        | 邮储银行行长芦苇在中期业绩发布会回答分析师提问越秀地产召开2026年中期业绩发布会国海证券：上半年归母净利润5.51亿元，同比增长48.96%                         |
 | 科技  | `tech-channel`      | 30 | 08-28 17:08 | **0/30**     | AI机器人公司Sharpa已完成超45亿人民币融资，投资方含阿里、美团、腾讯GFK：2026年7月中国音频市场，1000元以上高端TWS华为居首8月21日猛士X700全球首秀，猛士与华为合作 |
+| 商品  | `commodity-channel` | 30 | 08-28 23:00 | 7/30         | PVC夜盘收涨约3.1%，焦煤涨约3.1%…特朗普称计划授权农民和牧场主自行加工食品★沃什在杰克逊霍尔央行年会首秀之际，美国10年期国债收益率呈V形反转                    |
+| 外汇  | `forex-channel`     | 30 | 08-28 22:35 | 17/30        | 从海关总署获悉，我国对上合组织其他成员国进出口保持稳定增长★市场对美联储加息的预期正在升温现货黄金跌超0.9%…                                        |
+| 债券  | `bond-channel`      | 30 | 08-28 22:37 | 11/30        | 邮储银行行长芦苇在中期业绩发布会回答分析师提问越秀地产召开2026年中期业绩发布会国海证券：上半年归母净利润5.51亿元，同比增长48.96%                         |
 
 **8 频道全部返回** **`code=20000`**。
 
@@ -140,10 +140,14 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 | 2  | `a-stock-channel`     | A股     | `a-stock`        | A股相关，与 global 高度重叠          |
 | 3  | `us-stock-channel`    | 美股     | `us-stock`       | 美股相关                        |
 | 4  | `hk-stock-channel`    | 港股     | `hk-stock`       | 港股相关                        |
-| 5  | `forex-channel`       | 外汇     | `forex`          | 外汇、汇率、央行                    |
+| 5  | `tech-channel`        | 科技     | `tech`           | 科技/互联网，**独立于主流，更新最慢**       |
 | 6  | `commodity-channel`   | 商品     | `commodity`      | 期货、贵金属、原油                   |
-| 7  | `bond-channel`        | 债券     | `bond`           | 债券、利率、国债                    |
-| 8  | `tech-channel`        | 科技     | `tech`           | 科技/互联网，**独立于主流，更新最慢**       |
+| 7  | `forex-channel`       | 外汇     | `forex`          | 外汇、汇率、央行                    |
+| 8  | `bond-channel`        | 债券     | `bond`           | 债券、利率、国债                    |
+
+> **顺序即前端 Tab 展示顺序**，与华尔街见闻站点频道栏一致，单一真源为
+> ``data_provider/wallstreetcn_live_news.py`` 的 ``LIVE_NEWS_CHANNELS``。
+> 前端不硬编码频道，完全由 ``GET /live-news/channels`` 驱动。
 
 > **入参/落库映射规则**：上游入参带 `-channel` 后缀，落库 `scope_value` 存**去后缀短码**（`global` / `a-stock` / …），转换由 Fetcher 层统一处理。
 
@@ -404,10 +408,10 @@ CREATE INDEX ix_intel_item_channel_time ON intelligence_items (scope_value, publ
     { "value": "a-stock-channel", "label": "A股" },
     { "value": "us-stock-channel", "label": "美股" },
     { "value": "hk-stock-channel", "label": "港股" },
-    { "value": "forex-channel", "label": "外汇" },
+    { "value": "tech-channel", "label": "科技" },
     { "value": "commodity-channel", "label": "商品" },
-    { "value": "bond-channel", "label": "债券" },
-    { "value": "tech-channel", "label": "科技" }
+    { "value": "forex-channel", "label": "外汇" },
+    { "value": "bond-channel", "label": "债券" }
   ],
   "degraded": false,
   "source": "wallstreetcn"
@@ -757,10 +761,10 @@ export interface RefreshLiveNewsResponse {
 | A股  | `a-stock-channel`   | 100 | 100              | **100%** |
 | 美股  | `us-stock-channel`  | 100 | 100              | **100%** |
 | 港股  | `hk-stock-channel`  | 100 | 100              | **100%** |
-| 外汇  | `forex-channel`     | 100 | 100              | **100%** |
-| 商品  | `commodity-channel` | 100 | 100              | **100%** |
-| 债券  | `bond-channel`      | 100 | 100              | **100%** |
 | 科技  | `tech-channel`      | 100 | 100              | **100%** |
+| 商品  | `commodity-channel` | 100 | 100              | **100%** |
+| 外汇  | `forex-channel`     | 100 | 100              | **100%** |
+| 债券  | `bond-channel`      | 100 | 100              | **100%** |
 
 **兜底源同样 100%**：NewsNow `wallstreetcn-quick` 30 条全部带 `extra.date`。
 

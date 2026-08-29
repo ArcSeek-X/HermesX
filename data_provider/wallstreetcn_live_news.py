@@ -73,15 +73,16 @@ _DEFAULT_REFERER = "https://wallstreetcn.com/"
 # channel_id 为上游查询入参，scope_value 为落库时使用的短码，label 为前端 Tab 文案。
 # 注意：上游 channels 字段中还会出现 xgb / financing / goldc / oil 等更细的内部标记，
 # 本期不单独建 Tab，仅在 raw_payload 中留痕备用。
+# 顺序即前端 Tab 的展示顺序，与华尔街见闻站点的频道栏保持一致。
 LIVE_NEWS_CHANNELS: Tuple[Dict[str, str], ...] = (
     {"channel_id": "global-channel", "scope_value": "global", "label": "要闻"},
     {"channel_id": "a-stock-channel", "scope_value": "a-stock", "label": "A股"},
     {"channel_id": "us-stock-channel", "scope_value": "us-stock", "label": "美股"},
     {"channel_id": "hk-stock-channel", "scope_value": "hk-stock", "label": "港股"},
-    {"channel_id": "forex-channel", "scope_value": "forex", "label": "外汇"},
-    {"channel_id": "commodity-channel", "scope_value": "commodity", "label": "商品"},
-    {"channel_id": "bond-channel", "scope_value": "bond", "label": "债券"},
     {"channel_id": "tech-channel", "scope_value": "tech", "label": "科技"},
+    {"channel_id": "commodity-channel", "scope_value": "commodity", "label": "商品"},
+    {"channel_id": "forex-channel", "scope_value": "forex", "label": "外汇"},
+    {"channel_id": "bond-channel", "scope_value": "bond", "label": "债券"},
 )
 
 # 频道 ID -> 频道定义，便于 O(1) 校验与查找
