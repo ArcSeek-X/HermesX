@@ -131,7 +131,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             ariaLabel={t('kline.searchPlaceholder')}
             className="h-9 text-xs w-60"
           />
-           
+
           {/* <StockSearch
             value={stockQuery}
             size="sm"
@@ -148,7 +148,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             ariaLabel={t('kline.searchPlaceholder')}
             className="h-9 text-xs w-60"
           />
-           
+
           <StockSearch
             value={stockQuery}
             size="xl"
