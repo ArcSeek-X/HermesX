@@ -26,9 +26,9 @@ const NotFoundPage: React.FC = () => {
   }, [t]);
 
   return (
-    <div className=" h-full flex flex-col items-center justify-center text-center px-4 pb-10">
+    <div className=" h-full flex flex-col items-center justify-center text-center px-4 pb-20">
       {/* ===== 404 标识区 ===== */}
-      <div className="relative mb-8">
+      <div className="relative mb-3">
         <span className="bg-gradient-to-b from-[var(--color-cyan)] to-[var(--color-purple)] bg-clip-text text-10xl font-bold text-transparent">
           404
         </span>
