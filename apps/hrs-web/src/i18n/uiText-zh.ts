@@ -587,7 +587,7 @@ const zh = {
   // notFound.*
   'notFound.backHome': '返回首页', // 404 返回首页
   'notFound.description': '抱歉，您访问的页面不存在或已被移动', // 404 描述
-  'notFound.pageTitle': '页面未找到 - HermesX', // 404 页面标题
+  'notFound.documentTitle': '页面未找到 - HermesX', // 404 文档标题（document.title）
   'notFound.title': '页面未找到', // 404 标题
   // report.*
   'report.addToWatchlist': '加入自选', // 报告加入自选按钮

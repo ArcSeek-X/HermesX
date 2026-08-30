@@ -590,7 +590,7 @@ const en: Record<UiTextKey, string> = {
   // notFound.*
   'notFound.backHome': 'Back home',
   'notFound.description': 'The page you requested does not exist or has moved.',
-  'notFound.pageTitle': 'Page not found - HermesX',
+  'notFound.documentTitle': 'Page not found - HermesX',
   'notFound.title': 'Page not found',
   // report.*
   'report.addToWatchlist': 'Add to watchlist',

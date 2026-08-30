@@ -587,7 +587,7 @@ const zhHant = {
   // notFound.*
   'notFound.backHome': '返回首頁', // 404 返回首頁
   'notFound.description': '抱歉，您訪問的頁面不存在或已被移動', // 404 描述
-  'notFound.pageTitle': '頁面未找到 - HermesX', // 404 頁面標題
+  'notFound.documentTitle': '頁面未找到 - HermesX', // 404 文檔標題（document.title）
   'notFound.title': '頁面未找到', // 404 標題
   // report.*
   'report.addToWatchlist': '加入自選', // 報告加入自選按鈕
