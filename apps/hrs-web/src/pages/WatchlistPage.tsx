@@ -132,7 +132,7 @@ const WatchlistPage: React.FC = () => {
 
   return (
     <AppPage className="space-y-4 h-full">
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-start h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-stretch h-full">
         {/* 左侧：分类（grid 默认 stretch，WatchlistGroupPanel 根节点自带 h-full 撑满高度） */}
         <WatchlistGroupPanel
           groups={groups}
@@ -145,32 +145,33 @@ const WatchlistPage: React.FC = () => {
         />
 
         {/* 右侧：自选股列表 */}
-        <AnimCard className="flex flex-col p-4">
+        <AnimCard className="flex flex-col p-4 h-full">
           <div className="flex items-center justify-between mb-3">
             <span className="text-md font-semibold">
               {activeGroup ? activeGroup.name : '分组'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-10 mb-3 flex-wrap">
+            {/* 左侧：排序下拉（固定 100px）+ 搜索框（自适应撑满中间剩余区域） */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <HrsSelect
+                className="w-[100px] shrink-0"
                 value={sortKey}
                 onChange={(v) => setSortKey(v as SortKey)}
                 options={SORT_OPTIONS}
                 placeholder="排序"
               />
               <Input
-                className="w-64"
+                className="flex-1 min-w-0"
                 placeholder="搜索名称/代码/拼音"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
-
             </div>
 
-            <div className="flex items-center gap-2 flex-1 justify-end">
-
+            {/* 右侧：操作按钮，宽度由内容自动撑开 */}
+            <div className="flex items-center shrink-0">
               <HrsButton isDisabled={activeGroupId == null} onClick={() => setAddOpen(true)} >
                 <Plus className="h-4 w-4" />新增
               </HrsButton>
@@ -182,15 +183,17 @@ const WatchlistPage: React.FC = () => {
               请先选择或新增一个分组
             </div>
           ) : (
-            <WatchlistStockTable
-              items={visibleTableList}
-              isLoading={itemsLoading}
-              groups={groups}
-              onEditDescription={editItemDescription}
-              onDelete={removeItem}
-              onMove={moveItem}
-              pagination={pagination}
-            />
+            <div className="flex-1 min-h-0">
+              <WatchlistStockTable
+                items={visibleTableList}
+                isLoading={itemsLoading}
+                groups={groups}
+                onEditDescription={editItemDescription}
+                onDelete={removeItem}
+                onMove={moveItem}
+                pagination={pagination}
+              />
+            </div>
           )}
         </AnimCard>
       </div>
