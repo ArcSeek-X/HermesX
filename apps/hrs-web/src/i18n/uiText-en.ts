@@ -588,7 +588,7 @@ const en: Record<UiTextKey, string> = {
   'liveNews.subtitle': '24/7 financial newsflash across headlines, A-shares, US, HK, FX, commodities, bonds and tech',
   'liveNews.title': 'Newsflash',
   // notFound.*
-  'notFound.backHome': 'Back home',
+  'notFound.backHome': 'Back Home',
   'notFound.description': 'The page you requested does not exist or has moved.',
   'notFound.documentTitle': 'Page not found - HermesX',
   'notFound.title': 'Page not found',
