@@ -575,6 +575,8 @@ const zhHant = {
   'liveNews.emptyDate': '該日期暫無快訊', // 空態：指定日期無資料
   'liveNews.emptyImportant': '本頻道暫無重要快訊', // 空態：重要級篩選無結果
   'liveNews.emptyKeyword': '未找到相關快訊', // 空態：關鍵詞搜尋無結果
+  'liveNews.expand': '展開', // 快訊正文超 3 行時的展開按鈕
+  'liveNews.collapse': '收起', // 快訊正文展開後的收起按鈕
   'liveNews.importantOnly': '只看重要的', // 重要級篩選開關
   'liveNews.importantTag': '重要', // 重要快訊標籤
   'liveNews.loadMore': '載入更多', // 載入更多按鈕

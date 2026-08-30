@@ -575,6 +575,8 @@ const zh = {
   'liveNews.emptyDate': '该日期暂无快讯', // 空态：指定日期无数据
   'liveNews.emptyImportant': '本频道暂无重要快讯', // 空态：重要级筛选无结果（如科技频道实测无重要快讯）
   'liveNews.emptyKeyword': '未找到相关快讯', // 空态：关键词搜索无结果
+  'liveNews.expand': '展开', // 快讯正文超 3 行时的展开按钮
+  'liveNews.collapse': '收起', // 快讯正文展开后的收起按钮
   'liveNews.importantOnly': '只看重要的', // 重要级筛选开关
   'liveNews.importantTag': '重要', // 重要快讯标签
   'liveNews.loadMore': '加载更多', // 加载更多按钮

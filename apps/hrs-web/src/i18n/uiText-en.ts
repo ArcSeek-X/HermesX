@@ -578,6 +578,8 @@ const en: Record<UiTextKey, string> = {
   'liveNews.emptyDate': 'No newsflash on the selected date',
   'liveNews.emptyImportant': 'No important newsflash in this channel',
   'liveNews.emptyKeyword': 'No matching newsflash found',
+  'liveNews.expand': 'Expand',
+  'liveNews.collapse': 'Collapse',
   'liveNews.importantOnly': 'Important only',
   'liveNews.importantTag': 'Important',
   'liveNews.loadMore': 'Load more',

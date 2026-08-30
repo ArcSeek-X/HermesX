@@ -18,10 +18,10 @@
 
 import { useMemo, useState } from 'react';
 // 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
-import { Card, Checkbox, Chip, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, } from '../components';
+import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, } from '../components';
+import { NewsCard } from '../components/common/Card/newsCard';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
-import type { LiveNewsItem } from '../types/liveNews';
 
 /** 把 `YYYY-MM-DD` 之类的键转为本地日期字符串（用于「今天/昨天」选项） */
 function formatDateValue(date: Date): string {
@@ -29,72 +29,6 @@ function formatDateValue(date: Date): string {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-}
-
-/** 把秒级时间戳格式化为 `HH:mm` */
-function formatTime(displayTime: number | null): string {
-    if (!displayTime) return '--:--';
-    const date = new Date(displayTime * 1000);
-    const hour = String(date.getHours()).padStart(2, '0');
-    const minute = String(date.getMinutes()).padStart(2, '0');
-    return `${hour}:${minute}`;
-}
-
-/**
- * 把快讯正文中的【xxx】标题段拆出来单独加粗展示。
- * 华尔街见闻的快讯常用「【标题】正文」的形式，拆分后更接近原站观感。
- */
-function splitLeadingTitle(content: string): { lead: string | null; rest: string } {
-    const match = /^【([^】]+)】\s*/.exec(content);
-    if (!match) return { lead: null, rest: content };
-    return { lead: match[1], rest: content.slice(match[0].length) };
-}
-
-/** 单条快讯卡片（不额外封装成组件文件，按项目约定内联在页面内） */
-function LiveNewsRow({ item, showImportant }: { item: LiveNewsItem; showImportant: boolean }) {
-    const { t } = useUiLanguage();
-    const { lead, rest } = splitLeadingTitle(item.content || item.title);
-    // 快讯常无标题，展示时回退到正文
-    const body = rest || item.title;
-    const isImportant = showImportant && item.important;
-
-    return (
-        <Card className="mb-2 transition-colors hover:border-[var(--primary)]/40" padding="sm">
-            <a
-                href={item.uri || undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex gap-3 no-underline"
-            >
-                {/* 左侧竖线：重要用主色，普通用中性色 */}
-                <span
-                    aria-hidden
-                    className={`mt-0.5 w-[3px] shrink-0 rounded-full ${isImportant ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'
-                        }`}
-                />
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                        <time className="shrink-0 text-xs tabular-nums text-muted-text">
-                            {formatTime(item.displayTime)}
-                        </time>
-                        {isImportant && (
-                            <Chip size="sm" color="danger" variant="soft">
-                                {t('liveNews.importantTag')}
-                            </Chip>
-                        )}
-                        {item.author && (
-                            <span className="truncate text-xs text-muted-text/70">{item.author}</span>
-                        )}
-                    </div>
-                    <p className="mt-1 text-sm leading-relaxed text-foreground">
-                        {lead && <span className="font-semibold">{lead}</span>}
-                        {lead && body ? '　' : null}
-                        {body}
-                    </p>
-                </div>
-            </a>
-        </Card>
-    );
 }
 
 const LiveNewsPage: React.FC = () => {
@@ -239,11 +173,12 @@ const LiveNewsPage: React.FC = () => {
                                 <h2 className="text-sm font-medium text-foreground">{group.label}</h2>
                                 <span className="h-px flex-1 bg-[var(--border)]" />
                             </div>
-                            {group.items.map((item) => (
-                                <LiveNewsRow
+                            {group.items.map((item, idx) => (
+                                <NewsCard
                                     key={`${group.date}-${item.id}`}
                                     item={item}
                                     showImportant={!degraded}
+                                    ordinal={idx}
                                 />
                             ))}
                         </section>

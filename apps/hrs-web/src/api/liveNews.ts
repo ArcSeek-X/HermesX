@@ -61,9 +61,13 @@ interface RawLiveNewsRefreshResponse {
 
 /** snake_case -> camelCase 归一化，避免后端字段风格泄漏到业务层 */
 function normalizeItem(raw: RawLiveNewsItem) {
+  // 快讯 title 常为空 → 回退取 content_text 首行截断（与 docs/live-news.md §11.4 契约一致）
+  const rawTitle = raw.title ?? '';
+  const fallbackTitle =
+    rawTitle.trim().length > 0 ? rawTitle : raw.content?.split('\n')[0]?.trim() ?? '';
   return {
     id: raw.id,
-    title: raw.title ?? '',
+    title: fallbackTitle,
     content: raw.content ?? '',
     displayTime: raw.display_time ?? null,
     score: raw.score ?? 1,

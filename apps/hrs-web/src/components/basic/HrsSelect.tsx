@@ -367,7 +367,7 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
             variant={variant}
             {...heroProps}
             fullWidth={fullWidth}
-            className={cn('hrs-select', className)}
+            className={cn('hrs-select w-50', className)}
         >
             {/* 标签（可选） */}
             {label && <Label className={LABEL_STYLES}>{label}</Label>}
