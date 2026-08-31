@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { Chip } from '../../../components';
 import { HrsButton } from '../../basic/HrsButton';
 import { Separator } from '../../basic/Separator';
-import { ChevronDown, SparkleIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 
 /** 把秒级时间戳格式化为 `HH:mm` */
@@ -113,11 +113,14 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
                         {hasTitle && (
                             <span className="min-w-0 flex-1 break-words whitespace-pre-line text-sm font-semibold leading-snug text-foreground line-clamp-2">
                                 {displayTitle}
-                                {isImportant && (
-                                    <Chip size="sm" color="danger" variant="soft" className="shrink-0">
-                                        {t('liveNews.importantTag')}
-                                    </Chip>
-                                )}
+                                <Chip
+                                    size="sm"
+                                    color={isImportant ? 'danger' : 'default'}
+                                    variant="primary"
+                                    className="shrink-0 ml-2"
+                                >
+                                    {t(isImportant ? 'liveNews.importantTag' : 'liveNews.normalTag')}
+                                </Chip>
                             </span>
                         )}
                     </div>
