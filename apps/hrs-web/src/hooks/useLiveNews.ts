@@ -91,7 +91,7 @@ export interface UseLiveNewsReturn {
     /** 平铺的快讯列表 */
     items: LiveNewsItem[];
     /** 按天分组后的列表，页面直接按组渲染 */
-    grouped: LiveNewsDateGroup[];
+    newsGroupedByDate: LiveNewsDateGroup[];
     /** 首次加载中 */
     loading: boolean;
     /** 后台轮询刷新中（用于展示轻量刷新态，不遮挡内容） */
@@ -299,13 +299,13 @@ export function useLiveNews(
         }
     }, [channel, fetchList]);
 
-    const grouped = useMemo(() => groupByDate(items ?? []), [items]);
+    const newsGroupedByDate = useMemo(() => groupByDate(items ?? []), [items]);
     // 首屏加载态：尚未成功加载过一次，且当前没有报错
     const loading = items === null && !error;
 
     return {
         items: items ?? [],
-        grouped,
+        newsGroupedByDate,
         loading,
         refreshing: manualRefreshing,
         error,
