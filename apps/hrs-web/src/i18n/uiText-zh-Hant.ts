@@ -579,6 +579,7 @@ const zhHant = {
   'liveNews.collapse': '收起', // 快訊正文展開後的收起按鈕
   'liveNews.importantOnly': '只看重要的', // 重要級篩選開關
   'liveNews.importantTag': '重要', // 重要快訊標籤
+  'liveNews.normalTag': '一般', // 普通快訊標籤
   'liveNews.loadMore': '載入更多', // 載入更多按鈕
   'liveNews.loading': '正在取得最新快訊…', // 載入中文案
   'liveNews.refresh': '刷新資訊', // 手動刷新按鈕

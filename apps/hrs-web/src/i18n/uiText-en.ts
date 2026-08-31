@@ -582,6 +582,7 @@ const en: Record<UiTextKey, string> = {
   'liveNews.collapse': 'Collapse',
   'liveNews.importantOnly': 'Important only',
   'liveNews.importantTag': 'Important',
+  'liveNews.normalTag': 'Normal',
   'liveNews.loadMore': 'Load more',
   'liveNews.loading': 'Fetching latest newsflash…',
   'liveNews.refresh': 'Refresh news',

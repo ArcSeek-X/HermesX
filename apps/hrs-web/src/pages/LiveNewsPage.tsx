@@ -60,7 +60,7 @@ const LiveNewsPage: React.FC = () => {
     const effectiveImportantOnly = importantOnly && !degraded;
 
     const {
-        grouped,
+        newsGroupedByDate,
         loading,
         refreshing,
         error,
@@ -75,7 +75,7 @@ const LiveNewsPage: React.FC = () => {
         date: dateValue || null,
     });
 
-    const tabItems = useMemo(
+    const channelTabItems = useMemo(
         () => channels.map((channel) => ({ value: channel.value, label: channel.label })),
         [channels]
     );
@@ -108,9 +108,9 @@ const LiveNewsPage: React.FC = () => {
                     <Loading label={t('liveNews.loading')} />
                 </div>
             ) : (
-                tabItems.length > 0 && (
+                channelTabItems.length > 0 && (
                     <TabNav
-                        items={tabItems}
+                        items={channelTabItems}
                         value={effectiveChannel}
                         onChange={setActiveChannel}
                         variant="secondary"
@@ -167,7 +167,7 @@ const LiveNewsPage: React.FC = () => {
                 ) : isEmpty ? (
                     <div className="py-16 text-center text-sm text-muted-text">{emptyText}</div>
                 ) : (
-                    grouped.map((group) => (
+                    newsGroupedByDate.map((group) => (
                         <section key={group.date} className="mb-4">
                             <div className="mb-2 flex items-center gap-3">
                                 <h2 className="text-sm font-medium text-foreground">{group.label}</h2>

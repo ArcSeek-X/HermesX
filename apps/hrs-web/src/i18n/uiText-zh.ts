@@ -579,6 +579,7 @@ const zh = {
   'liveNews.collapse': '收起', // 快讯正文展开后的收起按钮
   'liveNews.importantOnly': '只看重要的', // 重要级筛选开关
   'liveNews.importantTag': '重要', // 重要快讯标签
+  'liveNews.normalTag': '一般', // 普通快讯标签
   'liveNews.loadMore': '加载更多', // 加载更多按钮
   'liveNews.loading': '正在获取最新快讯…', // 加载中文案
   'liveNews.refresh': '刷新资讯', // 手动刷新按钮
