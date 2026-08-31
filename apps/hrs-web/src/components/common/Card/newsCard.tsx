@@ -46,24 +46,25 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
     const isImportant = showImportant && item.important;
     // 标题取自接口 title 字段；快讯常无标题时回退取 content 首行（数据层已处理）
     const title = item.title;
-    const body = item.content;
+    const content = item.content;
     const hasTitle = title.trim().length > 0;
     // 渲染层控制标题字数：超过 100 字符以省略号收尾（保留内部换行，不做单行截断）
     const displayTitle = title.length > 50 ? `${title.slice(0, 50)}…` : title;
 
-    // 正文展开控制：未展开时 line-clamp-3，超出行高才显示「展开」按钮
+    // 正文展开控制：未展开时 CSS 裁到 3 行，超出行高才显示「展开」按钮
     const [expanded, setExpanded] = useState(false);
     const [overflow, setOverflow] = useState(false);
-    const bodyRef = useRef<HTMLParagraphElement>(null);
+    const contentRef = useRef<HTMLParagraphElement>(null);
     // 展开/收起按钮区域 ref：用于精确排除整卡跳转（避免点击按钮触发原文跳转）
     const expanderRef = useRef<HTMLButtonElement>(null);
-    // 仅在折叠态（!expanded）测量是否溢出：展开态不重新测量，保留 overflow=true，
-    // 使「展开」按钮在展开后仍可见（文案切换为「收起」），避免展开后无法收起
+
+    // 仅用于判断正文是否超出 3 行（决定「展开」按钮显隐）；不参入高度动画，故只在内容变化时测算一次，
+    // 展开/收起不再触发测量与重排版，避免卡顿。预览层常驻 line-clamp-3，直接读 scrollHeight/clientHeight 即可，无需临时改样式。
     useLayoutEffect(() => {
-        if (expanded) return;
-        const el = bodyRef.current;
-        if (el) setOverflow(el.scrollHeight - el.clientHeight > 1);
-    }, [body, expanded]);
+        const el = contentRef.current;
+        if (!el) return;
+        setOverflow(el.scrollHeight - el.clientHeight > 1);
+    }, [content]);
 
     return (
         <motion.div
@@ -96,22 +97,22 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
                 <time
                     className={cn(
                         'w-14 shrink-0 pt-0.5 text-right text-xs tabular-nums',
-                        isImportant ? 'font-medium text-[var(--primary)]' : 'text-muted-text',
+                        isImportant ? 'font-medium text-danger' : 'text-muted-text',
                     )}
                 >
                     {formatTime(item.displayTime)}
                 </time>
 
-                {/* 中：垂直分割线（占满卡片高度，secondary 变体 + 两端渐隐）
+                {/* 中：垂直分割线（占满卡片高度 + 两端渐隐）
                  * 注意：Separator 垂直基类带 h-full，在 row flex 容器中会与 self-stretch 冲突导致高度塌缩为 0；
                  * 用 h-auto 覆盖 h-full，改由 self-stretch 撑满父高。 */}
-                <Separator orientation="vertical" variant="secondary" gradient className="h-auto mx-1 self-stretch" />
+                <Separator orientation="vertical" variant="default" gradient className="h-auto mx-1 self-stretch" />
 
                 {/* 右：标题 + 正文 */}
                 <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-start gap-2">
                         {hasTitle && (
-                            <span className="min-w-0 flex-1 break-words whitespace-pre-line text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                            <span className={cn('min-w-0 flex-1 break-words whitespace-pre-line text-sm font-semibold leading-snug line-clamp-2', isImportant ? 'text-danger' : 'text-foreground')}>
                                 {displayTitle}
                                 <Chip
                                     size="sm"
@@ -124,15 +125,35 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
                             </span>
                         )}
                     </div>
-                    <p
-                        ref={bodyRef}
-                        className={cn(
-                            'mt-1 text-sm leading-relaxed text-foreground',
-                            !expanded && 'line-clamp-3',
-                        )}
-                    >
-                        {body}
-                    </p>
+                    {/* 正文区：常驻 3 行静态预览（绝对定位、卡片底色覆盖，不参与动画）+ 网格动画展开完整正文。
+                     * 网格用 grid-template-rows 0fr↔1fr 做高度过渡（浏览器对网格轨道高效插值，比 height:auto 更顺），
+                     * 预览盖住网格前 3 行避免重复与留白；展开时网格向下揭示第 4 行起的内容。容器 min-h-[3lh] 保证折叠恒为 3 行。 */}
+                    <div className="relative mt-1 min-h-[3lh]">
+                        {/* 常驻 3 行预览：不透明卡片底色覆盖网格前 3 行；折叠态即显示 3 行，展开态仍盖住前 3 行防重复 */}
+                        <div
+                            ref={contentRef}
+                            className={cn(
+                                'absolute inset-x-0 top-0 h-[3lh] overflow-hidden bg-card line-clamp-3 text-sm leading-relaxed',
+                                isImportant ? 'text-danger' : 'text-foreground',
+                            )}
+                        >
+                            {content}
+                        </div>
+                        {/* 动画展开区：承载完整正文，grid 行高 0fr↔1fr 平滑过渡 */}
+                        <div
+                            className={cn(
+                                'grid transition-[grid-template-rows] duration-400 ease-linear',
+                                expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                            )}
+                        >
+                            <div className="min-h-0 overflow-hidden">
+                                <p className={cn('text-sm leading-relaxed', isImportant ? 'text-danger' : 'text-foreground')}>
+                                    {content}
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
                     {/* 正文超 3 行且未展开时显示「展开」；展开后显示「收起」 */}
                     {overflow && (
                         // ref 直接挂 HrsButton（HrsButton 已支持 forwardRef 透传 ref 到内部 DOM button），
@@ -142,7 +163,7 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
                             ref={expanderRef}
                             type="button"
                             variant="ghost"
-                            size="sm"
+                            size="md"
                             onClick={() => setExpanded((v) => !v)}
                             className="px-1 h-7 gap-0.5 !text-primary  hover:no-underline"
                         >
