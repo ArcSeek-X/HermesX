@@ -18,10 +18,6 @@
   /* ========== shadcn 标准语义色（对应 tailwind.config.js colors 扩展） ========== */
   /* 边框 / 分割线 */
   --color-border: hsl(var(--border));
-  /* 输入框描边（HeroUI/shadcn 标准，当前 src 未直接使用，保留生态兼容） */
-  --color-input: hsl(var(--input));
-  /* 焦点环（ring-primary/ring-cyan 用 --color-primary，此独立 token 保留生态兼容） */
-  --color-ring: hsl(var(--ring));
   /* 页面主背景（body/卡片底） */
   --color-background: hsl(var(--background));
   /* 主前景/正文文字 */
