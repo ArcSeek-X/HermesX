@@ -6,7 +6,8 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef } from '../components';
+import { AppPage, InlineTipCard, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef } from '../components';
+import { type ParsedApiError } from '../api/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
@@ -73,6 +74,77 @@ const selectMultiOptions: HrsSelectOptionDef[] = [
     { key: 'ma', label: 'MA 均线' },
 ];
 
+/** InlineTipCard 的 variant 枚举（组件内部类型未导出，此处按同名字面量集合声明） */
+type InlineTipCardVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
+
+/** InlineTipCard 演示：variant 语义色 × ParsedApiError 示例内容 */
+const inlineTipSamples: {
+    key: string;
+    variant: InlineTipCardVariant;
+    label: string;
+    content: ParsedApiError;
+}[] = [
+    {
+        key: 'default',
+        variant: 'default',
+        label: '中性灰，不抢视觉',
+        content: {
+            title: '行情数据来自第三方行情源',
+            message: '行情可能存在 15 分钟延迟，页面数据仅供参考，不构成投资建议。',
+            rawMessage: 'quote_source=third_party, delay=15min, provider=akshare',
+            category: 'unknown',
+        },
+    },
+    {
+        key: 'accent',
+        variant: 'accent',
+        label: '强调 / 信息',
+        content: {
+            title: 'Agent 模式已开启',
+            message: '本次分析将启用工具调用与多轮推理，耗时通常比标准模式更长。',
+            rawMessage: 'agent_mode=enabled, max_tool_rounds=8, backend=codex_app_server',
+            category: 'unknown',
+        },
+    },
+    {
+        key: 'success',
+        variant: 'success',
+        label: '成功',
+        content: {
+            title: '配置已保存',
+            message: '系统配置已写入并生效，无需重启服务。',
+            rawMessage: 'POST /api/v1/system-config 200 OK, updated_items=12',
+            status: 200,
+            category: 'unknown',
+        },
+    },
+    {
+        key: 'warning',
+        variant: 'warning',
+        label: '警告',
+        content: {
+            title: '上游模型响应较慢',
+            message: '当前模型连续两次响应超过 60 秒，建议切换通道或降低并发后再试。',
+            rawMessage: 'upstream latency=63.4s, threshold=60s, channel=deepseek-chat',
+            category: 'upstream_timeout',
+        },
+    },
+    {
+        key: 'danger',
+        variant: 'danger',
+        label: '危险（原 ApiErrorAlert 的红色样式）；此处 message 故意写长，用于验证 line-clamp-3 截断',
+        content: {
+            title: '无法连接到本地服务',
+            message:
+                '请确认 HermesX 后端已启动（默认监听 http://127.0.0.1:8000），且浏览器所在机器可以访问该地址；若服务部署在容器或远程主机，请检查端口映射与防火墙规则，确认无误后点击右侧「重试」再次发起请求。',
+            rawMessage:
+                'AxiosError: Network Error at http://127.0.0.1:8000/api/v1/watchlist (ERR_CONNECTION_REFUSED)\n  at XMLHttpRequest.handleError (xhr.js:117)\n  at dispatchEvent (event-target.js:59)',
+            status: 0,
+            category: 'local_connection_failed',
+        },
+    },
+];
+
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
     const [newName] = useState('');
@@ -86,6 +158,8 @@ const CodeTestPage: React.FC = () => {
     const [selectIndicators, setSelectIndicators] = useState<Key[]>(['macd']);
     // HrsSelect 演示：校验态（未选择时展示错误提示）
     const [selectStrategy, setSelectStrategy] = useState<Key | null>(null);
+    // InlineTipCard 关闭演示：记录被 onDismiss 关掉的卡片 key
+    const [dismissedTips, setDismissedTips] = useState<string[]>([]);
     // Chip 关闭演示：受控标签列表
     const [chips, setChips] = useState<string[]>([
         '科创50',
@@ -109,10 +183,65 @@ const CodeTestPage: React.FC = () => {
 
     return (
         <AppPage>
+            {/* ============ InlineTipCard（内联提示卡片）组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+                <h3 className="text-sm font-medium text-primary-text">InlineTipCard（内联提示卡片）组件演示</h3>
+                <p className="text-xs text-muted">
+                    内联插入页面 DOM 流的提示卡片，与 Toast（浮层、命令式）视觉同源、场景互补。
+                    入参 content 为请求层解析好的 ParsedApiError；当 rawMessage 与 message 不一致时自动出现「详情」展开面板；
+                    danger / warning 语义使用 role=&quot;alert&quot;，其余使用 role=&quot;status&quot;。
+                </p>
 
+                {/* 1. variant 语义色 + 关闭按钮 + 操作按钮 */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-xs text-secondary-text">
+                        1. variant 语义色（default / accent / success / warning / danger）；均带「详情」展开、onDismiss 关闭按钮与 actionLabel 操作按钮
+                    </span>
+                    <div className="flex flex-col gap-3">
+                        {inlineTipSamples.map(({ key, variant, label, content }) =>
+                            dismissedTips.includes(key) ? null : (
+                                <div key={key} className="flex flex-col gap-1">
+                                    <span className="text-[11px] text-muted">
+                                        variant=&quot;{variant}&quot; · {label}
+                                    </span>
+                                    <InlineTipCard
+                                        variant={variant}
+                                        content={content}
+                                        actionLabel="重试"
+                                        onAction={() => console.log('[InlineTipCard] onAction:', key)}
+                                        onDismiss={() => setDismissedTips((prev) => [...prev, key])}
+                                    />
+                                </div>
+                            ),
+                        )}
+                        {dismissedTips.length > 0 ? (
+                            <HrsButton
+                                variant="ghost"
+                                size="sm"
+                                className="self-start"
+                                onClick={() => setDismissedTips([])}
+                            >
+                                恢复已关闭的卡片（{dismissedTips.length}）
+                            </HrsButton>
+                        ) : null}
+                    </div>
+                </div>
 
-            
+                {/* 2. 极简用法：无详情、无按钮 */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">
+                        2. 极简用法：rawMessage 与 message 一致时不渲染「详情」；不传 actionLabel / onDismiss 则不显示按钮
+                    </span>
+                    <InlineTipCard
+                        variant="accent"
+                        content={{
+                            title: '已开启自动刷新',
+                            message: '自选股行情每 30 秒自动刷新一次，可在偏好设置中关闭。',
+                            rawMessage: '自选股行情每 30 秒自动刷新一次，可在偏好设置中关闭。',
+                            category: 'unknown',
+                        }}
+                    />
+                </div>
             </div>
 
             {/* ============ HrsSelect 下拉选择器组件演示 ============ */}

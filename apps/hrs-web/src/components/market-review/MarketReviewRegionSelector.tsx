@@ -106,7 +106,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
         onClick={() => setOpen((current) => !current)}
         className={cn(
           'flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-subtle bg-surface/60 px-3 text-left text-xs text-secondary-text transition-colors',
-          'hover:border-subtle-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none sm:w-auto sm:max-w-64',
+          ' hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none sm:w-auto sm:max-w-64',
           'disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
@@ -145,7 +145,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
               onClick={() => onChange(undefined)}
               className={cn(
                 'flex min-h-10 w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none',
-                value === undefined ? 'bg-primary/12 text-primary' : 'text-secondary-text hover:bg-surface-hover hover:text-foreground',
+                value === undefined ? 'bg-primary/12 text-primary' : 'text-secondary-text hover:text-foreground',
               )}
             >
               <RotateCcw className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
@@ -163,7 +163,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
               disabled={disabled}
               aria-pressed={value !== undefined && displayedRegions.length === MARKET_REVIEW_REGION_ORDER.length}
               onClick={() => onChange([...MARKET_REVIEW_REGION_ORDER])}
-              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm text-secondary-text transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
+              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm text-secondary-text transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
             >
               <span className="flex h-4 w-4 items-center justify-center rounded border border-primary/60 bg-primary/10">
                 <Check
@@ -180,7 +180,7 @@ export const MarketReviewRegionSelector: React.FC<MarketReviewRegionSelectorProp
                 return (
                   <label
                     key={region}
-                    className="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-secondary-text transition-colors hover:bg-surface-hover hover:text-foreground"
+                    className="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-secondary-text transition-colors hover:text-foreground"
                   >
                     <input
                       type="checkbox"

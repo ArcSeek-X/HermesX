@@ -45,6 +45,63 @@ Tailwind 版本：v4.3.3（CSS-First，通过 `src/style/index.css` 的 `@config
 1. 把 `--surface-1/2/3` 补进 `palette.css` 的 `:root` 与 `.dark`（取值可直接沿用 palette-viewer.html：`--surface-1: hsl(var(--card))`、`--surface-2: hsl(var(--elevated))`、`--surface-3: hsl(var(--hover))`）—— 但这样 `bg-surface-2` 类已不存在，需同时改回调用方。
 2. 确认这些位置本就期望透明，则忽略。
 
+### 2026-08-31 第二批：以 config 为基准统一动画与边框（用户执行 + 本轮修正）
+
+| 操作 | 执行方 | 结果 |
+| --- | --- | --- |
+| `animate-slide-in-left` 从 `global.scss` 迁至 config | 用户 | 类已删，config 已加 `animation['slide-in-left']` |
+| 补 `keyframes.slideInLeft` 到 config | 本轮修正 | 用户原改动缺失，见问题 B |
+| 删除 `global.scss` 的 `@keyframes slideInLeft` | 本轮收尾 | 迁移完成后清除重复定义 |
+| 删除 `global.scss` 的 `.bg-subtle`、`.border-subtle`、`.border-subtle-hover:hover` | 用户 | 已删除（前两处为注释状态） |
+| 修正 `borderColor.subtle` 的 `hsl()` 双重包裹 | 本轮修正 | 见问题 A |
+| 删除全部 `hover:bg-surface-hover` 引用 | 用户 | `MarketReviewRegionSelector.tsx` 3 处已清理，全项目无残留 |
+| 删除复现的 `backgroundColor.subtle-soft` / `subtle-active` | 本轮修正 | 见问题 D |
+
+**修正前发现的两个问题（均已修复并编译验证）：**
+
+- **问题 A：`borderColor.subtle` 写成 `hsl(var(--border-subtle))`，导致边框色失效。**
+  `--border-subtle` 本身已是 `hsl(var(--border-subtle-raw) / 0.04)`（light）/ `0.08`（dark），再套一层 `hsl()` 得到 `hsl(hsl(...))`，是非法颜色值，浏览器整条声明丢弃。
+  编译取证：`.border-subtle { border-color: hsl(var(--border-subtle)); }`。
+  影响 `border-subtle` 全部 63 处引用，light / dark 两个主题下边框色都会回退到 currentColor。
+  已改为 `var(--border-subtle)`，验证产物：`.border-subtle { border-color: var(--border-subtle); }`。
+
+- **问题 B：`animation['slide-in-left']` 缺少 `keyframes.slideInLeft`。**
+  编译取证：`@keyframes` 列表只有 `spin, pulse, fadeIn, slideInRight`，`slideInLeft` 未生成。
+  `animate-slide-in-left` 类虽已生成，但找不到对应 keyframes，Drawer 左侧抽屉会无动画直接闪现。
+  已补入 config，验证产物 `@keyframes` 列表：`spin, pulse, fadeIn, slideInLeft, slideInRight`。
+
+**遗留待确认（非本轮引入，既有问题）：**
+
+- **问题 C：`--bg-subtle-hover` 从未定义。**
+  `palette.css` 无此变量，但 `global.scss` 有两处引用：`:373` `.bg-subtle-hover:hover`、`:1291` `.btn-secondary:hover`。
+  两处 `background` 声明均无效。后者是真实可见缺陷：**次要按钮 hover 时背景色无变化**。
+  建议：在 `palette.css` 补 `--bg-subtle-hover`（light 可取 `hsl(var(--bg-subtle-raw) / 0.1)`），或改用已有变量。
+
+- **问题 D：`backgroundColor.subtle-soft` / `subtle-active` 复现。**
+  第一批已删除的两项在第二批改动中重新出现（0 使用），已再次删除。
+
+**本轮改动的视觉影响：**
+
+| 类 | 删除 global.scss 前 | 现行为（config 值） | light 主题变化 |
+| --- | --- | --- | --- |
+| `.bg-subtle` | `var(--bg-subtle)` = 0.03 | 0.05 | 略变重 |
+| `.border-subtle` | `var(--border-subtle)` = 0.04 | `var(--border-subtle)` = 0.04 | 无变化 |
+| `.border-subtle-hover` | 0.06 | 0.15 | **明显变重（2.5 倍）** |
+
+`border-subtle-hover` 在 light 主题下从 0.06 跳到 0.15。若偏重，可改为 `var(--border-subtle-hover)` 以保留 light 0.06 / dark 0.15 的主题差异。
+
+### 2026-08-31 第三批：补齐缺失定义 + 清理冗余变量（已执行）
+
+| 操作 | 结果 |
+| --- | --- |
+| `palette.css` 补 `--bg-subtle-hover`（light 0.1 / dark 0.15） | 修复 `.btn-secondary:hover` 背景色缺失 |
+| `palette.css` 删除 `--bg-hover`、`--home-mobile-overlay-bg`、`--settings-border-overlay`、`--settings-accent-shadow` | 已确认全仓库无运行时消费，light / dark 共 8 行 |
+| `global.scss` 删除 `@keyframes slideInRight`、`.animate-fade-in`、`.animate-spin-in-right` 手写类 | 以 config 为基准，keyframes 由 config 提供 |
+
+编译验证：产物 184356 → 184077 字节（减少部分即 palette.css 中被删的 8 行），`@keyframes` 列表保持 `spin, pulse, fadeIn, slideInLeft, slideInRight` 不变。
+
+**遗留待决策**：`--login-input-toggle-*` 等 13 个变量受一个已失效的测试引用，详见 7.3 节。
+
 ---
 
 ## 1. 排查方法
@@ -84,12 +141,15 @@ Tailwind 版本：v4.3.3（CSS-First，通过 `src/style/index.css` 的 `@config
 | `387` 行 `.border-subtle` | `border-color: var(--border-subtle)`（light 0.04 / dark 0.08） | `borderColor.subtle`（0.08） | light 主题下 0.04 ≠ 0.08 |
 | `391` 行 `.border-subtle-hover:hover` | `border-color: var(--border-subtle-hover)`（light 0.06 / dark 0.15） | `borderColor['subtle-hover']`（0.15） | light 主题下 0.06 ≠ 0.15 |
 
-即：**`borderColor` 与 `backgroundColor` 的实际渲染由 `global.scss` 决定，config 中的值仅在 dark 主题下与之一致**。`border-subtle` 有 63 处引用，改动这两个文件任一处都会影响全站边框，需联动评估。
+即：**`borderColor` 与 `backgroundColor` 的实际渲染曾由 `global.scss` 决定**，config 中的值仅在 dark 主题下与之一致。`border-subtle` 有 63 处引用。
 
-### 2.2 其它既有代码问题（与配置无关，顺带记录）
+**第二批已将这三处手写类全部删除，冲突解除，现以 config 为唯一真源。** light 主题下的实际取值变化见第 0 节"本轮改动的视觉影响"。
 
-- `hover:bg-surface-hover`（`MarketReviewRegionSelector.tsx` 3 处）：Tailwind 配置与 `global.scss` 均无 `surface-hover` 定义，是**无效类**，无任何效果。
-- `animate-slide-in-left`（`Drawer.tsx`）：config 无此 animation，但 `global.scss:1469` 有手写类 + `:1458` `@keyframes slideInLeft`，**不依赖 config**。
+### 2.2 其它既有代码问题（顺带记录）
+
+- ✅ `hover:bg-surface-hover`（`MarketReviewRegionSelector.tsx` 3 处）：Tailwind 配置与 `global.scss` 均无 `surface-hover` 定义，是无效类。**第二批已在引用处全部删除，全项目无残留。**
+- ✅ `animate-slide-in-left`（`Drawer.tsx`）：原依赖 `global.scss:1469` 手写类 + `:1458` `@keyframes slideInLeft`。**第二批已完整迁移至 config**（`animation['slide-in-left']` + `keyframes.slideInLeft`），global.scss 中的类与 keyframes 均已删除。
+- ⚠️ `--bg-subtle-hover` 变量从未在 `palette.css` 定义，导致 `global.scss:373` 与 `:1291` 两处 `background` 声明无效，其中 `.btn-secondary:hover` 的 hover 背景色缺失是可见缺陷。详见第 0 节问题 C。
 
 ---
 
@@ -252,13 +312,17 @@ config 中的值与生效值**一个是背景色、一个是文字色**，语义
 
 ### 7.2 `src/style/global.scss`
 
-**本次删除无需改动**：全文不引用 `--input`、`--ring`、`--surface-1/2/3`、`--input-surface-*`（不同前缀，无关）、`w-18`/`p-18`/`h-22`/`m-22`、`subtle-soft`/`subtle-active`。
+**第一批**：无需改动。全文不引用 `--input`、`--ring`、`--surface-1/2/3`、`--input-surface-*`（不同前缀，无关）、`w-18`/`p-18`/`h-22`/`m-22`。
 
-需注意：
+**第二批（用户执行）**：删除 `.bg-subtle`(369)、`.border-subtle`(387)、`.border-subtle-hover:hover`(391)、`.animate-slide-in-left`(1469)。
+**第二批（本轮收尾）**：删除已迁至 config 的 `@keyframes slideInLeft`。
 
-- 自带 `@keyframes`：`slideInRight`(228)、`spin`(239)、`zoomIn`(248)、`slideInFromTopSm`(259)、`slideInFromTopMd`(270)、`slideInFromBottomMd`(281)、`slideInLeft`(1458)；**无 `fadeIn`**，依赖 config 提供。
-- 自带动画类 `.animate-fade-in`(292)、`.animate-slide-in-right`(296)、`.animate-spin`(300)、`.animate-in`(304)、`.animate-slide-in-left`(1469)。
-- 第 2.1 节列出的三处同名类覆盖 Tailwind 配置，需在第三批处理。
+当前状态：
+
+- 剩余自带 `@keyframes`：`slideInRight`(228)、`spin`(239)、`zoomIn`(248)、`slideInFromTopSm`(259)、`slideInFromTopMd`(270)、`slideInFromBottomMd`(281)。**无 `fadeIn`**，依赖 config 提供（见第 5 节坑 2）。
+- 剩余自带动画类 `.animate-fade-in`(292)、`.animate-slide-in-right`(296)、`.animate-spin`(300)、`.animate-in`(304)。前两者与 config 同名，仍会覆盖 config 的 `animation` 值（keyframes 仍由 config 提供），后续批次可清理。
+- `@keyframes slideInRight`(228) 与 config 的 `keyframes.slideInRight` 重复定义，内容一致、无实际冲突。
+- ⚠️ `.bg-subtle-hover:hover`(373) 与 `.btn-secondary:hover`(1291) 引用的 `--bg-subtle-hover` 在 `palette.css` 中无定义，两处声明无效。
 
 ### 7.3 `src/style/palette.css`
 
@@ -275,13 +339,30 @@ config 中的值与生效值**一个是背景色、一个是文字色**，语义
 --login-input-toggle-active-bg / -active-border / -active-text
 ```
 
-判定与建议：
+**第三批（已执行）**：补齐缺失定义，删除 4 个确认无引用的变量。
 
-| 分组 | 建议 |
+| 操作 | 内容 |
 | --- | --- |
-| `--input`、`--ring` | **保留**。palette.css 81–83 行注释说明这两个是 HeroUI/shadcn 同名变量，用于覆盖组件库默认值；删除可能导致 HeroUI 焦点环回落为库默认色。项目内无 `var()` 引用不等于无消费 |
-| `--login-input-toggle-*`（12 个） | 疑似登录页改版后遗留。若确认登录页已不使用该套 toggle，可整组删除 |
-| `--glow-intensity`、`--bg-hover`、`--home-mobile-overlay-bg`、`--settings-border-overlay`、`--settings-accent-shadow`、`--login-label-text`、`--login-hint-text`、`--login-input-icon` | 均出现在 `palette-viewer.html` 调色板文档中。若该文档仍作为设计交付物，建议保留（或加 `deprecated` 注释） |
+| 补充定义 | `--bg-subtle-hover`：light `hsl(var(--bg-subtle-raw) / 0.1)`、dark `hsl(var(--bg-subtle-raw) / 0.15)` |
+| 删除 | `--bg-hover`、`--home-mobile-overlay-bg`、`--settings-border-overlay`、`--settings-accent-shadow`（light / dark 各 1 处，共 8 行） |
+
+补齐后 `global.scss` 的 `.bg-subtle-hover:hover` 与 `.btn-secondary:hover` 声明恢复生效，次要按钮 hover 背景色不再缺失。变量总数：216 → 213。
+
+**修正此前一处误判**：`--glow-intensity` 并非冗余，它被 `palette.css` 自身消费（`:185`–`:187` 的 `--sentiment-*-glow` 共 3 处），**必须保留**。上一版扫描因排除定义文件自身而漏判。
+
+**待决策：`--login-input-toggle-*` 等 13 个变量。**
+
+UI 运行时无消费，唯一引用来自 `apps/hrs-web/tests/login-theme-tokens.test.ts` 的 `REQUIRED_LOGIN_TOKENS` 清单。
+
+该测试**当前即为失败状态，且与本次改动无关**：它读取 `src/style/index.css` 并用正则抽取 `:root` / `.dark` 块，但这些 token 定义在 `palette.css` 中，且 index.css 里不存在 `.dark` 块（`darkMatch` 为 `null`）。属于失效测试，未提供有效保护。
+
+可选处理：
+
+1. 保留变量 + 修正测试读取路径（改为解析 `palette.css`）—— 保留保护意图
+2. 删除变量 + 同步清理测试清单条目 —— 彻底清理
+3. 维持现状
+
+**调色板文档同步提示**：`palette-viewer.html` 的清单数组（735、771、838、839、893–896 行等）仍列有本次删除的 4 个变量。该文档自带独立 `:root` 变量副本，展示不受影响，但两者已不同步。
 
 > `--danger` 曾被初版扫描误判为无引用，实际被 `tailwind.config.js` 引用 3 次（`danger`、`danger-dim`、`danger-glow`），**必须保留**。
 

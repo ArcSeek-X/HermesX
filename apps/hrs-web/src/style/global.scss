@@ -3,7 +3,7 @@
    ========================================= */
 /* 全局基础样式区：元素默认样式、标题、圆环仪表、输入框、
    徽章、列表、滚动条、动画、毛玻璃面板与通用工具类 */
-   
+
 /* ============ Base Styles ============ */
 /* 元素默认样式（@layer base）：设置 body 基础背景与文字色，
    其余默认样式由 Tailwind Preflight 提供 */
@@ -22,13 +22,9 @@
   .hrs-index-card {
     border: 1px solid var(--border-subtle) !important;
   }
-
-
-
-
-
-
 }
+
+
 /* ============ Circular Gauge ============ */
 .gauge-ring {
   filter: drop-shadow(0 0 8px var(--color-cyan-glow));
@@ -147,15 +143,6 @@
     color 0.2s ease;
 }
 
-.gcx{
-  color: var(--input-surface-text, var(--text-primary));
-  font-size: 40px;
-}
-
-
-
-
-
 
 .input-surface::placeholder {
   color: var(--input-surface-placeholder, var(--text-muted-text));
@@ -217,15 +204,6 @@
   --input-surface-shadow: var(--login-input-shadow, var(--shadow-soft-card));
 }
 
-/* ============ Badge Styles ============ */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
 
 /* ============ Custom Scrollbar ============ */
 ::-webkit-scrollbar {
@@ -247,27 +225,6 @@
 }
 
 /* ============ Animations ============ */
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px var(--color-cyan-glow);
-  }
-  50% {
-    box-shadow: 0 0 40px var(--color-cyan-glow);
-  }
-}
-
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -321,14 +278,6 @@
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
-}
-
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -360,21 +309,11 @@
 }
 
 /* ============ Glassmorphism Panels ============ */
-.glass-panel {
-  @apply rounded-2xl border border-border/60 bg-card/70 shadow-soft-card backdrop-blur-md transition-all;
-}
-
 .glass-panel-lg {
   @apply rounded-3xl border border-border/60 bg-card/70 shadow-soft-card backdrop-blur-md transition-all;
 }
 
 /* ============ Utilities ============ */
-.text-cyan {
-  color: var(--color-cyan);
-}
-.text-primary {
-  color: var(--color-cyan);
-}
 .text-cyan-400 {
   color: hsl(var(--color-cyan-400));
 }
@@ -390,21 +329,13 @@
 .text-purple {
   color: hsl(var(--color-purple));
 }
-.text-success {
-  color: hsl(var(--color-success));
-}
-.text-danger {
-  color: hsl(var(--color-danger));
-}
-.text-warning {
-  color: hsl(var(--color-warning));
-}
-.text-muted-text {
-  color: var(--text-muted-text);
-}
-.text-secondary-text {
-  color: var(--text-secondary-text);
-}
+
+/* .text-success { color: hsl(var(--color-success)); } */
+/* .text-danger { color: hsl(var(--color-danger)); } */
+/* .text-warning { color: hsl(var(--color-warning)); } */
+
+
+
 
 .bg-base {
   background: var(--bg-base);
@@ -416,9 +347,9 @@
   background: var(--bg-elevated);
 }
 
-.bg-subtle {
+/* .bg-subtle {
   background: var(--bg-subtle);
-}
+} */
 
 .bg-subtle-hover:hover {
   background: var(--bg-subtle-hover);
@@ -434,18 +365,10 @@
   border-color: var(--border-cyan);
 }
 
-.border-subtle {
-  border-color: var(--border-subtle);
-}
+// .border-subtle {
+//   border-color: var(--border-subtle);
+// }
 
-.border-subtle-hover:hover {
-  border-color: var(--border-subtle-hover);
-}
-
-/* Glow utilities */
-.glow-cyan {
-  box-shadow: 0 0 20px var(--color-cyan-glow);
-}
 
 /* ============ Responsive ============ */
 /* =========================================
@@ -588,7 +511,7 @@ textarea {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--border-subtle-hover) 50%,
+    var(--bg-subtle) 50%,
     transparent 100%
   );
   pointer-events: none;
@@ -648,7 +571,7 @@ textarea {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--border-subtle-hover) 50%,
+    var(--bg-subtle) 50%,
     transparent 100%
   );
   pointer-events: none;
@@ -1383,24 +1306,8 @@ textarea {
     0 18px 34px rgba(0, 212, 255, 0.22);
 }
 
-.bg-hover {
-  background: var(--bg-hover);
-}
-
 .bg-primary-gradient {
   background: var(--gradient-primary);
-}
-
-.text-secondary {
-  color: var(--text-secondary-text);
-}
-
-.text-muted {
-  color: var(--text-muted-text);
-}
-
-.shadow-soft-card {
-  box-shadow: var(--shadow-soft-card);
 }
 
 .shadow-soft-card-strong {
@@ -1524,21 +1431,6 @@ textarea {
 
 .touch-pan-x {
   touch-action: pan-x pan-y;
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
 }
 
 /* Chat page Markdown table styles */

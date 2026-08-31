@@ -93,7 +93,7 @@ const variantStylesConfig: Record<InlineTipCardVariant, {
     title: string;
 }> = {
     default: {
-        bg: 'bg-subtle',
+        bg: 'bg-foreground-dim',
         surface: 'bg-elevated/95',
         icon: 'text-secondary-text',
         title: 'text-foreground',
@@ -205,7 +205,7 @@ export const InlineTipCard: React.FC<InlineTipCardProps> = ({
                             type="button"
                             aria-label={t('common.close')}
                             onClick={onDismiss}
-                            className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center 
+                            className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center
                             text-muted-text/60 transition-colors hover:bg-surface-2 hover:text-muted-text
                             focus:outline-none"
                         >
