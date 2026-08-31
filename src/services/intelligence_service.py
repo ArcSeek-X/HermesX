@@ -85,6 +85,21 @@ _AUTO_FETCH_MIN_INTERVAL_SECONDS = 60 * 60
 # 快讯降级用的 NewsNow 源 ID：官方源不可用时改用该聚合源抓取「要闻」合并流
 _LIVE_NEWS_FALLBACK_SOURCE_ID = "wallstreetcn-quick"
 
+# 受信任的内置数据源主机白名单：仅这些官方/聚合源在出站时允许复用系统代理、
+# 并放行代理 fake-ip 网段（见 _FAKE_IP_NETWORKS）。用户自定义源不在这份白名单中，
+# 仍保持“禁用代理 + 严格 SSRF 判段”，安全边界不被削弱。
+_TRUSTED_SOURCE_HOSTS = {
+    "api-one.wallstcn.com",      # 华尔街见闻 7x24 快讯官方源
+    "newsnow.busiyi.world",      # NewsNow 聚合兜底源
+}
+
+# 代理 fake-ip 网段（Clash 等工具的默认 fake-ip-range，RFC 2544 基准测试网段）。
+# 该段并非真实私网，代理侧会将其还原为真实公网地址；在“受信任源 + 已走代理”的
+# 前提下放行，避免本地开发代理环境下误判 SSRF 而把所有抓取全部拦截。
+_FAKE_IP_NETWORKS = [
+    ipaddress.ip_network("198.18.0.0/15"),
+]
+
 # 内置资讯源模板（标准 RSS/Atom 类）；NewsNow 源由下方定义动态拼装 URL
 _BUILTIN_SOURCE_TEMPLATES = [
     {
@@ -512,6 +527,8 @@ class IntelligenceService:
             raise IntelligenceServiceError("source url host is required")
         if hostname in _PRIVATE_HOSTNAMES or hostname.endswith(".local"):
             raise IntelligenceServiceError("source url host is not allowed")
+        # 受信任的内置官方/聚合源：允许在代理 fake-ip 环境下放行（fake-ip 由代理还原为真实公网）
+        allow_fake_ip = hostname in _TRUSTED_SOURCE_HOSTS
         has_public_address = False
         # 直接以 IP 访问时无需 DNS，直接判段
         try:
@@ -519,7 +536,7 @@ class IntelligenceService:
         except ValueError:
             ip = None
         if ip is not None:
-            if self._is_blocked_ip(ip):
+            if self._is_blocked_ip(ip, allow_fake_ip=allow_fake_ip):
                 raise IntelligenceServiceError("source url must not target private or local network addresses")
             return
         # 域名形式：解析后逐个地址判段，任一地址命中黑名单即拒绝
@@ -534,15 +551,23 @@ class IntelligenceService:
                 ip = ipaddress.ip_address(info[4][0])
             except (IndexError, ValueError):
                 continue
-            if self._is_blocked_ip(ip):
+            if self._is_blocked_ip(ip, allow_fake_ip=allow_fake_ip):
                 raise IntelligenceServiceError("source url must not target private or local network addresses")
             has_public_address = True
         if not has_public_address:
             raise IntelligenceServiceError(f"source url host DNS resolution failed: {hostname}")
 
     @staticmethod
-    def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
-        """判断 IP 是否属于禁止访问的地址：非全局单播或私网/回环/链路本地/保留/组播。"""
+    def _is_blocked_ip(ip: ipaddress._BaseAddress, *, allow_fake_ip: bool = False) -> bool:
+        """判断 IP 是否属于禁止访问的地址：非全局单播或私网/回环/链路本地/保留/组播。
+
+        allow_fake_ip=True 时仅对受信任源放行代理 fake-ip 网段（RFC 2544），
+        其余内网/回环/保留判段逻辑不变。
+        """
+        if allow_fake_ip:
+            for net in _FAKE_IP_NETWORKS:
+                if ip in net:
+                    return False
         return (
             not ip.is_global
             or ip.is_private
@@ -691,21 +716,25 @@ class IntelligenceService:
         """
         parsed = urlparse(raw_url)
         target_hostname = self._normalize_hostname(parsed.hostname)
+        # 受信任源：允许 fake-ip 网段（代理环境下真实地址由代理还原）
+        allow_fake_ip = target_hostname in _TRUSTED_SOURCE_HOSTS
         original_getaddrinfo = socket.getaddrinfo
 
         def guarded_getaddrinfo(host: Any, port: Any, *args: Any, **inner_kwargs: Any) -> Any:
             addrinfos = original_getaddrinfo(host, port, *args, **inner_kwargs)
             # 只校验目标主机，避免影响无关域名（如系统内部解析）
             if self._normalize_hostname(host) == target_hostname:
-                self._validate_addrinfos(addrinfos)
+                self._validate_addrinfos(addrinfos, allow_fake_ip=allow_fake_ip)
             return addrinfos
 
         with _DNS_GUARD_LOCK:
             socket.getaddrinfo = guarded_getaddrinfo
             try:
                 request_kwargs = dict(kwargs)
-                # 禁用系统代理，防止代理侧绕过 SSRF 判定
-                request_kwargs.setdefault("proxies", _DISABLE_REQUEST_PROXIES)
+                # 受信任源允许复用系统代理：Clash 等工具的 fake-ip 模式需经代理还原真实公网地址；
+                # 非受信任源仍显式禁用代理，避免代理侧绕过 SSRF 判定。
+                if not allow_fake_ip:
+                    request_kwargs.setdefault("proxies", _DISABLE_REQUEST_PROXIES)
                 return requests.get(raw_url, **request_kwargs)
             finally:
                 socket.getaddrinfo = original_getaddrinfo
@@ -722,14 +751,14 @@ class IntelligenceService:
             return normalized
 
     @staticmethod
-    def _validate_addrinfos(addr_infos: Any) -> None:
+    def _validate_addrinfos(addr_infos: Any, *, allow_fake_ip: bool = False) -> None:
         """校验一批 getaddrinfo 结果，只要命中黑名单地址即拒绝。"""
         for info in addr_infos or []:
             try:
                 ip = ipaddress.ip_address(info[4][0])
             except (IndexError, TypeError, ValueError):
                 continue
-            if IntelligenceService._is_blocked_ip(ip):
+            if IntelligenceService._is_blocked_ip(ip, allow_fake_ip=allow_fake_ip):
                 raise IntelligenceServiceError("source url must not target private or local network addresses")
 
     def _parse_feed(self, content: bytes, *, source_name: str, limit: int) -> List[FeedEntry]:

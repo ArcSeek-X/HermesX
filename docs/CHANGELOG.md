@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [新功能] 新增实时财经快讯中心（`/live-news`）：接入华尔街见闻 7x24 快讯，提供要闻/A股/美股/港股/外汇/商品/债券/科技 8 个频道 Tab、重要级筛选、关键词搜索与按日过滤，官方源不可用时自动降级到 NewsNow 聚合源（降级时仅保留「要闻」且无重要级）。设计与接口契约见 `docs/live-news.md`。
 - [新功能] 新增快讯后端接口：`GET /api/v1/intelligence/live-news/channels`、`GET /api/v1/intelligence/live-news`、`POST /api/v1/intelligence/live-news/refresh`、`GET /api/v1/intelligence/live-news/{item_id}`，支持频道/重要级/关键词/日期区间过滤与 keyset 游标分页。
 - [改进] `intelligence_items` 新增 `importance` 列与频道查询复合索引，用于承载快讯重要级；存量库通过启动时幂等补列迁移，补列失败仅告警不阻断启动。
+- [修复] 快讯抓取在本地代理（Clash 等 fake-ip 模式）环境下被 SSRF 校验误拦，导致库数据陈旧、`live-news/refresh` 返回 `source url must not target private or local network addresses` 错误；对受信任内置源（华尔街见闻快讯、NewsNow 聚合源）放行 fake-ip 网段（198.18.0.0/15）并允许复用系统代理解析真实地址，用户自定义源仍保持禁用代理 + 严格判段。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 
