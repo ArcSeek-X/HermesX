@@ -16,6 +16,7 @@ import { ThemeProvider } from './components/theme/ThemeProvider'
 
 // 找到 DOM 中的 #root 容器并创建根，非 null 断言由 index.html 保证
 createRoot(document.getElementById('root')!).render(
+// React 18 StrictMode 在开发模式下的「双倍 effect 执行（挂载 → 卸载 → 再挂载,用来暴露「副作用没有正确清理」之类的潜在问题）
   <StrictMode>
     <ThemeProvider>
       <App />
