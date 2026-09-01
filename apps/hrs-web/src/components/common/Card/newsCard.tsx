@@ -74,7 +74,7 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
             transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
             className={cn(
                 'mb-2 rounded-lg bg-card border border-subtle p-4',
-                'transition-colors hover:border-[var(--primary)]/40',
+                'transition-colors hover:border-primary/10 hover:!bg-primary/5',
             )}
         >
             <div
@@ -133,7 +133,7 @@ export function NewsCard({ item, showImportant, ordinal = 0 }: NewsCardProps) {
                         <div
                             ref={contentRef}
                             className={cn(
-                                'absolute inset-x-0 top-0 h-[3lh] overflow-hidden bg-card line-clamp-3 text-sm leading-relaxed',
+                                'absolute inset-x-0 top-0 h-[3lh] overflow-hidden line-clamp-3 text-sm leading-relaxed',
                                 isImportant ? 'text-danger' : 'text-foreground',
                             )}
                         >

@@ -3,10 +3,8 @@
 @import "./palette.css";
 @config "../../tailwind.config.js";
 @import "./hsl-inline.css";
-@import "./global.scss"; 
+@import "./global.scss";
 /* @import "./hrs-global.css"; */
-
-/* Tailwind v4 strategy: keep theme extensions in tailwind.config.js via @config until a dedicated @theme/@utility migration. */
 
 /* =====================================================================
    全局样式文件总览（index.css）

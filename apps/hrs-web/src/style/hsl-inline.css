@@ -72,7 +72,7 @@
   /* 危险红（等同 --color-destructive） */
   --color-danger: hsl(var(--destructive));
   /* 极弱分隔/底色（前景色 5% 透明） */
-  --color-subtle: hsl(var(--bg-subtle-raw) / 0.05);
+  /* --color-subtle: hsl(var(--bg-subtle-raw) / 0.05); */
   /* 弱分隔 hover 态（前景色 10% 透明） */
-  --color-subtle-hover: hsl(var(--bg-subtle-raw) / 0.1);
+  /* --color-subtle-hover: hsl(var(--bg-subtle-raw) / 0.1); */
 }
