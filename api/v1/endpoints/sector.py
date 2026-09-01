@@ -8,6 +8,9 @@
 1. GET /api/v1/sector/industry - 行业板块树形数据（一级行业包含二级行业子节点）
 2. GET /api/v1/sector/{sector_code}/stocks - 板块成分股列表
 3. GET /api/v1/sector/market-indices - 市场指数数据（上证、深证、创业板等）
+4. GET /api/v1/sector/market-overview - 市场概览（涨跌家数、成交额、涨跌停家数、量能）
+5. GET /api/v1/sector/northbound-flow - 北向资金（沪深港通）净流入
+6. GET /api/v1/sector/market-fund-flow - 大盘主力资金净流入
 
 数据来源：时到量化（shidaotec.com）申万行业分类接口
 - 行业结构：https://www.shidaotec.com/api/yuntu/getSwMapScale
@@ -21,6 +24,7 @@
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional
 
 import requests
@@ -31,9 +35,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ---------- 配置 ----------
-REQUEST_TIMEOUT = 15
+# 连接超时 5s，读取超时 10s（东财接口偶发慢响应）
+REQUEST_TIMEOUT = (5, 10)
 # 缓存 TTL（秒）：5 分钟（涨跌幅实时性要求高）
 CACHE_TTL = 300
+# 并发线程数（获取板块资金流历史）
+FUND_FLOW_MAX_WORKERS = 5
 
 # 时到量化 API
 SHIDAOTEC_SCALE_URL = "https://www.shidaotec.com/api/yuntu/getSwMapScale"
@@ -58,12 +65,36 @@ MARKET_INDICES = [
     {"secid": "1.000001", "name": "上证指数", "code": "000001"},
     {"secid": "0.399001", "name": "深证成指", "code": "399001"},
     {"secid": "0.399006", "name": "创业板指", "code": "399006"},
-    {"secid": "1.000688", "name": "科创50", "code": "000688"},
     {"secid": "1.000681", "name": "科创板指", "code": "000681"},
     {"secid": "1.000016", "name": "上证50", "code": "000016"},
     {"secid": "1.000300", "name": "沪深300", "code": "000300"},
     {"secid": "0.399905", "name": "中证500", "code": "399905"},
-    {"secid": "0.932000", "name": "中证2000", "code": "932000"},
+    {"secid": "0.399303", "name": "国证2000", "code": "399303"},
+    {"secid": "1.000688", "name": "科创50", "code": "000688"},
+    {"secid": "0.899050", "name": "北证50", "code": "899050"},
+]
+
+# 欧美股主要指数配置。
+# secid 前缀规则（东方财富行情）：
+#   - 美股主要指数（道琼斯/标普/纳斯达克/纳指100）使用 100. 前缀；
+#   - 中国金龙指数、费城半导体等美股行业/概念指数在东财「美股」板块使用 251. 前缀
+#     （对应 quote.eastmoney.com/gb/zsXXX.html 的 unify/r/251.xxx 路由）。
+# 纳指金融100、纳指互联网东财未单独收录行情页，先以 251. 前缀尝试，
+# 若接口无返回则前端 IndexCard 优雅降级显示 --（不影响其余卡片）。
+MARKET_INDICES_US = [
+    {"secid": "100.DJIA", "name": "道琼斯", "code": "DJIA"},
+    {"secid": "100.SPX", "name": "标普500", "code": "SPX"},
+    {"secid": "100.NDX", "name": "纳斯达克", "code": "NDX"},
+    {"secid": "100.NDX100", "name": "纳斯达克100", "code": "NDX100"},
+    {"secid": "251.HXC", "name": "纳指金龙中国", "code": "HXC"},
+    {"secid": "251.SOX", "name": "费城半导体指数", "code": "SOX"},
+]
+
+# 日韩主要指数配置（secid 前缀 100，对应东财全球指数 unify/r/100.xxx 路由）。
+# 韩国综指即 KOSPI（韩国综合股价指数），与 KOSDAQ（韩国创业板）并列展示。
+MARKET_INDICES_JP_KR = [
+    {"secid": "100.N225", "name": "日经指数", "code": "N225"},
+    {"secid": "100.KS11", "name": "韩国KOSPI", "code": "KS11"},
 ]
 
 # ETF 涨跌幅周期映射（type 参数对应不同时间维度）
@@ -133,12 +164,8 @@ _concept_cache = {
     "ttl": CACHE_TTL,
 }
 
-# ---------- 市场指数缓存 ----------
-_index_cache = {
-    "data": None,
-    "timestamp": 0,
-    "ttl": 60,  # 指数数据 60 秒缓存
-}
+# ---------- 市场指数缓存（按市场分别缓存：{'a': {...}, 'us': {...}}） ----------
+_index_cache: Dict[str, Dict] = {}
 
 # ---------- 市场概览缓存（涨跌家数 + 量能） ----------
 # 数据来源：东方财富 push2delay API（全量 A 股实时行情）
@@ -147,18 +174,49 @@ EASTMONEY_MARKET_URL = "http://push2delay.eastmoney.com/api/qt/clist/get"
 # A 股全市场筛选条件：沪深主板 + 创业板 + 科创板 + 北交所
 A_SHARE_FILTER = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
 
+# 北向资金（沪深港通）实时资金接口
+# 注意：自 2024-08 起北向资金实时数据停止盘中披露，接口可能返回空数据
+EASTMONEY_NORTHBOUND_URL = "https://push2.eastmoney.com/api/qt/kamt/get"
+
+# 大盘资金流日线接口（上证指数，用于大盘主力净流入与占比）
+EASTMONEY_FFLOW_DAYKLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get"
+
 _overview_cache = {
     "data": None,
     "timestamp": 0,
     "ttl": 60,  # 60 秒缓存
 }
 
+# ---------- 北向资金 / 大盘主力缓存（60 秒） ----------
+_flow_cache = {
+    "northbound": None,
+    "market_fund_flow": None,
+    "timestamp": 0,
+    "ttl": 60,
+}
 
-def _fetch_market_indices() -> Optional[List[Dict]]:
-    """获取市场指数数据（东方财富 API，主域名失败则 fallback 到延迟域名）"""
-    secids = ",".join([idx["secid"] for idx in MARKET_INDICES])
+# ---------- 板块列表缓存（60 秒，按板块类型分别缓存） ----------
+_board_list_cache = {
+    "data": {},  # {"industry": [...], "concept": [...]}
+    "timestamp": 0,
+    "ttl": 60,
+}
+
+
+def _fetch_market_indices(market: str = "a") -> Optional[List[Dict]]:
+    """获取市场指数数据（东方财富 API，主域名失败则 fallback 到延迟域名）。
+
+    market: 'a' 返回 A 股主要指数，'us' 返回欧美股主要指数。
+    """
+    if market == "us":
+        indices_cfg = MARKET_INDICES_US
+    elif market == "jp-kr":
+        indices_cfg = MARKET_INDICES_JP_KR
+    else:
+        indices_cfg = MARKET_INDICES
+    secids = ",".join([idx["secid"] for idx in indices_cfg])
     # 构建 code → 自定义名称的映射，使用我们定义的名称而非 API 返回的名称
-    code_name_map = {idx["code"]: idx["name"] for idx in MARKET_INDICES}
+    code_name_map = {idx["code"]: idx["name"] for idx in indices_cfg}
 
     for url in [EASTMONEY_INDEX_URL, EASTMONEY_INDEX_URL_DELAY]:
         try:
@@ -166,7 +224,8 @@ def _fetch_market_indices() -> Optional[List[Dict]]:
                 url,
                 params={
                     "fltt": "2",
-                    "fields": "f2,f3,f12,f14",
+                    # f15=最高 f16=最低 f18=昨收 用于派生指数振幅（指数无成交额，海外指数 f6 为空）
+                    "fields": "f2,f3,f4,f5,f6,f12,f14,f15,f16,f18",
                     "secids": secids,
                 },
                 timeout=REQUEST_TIMEOUT,
@@ -179,6 +238,22 @@ def _fetch_market_indices() -> Optional[List[Dict]]:
                 for item in items:
                     price = item.get("f2", "-")
                     change_pct = item.get("f3", "-")
+                    change = item.get("f4", "-")  # 涨跌点数
+                    amount = item.get("f6", "-")  # 成交额（元，海外指数通常为空）
+                    # 成交额无效（空标记或 0）时置 None，前端据此降级显示振幅而非「成交 0.00亿」
+                    amount_val = amount
+                    if amount_val in ("-", "", 0, "0", "0.0", "0.00", None):
+                        amount_val = None
+                    else:
+                        try:
+                            amount_val = float(amount_val)
+                            if amount_val <= 0:
+                                amount_val = None
+                        except (TypeError, ValueError):
+                            amount_val = None
+                    high = item.get("f15", "-")  # 当日最高
+                    low = item.get("f16", "-")  # 当日最低
+                    pre_close = item.get("f18", "-")  # 昨收
                     code = item.get("f12", "")
                     # 优先使用自定义名称，fallback 到 API 返回的名称
                     name = code_name_map.get(code, item.get("f14", ""))
@@ -187,6 +262,11 @@ def _fetch_market_indices() -> Optional[List[Dict]]:
                         "code": code,
                         "price": price if price != "-" else None,
                         "changePercent": change_pct if change_pct != "-" else None,
+                        "change": change if change != "-" else None,
+                        "amount": amount_val,
+                        "high": high if high != "-" else None,
+                        "low": low if low != "-" else None,
+                        "preClose": pre_close if pre_close != "-" else None,
                     })
                 return indices
             logger.warning(f"东方财富指数接口({url})返回异常：{result}")
@@ -195,16 +275,27 @@ def _fetch_market_indices() -> Optional[List[Dict]]:
     return None
 
 
-def _get_market_indices_cache() -> Optional[List[Dict]]:
-    """获取市场指数缓存，过期则刷新"""
-    if _index_cache["data"] is None or (time.time() - _index_cache["timestamp"]) > _index_cache["ttl"]:
-        data = _fetch_market_indices()
+def _get_market_indices_cache(market: str = "a") -> Optional[List[Dict]]:
+    """获取市场指数缓存，过期则刷新（按市场分别缓存）。"""
+    cache = _index_cache.setdefault(market, {"data": None, "timestamp": 0, "ttl": 60})
+    if cache["data"] is None or (time.time() - cache["timestamp"]) > cache["ttl"]:
+        data = _fetch_market_indices(market)
         if data:
-            _index_cache["data"] = data
-            _index_cache["timestamp"] = time.time()
-    return _index_cache["data"]
+            cache["data"] = data
+            cache["timestamp"] = time.time()
+    return cache["data"]
 
 
+# ---------------------------------------------------------------------------
+# 昨日全市场成交额（元）
+#
+# 背景：东方财富历史日线接口（push2his / kline）在当前网络被代理拦截，
+# 且运行环境未配置 TUSHARE_TOKEN，无法直接拿到「昨日全市场成交额」。
+# 当前 totalAmount（今日全市场成交额）来自东方财富 push2delay 全市场快照，
+# 因此「昨日成交额」也需保持「全市场」口径，才能正确计算放量/缩量。
+#
+# 解决方案：直连腾讯证券个股日线接口（proxy.finance.qq.com，该域名当前可用），
+# 对全 A 股票并发拉取「前一交易日」成交额（amount，单位万元）并求和，
 def _fetch_market_overview() -> Optional[Dict]:
     """
     获取全市场涨跌家数和量能数据（东方财富 push2delay API）
@@ -215,8 +306,10 @@ def _fetch_market_overview() -> Optional[Dict]:
       - riseCount: 上涨家数
       - fallCount: 下跌家数
       - flatCount: 平盘家数
-      - totalAmount: 当日成交额（元）
-      - volumeRatio: 市场量比（加权平均，相较于昨日同时刻）
+      - totalAmount: 当日成交额（元，东方财富全市场快照）
+      - volumeRatio: 市场量比（加权平均，相较于过去 5 日同时刻）
+      - limitUpCount: 涨停家数（按板块涨跌幅限制精确判断）
+      - limitDownCount: 跌停家数
     """
     try:
         all_stocks = []
@@ -234,7 +327,9 @@ def _fetch_market_overview() -> Optional[Dict]:
                     "invt": "2",
                     "fid": "f3",
                     "fs": A_SHARE_FILTER,
-                    "fields": "f2,f3,f6,f10",  # f2=最新价, f3=涨跌幅, f6=成交额, f10=量比
+                    # f2=最新价, f3=涨跌幅, f5=成交量 (手), f6=成交额 (元),
+                    # f10=量比, f12=代码, f14=名称, f17=昨量 (手)
+                    "fields": "f2,f3,f5,f6,f10,f12,f14,f17",
                 },
                 timeout=REQUEST_TIMEOUT,
             )
@@ -253,8 +348,9 @@ def _fetch_market_overview() -> Optional[Dict]:
         rise_count = 0
         fall_count = 0
         flat_count = 0
+        limit_up_count = 0
+        limit_down_count = 0
         total_amount = 0.0
-        yesterday_amount = 0.0
         # 量比加权平均（权重=成交额）
         weighted_volume_ratio_sum = 0.0
         total_amount_for_ratio = 0.0
@@ -262,6 +358,7 @@ def _fetch_market_overview() -> Optional[Dict]:
         for stock in all_stocks:
             change_pct = stock.get("f3")
             amount = stock.get("f6")
+            volume = stock.get("f5")  # 今日成交量（手）
             volume_ratio = stock.get("f10")
             # 跳过停牌/无数据股票（f3 为 "-" 或 None）
             if change_pct is None or change_pct == "-":
@@ -276,6 +373,12 @@ def _fetch_market_overview() -> Optional[Dict]:
                 fall_count += 1
             else:
                 flat_count += 1
+            # 涨跌停判断（按板块涨跌幅限制，容差 0.1% 覆盖涨停价四舍五入误差）
+            limit_ratio = _get_limit_ratio(str(stock.get("f12", "")), str(stock.get("f14", "")))
+            if change_pct >= limit_ratio - 0.1:
+                limit_up_count += 1
+            elif change_pct <= -(limit_ratio - 0.1):
+                limit_down_count += 1
             # 累加成交额（f6 单位：元）
             if amount and amount != "-":
                 try:
@@ -287,9 +390,6 @@ def _fetch_market_overview() -> Optional[Dict]:
                             vr = float(volume_ratio)
                             weighted_volume_ratio_sum += vr * amount_val
                             total_amount_for_ratio += amount_val
-                            # 计算昨日成交额：昨日 = 今日 / 量比
-                            if vr > 0:
-                                yesterday_amount += amount_val / vr
                         except (ValueError, TypeError):
                             pass
                 except (ValueError, TypeError):
@@ -300,21 +400,32 @@ def _fetch_market_overview() -> Optional[Dict]:
         if total_amount_for_ratio > 0:
             volume_ratio = round(weighted_volume_ratio_sum / total_amount_for_ratio, 2)
 
-        # 计算放量/缩量金额
-        volume_change = total_amount - yesterday_amount
-
         return {
             "riseCount": rise_count,
             "fallCount": fall_count,
             "flatCount": flat_count,
             "totalAmount": total_amount,
             "volumeRatio": volume_ratio,
-            "yesterdayAmount": yesterday_amount,
-            "volumeChange": volume_change,
+            "limitUpCount": limit_up_count,
+            "limitDownCount": limit_down_count,
         }
     except Exception as e:
         logger.error(f"东方财富全市场接口异常：{e}", exc_info=True)
         return None
+
+
+def _get_limit_ratio(code: str, name: str) -> float:
+    """获取个股涨跌幅限制（%）：创业板/科创板 20%，北交所 30%，主板 ST 5%，其余 10%
+
+    注：新股上市首日、退市整理期无涨跌幅限制，此处按常规交易规则近似判断。
+    """
+    if code.startswith(("300", "301", "302", "688", "689")):
+        return 20.0
+    if code.startswith(("43", "83", "87", "920")):
+        return 30.0
+    if "ST" in name.upper():
+        return 5.0
+    return 10.0
 
 
 def _get_market_overview_cache() -> Optional[Dict]:
@@ -325,6 +436,152 @@ def _get_market_overview_cache() -> Optional[Dict]:
             _overview_cache["data"] = data
             _overview_cache["timestamp"] = time.time()
     return _overview_cache["data"]
+
+
+def _fetch_northbound_flow() -> Optional[Dict]:
+    """获取北向资金（沪深港通）净流入数据（东方财富 kamt 接口）
+
+    返回：
+      - netInflow: 北向资金净流入（元），字段缺失/接口空数据时为 None
+      - name: 数据名称
+    注意：自 2024-08 起北向资金实时数据停止盘中披露，接口可能返回空数据，
+    此时返回 netInflow=None，前端展示占位符而非报错。
+    """
+    try:
+        resp = _session.get(
+            EASTMONEY_NORTHBOUND_URL,
+            params={
+                "fields1": "f1,f2,f3,f4",
+                "fields2": "f51,f52,f53,f54,f55,f56",
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        data = result.get("data") or {}
+        # 北向：hk2sh=沪股通（港→沪），hk2sz=深股通（港→深）
+        # dayNetAmtIn=当日净买入（单位：万元）；2024-08 后北向净流入停披露，返回 0
+        net_inflow_wan = 0.0
+        found = False
+        for item_key in ("hk2sh", "hk2sz"):
+            item = data.get(item_key) or {}
+            raw = item.get("dayNetAmtIn")
+            if raw is None or raw == "-":
+                continue
+            try:
+                net_inflow_wan += float(raw)
+                found = True
+            except (ValueError, TypeError):
+                continue
+        # 北向两个通道净买入均为 0：视为停披露（而非真实零流入），返回 None
+        if not found or net_inflow_wan == 0:
+            logger.warning("北向资金接口返回空数据（2024-08 后可能停披露）")
+            return {"netInflow": None, "name": "北向资金", "date": None}
+        return {
+            "netInflow": round(net_inflow_wan * 1e4, 2),  # 万元 → 元
+            "name": "北向资金",
+            "date": data.get("hk2sh", {}).get("date2"),
+        }
+    except Exception as e:
+        logger.error(f"北向资金接口异常：{e}", exc_info=True)
+        return None
+
+
+def _get_northbound_flow_cache() -> Optional[Dict]:
+    """获取北向资金缓存，过期则刷新"""
+    if _flow_cache["northbound"] is None or (time.time() - _flow_cache["timestamp"]) > _flow_cache["ttl"]:
+        data = _fetch_northbound_flow()
+        if data:
+            _flow_cache["northbound"] = data
+            _flow_cache["timestamp"] = time.time()
+    return _flow_cache["northbound"]
+
+
+def _fetch_market_fund_flow() -> Optional[Dict]:
+    """获取大盘主力资金净流入（东方财富大盘资金流日线接口）
+
+    数据来源：push2his.eastmoney.com/api/qt/stock/fflow/daykline/get（上证指数，日线）
+    klines 行格式（fields2）：f51=日期, f52=主力净流入(元), f57=主力净流入占比(%), f62=收盘价
+    返回：
+      - mainNetInflow: 主力净流入（元）
+      - mainNetInflowPercent: 主力净流入占比（%）
+      - date: 数据日期（最近一个交易日）
+    注：该接口为日线，盘中展示的是最近交易日收盘数据；失败时 fallback 到 ulist 实时接口（无占比）。
+    """
+    # 主接口：大盘资金流日线（含主力占比与日期）
+    try:
+        resp = _session.get(
+            EASTMONEY_FFLOW_DAYKLINE_URL,
+            params={
+                "lmt": "1",
+                "klt": "101",
+                "secid": "1.000001",
+                "fields1": "f1,f2,f3,f7",
+                "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        klines = result.get("data", {}).get("klines") or []
+        if klines:
+            items = klines[-1].split(",")
+            # f51=日期, f52=主力净流入, f57=主力净流入占比
+            net_inflow = float(items[1]) if items[1] not in ("", "-") else None
+            percent = float(items[6]) if items[6] not in ("", "-") else None
+            return {
+                "mainNetInflow": round(net_inflow, 2) if net_inflow is not None else None,
+                "mainNetInflowPercent": round(percent, 2) if percent is not None else None,
+                "date": items[0] or None,
+            }
+        logger.warning(f"大盘资金流日线接口返回空数据：{result}")
+    except Exception as e:
+        logger.error(f"大盘资金流日线接口异常：{e}", exc_info=True)
+
+    # fallback：ulist 实时接口（无占比/日期）
+    for url in [EASTMONEY_INDEX_URL, EASTMONEY_INDEX_URL_DELAY]:
+        try:
+            resp = _session.get(
+                url,
+                params={
+                    "fltt": "2",
+                    # f62=主力净流入(元)
+                    "fields": "f2,f3,f12,f14,f62",
+                    "secids": "1.000001,0.399001",
+                },
+                timeout=REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get("rc") == 0 and result.get("data") and result["data"].get("diff"):
+                items = result["data"]["diff"]
+                net_inflow = 0.0
+                for item in items:
+                    raw_flow = item.get("f62", "-")
+                    if raw_flow not in (None, "-"):
+                        try:
+                            net_inflow += float(raw_flow)
+                        except (ValueError, TypeError):
+                            pass
+                return {
+                    "mainNetInflow": round(net_inflow, 2) if net_inflow else None,
+                    "mainNetInflowPercent": None,
+                    "date": None,
+                }
+            logger.warning(f"东方财富主力资金接口({url})返回异常：{result}")
+        except Exception as e:
+            logger.error(f"东方财富主力资金接口({url})异常：{e}", exc_info=True)
+    return None
+
+
+def _get_market_fund_flow_cache() -> Optional[Dict]:
+    """获取大盘主力缓存，过期则刷新"""
+    if _flow_cache["market_fund_flow"] is None or (time.time() - _flow_cache["timestamp"]) > _flow_cache["ttl"]:
+        data = _fetch_market_fund_flow()
+        if data:
+            _flow_cache["market_fund_flow"] = data
+            _flow_cache["timestamp"] = time.time()
+    return _flow_cache["market_fund_flow"]
 
 
 def _fetch_scale_data() -> Optional[List[Dict]]:
@@ -548,15 +805,18 @@ def get_industry_sectors(
 
 
 @router.get("/market-indices")
-def get_market_indices():
+def get_market_indices(market: str = Query("a", description="市场类型：a=A股，us=欧美股，jp-kr=日韩")):
     """
     获取市场指数数据
 
     返回主要市场指数的实时行情：
-    - 上证指数、深证成指、创业板指、科创50
-    - 上证50、沪深300、中证500
+    - market=a：上证指数、深证成指、创业板指、科创50、上证50、沪深300、中证500 等
+    - market=us：道琼斯、标普500、纳斯达克、纳斯达克100、纳指金龙中国、纳指金融100、纳指互联网、费城半导体
+    - market=jp-kr：日经指数、韩国综指(KOSPI)、韩国KOSDAQ
     """
-    data = _get_market_indices_cache()
+    if market not in ("a", "us", "jp-kr"):
+        raise HTTPException(status_code=400, detail="market 仅支持 a、us 或 jp-kr")
+    data = _get_market_indices_cache(market)
     if not data:
         raise HTTPException(status_code=502, detail="市场指数数据获取失败")
     return {"indices": data}
@@ -577,6 +837,35 @@ def get_market_overview():
     data = _get_market_overview_cache()
     if not data:
         raise HTTPException(status_code=502, detail="市场概览数据获取失败")
+    return data
+
+
+@router.get("/northbound-flow")
+def get_northbound_flow():
+    """
+    获取北向资金（沪深港通）净流入数据
+
+    数据来源：东方财富 kamt 接口
+    注意：自 2024-08 起北向资金实时数据停止盘中披露，接口可能返回空数据，
+    此时返回 netInflow=None（200），由前端展示占位符，不抛错。
+    """
+    data = _get_northbound_flow_cache()
+    if not data:
+        return {"netInflow": None, "name": "北向资金"}
+    return data
+
+
+@router.get("/market-fund-flow")
+def get_market_fund_flow():
+    """
+    获取大盘主力资金净流入
+
+    数据来源：东方财富 ulist 实时接口（上证指数 + 深证成指主力净流入汇总）
+    返回：mainNetInflow（元）、mainNetInflowPercent（%）、date（实时接口为 None）
+    """
+    data = _get_market_fund_flow_cache()
+    if not data:
+        return {"mainNetInflow": None, "mainNetInflowPercent": None, "date": None}
     return data
 
 
@@ -935,6 +1224,420 @@ def get_etf_cloud_map(
             "year": "近一年",
             "three_year": "近三年",
         }.get(period, period),
+    }
+
+
+# =============================================================================
+# 板块资金流历史接口
+# =============================================================================
+
+# 东方财富板块资金流 API
+EASTMONEY_SECTOR_FLOW_RANK_URL = "http://push2delay.eastmoney.com/api/qt/clist/get"
+EASTMONEY_SECTOR_FLOW_KLINE_URL = "http://push2his.eastmoney.com/api/qt/stock/fflow/kline/get"
+EASTMONEY_SECTOR_FLOW_KLINE_URL_DELAY = "http://push2delay.eastmoney.com/api/qt/stock/fflow/kline/get"
+
+# 板块资金流历史缓存
+_fund_flow_cache: Dict[str, Dict] = {}
+
+
+def _yuan_to_yi(value: Optional[float]) -> Optional[float]:
+    """元 → 亿，保留 2 位小数"""
+    if value is None:
+        return None
+    return round(value / 1e8, 2)
+
+
+def _fetch_sector_fund_flow_rank(
+    sector_type: str = "industry",
+    top_n: int = 10,
+    max_retries: int = 2,
+) -> Optional[List[Dict]]:
+    """
+    获取板块资金流排行（当日主力净流入降序）
+
+    接口：push2delay.eastmoney.com/api/qt/clist/get
+    参数：
+    - m:90+t:2 行业板块，m:90+t:3 概念板块
+    - fs=m:90+t:2 或 m:90+t:3
+    - fid=f62 按主力净流入排序
+    - po=1 降序
+    """
+    fs_param = "m:90+t:2" if sector_type == "industry" else "m:90+t:3"
+    for attempt in range(max_retries):
+        try:
+            resp = _session.get(
+                EASTMONEY_SECTOR_FLOW_RANK_URL,
+                params={
+                    "pn": "1",
+                    "pz": str(max(top_n, 200)),
+                    "po": "1",
+                    "np": "1",
+                    "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+                    "fltt": "2",
+                    "invt": "2",
+                    "fid": "f62",
+                    "fs": fs_param,
+                    "fields": "f12,f14,f62",
+                },
+                timeout=REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            diff = result.get("data", {}).get("diff", [])
+            if not diff:
+                logger.warning(f"板块资金流排行返回空数据：sector_type={sector_type}")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    continue
+                return None
+            sectors = []
+            for item in diff:
+                code = item.get("f12", "")
+                name = item.get("f14", "")
+                main_flow = item.get("f62")
+                sectors.append({
+                    "code": code,
+                    "name": name,
+                    "latest": _yuan_to_yi(main_flow) if main_flow and main_flow != "-" else None,
+                })
+            return sectors
+        except Exception as e:
+            logger.error(f"板块资金流排行接口异常（attempt {attempt + 1}/{max_retries}）：{e}")
+            if attempt < max_retries - 1:
+                time.sleep(1)
+    return None
+
+
+def _fetch_sector_fund_flow_kline(
+    sector_code: str,
+    limit: int = 30,
+) -> Optional[List[Dict]]:
+    """
+    获取单个板块的日线资金流历史序列
+
+    接口：push2his（主）/ push2delay（备）
+    参数：
+    - secid=90.{BK代码}
+    - klt=101 日线
+    - lmt=limit 返回天数
+
+    返回 klines 格式：["日期,主力,小单,中单,大单,超大单", ...]
+    单位：元
+    """
+    kline_urls = [
+        EASTMONEY_SECTOR_FLOW_KLINE_URL,
+        EASTMONEY_SECTOR_FLOW_KLINE_URL_DELAY,
+    ]
+    params = {
+        "secid": f"90.{sector_code}",
+        "klt": "101",
+        "lmt": str(limit),
+        "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+        "fields1": "f1,f2,f3,f7",
+        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
+    }
+    for url in kline_urls:
+        try:
+            resp = _session.get(url, params=params, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get("rc") != 0:
+                logger.warning(f"板块 {sector_code} 资金流接口返回 rc={result.get('rc')}：{url}")
+                continue
+            klines = result.get("data", {}).get("klines", [])
+            if not klines:
+                logger.warning(f"板块 {sector_code} 资金流日线数据为空：{url}")
+                continue
+            parsed = []
+            for line in klines:
+                parts = line.split(",")
+                if len(parts) >= 2:
+                    date = parts[0]
+                    try:
+                        main_flow = float(parts[1]) if parts[1] != "-" else None
+                    except (ValueError, TypeError):
+                        main_flow = None
+                    parsed.append({"date": date, "mainFlow": main_flow})
+            return parsed
+        except Exception as e:
+            logger.warning(f"板块 {sector_code} 资金流接口异常（{url}）：{e}")
+            continue
+    logger.error(f"板块 {sector_code} 资金流所有接口均失败")
+    return None
+
+
+def _fetch_sector_fund_flow_kline_with_retry(
+    sector_code: str,
+    limit: int = 30,
+    max_retries: int = 3,
+) -> Optional[List[Dict]]:
+    """带重试的板块资金流日线获取（push2his 存在间歇性网络抖动）"""
+    for attempt in range(max_retries):
+        result = _fetch_sector_fund_flow_kline(sector_code, limit)
+        if result:
+            return result
+        if attempt < max_retries - 1:
+            time.sleep(1.5)
+    return None
+
+
+@router.get("/fund-flow-history")
+def get_sector_fund_flow_history(
+    sector_type: str = Query("industry", description="板块类型：industry / concept"),
+    limit: int = Query(30, ge=5, le=100, description="返回天数"),
+    top_n: int = Query(10, ge=1, le=30, description="资金流排名前 N 的板块"),
+    sector_codes: Optional[str] = Query(None, description="指定板块代码，逗号分隔，如 BK0475,BK0717"),
+):
+    """
+    获取板块资金流历史序列（日线）
+
+    数据来源：东方财富 push2delay（排行）+ push2his（日线资金流）
+    返回：
+    - dates: 日期数组
+    - sectors: 各板块资金流序列（主力净流入，单位亿，保留2位小数）
+    """
+    # 解析指定板块代码
+    specified_codes = [c.strip() for c in sector_codes.split(",") if c.strip()] if sector_codes else None
+
+    # 缓存 key
+    codes_key = ",".join(specified_codes) if specified_codes else f"top{top_n}"
+    cache_key = f"{sector_type}_{limit}_{codes_key}"
+    cached = _fund_flow_cache.get(cache_key)
+    if cached and (time.time() - cached.get("timestamp", 0)) < 300:
+        return cached["data"]
+
+    # 1. 确定目标板块列表
+    if specified_codes:
+        # 使用指定板块代码，需要获取名称
+        all_sectors = _fetch_sector_fund_flow_rank(sector_type, 200)
+        if not all_sectors:
+            raise HTTPException(status_code=502, detail="板块资金流排行数据获取失败")
+        code_map = {s["code"]: s for s in all_sectors}
+        rank_sectors = []
+        for code in specified_codes:
+            if code in code_map:
+                rank_sectors.append(code_map[code])
+        if not rank_sectors:
+            raise HTTPException(status_code=404, detail="指定的板块代码未找到")
+    else:
+        # 按当日主力净流入降序，取 TOP N
+        rank_sectors = _fetch_sector_fund_flow_rank(sector_type, top_n)
+        if not rank_sectors:
+            raise HTTPException(status_code=502, detail="板块资金流排行数据获取失败")
+
+    # 2. 并发获取每个板块的日线资金流历史
+    all_dates: set = set()
+    sector_histories: List[Dict] = []
+
+    def _fetch_one(sector: Dict) -> Optional[Dict]:
+        klines = _fetch_sector_fund_flow_kline_with_retry(sector["code"], limit)
+        if not klines:
+            return None
+        for k in klines:
+            all_dates.add(k["date"])
+        return {
+            "code": sector["code"],
+            "name": sector["name"],
+            "latest": sector["latest"],
+            "klines": {k["date"]: k["mainFlow"] for k in klines},
+        }
+
+    with ThreadPoolExecutor(max_workers=FUND_FLOW_MAX_WORKERS) as executor:
+        futures = {executor.submit(_fetch_one, s): s for s in rank_sectors}
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                sector_histories.append(result)
+
+    # 3. 日期排序
+    sorted_dates = sorted(all_dates)
+
+    # 4. 折线配色（高区分度色板，不再按涨跌分色）
+    color_palette = [
+        "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de",
+        "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc", "#d48265",
+        "#c23531", "#2f4554", "#61a0a8", "#d48265", "#749f83",
+    ]
+
+    # 5. 构建返回数据
+    sectors_result = []
+    for idx, s in enumerate(sector_histories):
+        series = []
+        for d in sorted_dates:
+            raw = s["klines"].get(d)
+            series.append(_yuan_to_yi(raw) if raw is not None else None)
+        sectors_result.append({
+            "code": s["code"],
+            "name": s["name"],
+            "series": series,
+            "latest": s["latest"],
+            "color": color_palette[idx % len(color_palette)],
+        })
+
+    result_data = {
+        "dates": sorted_dates,
+        "sectors": sectors_result,
+    }
+
+    # 缓存 5 分钟
+    _fund_flow_cache[cache_key] = {
+        "data": result_data,
+        "timestamp": time.time(),
+    }
+
+    return result_data
+
+
+@router.get("/fund-flow-sectors")
+def get_sector_fund_flow_sector_list(
+    sector_type: str = Query("industry", description="板块类型：industry / concept"),
+):
+    """
+    获取板块资金流可选板块列表（用于前端多选下拉框）
+
+    返回所有行业/概念板块的代码和名称，按当日主力净流入降序排列。
+    """
+    all_sectors = _fetch_sector_fund_flow_rank(sector_type, 200)
+    if not all_sectors:
+        raise HTTPException(status_code=502, detail="板块列表获取失败")
+    return {
+        "sectors": [{"code": s["code"], "name": s["name"]} for s in all_sectors],
+    }
+
+
+# =============================================================================
+# 板块卡片列表接口
+# =============================================================================
+
+EASTMONEY_BOARD_LIST_URL = "http://push2.eastmoney.com/api/qt/clist/get"
+# 延迟镜像域名：push2 主站偶发不可达时兜底（与指数接口的 delay 备选一致）
+EASTMONEY_BOARD_LIST_URL_DELAY = "http://push2delay.eastmoney.com/api/qt/clist/get"
+
+
+def _fetch_board_list(
+    sector_type: str = "industry",
+    max_retries: int = 2,
+) -> Optional[List[Dict]]:
+    """
+    获取板块列表数据（行业/概念），包含涨跌幅、总市值、换手率、涨跌家数等字段。
+
+    接口：push2.eastmoney.com/api/qt/clist/get（主），push2delay（延迟镜像备选）
+    参数：
+    - fs=m:90+t:2 行业板块，m:90+t:3 概念板块
+    - fields=f12,f14,f3,f20,f8,f104,f105
+      f12=代码, f14=名称, f3=涨跌幅(%), f20=总市值(元),
+      f8=换手率(%), f104=上涨家数, f105=下跌家数
+    - fid=f3 按涨跌幅排序
+    - po=1 降序
+    """
+    fs_param = "m:90+t:2" if sector_type == "industry" else "m:90+t:3"
+    # delay 镜像单次最多返回 100 条，统一按每页 100 条分页抓取（最多 5 页 = 500 条）
+    page_size = 100
+    max_pages = 5
+    for attempt in range(max_retries):
+        # 主域名失败则 fallback 到延迟域名（与指数接口模式一致）
+        for url in [EASTMONEY_BOARD_LIST_URL, EASTMONEY_BOARD_LIST_URL_DELAY]:
+            try:
+                boards = []
+                for page in range(1, max_pages + 1):
+                    resp = _session.get(
+                        url,
+                        params={
+                            "pn": str(page),
+                            "pz": str(page_size),
+                            "po": "1",
+                            "np": "1",
+                            "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+                            "fltt": "2",
+                            "invt": "2",
+                            "fid": "f3",
+                            "fs": fs_param,
+                            "fields": "f12,f14,f3,f20,f8,f104,f105",
+                        },
+                        timeout=REQUEST_TIMEOUT,
+                    )
+                    resp.raise_for_status()
+                    result = resp.json()
+                    diff = result.get("data", {}).get("diff", [])
+                    if not diff:
+                        break  # 本页为空，数据已取完
+
+                    for item in diff:
+                        code = item.get("f12", "")
+                        name = item.get("f14", "")
+                        change_percent_raw = item.get("f3")
+                        total_market_cap_raw = item.get("f20")
+                        turnover_rate_raw = item.get("f8")
+                        rise_count = item.get("f104", 0)
+                        fall_count = item.get("f105", 0)
+
+                        # 涨跌幅：百分比值，保留2位小数
+                        change_percent = round(float(change_percent_raw), 2) if change_percent_raw is not None else 0.0
+                        # 总市值：元 → 亿，保留2位小数
+                        total_market_cap = round(float(total_market_cap_raw) / 1e8, 2) if total_market_cap_raw is not None else 0.0
+                        # 换手率：百分比值，保留2位小数
+                        turnover_rate = round(float(turnover_rate_raw), 2) if turnover_rate_raw is not None else 0.0
+
+                        boards.append({
+                            "code": code,
+                            "name": name,
+                            "changePercent": change_percent,
+                            "totalMarketCap": total_market_cap,
+                            "turnoverRate": turnover_rate,
+                            "riseCount": int(rise_count) if rise_count is not None else 0,
+                            "fallCount": int(fall_count) if fall_count is not None else 0,
+                        })
+                    if len(diff) < page_size:
+                        break  # 不足一页，说明已到最后一页
+
+                if not boards:
+                    logger.warning(f"板块列表返回空数据：url={url} sector_type={sector_type}")
+                    continue
+
+                # 按返回顺序补排名（1 起）
+                for idx, board in enumerate(boards, start=1):
+                    board["rank"] = idx
+                return boards
+
+            except Exception as e:
+                logger.error(f"_fetch_board_list 第 {attempt + 1} 次尝试({url})失败：{e}")
+        if attempt < max_retries - 1:
+            time.sleep(1)
+    return None
+
+
+@router.get("/board-list")
+def get_board_list(
+    sector_type: str = Query("industry", description="板块类型：industry / concept"),
+):
+    """
+    获取板块卡片列表数据
+
+    返回行业或概念板块的完整信息，包括：
+    - 排名、代码、名称
+    - 涨跌幅、总市值（亿）、换手率（%)
+    - 上涨家数、下跌家数
+
+    注意：领涨股票信息需要额外调用成分股接口，本接口暂不包含。
+
+    数据走 60 秒缓存：上游接口偶发不可达时，命中缓存仍可正常返回，
+    避免页面频繁 502；缓存过期后上游仍不可达时才返回 502。
+    """
+    cache = _board_list_cache
+    if (
+        sector_type not in cache["data"]
+        or (time.time() - cache["timestamp"]) > cache["ttl"]
+    ):
+        boards = _fetch_board_list(sector_type)
+        if not boards:
+            raise HTTPException(status_code=502, detail="板块列表获取失败")
+        cache["data"][sector_type] = boards
+        cache["timestamp"] = time.time()
+    boards = cache["data"][sector_type]
+    return {
+        "sectorType": sector_type,
+        "total": len(boards),
+        "boards": boards,
     }
 
 
