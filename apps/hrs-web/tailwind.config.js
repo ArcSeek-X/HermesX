@@ -16,11 +16,9 @@ export default {
     extend: {
       colors: {
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: {
-          DEFAULT: 'hsl(var(--foreground))',
+          DEFAULT: 'hsl(var(--foreground))',//黑色
           dim: 'hsl(var(--foreground) / 0.8)',
           soft: 'hsl(var(--foreground) / 0.6)',
           glow: 'hsl(var(--foreground) / 0.4)',
@@ -88,42 +86,32 @@ export default {
           glow: 'hsl(var(--danger) / 0.3)',
         },
         base: 'hsl(var(--background))',
-        elevated: 'hsl(var(--elevated))',
+        elevated: 'hsl(var(--elevated))',//抬升表面底色
         hover: 'hsl(var(--hover))',
-        'secondary-bg': 'hsl(var(--secondary))',
-        'muted-bg': 'hsl(var(--muted))',
+        // 'secondary-bg': 'hsl(var(--secondary))',
+        // 'muted-bg': 'hsl(var(--muted))',
         'secondary-text': 'hsl(var(--secondary-text))',
         'muted-text': 'hsl(var(--muted-text))',
+
         // 设计令牌 (Design Tokens)
         dim: 'hsl(var(--border-dim-raw) / 0.06)',
-        subtle: 'hsl(var(--bg-subtle-raw) / 0.05)',
+        subtle: 'hsl(var(--bg-subtle))',
         'subtle-hover': 'hsl(var(--bg-subtle-raw) / 0.1)',
-        'subtle-soft': 'hsl(var(--bg-subtle-raw) / 0.03)',
-        'subtle-active': 'hsl(var(--bg-subtle-raw) / 0.15)',
-        'surface-1': 'var(--surface-1)',
-        'surface-2': 'var(--surface-2)',
-        'surface-3': 'var(--surface-3)',
+
         'overlay-hover': 'var(--overlay-hover)',
         'overlay-selected': 'var(--overlay-selected)',
       },
 
-      // borderColor: {
-      //   dim: 'var(--border-subtle)',
-      //   subtle: 'var(--border-subtle)',
-      //   'subtle-hover': 'var(--border-subtle)',
-      // },
-
+      //边框颜色（引用的参数问题，需要注意是否生效，hsl里面不能再嵌套hsl，只能是var）
       borderColor: {
-        dim: 'hsl(var(--border-dim-raw) / 0.06)',
-        subtle: 'hsl(var(--border-subtle-raw) / 0.08)',
-        'subtle-hover': 'hsl(var(--border-subtle-raw) / 0.15)',
+        dim: 'hsl(var(--border-dim-raw) / 0.08)',
+        subtle: 'hsl(var(--border-subtle-raw) / 0.04)',
+        'subtle-hover': 'hsl(var(--danger) )',
       },
 
       backgroundColor: {
         subtle: 'hsl(var(--bg-subtle-raw) / 0.05)',
         'subtle-hover': 'hsl(var(--bg-subtle-raw) / 0.1)',
-        'subtle-soft': 'hsl(var(--bg-subtle-raw) / 0.03)',
-        'subtle-active': 'hsl(var(--bg-subtle-raw) / 0.15)',
       },
       backgroundImage: {
         'gradient-purple-cyan': 'linear-gradient(135deg, hsla(var(--accent), 0.2) 0%, hsla(var(--primary), 0.1) 100%)',
@@ -166,18 +154,16 @@ export default {
         '9xl': '7rem',//112px
         '10xl': '8rem',//128px
       },
-      spacing: {
-        18: '4.5rem',
-        22: '5.5rem',
-      },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.4s ease-out',
+        'slide-in-left': 'slideInLeft 0.3s ease-out',
         'slide-in-right': 'slideInRight 0.3s ease-out',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'spin-slow': 'spin 2s linear infinite',
         'float-in': 'floatIn 0.45s ease-out',
       },
+
       keyframes: {
         fadeIn: {
           from: { opacity: '0' },
@@ -186,6 +172,10 @@ export default {
         slideUp: {
           from: { opacity: '0', transform: 'translateY(10px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInLeft: {
+          from: { opacity: '0', transform: 'translateX(-100%)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
         },
         slideInRight: {
           from: { opacity: '0', transform: 'translateX(100%)' },
