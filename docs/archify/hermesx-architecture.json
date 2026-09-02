@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "HermesX 高层系统架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "hermesx-architecture.html"
+  },
+  "components": [
+    {
+      "id": "clients",
+      "type": "frontend",
+      "label": "Web / 桌面客户端",
+      "sublabel": "hrs-web · hrs-desktop",
+      "tag": "部署于用户设备",
+      "pos": [
+        0,
+        232
+      ],
+      "size": [
+        150,
+        82
+      ]
+    },
+    {
+      "id": "scheduler",
+      "type": "backend",
+      "label": "定时调度与后台",
+      "sublabel": "scheduler · runtime",
+      "tag": "每日复盘 · 告警",
+      "pos": [
+        516,
+        40
+      ],
+      "size": [
+        220,
+        72
+      ]
+    },
+    {
+      "id": "data-adapter",
+      "type": "backend",
+      "label": "行情数据适配器",
+      "sublabel": "data_provider",
+      "tag": "多源 fallback",
+      "pos": [
+        834,
+        40
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "REST API 服务",
+      "sublabel": "FastAPI · api/v1",
+      "tag": "JWT / API-Key",
+      "pos": [
+        248,
+        232
+      ],
+      "size": [
+        170,
+        82
+      ]
+    },
+    {
+      "id": "pipeline",
+      "type": "backend",
+      "label": "分析编排 (Pipeline)",
+      "sublabel": "pipeline.py · services",
+      "tag": "取数→分析→落库→通知",
+      "pos": [
+        516,
+        232
+      ],
+      "size": [
+        220,
+        82
+      ]
+    },
+    {
+      "id": "llm-gateway",
+      "type": "backend",
+      "label": "LLM / Agent 网关",
+      "sublabel": "src/llm · analyzer",
+      "tag": "后端路由 · 降级",
+      "pos": [
+        834,
+        232
+      ],
+      "size": [
+        180,
+        82
+      ]
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "本地持久化存储",
+      "sublabel": "SQLAlchemy · SQLite",
+      "tag": "data/stock_analysis.db",
+      "pos": [
+        516,
+        430
+      ],
+      "size": [
+        220,
+        76
+      ]
+    },
+    {
+      "id": "notify",
+      "type": "backend",
+      "label": "通知路由与发送",
+      "sublabel": "notification ×14",
+      "tag": "渠道路由 · 噪音过滤",
+      "pos": [
+        834,
+        430
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "bot",
+      "type": "backend",
+      "label": "IM Bot 网关",
+      "sublabel": "bot · dispatcher",
+      "tag": "钉钉/飞书/Discord",
+      "pos": [
+        248,
+        430
+      ],
+      "size": [
+        170,
+        76
+      ]
+    },
+    {
+      "id": "vendors",
+      "type": "external",
+      "label": "行情 · 资讯数据源",
+      "sublabel": "Tushare/AkShare/Yahoo",
+      "tag": "HTTP(S) · token",
+      "pos": [
+        1112,
+        40
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "llm-providers",
+      "type": "external",
+      "label": "模型服务商",
+      "sublabel": "Gemini · DeepSeek",
+      "tag": "HTTPS · API key",
+      "pos": [
+        1112,
+        232
+      ],
+      "size": [
+        150,
+        82
+      ]
+    },
+    {
+      "id": "im-channels",
+      "type": "external",
+      "label": "IM / 通知渠道",
+      "sublabel": "飞书/微信/钉钉/Telegram",
+      "tag": "Webhook / Bot",
+      "pos": [
+        1112,
+        430
+      ],
+      "size": [
+        150,
+        76
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "HermesX 服务端运行时 (本仓库: main.py · server.py)",
+      "wraps": [
+        "api",
+        "scheduler",
+        "pipeline",
+        "data-adapter",
+        "llm-gateway",
+        "storage",
+        "notify",
+        "bot"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "认证边界 · JWT / API-Key",
+      "wraps": [
+        "api"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "clients-to-api",
+      "from": "clients",
+      "to": "api",
+      "label": "HTTPS · JSON",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "api-to-pipeline",
+      "from": "api",
+      "to": "pipeline",
+      "label": "分析 / 任务请求",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "scheduler-to-pipeline",
+      "from": "scheduler",
+      "to": "pipeline",
+      "label": "定时复盘 / 分析",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        560,
+        158
+      ]
+    },
+    {
+      "id": "bot-to-pipeline",
+      "from": "bot",
+      "to": "pipeline",
+      "label": "IM 指令 (进程内)",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "pipeline-to-data",
+      "from": "pipeline",
+      "to": "data-adapter",
+      "label": "行情 / 快照拉取",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "data-to-vendors",
+      "from": "data-adapter",
+      "to": "vendors",
+      "label": "HTTP(S) 拉取",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "pipeline-to-llm",
+      "from": "pipeline",
+      "to": "llm-gateway",
+      "label": "观点 / 报告生成",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "llm-to-providers",
+      "from": "llm-gateway",
+      "to": "llm-providers",
+      "label": "模型 API",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "pipeline-to-storage",
+      "from": "pipeline",
+      "to": "storage",
+      "label": "分析结果落库",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        505,
+        330
+      ]
+    },
+    {
+      "id": "pipeline-to-notify",
+      "from": "pipeline",
+      "to": "notify",
+      "label": "日报 / 告警内容",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "notify-to-channels",
+      "from": "notify",
+      "to": "im-channels",
+      "label": "推送消息",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "主请求路径 (按需个股分析)",
+      "items": [
+        "请求: 客户端 / IM → REST /api/v1 → 编排(行情+资讯) → LLM 观点 → 落库 → 日报推送",
+        "端点: watchlist · portfolio · history · alerts · analysis · agent · backtest; 单股失败隔离(线程池+全局异常)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "定时与后台",
+      "items": [
+        "scheduler.py: 每日个股分析 + 大盘复盘; runtime_scheduler / alert_worker 扫描告警",
+        "GitHub Actions 00-daily-analysis.yml: 工作日 18:00 (UTC+8) 跑 main.py"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "外部依赖",
+      "items": [
+        "行情多源 fallback: Tushare · AkShare · Tencent · baostock · yfinance 等; 资讯/事件: Brave · Tavily · SearXNG",
+        "LLM: GEMINI_API_KEY / GENERATION_BACKEND / LiteLLM / local_cli; AGENT_BACKEND 可接 Codex"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "归属与信任边界",
+      "items": [
+        "区域 = 本仓库服务端运行时; hrs-web / hrs-desktop 同为本仓库前端, 部署于用户设备",
+        "认证面: api 中间件 JWT · API-Key; Bot 平台密钥校验; 密钥走 .env / CI secrets / Docker env"
+      ]
+    }
+  ]
+}

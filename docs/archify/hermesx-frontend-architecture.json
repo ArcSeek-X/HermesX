@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "HermesX 前端架构地图 (hrs-web)",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "hermesx-frontend-architecture.html",
+    "views": [
+      {
+        "id": "render-chain",
+        "label": "渲染组合链",
+        "focus": [
+          "shell",
+          "pages",
+          "biz",
+          "ui-kit"
+        ],
+        "note": "壳与路由 → 页面 → 业务组件 → 基础组件/图表。"
+      },
+      {
+        "id": "data-path",
+        "label": "数据请求链",
+        "focus": [
+          "pages",
+          "biz",
+          "hooks",
+          "api",
+          "backend",
+          "storage"
+        ],
+        "note": "取数: 业务组件/Hook 发起 → api 模块 → 后端;响应回填并持久化。"
+      },
+      {
+        "id": "theme-chain",
+        "label": "样式与主题链",
+        "focus": [
+          "style-theme",
+          "shell",
+          "ui-kit"
+        ],
+        "note": "palette/hsl 令牌 → tailwind 工具类 → 组件;ThemeProvider 控制深浅色。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "应用壳与路由",
+      "sublabel": "App.tsx · Shell",
+      "tag": "UiLanguage→Router→Auth→PageState",
+      "pos": [
+        20,
+        205
+      ],
+      "size": [
+        170,
+        76
+      ]
+    },
+    {
+      "id": "pages",
+      "type": "frontend",
+      "label": "页面层 Pages",
+      "sublabel": "Home · Watchlist · KLine · Chat",
+      "tag": "16+ lazy 路由",
+      "pos": [
+        246,
+        205
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "biz",
+      "type": "frontend",
+      "label": "业务组件层",
+      "sublabel": "watchlist · kline · report",
+      "tag": "dashboard · sector · alerts · run-flow",
+      "pos": [
+        482,
+        205
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "hooks",
+      "type": "frontend",
+      "label": "自定义 Hook 层",
+      "sublabel": "useWatchlist · usePreference",
+      "tag": "useCachedState · useStockIndex · …",
+      "pos": [
+        728,
+        205
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "前端 API 层",
+      "sublabel": "axios · api/* 模块",
+      "tag": "L1 内存缓存 · 401",
+      "pos": [
+        964,
+        205
+      ],
+      "size": [
+        170,
+        76
+      ]
+    },
+    {
+      "id": "backend",
+      "type": "external",
+      "label": "后端 REST",
+      "sublabel": "FastAPI · /api/v1",
+      "tag": "HTTPS · 会话 Cookie",
+      "pos": [
+        1190,
+        205
+      ],
+      "size": [
+        110,
+        76
+      ]
+    },
+    {
+      "id": "style-theme",
+      "type": "frontend",
+      "label": "样式与主题体系",
+      "sublabel": "样式入口 · 设计令牌",
+      "tag": "tailwind.config.js · ThemeProvider(.dark)",
+      "pos": [
+        20,
+        372
+      ],
+      "size": [
+        170,
+        70
+      ]
+    },
+    {
+      "id": "client-state",
+      "type": "frontend",
+      "label": "客户端状态与上下文",
+      "sublabel": "zustand stores · contexts",
+      "tag": "agentChat/analysis/stockPool · Auth/UiLanguage",
+      "pos": [
+        246,
+        372
+      ],
+      "size": [
+        180,
+        70
+      ]
+    },
+    {
+      "id": "ui-kit",
+      "type": "frontend",
+      "label": "基础组件与图表",
+      "sublabel": "basic · common · layout",
+      "tag": "HeroUI · echarts/recharts",
+      "pos": [
+        482,
+        372
+      ],
+      "size": [
+        190,
+        70
+      ]
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "浏览器本地持久化",
+      "sublabel": "localStorage · sessionStorage",
+      "tag": "hrs-pref- / hrs-state- · persist",
+      "pos": [
+        728,
+        372
+      ],
+      "size": [
+        180,
+        70
+      ]
+    },
+    {
+      "id": "types",
+      "type": "frontend",
+      "label": "类型定义层",
+      "sublabel": "types/*.ts 领域类型",
+      "tag": "API 契约 · 领域模型",
+      "pos": [
+        964,
+        372
+      ],
+      "size": [
+        170,
+        70
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "hrs-web 前端应用 (apps/hrs-web)",
+      "pad": 18,
+      "wraps": [
+        "shell",
+        "pages",
+        "biz",
+        "hooks",
+        "api",
+        "style-theme",
+        "client-state",
+        "ui-kit",
+        "storage",
+        "types"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "shell-to-pages",
+      "from": "shell",
+      "to": "pages",
+      "label": "路由",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "pages-to-biz",
+      "from": "pages",
+      "to": "biz",
+      "label": "组合",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "biz-to-hooks",
+      "from": "biz",
+      "to": "hooks",
+      "label": "取数",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "hooks-to-api",
+      "from": "hooks",
+      "to": "api",
+      "label": "api 调用",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "api-to-backend",
+      "from": "api",
+      "to": "backend",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "pages-to-client-state",
+      "from": "pages",
+      "to": "client-state",
+      "label": "鉴权 · i18n · 页面态",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        336,
+        327
+      ]
+    },
+    {
+      "id": "biz-to-ui-kit",
+      "from": "biz",
+      "to": "ui-kit",
+      "label": "复用",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        577,
+        327
+      ]
+    },
+    {
+      "id": "hooks-to-storage",
+      "from": "hooks",
+      "to": "storage",
+      "label": "偏好/状态落盘",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        818,
+        327
+      ]
+    },
+    {
+      "id": "types-to-api",
+      "from": "types",
+      "to": "api",
+      "label": "类型契约",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        1049,
+        327
+      ]
+    },
+    {
+      "id": "style-to-shell",
+      "from": "style-theme",
+      "to": "shell",
+      "label": "Provider · 全局 CSS",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        105,
+        327
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "页面 ↔ 组件/引用关系",
+      "items": [
+        "Home/Review → dashboard·run-flow·history·report + useHomeDashboardState/useRunFlowSnapshot/useTaskStream;api analysis/history/agent",
+        "Watchlist→watchlist·StockSearch;KLine/Sector→kline·sector·indexCard;Chat/Portfolio/Decision/Alerts→report·decision-signals·portfolio·alerts;Backtest/Usage/Settings→run-flow·tasks·settings"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "数据流 · 本地持久化",
+      "items": [
+        "取数: 页面→Hook→api/* → axios(api/index.ts: withCredentials·30s)→/api/v1;响应 camelcase 驼峰化 → types/*",
+        "GET 走 L1 内存缓存(utils/apiCache LRU+TTL);401→/login;错误 api/error→Toast;部分组件直连 api(sectorData/systemConfig/history/kline)",
+        "本地: localStorage hrs-pref-(usePreference)/sessionStorage hrs-state-(useCachedState·PageStateStore);zustand persist: agentChat/analysis/stockPool/useHomeDashboardState"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "样式 · 主题 · 类型",
+      "items": [
+        "style/index.css: tailwindcss+@heroui/styles → palette.css → hsl-inline.css → global.scss;tailwind.config.js darkMode 'class',颜色 hsl(var(--x)),:root/.dark",
+        "ThemeProvider(next-themes)+ThemeToggle 切 .dark;useThemeColor+constants/colors.ts;领域类型 src/types/{analysis,runFlow,systemConfig,…}.ts"
+      ]
+    }
+  ]
+}

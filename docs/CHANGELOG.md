@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [新功能] 新增快讯后端接口：`GET /api/v1/intelligence/live-news/channels`、`GET /api/v1/intelligence/live-news`、`POST /api/v1/intelligence/live-news/refresh`、`GET /api/v1/intelligence/live-news/{item_id}`，支持频道/重要级/关键词/日期区间过滤与 keyset 游标分页。
 - [改进] `intelligence_items` 新增 `importance` 列与频道查询复合索引，用于承载快讯重要级；存量库通过启动时幂等补列迁移，补列失败仅告警不阻断启动。
 - [修复] 快讯抓取在本地代理（Clash 等 fake-ip 模式）环境下被 SSRF 校验误拦，导致库数据陈旧、`live-news/refresh` 返回 `source url must not target private or local network addresses` 错误；对受信任内置源（华尔街见闻快讯、NewsNow 聚合源）放行 fake-ip 网段（198.18.0.0/15）并允许复用系统代理解析真实地址，用户自定义源仍保持禁用代理 + 严格判段。
+- [文档] 新增消息日历（Live Calendar）设计方案 `docs/Live-calendar.md`：核实华尔街见闻 `/apiv1/finance/macrodatas` 与 `/apiv1/finance/countries` 两个可用接口（实测 2026-08-28~09-25 返回 569 条，FE 88 / FD 481），确认「宏观/财报/新股/活动」为前端过滤而非后端分流，并给出服务端打标、复用 `intelligence_items` 落表与降级策略的完整方案。
+- [文档] 消息日历方案补充落表核实与重要度统一设计：`scope_type`/`scope_value`/`importance` 三列均已存在无需加列；日历与快讯一样**不注册资讯源**（注册的本质是加入 `fetch_enabled_sources` 批量抓取队列，而日历需 `year/month` 时间窗参数、通用链路无法表达，且 `calendar` 不在 `_ALLOWED_SCOPE_TYPES` 白名单内）。
+- [文档] 重要度确立统一业务量纲 `0=无 / 1=普通 / 2=较重要 / 3=重要 / 4=非常重要`，遵循「数据源只是提供方、业务定义归本项目」原则，上游量纲只在归一化入口出现一次：快讯 `score` 按 `{1→1, 2→3, 3→4}` 语义守恒映射（非简单 `+1`，避免「普通」虚增为「较重要」）、无字段填 `0`；日历上游原值直存、缺失填 `0`。输出侧 `score` 改为直接读 `importance` 列并删除 `raw_payload` 优先分支；阈值统一取 `3`。
+- [文档] 快讯 `importance` 存量数据迁移方案：与阈值调整**必须同批次发布**（否则重要率从 31% 暴跌至 2%），迁移 SQL 需用 `WHEN importance IS NULL` 分支且限定 `scope_type='channel'`；因迁移前后取值集合存在交集，必须采用 `DatabaseSchemaMigration` 标记式幂等，不可依赖数据形态判断；反向迁移依赖 `raw_payload.score` 保留的原始值，改造可逆。
+- [文档] 日历前端控件选型确定为 **FullCalendar v7 二次封装**（`@fullcalendar/{react,core,daygrid,interaction}` + `temporal-polyfill`，React 19 peer 已实测确认）：否决 HeroUI `Calendar`（react-aria 系为日期选择器，语义模型与"每格多事件展示"冲突）与自实现方案。封装遵循 `.conventions/frontend/COMPONENTS.md`（`components/common/LiveCalendarGrid/`、完整透传原生 Props、`cn()` 合并、命名导出）；样式遵循「Tailwind + tailwind.config 令牌为唯一来源、不新建 CSS/SCSS、不用 `global.scss`」，主题经组件根 `--fc-*` CSS 变量层映射项目令牌（Tailwind arbitrary values，不新建文件）；类型命名按 TYPE_NAMING 用 `*Def`；i18n 前缀 `liveCalendar.*`。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 
