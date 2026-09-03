@@ -315,9 +315,9 @@ Tab 定义由服务端常量 `LIVE_CALENDAR_TABS` 维护，前端通过 `GET /li
 | API    | `apps/hrs-web/src/api/liveCalendar.ts`                | 新增 | 4 个 API 函数（snake→camel 归一化，对齐 `liveNews.ts` 风格） |
 | Hook   | `apps/hrs-web/src/hooks/useLiveCalendar.ts`           | 新增 | 3 个 Hook                                      |
 | 常量     | `apps/hrs-web/src/constants/cacheConfig.ts`           | 修改 | 追加 `liveCalendar` 缓存键                         |
-| 常量     | `apps/hrs-web/src/constants/importance.ts`           | 新增 | 重要度共享语义（§8.5，快讯与日历复用）                        |
+| 常量     | `apps/hrs-web/src/constants/newsImportance.ts`           | 新增 | 重要度共享语义（§8.5，快讯与日历复用）                        |
 | 页面     | `apps/hrs-web/src/pages/LiveCalendarPage.tsx`         | 新增 | 页面装配（月份条 + Grid + 详情面板）                      |
-| 控件     | `apps/hrs-web/src/components/common/LiveCalendarGrid/` | 新增 | FullCalendar v7 二次封装（目录见 §9.4，含 `index.ts`）     |
+| 控件     | `apps/hrs-web/src/components/common/LiveCalendarGrid/` | 新增 | FullCalendar v6 二次封装（目录见 §9.4，含 `index.ts`）     |
 | 控件     | `apps/hrs-web/src/components/common/LiveCalendarTabs/` | 新增 | 分类 Tab（基于 HeroUI `Tabs`，目录同规范）                 |
 | 路由     | `apps/hrs-web/src/App.tsx`                            | 修改 | lazy import + `<Route path="/live-calendar">`  |
 | 导航     | `apps/hrs-web/src/components/layout/SidebarNav.tsx`   | 修改 | `NAV_ITEMS` 追加一项                              |
@@ -965,7 +965,7 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 > 命名遵循 `.conventions/frontend/TYPE_NAMING.md`：**描述数据契约 → `Def`**（可脱离组件独立存在，来自 API / 配置）；组件挂载接口才用 `Props`（见 §9.4）。
 
 ```ts
-import type { ImportanceLevel } from '../constants/importance';
+import type { ImportanceLevel } from '../constants/newsImportance';
 
 /** Tab 值 union（不含 Def：是取值枚举而非数据结构） */
 export type CalendarTabValue = 'macro' | 'earnings' | 'ipo' | 'activity' | 'all';
@@ -1030,7 +1030,7 @@ export interface LiveCalendarQueryDef {
 | `LiveCalendarEventDef` | `CalendarEvent` | 单个事件 |
 | `LiveCalendarQueryDef` | 查询参数 | 非后端出参 |
 
-### 8.5 前端共享常量：重要度语义（`apps/hrs-web/src/constants/importance.ts`）
+### 8.5 前端共享常量：重要度语义（`apps/hrs-web/src/constants/newsImportance.ts`）
 
 > **抽象时机**：重要度语义此前仅有快讯一个使用方，本期日历成为**第二个使用方**，符合「第二次出现才抽象」的时机，故抽出共享常量，避免两套语义漂移。
 
@@ -1090,13 +1090,13 @@ export function isImportant(level: number | null | undefined): boolean {
 
 ### 9.1 决策演进记录（防止返工）
 
-本节经历了三轮评审，最终结论是 **FullCalendar v7 二次封装**。演进记录保留，避免后人重复评估：
+本节经历了三轮评审，最终结论是 **FullCalendar v6 二次封装**。演进记录保留，避免后人重复评估：
 
 | 轮次 | 候选 | 否决理由 | 结论 |
 | --- | --- | --- | --- |
 | 1 | 自实现 + `date-fns` | 需求其实是"每格多行文字标题 + 溢出折叠"的**标准事件月历形态**，自实现属重复造轮子，且可访问性/本地化需手写 | 放弃 |
 | 2 | HeroUI 内置 `Calendar` | **语义模型不符**（见 §9.2），选型时误判其能力 | 放弃 |
-| 3 | **FullCalendar v7** | — | ✅ **最终选用** |
+| 3 | **FullCalendar v6** | — | ✅ **最终选用** |
 
 ### 9.2 否决 HeroUI `Calendar` 的论证（为何选型控件而非选择器）
 
@@ -1119,7 +1119,7 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 
 | 候选 | 版本 | React peer | 「每格 N 条 + more」 | 生态 | 结论 |
 | --- | --- | --- | --- | --- | --- |
-| **FullCalendar** | `@fullcalendar/react@7.0.2` | ✅ `^17\|\|^18\|\|^19` | ✅ **dayGrid 原生内置** | 最大（3.0M 下载/月） | ✅ **选用** |
+| **FullCalendar** | `@fullcalendar/react@6.1.21` | ✅ `^17\|\|^18\|\|^19` | ✅ **dayGrid 原生内置** | 最大（3.0M 下载/月） | ✅ **选用** |
 | Schedule-X | `@schedule-x/react@4.1.0` | ✅ `^16.7\|\|^17\|\|^18\|\|^19` | 需自行实现折叠 | 较小 | 备选 |
 | react-big-calendar | — | 需核实 | 月视图弱（周/日为主场） | 中 | ❌ |
 | HeroUI Calendar | 内置 | ✅ | ❌ | — | ❌（§9.2） |
@@ -1137,19 +1137,35 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 | 事件按天 | `start: 'YYYY-MM-DD'`（全天）或带时刻 ISO，事件数组直喂 |
 | 页面自适应 | `height: '100%'` 占满容器 |
 
-> **v7 注意**：FullCalendar v7 基于 Temporal 日期 API，peer 要求 `temporal-polyfill@^1.0.1`，须一并安装。
+> **为何用 v6 而非 v7**（2026-09-03 复核，结论：维持 v6.1.21）：FullCalendar v7 已发布 `core` / `react` 正式版（7.0.2），但 `daygrid` / `interaction` 这两个**本期必需**的插件至今没有 7.x 正式版。
+>
+> **版本时间线（决策依据）**
+>
+> | 日期 | 事件 |
+> | --- | --- |
+> | 2025-02-21 | `daygrid` / `interaction` 发布 **7.0.0-rc.0** ← 此后 **18 个月零更新** |
+> | 2026-06-18 | **v6.1.21 发布**（v6 线终点；官方在推 v7 的前一天仍专门维护） |
+> | 2026-06-19 | `core` / `react` 发布 **v7.0.0 正式版** |
+> | 2026-07-24 | `core` / `react` 发布 **7.0.2**（当前 `latest`） |
+>
+> **三条否决理由**
+>
+> 1. **插件 RC 已停更 18 个月**：`daygrid@7.0.0-rc.0` / `interaction@7.0.0-rc.0` 停留在 2025-02-21，而 `core` 同期已迭代 `rc.1→rc.2→rc.3→7.0.0→7.0.1→7.0.2` 共 6 版，期间含 v7.0.0 的 BREAKING 变更（新增 `temporal-polyfill` peer 依赖）。
+> 2. **硬依赖冲突**：`daygrid@7.0.0-rc.0` 硬依赖 `@fullcalendar/core@7.0.0-rc.0`（**精确版本**，非范围），与 `core@7.0.2` 冲突；混搭需 `--legacy-peer-deps` 且内部 API 错配风险高。
+> 3. **v6.1.21 并非过时版本**：它发布于 v7 正式版**前一天**（2026-06-18），是官方为插件空窗期维护的收官版；对 `daygrid` / `interaction` 而言 npm `latest` 至今仍是 `6.1.21`，即本项目已在用官方认可的最新稳定版。其 peer 已声明支持 React 19（`^17||^18||^19`）。
+>
+> **升级触发条件**：待 `daygrid` / `interaction` 发布 7.x 正式版（即 `npm view @fullcalendar/daygrid dist-tags` 的 `latest` 变为 7.x）后重新评估。届时改动面仅限：① `package.json` 四个包版本号；② 加装 `temporal-polyfill@^1.0.1`（v7 BREAKING 新增必需 peer 依赖）；③ `LiveCalendarGrid.tsx` 适配 v7 API 变化。因封装层已用 `React.ComponentProps<typeof FullCalendar>` 完整透传、页面层不直接依赖 FullCalendar API，**业务代码与样式层无需改动**。
 
 **前端依赖清单（`apps/hrs-web/package.json`）**
 
 | 包 | 版本 | 用途 |
 | --- | --- | --- |
-| `@fullcalendar/react` | `^7.0.2` | React 封装层 |
-| `@fullcalendar/core` | `^7` | 核心（peer 自动带） |
-| `@fullcalendar/daygrid` | `^7` | 月视图（本期唯一视图） |
-| `@fullcalendar/interaction` | `^7` | `dateClick` / `eventClick` |
-| `temporal-polyfill` | `^1` | FullCalendar v7 peer 要求 |
+| `@fullcalendar/react` | `^6.1.21` | React 封装层 |
+| `@fullcalendar/core` | `^6.1.21` | 核心 |
+| `@fullcalendar/daygrid` | `^6.1.21` | 月视图（本期唯一视图） |
+| `@fullcalendar/interaction` | `^6.1.21` | `dateClick` / `eventClick` |
 
-**明确不引入**：`date-fns` / `dayjs`（FullCalendar 自带日期体系，归格与格式化均手写，见 §8.3）；`@internationalized/date`（随 HeroUI Calendar 方案一并否决，不声明）。
+**明确不引入**：`date-fns` / `dayjs`（FullCalendar 自带日期体系，归格与格式化均手写，见 §8.3）；`@internationalized/date`（随 HeroUI Calendar 方案一并否决，不声明）；`temporal-polyfill`（仅 v7 peer 需要，v6 无需）。
 
 ### 9.4 二次封装：遵循 `.conventions/frontend/COMPONENTS.md`
 
@@ -1193,7 +1209,7 @@ export type LiveCalendarGridProps = React.ComponentProps<typeof FullCalendar> & 
   onSelectEvent: (event: LiveCalendarEventDef) => void;
 };
 
-/** FullCalendar v7 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域 */
+/** FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域 */
 export const LiveCalendarGrid = ({
   eventsByDay,
   onSelectDay,
@@ -1291,7 +1307,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 >
 ```
 
-> 具体 `--fc-*` 变量名以 FullCalendar v7 实际 CSS 为准，实施时对照其 `daygrid.css` 校准；映射值一律取 config 令牌，**禁止写死色值**。
+> 具体 `--fc-*` 变量名以 FullCalendar v6 实际 CSS 为准，实施时对照其 `daygrid.css` 校准；映射值一律取 config 令牌，**禁止写死色值**。
 
 **两条硬性约束（写入本模块约定）**
 
@@ -1451,7 +1467,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 
 | 范围       | 回滚动作                                                                                          |
 | -------- | --------------------------------------------------------------------------------------------- |
-| 仅前端      | 移除 `/live-calendar` 路由与 `SidebarNav` 项；卸载 `@fullcalendar/*` 与 `temporal-polyfill`（若无其他使用方）            |
+| 仅前端      | 移除 `/live-calendar` 路由与 `SidebarNav` 项；卸载 `@fullcalendar/*`（若无其他使用方）                                    |
 | 仅后端      | 移除 `intelligence.py` 中的 4 个路由；`CalendarService` / fetcher 不再被调用                                |
 | 全部回滚     | 回退 feature 分支。**日历数据表无需回滚**——仅追加了 `scope_type='calendar'` 的行，不影响快讯与通用资讯                        |
 | 数据清理（可选） | `DELETE FROM intelligence_items WHERE source_type = 'wscn_calendar';`（**不删任何既有数据**）           |
