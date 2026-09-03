@@ -35,13 +35,18 @@
  * 选型理由与主题映射详见 docs/Live-calendar.md §9。
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
+import type { EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
+import zhTwLocale from '@fullcalendar/core/locales/zh-tw';
 import { cn } from '../../../utils/cn';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import type { UiLanguage } from '../../../i18n/uiText';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 // 基础样式，后续用Tailwind覆盖美化
 // import '@fullcalendar/core/main.css';
@@ -156,7 +161,20 @@ function CalendarEventContent({ event }: { event: LiveCalendarEventDef }) {
     );
 }
 
-/** FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域 */
+/** UI 语言 → FullCalendar 内置 locale（英文用内置默认 locale，传 undefined 即可） */
+function calendarLocaleOf(language: UiLanguage) {
+    if (language === 'zh') return zhCnLocale;
+    if (language === 'zh-Hant') return zhTwLocale;
+    return undefined;
+}
+
+/**
+ * FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域。
+ *
+ * 月视图下点单条事件或日期格 → 切换到日视图（timeGridDay）并定位该日，展示当日全部事件
+ * （事件数据仍来自 Page 按月拉取的 eventsByDay，切视图不触发重新请求）；日/周视图下
+ * 点击仍走 onSelectDay / onSelectEvent 的详情面板定位语义。
+ */
 export const LiveCalendarGrid = ({
     eventsByDay,
     onSelectDay,
@@ -166,6 +184,38 @@ export const LiveCalendarGrid = ({
     ...props
 }: LiveCalendarGridProps) => {
     const events = useMemo(() => toFullCalendarEvents(eventsByDay), [eventsByDay]);
+    const calendarRef = useRef<FullCalendar | null>(null);
+    // 工具栏按钮文案与 FullCalendar locale（星期表头、aria 提示等）随 UI 语言切换
+    const { t, language } = useUiLanguage();
+
+    /** 切换到日视图并定位到指定日期（供月视图点击穿透使用；changeView 接受 DateInput） */
+    const goToDayView = (date: Date | string) => {
+        calendarRef.current?.getApi().changeView('timeGridDay', date);
+    };
+
+    /**
+     * 点日期格：月视图 → 先通知 Page 定位详情，再切换日视图展示当日全部事件；
+     * 周/日视图 → 仅更新选中日（timeGrid 的 dateStr 带时刻，截前 10 位归一为 YYYY-MM-DD）。
+     */
+    const handleDateClick = (info: DateClickArg) => {
+        const dayKey = info.dateStr.slice(0, 10);
+        onSelectDay(dayKey);
+        if (info.view.type === 'dayGridMonth') {
+            goToDayView(info.date);
+        }
+    };
+
+    /**
+     * 点单条事件：月视图 → 先通知 Page 定位该日详情，再切换日视图展示当日全部事件；
+     * 周/日视图 → 维持原有 onSelectEvent 详情定位语义。
+     */
+    const handleEventClick = (info: EventClickArg) => {
+        const eventDef = info.event.extendedProps.eventDef as LiveCalendarEventDef;
+        onSelectEvent(eventDef);
+        if (info.view.type === 'dayGridMonth') {
+            goToDayView(info.event.start ?? info.event.startStr);
+        }
+    };
     return (
         <div
             className={cn(
@@ -312,7 +362,8 @@ export const LiveCalendarGrid = ({
 
                 // ── 工具栏（prev/today/next + title + 视图切换器）───────────────────────
                 // v6 工具栏默认用 display:flex; justify-content:space-between; align-items:center;
-                // 这里给 padding 与下边距分隔日历主体，并在月/周/日切换按钮组上做"相邻拼接"视觉。
+                // 这里给 padding 与下边距分隔日历主体；导航按钮组（前/今天/后）做“相邻拼接”胶囊，
+                // 视图切换器（月/周/日）为三个独立按钮，渲染为纯文字样式（选中项浅灰圆角底 + 加粗）。
                 '[&_.fc-toolbar]:flex',
                 '[&_.fc-toolbar]:flex-wrap',
                 '[&_.fc-toolbar]:items-center',
@@ -324,19 +375,32 @@ export const LiveCalendarGrid = ({
                 '[&_.fc-toolbar-title]:text-base',
                 '[&_.fc-toolbar-title]:font-semibold',
                 '[&_.fc-toolbar-title]:text-foreground',
-                // 通用按钮（prev/next/today）：白底描边圆角
+                // 通用：圆角与 hover 反馈（导航与视图切换共用）
                 '[&_.fc-button]:rounded-md',
-                '[&_.fc-button]:bg-background',
-                '[&_.fc-button]:border',
-                '[&_.fc-button]:border-border-dim',
-                '[&_.fc-button]:text-foreground',
-                '[&_.fc-button]:shadow-soft-card',
                 '[&_.fc-button:hover]:bg-hover',
-                '[&_.fc-button-primary.fc-button-active]:bg-muted',
-                '[&_.fc-button-primary.fc-button-active]:text-foreground',
                 '[&_.fc-button-primary.fc-button-active]:shadow-none',
-                '[&_.fc-button-primary.fc-button-active]:border-border-dim',
-                // 按钮组（视图切换器）：相邻按钮去掉双边框，整体呈一个胶囊
+                // 导航按钮（前/今天/后）：白底描边圆角。视图切换器已改纯文字样式，
+                // 因此这些规则按 FullCalendar 生成的按钮类名收窄到导航三钮，不再作用于 .fc-button 全体。
+                '[&_:is(.fc-prev-button,.fc-today-button,.fc-next-button)]:bg-background',
+                '[&_:is(.fc-prev-button,.fc-today-button,.fc-next-button)]:border',
+                '[&_:is(.fc-prev-button,.fc-today-button,.fc-next-button)]:border-border-dim',
+                '[&_:is(.fc-prev-button,.fc-today-button,.fc-next-button)]:text-foreground',
+                '[&_:is(.fc-prev-button,.fc-today-button,.fc-next-button)]:shadow-soft-card',
+                // 视图切换（月/周/日）：三个独立的纯文字标签，无边框/底色/阴影；
+                // 间距用 mx-1（空格分隔的按钮不再有 button-group 包裹，需自带间距）。
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:border-0',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:bg-transparent',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:shadow-none',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:px-2.5',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:mx-1',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:text-muted-foreground',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:font-normal',
+                // 选中项：浅灰圆角底 + 加粗深色文字（选中态选择器多一层 .fc-button-active，
+                // 优先级高于上面的未选中规则，无需 important）
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:bg-muted',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:text-foreground',
+                '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:font-semibold',
+                // 按钮组（仅剩导航组）：相邻按钮去掉双边框，整体呈一个胶囊
                 '[&_.fc-button-group_.fc-button]:rounded-none',
                 '[&_.fc-button-group_.fc-button:first-child]:rounded-l-md',
                 '[&_.fc-button-group_.fc-button:last-child]:rounded-r-md',
@@ -346,9 +410,10 @@ export const LiveCalendarGrid = ({
             )}
         >
             <FullCalendar
+                ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
-                locale={zhCnLocale}
+                locale={calendarLocaleOf(language)}
                 firstDay={1}
                 dayMaxEvents={3}
                 // 高度策略：不再传 height="100%"（父容器是 flex item，height:100% 无法解析为确定值，
@@ -361,16 +426,20 @@ export const LiveCalendarGrid = ({
                 // ── 工具栏：内置 prev/today/next + title + 月/周/日切换器 ────────────
                 // 之前由 LiveCalendarPage 自带的"今日 + 月翻页"按钮被此处接管，避免重复；
                 // 分类 Tab 与刷新按钮仍在 Page 层（功能与视图导航正交，不重复）。
+                // start 用逗号分隔 = 同一个 .fc-button-group（连体胶囊），顺序即视觉顺序：
+                // 「前(prev) / 今天(today) / 后(next)」，与 Breezy demo 的 `prev,today,next` 一致。
+                // end 用空格分隔 = 月/周/日为三个独立按钮（不包进 button-group），
+                // 配合上方 :is(...) 选择器渲染成纯文字切换器。
                 headerToolbar={{
-                    start: 'prev,next today',
+                    start: 'prev,today,next',
                     center: 'title',
-                    end: 'dayGridMonth,timeGridWeek,timeGridDay',
+                    end: 'dayGridMonth timeGridWeek timeGridDay',
                 }}
                 buttonText={{
-                    today: '今天',
-                    dayGridMonth: '月',
-                    timeGridWeek: '周',
-                    timeGridDay: '日',
+                    today: t('common.datetime.today'),
+                    dayGridMonth: t('common.datetime.month'),
+                    timeGridWeek: t('common.datetime.week'),
+                    timeGridDay: t('common.datetime.day'),
                 }}
                 // 视图日期范围变化（prev/next/today/切换视图）→ 通知 Page 拉对应月份数据
                 datesSet={(arg) => {
@@ -424,8 +493,8 @@ export const LiveCalendarGrid = ({
                         +{arg.num}
                     </span>
                 )}
-                dateClick={(info) => onSelectDay(info.dateStr)}
-                eventClick={(info) => onSelectEvent(info.event.extendedProps.eventDef as LiveCalendarEventDef)}
+                dateClick={handleDateClick}
+                eventClick={handleEventClick}
                 {...props}
             />
         </div>
