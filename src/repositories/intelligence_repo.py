@@ -415,6 +415,46 @@ class IntelligenceRepository:
                 ))
             ).scalar() or 0)
 
+    # ------------------------------------------------------------------
+    # 消息日历（intelligence_items，scope_type='calendar'）
+    #
+    # 日历与快讯 / 通用资讯共用一张表，通过 scope_type='calendar' 区分。
+    # 一条事件可命中多个分类（宏观 / 财报 / 新股 / 活动），按分类拆多行落库
+    # （scope_value 各不相同），由唯一约束天然去重——与快讯「多频道各存一行」一致。
+    # 写入复用 ``upsert_items``（其去重键已含 scope_value），查询见本方法。
+    # 详见 docs/Live-calendar.md §5。
+    # ------------------------------------------------------------------
+    def list_calendar_events(
+        self,
+        *,
+        published_from: datetime,
+        published_to: datetime,
+    ) -> List[IntelligenceItem]:
+        """查询指定时间区间（UTC，含端点）内的日历事件行。
+
+        仅按 ``scope_type='calendar'`` + 发布时间闭区间过滤，**不做分类去重**：
+        分类聚合（同一事件的多行合并为一条、拼出 tab_keys）由服务层负责。
+
+        Args:
+            published_from: 发布时间下界（含，UTC naive）。
+            published_to: 发布时间上界（含，UTC naive）。
+
+        Returns:
+            按 ``published_at`` 升序、``id`` 升序的事件行列表。
+        """
+        conditions = [
+            IntelligenceItem.scope_type == "calendar",
+            IntelligenceItem.published_at >= published_from,
+            IntelligenceItem.published_at <= published_to,
+        ]
+        with self.db.get_session() as session:
+            rows = session.execute(
+                select(IntelligenceItem)
+                .where(and_(*conditions))
+                .order_by(IntelligenceItem.published_at, IntelligenceItem.id)
+            ).scalars().all()
+            return list(rows)
+
     @staticmethod
     def _normalize_scope_value(value: Any) -> str:
         """归一化作用域取值。

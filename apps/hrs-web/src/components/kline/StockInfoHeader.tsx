@@ -13,7 +13,7 @@ import {
   formatStockTurnoverAmount,
   formatStockMarketCap,
 } from '../../utils/format';
-import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, STOCK_FLAT_COLOR } from '../../constants/colors';
+import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, STOCK_FLAT_COLOR } from '../../constants/stockColor';
 
 type StockInfoHeaderProps = {
   info: StockInfo;

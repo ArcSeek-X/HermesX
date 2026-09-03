@@ -39,7 +39,7 @@ import * as echarts from 'echarts';
 import type { KLinePoint, KLinePeriod } from '../../api/kline';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useWindowWidth } from '../../hooks/useWindowWidth';
-import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, getThemeColors } from '../../constants/colors';
+import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, getThemeColors } from '../../constants/stockColor';
 
 /** 各周期初始可见柱子数量（一屏显示） */
 const PERIOD_VISIBLE_BARS: Record<string, number> = {

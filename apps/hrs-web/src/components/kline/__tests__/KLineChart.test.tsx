@@ -66,7 +66,7 @@ vi.mock('../../hooks/useWindowWidth', () => ({
 // 组件在顶层 import echarts，需在实际 import 之前完成 mock 声明（hoist）
 // 因此把组件 import 放到 mock 声明之后由 vitest 自动 hoist 处理
 import { KLineChart } from '../KLineChart';
-import { STOCK_UP_COLOR } from '../../../constants/colors';
+import { STOCK_UP_COLOR } from '../../../constants/stockColor';
 
 // ============================================================
 // 构造测试数据

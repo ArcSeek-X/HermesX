@@ -26,5 +26,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    // FullCalendar Breezy 主题参考实现（themes.fullcalendar.io demo），基于 FullCalendar 7.x
+    // Themes API 编写，与本仓库锁定的 6.1.21 不兼容，仅作视觉对照参考，不参与产品编译。
+    "src/components/common/LiveCalendarGrid/demo"
+  ]
 }

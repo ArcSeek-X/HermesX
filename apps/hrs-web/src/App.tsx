@@ -12,7 +12,8 @@
 import type React from 'react';
 import { lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ApiErrorAlert, Shell } from './components';
+import { InlineTipCard, Shell } from './components';
+import { Toast } from './components/basic/Toast';
 import {
   PageLoadingFallback,
   RouteOutletBoundary,
@@ -45,6 +46,8 @@ const SectorAnalysisPage = lazy(() => import('./pages/SectorAnalysisPage'));
 const StockKLinePage = lazy(() => import('./pages/StockKLinePage'));
 const StockDashboardPage = lazy(() => import('./pages/StockDashboardPage'));
 const CodeTestPage = lazy(() => import('./pages/CodeTestPage'));
+const LiveNewsPage = lazy(() => import('./pages/LiveNewsPage'));
+const LiveCalendarPage = lazy(() => import('./pages/LiveCalendarPage'));
 
 /**
  * 路由内部组件，必须位于 <Router> 之内，才能使用 useLocation / useAuth 等钩子。
@@ -72,7 +75,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-base px-4">
         <div className="w-full max-w-lg">
-          <ApiErrorAlert error={loadError} />
+          <InlineTipCard variant="danger" content={loadError} />
         </div>
         <button
           type="button"
@@ -126,6 +129,8 @@ const AppContent: React.FC = () => {
         <Route path="/review" element={<ReviewPage />} />
         {/* 自选：自选股列表与行情跟踪 */}
         <Route path="/watchlist" element={<WatchlistPage />} />
+        <Route path="/live-calendar" element={<LiveCalendarPage />} />
+        <Route path="/live-news" element={<LiveNewsPage />} />
         {/* 板块分析 */}
         <Route path="/sector-analysis" element={<SectorAnalysisPage />} />
         {/* K 线行情 */}
@@ -170,6 +175,8 @@ const App: React.FC = () => {
           </PageStateProvider>
         </AuthProvider>
       </Router>
+      {/* 全局错误 toast 宿主：订阅命令式队列，在任意 API 报错时弹出 danger 浮层 */}
+      <Toast />
     </UiLanguageProvider>
   );
 };

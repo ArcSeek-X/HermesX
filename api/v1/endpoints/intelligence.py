@@ -59,6 +59,11 @@ from api.v1.schemas.intelligence import (
     LiveNewsListResponse,
     LiveNewsRefreshRequest,
     LiveNewsRefreshResponse,
+    CalendarCountriesResponse,
+    CalendarMonthResponse,
+    CalendarRefreshRequest,
+    CalendarRefreshResponse,
+    CalendarTabsResponse,
 )
 from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.services.run_diagnostics import sanitize_diagnostic_text
@@ -362,10 +367,90 @@ def get_live_news_item(item_id: int) -> LiveNewsItem:
         row = service.repo.get_live_news_item_by_id(item_id)
         if row is None:
             raise _not_found(f"live news item not found: {item_id}")
-        # 复用服务层的取值辅助：避免 `0 or 默认值` 这类 falsy 陷阱
-        threshold = max(1, service._config_int("wscn_live_news_important_score", 2))
+        # 复用服务层的取值辅助：避免 `0 or 默认值` 这类 falsy 陷阱。
+        # 阈值按统一业务量纲判定，默认值取自服务层常量（3=重要）
+        threshold = max(1, service._config_int("wscn_live_news_important_score", service.IMPORTANT_THRESHOLD))
         return LiveNewsItem(**service._live_news_item_to_dict(row, threshold=threshold))
     except HTTPException:
         raise
     except Exception as exc:
         raise _internal_error("Get live news item failed", exc)
+
+
+@router.get(
+    "/live-calendar/tabs",
+    response_model=CalendarTabsResponse,
+    summary="List live calendar tabs",
+)
+def list_live_calendar_tabs() -> CalendarTabsResponse:
+    """返回日历分类 Tab 列表（服务端常量，不依赖上游）。"""
+    try:
+        return CalendarTabsResponse(**IntelligenceService().list_calendar_tabs())
+    except Exception as exc:
+        raise _internal_error("List calendar tabs failed", exc)
+
+
+@router.get(
+    "/live-calendar/countries",
+    response_model=CalendarCountriesResponse,
+    summary="List live calendar countries",
+)
+def list_live_calendar_countries() -> CalendarCountriesResponse:
+    """返回国家字典；上游失败时降级为空列表并置 degraded=True。"""
+    try:
+        return CalendarCountriesResponse(**IntelligenceService().list_calendar_countries())
+    except Exception as exc:
+        raise _internal_error("List calendar countries failed", exc)
+
+
+@router.get(
+    "/live-calendar",
+    response_model=CalendarMonthResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="List live calendar events by month",
+)
+def list_live_calendar(
+    year: int = Query(..., ge=2000, le=2100, description="年（UTC 口径）"),
+    month: int = Query(..., ge=1, le=12, description="月"),
+    tab: Optional[str] = Query(None, description="分类过滤：macro / earnings / ipo / activity / all"),
+    country_id: Optional[str] = Query(None, max_length=2, description="国家代码过滤"),
+    importance_min: Optional[int] = Query(None, ge=0, le=4, description="最低重要级（统一业务量纲 0~4）"),
+    include_economic_data: bool = Query(False, description="是否包含 FD 经济数据（默认不含）"),
+) -> CalendarMonthResponse:
+    """查询指定月份的日历事件（聚合去重 + 分类 / 国家 / 重要级过滤）。"""
+    try:
+        return CalendarMonthResponse(**IntelligenceService().list_calendar(
+            year=year,
+            month=month,
+            tab=tab,
+            country_id=country_id,
+            importance_min=importance_min,
+            include_economic_data=include_economic_data,
+        ))
+    except IntelligenceServiceError as exc:
+        raise _bad_request(exc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _internal_error("List live calendar failed", exc)
+
+
+@router.post(
+    "/live-calendar/refresh",
+    response_model=CalendarRefreshResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Refresh live calendar from upstream",
+)
+def refresh_live_calendar(request: CalendarRefreshRequest) -> CalendarRefreshResponse:
+    """手动触发指定月份日历抓取并落库。"""
+    try:
+        return CalendarRefreshResponse(**IntelligenceService().refresh_calendar(
+            year=request.year,
+            month=request.month,
+        ))
+    except IntelligenceServiceError as exc:
+        raise _bad_request(exc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _internal_error("Refresh live calendar failed", exc)

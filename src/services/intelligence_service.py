@@ -32,6 +32,7 @@
 
 from __future__ import annotations
 
+import calendar as _calendar_mod
 import hashlib
 import ipaddress
 import json
@@ -56,6 +57,10 @@ from src.services.run_diagnostics import sanitize_diagnostic_text
 from data_provider.wallstreetcn_live_news import (
     LiveNewsFetchError,
     WallstreetcnLiveNewsFetcher,
+)
+from data_provider.wallstreetcn_calendar import (
+    CalendarFetchError,
+    WallstreetcnCalendarFetcher,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,6 +95,7 @@ _LIVE_NEWS_FALLBACK_SOURCE_ID = "wallstreetcn-quick"
 # 仍保持“禁用代理 + 严格 SSRF 判段”，安全边界不被削弱。
 _TRUSTED_SOURCE_HOSTS = {
     "api-one.wallstcn.com",      # 华尔街见闻 7x24 快讯官方源
+    "api-one-wscn.awtmt.com",    # 华尔街见闻财经日历官方源
     "newsnow.busiyi.world",      # NewsNow 聚合兜底源
 }
 
@@ -1059,6 +1065,43 @@ class IntelligenceService:
     # 这是兜底保护：即便配置间隔被误设为 0 或极小值，也不会把请求打爆到上游。
     _LIVE_NEWS_MIN_FETCH_INTERVAL_SECONDS = 60
 
+    # === 统一重要度业务量纲（0~4）===
+    # 设计原则：数据源只是数据提供方，重要度的业务定义归本项目。上游量纲
+    # （快讯 score 1~3、日历 importance 1~4、NewsNow 无字段）只允许在「归一化入口」
+    # 出现一次，落库列 / API 输出 / 前端渲染统一使用本量纲。
+    # 完整设计与迁移说明见 docs/Live-calendar.md §5.7。
+    IMPORTANCE_NONE = 0        # 数据源未提供重要度（**不是**「最低等级」）
+    IMPORTANCE_NORMAL = 1      # 普通
+    IMPORTANCE_MINOR = 2       # 较重要
+    IMPORTANCE_IMPORTANT = 3   # 重要
+    IMPORTANCE_CRITICAL = 4    # 非常重要
+    IMPORTANT_THRESHOLD = 3    # 「重要」判定阈值，与 wscn_live_news_important_score 默认值一致
+
+    # 华尔街见闻快讯 score -> 统一业务量纲（**语义守恒**映射）。
+    # 快讯上游语义为 1=普通 / 2=重要 / 3=非常重要，本身没有「较重要」这一档，
+    # 因此不能简单 +1（会把「普通」虚增为「较重要」）。
+    _LIVE_NEWS_SCORE_TO_IMPORTANCE = {1: 1, 2: 3, 3: 4}
+
+    @classmethod
+    def normalize_live_news_importance(cls, score: Any) -> int:
+        """把快讯上游 ``score`` 归一化为统一业务量纲 0~4。
+
+        这是快讯重要度的**唯一归一化入口**：写入落库前调用，之后全链路
+        （落库列 -> API 输出 -> 前端）均为业务量纲。
+
+        Args:
+            score: 上游 ``score``。缺失 / ``None`` / 非法 / 为 0 均归为 ``0``（无），
+                不可兜底为 1——「没告诉我」不等于「这是普通的」。
+
+        Returns:
+            统一业务量纲取值（0~4）。
+        """
+        try:
+            value = int(score)
+        except (TypeError, ValueError):
+            return cls.IMPORTANCE_NONE
+        return cls._LIVE_NEWS_SCORE_TO_IMPORTANCE.get(value, cls.IMPORTANCE_NONE)
+
     @classmethod
     def reset_live_news_state(cls) -> None:
         """重置快讯的降级状态与抓取节流时间戳，主要用于测试隔离。"""
@@ -1117,7 +1160,9 @@ class IntelligenceService:
         if not WallstreetcnLiveNewsFetcher.is_known_channel(channel):
             raise IntelligenceServiceError(f"unsupported live news channel: {channel}")
         scope_value = WallstreetcnLiveNewsFetcher.to_scope_value(channel)
-        threshold = max(1, self._config_int("wscn_live_news_important_score", 2))
+        # 阈值按统一业务量纲判定（3=重要）；与快讯 importance 归一化改造同步上调，
+        # 保证「重要」判定结果与改造前完全一致（详见 docs/Live-calendar.md §5.7.5）
+        threshold = max(1, self._config_int("wscn_live_news_important_score", self.IMPORTANT_THRESHOLD))
         if limit is None:
             limit = self._config_int("wscn_live_news_default_limit", 30)
         if limit < 1 or limit > 100:
@@ -1387,9 +1432,11 @@ class IntelligenceService:
             # 多频道拆行由调用方展开，此处保留列表供 _expand_live_news_fields 使用
             "scope_value": scope_values,
             "market": "cn",
-            "importance": int(entry.score or 1),
+            # 归一化入口：上游 score -> 统一业务量纲 0~4（语义守恒，见 normalize_live_news_importance）
+            "importance": self.normalize_live_news_importance(entry.score),
             "raw_payload": json.dumps({
                 "id": entry.item_id,
+                # 保留上游原始值，仅用于溯源与反向迁移，不参与 API 输出
                 "score": entry.score,
                 "channels": list(entry.channels),
                 "author": entry.author,
@@ -1424,8 +1471,10 @@ class IntelligenceService:
             "scope_type": "channel",
             "scope_value": (channel.get("scope_value") or "global",),
             "market": "cn",
-            # 兜底源无重要级字段，留空以便前端隐藏「只看重要的」开关
-            "importance": None,
+            # 兜底源无重要级字段 -> 统一业务量纲的 0（无），而非 NULL。
+            # 「没告诉我」≠「这是普通的」，不可兜底为 1，详见 docs/Live-calendar.md §5.7.2。
+            # 前端隐藏「只看重要的」开关改由 degraded 标记驱动（两者粒度不同）。
+            "importance": self.IMPORTANCE_NONE,
             "raw_payload": json.dumps({"source": self._LIVE_NEWS_SOURCE_FALLBACK}, ensure_ascii=False),
         }
 
@@ -1448,8 +1497,12 @@ class IntelligenceService:
     def _live_news_item_to_dict(self, item: Any, *, threshold: int) -> Dict[str, Any]:
         """快讯条目 ORM -> API 输出字典。
 
-        优先从 raw_payload 还原上游字段（channels / author / 原始 id），
+        优先从 raw_payload 还原上游字段（原始 id / channels / author），
         raw_payload 缺失时退化为从 URL 与列字段推导，保证接口始终可用。
+
+        例外：**重要级不走 raw_payload**。``score`` 直接读 ``importance`` 列
+        （已在落库入口归一化为统一业务量纲 0~4），原因详见下方注释与
+        docs/Live-calendar.md §5.7.7 改动点 3。
         """
         raw: Dict[str, Any] = {}
         try:
@@ -1469,10 +1522,15 @@ class IntelligenceService:
             match = re.search(r"/livenews/(\d+)", str(item.url or ""))
             item_id = int(match.group(1)) if match else item.id
 
-        score = raw.get("score")
-        if not isinstance(score, int):
-            score = int(item.importance) if item.importance is not None else 1
-        importance = item.importance
+        # 重要级：归一化已在落库入口完成，importance 列恒为统一业务量纲 0~4。
+        # 直接读列即可——若再从 raw_payload 还原上游 score，同一字段会在两条路径下
+        # 出现两种量纲（正常路径上游量纲 / 退化路径业务量纲），故删除该分支。
+        # raw_payload.score 仅保留用于溯源与反向迁移。
+        importance = (
+            int(item.importance)
+            if item.importance is not None
+            else self.IMPORTANCE_NONE
+        )
 
         channels = raw.get("channels")
         if not isinstance(channels, list):
@@ -1483,8 +1541,8 @@ class IntelligenceService:
             "title": item.title or "",
             "content": item.summary or "",
             "display_time": display_time,
-            "score": int(score),
-            "important": bool(importance is not None and int(importance) >= int(threshold)),
+            "score": importance,
+            "important": bool(importance >= int(threshold)),
             "channels": [str(channel) for channel in channels],
             "uri": item.url or "",
             "author": raw.get("author"),
@@ -1522,3 +1580,381 @@ class IntelligenceService:
             return datetime.fromtimestamp(int(timestamp), tz=timezone.utc).replace(tzinfo=None)
         except (OSError, OverflowError, ValueError, TypeError):
             return None
+
+    # ==================================================================
+    # 财经日历（Live Calendar）
+    #
+    # 数据来源：华尔街见闻日历接口（macrodatas / countries），与快讯共用
+    # intelligence_items 表（scope_type='calendar'）。
+    # 与快讯的差异：
+    #  1. 日历按「月份时间窗」低频抓取，而非 30s 轮询；
+    #  2. 事件按标题关键字打标分类（宏观 / 财报 / 新股 / 活动），而非上游频道字段；
+    #  3. 日历不注册资讯源（source_id 为 NULL），有独立抓取入口 refresh_calendar()。
+    # 完整设计与接口契约见 docs/Live-calendar.md。
+    # ==================================================================
+
+    # 日历落库 scope_type 与源标识
+    _CALENDAR_SCOPE_TYPE = "calendar"
+    _CALENDAR_SOURCE_NAME = "wallstreetcn-calendar"
+    _CALENDAR_SOURCE_TYPE = "wscn_calendar"
+
+    # FD（经济数据）落库的 scope_value：不参与四个分类 Tab，仅在「宏观」下可选展示
+    _CALENDAR_ECONOMIC_DATA_SCOPE = "economic_data"
+
+    # 分类 Tab 定义（单一真源：API / 前端 Tab 均以此为准）。label 为前端 Tab 文案，
+    # order 即前端 Tab 展示顺序。
+    _CALENDAR_TABS: Tuple[Dict[str, Any], ...] = (
+        {"value": "macro", "label": "宏观", "order": 1},
+        {"value": "earnings", "label": "财报", "order": 2},
+        {"value": "ipo", "label": "新股", "order": 3},
+        {"value": "activity", "label": "活动", "order": 4},
+        {"value": "all", "label": "全部", "order": 5},
+    )
+
+    # 分类打标规则：FE 事件按 title + foresight 关键字命中（可多归属，一事件拆多行）。
+    # 顺序即优先级（先命中 earnings/ipo/activity，最后兜底 macro）。
+    _CALENDAR_TAG_RULES: Tuple[Tuple[str, "re.Pattern[str]"], ...] = (
+        ("earnings", re.compile(r"财报|季报|中报|年报|半年报|业绩|业绩发布会|电话会|披露截止|财务业绩")),
+        ("ipo", re.compile(r"IPO|上市|招股|询价|申购|挂牌|纳入.{0,6}指数")),
+        ("activity", re.compile(r"大会|峰会|论坛|发布会|博览会|数博会|展会|展览|Connect|发售|上新|开源")),
+        ("macro", re.compile(r"央行|联储|美联储|议息|利率决议|褐皮书|杰克逊霍尔|CPI|PMI|GDP|非农|失业率|通胀|关税|休市|峰会|国事访问|公投|外长|元首|理事会|讲话|货币政策")),
+    )
+
+    # 国家字典进程内缓存（低频稳定数据，TTL 内直接命中）
+    _calendar_countries_cache: List[Dict[str, str]] = []
+    _calendar_countries_cached_at: Optional[datetime] = None
+    _calendar_countries_lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # 日历：对外接口
+    # ------------------------------------------------------------------
+    def list_calendar_tabs(self) -> Dict[str, Any]:
+        """返回日历分类 Tab 列表（服务端常量，不依赖上游）。"""
+        return {"tabs": [dict(tab) for tab in self._CALENDAR_TABS]}
+
+    def list_calendar_countries(self) -> Dict[str, Any]:
+        """返回国家字典；进程内缓存 TTL 内命中，否则抓取（失败降级为空）。"""
+        with self._calendar_countries_lock:
+            now = datetime.now()
+            cached_at = self._calendar_countries_cached_at
+            if self._calendar_countries_cache and cached_at is not None:
+                ttl = max(0, self._config_int("calendar_countries_cache_ttl", 86400))
+                if (now - cached_at).total_seconds() < ttl:
+                    return {"items": list(self._calendar_countries_cache), "degraded": False}
+
+        fetcher = self._calendar_fetcher()
+        try:
+            countries = fetcher.fetch_countries()
+        except CalendarFetchError as exc:  # noqa: BLE001
+            logger.warning("Calendar countries fetch failed: %s", exc)
+            return {"items": [], "degraded": True}
+
+        items = [
+            {
+                "country_id": country.country_id,
+                "country_name": country.country_name,
+                "currency": country.currency,
+                "currency_name": country.currency_name,
+                "flag_uri": country.flag_uri,
+            }
+            for country in countries
+        ]
+        with self._calendar_countries_lock:
+            self._calendar_countries_cache = items
+            self._calendar_countries_cached_at = now
+        return {"items": items, "degraded": False}
+
+    def refresh_calendar(self, year: int, month: int) -> Dict[str, Any]:
+        """抓取并落库指定月份（UTC）的日历事件。
+
+        Args:
+            year: 年。
+            month: 月（1~12）。
+
+        Returns:
+            ``{"fetched_count": int, "degraded": bool, "errors": [str]}``。
+        """
+        if not self._calendar_enabled():
+            return {"fetched_count": 0, "degraded": True, "errors": ["calendar disabled"]}
+
+        start_dt, end_dt = self._month_utc_range(year, month)
+        fetcher = self._calendar_fetcher()
+        try:
+            entries = fetcher.fetch_range(
+                int(start_dt.replace(tzinfo=timezone.utc).timestamp()),
+                int(end_dt.replace(tzinfo=timezone.utc).timestamp()),
+            )
+        except CalendarFetchError as exc:  # noqa: BLE001
+            logger.warning("Calendar fetch failed for %04d-%02d: %s", year, month, exc)
+            return {"fetched_count": 0, "degraded": True, "errors": [str(exc)]}
+
+        rows: List[Dict[str, Any]] = []
+        for entry in entries:
+            rows.extend(self._calendar_entry_to_rows(entry, now=datetime.now()))
+        saved = self.repo.upsert_items(rows)
+        return {"fetched_count": saved, "degraded": False, "errors": []}
+
+    def list_calendar(
+        self,
+        year: int,
+        month: int,
+        *,
+        tab: Optional[str] = None,
+        country_id: Optional[str] = None,
+        importance_min: Optional[int] = None,
+        include_economic_data: bool = False,
+    ) -> Dict[str, Any]:
+        """查询指定月份的日历事件（聚合去重 + 过滤）。
+
+        Args:
+            year: 年。
+            month: 月（1~12）。
+            tab: 分类过滤（macro / earnings / ipo / activity / all）；为空等价 all。
+            country_id: 国家过滤（两位代码）。
+            importance_min: 最低重要级（统一业务量纲 0~4）。
+            include_economic_data: 是否包含 FD 经济数据（默认不含）。
+
+        Returns:
+            ``{"items": [dict], "total": int, "server_time": int, "degraded": bool, "source": str}``。
+        """
+        if not self._calendar_enabled():
+            return {
+                "items": [], "total": 0,
+                "server_time": int(datetime.now().timestamp()),
+                "degraded": True, "source": "wallstreetcn",
+            }
+
+        start_dt, end_dt = self._month_utc_range(year, month)
+        rows = self.repo.list_calendar_events(published_from=start_dt, published_to=end_dt)
+        degraded = False
+        if not rows:
+            # 惰性抓取：库中该月无数据时先抓一次（首次访问冷启动）
+            refresh = self.refresh_calendar(year, month)
+            degraded = bool(refresh["degraded"])
+            rows = self.repo.list_calendar_events(published_from=start_dt, published_to=end_dt)
+
+        events = self._aggregate_calendar_rows(rows)
+        events = self._filter_calendar(
+            events,
+            tab=tab,
+            country_id=country_id,
+            importance_min=importance_min,
+            include_economic_data=include_economic_data,
+        )
+        return {
+            "items": events,
+            "total": len(events),
+            "server_time": int(datetime.now().timestamp()),
+            "degraded": degraded,
+            "source": "wallstreetcn",
+        }
+
+    # ------------------------------------------------------------------
+    # 日历：内部实现
+    # ------------------------------------------------------------------
+    def _calendar_enabled(self) -> bool:
+        """日历能力总开关。"""
+        return bool(getattr(self.config, "wallstreetcn_calendar_enabled", True))
+
+    def _calendar_fetcher(self) -> WallstreetcnCalendarFetcher:
+        """创建日历抓取器（注入带 DNS 复检的安全请求实现，防 SSRF）。"""
+        return WallstreetcnCalendarFetcher(
+            base_url=getattr(
+                self.config, "wallstreetcn_calendar_base_url", "https://api-one-wscn.awtmt.com"
+            ),
+            timeout=getattr(self.config, "wallstreetcn_calendar_timeout", 8.0),
+            request_get=self._get_with_validated_dns,
+        )
+
+    @classmethod
+    def _month_utc_range(cls, year: int, month: int) -> Tuple[datetime, datetime]:
+        """计算指定月份的 UTC 闭区间（月初 00:00:00 ~ 月末 23:59:59）。"""
+        if month < 1 or month > 12:
+            raise IntelligenceServiceError(f"invalid calendar month: {month}")
+        start = datetime(year, month, 1)
+        last_day = _calendar_mod.monthrange(year, month)[1]
+        end = datetime(year, month, last_day, 23, 59, 59)
+        return start, end
+
+    @classmethod
+    def _tag_calendar_event(cls, calendar_type: str, text: str) -> List[str]:
+        """对 FE 事件打标，返回命中的 tab value 列表（可多归属）。
+
+        FD 经济数据不参与打标（由调用方单独归为 ``economic_data``）。
+        """
+        if calendar_type != "FE":
+            return []
+        matched: List[str] = []
+        for value, pattern in cls._CALENDAR_TAG_RULES:
+            if pattern.search(text):
+                matched.append(value)
+        return matched
+
+    @classmethod
+    def _calendar_entry_to_rows(cls, entry: Any, *, now: datetime) -> List[Dict[str, Any]]:
+        """把单条日历事件转成待入库行（多归属拆多行）。"""
+        title = entry.title or (entry.foresight.split("\n")[0][:300] if entry.foresight else "")
+        published_at = cls._timestamp_to_datetime(entry.public_date)
+        if published_at is None:
+            # 全天事件（public_date 为 0 或缺失）：取事件日期 00:00:00，此处退化为当前时间兜底
+            published_at = now.replace(microsecond=0)
+        importance = entry.importance if entry.importance is not None else cls.IMPORTANCE_NONE
+        # 钳制到统一业务量纲 0~4
+        importance = max(0, min(int(importance), 4))
+
+        is_economic = entry.calendar_type == "FD"
+        tag_keys = cls._tag_calendar_event(entry.calendar_type, f"{title} {entry.foresight}")
+        if is_economic:
+            scope_values = [cls._CALENDAR_ECONOMIC_DATA_SCOPE]
+        elif tag_keys:
+            scope_values = tag_keys
+        else:
+            # FE 未命中任何关键字：归入「全部」由 all Tab 兜底展示，落库用宏观兜底短码
+            scope_values = ["all"]
+
+        common = {
+            "source_id": None,
+            "source_name": cls._CALENDAR_SOURCE_NAME,
+            "source_type": cls._CALENDAR_SOURCE_TYPE,
+            "title": title or "(无标题)",
+            "summary": entry.foresight,
+            "url": f"wscn-calendar/{entry.item_id}",
+            "source": "华尔街见闻",
+            "published_at": published_at,
+            "fetched_at": now,
+            "scope_type": cls._CALENDAR_SCOPE_TYPE,
+            "market": cls._calendar_market_from_country(entry.country_id),
+            "importance": importance,
+            "raw_payload": json.dumps(
+                {
+                    "id": entry.item_id,
+                    "calendar_type": entry.calendar_type,
+                    "tab_keys": tag_keys,
+                    "country": entry.country,
+                    "country_id": entry.country_id,
+                    "wscn_ticker": entry.wscn_ticker,
+                    "actual": entry.actual,
+                    "forecast": entry.forecast,
+                    "previous": entry.previous,
+                    "revised": entry.revised,
+                    "flag_uri": entry.flag_uri,
+                    "uri": entry.uri,
+                    "public_date": entry.public_date,
+                    "importance": entry.importance,
+                },
+                ensure_ascii=False,
+            ),
+        }
+        return [dict(common, scope_value=value) for value in scope_values]
+
+    @staticmethod
+    def _calendar_market_from_country(country_id: str) -> str:
+        """国家代码 -> market（cn/hk/us/jp/kr/tw/global）。"""
+        mapping = {
+            "CN": "cn", "HK": "hk", "US": "us", "JP": "jp", "KR": "kr", "TW": "tw",
+        }
+        return mapping.get(str(country_id or "").strip().upper(), "global")
+
+    def _aggregate_calendar_rows(self, rows: List[Any]) -> List[Dict[str, Any]]:
+        """把同一事件的多个 scope_value 行合并为一条，拼出 tab_keys。"""
+        grouped: Dict[str, List[Any]] = {}
+        for row in rows:
+            grouped.setdefault(row.url, []).append(row)
+
+        events: List[Dict[str, Any]] = []
+        for url, group in grouped.items():
+            row = group[0]
+            raw = self._parse_raw_payload(row.raw_payload)
+            scope_values = [str(g.scope_value) for g in group]
+            tab_keys = [v for v in scope_values if v != self._CALENDAR_ECONOMIC_DATA_SCOPE]
+            is_all_day = not raw.get("public_date")
+            start_at = int(row.published_at.replace(tzinfo=timezone.utc).timestamp()) if row.published_at else 0
+            events.append({
+                "id": int(raw.get("id") or self._id_from_url(row.url)),
+                "key": f"wscn-calendar-{raw.get('id') or self._id_from_url(row.url)}",
+                "start_at": start_at,
+                "title": row.title or "",
+                "short_title": self._shorten_calendar_title(row.title or ""),
+                "summary": row.summary or "",
+                "calendar_type": raw.get("calendar_type") or "FE",
+                "tab_keys": tab_keys,
+                "importance": int(row.importance or self.IMPORTANCE_NONE),
+                "country": raw.get("country") or "",
+                "country_id": raw.get("country_id") or "",
+                "flag_uri": raw.get("flag_uri") or "",
+                "actual": raw.get("actual") or "",
+                "forecast": raw.get("forecast") or "",
+                "previous": raw.get("previous") or "",
+                "is_all_day": bool(is_all_day),
+                "source_uri": raw.get("uri") or "",
+            })
+        events.sort(key=lambda item: (item["start_at"], item["id"]))
+        return events
+
+    def _filter_calendar(
+        self,
+        events: List[Dict[str, Any]],
+        *,
+        tab: Optional[str],
+        country_id: Optional[str],
+        importance_min: Optional[int],
+        include_economic_data: bool,
+    ) -> List[Dict[str, Any]]:
+        """按 tab / 国家 / 重要级 / 经济数据开关过滤聚合后的事件。"""
+        result: List[Dict[str, Any]] = []
+        for event in events:
+            is_economic = event["calendar_type"] == "FD"
+            if is_economic and not include_economic_data:
+                continue
+            if tab and tab != "all":
+                if tab not in event["tab_keys"]:
+                    continue
+            if country_id:
+                if event["country_id"] != str(country_id).strip().upper():
+                    continue
+            if importance_min is not None:
+                if event["importance"] < int(importance_min):
+                    continue
+            result.append(event)
+        return result
+
+    @staticmethod
+    def _parse_raw_payload(raw_payload: Optional[str]) -> Dict[str, Any]:
+        if not raw_payload:
+            return {}
+        try:
+            parsed = json.loads(raw_payload)
+            return parsed if isinstance(parsed, dict) else {}
+        except (TypeError, ValueError):
+            return {}
+
+    @staticmethod
+    def _id_from_url(url: str) -> int:
+        """从 ``wscn-calendar/<id>`` 形式 URL 解析事件 ID，失败返回 0。"""
+        match = re.search(r"wscn-calendar/(\d+)", str(url or ""))
+        return int(match.group(1)) if match else 0
+
+    @staticmethod
+    def _shorten_calendar_title(title: str) -> str:
+        """日历格子精简标题（规则见 docs/Live-calendar.md §11.2）。"""
+        value = (title or "").strip()
+        if not value:
+            return ""
+        # 去除中文括号内的补充说明
+        value = re.sub(r"[（(][^）)]*[）)]", "", value)
+        # 按常见分隔符取第一段
+        value = re.split(r"[、/：:]", value)[0].strip()
+        # 去除常见冗余后缀
+        value = re.sub(r"(将于|将|预计将|正式|即将)?(举行|生效|公布|发布|上市|发售|开会|召开)$", "", value).strip()
+        # 截断至 18 个中文字符（英文按 0.5 折算），超出加省略号
+        length = sum(1 if ord(ch) > 0x2E80 else 0.5 for ch in value)
+        if length > 18:
+            cut = 0
+            acc = 0.0
+            for ch in value:
+                acc += 1 if ord(ch) > 0x2E80 else 0.5
+                if acc > 18:
+                    break
+                cut += 1
+            value = value[:cut] + "…"
+        return value

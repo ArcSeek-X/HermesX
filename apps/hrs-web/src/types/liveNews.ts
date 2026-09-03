@@ -23,9 +23,9 @@ export interface LiveNewsItem {
   content: string;
   /** 发布时间（秒级 Unix 时间戳） */
   displayTime: number | null;
-  /** 上游重要级：1=普通 / 2=重要 / 3=非常重要 */
+  /** 重要级，统一业务量纲：0=无 / 1=普通 / 2=较重要 / 3=重要 / 4=非常重要（见 constants/importance.ts） */
   score: number;
-  /** 是否重要，等价于 `score >= 阈值`（阈值由后端配置决定） */
+  /** 是否重要，等价于 `score >= 阈值`（阈值由后端配置决定，默认 3=重要） */
   important: boolean;
   /** 所属频道（上游原始值），一条快讯可属于多个频道 */
   channels: string[];

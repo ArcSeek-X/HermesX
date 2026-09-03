@@ -42,6 +42,9 @@ export const CACHE_TTL_MAP: Record<string, number> = {
   // 快讯的抓取频率由后端 ensure_live_news_fresh 节流，前端重复请求不会打爆上游。
   '/api/v1/intelligence/live-news': 0,
 
+  // 消息日历 — 不缓存（手动刷新后需立即拿到最新库存数据）
+  '/api/v1/intelligence/live-calendar': 0,
+
   // 鉴权状态 — 不缓存（保证登录/登出/密码变更状态即时生效）
   '/api/v1/auth': 0,
 

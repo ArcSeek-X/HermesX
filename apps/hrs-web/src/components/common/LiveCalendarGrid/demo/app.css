@@ -1,0 +1,9 @@
+body {
+  font-family: 'Inter Variable', sans-serif;
+}
+
+@media not print {
+  [data-color-scheme=dark] {
+    color-scheme: dark;
+  }
+}

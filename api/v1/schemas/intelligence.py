@@ -246,3 +246,85 @@ class LiveNewsRefreshResponse(BaseModel):
     fetched_count: int = 0
     degraded: bool = False
     errors: List[LiveNewsRefreshError] = Field(default_factory=list)
+
+
+CalendarTabValue = Literal["macro", "earnings", "ipo", "activity", "all"]
+
+
+class CalendarTab(BaseModel):
+    """日历分类 Tab（宏观 / 财报 / 新股 / 活动 / 全部）。"""
+
+    value: CalendarTabValue
+    label: str
+    order: int = 0
+
+
+class CalendarTabsResponse(BaseModel):
+    """日历分类 Tab 列表响应。"""
+
+    tabs: List[CalendarTab] = Field(default_factory=list)
+    degraded: bool = False
+
+
+class CalendarCountry(BaseModel):
+    """国家字典条目。"""
+
+    country_id: str
+    country_name: str
+    currency: str = ""
+    currency_name: str = ""
+    flag_uri: str = ""
+
+
+class CalendarCountriesResponse(BaseModel):
+    """国家字典响应。"""
+
+    items: List[CalendarCountry] = Field(default_factory=list)
+    degraded: bool = False
+
+
+class CalendarEvent(BaseModel):
+    """单条日历事件（统一业务量纲，详见 docs/Live-calendar.md §7.3）。"""
+
+    id: int
+    key: str
+    start_at: int
+    title: str = ""
+    short_title: str = ""
+    summary: str = ""
+    calendar_type: str = "FE"
+    tab_keys: List[CalendarTabValue] = Field(default_factory=list)
+    importance: int = 0
+    country: str = ""
+    country_id: str = ""
+    flag_uri: str = ""
+    actual: str = ""
+    forecast: str = ""
+    previous: str = ""
+    is_all_day: bool = False
+    source_uri: str = ""
+
+
+class CalendarMonthResponse(BaseModel):
+    """月度日历事件响应。"""
+
+    items: List[CalendarEvent] = Field(default_factory=list)
+    server_time: int
+    total: int = 0
+    degraded: bool = False
+    source: str = "wallstreetcn"
+
+
+class CalendarRefreshRequest(BaseModel):
+    """手动刷新日历请求。"""
+
+    year: int = Field(..., ge=2000, le=2100)
+    month: int = Field(..., ge=1, le=12)
+
+
+class CalendarRefreshResponse(BaseModel):
+    """手动刷新日历响应。"""
+
+    fetched_count: int = 0
+    degraded: bool = False
+    errors: List[str] = Field(default_factory=list)

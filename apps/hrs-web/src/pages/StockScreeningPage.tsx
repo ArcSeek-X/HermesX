@@ -30,7 +30,6 @@ import {
   Pickaxe,
   Plane,
   Play,
-  PlusCircle,
   RefreshCw,
   Search,
   Shield,
@@ -52,7 +51,7 @@ import {
   type AlphaSiftStrategy,
 } from '../api/alphasift';
 import { formatParsedApiError, getParsedApiError, toApiErrorMessage, type ParsedApiError } from '../api/error';
-import { AppPage, Button, InlineAlert } from '../components/common';
+import { AppPage, Button, InlineAlert } from '../components';
 import { usePreference } from '../hooks/usePreference';
 
 // ============ 常量与类型定义 ============
@@ -1100,22 +1099,10 @@ const StockScreeningPage: React.FC = () => {
 
   return (
     <AppPage className="max-w-6xl space-y-6 pb-12 pt-6">
-      {/* ===== 页面头部：标题 + 状态指示 ===== */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-cyan text-cyan shadow-[0_0_24px_hsl(var(--primary)/0.18)]">
-            <PlusCircle className="h-4 w-4" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-normal text-foreground">AlphaSift 选股</h1>
-            <p className="mt-1 text-sm text-secondary-text">开启后通过内置 AlphaSift 适配层生成候选股票，并补充 HRS 数据与新闻</p>
-          </div>
-        </div>
-
-        <div className="inline-flex w-fit items-center gap-2 rounded-2xl border border-border/70 bg-card/80 px-4 py-2 text-sm shadow-soft-card">
-          <span className={`h-2.5 w-2.5 rounded-full ${isScreeningEnabled ? 'bg-success' : 'bg-warning'}`} />
-          <span className="font-medium text-secondary-text">{statusText}</span>
-        </div>
+      {/* ===== 页面头部：状态指示（页面标题已由顶部 header 展示）===== */}
+      <div className="inline-flex w-fit items-center gap-2 rounded-2xl border border-border/70 bg-card/80 px-4 py-2 text-sm shadow-soft-card">
+        <span className={`h-2.5 w-2.5 rounded-full ${isScreeningEnabled ? 'bg-success' : 'bg-warning'}`} />
+        <span className="font-medium text-secondary-text">{statusText}</span>
       </div>
 
       {!enabled ? (

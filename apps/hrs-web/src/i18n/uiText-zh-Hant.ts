@@ -93,6 +93,8 @@ const zhHant = {
   'layout.nav.home.description': '股票分析與歷史報告工作臺', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线導航項
   'layout.nav.kline.description': '個股 K 線走勢、技術指標與多週期分析', // K 线导航项描述
+  'layout.nav.liveCalendar.title': '日曆', // 訊息日曆導航項
+  'layout.nav.liveCalendar.description': '宏觀、財報、新股、活動等重要事件日曆', // 日曆導航項描述
   'layout.nav.liveNews.title': '快訊', // 即時快訊導航項
   'layout.nav.liveNews.description': '7x24 財經快訊，依頻道篩選與重要級過濾', // 快讯导航项描述
   'layout.nav.portfolio.title': '持倉', // 持倉導航項
@@ -565,6 +567,31 @@ const zhHant = {
   'kline.tooltip.macd': 'MACD', // tooltip MACD 指標
   'kline.tooltip.open': '開盤', // tooltip 開盤价
   'kline.tooltip.volume': '成交量', // tooltip 成交量
+  // liveCalendar.*
+  'liveCalendar.allDay': '全天', // 日曆事件全天標識
+  'liveCalendar.country': '國家', // 國家篩選標籤
+  'liveCalendar.degradedTip': '資料源暫不可用，目前展示本地快取資料', // 降級提示條
+  'liveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
+  'liveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
+  'liveCalendar.emptyTab': '目前分類下本月暫無事件，試試「全部」', // 空態：某分類無事件
+  'liveCalendar.eventsCount': '共 {count} 條事件', // 詳情面板事件計數
+  'liveCalendar.includeEconomicData': '顯示經濟資料', // 是否顯示 FD 經濟資料開關
+  'liveCalendar.importance': '重要級', // 重要級篩選標籤
+  'liveCalendar.loading': '正在載入日曆…', // 載入中文案
+  'liveCalendar.more': '+{count} 更多', // 日曆格子溢出摺疊提示
+  'liveCalendar.nextMonth': '下月', // 月份切換：下月
+  'liveCalendar.prevMonth': '上月', // 月份切換：上月
+  'liveCalendar.refresh': '重新整理日曆', // 手動重新整理按鈕
+  'liveCalendar.refreshing': '重新整理日曆中', // 重新整理按鈕載入態文案
+  'liveCalendar.selectHint': '點擊日曆中的日期查看當日事件', // 詳情面板空態提示
+  'liveCalendar.subtitle': '宏觀、財報、新股、活動等重要事件的財經日曆', // 頁面副標題
+  'liveCalendar.tabs.activity': '活動', // 分類 Tab：活動
+  'liveCalendar.tabs.all': '全部', // 分類 Tab：全部
+  'liveCalendar.tabs.earnings': '財報', // 分類 Tab：財報
+  'liveCalendar.tabs.ipo': '新股', // 分類 Tab：新股
+  'liveCalendar.tabs.macro': '宏觀', // 分類 Tab：宏觀
+  'liveCalendar.title': '訊息日曆', // 頁面標題
+  'liveCalendar.today': '今天', // 月份切換：回到今天
   // liveNews.*
   'liveNews.channelTabs': '快訊頻道', // 頻道 Tab 的無障礙標籤
   'liveNews.dateAll': '全部日期', // 日期篩選：不限

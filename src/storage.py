@@ -106,6 +106,15 @@ CURRENT_SCHEMA_VERSION = "2026-06-05-create-all-baseline"
 # IntelligenceRepository._normalize_scope_value）。
 INTELLIGENCE_ITEM_NULL_SCOPE_VALUE = "__hrs_null_scope__"
 
+# 统一重要度业务量纲迁移标记（记录在 schema_migrations 表）。
+# 背景：快讯 importance 原为上游 score（1=普通 / 2=重要 / 3=非常重要），
+# 与消息日历（1~4）量纲不一致。现统一为业务量纲 0~4：
+#   0=无 / 1=普通 / 2=较重要 / 3=重要 / 4=非常重要
+# 快讯按语义守恒映射 {1→1, 2→3, 3→4}，上游无字段填 0。
+# 迁移前后取值集合存在交集（前 {1,2,3} / 后 {0,1,3,4}），无法从数据形态判断
+# 是否已迁移，因此必须用该标记做幂等，禁止依赖数据形态判断。
+LIVE_NEWS_IMPORTANCE_RESCALE_VERSION = "2026-09-02-live-news-importance-rescale-v1"
+
 # SQLAlchemy ORM 基类
 Base = declarative_base()
 
@@ -1529,6 +1538,8 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._ensure_schema_migration_record()
             self._ensure_intelligence_items_unique_index()
             self._ensure_intelligence_item_importance_column()
+            # 必须在补列之后执行：依赖 importance 列已存在
+            self._ensure_live_news_importance_rescaled()
             _ensure_watchlist_schema(self)
 
             self._initialized = True
@@ -2041,6 +2052,55 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
                     )
         except Exception as exc:  # noqa: BLE001 - 索引缺失只影响性能，不阻断启动
             logger.warning("[Intelligence] 创建快讯查询索引失败，已跳过: %s", exc)
+
+    def _ensure_live_news_importance_rescaled(self) -> None:
+        """把快讯 ``importance`` 从上游 score 量纲迁移到统一业务量纲（0~4）。
+
+        映射（语义守恒，快讯无「较重要」档）：
+            NULL -> 0    上游无重要级字段（如 NewsNow 降级源）
+            1 -> 1       普通
+            2 -> 3       重要
+            3 -> 4       非常重要
+
+        幂等关键：迁移前后取值集合存在交集（前 ``{1,2,3}`` / 后 ``{0,1,3,4}``），
+        **无法从单条数据判断它是否已迁移**，重复执行会造成二次映射。
+        因此 UPDATE 与迁移标记写入放在**同一事务**内：要么都成功、要么都回滚，
+        避免出现「数据已迁移但标记未写入」导致下次启动重复迁移。
+
+        设计取舍：与其它 ``_ensure_*`` 一致，**不阻断启动**；迁移失败仅告警，
+        此时快讯重要级可能失真（阈值仍按新量纲判定），但不影响其它能力。
+        """
+        table_name = IntelligenceItem.__tablename__
+        try:
+            with self._engine.begin() as connection:
+                marked = connection.exec_driver_sql(
+                    "SELECT version FROM schema_migrations WHERE version = ?",
+                    (LIVE_NEWS_IMPORTANCE_RESCALE_VERSION,),
+                ).fetchone()
+                if marked is not None:
+                    return
+                # 注意：NULL 必须用 IS NULL 判断，写成 CASE importance WHEN NULL 永不匹配
+                connection.exec_driver_sql(
+                    f"UPDATE {table_name} SET importance = CASE "
+                    "WHEN importance IS NULL THEN 0 "
+                    "WHEN importance = 1 THEN 1 "
+                    "WHEN importance = 2 THEN 3 "
+                    "WHEN importance = 3 THEN 4 "
+                    "ELSE importance END "
+                    "WHERE scope_type = 'channel'"
+                )
+                connection.exec_driver_sql(
+                    "INSERT INTO schema_migrations (version, description, applied_at) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        LIVE_NEWS_IMPORTANCE_RESCALE_VERSION,
+                        "Rescale live news importance from upstream score to unified 0-4 scale",
+                        datetime.now(),
+                    ),
+                )
+            logger.info("[Intelligence] 快讯 importance 已迁移至统一业务量纲 0~4")
+        except Exception as exc:  # noqa: BLE001 - 迁移失败不阻断启动
+            logger.warning("[Intelligence] 快讯 importance 量纲迁移失败，已跳过: %s", exc)
 
     def _is_duplicate_column_error(self, exc: Exception, column: str) -> bool:
         """判断异常是否为「列已存在」，用于幂等补列。

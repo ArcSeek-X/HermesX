@@ -842,10 +842,20 @@ class Config:
     wscn_live_news_enabled: bool = True  # 快讯能力总开关，关闭后所有快讯接口返回空且不抓取
     wscn_live_news_base_url: str = "https://api-one.wallstcn.com"  # 快讯接口基址（数据源侧，不影响 LLM/provider base URL）
     wscn_live_news_fetch_interval_sec: int = 300  # 后台定时抓取间隔（秒），0 表示关闭定时抓取
-    wscn_live_news_important_score: int = 2  # 重要级阈值：上游 score >= 该值视为「重要」
+    # 重要级阈值：统一业务量纲 importance >= 该值视为「重要」（3=重要）。
+    # 快讯 importance 已归一化为 0~4（原上游 score 1~3），阈值同步由 2 上调为 3 以保持判定结果不变。
+    wscn_live_news_important_score: int = 3
     wscn_live_news_default_limit: int = 30  # 快讯列表默认每页条数
     wscn_live_news_timeout_sec: float = 8.0  # 单频道请求超时（秒）
     wscn_live_news_fallback_newsnow: bool = True  # 官方源失败时是否降级到 NewsNow 聚合源
+
+    # === 华尔街见闻财经日历（Live Calendar）配置 ===
+    # 详见 docs/Live-calendar.md：主数据源为华尔街见闻日历接口 macrodatas/countries。
+    wallstreetcn_calendar_enabled: bool = True  # 日历能力总开关，关闭后所有日历接口返回空且不抓取
+    wallstreetcn_calendar_base_url: str = "https://api-one-wscn.awtmt.com"  # 日历接口基址（注意：与快讯域名不同）
+    wallstreetcn_calendar_timeout: float = 8.0  # 单请求超时（秒）
+    wallstreetcn_calendar_important_score: int = 3  # 「重要」阈值，与快讯统一业务量纲对齐（3=重要）
+    calendar_countries_cache_ttl: int = 86400  # 国家字典进程内缓存时长（秒）
 
     bias_threshold: float = 5.0  # 乖离率阈值（%），超过此值提示不追高
 
@@ -1770,7 +1780,7 @@ class Config:
             ),
             wscn_live_news_important_score=parse_env_int(
                 os.getenv('WSCN_LIVE_NEWS_IMPORTANT_SCORE'),
-                2,
+                3,  # 统一业务量纲阈值（3=重要）；快讯 importance 归一化后由 2 上调
                 field_name='WSCN_LIVE_NEWS_IMPORTANT_SCORE',
                 minimum=1,
                 maximum=10,
@@ -1792,6 +1802,34 @@ class Config:
             wscn_live_news_fallback_newsnow=parse_env_bool(
                 os.getenv('WSCN_LIVE_NEWS_FALLBACK_NEWSNOW'),
                 True,
+            ),
+            wallstreetcn_calendar_enabled=parse_env_bool(
+                os.getenv('WALLSTREETCN_CALENDAR_ENABLED'),
+                True,
+            ),
+            wallstreetcn_calendar_base_url=(
+                os.getenv('WALLSTREETCN_CALENDAR_BASE_URL') or 'https://api-one-wscn.awtmt.com'
+            ).strip().rstrip('/'),
+            wallstreetcn_calendar_timeout=parse_env_float(
+                os.getenv('WALLSTREETCN_CALENDAR_TIMEOUT'),
+                8.0,
+                field_name='WALLSTREETCN_CALENDAR_TIMEOUT',
+                minimum=1.0,
+                maximum=30.0,
+            ),
+            wallstreetcn_calendar_important_score=parse_env_int(
+                os.getenv('WALLSTREETCN_CALENDAR_IMPORTANT_SCORE'),
+                3,
+                field_name='WALLSTREETCN_CALENDAR_IMPORTANT_SCORE',
+                minimum=0,
+                maximum=10,
+            ),
+            calendar_countries_cache_ttl=parse_env_int(
+                os.getenv('CALENDAR_COUNTRIES_CACHE_TTL'),
+                86400,
+                field_name='CALENDAR_COUNTRIES_CACHE_TTL',
+                minimum=0,
+                maximum=86400,
             ),
             bias_threshold=parse_env_float(os.getenv('BIAS_THRESHOLD'), 5.0, field_name='BIAS_THRESHOLD', minimum=1.0),
             agent_backend=(os.getenv('AGENT_BACKEND', 'auto') or 'auto').strip().lower(),

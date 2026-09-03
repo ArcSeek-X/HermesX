@@ -192,7 +192,7 @@ class LiveNewsServiceTestCase(unittest.TestCase):
         os.environ["NEWS_INTEL_FETCH_TIMEOUT_SEC"] = "3"
         os.environ["WSCN_LIVE_NEWS_ENABLED"] = "true"
         os.environ["WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC"] = "300"
-        os.environ["WSCN_LIVE_NEWS_IMPORTANT_SCORE"] = "2"
+        os.environ["WSCN_LIVE_NEWS_IMPORTANT_SCORE"] = "3"  # 统一业务量纲阈值（3=重要）
         os.environ["WSCN_LIVE_NEWS_FALLBACK_NEWSNOW"] = "true"
         Config._instance = None
         DatabaseManager.reset_instance()
@@ -263,7 +263,7 @@ class LiveNewsServiceTestCase(unittest.TestCase):
 
         # 重要级应落库
         important_row = next(row for row in rows if row.url.endswith("/livenews/3157010"))
-        self.assertEqual(important_row.importance, 2)
+        self.assertEqual(important_row.importance, 3)  # 上游 score=2 归一化为业务量纲 3（重要）
         self.assertEqual(important_row.scope_type, "channel")
 
     def test_list_live_news_maps_fields(self) -> None:
@@ -274,7 +274,7 @@ class LiveNewsServiceTestCase(unittest.TestCase):
         self.assertIsNone(page["next_cursor"])
 
         item = next(entry for entry in page["items"] if entry["id"] == 3157010)
-        self.assertEqual(item["score"], 2)
+        self.assertEqual(item["score"], 3)  # 输出统一业务量纲：上游 score=2 → 3
         self.assertTrue(item["important"])
         self.assertEqual(item["author"], "葛冬瑾")
         self.assertIn("global-channel", item["channels"])
@@ -549,7 +549,7 @@ class LiveNewsEndpointTestCase(unittest.TestCase):
         os.environ["DATABASE_PATH"] = os.path.join(self._temp_dir.name, "live_news_api.db")
         os.environ["WSCN_LIVE_NEWS_ENABLED"] = "true"
         os.environ["WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC"] = "300"
-        os.environ["WSCN_LIVE_NEWS_IMPORTANT_SCORE"] = "2"
+        os.environ["WSCN_LIVE_NEWS_IMPORTANT_SCORE"] = "3"  # 统一业务量纲阈值（3=重要）
         Config._instance = None
         DatabaseManager.reset_instance()
         IntelligenceService.reset_live_news_state()
@@ -675,7 +675,7 @@ class LiveNewsEndpointTestCase(unittest.TestCase):
         self._seed()
         item = get_live_news_item(3157010)
         self.assertEqual(item.id, 3157010)
-        self.assertEqual(item.score, 2)
+        self.assertEqual(item.score, 3)  # 统一业务量纲：上游 score=2 → 3
         self.assertTrue(item.important)
 
     def test_get_item_endpoint_not_found(self) -> None:

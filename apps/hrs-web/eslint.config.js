@@ -6,7 +6,14 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'playwright-report', 'test-results']),
+  globalIgnores([
+    'dist',
+    'playwright-report',
+    'test-results',
+    // FullCalendar Breezy 主题参考 demo（FullCalendar 7.x Themes API），与仓库锁定的
+    // 6.1.21 不兼容，仅作视觉对照，不参与 lint。见 tsconfig.app.json 同目录 exclude。
+    'src/components/common/LiveCalendarGrid/demo/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

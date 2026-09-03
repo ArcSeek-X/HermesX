@@ -93,6 +93,8 @@ const zh = {
   'layout.nav.home.description': '股票分析与历史报告工作台', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线导航项
   'layout.nav.kline.description': '个股 K 线走势、技术指标与多周期分析', // K 线导航项描述
+  'layout.nav.liveCalendar.title': '日历', // 消息日历导航项
+  'layout.nav.liveCalendar.description': '宏观、财报、新股、活动等重要事件日历', // 日历导航项描述
   'layout.nav.liveNews.title': '快讯', // 实时快讯导航项
   'layout.nav.liveNews.description': '7x24 财经快讯，按频道筛选与重要级过滤', // 快讯导航项描述
   'layout.nav.portfolio.title': '持仓', // 持仓导航项
@@ -565,6 +567,31 @@ const zh = {
   'kline.tooltip.macd': 'MACD', // tooltip MACD 指标
   'kline.tooltip.open': '开盘', // tooltip 开盘价
   'kline.tooltip.volume': '成交量', // tooltip 成交量
+  // liveCalendar.*
+  'liveCalendar.allDay': '全天', // 日历事件全天标识
+  'liveCalendar.country': '国家', // 国家筛选标签
+  'liveCalendar.degradedTip': '数据源暂不可用，当前展示本地缓存数据', // 降级提示条
+  'liveCalendar.empty': '本月暂无日历事件', // 空态：当月无事件
+  'liveCalendar.emptyImportance': '没有符合重要级条件的事件，试试降低筛选条件', // 空态：重要级筛选无结果
+  'liveCalendar.emptyTab': '当前分类下本月暂无事件，试试「全部」', // 空态：某分类无事件
+  'liveCalendar.eventsCount': '共 {count} 条事件', // 详情面板事件计数
+  'liveCalendar.includeEconomicData': '显示经济数据', // 是否显示 FD 经济数据开关
+  'liveCalendar.importance': '重要级', // 重要级筛选标签
+  'liveCalendar.loading': '正在加载日历…', // 加载中文案
+  'liveCalendar.more': '+{count} 更多', // 日历格子溢出折叠提示
+  'liveCalendar.nextMonth': '下月', // 月份切换：下月
+  'liveCalendar.prevMonth': '上月', // 月份切换：上月
+  'liveCalendar.refresh': '刷新日历', // 手动刷新按钮
+  'liveCalendar.refreshing': '刷新日历中', // 刷新按钮加载态文案
+  'liveCalendar.selectHint': '点击日历中的日期查看当日事件', // 详情面板空态提示
+  'liveCalendar.subtitle': '宏观、财报、新股、活动等重要事件的财经日历', // 页面副标题
+  'liveCalendar.tabs.activity': '活动', // 分类 Tab：活动
+  'liveCalendar.tabs.all': '全部', // 分类 Tab：全部
+  'liveCalendar.tabs.earnings': '财报', // 分类 Tab：财报
+  'liveCalendar.tabs.ipo': '新股', // 分类 Tab：新股
+  'liveCalendar.tabs.macro': '宏观', // 分类 Tab：宏观
+  'liveCalendar.title': '消息日历', // 页面标题
+  'liveCalendar.today': '今天', // 月份切换：回到今天
   // liveNews.*
   'liveNews.channelTabs': '快讯频道', // 频道 Tab 的无障碍标签
   'liveNews.dateAll': '全部日期', // 日期筛选：不限
