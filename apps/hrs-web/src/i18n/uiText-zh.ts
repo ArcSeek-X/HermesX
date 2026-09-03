@@ -15,6 +15,10 @@ const zh = {
   'common.confirm': '确定', // 通用确认按钮文案
   'common.copied': '已复制!', // 复制成功提示
   'common.copy': '复制', // 复制按钮文案
+  'common.datetime.day': '日', // 日历视图粒度：日
+  'common.datetime.month': '月', // 日历视图粒度：月
+  'common.datetime.today': '今天', // 日历回到今天按钮
+  'common.datetime.week': '周', // 日历视图粒度：周
   'common.delete': '删除', // 通用删除按钮文案
   'common.deleting': '删除中', // 删除进行中状态
   'common.details': '查看详情', // 查看详情入口

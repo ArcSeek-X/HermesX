@@ -18,6 +18,10 @@ const en: Record<UiTextKey, string> = {
   'common.confirm': 'OK',
   'common.copied': 'Copied!',
   'common.copy': 'Copy',
+  'common.datetime.day': 'Day', // Calendar view granularity: day
+  'common.datetime.month': 'Month', // Calendar view granularity: month
+  'common.datetime.today': 'Today', // Calendar back-to-today button
+  'common.datetime.week': 'Week', // Calendar view granularity: week
   'common.delete': 'Delete',
   'common.deleting': 'Deleting',
   'common.details': 'View details',

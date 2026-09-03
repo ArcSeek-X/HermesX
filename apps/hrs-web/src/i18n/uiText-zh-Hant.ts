@@ -15,6 +15,10 @@ const zhHant = {
   'common.confirm': '確定', // 通用確認按鈕文案
   'common.copied': '已複製!', // 複製成功提示
   'common.copy': '複製', // 複製按鈕文案
+  'common.datetime.day': '日', // 日曆視圖粒度：日
+  'common.datetime.month': '月', // 日曆視圖粒度：月
+  'common.datetime.today': '今天', // 日曆回到今天按鈕
+  'common.datetime.week': '週', // 日曆視圖粒度：週
   'common.delete': '刪除', // 通用刪除按鈕文案
   'common.deleting': '刪除中', // 刪除進行中狀態
   'common.details': '查看詳情', // 查看詳情入口
