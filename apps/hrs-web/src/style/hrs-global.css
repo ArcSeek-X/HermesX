@@ -1,0 +1,48 @@
+/* ============ Input Styles ============ */
+:root {
+  --bg: hsla(0, 0%, 100%, 1);
+  --input-surface-bg: var(--bg);
+  --input-surface-border: hsl(218 24% 80% / 0.92);
+  --input-surface-border-hover: hsl(218 20% 70% / 0.92);
+  --input-surface-border-focus: hsl(var(--primary) / 0.38);
+  --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.15);
+}
+
+
+
+.dark {
+  --bg: hsla(230 24% 10%, 1);
+  --input-surface-bg: var(--bg);
+  --input-surface-border: hsl(var(--border) / 0.82);
+  --input-surface-border-hover: rgba(255, 255, 255, 0.18);
+  --input-surface-border-focus: hsl(var(--primary) / 0.45);
+  --input-surface-focus-ring: 0 0 0 4px hsl(var(--primary) / 0.18);
+}
+
+.hrs-input-surface {
+  background: var(--input-surface-bg);
+  border-color: var(--input-surface-border);
+  color: var(--input-surface-text, var(--text-primary));
+  caret-color: var(--input-surface-caret, var(--input-surface-text, var(--text-primary)));
+  -webkit-text-fill-color: var(--input-surface-fill, var(--input-surface-text, var(--text-primary)));
+  box-shadow: var(--input-surface-shadow, var(--shadow-soft-card));
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.hrs-input-surface::placeholder {
+  color: var(--input-surface-placeholder, var(--text-muted-text));
+  -webkit-text-fill-color: var(--input-surface-placeholder, var(--text-muted-text));
+}
+
+.hrs-input-surface:hover:not(:focus):not(:disabled) {
+  border-color: var(--input-surface-border-hover);
+}
+
+.hrs-input-surface:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
