@@ -862,7 +862,7 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 | 上游地址          | `WSCN_LIVE_NEWS_BASE_URL`           | str   | `https://api-one.wallstcn.com` | 官方接口基址               |
 | 功能开关          | `WSCN_LIVE_NEWS_ENABLED`            | bool  | `true`                         | 关闭则整个快讯能力停用          |
 | 抓取间隔          | `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` | int   | `300`                          | 按需刷新的节流间隔（秒），`0` = 关闭自动抓取（详见 §4.4） |
-| 重要级阈值         | `WSCN_LIVE_NEWS_IMPORTANT_SCORE`    | int   | `2`                            | `score >= 该值` 视为重要   |
+| 重要级阈值         | `WSCN_LIVE_NEWS_IMPORTANT_SCORE`    | int   | `3`                            | 统一业务量纲 `importance >= 该值` 视为重要（3=重要；快讯 importance 已由上游 score 1~3 归一化为 0~4）   |
 | 单页默认条数        | `WSCN_LIVE_NEWS_DEFAULT_LIMIT`      | int   | `30`                           | 列表默认每页条数             |
 | 请求超时          | `WSCN_LIVE_NEWS_TIMEOUT_SEC`        | float | `8.0`                          | 单频道请求超时              |
 | 是否降级到 NewsNow | `WSCN_LIVE_NEWS_FALLBACK_NEWSNOW`   | bool  | `true`                         | 官方源失败时是否走 NewsNow    |
