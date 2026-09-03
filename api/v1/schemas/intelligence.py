@@ -248,14 +248,15 @@ class LiveNewsRefreshResponse(BaseModel):
     errors: List[LiveNewsRefreshError] = Field(default_factory=list)
 
 
-CalendarTabValue = Literal["macro", "earnings", "ipo", "activity", "all"]
+CalendarTabValue = Literal["all", "macro", "earnings", "ipo", "activity"]
 
 
 class CalendarTab(BaseModel):
-    """日历分类 Tab（宏观 / 财报 / 新股 / 活动 / 全部）。"""
+    """日历分类 Tab（全部 / 宏观 / 财报 / 新股 / 活动）。"""
 
     value: CalendarTabValue
     label: str
+    # 前端 Tab 展示顺序（升序），与服务端常量 _CALENDAR_TABS 一致
     order: int = 0
 
 
