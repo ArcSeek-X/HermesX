@@ -119,7 +119,7 @@ export interface UseLiveCalendarReturn {
   /** 按 `YYYY-MM-DD`（本地时区）归格，日历网格直接消费 */
   eventsByDay: Map<string, LiveCalendarEventDef[]>;
   loading: boolean;
-  refreshing: boolean;
+  isRefreshing: boolean;
   error: string | null;
   degraded: boolean;
   total: number;
@@ -240,7 +240,7 @@ export function useLiveCalendarMonth(
     events,
     eventsByDay,
     loading,
-    refreshing: manualRefreshing,
+    isRefreshing: manualRefreshing,
     error,
     degraded,
     total,
