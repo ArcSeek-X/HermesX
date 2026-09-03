@@ -215,16 +215,18 @@ GET https://api-one-wscn.awtmt.com/apiv1/finance/macrodatas?start=1788192000&end
 
 ### 3.2 Tab 枚举与打标规则
 
-Tab 定义由服务端常量 `LIVE_CALENDAR_TABS` 维护，前端通过 `GET /live-calendar/tabs` 拉取（与 live-news「Tab 由后端驱动」的一致约定）。
+Tab 定义由服务端常量 `IntelligenceService._CALENDAR_TABS` 维护，前端通过 `GET /live-calendar/tabs` 拉取（与 live-news「Tab 由后端驱动」的一致约定）。
 
 | Tab key    | 中文   | 命中规则（`title` + `foresight` 正则）                                                                                                  | 数据来源                       |
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `all`      | 全部   | 不过滤（默认展示 `FE` 全部）                                                                                                              | `calendar_type=FE`          |
 | `macro`    | 宏观   | `央行\|联储\|美联储\|议息\|利率决议\|褐皮书\|杰克逊霍尔\|CPI\|PMI\|GDP\|非农\|失业率\|通胀\|关税\|休市\|峰会\|国事访问\|公投\|外长\|元首\|理事会\|讲话\|货币政策` | `calendar_type=FE`          |
 | `earnings` | 财报   | `财报\|季报\|中报\|年报\|半年报\|业绩\|业绩发布会\|电话会\|披露截止\|财务业绩`                                                                        | `calendar_type=FE`          |
 | `ipo`      | 新股   | `IPO\|上市\|招股\|询价\|申购\|挂牌\|纳入.*指数`                                                                                            | `calendar_type=FE`          |
 | `activity` | 活动   | `大会\|峰会\|论坛\|发布会\|博览会\|数博会\|展会\|展览\|Connect\|峰会\|会议\|发售\|上新\|开源`                                                       | `calendar_type=FE`          |
-| `all`      | 全部   | 不过滤（默认展示 `FE` 全部）                                                                                                              | `calendar_type=FE`          |
 
+> **展示顺序**：表格行序即前端 Tab 展示顺序（`order` 字段 1~5：全部 → 宏观 → 财报 → 新股 → 活动）；`all` 置首且为页面默认选中项，前端按 `order` 升序渲染，不依赖接口返回的数组顺序。
+>
 > **多归属**：一条事件可命中多个 Tab（如「Shein 港股上市」同时命中 `ipo`；「A股半年报披露截止日」命中 `earnings`）。与 live-news「一条快讯属多频道各存一行」的处理保持一致——**多归属事件按 Tab 拆多行落库**，由唯一约束天然去重（见 §5.3）。
 
 ### 3.3 `FD`（经济数据）的定位
@@ -765,9 +767,11 @@ score = item.importance
 
 | 字段       | 类型     | 示例          |
 | -------- | ------ | ----------- |
-| `value`  | string | `"earnings"` |
-| `label`  | string | `"财报"`       |
-| `order`  | int    | `2`         |
+| `value`  | string | `"all"`     |
+| `label`  | string | `"全部"`       |
+| `order`  | int    | `1`         |
+
+> `order` 为前端 Tab 展示顺序（升序）：全部 `1` → 宏观 `2` → 财报 `3` → 新股 `4` → 活动 `5`。
 
 ### 7.2 `GET /live-calendar/countries` — 国家字典
 
@@ -888,9 +892,9 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  ◀ 上月  │  9月2026  │  10月2026  │  11月2026  │  下月 ▶   [今天] │
+│  [◀ 前][今天][后 ▶]        2026年9月            [月][周][日]     │
 ├────────────────────────────────────────────────────────────┤
-│  [宏观] [财报] [新股] [活动] [全部]    国家▾  重要级▾  [🔄 刷新]   │
+│  [全部] [宏观] [财报] [新股] [活动]    国家▾  重要级▾  [🔄 刷新]   │
 ├────────────────────────────────────────────────────────────┤
 │   周日    周一    周二    周三    周四    周五    周六            │
 │  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐               │
@@ -907,11 +911,11 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 
 | 元素             | 行为（FullCalendar 事件映射见括号）                                          |
 | -------------- | ------------------------------------------------------------------- |
-| 月份切换           | 顶部横向月份条（仿华尔街见闻），自绘（`HrsButton`），点击切换 → 更新 `initialDate` 并触发新月份拉取 |
-| 分类 Tab         | 切换后**不重新请求**，前端按 `tab_keys` 过滤已加载的当月数据                          |
+| 日期导航           | FullCalendar 内置工具栏 `headerToolbar.start = 'prev,today,next'`（三者同属一个 `.fc-button-group`，视觉为「前 / 今天 / 后」连体胶囊）；`center` 为年月标题，`end` 为月/周/日视图切换（空格分隔的三个独立按钮，纯文字样式：选中项浅灰圆角底 + 加粗，未选中为灰色常规体）。导航后经 `datesSet` 回调更新 Page 的 `cursor` 并拉取对应月份数据 |
+| 分类 Tab         | 后端驱动，按 `order` 升序展示（全部 → 宏观 → 财报 → 新股 → 活动），默认选中「全部」；切换后**不重新请求**，前端按 `tab_keys` 过滤已加载的当月数据                          |
 | 每格事件条          | 最多 **3 条**（`dayMaxEvents: 3`）；超出显示 `+N 更多`（`moreLinkText`）            |
-| 点**单条**事件       | 展开该事件详情（`eventClick`）                                               |
-| 点日期格**空白**区    | 展开该日全部事件面板（`dateClick`，含 `summary` 全文）                             |
+| 点**单条**事件       | 切换到日视图（`timeGridDay`）定位该日并展示当日全部事件（`eventClick`，经 `CalendarApi.changeView` 实现，数据复用当月拉取结果不重新请求） |
+| 点日期格**空白**区    | 切换到日视图定位该日并展示当日全部事件（`dateClick`）；周/日视图下点击仅更新选中日详情面板（timeGrid 的 dateStr 截前 10 位归一为 YYYY-MM-DD） |
 | `+N 更多`        | 点击打开该日全部事件面板（`moreLinkClick` 自定义）                                  |
 | 事件色阶            | 统一量纲：`0` **不渲染标记** / `1` 灰 / `2` 浅主色 / `3` 主色 / `4` 暖色高亮+加粗（§5.7.2、§8.5） |
 | 今日格             | FullCalendar 内置 `--fc-today-bg-color` 主题变量高亮（§9.6）               |
@@ -967,8 +971,8 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 ```ts
 import type { ImportanceLevel } from '../constants/newsImportance';
 
-/** Tab 值 union（不含 Def：是取值枚举而非数据结构） */
-export type CalendarTabValue = 'macro' | 'earnings' | 'ipo' | 'activity' | 'all';
+/** Tab 值 union（不含 Def：是取值枚举而非数据结构；顺序即展示顺序） */
+export type CalendarTabValue = 'all' | 'macro' | 'earnings' | 'ipo' | 'activity';
 
 /** Tab 定义（后端 `/live-calendar/tabs` 返回的数据契约） */
 export interface CalendarTabDef {
@@ -1130,10 +1134,10 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 | --- | --- |
 | 每格最多 3 条 + 溢出折叠 | `dayMaxEvents: 3` **内置**（dayGrid 月视图设计目标） |
 | 溢出处「+N 更多」 | `moreLinkText` / `moreLinkClick` **原生**，点击可自定义打开该日面板 |
-| 点单条消息看详情 | `eventClick`（命中单条事件） |
-| 点格子空白看该日全部 | `dateClick`（需 `interaction` 插件，命中空白区） |
+| 点单条消息看详情 | `eventClick`（命中单条事件）；月视图下额外切换到日视图展示当日全部 |
+| 点格子空白看该日全部 | `dateClick`（需 `interaction` 插件，命中空白区）；月视图下额外切换到日视图 |
 | 消息前重要级色点 / 国家标签 | `eventContent` 渲染任意 JSX，样式走项目 `IMPORTANCE_COLORS`（§8.5） |
-| 中文本地化 / 周一开头 | `locale: 'zh-cn'`、`firstDay: 1` 内置 |
+| 中文本地化 / 周一开头 | `locale` 随 UI 语言切换（zh → zh-cn、zh-Hant → zh-tw、en → 内置默认），`firstDay: 1` 内置；工具栏按钮文案走 i18n（`common.datetime.today/month/week/day`） |
 | 事件按天 | `start: 'YYYY-MM-DD'`（全天）或带时刻 ISO，事件数组直喂 |
 | 页面自适应 | `height: '100%'` 占满容器 |
 
