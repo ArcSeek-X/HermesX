@@ -16,9 +16,14 @@ const zh = {
   'common.copied': '已复制!', // 复制成功提示
   'common.copy': '复制', // 复制按钮文案
   'common.datetime.day': '日', // 日历视图粒度：日
+  'common.datetime.halfYear': '半年', // 日历视图粒度：半年
   'common.datetime.month': '月', // 日历视图粒度：月
+  'common.datetime.quarter': '季', // 日历视图粒度：季度
   'common.datetime.today': '今天', // 日历回到今天按钮
+  'common.datetime.tomorrow': '明天', // 日历相邻日：明天
   'common.datetime.week': '周', // 日历视图粒度：周
+  'common.datetime.year': '年', // 日历视图粒度：年
+  'common.datetime.yesterday': '昨天', // 日历相邻日：昨天
   'common.delete': '删除', // 通用删除按钮文案
   'common.deleting': '删除中', // 删除进行中状态
   'common.details': '查看详情', // 查看详情入口

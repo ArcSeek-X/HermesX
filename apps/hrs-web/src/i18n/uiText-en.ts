@@ -19,9 +19,14 @@ const en: Record<UiTextKey, string> = {
   'common.copied': 'Copied!',
   'common.copy': 'Copy',
   'common.datetime.day': 'Day', // Calendar view granularity: day
+  'common.datetime.halfYear': 'Half year', // Calendar view granularity: half year
   'common.datetime.month': 'Month', // Calendar view granularity: month
+  'common.datetime.quarter': 'Quarter', // Calendar view granularity: quarter
   'common.datetime.today': 'Today', // Calendar back-to-today button
+  'common.datetime.tomorrow': 'Tomorrow', // Calendar adjacent day: tomorrow
   'common.datetime.week': 'Week', // Calendar view granularity: week
+  'common.datetime.year': 'Year', // Calendar view granularity: year
+  'common.datetime.yesterday': 'Yesterday', // Calendar adjacent day: yesterday
   'common.delete': 'Delete',
   'common.deleting': 'Deleting',
   'common.details': 'View details',
