@@ -6,9 +6,11 @@
  *   -> 选中日详情列表（始终置于日历下方，多列网格）
  *
  * 关键设计：
- * 1. **分类 Tab 由后端驱动**：宏观 / 财报 / 新股 / 活动 / 全部，label 经 i18n 映射；
+ * 1. **分类 Tab 由后端驱动**：全部 / 宏观 / 财报 / 新股 / 活动（按后端 `order` 升序展示），label 经 i18n 映射；
  * 2. **日历网格复用 FullCalendar 封装**（LiveCalendarGrid），dayMaxEvents 折叠 + Breezy 风格变量层；
- * 3. **点日期空白看该日全部、点单条看该事件详情**，详情列表放在日历下方（不再是右侧栏）；
+ * 3. **月视图下点事件标题或日期格 → 切换到日视图并展示当日全部事件**（LiveCalendarGrid 内部
+ *    通过 CalendarApi.changeView 完成，数据仍复用当月拉取结果，不触发重新请求）；
+ *    日/周视图下点击仍定位到日历下方详情面板（不再是右侧栏）；
  * 4. 低频数据不轮询，仅提供手动刷新。
  *
  * 接口契约与选型理由详见 docs/Live-calendar.md。
@@ -17,14 +19,16 @@
 import { useMemo, useState } from 'react';
 import { HrsButton, Loading, TabNav, type TabNavItem } from '../components';
 import { LiveCalendarGrid } from '../components/common/LiveCalendarGrid';
+import AnimCard from '../components/common/Card/AnimCard';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
+import type { UiTextKey } from '../i18n/uiText';
 import {
   useLiveCalendarCountries,
   useLiveCalendarMonth,
   useLiveCalendarTabs,
 } from '../hooks/useLiveCalendar';
 import type { CalendarTabValue, LiveCalendarEventDef } from '../types/liveCalendar';
-import type { UiTextKey } from '../i18n/uiText';
+
 import { IMPORTANCE_COLORS, IMPORTANCE_LABELS } from '../constants/newsImportance';
 
 /** 月份对象（1~12） */
@@ -45,22 +49,25 @@ const LiveCalendarPage: React.FC = () => {
   const { degraded: countriesDegraded } = useLiveCalendarCountries();
 
   const [cursor, setCursor] = useState<MonthCursor>(currentMonth);
+  // 默认选中「全部」（后端 Tab 列表的首项）
   const [activeTab, setActiveTab] = useState<CalendarTabValue>('all');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const { eventsByDay, loading, refreshing, degraded, error, refresh } = useLiveCalendarMonth(
+  const { eventsByDay, loading, isRefreshing, degraded, error, refresh } = useLiveCalendarMonth(
     cursor.year,
     cursor.month,
     { tab: activeTab }
   );
 
-  // Tab items：value 来自后端，label 经 i18n 映射
+  // Tab items：value 来自后端，label 经 i18n 映射；展示顺序按后端 order 升序 （全部 → 宏观 → 财报 → 新股 → 活动）
   const tabItems = useMemo<TabNavItem<CalendarTabValue>[]>(
     () =>
-      tabs.map((tab) => ({
-        value: tab.value,
-        label: t(`liveCalendar.tabs.${tab.value}` as UiTextKey),
-      })),
+      [...tabs]
+        .sort((a, b) => a.order - b.order)
+        .map((tab) => ({
+          value: tab.value,
+          label: t(`liveCalendar.tabs.${tab.value}` as UiTextKey),
+        })),
     [tabs, t]
   );
 
@@ -81,9 +88,8 @@ const LiveCalendarPage: React.FC = () => {
           <p className="mt-1 text-xs text-muted-text">{t('liveCalendar.subtitle')}</p>
         </div>
         <HrsButton
-          variant="secondary"
           size="sm"
-          isLoading={refreshing}
+          isLoading={isRefreshing}
           loadingText={t('liveCalendar.refreshing')}
           onClick={() => void refresh()}
         >
@@ -91,6 +97,7 @@ const LiveCalendarPage: React.FC = () => {
         </HrsButton>
       </header>
 
+      {/* 数据源暂不可用，当前展示本地缓存数据 */}
       {(degraded || countriesDegraded) && (
         <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-300">
           {t('liveCalendar.degradedTip')}
@@ -99,12 +106,12 @@ const LiveCalendarPage: React.FC = () => {
 
       {/* 日历 + 详情：垂直堆叠（详情始终在日历下方） */}
       <div className="flex flex-col gap-4">
-        {/* 日历卡片：抬升表面 + 柔和阴影 */}
-        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-lg border border-border-dim bg-elevated shadow-soft-card">
+        {/* 日历卡片：AnimCard 提供圆角/边框/背景/入场动画 */}
+        <AnimCard className="flex min-h-[520px] flex-col">
           {/* 卡片头部：仅保留分类 Tab。
               日期导航（prev/today/next）与视图切换（月/周/日）已由 LiveCalendarGrid 内置工具栏接管，
               不再在本层重复实现，避免两套控件打架。 */}
-          <div className="flex flex-col gap-2 border-b border-border-dim px-4 py-3">
+          <div className="flex flex-col gap-2 px-4 py-3">
             {tabItems.length > 0 && (
               <TabNav
                 items={tabItems}
@@ -145,10 +152,10 @@ const LiveCalendarPage: React.FC = () => {
               />
             )}
           </div>
-        </div>
+        </AnimCard>
 
-        {/* 选中日详情面板：始终在日历下方（Breezy 风格同色卡片） */}
-        <div className="rounded-lg border border-border-dim bg-elevated p-4 shadow-soft-card">
+        {/* 选中日详情面板：始终在日历下方 */}
+        <AnimCard className="p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-foreground">
               {selectedDay ?? '—'}
@@ -172,7 +179,7 @@ const LiveCalendarPage: React.FC = () => {
               ))}
             </ul>
           )}
-        </div>
+        </AnimCard>
       </div>
     </div>
   );

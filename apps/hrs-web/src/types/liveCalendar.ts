@@ -10,8 +10,8 @@
 
 import type { ImportanceLevel } from '../constants/newsImportance';
 
-/** 分类 Tab 取值 */
-export type CalendarTabValue = 'macro' | 'earnings' | 'ipo' | 'activity' | 'all';
+/** 分类 Tab 取值（按展示顺序：全部 → 宏观 → 财报 → 新股 → 活动） */
+export type CalendarTabValue = 'all' | 'macro' | 'earnings' | 'ipo' | 'activity';
 
 /** 分类 Tab 数据契约 */
 export interface CalendarTabDef {
