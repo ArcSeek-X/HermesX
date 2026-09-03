@@ -54,7 +54,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const BUTTON_SIZE_STYLES = {
   xs: 'h-7 rounded-sm px-2 !text-xs !font-medium',
   sm: 'h-8 rounded-sm px-3 !text-xs !font-medium',
-  md: 'h-9 rounded-sm px-4 !text-xs !font-medium',
+  md: 'h-9 rounded-sm px-4 !text-sm !font-medium',
   lg: 'h-10 rounded-sm px-5 !text-sm !font-semibold',
   xl: 'h-12 rounded-sm px-6 !text-sm !font-bold',
 } as const;
@@ -118,7 +118,7 @@ export const HrsButton: React.FC<ButtonProps> = ({
   type = 'button',
   onClick,
   ...props
-}) => {
+}: ButtonProps, ref) => {
   // 用于读取 i18n 文案（loading 默认文案等）
   const { t } = useUiLanguage();
   // 发光效果对应的附加类名（为空字符串时不影响结果）
@@ -151,6 +151,8 @@ export const HrsButton: React.FC<ButtonProps> = ({
 
   return (
     <HeroButton
+      // 透传外部 ref：使父组件可通过 ref 访问到真实 DOM <button> 元素
+      ref={ref}
       // 复用 HeroUI 底座：原生属性（aria-* / data-* / className 等）直接透传
       {...passthroughProps}
       // HeroUI 使用 onPress 而非 onClick，将 onClick 桥接到 onPress
