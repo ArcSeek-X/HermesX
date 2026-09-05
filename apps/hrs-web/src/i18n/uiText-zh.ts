@@ -587,7 +587,7 @@ const zh = {
   'liveCalendar.includeEconomicData': '显示经济数据', // 是否显示 FD 经济数据开关
   'liveCalendar.importance': '重要级', // 重要级筛选标签
   'liveCalendar.loading': '正在加载日历…', // 加载中文案
-  'liveCalendar.more': '+{count} 更多', // 日历格子溢出折叠提示
+  'liveCalendar.more': '更多信息', // 日历格子溢出折叠提示
   'liveCalendar.nextMonth': '下月', // 月份切换：下月
   'liveCalendar.prevMonth': '上月', // 月份切换：上月
   'liveCalendar.refresh': '刷新日历', // 手动刷新按钮

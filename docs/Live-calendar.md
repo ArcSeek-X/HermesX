@@ -27,6 +27,8 @@
 - [15. 实施计划](#15-实施计划)
 - [16. 风险、合规与回滚](#16-风险合规与回滚)
 - [17. 命名规范说明](#17-命名规范说明)
+- [18. 三视图（月 / 周 / 日）交互、数据合并与卡片布局](#18-三视图月--周--日交互数据合并与卡片布局)
+- [19. 日历操作交互](#19-日历操作交互)
 
 ***
 
@@ -319,7 +321,7 @@ Tab 定义由服务端常量 `IntelligenceService._CALENDAR_TABS` 维护，前�
 | 常量     | `apps/hrs-web/src/constants/cacheConfig.ts`           | 修改 | 追加 `liveCalendar` 缓存键                         |
 | 常量     | `apps/hrs-web/src/constants/newsImportance.ts`           | 新增 | 重要度共享语义（§8.5，快讯与日历复用）                        |
 | 页面     | `apps/hrs-web/src/pages/LiveCalendarPage.tsx`         | 新增 | 页面装配（月份条 + Grid + 详情面板）                      |
-| 控件     | `apps/hrs-web/src/components/common/LiveCalendarGrid/` | 新增 | FullCalendar v6 二次封装（目录见 §9.4，含 `index.ts`）     |
+| 控件     | `apps/hrs-web/src/components/common/LiveCalendar/` | 新增 | FullCalendar v6 二次封装（目录见 §9.4，含 `index.ts`）     |
 | 控件     | `apps/hrs-web/src/components/common/LiveCalendarTabs/` | 新增 | 分类 Tab（基于 HeroUI `Tabs`，目录同规范）                 |
 | 路由     | `apps/hrs-web/src/App.tsx`                            | 修改 | lazy import + `<Route path="/live-calendar">`  |
 | 导航     | `apps/hrs-web/src/components/layout/SidebarNav.tsx`   | 修改 | `NAV_ITEMS` 追加一项                              |
@@ -911,7 +913,7 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 
 | 元素             | 行为（FullCalendar 事件映射见括号）                                          |
 | -------------- | ------------------------------------------------------------------- |
-| 日期导航           | FullCalendar 内置工具栏 `headerToolbar.start = 'prev,today,next'`（三者同属一个 `.fc-button-group`，视觉为「前 / 今天 / 后」连体胶囊）；`center` 为年月标题，`end` 为月/周/日视图切换（空格分隔的三个独立按钮，纯文字样式：选中项浅灰圆角底 + 加粗，未选中为灰色常规体）。导航后经 `datesSet` 回调更新 Page 的 `cursor` 并拉取对应月份数据 |
+| 日期导航           | FullCalendar 内置工具栏 `headerToolbar.start = 'prev,today,next'`（三者同属一个 `.fc-button-group`，视觉为「前 / 今天 / 后」连体胶囊）；`center` 为年月标题，`end` 为月/周/日视图切换（空格分隔的三个独立按钮，纯文字样式：选中项浅灰圆角底 + 加粗，未选中为灰色常规体）。导航后经 `datesSet` 回调把**可见日期范围**（start/end：月视图含上/下月填充格、周视图 = 周一~周日）交给 Page，Page 推导覆盖的所有月份并行拉取并合并，避免跨月周次（如 9 月第一周的周一落在 8/31）只拉单一月份导致跨月日无事件 |
 | 分类 Tab         | 后端驱动，按 `order` 升序展示（全部 → 宏观 → 财报 → 新股 → 活动），默认选中「全部」；切换后**不重新请求**，前端按 `tab_keys` 过滤已加载的当月数据                          |
 | 每格事件条          | 最多 **3 条**（`dayMaxEvents: 3`）；超出显示 `+N 更多`（`moreLinkText`）            |
 | 点**单条**事件       | 切换到日视图（`timeGridDay`）定位该日并展示当日全部事件（`eventClick`，经 `CalendarApi.changeView` 实现，数据复用当月拉取结果不重新请求） |
@@ -949,7 +951,7 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 | 字段            | 类型                          | 说明                                       |
 | ------------- | --------------------------- | ---------------------------------------- |
 | `events`      | `LiveCalendarEventDef[]`    | 当前过滤条件下的平铺事件                             |
-| `eventsByDay` | `Map<string, LiveCalendarEventDef[]>` | 按 `YYYY-MM-DD`（本地时区）归格，`LiveCalendarGrid` 直接消费 |
+| `eventsByDay` | `Map<string, LiveCalendarEventDef[]>` | 按 `YYYY-MM-DD`（本地时区）归格，`LiveCalendar` 直接消费 |
 | `loading`     | boolean                     | 首次加载中                                    |
 | `refreshing`  | boolean                     | 手动刷新中（不遮挡内容）                             |
 | `error`       | string \| null               | 错误信息                                     |
@@ -1075,7 +1077,7 @@ export function isImportant(level: number | null | undefined): boolean {
 | 模块   | 用途                                                            |
 | ---- | ------------------------------------------------------------- |
 | 快讯   | `newsCard.tsx` 的重要竖线 / 「重要」标签；「只看重要的」筛选                       |
-| 日历   | `LiveCalendarGrid` 的事件色点；`importance_min` 筛选                  |
+| 日历   | `LiveCalendar` 的事件色点；`importance_min` 筛选                  |
 
 **快讯侧的同步改动**
 
@@ -1158,7 +1160,7 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 > 2. **硬依赖冲突**：`daygrid@7.0.0-rc.0` 硬依赖 `@fullcalendar/core@7.0.0-rc.0`（**精确版本**，非范围），与 `core@7.0.2` 冲突；混搭需 `--legacy-peer-deps` 且内部 API 错配风险高。
 > 3. **v6.1.21 并非过时版本**：它发布于 v7 正式版**前一天**（2026-06-18），是官方为插件空窗期维护的收官版；对 `daygrid` / `interaction` 而言 npm `latest` 至今仍是 `6.1.21`，即本项目已在用官方认可的最新稳定版。其 peer 已声明支持 React 19（`^17||^18||^19`）。
 >
-> **升级触发条件**：待 `daygrid` / `interaction` 发布 7.x 正式版（即 `npm view @fullcalendar/daygrid dist-tags` 的 `latest` 变为 7.x）后重新评估。届时改动面仅限：① `package.json` 四个包版本号；② 加装 `temporal-polyfill@^1.0.1`（v7 BREAKING 新增必需 peer 依赖）；③ `LiveCalendarGrid.tsx` 适配 v7 API 变化。因封装层已用 `React.ComponentProps<typeof FullCalendar>` 完整透传、页面层不直接依赖 FullCalendar API，**业务代码与样式层无需改动**。
+> **升级触发条件**：待 `daygrid` / `interaction` 发布 7.x 正式版（即 `npm view @fullcalendar/daygrid dist-tags` 的 `latest` 变为 7.x）后重新评估。届时改动面仅限：① `package.json` 四个包版本号；② 加装 `temporal-polyfill@^1.0.1`（v7 BREAKING 新增必需 peer 依赖）；③ `LiveCalendar.tsx` 适配 v7 API 变化（若 v7 改了 `--fc-*` 变量名或 DOM 类名，同步改同目录 `csscover.ts` 样式层）。因封装层已用 `React.ComponentProps<typeof FullCalendar>` 完整透传、页面层不直接依赖 FullCalendar API，**业务代码与样式层无需改动**。
 
 **前端依赖清单（`apps/hrs-web/package.json`）**
 
@@ -1177,7 +1179,7 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 
 | COMPONENTS.md 条款 | 落地 |
 | --- | --- |
-| 组件命名大写 / 命名导出 / 禁默认导出 | `LiveCalendarGrid` / `LiveCalendarTabs`，`index.ts` 内 `export * from './LiveCalendarGrid'` |
+| 组件命名大写 / 命名导出 / 禁默认导出 | `LiveCalendar` / `LiveCalendarTabs`，`index.ts` 内 `export * from './LiveCalendar'` |
 | 目录 | 非 HeroUI 封装、属业务组件 → `src/components/common/<组件名>/`（basic=HeroUI 二次封装，common=组件组合/三方封装） |
 | 完整透传原生 Props | `React.ComponentProps<typeof FullCalendar>` 继承 + TS 交叉类型扩展业务字段 |
 | 解构业务属性、剩余透传 | 同 `HrsButton.tsx` 模板 |
@@ -1188,9 +1190,12 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 **目录结构**
 
 ```
-src/components/common/LiveCalendarGrid/
-├── LiveCalendarGrid.tsx
-└── index.ts                 # export * from './LiveCalendarGrid'
+src/components/common/LiveCalendar/
+├── LiveCalendar.tsx        # 组件主体（数据流转 / 视图切换 / 归集逻辑）
+├── csscover.ts             # 容器层样式覆盖清单（`[&_.fc-*]` 类名 + `--fc-*` 变量），只被组件引用一次
+├── index.ts                # export * from './LiveCalendar'
+└── demo/                   # FullCalendar 7.x Breezy 主题参考实现（不参与编译与 lint，
+                            #   已在 tsconfig.app.json 的 exclude 与 eslint.config.js 的 ignores 按路径排除）
 ```
 
 **组件源码骨架**（供实施参照）
@@ -1204,7 +1209,7 @@ import { cn } from '../../../utils/cn';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 
 /** 业务扩展属性：数据契约经转化喂给 FullCalendar，业务字段仅以下三个 */
-export type LiveCalendarGridProps = React.ComponentProps<typeof FullCalendar> & {
+export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
   /** 按天归格的事件（key = YYYY-MM-DD） */
   eventsByDay: Map<string, LiveCalendarEventDef[]>;
   /** 点日期空白区 → 打开该日全部详情 */
@@ -1214,13 +1219,13 @@ export type LiveCalendarGridProps = React.ComponentProps<typeof FullCalendar> & 
 };
 
 /** FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域 */
-export const LiveCalendarGrid = ({
+export const LiveCalendar = ({
   eventsByDay,
   onSelectDay,
   onSelectEvent,
   className,
   ...props
-}: LiveCalendarGridProps) => (
+}: LiveCalendarProps) => (
   // 主题作用域 div：CSS 变量层把项目令牌映射为 FullCalendar 的 --fc-*（见 §9.6），不新建样式文件
   <div className={cn('h-full [&_.fc]:h-full', className)}>
     <FullCalendar
@@ -1245,7 +1250,7 @@ export const LiveCalendarGrid = ({
 | 命名 | 归类 | 理由 |
 | --- | --- | --- |
 | `LiveCalendarEventDef` | `Def` | 描述「一条事件的数据契约」，可脱离组件独立存在（来自 API），被组件解析渲染 |
-| `LiveCalendarGridProps` | `Props` | 组件挂载接口，含 `className` / 回调 / render 透传 |
+| `LiveCalendarProps` | `Props` | 组件挂载接口，含 `className` / 回调 / render 透传 |
 
 ### 9.5 `LiveCalendarTabs` 封装（HeroUI `Tabs`）
 
@@ -1268,6 +1273,8 @@ export type LiveCalendarTabsProps = React.ComponentProps<typeof Tabs> & {
 ### 9.6 主题与样式约定（约束落地）
 
 > 原则：**Tailwind 原生样式 + tailwind.config 令牌为唯一样式来源；不新增 CSS/SCSS 文件；不使用 `global.scss` 定义类。**
+
+> **样式层存放位置**：容器层的几百条 `[&_.fc-*]` 覆盖类名与 `--fc-*` 变量集中在同目录的 `csscover.ts`（常量 `LIVE_CALENDAR_CSS_COVER`），`LiveCalendar.tsx` 只以 `cn(LIVE_CALENDAR_CSS_COVER, className)` 引用一次（覆盖层在前、外部 className 在后，保证调用方优先级最高）。它是 `.ts` 而非 CSS 文件，仍遵守上述“不新增样式文件”原则；Tailwind 能正常扫描到，因为 `tailwind.config.js` 的 `content` 已含 `./src` 下全部 `.ts`，且每条类名都是**完整字面量**（运行时拼接的类名片段不会被生成）。
 
 **已核实的样式事实**
 
@@ -1326,8 +1333,8 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | ----------- | ----------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------ |
 | 拉取分类 Tab 列表 | —（服务端常量，不依赖上游）                                              | `GET /api/v1/intelligence/live-calendar/tabs`     | `CalendarService.list_tabs()`（纯常量返回）                                                            | `getLiveCalendarTabs()`       | `useLiveCalendarTabs()`                    |
 | 拉取国家字典      | `GET api-one-wscn.awtmt.com/apiv1/finance/countries`        | `GET /api/v1/intelligence/live-calendar/countries`| `WallstreetcnCalendarFetcher.fetch_countries()` → `CalendarService.list_countries()`（内存缓存 24h） | `getLiveCalendarCountries()`  | `useLiveCalendarCountries()`               |
-| 拉取月度日历事件    | `GET api-one-wscn.awtmt.com/apiv1/finance/macrodatas?start=&end=` | `GET /api/v1/intelligence/live-calendar?year=&month=` | `fetcher.fetch_range()` → `Service.get_month()`（打标） → `Repo.upsert_calendar_events()` + `Repo.list_calendar_events()` | `getLiveCalendarMonth(params)`| `useLiveCalendarMonth(year, month, opts)`  |
-| 手动刷新当月      | 同 ↑（强制回源）                                                    | `POST /api/v1/intelligence/live-calendar/refresh` | `CalendarService.refresh()`（跳过缓存直连上游）                                                           | `refreshLiveCalendar(params)` | `useLiveCalendarMonth().refresh()`         |
+| 拉取月度日历事件    | `GET api-one-wscn.awtmt.com/apiv1/finance/macrodatas?start=&end=` | `GET /api/v1/intelligence/live-calendar?year=&month=` | `fetcher.fetch_range()` → `Service.get_month()`（打标） → `Repo.upsert_calendar_events()` + `Repo.list_calendar_events()` | `getLiveCalendarMonth(params)`| `useLiveCalendarMonths(months, opts)`（可见范围覆盖的多月并行拉取合并）  |
+| 手动刷新当月      | 同 ↑（强制回源）                                                    | `POST /api/v1/intelligence/live-calendar/refresh` | `CalendarService.refresh()`（跳过缓存直连上游）                                                           | `refreshLiveCalendar(params)` | `useLiveCalendarMonths().refresh()`（覆盖月份逐月刷新）         |
 | 个股财报明细（预留）  | 待定（akshare / yahoo / tushare）                                | `GET /live-calendar/earnings`（**本期不实现**）          | —                                                                                              | —                             | —                                          |
 
 ***
@@ -1342,7 +1349,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | 后端 → 前端   | `start_at` 保持秒级 UTC 原样下发，**不做时区转换**                                                       |
 | 前端归格      | 前端按**用户本地时区**把 `start_at` 转 `YYYY-MM-DD` key（本地手写格式化，勿用 `toISOString()`）；FullCalendar 事件 `start` 用同 key 或带时刻串（按本地解析，与归格一致） |
 | 展示        | 全天事件只显示日期；有时刻的事件显示 `HH:mm`（本地时区）                                                          |
-| 跨时区注意     | 后端按「整月 UTC 区间」拉取；前端只把「落在选定月（本地）内」的事件喂给 FullCalendar，格内事件由 dayGrid 按 `start` 日期定位，边界自然正确 |
+| 跨时区注意     | 后端按「整月 UTC 区间」拉取；前端按 `datesSet` 的可见范围推导覆盖月份（两端各外扩 1 天兼容任意时区下本地可见日与 UTC 日期的偏移）并行拉取合并，再按本地时区归格喂给 FullCalendar，格内事件由 dayGrid 按 `start` 日期定位，边界自然正确 |
 
 ### 11.2 精简标题规则（日历格子）
 
@@ -1394,7 +1401,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | 一条事件命中多个 Tab              | `tab_keys` 为多值，任一命中即展示；落库拆多行（§5.4）                       |
 | 请求上一年 / 下一年               | `year` 校验 `2000~2100`，越界返回 422                           |
 | 未来月份                      | 允许查询（华尔街见闻有前瞻数据），无数据时走空态                                 |
-| 跨月边界事件                    | 前端按本地时区归格后过滤非本月（§11.1）                                   |
+| 跨月边界事件                    | 前端按本地时区归格，可见范围覆盖的所有月份合并拉取，跨月日（如 9 月第一周中的 9/2、9/3）事件正常展示；归格规则见 §11.1                             |
 | 快速连续切换月份                  | `AbortController` 中止在途请求，仅保留最后一次                          |
 | `uri` 为空                   | 详情面板不展示「查看原文」链接                                          |
 | 上游 `importance` 缺失/非法     | 填 **`0`**（无，**不是** `1`）；取值范围钳制到 `0~4`；参与 `importance_min` 过滤时按实际值比较 |
@@ -1428,7 +1435,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | **P2 服务层** | `CalendarService`（打标 + 时间窗换算 + 降级）+ `IntelligenceRepo` 两个新方法                                        | 服务层可落库、可出库                                                  | service 集成测（mock fetcher，不触网）            |
 | **P3 接口层** | 4 个路由 + Pydantic 模型                                                                                 | 接口可访问                                                       | `curl` 实测 + `python -m pytest -m "not network"` |
 | **P4 前端底座**| types(`*Def`) / api / hooks / i18n / 路由 / 侧边栏 + 依赖安装（FullCalendar 系列）                                | 页面可访问，数据可拉取                                                 | `npm run lint`                           |
-| **P5 日历组件**| `LiveCalendarGrid`（FullCalendar 封装，§9.4）+ `LiveCalendarTabs` + `importance.ts` 共享常量（§8.5） + 详情面板             | 完整交互、深色/浅色主题一致                                               | `npm run build` + 深/浅主题冒烟             |
+| **P5 日历组件**| `LiveCalendar`（FullCalendar 封装，§9.4）+ `LiveCalendarTabs` + `importance.ts` 共享常量（§8.5） + 详情面板             | 完整交互、深色/浅色主题一致                                               | `npm run build` + 深/浅主题冒烟             |
 | **P6 文档**  | `docs/Live-calendar.md`（本文）+ `docs/CHANGELOG.md` 一行                                                | —                                                           | 人工核对命令与文件名                               |
 
 **验证矩阵**（按 `AGENTS.md` §6）
@@ -1453,7 +1460,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | **迁移 SQL 用 `=` 判断 NULL** | NULL 分支永不匹配，降级源仍为 NULL | 必须写 `WHEN importance IS NULL`，不可写 `CASE importance WHEN NULL`（§5.7.6）    |
 | **只改阈值不迁移存量** | 快讯重要率从 31% **暴跌至 2%** | 迁移与阈值调整**必须同批次发布**，不可拆分（§5.7.6）                                          |
 | **存量库 `importance` 列缺失** | 日历重要级全退化为 `NULL` | 该列为后补列，上线前确认目标库已补齐；若日志出现「补充 importance 列失败」需先人工修复（§5.7）                  |
-| **FullCalendar 主题变量版本漂移** | 深/浅色主题错位 | `--fc-*` 变量名随 FullCalendar 大版本可能变更；全部映射收敛在 `LiveCalendarGrid` 主题变量层（§9.6），升级时只改该处并做深/浅色冒烟 |
+| **FullCalendar 主题变量版本漂移** | 深/浅色主题错位 | `--fc-*` 变量名随 FullCalendar 大版本可能变更；全部映射收敛在 `LiveCalendar/csscover.ts` 主题变量层（§9.6），升级时只改该处并做深/浅色冒烟 |
 | **保留期清理误删日历数据**（§6.1 ⚠️）                | 历史月份数据丢失    | 清理 SQL 显式排除 `scope_type='calendar'`；上线前补一条集成测断言                     |
 | **`FD` 数据量占比高**（481/569）                 | 日历格子被淹没     | 默认不展示 `FD`，通过 `include_economic_data` 显式开启                          |
 | **个股财报明细缺失**（蔚来/Ciena/博通 等）             | 与参考图存在能力差   | 文档明示能力边界；二期通过 `akshare` / `yahoo` / `tushare` 接入（§7.5 预留）           |
@@ -1496,7 +1503,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 | HTTP 查询参数  | snake_case（`country_id`、`importance_min`）| 与 live-news 现有参数风格一致                                  |
 | HTTP 响应字段  | snake_case（`start_at`、`short_title`）      | 与 live-news 响应一致，前端负责 camelCase 转换                   |
 | 前端数据契约类型 | `*Def`（`LiveCalendarEventDef` / `CalendarTabDef` / `CalendarCountryDef` / `LiveCalendarQueryDef`） | TYPE_NAMING：描述数据 → `Def` |
-| 前端组件       | `LiveCalendarGrid` / `LiveCalendarTabs`   | 大驼峰，命名导出；目录 `components/common/<名>/`（COMPONENTS.md） |
+| 前端组件       | `LiveCalendar` / `LiveCalendarTabs`   | 大驼峰，命名导出；目录 `components/common/<名>/`（COMPONENTS.md） |
 | 前端 i18n    | `liveCalendar.*`                          | I18N_NAMING 第 7 类：路由 path camelCase 前缀，与 `liveNews.*` 并列 |
 
 ***
@@ -1522,3 +1529,172 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 - `reports` / `ipodatas` 端点对未登录态恒返回 `items=[]`（已跨 2024 全年、2026-01、2026-04、2026-08~09 多区间验证）。
 
 **本期处理方式**：如实呈现 `FE` 中的财报事件，并在文档中记录该能力边界；二期通过 akshare / Yahoo Finance / Tushare 等数据源补齐（契约见 §7.5）。
+
+***
+
+## 18. 三视图（月 / 周 / 日）交互、数据合并与卡片布局
+
+> 本章与 §8.1（页面布局与交互摘要）互为补充：§8.1 是整体布局的速查表，本章聚焦**三视图各自的数据合并策略、处理流水线与卡片内部布局**，是周视图「同时段归集卡片」方案的完整设计记录。所有常量与函数名均对应 `apps/hrs-web/src/components/common/LiveCalendar/LiveCalendar.tsx`。
+
+### 18.1 总览对照
+
+| 维度 | 月视图 `dayGridMonth` | 周视图 `timeGridWeek` | 日视图 `timeGridDay` |
+| --- | --- | --- | --- |
+| 共同输入 | `eventsByDay`（`Map<YYYY-MM-DD, LiveCalendarEventDef[]>`） | 同左 | 同左 |
+| 事件输出方式 | 逐条（不合并） | **同时段归集启用**：达标桶 → 1 张卡片，未达标桶 → 逐条 | 逐条（不合并） |
+| 卡片渲染组件 | `CalendarEventContent` | 达标桶 → `GroupedEventContent`；未达标条 → `CalendarEventContent` | `CalendarEventContent` |
+| 时间轴 | 无（按天归格，最多 3 条 + `+N` 折叠） | 有（按小时），叠加纵向堆叠 | 有（按小时） |
+| 高度由谁撑开 | FullCalendar 内置 | 归集卡片按双层行数（`calcGroupCardHeight`）；未达标条按纵向堆叠 | FullCalendar 时间轴 + 纵向堆叠 |
+
+### 18.2 统一数据入口与转换
+
+所有视图共享同一转换函数 `toFullCalendarEvents(eventsByDay, viewType)`，把按天归格的平铺事件转成 FullCalendar 的 `EventInput[]`：
+
+```ts
+toFullCalendarEvents(eventsByDay, viewType) -> Array<{
+    id: string;                                  // 单条 `evt-${dayKey}-${i}-${startAt}`；归集 `group-${dayKey}-${bucketStart}`
+    title: string;                               // shortTitle
+    start: Date;                                 // startAt * 1000（秒级 UTC → 毫秒）
+    allDay: boolean;                             // isAllDay
+    extendedProps: {
+        eventDef: LiveCalendarEventDef;          // 单条 = 自身；归集卡片 = 桶内首条（代表）
+        groupEvents?: LiveCalendarEventDef[];    // 仅归集卡片有值：桶内按时间升序的原数组
+    };
+}>
+```
+
+- **排序**：每个 dayKey 内先按 `startAt` 升序，保证 FC 事件顺序与视觉自上而下的顺序一致。
+- **`viewType` 决定合并开关**：仅 `timeGridWeek` 时 `enableGrouping = true`；其余视图逐条输出（月视图有自己的 `+N` 折叠浮层，日视图时间轴高度足够、无需归集）。
+
+### 18.3 数据合并逻辑（仅周视图生效）
+
+合并发生在 `toFullCalendarEvents` 内部，分两步：
+
+1. **滑动时间窗口聚类**：相邻事件的 `startAt` 差 ≤ `SAME_TIME_WINDOW_MIN`（**60 分钟**）即归为同一「桶」。
+   桶边界由**数据驱动**（首尾时间差），而非固定整点切片——跨整点的连续事件不会被强行拆开。
+2. **阈值合并**：桶内条数 ≥ `GROUP_THRESHOLD`（**3 条**）→ 合并为**一张** FC 事件（归集卡片），`extendedProps.groupEvents` 携带桶内原数组；
+   桶内条数 < 3 → 逐条输出，由 `rearrangeSameTimeEvents` 做纵向堆叠（见 §18.5.4）。
+
+> 两个阈值均为模块顶部常量，可调：`SAME_TIME_WINDOW_MIN`、`GROUP_THRESHOLD`。
+
+### 18.4 双层数据结构（归集卡片内部）
+
+归集卡片内部并非扁平的 `event` 列表，而是「(时间, 重要度) 分组 → 组内消息」的**双层结构**，由接口 `GroupedEventGroup` 描述：
+
+```ts
+export interface GroupedEventGroup {
+    startAt: number;                  // 该组时间戳（组内消息时间相同）
+    importance: number;              // 该组重要级（决定组头色点 / 文字色）
+    items: LiveCalendarEventDef[];    // 组内消息列表
+}
+```
+
+分组由纯函数 `eventGroupByTimeAndImportance(events, method)` 完成，两种模式：
+
+| `method` | 合并规则 | 用途 |
+| --- | --- | --- |
+| `'time'`（默认，归集卡片内使用） | 同一 `startAt` 的消息合并一组，组内按 `importance` **降序**（高重要度在前） | 最大化时间聚合，同时间多重要度消息收在同一时间头下 |
+| `'time+importance'` | 相邻且「时间相同 **且** 重要度相同」才合并，否则新开一组 | 严格按时间 + 重要度分段 |
+
+**职责划分（重要）**：分组计算从组件内部移到**调用处**——`eventContent` 渲染归集卡片前，先对 `extendedProps.groupEvents` 调一次 `eventGroupByTimeAndImportance` 得到数组 `A`，再把 `A` 传给 `GroupedEventContent`；后者**只负责渲染已分好组的双层数据**，不再做分组计算。
+
+> ⚠ 输入须已按 `startAt` 升序（`toFullCalendarEvents` 已保证），否则「相邻」判定失效、同一时间点的消息可能被错误拆组。
+
+### 18.5 卡片布局
+
+#### 18.5.1 单条事件卡片 `CalendarEventContent`（月 / 日 + 周视图未达标条）
+
+垂直 flex 两行：
+
+```
+● 00:00          ← 第一行：重要级色点(·) + 时间 HH:mm（全天事件不显示时间）
+蒂姆·库克正式卸任…   ← 第二行：shortTitle，可换行（truncate + leading-tight，不溢出格子）
+```
+
+- 色点 + 文字色由 `event.importance` 经 `eventThemeMap` 映射（见 §8.5）。
+- 标题溢出处理：`min-w-0 flex-1 truncate`，多行时靠 `leading-tight` 紧凑、不超出日期格范围。
+
+#### 18.5.2 归集卡片 `GroupedEventContent`（仅周视图达标桶）
+
+外层：`flex flex-col`，淡背景 `bg-foreground-faint`，圆角，上下内距 `GROUP_PADDING`（10px）。
+内部按 `groups`（§18.4 的双层数组）自上而下渲染，**每个 `group` 为一个时间分段**：
+
+- **组头**（纯展示 `div`，`minHeight = GROUP_FIRST_ROW_HEIGHT` 24px）：重要级色点 + 时间 `HH:mm`。
+  **无 hover、无点击**——它只表达「这一组的时间与重要级」，交互无意义。
+  全天事件组无组头（无具体时刻）。
+- **组内消息**（`group.items`，每条一个 `<button>`，`minHeight = GROUP_ROW_HEIGHT` 20px）：
+  鼠标移入有 `hover:bg-hover` 背景反馈；点击触发 `onSelectEvent(item)` 并 `stopPropagation()`
+  阻止冒泡到 FullCalendar 的 `eventClick`（否则会用「代表事件」打开错误详情）。
+  色点 / 文字色取 `item` 自身 `importance`（兼容 `time` 模式下组内混重要度）。
+
+卡片期望总高由 `calcGroupCardHeight(groups)` 计算，并在 `eventDidMount` 写入 `style.height`：
+
+```
+总高 = Σ(组头 24 + 组内条数 × 20) + 上下内距 10×2
+```
+
+#### 18.5.3 月视图溢出折叠
+
+- `dayMaxEvents = 3`：每格最多展示 3 条；
+- 超出 → 显示 `+N 更多`（`moreLinkClick` 自定义，点击打开该日全部事件面板）。
+
+#### 18.5.4 周 / 日视图纵向堆叠 `rearrangeSameTimeEvents`（eventDidMount）
+
+FullCalendar 的 timeGrid 原生不支持「同时间段事件垂直堆叠」（`slotEventOverlap=false` 时左右并排挤成一列、`=true` 时 z-index 堆叠互相截断）。因此在事件挂载后手动重排：
+
+- **仅 `timeGridWeek` / `timeGridDay` 生效**；月视图不干预；**归集卡片跳过**（带 `groupEvents` 的 FC 事件不参与，否则会被压回一截）。
+- 同列（同日期）、相邻时间差 < `SAME_TIME_WINDOW_MIN`（60 分钟）的事件归为同一堆叠单元；
+- 保持 FC 给的 `left/right` 不动（仍占 `1/N` 列宽），**只覆盖 `top/height`**：
+  每条高度 `SAME_TIME_EVENT_HEIGHT`（10px），按 `SAME_TIME_EVENT_GAP`（10px）累加 `top`；
+- `top` 基准在 `eventDidMount` 时缓存（FC 原始值），避免多次重排叠加漂移。
+
+### 18.6 交互规则索引
+
+三视图（月 / 周 / 日）的完整操作交互——含「点卡片内每条新闻跳日视图」等所有点击 / 导航 / 切换规则——已集中到 **§19 日历操作交互**，本章聚焦数据维度，交互细节不再重复。
+
+***
+
+## 19. 日历操作交互
+
+> 所有交互规则的统一入口。覆盖月 / 周 / 日三视图的点击、导航与视图切换；代码均对应 `LiveCalendar.tsx` 的 `handleDateClick` / `handleEventClick` / `GroupedEventContent` 内 `onClick` / 工具栏按钮。
+
+### 19.1 核心交互语义
+
+**「点新闻即跳日视图」**：月视图与周视图遵循同一语义——点击任意一条新闻（月视图为单条事件；周视图为单条事件或归集卡片内某条消息），都会先打开该事件详情（`onSelectEvent`），再切换到该事件所属日期的**日视图**（`timeGridDay`）并定位当日。日视图本身已在目标日，仅打开详情、不再二次切换。
+
+### 19.2 三视图交互对照
+
+| 触发源 | 月视图 | 周视图 | 日视图 |
+| --- | --- | --- | --- |
+| 点**单条**事件 | 切日视图 + 详情（`handleEventClick` → `dayGridMonth` 分支） | 切日视图 + 详情（`handleEventClick` → `timeGridWeek` 分支） | 仅详情（`handleEventClick`，不切视图） |
+| 点**归集卡片内某条**消息 | —（月视图无此形态） | 切日视图 + 详情（`GroupedEventContent` 内 `onClick`：`onSelectEvent(item)` + `changeView('timeGridDay')`，`stopPropagation`） | — |
+| 点**归集卡片空白/整体** | — | 切日视图 + 详情（冒泡到 `handleEventClick` 的 `timeGridWeek` 分支） | — |
+| 点**日期格空白**区 | 切日视图 + 详情（`handleDateClick` → `dayGridMonth` 分支 `goToDayView`） | 仅定位详情（`handleDateClick`：`timeGridWeek` 仅 `onSelectDay`） | 仅定位详情（`handleDateClick`：`timeGridDay` 仅 `onSelectDay`） |
+| `+N 更多` | 打开该日全部事件面板 | — | — |
+
+**实现映射（代码位置）**
+
+| 处理函数 | 职责 |
+| --- | --- |
+| `handleDateClick` | `dayGridMonth` → `goToDayView(date)`；`timeGridWeek` / `timeGridDay` → 仅 `onSelectDay(dayKey)` |
+| `handleEventClick` | `dayGridMonth` / `timeGridWeek` → `onSelectEvent` + `goToDayView`；`timeGridDay` → 仅 `onSelectEvent` |
+| `GroupedEventContent` 内 `button.onClick` | `onSelectEvent(item)` + `calendarRef.getApi().changeView('timeGridDay', new Date(item.startAt*1000))` + `e.stopPropagation()` |
+
+> 与月视图语义一致：周视图的两种触发源（单条事件、归集卡片内消息）均达成「点事件切日视图」；日视图本身已在目标日，仅打开详情不二次切换，避免无意义抖动。
+
+### 19.3 导航与视图切换
+
+| 操作 | 行为 |
+| --- | --- |
+| `[◀ 前] [今天] [后 ▶]` | 同一 `.fc-button-group` 连体胶囊；`prev` / `today` / `next` 切换可见范围 |
+| `[月] [周] [日]` | 视图切换（`dayGridMonth` / `timeGridWeek` / `timeGridDay`），纯文字样式：选中浅灰圆角底 + 加粗 |
+| 任意导航 / 切换 | 触发 `datesSet`，把可见日期范围交给 Page 推导覆盖月份并拉取合并（见 §8.1） |
+
+### 19.4 其它交互
+
+| 元素 | 行为 |
+| --- | --- |
+| 今日格 | `--fc-today-bg-color` 主题变量高亮（§9.6） |
+| 事件色阶 | 按 `importance` 渲染（§8.5 / §5.7.2） |
+| 分类 Tab | 切换不重新请求，前端按 `tab_keys` 过滤已加载数据（§8.1） |
+| 非当前月日期 | 置灰且不喂事件（后端按月返回） |

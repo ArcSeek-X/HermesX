@@ -590,7 +590,7 @@ const en: Record<UiTextKey, string> = {
   'liveCalendar.includeEconomicData': 'Show economic data',
   'liveCalendar.importance': 'Importance',
   'liveCalendar.loading': 'Loading calendar…',
-  'liveCalendar.more': '+{count} more',
+  'liveCalendar.more': 'More info', // 日历格子溢出折叠提示
   'liveCalendar.nextMonth': 'Next month',
   'liveCalendar.prevMonth': 'Previous month',
   'liveCalendar.refresh': 'Refresh calendar',

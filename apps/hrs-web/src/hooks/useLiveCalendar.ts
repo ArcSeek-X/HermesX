@@ -4,13 +4,15 @@
  * 提供三个 Hook：
  * - `useLiveCalendarTabs`：拉分类 Tab 列表（后端驱动）
  * - `useLiveCalendarCountries`：拉国家字典（后端驱动，含降级标记）
- * - `useLiveCalendarMonth`：月度事件的拉取、按天归格与客户端过滤
+ * - `useLiveCalendarMonths`：可见范围覆盖的所有月份并行拉取、合并、按天归格与客户端过滤
  *
  * 设计要点（与 useLiveNews 保持一致的约定）：
  * 1. 日历为低频数据，**不轮询**，仅提供手动 refresh；
- * 2. 月份 / includeEconomicData 变化才重新请求，用 AbortController 中止在途请求避免竞态；
- * 3. tab / countryId / importanceMin 变化**不重新请求**（整月数据已在内存），客户端过滤；
- * 4. 按天归格用**本地时区**，避免 toISOString() 的 UTC 错位。
+ * 2. 覆盖月份集合 / includeEconomicData 变化才重新请求，用 AbortController 中止在途请求避免竞态；
+ * 3. tab / countryId / importanceMin 变化**不重新请求**（已加载数据在内存），客户端过滤；
+ * 4. 按天归格用**本地时区**，避免 toISOString() 的 UTC 错位；
+ * 5. 后端按月取数，视图可见范围（月视图含上/下月填充格、跨月周次）可能覆盖多个月，
+ *    故按月并行拉取后合并，避免跨月日（如 9 月第一周中的 9/2、9/3）无数据。
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +27,48 @@ import type {
   CalendarTabDef,
   LiveCalendarEventDef,
 } from '../types/liveCalendar';
+import type { LiveCalendarRange } from '../components/common/LiveCalendar';
+
+/** 月份对象（1~12） */
+export interface MonthCursor {
+  year: number;
+  month: number;
+}
+
+/**
+ * 推导日期闭区间覆盖的所有月份（去重、升序）。
+ *
+ * 为兼容任意时区，两端各外扩 1 天：事件 `start_at` 为秒级 UTC，按本地时区归格后，
+ * 某可见日的部分时段可能落在 UTC 前一日（如 UTC+8 下本地 9/1 00:00~08:00 = 8/31 16:00~24:00 UTC）；
+ * 只按可见范围本身的年月拉取会漏掉这些事件。
+ */
+export function monthsInRange(range: LiveCalendarRange): MonthCursor[] {
+  const months: MonthCursor[] = [];
+  // 两端各外扩 1 天，兼容任意时区下本地可见日与 UTC 日期的偏移
+  const start = new Date(range.start);
+  start.setDate(start.getDate() - 1);
+  const end = new Date(range.end);
+  end.setDate(end.getDate() + 1);
+
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (cursor <= endMonth) {
+    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return months;
+}
+
+/** 计算某月月视图的可见日期范围（周一起始，含上/下月填充格），供 Page 初始化首屏范围 */
+export function monthGridRange(year: number, month: number): LiveCalendarRange {
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const start = new Date(first);
+  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+  const end = new Date(last);
+  end.setDate(last.getDate() + (6 - ((last.getDay() + 6) % 7)));
+  return { start, end };
+}
 
 /** 把秒级时间戳格式化为 `YYYY-MM-DD`（本地时区） */
 function toDateKey(startAt: number): string {
@@ -127,15 +171,13 @@ export interface UseLiveCalendarReturn {
 }
 
 /**
- * 月度日历 Hook：按月拉取 + 按天归格 + 客户端过滤。
+ * 多月日历 Hook：按可见范围覆盖的月份并行拉取 + 合并 + 按天归格 + 客户端过滤。
  *
- * @param year 年（UTC 口径）
- * @param month 月（1~12）
+ * @param months 可见范围覆盖的月份（升序去重；来自 `monthsInRange`）
  * @param options 过滤选项；其中 `includeEconomicData` 变化会重新请求，其余为客户端过滤
  */
-export function useLiveCalendarMonth(
-  year: number,
-  month: number,
+export function useLiveCalendarMonths(
+  months: MonthCursor[],
   options: UseLiveCalendarOptions = {}
 ): UseLiveCalendarReturn {
   const { tab, countryId, importanceMin, includeEconomicData = false } = options;
@@ -148,20 +190,26 @@ export function useLiveCalendarMonth(
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchMonth = useCallback(
+  const fetchMonths = useCallback(
     async (mode: 'replace' | 'refresh') => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const result = await getLiveCalendarMonth(
-          { year, month, includeEconomicData },
-          controller.signal
+        const results = await Promise.all(
+          months.map((m) =>
+            getLiveCalendarMonth(
+              { year: m.year, month: m.month, includeEconomicData },
+              controller.signal
+            )
+          )
         );
         if (controller.signal.aborted) return;
-        setItems(result.items);
-        setTotal(result.total);
-        setDegraded(result.degraded);
+        // 各月窗口互斥，直接按月份顺序拼接即可保持时间升序
+        const merged = results.flatMap((result) => result.items);
+        setItems(merged);
+        setTotal(results.reduce((sum, result) => sum + result.total, 0));
+        setDegraded(results.some((result) => result.degraded));
         setError(null);
       } catch {
         if (controller.signal.aborted) return;
@@ -169,36 +217,36 @@ export function useLiveCalendarMonth(
         setItems((prev) => prev ?? []);
       }
     },
-    [year, month, includeEconomicData]
+    [months, includeEconomicData]
   );
 
-  // 月份 / includeEconomicData 变化时重新拉取（0ms 定时器推出 effect 同步路径）
+  // 覆盖月份 / includeEconomicData 变化时重新拉取（0ms 定时器推出 effect 同步路径）
   useEffect(() => {
     let cancelled = false;
     const handle = window.setTimeout(() => {
-      if (!cancelled) void fetchMonth('replace');
+      if (!cancelled) void fetchMonths('replace');
     }, 0);
     return () => {
       cancelled = true;
       window.clearTimeout(handle);
       abortRef.current?.abort();
     };
-  }, [fetchMonth]);
+  }, [fetchMonths]);
 
-  /** 手动刷新：先触发服务端抓取，再重拉列表 */
+  /** 手动刷新：先触发覆盖月份的服务端抓取（逐月，单月失败不阻断），再重拉列表 */
   const refresh = useCallback(async () => {
     setManualRefreshing(true);
+    await Promise.all(
+      months.map((m) =>
+        refreshLiveCalendar({ year: m.year, month: m.month }).catch(() => undefined)
+      )
+    );
     try {
-      await refreshLiveCalendar({ year, month });
-    } catch {
-      // 抓取失败不阻断，仍重试一次列表拉取，给用户最新库存数据
-    }
-    try {
-      await fetchMonth('refresh');
+      await fetchMonths('refresh');
     } finally {
       setManualRefreshing(false);
     }
-  }, [year, month, fetchMonth]);
+  }, [months, fetchMonths]);
 
   // 客户端过滤：tab / countryId / importanceMin 变化不重新请求，在内存中过滤
   const events = useMemo(() => {

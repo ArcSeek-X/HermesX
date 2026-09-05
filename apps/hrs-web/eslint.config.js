@@ -12,7 +12,7 @@ export default defineConfig([
     'test-results',
     // FullCalendar Breezy 主题参考 demo（FullCalendar 7.x Themes API），与仓库锁定的
     // 6.1.21 不兼容，仅作视觉对照，不参与 lint。见 tsconfig.app.json 同目录 exclude。
-    'src/components/common/LiveCalendarGrid/demo/**',
+    'src/components/common/LiveCalendar/demo/**',
   ]),
   {
     files: ['**/*.{ts,tsx}'],
