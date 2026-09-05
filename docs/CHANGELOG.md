@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [修复] 消息日历月份游标推导改用 `view.currentStart`：此前用可见范围首格（`datesSet` 的 `arg.start`），月初未周一前会把月份带偏到上月，导致当月日期（含今日/昨日）在网格中全部无事件且刷新无效。
 - [改进] 消息日历支持多语言：工具栏「今天/月/周/日」文案与 FullCalendar locale（星期表头、aria 提示）随 UI 语言切换，新增 i18n 键 `common.datetime.today/month/week/day`。
 - [改进] 消息日历右上角月/周/日视图切换改为三个独立纯文字标签（选中项浅灰圆角底 + 加粗），导航按钮保持连体胶囊不变。
 - [改进] 消息日历月视图下点击事件标题或日期格自动切换到日视图并展示当日全部事件（数据复用当月拉取结果，不重新请求）。
@@ -31,9 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [文档] 消息日历方案补充落表核实与重要度统一设计：`scope_type`/`scope_value`/`importance` 三列均已存在无需加列；日历与快讯一样**不注册资讯源**（注册的本质是加入 `fetch_enabled_sources` 批量抓取队列，而日历需 `year/month` 时间窗参数、通用链路无法表达，且 `calendar` 不在 `_ALLOWED_SCOPE_TYPES` 白名单内）。
 - [文档] 重要度确立统一业务量纲 `0=无 / 1=普通 / 2=较重要 / 3=重要 / 4=非常重要`，遵循「数据源只是提供方、业务定义归本项目」原则，上游量纲只在归一化入口出现一次：快讯 `score` 按 `{1→1, 2→3, 3→4}` 语义守恒映射（非简单 `+1`，避免「普通」虚增为「较重要」）、无字段填 `0`；日历上游原值直存、缺失填 `0`。输出侧 `score` 改为直接读 `importance` 列并删除 `raw_payload` 优先分支；阈值统一取 `3`。
 - [文档] 快讯 `importance` 存量数据迁移方案：与阈值调整**必须同批次发布**（否则重要率从 31% 暴跌至 2%），迁移 SQL 需用 `WHEN importance IS NULL` 分支且限定 `scope_type='channel'`；因迁移前后取值集合存在交集，必须采用 `DatabaseSchemaMigration` 标记式幂等，不可依赖数据形态判断；反向迁移依赖 `raw_payload.score` 保留的原始值，改造可逆。
-- [文档] 日历前端控件选型确定为 **FullCalendar v6.1.21 二次封装**（`@fullcalendar/{react,core,daygrid,interaction}`，React 19 peer 已实测确认；v7 因 daygrid/interaction 插件尚未发布正式版而暂不采用）：否决 HeroUI `Calendar`（react-aria 系为日期选择器，语义模型与"每格多事件展示"冲突）与自实现方案。封装遵循 `.conventions/frontend/COMPONENTS.md`（`components/common/LiveCalendarGrid/`、完整透传原生 Props、`cn()` 合并、命名导出）；样式遵循「Tailwind + tailwind.config 令牌为唯一来源、不新建 CSS/SCSS、不用 `global.scss`」，主题经组件根 `--fc-*` CSS 变量层映射项目令牌（Tailwind arbitrary values，不新建文件）；类型命名按 TYPE_NAMING 用 `*Def`；i18n 前缀 `liveCalendar.*`；分类 Tab 复用现有 `TabNav`。
+- [文档] 日历前端控件选型确定为 **FullCalendar v6.1.21 二次封装**（`@fullcalendar/{react,core,daygrid,interaction}`，React 19 peer 已实测确认；v7 因 daygrid/interaction 插件尚未发布正式版而暂不采用）：否决 HeroUI `Calendar`（react-aria 系为日期选择器，语义模型与"每格多事件展示"冲突）与自实现方案。封装遵循 `.conventions/frontend/COMPONENTS.md`（`components/common/LiveCalendar/`、完整透传原生 Props、`cn()` 合并、命名导出）；样式遵循「Tailwind + tailwind.config 令牌为唯一来源、不新建 CSS/SCSS、不用 `global.scss`」，主题经组件根 `--fc-*` CSS 变量层映射项目令牌（Tailwind arbitrary values，不新建文件）；类型命名按 TYPE_NAMING 用 `*Def`；i18n 前缀 `liveCalendar.*`；分类 Tab 复用现有 `TabNav`。
 - [修复] 消息日历（`/live-calendar`）页日历网格完全空白（表头与月份标题显示但日期格子全部不渲染），两个叠加根因：其一，FullCalendar v6 已移除 v4 的 `height="parent"` 高度值（浏览器把 `parent` 视为非法 CSS 长度，`.fc` 与 `.fc-view-harness` 内联高度失效，`fc-view` 绝对定位铺满 0 高度 harness），封装层误用旧 API，按方案文档 `docs/Live-calendar.md` §9.4 改回 `height="100%"`；其二，外层容器 `h-full w-full [&_.fc]:h-full` 及全部 `--fc-*` 主题变量被误注释，导致 `height="100%"` 失去可参照的父级高度而塌缩，已恢复并清理调试日志。
 - [改进] 消息日历（`/live-calendar`）分类 Tab 顺序调整为「全部 / 宏观 / 财报 / 新股 / 活动」并默认选中「全部」（后端 `_CALENDAR_TABS` 单一真源改 `order`，前端改为按 `order` 升序渲染）；日历工具栏日期导航由「前 / 后 + 今天」改为「前 / 今天 / 后」连体按钮组（`headerToolbar.start = 'prev,today,next'`）。
+- [修复] 消息日历周视图跨月周次只拉取周一所在月份的数据，导致跨月日（如 9 月第一周中的 9/2、9/3）在网格中无事件且刷新无效：改为按 `datesSet` 可见日期范围推导覆盖的所有月份并行拉取合并（月视图上/下月填充格同理覆盖），刷新按钮同步覆盖全部可见月份。
+- [修复] 消息日历首次切入日视图定位到当月 1 日而非当天：`initialDate` 由「cursor 当月 1 日」改为「今天」，首屏月视图不变，切日/周视图时落在当天所在范围。
+- [chore] 消息日历 FullCalendar 封装组件重命名：目录 `components/common/LiveCalendarGrid/` → `components/common/LiveCalendar/`，文件 `LiveCalendarGrid.tsx` → `LiveCalendar.tsx`，导出组件 `LiveCalendarGrid` → `LiveCalendar`（Props 类型同步为 `LiveCalendarProps`）；纯命名调整无行为变化。同步修正按旧路径写入的引用与排除规则：`LiveCalendarPage.tsx` / `useLiveCalendar.ts` 的 import 路径、`tsconfig.app.json` 与 `eslint.config.js` 对 `demo/` 参考代码的排除路径（不改会导致 demo 泄入编译与 lint 范围）、`docs/Live-calendar.md` 全部路径与类型引用。
+- [chore] 消息日历 `LiveCalendar` 组件的容器层样式独立成文件：新增 `apps/hrs-web/src/components/common/LiveCalendar/csscover.ts`（导出 `LIVE_CALENDAR_CSS_COVER`，含 167 条 `[&_.fc-*]` 覆盖类名与 `--fc-*` 主题变量），组件文件由 1062 行降至 714 行，只保留 `cn(LIVE_CALENDAR_CSS_COVER, className)` 一次引用；纯代码组织重构，经 twMerge 比对确认最终 `className` 字符串与重构前逐字相等（Vite 产物 CSS 已验证可正常扫描到）。详见 `docs/Live-calendar.md` §9.4 / §9.6。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 
