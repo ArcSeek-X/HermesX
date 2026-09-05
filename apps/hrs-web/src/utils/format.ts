@@ -10,16 +10,71 @@
  * 成交量与金额的换算单位与后端 StockInfo 字段原始单位对齐，并支持中英文单位切换。
  */
 
+
+
+/**
+ * 将入参规整为 Date，兼容字符串与（秒级 / 毫秒级）时间戳。
+ *
+ * 输入：
+ * - number 时间戳：秒级（< 1e11，约 10 位）自动 ×1000 转毫秒；毫秒级（≥ 1e11，约 13 位）原样使用。
+ * - 纯数字字符串（长度 ≥ 10）：按时间戳处理（同 number 的秒级/毫秒级判定）；
+ * - 其它字符串：按 ISO 日期串（如 "2026-09-05"、"2026-09-05T14:30:00"）解析。
+ *
+ * 输出：
+ * - 成功：对应该入参的 Date 对象（按浏览器本地时区解释）。
+ * - 非法值（无法解析为有效日期）：返回 Invalid Date（其 getTime() 为 NaN）。
+ *
+ * 说明：
+ * 长度阈值 10 用于区分秒级(10 位)与毫秒级(13 位)时间戳，同时排除 "20260905"(8 位) 这类非法串，
+ * 并避免把含 '-' 的 ISO 串（如 "2026-09-05"）误判为时间戳。
+ *
+ * @example
+ * timestamp2data(1757077800)       → Date(2026-09-05T14:30:00)（秒级 ×1000）
+ * timestamp2data(1757077800000)    → Date(2026-09-05T14:30:00)（毫秒级）
+ * timestamp2data('1757077800000') → Date(2026-09-05T14:30:00)（数字串毫秒级）
+ * timestamp2data('2026-09-05')     → Date(2026-09-05T00:00:00)（ISO 串）
+ * timestamp2data('20260905')       → Invalid Date（8 位非法串，非时间戳）
+ */
+function timestamp2data(value: string | number): Date {
+  if (typeof value === 'number') {
+    return new Date(value < 1e11 ? value * 1000 : value);
+  }
+  const trimmed = value.trim();
+  if (/^\d{10,}$/.test(trimmed)) {
+    const n = Number(trimmed);
+    return new Date(n < 1e11 ? n * 1000 : n);
+  }
+  return new Date(value);
+}
+
 /**
  * 格式化日期时间为 yyyy/MM/dd HH:mm 格式（zh-CN locale）。
  *
- * @param value - ISO 日期字符串或日期时间字符串，可为 null/undefined
+ * 输入：
+ * - 类型：ISO 日期字符串、日期时间字符串，或 number 时间戳（秒级 / 毫秒级），可为 null/undefined。
+ * - 说明：时间戳按浏览器本地时区解释；秒级（< 1e11，约 10 位）自动 ×1000 转毫秒。
+ *
+ * 输出：
+ * - 成功：形如 "2026/09/05 14:30" 的日期时间字符串（月/日/时/分均为 2 位补零，用 "/" 与 ":" 分隔）。
+ * - 空输入（'' / null / undefined）：返回占位符 "—"。
+ * - 非法值（无法解析为有效日期）：原样返回。
+ *
+ * @param value - ISO 日期字符串 / 日期时间字符串，或 number 时间戳（秒级 / 毫秒级），可为 null/undefined
  * @returns 格式化后的日期时间字符串，或无效输入返回原值/占位符
+ *
+ * @example
+ * formatDateTime('2026-09-05T14:30:00') → "2026/09/05 14:30"
+ * formatDateTime('2026-09-05')          → "2026/09/05 00:00"
+ * formatDateTime(1757077800)            → "2026/09/05 14:30"（秒级时间戳）
+ * formatDateTime(1757077800000)         → "2026/09/05 14:30"（毫秒级时间戳）
+ * formatDateTime('')                     → "—"
+ * formatDateTime(null)                   → "—"
+ * formatDateTime('not-a-date')          → "not-a-date"
  */
-export const formatDateTime = (value?: string | null): string => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+export const formatDateTime = (value?: string | number | null): string => {
+  if (value == null || value === '') return '—';
+  const date = timestamp2data(value);
+  if (Number.isNaN(date.getTime())) return typeof value === 'string' ? value : String(value);
 
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
@@ -30,16 +85,37 @@ export const formatDateTime = (value?: string | null): string => {
   }).format(date);
 };
 
+
+
+
 /**
  * 格式化日期为 yyyy/MM/dd 格式（zh-CN locale）。
  *
- * @param value - ISO 日期字符串，可为 null/undefined
+ * 输入：
+ * - 类型：ISO 日期字符串（如 "2026-09-05"、"2026-09-05T14:30:00"），或 number 时间戳（秒级 / 毫秒级），可为 null/undefined。
+ * - 说明：内部经 `timestamp2data` 解析；仅取日期部分（年/月/日），忽略时分秒。秒级（< 1e11，约 10 位）自动 ×1000。
+ *
+ * 输出：
+ * - 成功：形如 "2026/09/05" 的日期字符串（月/日均为 2 位补零，用 "/" 分隔）。
+ * - 空输入（'' / null / undefined）：返回占位符 "—"。
+ * - 非法值（无法解析为有效日期）：原样返回。
+ *
+ * @param value - ISO 日期字符串，或 number 时间戳（秒级 / 毫秒级），可为 null/undefined
  * @returns 格式化后的日期字符串，或无效输入返回原值/占位符
+ *
+ * @example
+ * formatDate('2026-09-05')          → "2026/09/05"
+ * formatDate('2026-09-05T14:30:00') → "2026/09/05"
+ * formatDate(1757077800)            → "2026/09/05"（秒级时间戳）
+ * formatDate(1757077800000)         → "2026/09/05"（毫秒级时间戳）
+ * formatDate('')                     → "—"
+ * formatDate(null)                   → "—"
+ * formatDate('not-a-date')          → "not-a-date"
  */
-export const formatDate = (value?: string): string => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+export const formatDate = (value?: string | number | null): string => {
+  if (value == null || value === '') return '—';
+  const date = timestamp2data(value);
+  if (Number.isNaN(date.getTime())) return typeof value === 'string' ? value : String(value);
 
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
@@ -47,6 +123,47 @@ export const formatDate = (value?: string): string => {
     day: '2-digit',
   }).format(date);
 };
+
+/**
+ * 格式化时间为 HH:mm 格式（zh-CN locale，24 小时制）。
+ *
+ * 入参兼容字符串与（秒级 / 毫秒级）时间戳，规整逻辑与 formatDate 一致（见 timestamp2data）。
+ *
+ * 输入：
+ * - 类型：ISO 日期时间字符串（如 "2026-09-05T14:30:00"）、纯数字时间戳（秒级 / 毫秒级），可为 null/undefined。
+ * - 说明：时间戳按浏览器本地时区解释；秒级（< 1e11，约 10 位）自动 ×1000 转毫秒，仅取时/分。
+ *
+ * 输出：
+ * - 成功：形如 "14:30" 的时间字符串（时/分均为 2 位补零，24 小时制）。
+ * - 空输入（'' / null / undefined）：返回占位符 "—"。
+ * - 非法值（无法解析为有效日期）：原样返回。
+ *
+ * @param value - ISO 日期时间字符串或 number 时间戳（秒级 / 毫秒级），可为 null/undefined
+ * @returns 格式化后的时间字符串，或无效输入返回原值/占位符
+ *
+ * @example
+ * formatTime('2026-09-05T14:30:00') → "14:30"
+ * formatTime(1757077800)            → "14:30"（秒级时间戳）
+ * formatTime(1757077800000)         → "14:30"（毫秒级时间戳）
+ * formatTime('')                     → "—"
+ * formatTime(null)                   → "—"
+ * formatTime('not-a-date')          → "not-a-date"
+ */
+export const formatTime = (value?: string | number | null): string => {
+  if (value == null || value === '') return '—';
+  const date = timestamp2data(value);
+  if (Number.isNaN(date.getTime())) return typeof value === 'string' ? value : String(value);
+
+  return new Intl.DateTimeFormat('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+
+
+
+
 
 /**
  * 将 Date 对象转为 YYYY-MM-DD 格式，用于 HTML <input type="date"> 的 value。
@@ -106,7 +223,7 @@ export const formatReportType = (value?: string): string => {
  * @returns 格式化后的点位字符串，如 "3324.44"；value 为 null 时返回 "--"
  *
  * @example
- * formatPricePoint(3324.445) → "3324.44" 
+ * formatPricePoint(3324.445) → "3324.44"
  * formatPricePoint(null)     → "--"
  */
 export const formatPricePoint = (value: number | null, digits = 2): string => {

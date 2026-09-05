@@ -11,8 +11,8 @@
  * - 事件块：圆角淡色块 + 重要级色点 + 时间在上一行、标题在下一行，非全天事件才显示时间；
  * - 溢出折叠为「+N」浅色胶囊，点开为圆角浮层（popover）。
  *
- * 周视图专属：同时段（默认 1 小时窗口）内达到阈值（默认 3 条）的消息会归集成一张卡片，
- * 卡片内按「(时间, 重要度)」分组，组头显示色点 + 时间（纯展示、不可交互），
+ * 周视图专属：同时段（默认 60 分钟窗口）内达到阈值（默认 3 条）的消息归集成一张卡片，
+ * 卡片内按时间分组、组内按重要度降序，组头显示色点 + 时间（纯展示、不可交互），
  * 组内每条消息独立可 hover / 可点击。详见 `GroupedEventContent` 与相关常量。
  *
  * 版本约束（重要）：
@@ -56,6 +56,7 @@ import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../../i18n/uiText';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 import { LIVE_CALENDAR_CSS_COVER } from './csscover';
+import { formatTime } from '../../../utils/format';
 // FullCalendar v6 将样式内联进 JS bundle（CSS-in-JS），官方不再提供独立 CSS 文件，
 // 无需（也不支持）单独 import CSS，否则 vite import-analysis 会报 Missing specifier。
 // 其注入的 <style data-fullcalendar> 位于 head 最前，故 Tailwind 原子类可正常覆盖。
@@ -117,7 +118,6 @@ function eventThemeMap(importance: number): EventTone {
             return { bg: 'bg-primary/10 hover:bg-primary/15', text: 'text-primary/90', dot: 'bg-primary/90' };
         //1=普通、0=无
         default:
-            //   return { bg: 'bg-primary/5 hover:bg-primary/10', text: 'text-primary/60', dot: 'bg-primary/60' };
             return {
                 bg: 'bg-foreground/4 hover:bg-foreground/10',
                 text: 'text-foreground/70',
@@ -126,25 +126,15 @@ function eventThemeMap(importance: number): EventTone {
     }
 }
 
-/** 秒级时间戳 → 本地 HH:mm（用于事件块内时间标签） */
-function formatHHMM(startAt: number): string {
-    const d = new Date(startAt * 1000);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
 // ── 周视图：同时段多条消息归集为一张卡片 ──────────────────────────────────
 // 把「同一时间窗口内」且数量达到阈值的多条消息合并成一个 FullCalendar 事件，
 // 卡片内按「(时间, 重要度)」双层结构展示，避免并排挤成窄条或堆叠互相截断。
 /**
- * 判定「同一时间段」的容差（分钟）。同时控制两处：
+ * 判定「同一时间段」的容差（分钟），同时控制两处：
  *  1. 周视图归集卡片：相邻事件 startAt 差 ≤ 该值 → 归为同一张卡片；
  *  2. 周/日视图纵向堆叠：相邻事件时间差 ≤ 该值 → 纵向错开（rearrangeSameTimeEvents）。
- *
- * 归集卡片使用滑动窗口聚类（按 startAt 排序后，相邻事件差 ≤ 该值则归组，桶边界由数据驱动、
- * 而非固定整点），与纵向堆叠的语义完全一致，便于用同一个参数控制“视觉上的同时段粒度”。
- *
- * 默认 800 分钟（≈13.3 小时）；修改后两处都会跟着变，避免固定整点桶把跨整点事件
- *（如 08:58 与 09:02）拆成两张卡。
+ * 使用滑动窗口聚类（桶边界由数据驱动、非固定整点），避免把跨整点的连续事件拆开。
+ * 默认 60 分钟（1 小时）；修改后两处都会跟着变。
  */
 const SAME_TIME_WINDOW_MIN = 60;
 /** 桶内消息数达到该阈值才归集成卡片；未达阈值的仍逐条渲染。 */
@@ -346,7 +336,7 @@ function CalendarEventContent({ event }: { event: LiveCalendarEventDef }) {
                 <span aria-hidden className={cn('shrink-0 text-lg font-bold leading-none', theme.text)}>·</span>
                 {!event.isAllDay ? (
                     <div className="shrink-0 font-medium tabular-nums opacity-80">
-                        {formatHHMM(event.startAt)}
+                        {formatTime(event.startAt)}
                     </div>
                 ) : null}
             </div>
@@ -367,7 +357,7 @@ function CalendarEventContent({ event }: { event: LiveCalendarEventDef }) {
 /**
  * 归集卡片内容：**双层结构**渲染。
  *
- * - 外层 `groups`：已按 (时间, 重要度) 分好组的数组，每组渲染一个「组头」（色点 + 时间）；
+ * - 外层 `groups`：已按(时间,或时间+重要度) 分好组的数组，每组渲染一个「组头」（色点 + 时间）；
  * - 内层 `group.items`：该组下的消息列表，每条渲染为独立可交互的一行。
  *
  * 交互约定（重要）：
@@ -381,7 +371,7 @@ function GroupedEventContent({
     groups,
     onSelectEvent,
 }: {
-    /** 已按 (时间, 重要度) 分好组的双层数据 */
+    /** 已按 (时间,或时间+重要度) 分好组的双层数据 */
     groups: GroupedEventGroup[];
     onSelectEvent: (event: LiveCalendarEventDef) => void;
 }) {
@@ -407,7 +397,7 @@ function GroupedEventContent({
                                 <span aria-hidden className={cn('shrink-0 text-lg font-bold leading-none', theme.text)}>·</span>
 
                                 <span className="text-xs font-medium tabular-nums opacity-80">
-                                    {formatHHMM(group.startAt)}
+                                    {formatTime(group.startAt)}
                                 </span>
                             </div>
                         ) : null}
@@ -480,6 +470,9 @@ export const LiveCalendar = ({
     const calendarRef = useRef<FullCalendar | null>(null);
     // 工具栏按钮文案与 FullCalendar locale（星期表头、aria 提示等）随 UI 语言切换
     const { t, language } = useUiLanguage();
+    // 日历初始定位日 = 今天。仅挂载时生效（FullCalendar 的 initialDate 为 initial-only），
+    // 用 useMemo 空依赖固化一次，避免跨午夜后重渲染时值变化。调用方无需显式传入。
+    const initialDate = useMemo(() => new Date(), []);
 
     /**
      * FullCalendar timeGrid（周/日视图）原生不支持「同时间段事件垂直堆叠」：
@@ -626,12 +619,11 @@ export const LiveCalendar = ({
                 // 用户觉得该视觉无意义且容易与今日 pill / 事件块混淆；
                 // 「今日」语义改由 dayHeaderContent（周/日表头）的主题色 pill 承担。
                 nowIndicator={false}
-                // 高度策略：不再传 height="100%"（父容器是 flex item，height:100% 无法解析为确定值，
-                // 会把 view-harness 算成 0，整张日历塌成空白）。v6 各视图有各自的合理默认尺寸：
-                // - dayGridMonth: aspectRatio 1.35（行数已知，宽度决定高度）
-                // - timeGridWeek/Day: contentHeight auto，按需撑开
-                // 加 expandRows 让月视图事件少时行高仍均分；timeGrid 视图不依赖此参数。
-                aspectRatio={1.35}
+                // 高度策略：不传固定 height，让日历按内容自由展开（无内部纵向滚动条）。
+                // - 不用 aspectRatio（会按宽度固定月视图比例，反而可能挤压内容）；
+                // - contentHeight="auto"：月/周/日视图都按自身内容撑开高度；
+                // - expandRows：事件稀疏时仍均分行高/时间槽，避免空白分布不均。
+                contentHeight="auto"
                 expandRows={true}
                 // ── 工具栏：内置 prev/today/next + title + 月/周/日切换器 ────────────
                 // 之前由 LiveCalendarPage 自带的"今日 + 月翻页"按钮被此处接管，避免重复；
@@ -740,7 +732,7 @@ export const LiveCalendar = ({
                 // 日期数字（月视图）；今日 pill 已改由 dayHeaderContent 在周/日表头承载。
                 // ── 事件：圆角淡色块（对齐 Breezy rowEventClass）
                 eventClassNames={() => [
-                    'xxxxxxxxxxx  group block w-full cursor-pointer rounded-md',
+                    'group block w-full cursor-pointer rounded-md',
                     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                 ]}
                 eventContent={(arg) => {
@@ -781,6 +773,7 @@ export const LiveCalendar = ({
                 )}
                 dateClick={handleDateClick}
                 eventClick={handleEventClick}
+                initialDate={initialDate}
                 {...props}
             />
         </div>

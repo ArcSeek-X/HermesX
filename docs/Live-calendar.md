@@ -1579,22 +1579,17 @@ toFullCalendarEvents(eventsByDay, viewType) -> Array<{
 
 ### 18.4 双层数据结构（归集卡片内部）
 
-归集卡片内部并非扁平的 `event` 列表，而是「(时间, 重要度) 分组 → 组内消息」的**双层结构**，由接口 `GroupedEventGroup` 描述：
+归集卡片内部并非扁平的 `event` 列表，而是「时间分组 → 组内消息」的**双层结构**，由接口 `GroupedEventGroup` 描述：
 
 ```ts
 export interface GroupedEventGroup {
     startAt: number;                  // 该组时间戳（组内消息时间相同）
-    importance: number;              // 该组重要级（决定组头色点 / 文字色）
+    importance: number;              // 该组重要级（取组内最大值，决定组头色点 / 文字色）
     items: LiveCalendarEventDef[];    // 组内消息列表
 }
 ```
 
-分组由纯函数 `eventGroupByTimeAndImportance(events, method)` 完成，两种模式：
-
-| `method` | 合并规则 | 用途 |
-| --- | --- | --- |
-| `'time'`（默认，归集卡片内使用） | 同一 `startAt` 的消息合并一组，组内按 `importance` **降序**（高重要度在前） | 最大化时间聚合，同时间多重要度消息收在同一时间头下 |
-| `'time+importance'` | 相邻且「时间相同 **且** 重要度相同」才合并，否则新开一组 | 严格按时间 + 重要度分段 |
+分组由纯函数 `eventGroupByTimeAndImportance(events)` 完成：**同一 `startAt` 的消息合并一组，组内按 `importance` 降序（高重要度在前）**。
 
 **职责划分（重要）**：分组计算从组件内部移到**调用处**——`eventContent` 渲染归集卡片前，先对 `extendedProps.groupEvents` 调一次 `eventGroupByTimeAndImportance` 得到数组 `A`，再把 `A` 传给 `GroupedEventContent`；后者**只负责渲染已分好组的双层数据**，不再做分组计算。
 
