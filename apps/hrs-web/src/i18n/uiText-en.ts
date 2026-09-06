@@ -20,6 +20,7 @@ const en: Record<UiTextKey, string> = {
   'common.copy': 'Copy',
   'common.datetime.day': 'Day', // Calendar view granularity: day
   'common.datetime.halfYear': 'Half year', // Calendar view granularity: half year
+  'common.datetime.list': 'List', // Calendar view granularity: list
   'common.datetime.month': 'Month', // Calendar view granularity: month
   'common.datetime.quarter': 'Quarter', // Calendar view granularity: quarter
   'common.datetime.today': 'Today', // Calendar back-to-today button
@@ -127,6 +128,19 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.watchlist.description': 'Watchlist stocks and market tracking',
 
   // ---- 第 5 类 组件 component ----
+  // component.LiveCalendar.*
+  'component.LiveCalendar.allDay': 'All day', // calendar event all-day marker
+  'component.LiveCalendar.country': 'Country', // List view column header: country
+  'component.LiveCalendar.empty': 'No calendar events this month', // empty: no events this month
+  'component.LiveCalendar.emptyImportance': 'No events matching the importance filter, try lowering it', // empty: importance filter has no results
+  'component.LiveCalendar.importance': 'Importance', // List view column header: importance
+  'component.LiveCalendar.includeEconomicData': 'Show economic data', // toggle: show FD economic data
+  'component.LiveCalendar.list.columns.time': 'Time', // List view column header: time
+  'component.LiveCalendar.list.columns.title': 'Title', // List view column header: news title
+  'component.LiveCalendar.more': 'More info', // calendar cell overflow "+N" label
+  'component.LiveCalendar.nextMonth': 'Next month', // List view nav: next
+  'component.LiveCalendar.prevMonth': 'Previous month', // List view nav: previous
+  'component.LiveCalendar.today': 'Today', // month switch: back to today
   // component.runFlow.*
   'component.runFlow.drawerTitle': 'Run Flow',
   'component.runFlow.durationMinutes': '{value} min',
@@ -580,19 +594,10 @@ const en: Record<UiTextKey, string> = {
   'kline.tooltip.open': 'Open',
   'kline.tooltip.volume': 'Volume',
   // liveCalendar.*
-  'liveCalendar.allDay': 'All day',
-  'liveCalendar.country': 'Country',
   'liveCalendar.degradedTip': 'Data source temporarily unavailable, showing cached data',
-  'liveCalendar.empty': 'No calendar events this month',
-  'liveCalendar.emptyImportance': 'No events matching the importance filter, try lowering it',
   'liveCalendar.emptyTab': 'No events in this category this month, try "All"',
   'liveCalendar.eventsCount': '{count} events',
-  'liveCalendar.includeEconomicData': 'Show economic data',
-  'liveCalendar.importance': 'Importance',
   'liveCalendar.loading': 'Loading calendar…',
-  'liveCalendar.more': 'More info', // 日历格子溢出折叠提示
-  'liveCalendar.nextMonth': 'Next month',
-  'liveCalendar.prevMonth': 'Previous month',
   'liveCalendar.refresh': 'Refresh calendar',
   'liveCalendar.refreshing': 'Refreshing…',
   'liveCalendar.selectHint': 'Click a date to view events',
@@ -603,7 +608,6 @@ const en: Record<UiTextKey, string> = {
   'liveCalendar.tabs.ipo': 'IPO',
   'liveCalendar.tabs.macro': 'Macro',
   'liveCalendar.title': 'Live Calendar',
-  'liveCalendar.today': 'Today',
   // liveNews.*
   'liveNews.channelTabs': 'Newsflash channels',
   'liveNews.dateAll': 'All dates',

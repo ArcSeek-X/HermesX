@@ -22,14 +22,7 @@ import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectO
 import { NewsCard } from '../components/common/Card/newsCard';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
-
-/** 把 `YYYY-MM-DD` 之类的键转为本地日期字符串（用于「今天/昨天」选项） */
-function formatDateValue(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+import { toDateKey } from '../utils/format';
 
 const LiveNewsPage: React.FC = () => {
     const { t } = useUiLanguage();
@@ -47,8 +40,8 @@ const LiveNewsPage: React.FC = () => {
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
         return [
             { key: '', label: t('liveNews.dateAll') },
-            { key: formatDateValue(today), label: t('liveNews.dateToday') },
-            { key: formatDateValue(yesterday), label: t('liveNews.dateYesterday') },
+            { key: toDateKey(today), label: t('liveNews.dateToday') },
+            { key: toDateKey(yesterday), label: t('liveNews.dateYesterday') },
         ];
     }, [t]);
 

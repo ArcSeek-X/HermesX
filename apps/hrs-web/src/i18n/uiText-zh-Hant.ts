@@ -17,6 +17,7 @@ const zhHant = {
   'common.copy': '複製', // 複製按鈕文案
   'common.datetime.day': '日', // 日曆視圖粒度：日
   'common.datetime.halfYear': '半年', // 日曆視圖粒度：半年
+  'common.datetime.list': '列表', // 日曆視圖粒度：列表
   'common.datetime.month': '月', // 日曆視圖粒度：月
   'common.datetime.quarter': '季', // 日曆視圖粒度：季度
   'common.datetime.today': '今天', // 日曆回到今天按鈕
@@ -124,6 +125,19 @@ const zhHant = {
   'layout.nav.watchlist.description': '自選股列表與行情追蹤', // 自选导航项描述
 
   // ---- 第 5 类 组件 component ----
+  // component.LiveCalendar.*
+  'component.LiveCalendar.allDay': '全天', // 日曆事件全天標識
+  'component.LiveCalendar.country': '國家', // List 視圖列頭：國家
+  'component.LiveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
+  'component.LiveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
+  'component.LiveCalendar.importance': '重要級', // List 視圖列頭：重要級
+  'component.LiveCalendar.includeEconomicData': '顯示經濟資料', // 是否顯示 FD 經濟資料開關
+  'component.LiveCalendar.list.columns.time': '時間', // List 視圖列頭：時間
+  'component.LiveCalendar.list.columns.title': '新聞標題', // List 視圖列頭：新聞標題
+  'component.LiveCalendar.more': '更多資訊', // 日曆格子溢出摺疊提示
+  'component.LiveCalendar.nextMonth': '下月', // List 視圖導航：下月
+  'component.LiveCalendar.prevMonth': '上月', // List 視圖導航：上月
+  'component.LiveCalendar.today': '今天', // 月份切換：回到今天
   // component.runFlow.*
   'component.runFlow.drawerTitle': '运行流', // 运行流抽屉標題
   'component.runFlow.durationMinutes': '{value} 分鐘', // 分鐘耗時顯示
@@ -577,19 +591,10 @@ const zhHant = {
   'kline.tooltip.open': '開盤', // tooltip 開盤价
   'kline.tooltip.volume': '成交量', // tooltip 成交量
   // liveCalendar.*
-  'liveCalendar.allDay': '全天', // 日曆事件全天標識
-  'liveCalendar.country': '國家', // 國家篩選標籤
   'liveCalendar.degradedTip': '資料源暫不可用，目前展示本地快取資料', // 降級提示條
-  'liveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
-  'liveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
   'liveCalendar.emptyTab': '目前分類下本月暫無事件，試試「全部」', // 空態：某分類無事件
   'liveCalendar.eventsCount': '共 {count} 條事件', // 詳情面板事件計數
-  'liveCalendar.includeEconomicData': '顯示經濟資料', // 是否顯示 FD 經濟資料開關
-  'liveCalendar.importance': '重要級', // 重要級篩選標籤
   'liveCalendar.loading': '正在載入日曆…', // 載入中文案
-  'liveCalendar.more': '更多資訊', // 日曆格子溢出摺疊提示
-  'liveCalendar.nextMonth': '下月', // 月份切換：下月
-  'liveCalendar.prevMonth': '上月', // 月份切換：上月
   'liveCalendar.refresh': '重新整理日曆', // 手動重新整理按鈕
   'liveCalendar.refreshing': '重新整理日曆中', // 重新整理按鈕載入態文案
   'liveCalendar.selectHint': '點擊日曆中的日期查看當日事件', // 詳情面板空態提示
@@ -600,7 +605,6 @@ const zhHant = {
   'liveCalendar.tabs.ipo': '新股', // 分類 Tab：新股
   'liveCalendar.tabs.macro': '宏觀', // 分類 Tab：宏觀
   'liveCalendar.title': '訊息日曆', // 頁面標題
-  'liveCalendar.today': '今天', // 月份切換：回到今天
   // liveNews.*
   'liveNews.channelTabs': '快訊頻道', // 頻道 Tab 的無障礙標籤
   'liveNews.dateAll': '全部日期', // 日期篩選：不限

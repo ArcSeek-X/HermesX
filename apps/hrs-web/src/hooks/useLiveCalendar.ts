@@ -28,6 +28,7 @@ import type {
   LiveCalendarEventDef,
 } from '../types/liveCalendar';
 import type { LiveCalendarRange } from '../components/common/LiveCalendar';
+import { toDateKeyFromSeconds } from '../utils/format';
 
 /** 月份对象（1~12） */
 export interface MonthCursor {
@@ -68,15 +69,6 @@ export function monthGridRange(year: number, month: number): LiveCalendarRange {
   const end = new Date(last);
   end.setDate(last.getDate() + (6 - ((last.getDay() + 6) % 7)));
   return { start, end };
-}
-
-/** 把秒级时间戳格式化为 `YYYY-MM-DD`（本地时区） */
-function toDateKey(startAt: number): string {
-  const date = new Date(startAt * 1000);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 /** Tab 列表 Hook */
@@ -267,7 +259,7 @@ export function useLiveCalendarMonths(
   const eventsByDay = useMemo(() => {
     const map = new Map<string, LiveCalendarEventDef[]>();
     for (const event of events) {
-      const key = toDateKey(event.startAt);
+      const key = toDateKeyFromSeconds(event.startAt);
       const existing = map.get(key);
       if (existing) {
         existing.push(event);

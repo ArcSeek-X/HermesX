@@ -1538,13 +1538,13 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 
 ### 18.1 总览对照
 
-| 维度 | 月视图 `dayGridMonth` | 周视图 `timeGridWeek` | 日视图 `timeGridDay` |
-| --- | --- | --- | --- |
-| 共同输入 | `eventsByDay`（`Map<YYYY-MM-DD, LiveCalendarEventDef[]>`） | 同左 | 同左 |
-| 事件输出方式 | 逐条（不合并） | **同时段归集启用**：达标桶 → 1 张卡片，未达标桶 → 逐条 | 逐条（不合并） |
-| 卡片渲染组件 | `CalendarEventContent` | 达标桶 → `GroupedEventContent`；未达标条 → `CalendarEventContent` | `CalendarEventContent` |
-| 时间轴 | 无（按天归格，最多 3 条 + `+N` 折叠） | 有（按小时），叠加纵向堆叠 | 有（按小时） |
-| 高度由谁撑开 | FullCalendar 内置 | 归集卡片按双层行数（`calcGroupCardHeight`）；未达标条按纵向堆叠 | FullCalendar 时间轴 + 纵向堆叠 |
+| 维度 | 月视图 `dayGridMonth` | 周视图 `timeGridWeek` | 日视图 `timeGridDay` | List 视图（自定义，见 §20） |
+| --- | --- | --- | --- | --- |
+| 共同输入 | `eventsByDay`（`Map<YYYY-MM-DD, LiveCalendarEventDef[]>`） | 同左 | 同左 | 同左（**不经** `toFullCalendarEvents`） |
+| 事件输出方式 | 逐条（不合并） | **同时段归集启用**：达标桶 → 1 张卡片，未达标桶 → 逐条 | 逐条（不合并） | 逐条（**不归集、不堆叠**） |
+| 卡片渲染组件 | `CalendarEventContent` | 达标桶 → `GroupedEventContent`；未达标条 → `CalendarEventContent` | `CalendarEventContent` | `LiveCalendarListView`（四列消息行，非 FullCalendar） |
+| 时间轴 | 无（按天归格，最多 3 条 + `+N` 折叠） | 有（按小时），叠加纵向堆叠 | 有（按小时） | 无（按日分组 section，组内按时间升序） |
+| 高度由谁撑开 | FullCalendar 内置 | 归集卡片按双层行数（`calcGroupCardHeight`）；未达标条按纵向堆叠 | FullCalendar 时间轴 + 纵向堆叠 | React 自然流（FullCalendar 不参与） |
 
 ### 18.2 统一数据入口与转换
 
@@ -1659,13 +1659,15 @@ FullCalendar 的 timeGrid 原生不支持「同时间段事件垂直堆叠」（
 
 ### 19.2 三视图交互对照
 
-| 触发源 | 月视图 | 周视图 | 日视图 |
-| --- | --- | --- | --- |
-| 点**单条**事件 | 切日视图 + 详情（`handleEventClick` → `dayGridMonth` 分支） | 切日视图 + 详情（`handleEventClick` → `timeGridWeek` 分支） | 仅详情（`handleEventClick`，不切视图） |
-| 点**归集卡片内某条**消息 | —（月视图无此形态） | 切日视图 + 详情（`GroupedEventContent` 内 `onClick`：`onSelectEvent(item)` + `changeView('timeGridDay')`，`stopPropagation`） | — |
-| 点**归集卡片空白/整体** | — | 切日视图 + 详情（冒泡到 `handleEventClick` 的 `timeGridWeek` 分支） | — |
-| 点**日期格空白**区 | 切日视图 + 详情（`handleDateClick` → `dayGridMonth` 分支 `goToDayView`） | 仅定位详情（`handleDateClick`：`timeGridWeek` 仅 `onSelectDay`） | 仅定位详情（`handleDateClick`：`timeGridDay` 仅 `onSelectDay`） |
-| `+N 更多` | 打开该日全部事件面板 | — | — |
+| 触发源 | 月视图 | 周视图 | 日视图 | List 视图 |
+| --- | --- | --- | --- | --- |
+| 点**单条**事件 | 切日视图 + 详情（`handleEventClick` → `dayGridMonth` 分支） | 切日视图 + 详情（`handleEventClick` → `timeGridWeek` 分支） | 仅详情（`handleEventClick`，不切视图） | 切日视图 + 详情（行 `onClick`：`onSelectEvent(event)` + `onJumpToDay`） |
+| 点**归集卡片内某条**消息 | —（月视图无此形态） | 切日视图 + 详情（`GroupedEventContent` 内 `onClick`：`onSelectEvent(item)` + `changeView('timeGridDay')`，`stopPropagation`） | — | —（List 不归集，无此形态） |
+| 点**归集卡片空白/整体** | — | 切日视图 + 详情（冒泡到 `handleEventClick` 的 `timeGridWeek` 分支） | — | — |
+| 点**日期格空白**区 | 切日视图 + 详情（`handleDateClick` → `dayGridMonth` 分支 `goToDayView`） | 仅定位详情（`handleDateClick`：`timeGridWeek` 仅 `onSelectDay`） | 仅定位详情（`handleDateClick`：`timeGridDay` 仅 `onSelectDay`） | —（List 无日期格） |
+| 点**日期组头 / 列头** | — | — | — | 无交互（纯展示） |
+| `[◀]` / `[后 ▶]` | FC 内置（切换可见月 / 周 / 日） | FC 内置 | FC 内置 | List 自绘工具栏：`handleListNav`，范围 ±7 天 + `onRangeChange` |
+| `+N 更多` | 打开该日全部事件面板 | — | — | —（List 逐条展示，无折叠） |
 
 **实现映射（代码位置）**
 
@@ -1693,3 +1695,103 @@ FullCalendar 的 timeGrid 原生不支持「同时间段事件垂直堆叠」（
 | 事件色阶 | 按 `importance` 渲染（§8.5 / §5.7.2） |
 | 分类 Tab | 切换不重新请求，前端按 `tab_keys` 过滤已加载数据（§8.1） |
 | 非当前月日期 | 置灰且不喂事件（后端按月返回） |
+
+***
+
+## 20. List 视图：按日分组的四列消息列表
+
+> List 视图是工具栏第 4 个视图按钮（月 / 周 / 日 / 列表）。本章记录其完整实现，
+> 常量与函数名均对应 `apps/hrs-web/src/components/common/LiveCalendar/LiveCalendar.tsx`。
+
+### 20.1 选型：为什么不用 FullCalendar 自带的 listWeek / listDay
+
+v6 的 `listWeek` / `listDay`（`@fullcalendar/list` 插件）原生结构是「按天分组 + 每行两列：
+左时间 + 右标题」，`eventContent` 只能改每行内容，**不支持自定义列头与列数**，
+做不出「时间 / 新闻标题 / 国家 / 重要度」四列真表头。
+
+→ **不引入 `@fullcalendar/list` 插件**。List 视图改为与 `<FullCalendar>` **平级**的自定义
+组件 `LiveCalendarListView`，由 `LiveCalendar` 按 `viewType === 'list'` 条件渲染。
+
+### 20.2 架构
+
+```
+LiveCalendar（父）
+├── viewType: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'list'
+├── viewType !== 'list' → <FullCalendar>（§18 行为不变）
+└── viewType === 'list' → 自绘工具栏（.fc-toolbar 结构）+ <LiveCalendarListView>
+                          （此时 <FullCalendar> 被 display:none 隐藏，实例保留）
+```
+
+- **FullCalendar 隐藏而非卸载**：切回时无需重建、不重新请求；恢复显示必须调
+  `api.updateSize()`（隐藏期间其内部尺寸按 0 计算，不重算会布局塌陷）。
+- **`datesSet` 保护**：List 视图下 FC 仍挂载，其 `datesSet` 先经 `viewTypeRef` 判定再
+  `return`，避免首次挂载那次回调把 `viewType` 打回 `dayGridMonth`。
+- **工具栏自绘但复用 FC 结构**：`.fc-toolbar` / `.fc-toolbar-chunk` / `.fc-button-group` /
+  `.fc-button` / `.fc-prev-button` / `.fc-today-button` / `.fc-next-button` /
+  `.fc-dayGridMonth-button` … / `.fc-list-button`，让 `csscover` 的 `[&_.fc-*]` 覆盖直接生效，
+  视觉与月 / 周 / 日视图一致。
+
+### 20.3 数据处理
+
+| 步骤 | 规则 |
+| --- | --- |
+| 1. 过滤 | `eventsByDay` 中 `dayKey ∈ [range.start, range.end]`（闭区间，字典序比较） |
+| 2. 分组 | 按 `dayKey` 升序分 section；**空天不渲染** |
+| 3. 排序 | 每 section 内按 `startAt` 升序 |
+| 4. 归集 / 堆叠 | **都不做**（列表本身就是逐条展开形态） |
+| 5. 重要度 | 复用 `eventThemeMap(importance)` 色板 + `IMPORTANCE_LABELS` 文案 |
+
+数据**不走** `toFullCalendarEvents`：List 视图不经过 FullCalendar 事件通道，直接消费
+`eventsByDay`（与月 / 周 / 日同源）。
+
+### 20.4 布局
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Tuesday                              September 1, 2026      │  日期组头（sticky）
+├──────────────────────────────────────────────────────────────┤
+│ 时间 │ 新闻标题           │ 国家 │ 重要级                    │  列头
+├──────┼────────────────────┼──────┼───────────────────────────┤
+│ 全天 │ · 蒂姆·库克正式卸任… │ 🇺🇸 美国 │ ●  重要                │  消息行（整行可点击）
+│ 09:00│ ·· 非农就业数据     │ 🇺🇸 美国 │ ●● 非常重要             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **四列网格**：`grid-cols-[96px_1fr_140px_120px]`（常量 `LIST_GRID_COLS`）。
+- **时间列**：全天事件显示「全天」，否则 `formatTime(startAt)`（`tabular-nums`）。
+- **新闻标题列**：重要级色点（`eventThemeMap.text`）+ `shortTitle`，`truncate`，
+  `title` 属性挂完整 `title`（hover 可见）。
+- **国家列**：`flagUri` 国旗（`h-3 w-4 rounded-sm`）+ `country`。
+- **重要级列**：色点圆点（`eventThemeMap.dot`）+ `IMPORTANCE_LABELS[importance]`。
+- **日期组头**：`grid-cols-[1fr_auto]`，左「星期」右「日期」，按 UI 语言用 `Intl` 本地化，
+  `sticky top-0` + `bg-muted/40`。
+
+### 20.5 交互
+
+| 触发源 | 行为 |
+| --- | --- |
+| 点**单行** | `onSelectEvent(event)` + `onJumpToDay(new Date(startAt*1000))` → 切到该事件所属日期的 `timeGridDay`（与周视图归集卡片内点击单条一致） |
+| 日期组头 / 列头 | 纯展示，无交互 |
+| `[◀]` / `[后 ▶]` | 可见范围 ±7 天（`handleListNav`），并 `onRangeChange` 通知 Page |
+| `[今天]` | 重置为今天所在周 |
+| 工具栏 `列表` | `handleViewChange('list')`：以当前 FC 可见范围所在周（无则今天所在周）为初始范围 |
+| 工具栏切回月 / 周 / 日 | `setViewType` + `api.changeView` + `api.updateSize()` |
+
+### 20.6 i18n
+
+| key | zh | zh-Hant | en |
+| --- | --- | --- | --- |
+| `common.datetime.list` | 列表 | 列表 | List |
+| `liveCalendar.list.columns.time` | 时间 | 時間 | Time |
+| `liveCalendar.list.columns.title` | 新闻标题 | 新聞標題 | Title |
+
+列头「国家 / 重要级 / 全天」**复用既有 key**：`liveCalendar.country` /
+`liveCalendar.importance` / `liveCalendar.allDay`。
+
+### 20.7 文件清单
+
+| 文件 | 改动 |
+| --- | --- |
+| `LiveCalendar.tsx` | 新增 `LiveCalendarListView` 组件与 `intlLocaleOf` / `dayKeyOfDate` / `weekRangeOf` / `shiftDays` / `LIST_GRID_COLS`；父组件新增 `listRange` / `viewTypeRef` / `lastFCRange` / `handleViewChange` / `handleListNav` / `jumpToDayView` / `listTitle`；`customButtons.list` + `headerToolbar.end` 追加 `list` |
+| `csscover.ts` | `VIEW_SWITCHER` 的 `:is(...)` 选择器加入 `.fc-list-button` |
+| `uiText-zh.ts` / `uiText-zh-Hant.ts` / `uiText-en.ts` | 新增 §20.6 三个 key（三语对齐） |

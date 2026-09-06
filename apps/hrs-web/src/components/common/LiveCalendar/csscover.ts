@@ -373,25 +373,27 @@ const NAV_BUTTON = [
 // v6 把这三个按钮放同一个 buttonGroup，但我们想做成「独立纯文字标签」，于是去掉
 // 边框/底色/阴影，改由 mx-1 自带间距（group 不再负责拼接）。未选中态用弱前景色
 // + 常规字重，选中态（见下）用背景色 + 加粗 + 前景色。
+// `.fc-list-button` = List 视图按钮（FC 工具栏里由 customButtons 渲染；
+// List 视图自绘工具栏里也用同一个 class，两处样式共用这一份规则）。
 const VIEW_SWITCHER = [
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:border-0!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:bg-transparent!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:shadow-none!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:px-2!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:py-1.5!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:mx-1!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:border-0!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:bg-transparent!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:shadow-none!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:px-2!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:py-1.5!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:mx-1!',
     // 未选中文字色：前景色弱化版（text-foreground-soft）。
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:text-foreground-soft!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:font-normal!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button)]:rounded-sm',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:text-foreground-soft!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:font-normal!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button)]:rounded-sm',
     // 选中态（.fc-button-active）：叠加一层更具体的 `.fc-button-active` 选择器。
     // 背景走变量层 --fc-button-active-bg-color（muted 浅灰；若想更明显可换
     // var(--primary)/0.12 或 var(--hover)/var(--border)），文字前景色 + semibold。
     // 注：背景实际由 v6 的 .fc-button-primary.fc-button-active 取 --fc-button-active-bg-color
     // 变量生效（变量走 DOM 继承，不受层叠层影响）；这条 bg-muted! 作兜底。
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:bg-foreground-faint!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:text-foreground!',
-    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button).fc-button-active]:font-semibold!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button).fc-button-active]:bg-foreground-faint!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button).fc-button-active]:text-foreground!',
+    '[&_:is(.fc-dayGridMonth-button,.fc-timeGridWeek-button,.fc-timeGridDay-button,.fc-list-button).fc-button-active]:font-semibold!',
 ];
 
 // ── 导航按钮组（仅剩前/今天/后）────────────────────────────────────────────

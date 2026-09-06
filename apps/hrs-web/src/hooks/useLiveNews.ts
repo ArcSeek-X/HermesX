@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getLiveNews, getLiveNewsChannels, refreshLiveNews } from '../api/liveNews';
 import type { LiveNewsChannel, LiveNewsDateGroup, LiveNewsItem } from '../types/liveNews';
+import { toDateKeyFromSeconds } from '../utils/format';
 
 /** 默认轮询间隔（毫秒） */
 const DEFAULT_POLL_INTERVAL_MS = 30_000;
@@ -111,16 +112,6 @@ export interface UseLiveNewsReturn {
     refresh: () => Promise<void>;
 }
 
-/** 把秒级时间戳格式化为 `YYYY-MM-DD` 分组键（按用户本地时区） */
-function toDateKey(displayTime: number | null): string {
-    if (!displayTime) return '';
-    const date = new Date(displayTime * 1000);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 /** 把秒级时间戳格式化为 `08月28日 星期五` 的分组标题 */
 function toDateLabel(displayTime: number | null): string {
     if (!displayTime) return '未知时间';
@@ -135,7 +126,8 @@ function toDateLabel(displayTime: number | null): string {
 function groupByDate(items: LiveNewsItem[]): LiveNewsDateGroup[] {
     const groups = new Map<string, LiveNewsDateGroup>();
     for (const item of items) {
-        const key = toDateKey(item.displayTime);
+        // displayTime 缺失时归到空键分组（与 toDateLabel 的「未知时间」兜底语义一致）
+        const key = item.displayTime ? toDateKeyFromSeconds(item.displayTime) : '';
         const existing = groups.get(key);
         if (existing) {
             existing.items.push(item);

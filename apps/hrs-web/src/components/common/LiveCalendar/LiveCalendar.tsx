@@ -57,6 +57,12 @@ import type { UiLanguage } from '../../../i18n/uiText';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 import { LIVE_CALENDAR_CSS_COVER } from './csscover';
 import { formatTime } from '../../../utils/format';
+// 重要级色板：月/周/日网格视图与 List 视图共用同一套，已下沉到 eventTheme.ts。
+// 若留在本文件由 List 组件反向取用，会形成 LiveCalendar ↔ LiveCalendarListView 循环依赖。
+import { eventThemeMap } from './eventTheme';
+// List 视图：自绘组件（FC v6 的 list 插件做不出四列真表头）。
+// 工具栏也一并归它自绘（FC 被隐藏时其内置 toolbar 会一起消失），本组件只下发状态与回调。
+import { LiveCalendarListView } from './LiveCalendarListView';
 // FullCalendar v6 将样式内联进 JS bundle（CSS-in-JS），官方不再提供独立 CSS 文件，
 // 无需（也不支持）单独 import CSS，否则 vite import-analysis 会报 Missing specifier。
 // 其注入的 <style data-fullcalendar> 位于 head 最前，故 Tailwind 原子类可正常覆盖。
@@ -94,37 +100,8 @@ export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
 /** 归集卡片的分组方式（暂不对外暴露，内部预留扩展） */
 type GroupMethod = 'timeAndImportance' | 'time';
 
-/** 事件色板：底色（含 hover）、文字色、色点色 —— 对应 Breezy 的 event-color 混入方案 */
-interface EventTone {
-    /** 事件块底色 + hover 加深（Breezy：event 色低比例混入背景） */
-    bg: string;
-    /** 事件块文字色（Breezy：event 色半量混入前景） */
-    text: string;
-    /** 左侧重要级色点 */
-    dot: string;
-}
-
-/** 重要级 → 事件色板（Breezy 风格：低饱和、轻量色块） */
-function eventThemeMap(importance: number): EventTone {
-    switch (importance) {
-        //4=非常重要
-        case 4:
-            return { bg: 'bg-danger/8 hover:bg-danger/15', text: 'text-danger/90', dot: 'bg-danger/90' };
-        //3=重要
-        case 3:
-            return { bg: 'bg-warning/8 hover:bg-warning/15', text: 'text-warning/90', dot: 'bg-warning/90' };
-        //2=较重要
-        case 2:
-            return { bg: 'bg-primary/10 hover:bg-primary/15', text: 'text-primary/90', dot: 'bg-primary/90' };
-        //1=普通、0=无
-        default:
-            return {
-                bg: 'bg-foreground/4 hover:bg-foreground/10',
-                text: 'text-foreground/70',
-                dot: 'bg-foreground/70',
-            };
-    }
-}
+// 事件色板（EventTone / eventThemeMap）已抽到同目录 `eventTheme.ts`：
+// 月/周/日网格视图与 List 视图共用同一套配色，留在本文件会让 List 组件反向 import 成环。
 
 // ── 周视图：同时段多条消息归集为一张卡片 ──────────────────────────────────
 // 把「同一时间窗口内」且数量达到阈值的多条消息合并成一个 FullCalendar 事件，
@@ -445,6 +422,30 @@ function calendarLocaleOf(language: UiLanguage) {
     return undefined;
 }
 
+// ── List 视图的范围计算工具 ──────────────────────────────────────────────
+// List 视图**不走 FullCalendar**（v6 的 list 插件做不出「时间/标题/国家/重要度」四列真表头），
+// 其渲染组件已整体抽到同目录 `LiveCalendarListView.tsx`，本文件只保留驱动它所需的范围计算：
+// 进入 List 时取「当前 FC 可见范围所在周」作初始范围，prev/next 按 7 天平移。
+// 详见 LiveCalendarListView.tsx 文件头注释。
+
+/** 取某日所在自然周（firstDay=1 周一）的 [start, end] */
+function weekRangeOf(date: Date): { start: Date; end: Date } {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const offset = (d.getDay() + 6) % 7; // 周一 → 0
+    const start = new Date(d);
+    start.setDate(d.getDate() - offset);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+}
+
+/** 日期平移 n 天 */
+function shiftDays(date: Date, days: number): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
 /**
  * FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域。
  *
@@ -463,6 +464,18 @@ export const LiveCalendar = ({
     // 当前视图类型（dayGridMonth / timeGridWeek / timeGridDay），由 datesSet 同步。
     // 「同时段归集」仅在 timeGridWeek 生效，月视图/日视图都逐条输出。
     const [viewType, setViewType] = useState<string>('dayGridMonth');
+    // List 视图的可见范围（步长 7 天，默认「今天所在周」）
+    const [listRange, setListRange] = useState<{ start: Date; end: Date }>(() =>
+        weekRangeOf(new Date()),
+    );
+    /**
+     * 当前视图类型的 ref 镜像。`datesSet` 回调可能被 FullCalendar 内部持有旧闭包，
+     * 用 ref 才能在 List 视图下可靠地判断「FC 处于隐藏态」。
+     */
+    const viewTypeRef = useRef<string>('dayGridMonth');
+    viewTypeRef.current = viewType;
+    /** 最近一次 FullCalendar 可见范围：切到 List 视图时作为初始范围 */
+    const lastFCRange = useRef<{ start: Date; end: Date } | null>(null);
     const events = useMemo(
         () => toFullCalendarEvents(eventsByDay, viewType),
         [eventsByDay, viewType],
@@ -602,12 +615,64 @@ export const LiveCalendar = ({
             goToDayView(info.event.start ?? info.event.startStr);
         }
     };
+
+    /**
+     * 视图切换（月 / 周 / 日 / List）。
+     *
+     * - 切到 List：以「当前 FC 可见范围所在周」（无则今天所在周）为初始范围，
+     *   记录后通知 Page 拉取覆盖月份的数据；
+     * - 切回 FullCalendar 视图：恢复 FC 显示 + `changeView` + `updateSize`。
+     *   ⚠ `updateSize()` 必须调：List 视图下 FC 处于 `display:none`，恢复显示后
+     *   其内部尺寸仍按 0 计算，不重算会导致布局塌陷。
+     */
+    const handleViewChange = (next: string) => {
+        if (next === 'list') {
+            const base = lastFCRange.current?.start ?? new Date();
+            const nextRange = weekRangeOf(base);
+            setListRange(nextRange);
+            setViewType('list');
+            if (onRangeChange) {
+                onRangeChange({ start: nextRange.start, end: nextRange.end });
+            }
+            return;
+        }
+        setViewType(next);
+        requestAnimationFrame(() => {
+            const api = calendarRef.current?.getApi();
+            if (!api) return;
+            api.changeView(next);
+            api.updateSize();
+        });
+    };
+
+    /** List 视图的 prev / today / next：按 7 天平移可见范围，并通知 Page 拉数 */
+    const handleListNav = (dir: 'prev' | 'next' | 'today') => {
+        const next =
+            dir === 'today'
+                ? weekRangeOf(new Date())
+                : {
+                      start: shiftDays(listRange.start, dir === 'prev' ? -7 : 7),
+                      end: shiftDays(listRange.end, dir === 'prev' ? -7 : 7),
+                  };
+        setListRange(next);
+        if (onRangeChange) {
+            onRangeChange({ start: next.start, end: next.end });
+        }
+    };
+
+    // 原「List 视图点某条消息 → 切到该事件所属日期的日视图」（jumpToDayView）已移除：
+    // 该联动不再需要，List 视图的点击行为统一由 onSelectEvent（详情面板定位）承担。
+
+    // List 视图标题已移到 LiveCalendarListView 内部（由 range 自行推导），此处不再计算。
+
     return (
         <div
             // 容器样式：这里只引用抽出去的覆盖层常量，顺序约定为「覆盖层在前、className 在后」，
             // 保证调用方传入的类名优先级最高（twMerge 后写的赢）。
             className={cn(LIVE_CALENDAR_CSS_COVER, className)}
         >
+            {/* FullCalendar：List 视图下隐藏（实例保留，切回时即时恢复、不重建不重拉） */}
+            <div className={cn(viewType === 'list' && 'hidden')}>
             <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -632,10 +697,22 @@ export const LiveCalendar = ({
                 // 「前(prev) / 今天(today) / 后(next)」，与 Breezy demo 的 `prev,today,next` 一致。
                 // end 用空格分隔 = 月/周/日为三个独立按钮（不包进 button-group），
                 // 配合上方 :is(...) 选择器渲染成纯文字切换器。
+                /**
+                 * List 按钮：由 FullCalendar 渲染（class 为 `.fc-list-button`，样式见 csscover
+                 * 的 VIEW_SWITCHER），点击切到自定义 List 视图。
+                 * List **不是** FC 视图（FC 原生 listWeek/listDay 做不出四列真表头），
+                 * 这里只借用按钮位与样式，点击后由 `handleViewChange('list')` 接管。
+                 */
+                customButtons={{
+                    list: {
+                        text: t('common.datetime.list'),
+                        click: () => handleViewChange('list'),
+                    },
+                }}
                 headerToolbar={{
                     start: 'prev,today,next',
                     center: 'title',
-                    end: 'dayGridMonth timeGridWeek timeGridDay',
+                    end: 'dayGridMonth timeGridWeek timeGridDay list',
                 }}
                 buttonText={{
                     today: t('common.datetime.today'),
@@ -649,6 +726,11 @@ export const LiveCalendar = ({
                 // 可能跨月（如 9 月第一周的周一落在 8/31），只拉周一所在月份会让跨月日
                 // （9/2、9/3 等）在网格中无事件，刷新也无济于事。
                 datesSet={(arg) => {
+                    // 记录最近一次 FC 可见范围，供切到 List 视图时作为初始范围
+                    lastFCRange.current = { start: arg.start, end: arg.end };
+                    // List 视图下 FC 处于隐藏态：它的 datesSet 不应再覆盖视图状态，
+                    // 否则首次挂载那次 datesSet 会把 viewType 打回 dayGridMonth。
+                    if (viewTypeRef.current === 'list') return;
                     if (onRangeChange) {
                         onRangeChange({ start: arg.start, end: arg.end });
                     }
@@ -768,7 +850,7 @@ export const LiveCalendar = ({
                 moreLinkClassNames="block w-full cursor-pointer border-0 rounded-sm! bg-transparent hover:bg-foreground-subtle"
                 moreLinkContent={(arg) => (
                     <span className="flex items-center gap-1 px-1.5 py-1 text-xs font-normal text-foreground-dim hover:font-semibold">
-                        +{arg.num} {t('liveCalendar.more')}
+                        +{arg.num} {t('component.LiveCalendar.more')}
                     </span>
                 )}
                 dateClick={handleDateClick}
@@ -776,6 +858,20 @@ export const LiveCalendar = ({
                 initialDate={initialDate}
                 {...props}
             />
+            </div>
+
+            {/* List 视图：与 FullCalendar 平级，按 viewType 条件渲染。
+                不传 onEventClick：原先的「点消息 → 切到该日日视图」联动已移除，
+                点击语义统一由 onSelectEvent（详情面板定位）承担。 */}
+            {viewType === 'list' ? (
+                <LiveCalendarListView
+                    eventsByDay={eventsByDay}
+                    range={listRange}
+                    onSelectEvent={onSelectEvent}
+                    onNavigate={handleListNav}
+                    onViewChange={handleViewChange}
+                />
+            ) : null}
         </div>
     );
 };

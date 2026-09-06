@@ -758,7 +758,7 @@ export const LiveCalendar = ({
                 moreLinkClassNames="block w-full cursor-pointer border-0 rounded-sm! bg-transparent hover:bg-foreground-subtle"
                 moreLinkContent={(arg) => (
                     <span className="flex items-center gap-1 px-1.5 py-1 text-xs font-normal text-foreground-dim hover:font-semibold">
-                        +{arg.num} {t('liveCalendar.more')}
+                        +{arg.num} {t('component.LiveCalendar.more')}
                     </span>
                 )}
                 dateClick={handleDateClick}

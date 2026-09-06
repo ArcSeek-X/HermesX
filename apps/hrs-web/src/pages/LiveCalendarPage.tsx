@@ -29,6 +29,7 @@ import {
   useLiveCalendarMonths,
   useLiveCalendarTabs,
 } from '../hooks/useLiveCalendar';
+import { toDateKeyFromSeconds } from '../utils/format';
 
 
 
@@ -84,23 +85,13 @@ const LiveCalendarPage: React.FC = () => {
   );
 
   const emptyText =
-    activeTab !== 'all' ? t('liveCalendar.emptyTab') : t('liveCalendar.empty');
+    activeTab !== 'all' ? t('liveCalendar.emptyTab') : t('component.LiveCalendar.empty');
 
   return (
     <div className="mx-auto w-full pr-1">
-      <header className="mb-4 flex items-end justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{t('liveCalendar.title')}</h1>
-          <p className="mt-1 text-xs text-muted-text">{t('liveCalendar.subtitle')}</p>
-        </div>
-        <HrsButton
-          size="sm"
-          isLoading={isRefreshing}
-          loadingText={t('liveCalendar.refreshing')}
-          onClick={() => void refresh()}
-        >
-          {t('liveCalendar.refresh')}
-        </HrsButton>
+      <header className="mb-4">
+        <h1 className="text-xl font-semibold text-foreground">{t('liveCalendar.title')}</h1>
+        <p className="mt-1 text-xs text-muted-text">{t('liveCalendar.subtitle')}</p>
       </header>
 
       {/* 数据源暂不可用，当前展示本地缓存数据 */}
@@ -128,7 +119,17 @@ const LiveCalendarPage: React.FC = () => {
                 }}
                 variant="secondary"
                 ariaLabel={t('liveCalendar.title')}
-                className="justify-start"
+                className="justify-between"
+                rightSlot={
+                  <HrsButton
+                    size="sm"
+                    isLoading={isRefreshing}
+                    loadingText={t('liveCalendar.refreshing')}
+                    onClick={() => void refresh()}
+                  >
+                    {t('liveCalendar.refresh')}
+                  </HrsButton>
+                }
               />
             )}
           </div>
@@ -151,7 +152,7 @@ const LiveCalendarPage: React.FC = () => {
                 eventsByDay={eventsByDay}
                 onSelectDay={setSelectedDay}
                 onSelectEvent={(event) => {
-                  setSelectedDay(dayKeyOf(event));
+                  setSelectedDay(toDateKeyFromSeconds(event.startAt));
                 }}
               />
             )}
@@ -189,14 +190,6 @@ const LiveCalendarPage: React.FC = () => {
   );
 };
 
-/** 事件 → 本地时区 YYYY-MM-DD（供详情面板定位） */
-function dayKeyOf(event: LiveCalendarEventDef): string {
-  const d = new Date(event.startAt * 1000);
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
-}
-
 /** 单条事件卡片（详情面板内） */
 function EventCard({ event }: { event: LiveCalendarEventDef }) {
   const { t } = useUiLanguage();
@@ -206,7 +199,7 @@ function EventCard({ event }: { event: LiveCalendarEventDef }) {
     <div className="rounded-md border border-border-subtle bg-elevated px-3 py-2">
       <div className="flex items-center gap-2">
         {event.isAllDay ? (
-          <span className="text-xxs text-muted-text">{t('liveCalendar.allDay')}</span>
+          <span className="text-xxs text-muted-text">{t('component.LiveCalendar.allDay')}</span>
         ) : (
           <span className="text-xxs text-muted-text">{formatTime(event.startAt)}</span>
         )}
