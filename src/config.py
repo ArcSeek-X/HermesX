@@ -1,13 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-=========================================
-HermesX - A股自选股智能分析系统 - 配置管理模块
-=========================================
+================================================================
+HermesX - A股自选股智能分析系统 · 全局配置管理模块（src/config.py）
+================================================================
 
-职责：
-1. 使用单例模式管理全局配置
-2. 从 .env 文件加载敏感配置
-3. 提供类型安全的配置访问接口
+【文件作用】
+本文件是 HermesX 后端的「全局配置单一真相源（single source of truth）」。
+它把分散在 .env、环境变量、旧版字段、多渠道 YAML 中的配置，统一收敛成
+一个带类型注解的 Config 单例对象，供进程内所有模块（行情抓取、AI 分析、
+Agent、通知推送、财经日历等）以类型安全的方式读取。
+
+【主要职责】
+1. 配置聚合：集中定义全部配置项（dataclass 字段），每个字段从环境变量读取并带默认值。
+2. 配置加载：setup_env() 从 .env 加载（支持重载覆盖）；Config 初始化时解析并归一化各类值。
+3. 校验与归一化：提供大量 parse_*/normalize_* 工具函数，对 env 字符串做类型转换、取值
+   范围裁剪、未知值回退，并产出 ConfigIssue 结构化告警（error / warning / info）。
+4. 多渠道 LLM 路由：LLM_CHANNELS / litellm_config / 旧版单 key 三种来源统一编译为
+   LiteLLM Router 的 model_list，并处理协议识别、模型前缀、温度与思考开关等。
+5. 单例访问：get_config() 返回全局唯一 Config 实例；修改 .env 后需重新 setup_env 才生效。
+
+【使用约定】
+- 业务代码统一通过 get_config() 取配置，不要自行读取 os.getenv。
+- 敏感信息（token / secret）只进环境变量，不进代码或日志。
+- 新增配置项：在 Config dataclass 增加字段，并在 __post_init__ 中解析对应环境变量即可。
 """
 
 import json
@@ -80,6 +95,7 @@ DEFAULT_ALPHASIFT_INSTALL_SPEC = (
 )
 
 
+# 配置校验问题（结构化）：带严重级别的结构化告警，供 __post_init__ 汇总输出
 @dataclass
 class ConfigIssue:
     """Structured configuration validation issue with a severity level.
@@ -96,6 +112,7 @@ class ConfigIssue:
     field: str = ""
     code: str = ""
 
+    # 返回告警可读信息（直接取 message 字段）
     def __str__(self) -> str:  # noqa: D105
         return self.message
 
@@ -112,6 +129,7 @@ ANSPIRE_LLM_BASE_URL_DEFAULT = "https://open-gateway.anspire.cn/v6"
 ANSPIRE_LLM_MODEL_DEFAULT = "Doubao-Seed-2.0-lite"
 
 
+# 判断 ntfy 推送地址是否指向具体 topic 端点（而非服务器根目录，避免误发）
 def _has_ntfy_topic_endpoint(value: Optional[str]) -> bool:
     """Return whether an ntfy URL points at a concrete topic endpoint."""
     raw_url = (value or "").strip()
@@ -123,6 +141,7 @@ def _has_ntfy_topic_endpoint(value: Optional[str]) -> bool:
     return any(unquote(segment).strip() for segment in parsed.path.split("/") if segment)
 
 
+# 判断 Gotify 地址是否为服务器 base URL（而非 /message 发送端点）
 def _has_gotify_base_url(value: Optional[str]) -> bool:
     """Return whether a Gotify URL points at a server base URL, not /message."""
     raw_url = (value or "").strip().rstrip("/")
@@ -137,6 +156,7 @@ def _has_gotify_base_url(value: Optional[str]) -> bool:
     return not (path_segments and path_segments[-1].lower() == "message")
 
 
+# 归一化 TickFlow 日 K 线复权方式，非法值回退为 none
 def normalize_tickflow_kline_adjust(value: Optional[str]) -> str:
     """Normalize TickFlow daily K-line adjustment mode."""
     normalized = (value or "none").strip().lower()
@@ -149,6 +169,7 @@ def normalize_tickflow_kline_adjust(value: Optional[str]) -> str:
     return "none"
 
 
+# 解析提示词缓存诊断级别（off/basic/debug），非法回退 off
 def parse_prompt_cache_diagnostics_level(value: Optional[str]) -> str:
     """Parse prompt-cache diagnostics level with a conservative fallback."""
     normalized = (value or "off").strip().lower()
@@ -171,6 +192,7 @@ NEWS_STRATEGY_WINDOWS: Dict[str, int] = {
 }
 
 
+# Agent 可见聊天历史压缩档位预设（冻结 dataclass，值不可变）
 @dataclass(frozen=True)
 class AgentContextCompressionPreset:
     """Preset values for visible chat history compression."""
@@ -206,6 +228,7 @@ AGENT_CONTEXT_COMPRESSION_PROFILES: Dict[str, AgentContextCompressionPreset] = {
 }
 
 
+# 将环境变量字符串解析为布尔值（支持常见真假写法），空值用默认值
 def parse_env_bool(value: Optional[str], default: bool = False) -> bool:
     """Parse common truthy/falsey environment-style values."""
     if value is None:
@@ -216,6 +239,7 @@ def parse_env_bool(value: Optional[str], default: bool = False) -> bool:
     return normalized not in _FALSEY_ENV_VALUES
 
 
+# 将环境变量字符串解析为整数，越界自动裁剪并告警回退
 def parse_env_int(
     value: Optional[str],
     default: int,
@@ -261,6 +285,7 @@ def parse_env_int(
     return parsed
 
 
+# 将环境变量字符串解析为浮点数，越界自动裁剪并告警回退
 def parse_env_float(
     value: Optional[str],
     default: float,
@@ -306,12 +331,14 @@ def parse_env_float(
     return parsed
 
 
+# 归一化新闻窗口策略档位（ultra_short/short/medium/long），非法回退 short
 def normalize_news_strategy_profile(value: Optional[str]) -> str:
     """Normalize news strategy profile to known values."""
     candidate = (value or "short").strip().lower()
     return candidate if candidate in NEWS_STRATEGY_WINDOWS else "short"
 
 
+# 综合策略档位与全局最大时效，计算实际生效的新闻窗口天数
 def resolve_news_window_days(news_max_age_days: int, news_strategy_profile: Optional[str]) -> int:
     """Resolve effective news window days from profile and global max-age."""
     profile = normalize_news_strategy_profile(news_strategy_profile)
@@ -319,6 +346,7 @@ def resolve_news_window_days(news_max_age_days: int, news_strategy_profile: Opti
     return max(1, min(max(1, int(news_max_age_days)), profile_days))
 
 
+# 归一化 Agent 上下文压缩档位，非法回退 balanced
 def normalize_agent_context_compression_profile(value: Optional[str]) -> str:
     """Normalize visible-chat context compression profile values."""
     candidate = (value or AGENT_CONTEXT_COMPRESSION_DEFAULT_PROFILE).strip().lower()
@@ -332,12 +360,14 @@ def normalize_agent_context_compression_profile(value: Optional[str]) -> str:
     return AGENT_CONTEXT_COMPRESSION_DEFAULT_PROFILE
 
 
+# 取指定压缩档位对应的预设参数（触发阈值/保护轮次等），默认 balanced
 def get_agent_context_compression_preset(profile: Optional[str]) -> AgentContextCompressionPreset:
     """Return the preset for a normalized profile, falling back to balanced."""
     normalized = normalize_agent_context_compression_profile(profile)
     return AGENT_CONTEXT_COMPRESSION_PROFILES[normalized]
 
 
+# 解析压缩相关整数，空/非法/越界时回退到预设默认值
 def parse_agent_context_compression_int(
     value: Optional[str],
     default: int,
@@ -373,6 +403,7 @@ def parse_agent_context_compression_int(
     return parsed
 
 
+# 把协议别名（如 claude/google）规范为 LiteLLM 供应商标识
 def canonicalize_llm_channel_protocol(value: Optional[str]) -> str:
     """Normalize a protocol label into a LiteLLM provider identifier."""
     candidate = (value or "").strip().lower().replace("-", "_")
@@ -387,6 +418,7 @@ def canonicalize_llm_channel_protocol(value: Optional[str]) -> str:
     return aliases.get(candidate, candidate)
 
 
+# 综合显式协议/模型前缀/渠道名/base_url 推断最终 LLM 协议
 def resolve_llm_channel_protocol(
     protocol: Optional[str],
     *,
@@ -423,6 +455,7 @@ def resolve_llm_channel_protocol(
     return ""
 
 
+# 判断某渠道是否允许无 API Key 运行（本地地址或 ollama）
 def channel_allows_empty_api_key(protocol: Optional[str], base_url: Optional[str]) -> bool:
     """Return True when a channel can run without an API key."""
     resolved_protocol = resolve_llm_channel_protocol(protocol, base_url=base_url)
@@ -432,6 +465,7 @@ def channel_allows_empty_api_key(protocol: Optional[str], base_url: Optional[str
     return parsed.hostname in {"127.0.0.1", "localhost", "0.0.0.0"}
 
 
+# 为缺省 provider 前缀的模型名补上协议前缀，便于 LiteLLM 正确路由
 def normalize_llm_channel_model(model: str, protocol: Optional[str], base_url: Optional[str] = None) -> str:
     """Attach a provider prefix when the model omits it."""
     normalized_model = model.strip()
@@ -468,6 +502,7 @@ def normalize_llm_channel_model(model: str, protocol: Optional[str], base_url: O
     return f"{resolved_protocol}/{normalized_model}"
 
 
+# 从 Router model_list 取出已声明的非 legacy 模型名（路由别名）
 def get_configured_llm_models(model_list: List[Dict[str, Any]]) -> List[str]:
     """Return non-legacy model names declared in Router model_list order.
 
@@ -493,6 +528,7 @@ def get_configured_llm_models(model_list: List[Dict[str, Any]]) -> List[str]:
     return models
 
 
+# 把路由别名解析为底层 LiteLLM 实际模型标识
 def resolve_litellm_wire_model(
     model: str,
     model_list: Optional[List[Dict[str, Any]]] = None,
@@ -501,6 +537,7 @@ def resolve_litellm_wire_model(
     return llm_generation_params.resolve_litellm_wire_model(model, model_list)
 
 
+# 解析外发请求是否显式开启「思考/推理」模式
 def resolve_litellm_thinking_enabled(
     model: str,
     model_list: Optional[List[Dict[str, Any]]] = None,
@@ -514,6 +551,7 @@ def resolve_litellm_thinking_enabled(
     )
 
 
+# 返回某些供应商强制要求的固定温度（严格模型专用）
 def get_fixed_litellm_temperature(
     model: str,
     model_list: Optional[List[Dict[str, Any]]] = None,
@@ -527,6 +565,7 @@ def get_fixed_litellm_temperature(
     )
 
 
+# 发送请求前归一化温度值（含供应商约束与回退）
 def normalize_litellm_temperature(
     model: str,
     temperature: Optional[float],
@@ -545,6 +584,7 @@ def normalize_litellm_temperature(
     )
 
 
+# 解析统一 LLM 温度，兼容旧版各供应商温度环境变量回退
 def resolve_unified_llm_temperature(model: str) -> float:
     """Resolve the raw unified LLM temperature with backward-compatible fallbacks."""
     llm_temperature_raw = os.getenv("LLM_TEMPERATURE")
@@ -581,6 +621,7 @@ def resolve_unified_llm_temperature(model: str) -> float:
     return 0.7
 
 
+# 从模型字符串提取 LiteLLM 供应商前缀
 def _get_litellm_provider(model: str) -> str:
     """Extract the LiteLLM provider prefix from a model string."""
     if not model:
@@ -590,23 +631,27 @@ def _get_litellm_provider(model: str) -> str:
     return "openai"
 
 
+# 判断模型是否走直接 env/provider 解析（非托管 key 供应商）
 def _uses_direct_env_provider(model: str) -> bool:
     """Whether runtime handles the model via direct litellm env/provider resolution."""
     provider = _get_litellm_provider(model)
     return bool(provider) and provider not in _MANAGED_LITELLM_KEY_PROVIDERS
 
 
+# 宽松匹配 Hermes/溯源路由集合（非精确可用性判断）
 def _matches_route_set(model: str, routes: set[str]) -> bool:
     """Loose safety match for Hermes/provenance checks, not normal route availability."""
     return bool(route_identity_candidates(model) & set(routes or set()))
 
 
+# 精确匹配 Router 顶层 model_name（用于常规可用性判断）
 def _matches_exact_route(model: str, routes: set[str]) -> bool:
     """Match the Router's top-level model_name exactly for normal availability checks."""
     normalized_model = str(model or "").strip()
     return bool(normalized_model) and normalized_model in set(routes or set())
 
 
+# 归一化 Agent 专用模型名，保留已配置的路由别名
 def normalize_agent_litellm_model(
     model: str,
     configured_models: Optional[set[str]] = None,
@@ -622,6 +667,7 @@ def normalize_agent_litellm_model(
     return normalized_model
 
 
+# 返回 Agent 实际主模型（优先 Agent 专用配置，回退全局 LITELLM_MODEL）
 def get_effective_agent_primary_model(config: "Config") -> str:
     """Return the effective Agent primary model with fallback inheritance."""
     configured_router_models = set(
@@ -636,6 +682,7 @@ def get_effective_agent_primary_model(config: "Config") -> str:
     return (getattr(config, "litellm_model", "") or "").strip()
 
 
+# 返回 Agent 模型尝试顺序（主模型 + 全局兜底，去重）
 def get_effective_agent_models_to_try(config: "Config") -> List[str]:
     """Return Agent model try-order: primary + global fallbacks (deduped)."""
     configured_router_models = set(
@@ -661,6 +708,7 @@ def get_effective_agent_models_to_try(config: "Config") -> List[str]:
     return ordered_models
 
 
+# 从 .env 初始化环境变量，支持重载覆盖；并还原组合敏感值（如自定义 webhook 模板）
 def setup_env(override: bool = False):
     """
     Initialize environment variables from .env file.
@@ -1172,6 +1220,7 @@ class Config:
     _BOOTSTRAP_RUNTIME_ENV_OVERRIDES = frozenset()
     _BOOTSTRAP_RUNTIME_ENV_PRESENT_KEYS = frozenset()
 
+    # Config 初始化：解析全部环境变量并归一化，汇总校验问题到 llm_channel_config_issues 等字段
     def __post_init__(self) -> None:
         _log = logging.getLogger(__name__)
         if self.agent_arch not in self._VALID_AGENT_ARCH:
@@ -1208,6 +1257,7 @@ class Config:
     _instance: Optional['Config'] = None
     
     @classmethod
+    # 单例访问：返回（或首次创建）全局唯一的 Config 实例
     def get_instance(cls) -> 'Config':
         """
         获取配置单例实例
@@ -1222,6 +1272,7 @@ class Config:
         return cls._instance
     
     @classmethod
+    # 类方法：从环境变量构建 Config 实例（内部统一解析入口，调用各 _parse_*）
     def _load_from_env(cls) -> 'Config':
         """
         从 .env 文件加载配置
@@ -2194,6 +2245,7 @@ class Config:
         )
     
     @classmethod
+    # 解析标准 litellm_config.yaml 文件，转换为 LiteLLM Router 的 model_list
     def _parse_litellm_yaml(cls, config_path: str) -> List[Dict[str, Any]]:
         """Parse a standard LiteLLM config YAML file into Router model_list.
 
@@ -2240,12 +2292,14 @@ class Config:
         return model_list
 
     @classmethod
+    # 把 LLM_CHANNELS 字符串解析为渠道字典列表（name/base_url/api_keys/models）
     def _parse_llm_channels(cls, channels_str: str) -> List[Dict[str, Any]]:
         """Backward-compatible channel parser returning only valid channels."""
         channels, _issues, _blocks, _blocked_routes = cls._parse_llm_channels_with_issues(channels_str)
         return channels
 
     @classmethod
+    # 解析渠道并在出错时产出结构化告警（带 severity），便于前端展示配置问题
     def _parse_llm_channels_with_issues(
         cls,
         channels_str: str,
@@ -2383,6 +2437,7 @@ class Config:
         return channels, issues, blocks_legacy_fallback, blocked_hermes_routes
 
     @classmethod
+    # 将渠道字典编译为 LiteLLM Router 的 model_list（含 key/协议/模型映射）
     def _channels_to_model_list(cls, channels: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Convert parsed LLM channels to LiteLLM Router model_list format.
 
@@ -2427,6 +2482,7 @@ class Config:
         return model_list
 
     @classmethod
+    # 将旧版单 key 环境变量（GEMINI_API_KEY 等）编译为 model_list（兜底来源）
     def _legacy_keys_to_model_list(
         cls,
         gemini_keys: List[str],
@@ -2492,6 +2548,7 @@ class Config:
         return model_list
 
     @classmethod
+    # 解析「股票-邮箱」分组路由（STOCK_GROUP_N + EMAIL_GROUP_N），用于分组发送报告
     def _parse_stock_email_groups(cls) -> List[Tuple[List[str], List[str]]]:
         """
         Parse STOCK_GROUP_N and EMAIL_GROUP_N from environment.
@@ -2526,6 +2583,7 @@ class Config:
         return result
 
     @classmethod
+    # 归一化报告类型（report type）配置值
     def _parse_report_type(cls, value: str) -> str:
         """Parse REPORT_TYPE, fallback to simple for invalid values (supports brief)."""
         v = (value or 'simple').strip().lower()
@@ -2538,6 +2596,7 @@ class Config:
         return 'simple'
 
     @classmethod
+    # 从 .env 文件读取原始键值（绕过已加载的进程环境变量）
     def _get_env_file_value(cls, key: str) -> Optional[str]:
         """Read one config key directly from the active `.env` file."""
         env_file = os.getenv("ENV_FILE")
@@ -2562,6 +2621,7 @@ class Config:
         return unescape_compose_sensitive_env_value(key, str(value))
 
     @classmethod
+    # 解析单个环境变量，按「运行时覆盖 > 进程环境 > .env」优先级取值
     def _resolve_env_value(
         cls,
         key: str,
@@ -2585,6 +2645,7 @@ class Config:
         return default
 
     @classmethod
+    # 记录启动期运行时对 env 的覆盖，保证重载配置时行为一致
     def _capture_bootstrap_runtime_env_overrides(cls) -> None:
         """Remember process-provided runtime env overrides before dotenv mutates os.environ.
 
@@ -2621,16 +2682,19 @@ class Config:
         cls._BOOTSTRAP_RUNTIME_ENV_OVERRIDES_CAPTURED = True
 
     @classmethod
+    # 判断某 key 是否在启动期被运行时覆盖过
     def _has_bootstrap_runtime_env_override(cls, key: str) -> bool:
         cls._capture_bootstrap_runtime_env_overrides()
         return key in cls._BOOTSTRAP_RUNTIME_ENV_OVERRIDES
 
     @classmethod
+    # 判断某 key 在启动期是否存在于环境中
     def _had_bootstrap_runtime_env_key(cls, key: str) -> bool:
         cls._capture_bootstrap_runtime_env_overrides()
         return key in cls._BOOTSTRAP_RUNTIME_ENV_PRESENT_KEYS
 
     @classmethod
+    # 解析报告语言环境变量值（含组合值还原与回退）
     def _resolve_report_language_env_value(
         cls,
         preexisting_env_value: Optional[str],
@@ -2658,6 +2722,7 @@ class Config:
         return env_value or "zh"
 
     @classmethod
+    # 归一化报告语言（中文/英文等），非法值回退默认
     def _parse_report_language(cls, value: Optional[str]) -> str:
         """Parse REPORT_LANGUAGE, fallback to zh for invalid values."""
         normalized = normalize_report_language(value, default="zh")
@@ -2670,6 +2735,7 @@ class Config:
         return normalized
 
     @classmethod
+    # 归一化新闻策略档位（委托顶层 normalize_news_strategy_profile）
     def _parse_news_strategy_profile(cls, value: Optional[str]) -> str:
         """Parse NEWS_STRATEGY_PROFILE, fallback to short for invalid values."""
         normalized = normalize_news_strategy_profile(value)
@@ -2682,6 +2748,7 @@ class Config:
             )
         return normalized
 
+    # 返回实际生效的新闻窗口天数（综合策略档位与全局最大时效）
     def get_effective_news_window_days(self) -> int:
         """Return effective news window days after profile + max-age merge."""
         return resolve_news_window_days(
@@ -2690,6 +2757,7 @@ class Config:
         )
 
     @classmethod
+    # 归一化盘面复盘地区配置（A股/美股等）
     def _parse_market_review_region(cls, value: str) -> str:
         """解析大盘复盘市场区域，非法值记录警告后回退为 cn"""
         normalized = normalize_market_review_region_lenient(value)
@@ -2702,6 +2770,7 @@ class Config:
         return 'cn'
 
     @classmethod
+    # 归一化盘面复盘配色方案
     def _parse_market_review_color_scheme(cls, value: str) -> str:
         """Parse market-review index change color scheme."""
         import logging
@@ -2715,6 +2784,7 @@ class Config:
         return 'green_up'
 
     @classmethod
+    # 归一化 Markdown 转图片（md2img）引擎选择
     def _parse_md2img_engine(cls, value: str) -> str:
         """Parse MD2IMG_ENGINE, fallback to wkhtmltoimage for invalid values (Issue #455)."""
         v = (value or 'wkhtmltoimage').strip().lower()
@@ -2729,6 +2799,7 @@ class Config:
         return 'wkhtmltoimage'
 
     @classmethod
+    # 解析实时数据源优先级（快讯 / 日历等主备顺序）
     def _resolve_realtime_source_priority(cls) -> str:
         """
         Resolve realtime source priority with automatic tushare injection.
@@ -2759,6 +2830,7 @@ class Config:
         return default_priority
 
     @classmethod
+    # 重置单例（测试或重载配置时使用）
     def reset_instance(cls) -> None:
         """重置单例（主要用于测试）"""
         cls._instance = None
@@ -2766,10 +2838,12 @@ class Config:
         cls._BOOTSTRAP_RUNTIME_ENV_OVERRIDES = frozenset()
         cls._BOOTSTRAP_RUNTIME_ENV_PRESENT_KEYS = frozenset()
 
+    # 判断是否启用 SearXNG 自建/公共搜索能力
     def has_searxng_enabled(self) -> bool:
         """Whether SearXNG fallback is enabled via self-hosted or public mode."""
         return bool(self.searxng_base_urls) or bool(self.searxng_public_instances_enabled)
 
+    # 判断是否启用了任意一种搜索能力（多引擎任一可用即为 True）
     def has_search_capability_enabled(self) -> bool:
         """Whether any search provider is configured or SearXNG fallback is enabled."""
         return bool(
@@ -2782,6 +2856,7 @@ class Config:
             or self.has_searxng_enabled()
         )
 
+    # 判断 Agent 模式是否可用（含后端与模型就绪检查）
     def is_agent_available(self) -> bool:
         """Check whether agent capabilities are usable.
 
@@ -2820,6 +2895,7 @@ class Config:
         origins = route_deployment_origins(self.llm_model_list, primary_model)
         return not origins.is_hermes_only
 
+    # 运行时重新解析自选股列表（不重建整个 Config）
     def refresh_stock_list(self) -> None:
         """
         热读取 STOCK_LIST 环境变量并更新配置中的自选股列表
@@ -2850,6 +2926,7 @@ class Config:
 
         self.stock_list = stock_list
     
+    # 结构化校验：返回 ConfigIssue 列表（error / warning / info 分级）
     def validate_structured(self) -> List[ConfigIssue]:
         """Return structured validation issues with severity levels.
 
@@ -3449,6 +3526,7 @@ class Config:
 
         return issues
 
+    # 旧版字符串校验入口：返回错误 / 警告信息列表（供兼容调用）
     def validate(self) -> List[str]:
         """Return validation messages as plain strings (backward-compatible).
 
@@ -3460,6 +3538,7 @@ class Config:
         """
         return [issue.message for issue in self.validate_structured()]
     
+    # 拼接数据库连接 URL（DB_* 配置组合，含异步驱动前缀）
     def get_db_url(self) -> str:
         """
         获取 SQLAlchemy 数据库连接 URL
@@ -3472,6 +3551,7 @@ class Config:
 
 
 # === 便捷的配置访问函数 ===
+# 业务代码统一入口：返回全局配置单例（首次调用触发加载 .env 并初始化）
 def get_config() -> Config:
     """获取全局配置实例的快捷方式"""
     return Config.get_instance()
@@ -3481,6 +3561,7 @@ def get_config() -> Config:
 # Shared LLM helpers (used by both analyzer and agent/llm_adapter)
 # ============================================================
 
+# 取某模型对应的多 API Key 列表（按供应商前缀匹配，用于负载均衡/重试）
 def get_api_keys_for_model(model: str, config: Config) -> List[str]:
     """Return explicitly managed API keys for a litellm model (legacy path only).
 
@@ -3501,6 +3582,7 @@ def get_api_keys_for_model(model: str, config: Config) -> List[str]:
     return []
 
 
+# 返回发送给 LiteLLM 的额外请求参数（如该模型专属的 provider 参数）
 def extra_litellm_params(model: str, config: Config) -> Dict[str, Any]:
     """Build extra litellm params for a model (legacy path only).
 
