@@ -15,7 +15,7 @@ import type {
   PortfolioPositionItem,
   PortfolioSide,
 } from '../types/portfolio';
-import { toDateInputValue } from './format';
+import { toDateKey } from './format';
 
 export type FxRefreshFeedback = {
   tone: 'neutral' | 'success' | 'warning';
@@ -25,7 +25,7 @@ export type FxRefreshFeedback = {
 export type PortfolioAlertVariant = 'info' | 'success' | 'warning' | 'danger';
 
 export function getTodayIso(): string {
-  return toDateInputValue(new Date());
+  return toDateKey(new Date());
 }
 
 export function formatMoney(value: number | undefined | null, currency = 'CNY'): string {

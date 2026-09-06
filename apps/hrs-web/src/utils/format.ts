@@ -161,22 +161,45 @@ export const formatTime = (value?: string | number | null): string => {
 };
 
 
-
-
-
-
 /**
- * 将 Date 对象转为 YYYY-MM-DD 格式，用于 HTML <input type="date"> 的 value。
+ * 将 Date 对象转为**本地时区**的 `YYYY-MM-DD` 日期键。
+ *
+ * 全站「日期键」的**唯一实现**，以下场景共用同一个格式，都应走本函数：
+ * - 日历按天归格（`eventsByDay` 的 key）
+ * - 快讯按发布日期分组
+ * - 日期下拉 / 日期筛选选项的 value
+ * - HTML `<input type="date">` 的 value
+ * 历史上一度散落 6 份等价实现（`toDateInputValue` / `dayKeyOf` / `dayKeyOfDate` /
+ * `formatDateValue` / 两处 `toDateKey`），易出现实现漂移，现已全部收敛到此处。
+ *
+ * 注意：按**浏览器本地时区**取年月日。若要「上海时区的今天」请用 `getTodayInShanghai()`，
+ * 两者时区语义不同、不可互换。
  *
  * @param date - JavaScript Date 对象
  * @returns 例如 "2026-08-05"
+ *
+ * @example
+ * toDateKey(new Date(2026, 7, 5)) → "2026-08-05"
  */
-export const toDateInputValue = (date: Date): string => {
+export const toDateKey = (date: Date): string => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+/**
+ * 将**秒级**时间戳转为本地时区的 `YYYY-MM-DD` 日期键。
+ *
+ * 等价于 `toDateKey(new Date(seconds * 1000))`，只是免掉调用方各处手写 `* 1000`。
+ * 上游返回的时间戳统一为秒级（见 `LiveCalendarEventDef.startAt`、`LiveNewsItem.displayTime`），
+ * 故单独提供此入口；毫秒级时间戳请先自行 `new Date(ms)` 再调 `toDateKey`。
+ *
+ * @param seconds - 秒级时间戳（如 1757077800）
+ * @returns 例如 "2026-09-05"
+ */
+export const toDateKeyFromSeconds = (seconds: number): string =>
+  toDateKey(new Date(seconds * 1000));
 
 /**
  * Returns the date N days ago as YYYY-MM-DD in Asia/Shanghai timezone.
