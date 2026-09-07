@@ -130,7 +130,17 @@ const en: Record<UiTextKey, string> = {
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': 'All day', // calendar event all-day marker
+  'component.LiveCalendar.calendarType.FD': 'Economic Data', // event type: economic indicator
+  'component.LiveCalendar.calendarType.FE': 'Event', // event type: financial event
   'component.LiveCalendar.country': 'Country', // List view column header: country
+  'component.LiveCalendar.drawer.actual': 'Actual', // detail drawer: actual value
+  'component.LiveCalendar.drawer.content': 'Content', // detail drawer: content section title
+  'component.LiveCalendar.drawer.economicData': 'Economic Data', // detail drawer: economic data section title
+  'component.LiveCalendar.drawer.forecast': 'Forecast', // detail drawer: forecast value
+  'component.LiveCalendar.drawer.previous': 'Previous', // detail drawer: previous value
+  'component.LiveCalendar.drawer.source': 'Source', // detail drawer: source
+  'component.LiveCalendar.drawer.sourceName': 'Wallstreetcn', // detail drawer: data source name (link text)
+  'component.LiveCalendar.drawer.noSummary': 'No details available', // detail drawer: placeholder when event has no summary/foresight
   'component.LiveCalendar.empty': 'No calendar events this month', // empty: no events this month
   'component.LiveCalendar.emptyImportance': 'No events matching the importance filter, try lowering it', // empty: importance filter has no results
   'component.LiveCalendar.importance': 'Importance', // List view column header: importance

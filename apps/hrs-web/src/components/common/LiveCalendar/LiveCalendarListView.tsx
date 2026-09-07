@@ -22,7 +22,7 @@
  * - 重要级色板复用同目录 `eventTheme.ts`，与月/周/日网格视图同一套，避免视觉漂移。
  *
  * ── 数据 ────────────────────────────────────────────────────────────────
- * 直接用 `eventsByDay`（与月 / 周 / 日视图同源），按可见范围过滤 + 按日升序分组，
+ * 直接用 `eventsMap`（与月 / 周 / 日视图同源），按可见范围过滤 + 按日升序分组，
  * 组内按 `startAt` 升序；**不做归集、不做堆叠**（列表本身就是逐条展开的形态）。
  *
  * ── 四列 ────────────────────────────────────────────────────────────────
@@ -37,26 +37,15 @@
 import { useMemo } from 'react';
 import { cn } from '../../../utils/cn';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
-import type { UiLanguage } from '../../../i18n/uiText';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
-import { formatTime, toDateKey } from '../../../utils/format';
+import { formatTime, toDateKey, toIntlLocale } from '../../../utils/format';
 import { IMPORTANCE_LABELS } from '../../../constants/newsImportance';
 import { eventThemeMap } from './eventTheme';
 
 /** 四列网格模板：时间固定宽、标题自适应、国家 / 重要度固定宽 */
 const LIST_GRID_COLS = 'grid-cols-[96px_1fr_140px_120px]';
 
-/**
- * UI 语言 → Intl locale（日期组头的星期 / 日期、工具栏标题的本地化）。
- *
- * 本组件私有：工具栏已搬入本组件、标题由 `range` 自行推导，
- * 外部不再需要这套语言映射。
- */
-function intlLocaleOf(language: UiLanguage): string {
-    if (language === 'zh') return 'zh-CN';
-    if (language === 'zh-Hant') return 'zh-TW';
-    return 'en-US';
-}
+// locale 映射走公共实现 `toIntlLocale`（utils/format），全站唯一，避免此处重复实现。
 
 /**
  * 视图切换目标：三个 FullCalendar 网格视图 + List（自定义视图）。
@@ -73,7 +62,7 @@ export type LiveCalendarViewTarget =
 /** List 视图 props */
 export interface LiveCalendarListViewProps {
     /** 按天归格的事件（key = `YYYY-MM-DD`），与月 / 周 / 日视图同源 */
-    eventsByDay: Map<string, LiveCalendarEventDef[]>;
+    eventsMap: Map<string, LiveCalendarEventDef[]>;
     /**
      * 可见日期范围（闭区间，含首尾两天）。
      * 与 `LiveCalendarRange` 结构一致；此处不直接引用该类型，
@@ -111,7 +100,7 @@ export interface LiveCalendarListViewProps {
  * 详见文件头注释（数据来源 / 四列构成 / 交互语义 / 与 LiveCalendar 的边界）。
  */
 export function LiveCalendarListView({
-    eventsByDay,
+    eventsMap,
     range,
     onSelectEvent,
     onEventClick,
@@ -120,7 +109,7 @@ export function LiveCalendarListView({
     className,
 }: LiveCalendarListViewProps) {
     const { t, language } = useUiLanguage();
-    const locale = intlLocaleOf(language);
+    const locale = toIntlLocale(language);
 
     // 按日分组：过滤可见范围 + 组内按 startAt 升序 + 天间按 dayKey 升序；**空天不渲染**
     //（避免整周无事件的日子堆出一串空 section）。
@@ -128,14 +117,14 @@ export function LiveCalendarListView({
         const startKey = toDateKey(range.start);
         const endKey = toDateKey(range.end);
         const out: Array<{ dayKey: string; events: LiveCalendarEventDef[] }> = [];
-        eventsByDay.forEach((events, dayKey) => {
+        eventsMap.forEach((events, dayKey) => {
             if (!events || events.length === 0) return;
             if (dayKey < startKey || dayKey > endKey) return;
             out.push({ dayKey, events: events.slice().sort((a, b) => a.startAt - b.startAt) });
         });
         out.sort((a, b) => a.dayKey.localeCompare(b.dayKey));
         return out;
-    }, [eventsByDay, range]);
+    }, [eventsMap, range]);
 
     // 工具栏标题：起始日 – 结束日（按 UI 语言本地化）。
     // 直接由 range 推导，父级只需持有状态，不必再单独传一份标题进来。
@@ -148,6 +137,7 @@ export function LiveCalendarListView({
             }).format(d);
         return `${fmt(range.start)} – ${fmt(range.end)}`;
     }, [range, locale]);
+
 
     return (
         <div className={cn('hrs-liveCalendar-listView flex flex-col', className)}>

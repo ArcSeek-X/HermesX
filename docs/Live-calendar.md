@@ -236,7 +236,9 @@ Tab 定义由服务端常量 `IntelligenceService._CALENDAR_TABS` 维护，前�
 | 项       | 决策                                                                       |
 | ------- | ------------------------------------------------------------------------ |
 | 是否入库    | ✅ 入库（`scope_value='economic_data'`），保留 `actual/forecast/previous` 四值    |
-| 是否进 Tab | 默认**不进**四个分类 Tab；在「宏观」Tab 下提供「显示经济数据」开关，开启后合并展示                          |
+| 是否进 Tab | **不进**四个分类 Tab：聚合时 `economic_data` 被从 `tab_keys` 剔除（`_aggregate_calendar_rows`），FD 的 `tab_keys` 恒为空 |
+| 可见条件    | **「全部」Tab + `includeEconomicData=true`** 同时满足才可见。切到任一具体 Tab（宏观 / 财报 / 新股 / 活动）时，FD 因 `tab_keys` 为空被全部过滤；`includeEconomicData=false` 时后端不下发 FD |
+| 前端默认    | `includeEconomicData` 默认 `true`（见 §8.3）：经济数据随月度数据下发，「全部」Tab 下即可看到 FD |
 | 理由      | `FD` 单月 481 条、多为细分指标（如「8月东京CPI(除生鲜食品)同比」），全量进日历格子会淹没 `FE` 重点事件，且格子空间不足 |
 
 ### 3.4 未在上游发现的频道
@@ -916,8 +918,8 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 | 日期导航           | FullCalendar 内置工具栏 `headerToolbar.start = 'prev,today,next'`（三者同属一个 `.fc-button-group`，视觉为「前 / 今天 / 后」连体胶囊）；`center` 为年月标题，`end` 为月/周/日视图切换（空格分隔的三个独立按钮，纯文字样式：选中项浅灰圆角底 + 加粗，未选中为灰色常规体）。导航后经 `datesSet` 回调把**可见日期范围**（start/end：月视图含上/下月填充格、周视图 = 周一~周日）交给 Page，Page 推导覆盖的所有月份并行拉取并合并，避免跨月周次（如 9 月第一周的周一落在 8/31）只拉单一月份导致跨月日无事件 |
 | 分类 Tab         | 后端驱动，按 `order` 升序展示（全部 → 宏观 → 财报 → 新股 → 活动），默认选中「全部」；切换后**不重新请求**，前端按 `tab_keys` 过滤已加载的当月数据                          |
 | 每格事件条          | 最多 **3 条**（`dayMaxEvents: 3`）；超出显示 `+N 更多`（`moreLinkText`）            |
-| 点**单条**事件       | 切换到日视图（`timeGridDay`）定位该日并展示当日全部事件（`eventClick`，经 `CalendarApi.changeView` 实现，数据复用当月拉取结果不重新请求） |
-| 点日期格**空白**区    | 切换到日视图定位该日并展示当日全部事件（`dateClick`）；周/日视图下点击仅更新选中日详情面板（timeGrid 的 dateStr 截前 10 位归一为 YYYY-MM-DD） |
+| 点**单条**事件       | 打开**详情抽屉**（`LiveCalendarEventDrawer`）展示该条完整内容，**不切视图**（`eventClick` → `handleSelectEvent`；抽屉由 `LiveCalendar` 内部自管 `selectedEvent` 并挂载，`onSelectEvent` 仅作可选外部通知；月 / 周 / 日三视图语义一致） |
+| 点日期格**空白**区    | 切换到日视图定位该日并展示当日全部事件（`dateClick` → `goToDayView`，仅月视图）；周/日视图下点击仅更新选中日详情面板（timeGrid 的 dateStr 截前 10 位归一为 YYYY-MM-DD） |
 | `+N 更多`        | 点击打开该日全部事件面板（`moreLinkClick` 自定义）                                  |
 | 事件色阶            | 统一量纲：`0` **不渲染标记** / `1` 灰 / `2` 浅主色 / `3` 主色 / `4` 暖色高亮+加粗（§5.7.2、§8.5） |
 | 今日格             | FullCalendar 内置 `--fc-today-bg-color` 主题变量高亮（§9.6）               |
@@ -944,14 +946,14 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 | --------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | `useLiveCalendarTabs()`                 | 无                                               | `{ tabs, degraded, loading, error }`                                                                                    | 拉 Tab 列表，挂载时请求一次                                  |
 | `useLiveCalendarCountries()`            | 无                                               | `{ items, degraded, loading, error }`                                                                                   | 拉国家字典，挂载时请求一次                                     |
-| `useLiveCalendarMonth(year, month, options)` | `year: number`；`month: number`；`options?: { tab?, countryId?, importanceMin?, includeEconomicData? }` | `{ events, eventsByDay, loading, refreshing, error, degraded, total, refresh }` | 按月拉取 + 按天归格 + 客户端过滤 |
+| `useLiveCalendarMonths(months, options)` | `months: MonthCursor[]`（可见范围覆盖的月份，升序去重）；`options?: { tab?, countryId?, importanceMin?, includeEconomicData? }` | `{ events, eventsByDay, loading, isRefreshing, error, degraded, total, refresh }` | 覆盖月份并行拉取 + 合并 + 按天归格 + 客户端过滤 |
 
 **`useLiveCalendarMonth` 返回字段明细**
 
 | 字段            | 类型                          | 说明                                       |
 | ------------- | --------------------------- | ---------------------------------------- |
 | `events`      | `LiveCalendarEventDef[]`    | 当前过滤条件下的平铺事件                             |
-| `eventsByDay` | `Map<string, LiveCalendarEventDef[]>` | 按 `YYYY-MM-DD`（本地时区）归格，`LiveCalendar` 直接消费 |
+| `eventsByDay` | `Map<string, LiveCalendarEventDef[]>` | 按 `YYYY-MM-DD`（本地时区）归格；以 `eventsMap` prop 传给 `LiveCalendar`（组件侧命名为 `eventsMap`） |
 | `loading`     | boolean                     | 首次加载中                                    |
 | `refreshing`  | boolean                     | 手动刷新中（不遮挡内容）                             |
 | `error`       | string \| null               | 错误信息                                     |
@@ -964,6 +966,7 @@ end   = calendar.timegm((year + (month==12), month%12 + 1, 1, 0, 0, 0)) - 1
 1. **不轮询**：日历为低频数据，`autoRefresh` 默认关闭；仅提供手动 `refresh`。
 2. **月份/过滤条件变化**时用 `AbortController` 中止在途请求，避免竞态。
 3. `tab` / `countryId` / `importanceMin` 变化**不重新请求整月**，在 `useMemo` 中对已加载数据做客户端过滤（因为整月数据已在内存）。
+4. `includeEconomicData` **默认 `true`**：月度请求带 `include_economic_data=true`，经济数据指标（`calendarType = 'FD'`）随 FE 一并返回；置 `false` 时后端会过滤掉全部 FD 事件、页面不展示经济数据（FD 占当月事件多数，默认关闭即隐藏主体内容）。
 4. 按天归格在前端用**本地时区**构造 `YYYY-MM-DD` key（手写格式化，勿用 `toISOString()` 避免 UTC 错位）；喂给 FullCalendar 的事件 `start`：全天事件用 `YYYY-MM-DD`、有时刻事件用 `YYYY-MM-DDTHH:mm`（FullCalendar 对无时区串按本地时区解析，与本地上屏一致）。**无需引入任何日期库**。
 
 ### 8.4 前端类型（`apps/hrs-web/src/types/liveCalendar.ts`）
@@ -1136,8 +1139,8 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 | --- | --- |
 | 每格最多 3 条 + 溢出折叠 | `dayMaxEvents: 3` **内置**（dayGrid 月视图设计目标） |
 | 溢出处「+N 更多」 | `moreLinkText` / `moreLinkClick` **原生**，点击可自定义打开该日面板 |
-| 点单条消息看详情 | `eventClick`（命中单条事件）；月视图下额外切换到日视图展示当日全部 |
-| 点格子空白看该日全部 | `dateClick`（需 `interaction` 插件，命中空白区）；月视图下额外切换到日视图 |
+| 点单条消息看详情 | `eventClick` → `onSelectEvent`（打开详情抽屉 `LiveCalendarEventDrawer`，不切视图） |
+| 点格子空白看该日全部 | `dateClick`（需 `interaction` 插件，命中空白区）；月视图下切到日视图展示当日全部 |
 | 消息前重要级色点 / 国家标签 | `eventContent` 渲染任意 JSX，样式走项目 `IMPORTANCE_COLORS`（§8.5） |
 | 中文本地化 / 周一开头 | `locale` 随 UI 语言切换（zh → zh-cn、zh-Hant → zh-tw、en → 内置默认），`firstDay: 1` 内置；工具栏按钮文案走 i18n（`common.datetime.today/month/week/day`） |
 | 事件按天 | `start: 'YYYY-MM-DD'`（全天）或带时刻 ISO，事件数组直喂 |
@@ -1191,11 +1194,14 @@ HeroUI 3.2.4 确内置 `calendar` 复合组件，但它是 react-aria 系的**�
 
 ```
 src/components/common/LiveCalendar/
-├── LiveCalendar.tsx        # 组件主体（数据流转 / 视图切换 / 归集逻辑）
-├── csscover.ts             # 容器层样式覆盖清单（`[&_.fc-*]` 类名 + `--fc-*` 变量），只被组件引用一次
-├── index.ts                # export * from './LiveCalendar'
-└── demo/                   # FullCalendar 7.x Breezy 主题参考实现（不参与编译与 lint，
-                            #   已在 tsconfig.app.json 的 exclude 与 eslint.config.js 的 ignores 按路径排除）
+├── LiveCalendar.tsx             # 组件主体：数据流转 / 视图切换 / 归集逻辑 / 详情抽屉自管
+├── LiveCalendarListView.tsx     # List 视图：按日分组的四列消息列表（§20）
+├── LiveCalendarEventDrawer.tsx  # 事件详情抽屉：基于 basic/Drawer（HrsDrawer），由 LiveCalendar 内部挂载
+├── eventTheme.ts                # 重要度色板与文案（三视图与 List 共用）
+├── csscover.ts                  # 容器层样式覆盖清单（`[&_.fc-*]` 类名 + `--fc-*` 变量），只被组件引用一次
+├── index.ts                     # export * from './LiveCalendar'
+└── demo/                        # FullCalendar 7.x Breezy 主题参考实现（不参与编译与 lint，
+                                 #   已在 tsconfig.app.json 的 exclude 与 eslint.config.js 的 ignores 按路径排除）
 ```
 
 **组件源码骨架**（供实施参照）
@@ -1208,41 +1214,80 @@ import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
 import { cn } from '../../../utils/cn';
 import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 
-/** 业务扩展属性：数据契约经转化喂给 FullCalendar，业务字段仅以下三个 */
+/** 业务扩展属性：数据契约经转化喂给 FullCalendar，业务字段仅以下几项 */
 export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
-  /** 按天归格的事件（key = YYYY-MM-DD） */
-  eventsByDay: Map<string, LiveCalendarEventDef[]>;
-  /** 点日期空白区 → 打开该日全部详情 */
+  /** 按天归格的事件（key = `YYYY-MM-DD`，本地时区） */
+  eventsMap: Map<string, LiveCalendarEventDef[]>;
+  /** 点日期空白区 → 通知 Page 选中该日（由 Page 决定如何展示当日全部详情）；月视图额外切日视图 */
   onSelectDay: (day: string) => void;
-  /** 点单条事件 → 打开该事件详情 */
-  onSelectEvent: (event: LiveCalendarEventDef) => void;
+  /**
+   * 点单条事件 → 内部自动打开详情抽屉（自管 `selectedEvent`）。
+   * 可选：外部需感知点击（埋点等）时传入，不影响内部开抽屉行为。
+   */
+  onSelectEvent?: (event: LiveCalendarEventDef) => void;
+  /** 国家字典：抽屉渲染国旗 / 国家名 / 货币；由 Page 经 `useLiveCalendarCountries()` 透传，避免重复请求 */
+  countries?: CalendarCountryDef[];
+  /** 可见日期范围变化 → Page 推导覆盖月份并重新拉取 */
+  onRangeChange?: (range: LiveCalendarRange) => void;
 };
 
-/** FullCalendar v6 二次封装：月历事件展示，dayMaxEvents 折叠 + 主题变量作用域 */
+/** FullCalendar v6 二次封装：月 / 周 / 日 + List 视图；点消息开抽屉、点日期切日视图 */
 export const LiveCalendar = ({
-  eventsByDay,
+  eventsMap,
   onSelectDay,
   onSelectEvent,
+  countries,
+  onRangeChange,
   className,
   ...props
-}: LiveCalendarProps) => (
-  // 主题作用域 div：CSS 变量层把项目令牌映射为 FullCalendar 的 --fc-*（见 §9.6），不新建样式文件
-  <div className={cn('h-full [&_.fc]:h-full', className)}>
-    <FullCalendar
-      plugins={[dayGridPlugin, interactionPlugin]}
-      initialView="dayGridMonth"
-      locale={zhCnLocale}
-      firstDay={1}
-      dayMaxEvents={3}
-      height="100%"
-      events={toFullCalendarEvents(eventsByDay)}
-      eventContent={(arg) => <CalendarEventContent arg={arg} />}
-      dateClick={(info) => onSelectDay(info.dateStr)}
-      eventClick={(info) => onSelectEvent(info.event.extendedProps.eventDef)}
-      {...props}
-    />
-  </div>
-);
+}: LiveCalendarProps) => {
+  // 点消息 → 内部自管选中事件；onClose → 清空
+  const [selectedEvent, setSelectedEvent] = useState<LiveCalendarEventDef | null>(null);
+  const handleSelectEvent = (event: LiveCalendarEventDef) => {
+    setSelectedEvent(event);
+    onSelectEvent?.(event); // 仅作外部通知，不参与开抽屉
+  };
+  const handleDateClick = (info: DateClickArg) => {
+    const dayKey = info.dateStr.slice(0, 10);
+    onSelectDay(dayKey);
+    if (info.view.type === 'dayGridMonth') goToDayView(info.date); // 仅月视图切日视图
+  };
+
+  return (
+    <>
+      {/* 主题作用域 div：CSS 变量层把项目令牌映射为 --fc-*（见 §9.6），不新建样式文件 */}
+      <div className={cn('h-full [&_.fc]:h-full', className)}>
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          locale={zhCnLocale}
+          firstDay={1}
+          dayMaxEvents={3}
+          height="100%"
+          events={toFullCalendarEvents(eventsMap, viewType)}
+          eventContent={(arg) => <CalendarEventContent arg={arg} />}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          {...props}
+        />
+      </div>
+
+      {/* List 视图：与 FullCalendar 平级（FC 隐藏而非卸载，见 §20.2） */}
+      {viewType === 'list' ? (
+        <LiveCalendarListView eventsMap={eventsMap} range={listRange} onSelectEvent={handleSelectEvent} />
+      ) : null}
+
+      {/* 详情抽屉：由 LiveCalendar 自管挂载，Page 不感知 */}
+      {selectedEvent ? (
+        <LiveCalendarEventDrawer
+          event={selectedEvent}
+          countries={countries ?? []}
+          onClose={() => setSelectedEvent(null)}
+        />
+      ) : null}
+    </>
+  );
+};
 ```
 
 **组件 Props / 类型命名（按 TYPE_NAMING.md）**
@@ -1540,7 +1585,7 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 
 | 维度 | 月视图 `dayGridMonth` | 周视图 `timeGridWeek` | 日视图 `timeGridDay` | List 视图（自定义，见 §20） |
 | --- | --- | --- | --- | --- |
-| 共同输入 | `eventsByDay`（`Map<YYYY-MM-DD, LiveCalendarEventDef[]>`） | 同左 | 同左 | 同左（**不经** `toFullCalendarEvents`） |
+| 共同输入 | `eventsMap`（`Map<YYYY-MM-DD, LiveCalendarEventDef[]>`） | 同左 | 同左 | 同左（**不经** `toFullCalendarEvents`） |
 | 事件输出方式 | 逐条（不合并） | **同时段归集启用**：达标桶 → 1 张卡片，未达标桶 → 逐条 | 逐条（不合并） | 逐条（**不归集、不堆叠**） |
 | 卡片渲染组件 | `CalendarEventContent` | 达标桶 → `GroupedEventContent`；未达标条 → `CalendarEventContent` | `CalendarEventContent` | `LiveCalendarListView`（四列消息行，非 FullCalendar） |
 | 时间轴 | 无（按天归格，最多 3 条 + `+N` 折叠） | 有（按小时），叠加纵向堆叠 | 有（按小时） | 无（按日分组 section，组内按时间升序） |
@@ -1548,10 +1593,10 @@ FullCalendar 内部结构无法用 Tailwind 类逐点控制，需在其 CSS 变�
 
 ### 18.2 统一数据入口与转换
 
-所有视图共享同一转换函数 `toFullCalendarEvents(eventsByDay, viewType)`，把按天归格的平铺事件转成 FullCalendar 的 `EventInput[]`：
+所有视图共享同一转换函数 `toFullCalendarEvents(eventsMap, viewType)`，把按天归格的平铺事件转成 FullCalendar 的 `EventInput[]`：
 
 ```ts
-toFullCalendarEvents(eventsByDay, viewType) -> Array<{
+toFullCalendarEvents(eventsMap, viewType) -> Array<{
     id: string;                                  // 单条 `evt-${dayKey}-${i}-${startAt}`；归集 `group-${dayKey}-${bucketStart}`
     title: string;                               // shortTitle
     start: Date;                                 // startAt * 1000（秒级 UTC → 毫秒）
@@ -1655,15 +1700,21 @@ FullCalendar 的 timeGrid 原生不支持「同时间段事件垂直堆叠」（
 
 ### 19.1 核心交互语义
 
-**「点新闻即跳日视图」**：月视图与周视图遵循同一语义——点击任意一条新闻（月视图为单条事件；周视图为单条事件或归集卡片内某条消息），都会先打开该事件详情（`onSelectEvent`），再切换到该事件所属日期的**日视图**（`timeGridDay`）并定位当日。日视图本身已在目标日，仅打开详情、不再二次切换。
+**「点消息看详情、点日期看当天」**：两条路径刻意分开——
+
+- **点消息**（月视图单条事件 / 周视图单条事件或归集卡片内某条消息 / 日视图单条事件）→
+  打开**详情抽屉**（`LiveCalendarEventDrawer`），**不切视图**；抽屉由 `LiveCalendar`
+  内部自管 `selectedEvent` 并挂载（`handleSelectEvent`），`onSelectEvent` 为可选外部通知；
+- **点日期格空白 / 日期标题** → 切换到该日的**日视图**（`timeGridDay`）看当天全部事件
+  （`handleDateClick` → `goToDayView`，仅月视图生效；周 / 日视图仅更新选中日）。
 
 ### 19.2 三视图交互对照
 
 | 触发源 | 月视图 | 周视图 | 日视图 | List 视图 |
 | --- | --- | --- | --- | --- |
-| 点**单条**事件 | 切日视图 + 详情（`handleEventClick` → `dayGridMonth` 分支） | 切日视图 + 详情（`handleEventClick` → `timeGridWeek` 分支） | 仅详情（`handleEventClick`，不切视图） | 切日视图 + 详情（行 `onClick`：`onSelectEvent(event)` + `onJumpToDay`） |
-| 点**归集卡片内某条**消息 | —（月视图无此形态） | 切日视图 + 详情（`GroupedEventContent` 内 `onClick`：`onSelectEvent(item)` + `changeView('timeGridDay')`，`stopPropagation`） | — | —（List 不归集，无此形态） |
-| 点**归集卡片空白/整体** | — | 切日视图 + 详情（冒泡到 `handleEventClick` 的 `timeGridWeek` 分支） | — | — |
+| 点**单条**事件 | 仅详情抽屉（`handleEventClick`，不切视图） | 仅详情抽屉（`handleEventClick`，不切视图） | 仅详情抽屉（`handleEventClick`，不切视图） | 仅详情抽屉（`handleSelectEvent`，不切视图） |
+| 点**归集卡片内某条**消息 | —（月视图无此形态） | 仅详情抽屉（`GroupedEventContent` 内 `onClick` → `onSelectEvent(item)`，`stopPropagation`） | — | —（List 不归集，无此形态） |
+| 点**归集卡片空白/整体** | — | 仅详情抽屉（冒泡到 `handleEventClick`） | — | — |
 | 点**日期格空白**区 | 切日视图 + 详情（`handleDateClick` → `dayGridMonth` 分支 `goToDayView`） | 仅定位详情（`handleDateClick`：`timeGridWeek` 仅 `onSelectDay`） | 仅定位详情（`handleDateClick`：`timeGridDay` 仅 `onSelectDay`） | —（List 无日期格） |
 | 点**日期组头 / 列头** | — | — | — | 无交互（纯展示） |
 | `[◀]` / `[后 ▶]` | FC 内置（切换可见月 / 周 / 日） | FC 内置 | FC 内置 | List 自绘工具栏：`handleListNav`，范围 ±7 天 + `onRangeChange` |
@@ -1673,11 +1724,12 @@ FullCalendar 的 timeGrid 原生不支持「同时间段事件垂直堆叠」（
 
 | 处理函数 | 职责 |
 | --- | --- |
-| `handleDateClick` | `dayGridMonth` → `goToDayView(date)`；`timeGridWeek` / `timeGridDay` → 仅 `onSelectDay(dayKey)` |
-| `handleEventClick` | `dayGridMonth` / `timeGridWeek` → `onSelectEvent` + `goToDayView`；`timeGridDay` → 仅 `onSelectEvent` |
-| `GroupedEventContent` 内 `button.onClick` | `onSelectEvent(item)` + `calendarRef.getApi().changeView('timeGridDay', new Date(item.startAt*1000))` + `e.stopPropagation()` |
+| `handleDateClick` | `dayGridMonth` → `goToDayView(date)`（切日视图看当天全部）；`timeGridWeek` / `timeGridDay` → 仅 `onSelectDay(dayKey)` |
+| `handleEventClick` | 三视图一致：取 `extendedProps.eventDef` 后委托 `handleSelectEvent`（打开详情抽屉），**不切视图** |
+| `handleSelectEvent` | **统一开抽屉入口**：内部 `setSelectedEvent` 打开抽屉 + 可选 `onSelectEvent?.(event)` 外部通知；三视图与 List 视图共用 |
+| `GroupedEventContent` 内 `button.onClick` | 仅 `onSelectEvent(item)` + `e.stopPropagation()`（打开详情抽屉，不切视图） |
 
-> 与月视图语义一致：周视图的两种触发源（单条事件、归集卡片内消息）均达成「点事件切日视图」；日视图本身已在目标日，仅打开详情不二次切换，避免无意义抖动。
+> 三视图语义一致：点任何一条消息都只打开详情抽屉（不切视图）；切日视图仅由「点日期格空白 / 日期标题」触发，避免点消息时视图跳动打断浏览。
 
 ### 19.3 导航与视图切换
 
@@ -1735,14 +1787,16 @@ LiveCalendar（父）
 
 | 步骤 | 规则 |
 | --- | --- |
-| 1. 过滤 | `eventsByDay` 中 `dayKey ∈ [range.start, range.end]`（闭区间，字典序比较） |
+| 1. 过滤 | `eventsMap` 中 `dayKey ∈ [range.start, range.end]`（闭区间，字典序比较） |
 | 2. 分组 | 按 `dayKey` 升序分 section；**空天不渲染** |
 | 3. 排序 | 每 section 内按 `startAt` 升序 |
 | 4. 归集 / 堆叠 | **都不做**（列表本身就是逐条展开形态） |
 | 5. 重要度 | 复用 `eventThemeMap(importance)` 色板 + `IMPORTANCE_LABELS` 文案 |
 
 数据**不走** `toFullCalendarEvents`：List 视图不经过 FullCalendar 事件通道，直接消费
-`eventsByDay`（与月 / 周 / 日同源）。
+`eventsMap`（与月 / 周 / 日同源）——它需要完整的 `LiveCalendarEventDef` 渲染四列，
+而 `toFullCalendarEvents` 产出的 `EventInput[]` 把业务字段压进了 `extendedProps.eventDef`，
+且含周视图 `group-` 归集卡片，List 直接消费会多一次反向解析与拆组。
 
 ### 20.4 布局
 
@@ -1770,7 +1824,7 @@ LiveCalendar（父）
 
 | 触发源 | 行为 |
 | --- | --- |
-| 点**单行** | `onSelectEvent(event)` + `onJumpToDay(new Date(startAt*1000))` → 切到该事件所属日期的 `timeGridDay`（与周视图归集卡片内点击单条一致） |
+| 点**单行** | 仅 `onSelectEvent(event)` → 打开详情抽屉（不切视图，与月 / 周 / 日视图一致） |
 | 日期组头 / 列头 | 纯展示，无交互 |
 | `[◀]` / `[后 ▶]` | 可见范围 ±7 天（`handleListNav`），并 `onRangeChange` 通知 Page |
 | `[今天]` | 重置为今天所在周 |

@@ -127,7 +127,17 @@ const zh = {
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日历事件全天标识
+  'component.LiveCalendar.calendarType.FD': '经济数据', // 事件分类：经济数据指标
+  'component.LiveCalendar.calendarType.FE': '大事件', // 事件分类：财经大事件
   'component.LiveCalendar.country': '国家', // List 视图列头：国家
+  'component.LiveCalendar.drawer.actual': '公布', // 详情抽屉：公布值
+  'component.LiveCalendar.drawer.content': '内容', // 详情抽屉：内容区标题
+  'component.LiveCalendar.drawer.economicData': '经济数据', // 详情抽屉：经济数据区标题
+  'component.LiveCalendar.drawer.forecast': '预期', // 详情抽屉：预期值
+  'component.LiveCalendar.drawer.previous': '前值', // 详情抽屉：前值
+  'component.LiveCalendar.drawer.source': '来源', // 详情抽屉：来源
+  'component.LiveCalendar.drawer.sourceName': '华尔街见闻', // 详情抽屉：数据源名称（外链文案）
+  'component.LiveCalendar.drawer.noSummary': '暂无详情内容', // 详情抽屉：事件无前瞻/正文时的占位提示
   'component.LiveCalendar.empty': '本月暂无日历事件', // 空态：当月无事件
   'component.LiveCalendar.emptyImportance': '没有符合重要级条件的事件，试试降低筛选条件', // 空态：重要级筛选无结果
   'component.LiveCalendar.importance': '重要级', // List 视图列头：重要级

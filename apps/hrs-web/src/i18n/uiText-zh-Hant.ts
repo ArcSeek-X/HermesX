@@ -127,7 +127,17 @@ const zhHant = {
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日曆事件全天標識
+  'component.LiveCalendar.calendarType.FD': '經濟數據', // 事件分類：經濟數據指標
+  'component.LiveCalendar.calendarType.FE': '大事件', // 事件分類：財經大事件
   'component.LiveCalendar.country': '國家', // List 視圖列頭：國家
+  'component.LiveCalendar.drawer.actual': '公佈', // 詳情抽屜：公佈值
+  'component.LiveCalendar.drawer.content': '內容', // 詳情抽屜：內容區標題
+  'component.LiveCalendar.drawer.economicData': '經濟數據', // 詳情抽屜：經濟數據區標題
+  'component.LiveCalendar.drawer.forecast': '預期', // 詳情抽屜：預期值
+  'component.LiveCalendar.drawer.previous': '前值', // 詳情抽屜：前值
+  'component.LiveCalendar.drawer.source': '來源', // 詳情抽屜：來源
+  'component.LiveCalendar.drawer.sourceName': '華爾街見聞', // 詳情抽屜：數據源名稱（外鏈文案）
+  'component.LiveCalendar.drawer.noSummary': '暫無詳情內容', // 詳情抽屜：事件無前瞻/正文時的占位提示
   'component.LiveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
   'component.LiveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
   'component.LiveCalendar.importance': '重要級', // List 視圖列頭：重要級

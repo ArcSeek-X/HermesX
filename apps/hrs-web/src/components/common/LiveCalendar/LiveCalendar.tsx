@@ -43,13 +43,15 @@ import zhTwLocale from '@fullcalendar/core/locales/zh-tw';
 import { cn } from '../../../utils/cn';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../../i18n/uiText';
-import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
+import type { CalendarCountryDef, LiveCalendarEventDef } from '../../../types/liveCalendar';
 import { LIVE_CALENDAR_CSS_COVER } from './csscover';
 import { formatTime } from '../../../utils/format';
 // 色板下沉到 eventTheme.ts：网格视图与 List 视图共用，留在本文件会让 List 反向 import 成环。
 import { eventThemeMap } from './eventTheme';
 // List 视图自绘组件（FC 的 list 插件做不出四列真表头），其工具栏也一并归它自绘。
 import { LiveCalendarListView } from './LiveCalendarListView';
+// 详情抽屉：点消息 → 内部自管打开（由 Page 传入 countries，不再由 Page 挂载）
+import { LiveCalendarEventDrawer } from './LiveCalendarEventDrawer';
 // FullCalendar v6 把样式内联进 JS bundle，官方不再提供独立 CSS；单独 import 会让 vite
 // 报 Missing specifier。其 <style> 位于 head 最前，故 Tailwind 原子类可正常覆盖。
 
@@ -64,14 +66,19 @@ export interface LiveCalendarRange {
     end: Date;
 }
 
-/** 业务扩展属性：数据契约经转化喂给 FullCalendar，业务字段仅以下四个 */
+/** 业务扩展属性：数据契约经转化喂给 FullCalendar */
 export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
     /** 按天归格的事件（key = YYYY-MM-DD） */
-    eventsByDay: Map<string, LiveCalendarEventDef[]>;
-    /** 点日期空白区 → 打开该日全部详情 */
+    eventsMap: Map<string, LiveCalendarEventDef[]>;
+    /** 点日期空白区 → 通知 Page 选中该日（由 Page 决定如何展示当日全部详情） */
     onSelectDay: (day: string) => void;
-    /** 点单条事件 → 打开该事件详情 */
-    onSelectEvent: (event: LiveCalendarEventDef) => void;
+    /**
+     * 点单条事件 → LiveCalendar 内部自动打开详情抽屉（自管 selectedEvent）。
+     * 该回调为可选：如外部需感知点击事件（埋点等）可传入，不影响内部开抽屉行为。
+     */
+    onSelectEvent?: (event: LiveCalendarEventDef) => void;
+    /** 国家字典（国旗 / 货币 / 国家名），来自 Page 的 `useLiveCalendarCountries()`，供详情抽屉渲染 */
+    countries?: CalendarCountryDef[];
     /**
      * 视图日期范围变化回调（切换视图 / prev / next / today 触发），Page 据此拉取覆盖月份的数据。
      * 必须下发完整可见范围而非单一月份：周视图可能跨月（如 9 月第一周的周一落在 8/31），
@@ -185,7 +192,7 @@ function calcGroupCardHeight(groups: GroupedEventGroup[]): number {
 }
 
 /**
- * 把按天归格的事件展平为 FullCalendar 的 EventInput 数组。
+ * 把按天归格的事件展平为 FullCalendar 的 EventInput 数组。（eventsMap的Map类型转成events平铺的array类型）
  *
  * **同时段归集仅周视图生效**（`viewType === 'timeGridWeek'`）：组内条数 ≥ `GROUP_THRESHOLD`
  * 时合并为一个 FC 事件（`extendedProps.groupEvents` 携带原数组，渲染成归集卡片），
@@ -194,7 +201,7 @@ function calcGroupCardHeight(groups: GroupedEventGroup[]): number {
  * 合并事件的 `eventDef` 取桶内第一条作「代表」，用于点击卡片整体时的详情定位。
  */
 function toFullCalendarEvents(
-    eventsByDay: Map<string, LiveCalendarEventDef[]>,
+    eventsMap: Map<string, LiveCalendarEventDef[]>,
     viewType: string,
 ) {
     const result: Array<{
@@ -210,7 +217,7 @@ function toFullCalendarEvents(
         };
     }> = [];
 
-    for (const [dayKey, events] of eventsByDay) {
+    for (const [dayKey, events] of eventsMap) {
         // 按时间升序
         const sorted = events.slice().sort((a, b) => a.startAt - b.startAt);
 
@@ -401,19 +408,30 @@ function shiftDays(date: Date, days: number): Date {
 /**
  * FullCalendar v6 二次封装：月 / 周 / 日视图 + List 视图（后者见 `LiveCalendarListView`）。
  *
- * 月视图点事件或日期格 → 切日视图并定位该日（数据仍来自 Page 按月拉取的 eventsByDay，
+ * 月视图点事件或日期格 → 切日视图并定位该日（数据仍来自 Page 按月拉取的 eventsMap，
  * 切视图不触发重新请求）；周 / 日 / List 视图点击走 onSelectDay / onSelectEvent 的详情定位语义。
  */
 export const LiveCalendar = ({
-    eventsByDay,
+    eventsMap,
     onSelectDay,
     onSelectEvent,
+    countries,
     onRangeChange,
     className,
     ...props
 }: LiveCalendarProps) => {
     // 当前视图类型（dayGridMonth / timeGridWeek / timeGridDay / list），由 datesSet 同步
     const [viewType, setViewType] = useState<string>('dayGridMonth');
+    // 详情抽屉选中事件（点消息 → 打开；onClose → 清空）
+    const [selectedEvent, setSelectedEvent] = useState<LiveCalendarEventDef | null>(null);
+    /** 点单条事件：内部打开详情抽屉，并可选地通知外部（埋点等） */
+    const handleSelectEvent = useCallback(
+        (event: LiveCalendarEventDef) => {
+            setSelectedEvent(event);
+            onSelectEvent?.(event);
+        },
+        [onSelectEvent],
+    );
     // List 视图可见范围：步长 7 天，默认「今天所在周」
     const [listRange, setListRange] = useState<{ start: Date; end: Date }>(() =>
         weekRangeOf(new Date()),
@@ -424,8 +442,8 @@ export const LiveCalendar = ({
     /** 最近一次 FullCalendar 可见范围：切到 List 视图时作为初始范围 */
     const lastFCRange = useRef<{ start: Date; end: Date } | null>(null);
     const events = useMemo(
-        () => toFullCalendarEvents(eventsByDay, viewType),
-        [eventsByDay, viewType],
+        () => toFullCalendarEvents(eventsMap, viewType),
+        [eventsMap, viewType],
     );
     const calendarRef = useRef<FullCalendar | null>(null);
     const { t, language } = useUiLanguage();
@@ -530,16 +548,14 @@ export const LiveCalendar = ({
     };
 
     /**
-     * 点事件块：先打开详情，再切到「事件所属日期」的日视图。
-     * 月 / 周视图都切（两者语义一致）；日视图本身已在目标日，只开详情不切换。
+     * 点事件块：**只打开 Drawer 详情，不切视图**（月 / 周 / 日三视图语义一致）。
+     * 切日视图仅由「点日期格 / 日期标题」触发（见 handleDateClick），
+     * 两条路径刻意分开：点消息看这条的内容，点日期看那天的全部。
      * 归集卡片内的具体消息走 `GroupedEventContent` 内 onClick（stopPropagation 阻断冒泡）。
      */
     const handleEventClick = (info: EventClickArg) => {
         const eventDef = info.event.extendedProps.eventDef as LiveCalendarEventDef;
-        onSelectEvent(eventDef);
-        if (info.view.type === 'dayGridMonth' || info.view.type === 'timeGridWeek') {
-            goToDayView(info.event.start ?? info.event.startStr);
-        }
+        handleSelectEvent(eventDef);
     };
 
     /**
@@ -708,19 +724,13 @@ export const LiveCalendar = ({
                         | LiveCalendarEventDef[]
                         | undefined;
                     if (groupEvents && groupEvents.length > 0) {
-                        // 分组在调用处算好再传入，GroupedEventContent 只负责渲染
+                        // 分组在调用处算好再传入，GroupedEventContent 只负责渲染。
+                        // 点组内某条消息：与月 / 日视图点事件语义一致 —— 只开 Drawer 详情，不切视图。
                         const groups = eventGroupByTimeAndImportance(groupEvents);
-                        // 与月视图点事件语义一致：打开详情 + 切到该日日视图
-                        const handleSelectInGroup = (item: LiveCalendarEventDef) => {
-                            onSelectEvent(item);
-                            calendarRef.current
-                                ?.getApi()
-                                .changeView('timeGridDay', new Date(item.startAt * 1000));
-                        };
                         return (
                             <GroupedEventContent
                                 groups={groups}
-                                onSelectEvent={handleSelectInGroup}
+                                onSelectEvent={handleSelectEvent}
                             />
                         );
                     }
@@ -745,11 +755,20 @@ export const LiveCalendar = ({
             {/* List 视图：与 FullCalendar 平级；点击走 onSelectEvent（详情面板定位） */}
             {viewType === 'list' ? (
                 <LiveCalendarListView
-                    eventsByDay={eventsByDay}
+                    eventsMap={eventsMap}
                     range={listRange}
-                    onSelectEvent={onSelectEvent}
+                    onSelectEvent={handleSelectEvent}
                     onNavigate={handleListNav}
                     onViewChange={handleViewChange}
+                />
+            ) : null}
+
+            {/* 详情抽屉：点消息 → 内部自管打开（Page 不再挂载此抽屉） */}
+            {selectedEvent ? (
+                <LiveCalendarEventDrawer
+                    event={selectedEvent}
+                    countries={countries ?? []}
+                    onClose={() => setSelectedEvent(null)}
                 />
             ) : null}
         </div>

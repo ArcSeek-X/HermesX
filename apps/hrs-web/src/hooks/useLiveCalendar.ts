@@ -73,8 +73,11 @@ export function monthGridRange(year: number, month: number): LiveCalendarRange {
 
 /** Tab 列表 Hook */
 export function useLiveCalendarTabs(): {
+  /** 分类 Tab 列表（后端驱动；'all' 全部分类入口由 Page 层拼接） */
   tabs: CalendarTabDef[];
+  /** 首次加载中（数据未就绪） */
   loading: boolean;
+  /** 加载失败信息；null 表示成功 */
   error: string | null;
 } {
   const [tabs, setTabs] = useState<CalendarTabDef[]>([]);
@@ -106,9 +109,13 @@ export function useLiveCalendarTabs(): {
 
 /** 国家字典 Hook */
 export function useLiveCalendarCountries(): {
+  /** 国家字典列表：国旗、名称、货币(ISO 代码)等，供事件卡片 / 详情抽屉展示国家信息 */
   items: CalendarCountryDef[];
+  /** 降级标记：后端部分字段缺失时置 true，UI 可据此弱化展示（如缺货币 / 国旗时降级为仅名称） */
   degraded: boolean;
+  /** 首次加载中（数据未就绪） */
   loading: boolean;
+  /** 加载失败信息；null 表示成功 */
   error: string | null;
 } {
   const [items, setItems] = useState<CalendarCountryDef[]>([]);
@@ -172,14 +179,19 @@ export function useLiveCalendarMonths(
   months: MonthCursor[],
   options: UseLiveCalendarOptions = {}
 ): UseLiveCalendarReturn {
-  const { tab, countryId, importanceMin, includeEconomicData = false } = options;
+  // 过滤项：tab / countryId / importanceMin 为客户端过滤（已加载数据在内存，不重新请求）；
+  // includeEconomicData 决定是否向后端请求经济数据指标（FD），默认 true（含 FD），
+  // 置 false 时后端会过滤掉全部 FD 事件，页面不展示经济数据。
+  const { tab, countryId, importanceMin, includeEconomicData = true } = options;
 
+  // items 为 null 表示首屏未就绪；加载失败时保留上一帧（避免空屏），故用 null 区分「加载中」与「已加载」
   const [items, setItems] = useState<LiveCalendarEventDef[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const [total, setTotal] = useState(0); // 覆盖月份范围内的事件总数（各月 total 累加，不受客户端过滤影响）
+  const [manualRefreshing, setManualRefreshing] = useState(false); // refresh() 执行期间为 true，驱动刷新按钮 loading 态
 
+  // 在途请求控制器：重新拉取前 abort 上一个，避免竞态导致的乱序覆盖
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchMonths = useCallback(
@@ -274,16 +286,25 @@ export function useLiveCalendarMonths(
     return map;
   }, [events]);
 
+  // 首屏加载态：数据未就绪（items 仍为 null）且无错误时为真；失败时为 false 由 error 承载
   const loading = items === null && !error;
 
   return {
+    /** 当前过滤条件（tab / countryId / importanceMin）下的平铺事件数组 */
     events,
+    /** 按本地时区 `YYYY-MM-DD` 归格的事件映射，日历网格直接消费 */
     eventsByDay,
+    /** 首屏加载中（items 为 null 且无 error） */
     loading,
+    /** 是否正在手动刷新（refresh 调用期间为 true） */
     isRefreshing: manualRefreshing,
+    /** 加载失败信息；null 表示成功 */
     error,
+    /** 降级标记：任意覆盖月份后端降级时置 true，UI 据此弱化展示 */
     degraded,
+    /** 覆盖月份范围内的事件总数（各月 total 累加，不受客户端过滤影响） */
     total,
+    /** 手动刷新：触发服务端逐月抓取后再重拉当前可见范围 */
     refresh,
   };
 }

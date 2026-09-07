@@ -10,6 +10,8 @@
  * 成交量与金额的换算单位与后端 StockInfo 字段原始单位对齐，并支持中英文单位切换。
  */
 
+import type { UiLanguage } from '../i18n/uiText';
+
 
 
 /**
@@ -158,6 +160,23 @@ export const formatTime = (value?: string | number | null): string => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+};
+
+/**
+ * UI 语言 → Intl locale（**全站唯一实现**）。
+ *
+ * 供需要「随界面语言本地化」的日期展示复用（如日历 List 视图的星期 / 月份长格式）。
+ * 历史上一度在各组件散落等价的 zh-CN / zh-TW / en-US 三元判断，易出现实现漂移，
+ * 现已收敛到此处；而 `formatDate` / `formatDateTime` / `formatTime` 输出的是固定
+ * zh-CN **数字**格式（如 "2026/09/05"），各语言下一致，**不需要**传 locale。
+ *
+ * @param language - 界面语言：'zh' / 'zh-Hant' / 'en'
+ * @returns Intl 可用的 locale 字符串，如 'zh-CN'
+ */
+export const toIntlLocale = (language: UiLanguage): string => {
+  if (language === 'zh') return 'zh-CN';
+  if (language === 'zh-Hant') return 'zh-TW';
+  return 'en-US';
 };
 
 
