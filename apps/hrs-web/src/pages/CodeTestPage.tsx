@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, InlineTipCard, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef } from '../components';
+import { AppPage, InlineTipCard, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant } from '../components';
 import { type ParsedApiError } from '../api/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
@@ -167,6 +167,14 @@ const CodeTestPage: React.FC = () => {
         '新能源',
         '港股通',
     ]);
+    // HrsDrawer 演示：抽屉开关与各可调参数
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerPlacement, setDrawerPlacement] = useState<HrsDrawerPlacement>('right');
+    const [drawerSize, setDrawerSize] = useState<HrsDrawerSize>('md');
+    const [drawerVariant, setDrawerVariant] = useState<HrsDrawerVariant>('opaque');
+    const [drawerShowHandle, setDrawerShowHandle] = useState(false);
+    const [drawerHideClose, setDrawerHideClose] = useState(false);
+    const [drawerDismissable, setDrawerDismissable] = useState(true);
 
     const clsickFn = () => {
         console.log('点击了')
@@ -183,6 +191,126 @@ const CodeTestPage: React.FC = () => {
 
     return (
         <AppPage>
+            {/* ============ HrsDrawer（侧滑抽屉）组件演示 ============ */}
+            <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+                <h3 className="text-sm font-medium text-primary-text">HrsDrawer（侧滑抽屉）组件演示</h3>
+                <p className="text-xs text-muted">
+                    基于 HeroUI Drawer 封装。placement 控制滑出方向，size 控制尺寸（左右方向控宽度、上下方向控高度），
+                    variant 控制遮罩样式。原生能力全部保留：焦点陷阱、Esc 关闭、滚动锁定，以及上下方向下拖拽 Handle /
+                    Header / Footer 区域的拖拽关闭（Body 区域不触发拖拽，避免与滚动冲突）。
+                    下方先切换参数，再点「打开抽屉」查看效果。
+                </p>
+
+                {/* 1. 参数切换 */}
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="w-20 shrink-0 text-xs text-secondary-text">placement</span>
+                        {(['left', 'right', 'top', 'bottom'] as HrsDrawerPlacement[]).map((p) => (
+                            <HrsButton
+                                key={p}
+                                size="sm"
+                                variant={drawerPlacement === p ? 'primary' : 'ghost'}
+                                onClick={() => setDrawerPlacement(p)}
+                            >
+                                {p}
+                            </HrsButton>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="w-20 shrink-0 text-xs text-secondary-text">size</span>
+                        {(['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'full'] as HrsDrawerSize[]).map((s) => (
+                            <HrsButton
+                                key={s}
+                                size="sm"
+                                variant={drawerSize === s ? 'primary' : 'ghost'}
+                                onClick={() => setDrawerSize(s)}
+                            >
+                                {s}
+                            </HrsButton>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="w-20 shrink-0 text-xs text-secondary-text">variant</span>
+                        {(['opaque', 'blur', 'transparent'] as HrsDrawerVariant[]).map((v) => (
+                            <HrsButton
+                                key={v}
+                                size="sm"
+                                variant={drawerVariant === v ? 'primary' : 'ghost'}
+                                onClick={() => setDrawerVariant(v)}
+                            >
+                                {v}
+                            </HrsButton>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="w-20 shrink-0 text-xs text-secondary-text">开关项</span>
+                        <HrsButton
+                            size="sm"
+                            variant={drawerShowHandle ? 'primary' : 'ghost'}
+                            onClick={() => setDrawerShowHandle((v) => !v)}
+                        >
+                            showHandle
+                        </HrsButton>
+                        <HrsButton
+                            size="sm"
+                            variant={drawerHideClose ? 'primary' : 'ghost'}
+                            onClick={() => setDrawerHideClose((v) => !v)}
+                        >
+                            hideCloseButton
+                        </HrsButton>
+                        <HrsButton
+                            size="sm"
+                            variant={drawerDismissable ? 'primary' : 'ghost'}
+                            onClick={() => setDrawerDismissable((v) => !v)}
+                        >
+                            isDismissable
+                        </HrsButton>
+                    </div>
+                </div>
+
+                {/* 2. 触发按钮 */}
+                <HrsButton className="self-start" size="sm" onClick={() => setDrawerOpen(true)}>
+                    打开抽屉（{drawerPlacement} / {drawerSize} / {drawerVariant}）
+                </HrsButton>
+
+                {/* 3. 声明式用法：title + Header 补充内容 + Body 长列表 + Footer 操作 */}
+                <HrsDrawer
+                    isOpen={drawerOpen}
+                    onClose={() => setDrawerOpen(false)}
+                    placement={drawerPlacement}
+                    size={drawerSize}
+                    variant={drawerVariant}
+                    showHandle={drawerShowHandle}
+                    hideCloseButton={drawerHideClose}
+                    isDismissable={drawerDismissable}
+                    title="板块成分股"
+                >
+                    <HrsDrawer.Body>
+                        <p className="mb-3 text-sm text-secondary-text">
+                            Body 区域自带纵向滚动；内容足够长时可用于验证滚动与拖拽互不干扰。
+                        </p>
+                        <ul className="flex flex-col gap-2">
+                            {Array.from({ length: 30 }, (_, i) => (
+                                <li key={i} className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+                                    <span className="text-sm text-foreground">成分股 {String(i + 1).padStart(2, '0')}</span>
+                                    <Chip size="xs" color={i % 3 === 0 ? 'success' : i % 3 === 1 ? 'danger' : 'default'}>
+                                        {i % 3 === 0 ? '上涨' : i % 3 === 1 ? '下跌' : '平盘'}
+                                    </Chip>
+                                </li>
+                            ))}
+                        </ul>
+                    </HrsDrawer.Body>
+                    <HrsDrawer.Footer>
+                        <HrsButton variant="secondary" size="sm" onClick={() => setDrawerOpen(false)}>
+                            取消
+                        </HrsButton>
+                        <HrsButton variant="primary" size="sm" onClick={() => setDrawerOpen(false)}>
+                            确认
+                        </HrsButton>
+                    </HrsDrawer.Footer>
+                </HrsDrawer>
+            </div>
+
             {/* ============ InlineTipCard（内联提示卡片）组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
                 <h3 className="text-sm font-medium text-primary-text">InlineTipCard（内联提示卡片）组件演示</h3>

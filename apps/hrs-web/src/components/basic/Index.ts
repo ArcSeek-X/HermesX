@@ -20,3 +20,5 @@ export { Separator } from './Separator';
 export type { HrsSeparatorProps, HrsSeparatorOrientation, HrsSeparatorVariant } from './Separator';
 export * from './Modal';
 export * from './Toast';
+export { HrsDrawer } from './Drawer';
+export type { HrsDrawerProps, HrsDrawerPlacement, HrsDrawerVariant, HrsDrawerSize } from './Drawer';
