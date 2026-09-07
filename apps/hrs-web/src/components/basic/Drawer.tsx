@@ -237,7 +237,7 @@ const HrsDrawerRoot = ({
                             <HeroUIDrawer.Header
                                 className={cn('hrs-drawer-header', !hideCloseButton && 'pe-8', headerClassName)}
                             >
-                                {title && <HeroUIDrawer.Heading>{title}</HeroUIDrawer.Heading>}
+                                {title && <HeroUIDrawer.Heading className='xxxxxxxx'>{title}</HeroUIDrawer.Heading>}
                                 {headerParts}
                                 {!hideCloseButton && <HeroUIDrawer.CloseTrigger />}
                             </HeroUIDrawer.Header>
@@ -250,6 +250,8 @@ const HrsDrawerRoot = ({
                             {bodyParts}
                         </HeroUIDrawer.Body>
 
+                        {/* Body 与 Footer 之间的分割线：与 Header 下方的分割线对称 */}
+                        {hasFooter && <Separator className="my-3" gradient />}
                         {hasFooter && (
                             <HeroUIDrawer.Footer className={cn('hrs-drawer-footer', footerClassName)}>
                                 {footer}
