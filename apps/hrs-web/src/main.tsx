@@ -13,6 +13,10 @@ import { createRoot } from 'react-dom/client'
 import './style/index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './components/theme/ThemeProvider'
+import { initScrollLockCompensation } from './utils/scrollLockCompensation'
+
+// 弹层锁滚动（overflow: hidden）时补等宽 padding-right，消除整页横向抖动
+initScrollLockCompensation()
 
 // 找到 DOM 中的 #root 容器并创建根，非 null 断言由 index.html 保证
 createRoot(document.getElementById('root')!).render(
