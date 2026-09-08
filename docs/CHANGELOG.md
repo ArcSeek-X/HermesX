@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [改进] 消息日历筛选区域去掉外围边框；国家/地区下拉按中文名拼音首字母 A-Z 分组（组内按全拼排序，无拼音者归入 `#` 组），选项显示「国旗 + 国家名称」，下拉弹层限高（弹层与 HeroUI 内部 list-box 一并限高，滚动条落在 list-box）；关键词输入框改为占满本行剩余宽度，右对齐到操作区。
+- [修复] 消息日历筛选点「重置」不生效：草稿同步按引用比较，而重置回到的 `DEFAULT_LIVE_CALENDAR_FILTER` 与初始/上次生效值可能是同一引用，比较判定无变化导致草稿不回灌；改为 `createDefaultLiveCalendarFilter()` 每次生成新对象，面板重置时先本地回灌草稿再通知 Page。
+- [新功能] 消息日历新增筛选：Tab 行右侧筛选按钮（带条件数角标与展开箭头），展开区域支持重要度多选、类型三态（全部/经济数据/大事件）、国家地区下拉与标题关键词；点确认后月/周/日/列表四视图同步过滤，全部为客户端过滤不新增请求。
 - [修复] 消息日历月份游标推导改用 `view.currentStart`：此前用可见范围首格（`datesSet` 的 `arg.start`），月初未周一前会把月份带偏到上月，导致当月日期（含今日/昨日）在网格中全部无事件且刷新无效。
 - [改进] 消息日历支持多语言：工具栏「今天/月/周/日」文案与 FullCalendar locale（星期表头、aria 提示）随 UI 语言切换，新增 i18n 键 `common.datetime.today/month/week/day`。
 - [改进] 消息日历右上角月/周/日视图切换改为三个独立纯文字标签（选中项浅灰圆角底 + 加粗），导航按钮保持连体胶囊不变。
