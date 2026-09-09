@@ -11,7 +11,7 @@
  * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CandlestickChart, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Newspaper, Search, Settings2, Star } from 'lucide-react';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Newspaper, Search, Settings2, Star } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -66,6 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'usage', labelKey: 'layout.nav.usage.title', to: '/usage', icon: Gauge },
   { key: 'screening', labelKey: 'layout.nav.screening.title', to: '/screening', icon: Search },
   { key: 'code-test', labelKey: 'layout.nav.codeTest.title', to: '/codeTest', icon: FlaskConical },
+  { key: 'docs-checkbox', labelKey: 'layout.nav.docsCheckbox.title', to: '/docs/component/checkbox', icon: CheckSquare },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {

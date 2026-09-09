@@ -46,6 +46,7 @@ const SectorAnalysisPage = lazy(() => import('./pages/SectorAnalysisPage'));
 const StockKLinePage = lazy(() => import('./pages/StockKLinePage'));
 const StockDashboardPage = lazy(() => import('./pages/StockDashboardPage'));
 const CodeTestPage = lazy(() => import('./pages/CodeTestPage'));
+const DocsCheckboxPage = lazy(() => import('./pages/DocsPage/Components/Docs_checkbox'));
 const LiveNewsPage = lazy(() => import('./pages/LiveNewsPage'));
 const LiveCalendarPage = lazy(() => import('./pages/LiveCalendarPage'));
 
@@ -151,6 +152,8 @@ const AppContent: React.FC = () => {
         <Route path="/usage" element={<TokenUsagePage />} />
         {/* 测试页 */}
         <Route path="/codeTest" element={<CodeTestPage />} />
+        {/* 组件文档：复选框 */}
+        <Route path="/docs/component/checkbox" element={<DocsCheckboxPage />} />
         {/* 系统设置 */}
         <Route path="/settings" element={<SettingsPage />} />
         {/* 兜底：未匹配任何路由时展示 404 */}
