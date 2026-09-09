@@ -22,6 +22,7 @@ import type { UiTextKey } from '../../i18n/uiText';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
+import { ModeSwitch } from './HeaderComponents/ModeSwitch';
 import { StockSearch } from '../StockSearch/StockSearch';
 import { setStorageItem } from '../../utils/storage';
 import { cn } from '../../utils/cn';
@@ -165,6 +166,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             ariaLabel={t('kline.searchPlaceholder')}
             className="h-9 text-xs w-60"
           /> */}
+          <ModeSwitch />
           <ThemeSetting />
           <LanguageSwitch />
           <UserSetting/>
