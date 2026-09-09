@@ -22,3 +22,6 @@ export * from './Modal';
 export * from './Toast';
 export { HrsDrawer } from './Drawer';
 export type { HrsDrawerProps, HrsDrawerPlacement, HrsDrawerVariant, HrsDrawerSize } from './Drawer';
+
+export { HrsCheckbox } from './HrsCheckbox';
+export type { HrsCheckboxProps, HrsCheckboxOptionDef, HrsCheckboxSize, HrsCheckboxOrientation } from './HrsCheckbox';
