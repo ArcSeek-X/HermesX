@@ -1,5 +1,5 @@
 /**
- * HrsCheckbox styleCover
+ * HrsCheckbox style config
  * ------------------------------------------------------------
  * 集中维护 HrsCheckbox 组件的「基础样式」与「尺寸 / 排列方向样式」。
  * 从 HrsCheckbox.tsx 拆分而来，组件本体只保留结构与逻辑。
@@ -50,7 +50,7 @@ export const ROOT_BASE_STYLES = 'hrs-checkbox group';
 export const CONTENT_BASE_STYLES = 'hrs-checkbox-content items-center gap-2';
 
 /** Checkbox.Control 基础样式：勾选框本体，圆角对齐项目 rounded-sm 规范 */
-export const CONTROL_BASE_STYLES = 'hrs-checkbox-control rounded-sm before:!bg-primary';
+export const CONTROL_BASE_STYLES = 'hrs-checkbox-control rounded-xs before:!rounded-xs before:!bg-primary';
 
 /** Checkbox.Indicator 基础样式：勾选 / 半选图标容器 */
 export const INDICATOR_BASE_STYLES =
