@@ -1,21 +1,16 @@
 /**
- * ===================================
- * 标签芯片组件（Chip）
- * ===================================
+ * Chip.tsx —— 通用标签芯片（圆角胶囊标签）。
  *
- * 基于 HeroUI Chip 组件的 API 契约封装（https://heroui.com/en/docs/react/components/chip）。
- * 组件支持 HeroUI Chip 的核心能力与取值：
- *   - variant: primary | secondary | tertiary | soft（视觉风格，默认 secondary）
- *   - color:   default | accent | success | warning | danger | blue | purple | indigo（语义色，默认 default）
- *   - size:    sm | md | lg（尺寸，默认 md）
- *   - radius:  full | sm | md | lg（圆角，默认 full 胶囊）
- *   - onClose：渲染关闭按钮并回调
- *   - isDisabled：禁用态
- *   - children：芯片内容（图标、文字等由调用方自行组合传入）
+ * 作用：渲染圆角胶囊状标签，支持 variant / color / size / radius 组合、
+ * 关闭按钮（onClose）与禁用态（isDisabled）。
+ * 使用场景：分类 / 状态标记、筛选器已选条目（带 × 取消）、消息日历条目角标等；
+ * 内容（图标、文字）由调用方通过 children 自行组合。
  *
- * 说明：本项目未引入 HeroUIProvider，HeroUI 语义类依赖其主题 CSS 变量注入才会上色，
- * 故此处用项目自管的 Tailwind 语义色（与 Badge 一致）实现渲染，保证在当前主题下真实生效、
- * 且跟随浅色/深色主题变化。props 名称与取值严格对齐 HeroUI，便于未来平滑迁移。
+ * 实现说明：API 对齐 HeroUI Chip，但本项目未引入 HeroUIProvider（无主题 CSS 变量注入），
+ * 故样式改用项目自管的 Tailwind 语义色实现，保证在浅色 / 深色主题下真实上色；
+ * props 名称与取值严格对齐 HeroUI，便于未来平滑迁移。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import React from 'react';
 import { Xmark } from '@gravity-ui/icons';
@@ -25,34 +20,33 @@ import { cn } from '../../utils/cn';
 type ChipVariant = 'primary' | 'secondary' | 'tertiary' | 'soft';
 /** 语义色 */
 type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger' | 'blue' | 'purple' | 'indigo';
-/** 尺寸 */
+/** 尺寸档位 */
 type ChipSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-/** 圆角 */
+/** 圆角档位 */
 type ChipRadius = 'full' | 'sm' | 'md' | 'lg';
 
-/** Chip 组件的属性定义（对齐 HeroUI Chip API） */
+/** Chip 组件属性（对齐 HeroUI Chip API） */
 export interface ChipProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'onClose'> {
-  /** 芯片显示内容 */
+  /** 芯片显示内容（图标、文字等由调用方组合传入，必填） */
   children: React.ReactNode;
-  /** 视觉风格变体 */
+  /** 视觉风格变体，默认 'primary' */
   variant?: ChipVariant;
-  /** 语义色 */
+  /** 语义色，默认 'default' */
   color?: ChipColor;
-  /** 尺寸 */
+  /** 尺寸，默认 'md' */
   size?: ChipSize;
-  /** 圆角 */
+  /** 圆角，默认 'full'（胶囊） */
   radius?: ChipRadius;
-  /** 是否禁用 */
+  /** 是否禁用，默认 false */
   isDisabled?: boolean;
-  /** 关闭回调：传入时渲染关闭按钮 */
+  /** 关闭回调：传入时渲染关闭按钮，默认不渲染 */
   onClose?: () => void;
-  /** 自定义 CSS 类名（作用于根元素） */
+  /** 自定义 CSS 类名（作用于根元素），默认为空 */
   className?: string;
 }
 
 /**
- * variant × color 组合对应的边框/背景/文字颜色。
- * 采用项目语义色变量，跟随主题色变化。
+ * variant × color 组合对应的边框 / 背景 / 文字颜色（项目语义色变量，跟随主题变化）。
  */
 const variantColorStyles: Record<ChipVariant, Record<ChipColor, string>> = {
   primary: {
@@ -97,7 +91,7 @@ const variantColorStyles: Record<ChipVariant, Record<ChipColor, string>> = {
   },
 };
 
-/** 各尺寸对应的内边距与字号 */
+/** 各尺寸对应的高度 / 内边距 / 字号 */
 const sizeStyles: Record<ChipSize, string> = {
   xs: 'h-5 px-1.5 text-[11px] gap-0.5',
   sm: 'h-6 px-2 text-xs gap-1',
@@ -115,14 +109,9 @@ const radiusStyles: Record<ChipRadius, string> = {
 };
 
 /**
- * 标签芯片组件
- *
- * 渲染一个圆角胶囊状的标签，支持 variant/color/size/radius 组合、
- * 关闭按钮与禁用态。API 对齐 HeroUI Chip，样式由项目自管语义色实现；
- * 内容（图标、文字等）由调用方通过 children 自行组合传入。
- *
- * @param props - 组件属性
- * @returns 带样式与可变槽位的标签芯片
+ * 标签芯片组件。
+ * @param props - 组件属性，见 ChipProps（children / variant / color / size / radius / isDisabled / onClose / className）
+ * @returns 带样式与可选关闭按钮的 <span> 标签芯片
  */
 export const Chip: React.FC<ChipProps> = ({
   children,
@@ -135,6 +124,7 @@ export const Chip: React.FC<ChipProps> = ({
   className = '',
   ...nativeProps
 }) => {
+  // 芯片内容：children + 可选关闭按钮（×）
   const content = (
     <>
       {children}
@@ -143,6 +133,9 @@ export const Chip: React.FC<ChipProps> = ({
           type="button"
           aria-label="关闭"
           disabled={isDisabled}
+          // 关闭按钮可能嵌在可按压容器内（如下拉触发器 <button>）：react-aria 的 press 由
+          // pointerdown 驱动，不拦住会让容器触发 press（弹层被打开）并吞掉本按钮的 click
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
