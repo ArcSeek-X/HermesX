@@ -21,8 +21,8 @@
 
 import React from 'react';
 import { Button as HeroButton } from '@heroui/react';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { cn } from '../../utils/cn';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { cn } from '../../../utils/cn';
 
 /**
  * 按钮属性。

@@ -51,9 +51,9 @@ import {
     Select as HeroSelect,
     type Key,
 } from '@heroui/react';
-import { cn } from '../../utils/cn';
-import { Chip } from './Chip';
-import { Separator } from './Separator';
+import { cn } from '../../../utils/cn';
+import { Chip } from '../Chip';
+import { Separator } from '../Separator';
 
 /** 空态占位项的 key，仅当数据源为空时以禁用项形式渲染 */
 const EMPTY_OPTION_KEY = '__hrs_select_empty__';

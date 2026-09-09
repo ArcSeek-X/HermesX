@@ -33,7 +33,7 @@
  */
 import type { FC } from 'react';
 import { Separator as HeroSeparator } from '@heroui/react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /** 分割线方向 */
 export type HrsSeparatorOrientation = 'horizontal' | 'vertical';

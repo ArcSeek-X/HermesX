@@ -37,8 +37,8 @@ import type { ComponentProps } from 'react';
 import { Table as HeroTable, EmptyState } from '@heroui/react';
 import type { Key, SortDescriptor, Selection } from '@heroui/react';
 import { Inbox } from 'lucide-react';
-import PaginationBar from './Pagination';
-import { cn } from '../../utils/cn';
+import PaginationBar from '../Pagination';
+import { cn } from '../../../utils/cn';
 import styles from './Table.module.scss';
 
 
@@ -266,9 +266,9 @@ export function Table<T extends { id: string | number }>({
     : undefined;
 
   return (
-    <div className={cn('hrs-table flex flex-col w-full', styles.root)}>
+    <div className={cn('hrs-table flex flex-col w-full')}>
       {/* HeroUI Table 主体（写法 A：Table → Table.ScrollContainer → Table.Content 三层递进） */}
-      <HeroTable variant={variant} className={cn('hrs-table__root rounded-md', className)}>
+      <HeroTable variant={variant} className={cn('hrs-table__root rounded-md bg-secondary', styles.root,className)}>
         <HeroTable.ScrollContainer style={containerStyle}>
           <HeroTable.ResizableContainer>
             <HeroTable.Content
@@ -281,7 +281,7 @@ export function Table<T extends { id: string | number }>({
               onSortChange={onSortChange}
             >
               {/* 表头 */}
-              <HeroTable.Header className={cn('hrs-table__header ', styles.header)}>
+              <HeroTable.Header className={cn('hrs-table__header bg-muted', styles.header)}>
                 {columns.map((col) => (
                   <HeroTable.Column
                     key={col.key}
@@ -312,7 +312,7 @@ export function Table<T extends { id: string | number }>({
                 items={displayRows}
                 renderEmptyState={renderEmptyState ?? defaultEmptyState}
               >
-                {/* 
+                {/*
                 使用 render props 模式，根据行数据渲染每一行。
                 HeroUI Table 要求通过 (item) => <HeroTable.Row> 的方式渲染。
               */}

@@ -52,8 +52,8 @@
  */
 import { Children, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { Drawer as HeroUIDrawer } from '@heroui/react';
-import { cn } from '../../utils/cn';
-import { Separator } from './Separator';
+import { cn } from '../../../utils/cn';
+import { Separator } from '../Separator';
 
 /** 滑出方向（对齐 HeroUI Drawer.Content 的 placement 规格） */
 export type HrsDrawerPlacement = 'top' | 'bottom' | 'left' | 'right';
