@@ -1,3 +1,8 @@
+---
+name: type-naming-skill
+description: 前端类型命名基准规范。明确对外导出类型何时用 `Def`（数据结构/契约）后缀、何时用 `Props`（React 组件入参）后缀，含三条判定规则与边界情况。
+---
+
 # 类型命名基准：Def vs Props
 
 本规范用于统一项目内对外导出类型的命名，明确何时使用 `Def` 后缀、何时使用 `Props` 后缀。

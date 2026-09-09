@@ -1,3 +1,8 @@
+---
+name: i18n-naming-skill
+description: 前端 i18n 多语言管理规范。统一 `apps/hrs-web/src/i18n/` 三语主字典的 key 命名、七大类别前缀契约、字典排列顺序与新增文案流程。
+---
+
 # i18n 多语言管理规范
 
 > 适用范围：`apps/hrs-web/src/i18n/` 三语主字典（`uiText-zh.ts` / `uiText-zh-Hant.ts` / `uiText-en.ts`，经 `uiText.ts` 聚合为 `UI_TEXT`，由 `UiLanguageContext.t()` 消费）。

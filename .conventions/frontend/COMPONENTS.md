@@ -1,3 +1,8 @@
+---
+name: components-packaging-skill
+description: 前端组件标准化二次封装规范。基于 HeroUI 做业务增量增强，全程使用 Tailwind 原生样式、不修改原生源码、完整透传原生 Props/事件/类型。适用于 React + TypeScript + TailwindCSS 业务组件封装。
+---
+
 # 前端组件封装基础Skill
 
 > 组件标准化二次封装技能：全程使用 Tailwind 原生样式或者Tailwind.config定义的样式、不新增自定义 CSS、完整保留 HeroUI 原生能力，仅做业务增量增强。
