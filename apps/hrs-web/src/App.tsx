@@ -21,6 +21,7 @@ import {
 } from './components/layout/RouteBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UiLanguageProvider, useUiLanguage } from './contexts/UiLanguageContext';
+import { AppModeProvider } from './contexts/AppModeContext';
 import { PageStateProvider } from './stores/PageStateStore';
 import { useAgentChatStore } from './stores/agentChatStore';
 import './App.css';
@@ -166,18 +167,20 @@ const AppContent: React.FC = () => {
 /**
  * 应用最外层组件：装配全局 Provider 并形成渲染树。
  * Provider 顺序（由外到内）：
- *   UiLanguageProvider → Router → AuthProvider → PageStateProvider → AppContent
+ *   UiLanguageProvider → AppModeProvider → Router → AuthProvider → PageStateProvider → AppContent
  */
 const App: React.FC = () => {
   return (
     <UiLanguageProvider>
-      <Router>
-        <AuthProvider>
-          <PageStateProvider>
-            <AppContent />
-          </PageStateProvider>
-        </AuthProvider>
-      </Router>
+      <AppModeProvider>
+        <Router>
+          <AuthProvider>
+            <PageStateProvider>
+              <AppContent />
+            </PageStateProvider>
+          </AuthProvider>
+        </Router>
+      </AppModeProvider>
       {/* 全局错误 toast 宿主：订阅命令式队列，在任意 API 报错时弹出 danger 浮层 */}
       <Toast />
     </UiLanguageProvider>

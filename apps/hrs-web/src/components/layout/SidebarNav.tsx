@@ -6,7 +6,7 @@
  * - variant="rail"：精简轨道模式（图标居中），用于桌面端固定侧边栏
  *
  * 主要职责：
- * 1. 渲染导航项列表（首页、总览、板块、自选、K线、问股、复盘、持仓、AI 建议、回测、告警、用量等），顺序见 NAV_ITEMS
+ * 1. 渲染导航项列表，菜单集合随运行模式切换：产品使用模式用 PRODUCT_NAV_ITEMS，开发调试模式用 DEBUG_NAV_ITEMS
  * 2. 依据 AlphaSift 功能开关动态显隐「选股」入口
  * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
@@ -16,6 +16,7 @@ import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAgentChatStore } from '../../stores/agentChatStore';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useAppMode } from '../../contexts/AppModeContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import { cn } from '../../utils/cn';
 import { StatusDot } from '../common/StatusDot';
@@ -46,10 +47,10 @@ type NavItem = {
 };
 
 /**
- * 导航项配置列表，数组顺序即为菜单展示顺序。
+ * 产品菜单：产品使用模式（normal）下呈现，数组顺序即为菜单展示顺序。
  * 'screening'（选股）受 AlphaSift 开关控制，关闭时从列表中过滤；开启时位于列表末尾。
  */
-const NAV_ITEMS: NavItem[] = [
+const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'home', labelKey: 'layout.nav.home.title', to: '/home', icon: Home, exact: true },
   { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard.title', to: '/stock-dashboard', icon: LayoutDashboard },
   { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis.title', to: '/sector-analysis', icon: LayoutGrid },
@@ -66,11 +67,17 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'usage', labelKey: 'layout.nav.usage.title', to: '/usage', icon: Gauge },
   { key: 'screening', labelKey: 'layout.nav.screening.title', to: '/screening', icon: Search },
   { key: 'code-test', labelKey: 'layout.nav.codeTest.title', to: '/codeTest', icon: FlaskConical },
+];
+
+/** 调试菜单：开发调试模式（debug）下呈现 */
+const DEBUG_NAV_ITEMS: NavItem[] = [
   { key: 'docs-checkbox', labelKey: 'layout.nav.docsCheckbox.title', to: '/docs/component/checkbox', icon: CheckSquare },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
   const { t } = useUiLanguage();
+  // 运行模式：决定侧边栏呈现产品菜单还是调试菜单
+  const { isDevelopmentMode } = useAppMode();
   // 对话完成标记：有新的 AI 回复完成时显示红点
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
   // AlphaSift 是否启用，控制「选股」入口显隐
@@ -110,8 +117,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
     };
   }, []);
 
+  // 按运行模式选择菜单：产品使用模式→产品菜单，开发调试模式→调试菜单
+  const modeItems = isDevelopmentMode ? DEBUG_NAV_ITEMS : PRODUCT_NAV_ITEMS;
   // AlphaSift 未启用时过滤掉「选股」导航项
-  const navItems = showAlphaSiftNav ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.key !== 'screening');
+  const navItems = showAlphaSiftNav ? modeItems : modeItems.filter((item) => item.key !== 'screening');
   const isRail = variant === 'rail';
 
   // ===== 样式常量（按 variant / collapsed 预组合）=====

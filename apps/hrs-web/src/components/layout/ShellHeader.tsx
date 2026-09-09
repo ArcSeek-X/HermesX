@@ -46,7 +46,7 @@ type ShellHeaderProps = {
 /**
  * 路径 -> 顶栏标题/描述的映射。
  *
- * **顺序与 SidebarNav 的 NAV_ITEMS 保持一致**（便于对照维护）；
+ * **顺序与 SidebarNav 的 PRODUCT_NAV_ITEMS 保持一致**（便于对照维护）；
  * 未命中的路径会回退到兜底标题，因此新增菜单项时务必同步登记，
  * /settings 不在主菜单中（由用户菜单进入），置于末尾。
  */
