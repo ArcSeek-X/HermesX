@@ -168,8 +168,6 @@ export interface HrsCheckboxProps extends Omit<CheckboxRootProps, 'children' | '
     labelClassName?: string;
 }
 
-// 基础与尺寸样式集中维护在 ./styleCover
-
 /**
  * 通用勾选框组件。
  *
@@ -342,6 +340,7 @@ export const HrsCheckbox: React.FC<HrsCheckboxProps> = ({
 
                     return (
                         <HeroCheckbox
+                            key={optionValue}
                             // 组件级原生属性先铺底，选项级原生属性覆盖组件级
                             {...heroProps}
                             {...optionProps}
