@@ -1,3 +1,9 @@
+/**
+ * @file MarketReviewRegionSelector.test.tsx
+ * @description MarketReviewRegionSelector 区域多选下拉的单元测试：覆盖 HTTP 边界下规范选择序列化、
+ * 服务端默认值不透明与规范覆盖、全市场选择与恢复默认、至少保留一个市场、禁用态菜单关闭与选项拦截。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';

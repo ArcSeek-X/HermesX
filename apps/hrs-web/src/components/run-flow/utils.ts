@@ -1,3 +1,9 @@
+/**
+ * @file utils.ts
+ * @description 运行流模块工具：运行状态样式映射、多语言文本函数与状态格式化辅助。
+ * 使用场景：run-flow 各组件共用的状态视觉与文案工具。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type { UiTextKey } from '../../i18n/uiText';
 import type {
   RunFlowEdgeKind,

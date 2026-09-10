@@ -19,6 +19,8 @@
  * 【使用方式】
  *   <StatusDot tone="success" />
  *   <StatusDot tone="danger" pulse aria-label="连接已断开" />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

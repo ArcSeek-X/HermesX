@@ -37,9 +37,12 @@
  *   </Modal.Backdrop>
  * </Modal.Root>
  * ```
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Modal as HeroUIModal } from '@heroui/react';
+import { ModalOverlay } from 'react-aria-components/Modal';
 import { cn } from '../../../utils/cn';
 import { Separator } from '../Separator';
 
@@ -130,10 +133,13 @@ const HrsModal: React.FC<HrsModalProps> = ({
 
   return (
     <HeroUIModal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose?.(); }}>
-      <HeroUIModal.Backdrop 
-        variant={variant}
-        isDismissable={isDismissable} 
-        className={cn('hrs-modal-backdrop', VARIANT_GRADIENT_MAP[variant], backdropClassName)}
+      {/* 不用 HeroUIModal.Backdrop：它内部把 children 用 ModalContext.Provider 包裹后传给 rac 的
+          ModalOverlay，而 ModalOverlay 内的 Pressable 要求子节点是单一 DOM 元素，Provider 非 DOM 会触发
+          "PressResponder was rendered without a pressable child"。这里直接用 rac ModalOverlay，
+          子节点直接是 Container（forwardRef DOM），规避该警告。 */}
+      <ModalOverlay
+        isDismissable={isDismissable}
+        className={cn('hrs-modal-backdrop', VARIANT_GRADIENT_MAP[variant], variant === 'blur' && 'backdrop-blur', backdropClassName)}
       >
         <HeroUIModal.Container size={size} placement={placement} scroll={scroll}>
           <HeroUIModal.Dialog className={cn('hrs-modal-dialog', SIZE_RADIUS_MAP[size] ?? 'rounded-lg', dialogClassName)}>
@@ -161,7 +167,7 @@ const HrsModal: React.FC<HrsModalProps> = ({
             )}
           </HeroUIModal.Dialog>
         </HeroUIModal.Container>
-      </HeroUIModal.Backdrop>
+      </ModalOverlay>
     </HeroUIModal.Root>
   );
 };

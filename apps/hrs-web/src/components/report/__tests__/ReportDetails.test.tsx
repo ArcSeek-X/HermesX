@@ -1,3 +1,8 @@
+/**
+ * @file ReportDetails.test.tsx
+ * @description ReportDetails 透明度与追溯区组件的单元测试：覆盖 JSON 面板切换、复制与展开收起。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReportDetails } from '../ReportDetails';

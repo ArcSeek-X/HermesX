@@ -1,3 +1,9 @@
+/**
+ * @file SettingsPanelErrorBoundary.tsx
+ * @description 设置面板错误边界：捕获设置面板渲染异常，以 InlineAlert 提示并提供重试。
+ * 使用场景：包裹设置页面板，避免单个面板崩溃拖垮整个设置页。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { InlineAlert } from '../';

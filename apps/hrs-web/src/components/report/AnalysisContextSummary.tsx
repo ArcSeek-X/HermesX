@@ -1,3 +1,11 @@
+/**
+ * @file AnalysisContextSummary.tsx
+ * @description 分析上下文包概览组件：展示 AnalysisContextPack 各数据块（行情、新闻、财务等）的
+ * 可用性状态（available / missing / not_supported / fallback / stale / estimated），
+ * 以徽章 + 状态点呈现，支持展开收起明细。
+ * 使用场景：个股报告页的「分析上下文」区块，被 ReportSummary 聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { ChevronDown, Database } from 'lucide-react';
 import type {

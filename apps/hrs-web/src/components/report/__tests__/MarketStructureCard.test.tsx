@@ -1,3 +1,8 @@
+/**
+ * @file MarketStructureCard.test.tsx
+ * @description MarketStructureCard 市场结构卡片组件的单元测试：覆盖各结构状态与主题列表渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { MarketStructureContext } from '../../../types/analysis';

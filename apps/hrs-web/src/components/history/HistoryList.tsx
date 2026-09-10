@@ -1,3 +1,9 @@
+/**
+ * @file HistoryList.tsx
+ * @description 历史分析记录列表：展示历史分析条目（时间、标的、情绪标签），支持滚动加载与点击查看。
+ * 使用场景：首页历史记录侧栏/列表区。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useRef, useCallback, useEffect, useId } from 'react';
 import type { HistoryItem } from '../../types/analysis';

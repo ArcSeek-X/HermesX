@@ -1,3 +1,10 @@
+/**
+ * @file DecisionSignalTimeline.test.tsx
+ * @description DecisionSignalTimeline 组件辅助函数与时间轴渲染的单元测试：
+ * 覆盖 issue 动作 rank 映射稳定性、createdAt 升序排序（非法日期置尾）、
+ * alert/watch 同级样式区分、非法分数/置信度钳制、终止状态淡化与选中点交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

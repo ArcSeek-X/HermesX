@@ -1,3 +1,9 @@
+/**
+ * @file ReportMarkdown.tsx
+ * @description ReportMarkdown 兼容包装：以 Drawer 直接挂载 ReportMarkdownPanel 的旧用法入口，
+ * 供仍直接引用该组件的页面使用；新代码（HomePage）已改用 ReportMarkdownDrawer 懒加载。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import type { ReportLanguage } from '../../types/analysis';

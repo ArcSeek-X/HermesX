@@ -1,3 +1,10 @@
+/**
+ * @file ReportDetails.tsx
+ * @description 报告透明度与追溯区组件（终端风格）：展示报告生成时的原始数据（raw）与快照（snapshot）
+ * JSON 面板，支持复制与展开收起。
+ * 使用场景：个股报告页的「透明度与追溯」区块，被 ReportSummary 聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReportDetails as ReportDetailsType, ReportLanguage } from '../../types/analysis';

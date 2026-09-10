@@ -1,3 +1,10 @@
+/**
+ * @file SettingsAlert.tsx
+ * @description 设置页告警条：基于 InlineAlert 封装，用于设置保存成功/失败、校验提示等场景，
+ * 支持关闭与操作按钮。
+ * 使用场景：设置页各卡片顶部的保存结果提示。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Button, InlineAlert } from '../';
 import { cn } from '../../utils/cn';

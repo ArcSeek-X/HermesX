@@ -6,6 +6,8 @@
  * 成交量放大、均线穿越、RSI / MACD / KDJ / CCI 阈值、组合止损、大盘红绿灯等），并在提交前做前端校验，
  * 最终通过 onSubmit 回调把标准化后的 AlertRuleCreateRequest 交给上层处理。
  * 组件本身不负责网络请求，仅做本地状态管理与参数构造。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';

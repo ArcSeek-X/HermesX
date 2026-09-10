@@ -31,6 +31,8 @@
  * - 支持全量数据模式（showAllData），开启后加载从上市至今所有数据
  * - 支持分页加载（onDataZoomBoundary），拖动到左边界时触发
  * - Tooltip 显示顺序：日期、涨跌幅、开盘、收盘、最高、最低、成交量、成交额、换手率、MA、MACD、DIF、DEA
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

@@ -1,3 +1,10 @@
+/**
+ * @file RunFlowGraph.tsx
+ * @description 运行流程拓扑图：自绘 SVG 渲染分析运行流程的节点/边（数据源、LLM、报告等阶段），
+ * 支持展开/收起与节点选中。
+ * 使用场景：运行流面板的拓扑图区块。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useMemo, useId } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';

@@ -1,3 +1,8 @@
+/**
+ * @file RunFlowGraph.test.tsx
+ * @description RunFlowGraph 拓扑图的单元测试：覆盖节点/边渲染、展开收起与选中交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunFlowEdge, RunFlowLane, RunFlowNode } from '../../../types/runFlow';

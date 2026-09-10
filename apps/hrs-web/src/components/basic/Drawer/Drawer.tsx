@@ -49,6 +49,7 @@
  * </HrsDrawer.Root>
  * ```
  * ------------------------------------------------------------
+ * @author Lensgcx (GaoCangxiong)
  */
 import { Children, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { Drawer as HeroUIDrawer } from '@heroui/react';

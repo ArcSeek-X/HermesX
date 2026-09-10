@@ -1,3 +1,8 @@
+/**
+ * @file HistoryListItem.tsx
+ * @description 历史记录列表项：单条历史分析条目的展示（标的、时间、情绪徽章），被 HistoryList 渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Badge } from '../';
 import type { HistoryItem } from '../../types/analysis';

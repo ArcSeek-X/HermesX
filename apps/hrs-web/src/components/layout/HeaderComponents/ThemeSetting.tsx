@@ -7,6 +7,8 @@
  * 层级处理：弹层通过 createPortal 渲染到 document.body，并用 fixed 定位，
  * 避免被父级（如 <header class="z-30">）的 stacking context / overflow 影响层级，
  * 确保弹层始终在页面所有内容之上。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

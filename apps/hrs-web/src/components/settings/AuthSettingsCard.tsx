@@ -19,6 +19,12 @@ function createNextModeLabel(authEnabled: boolean, desiredEnabled: boolean, t: (
   return authEnabled ? t('settings.keepAuthEnabled') : t('settings.keepAuthDisabled');
 }
 
+/**
+ * @file AuthSettingsCard.tsx
+ * @description 认证设置卡片：展示/修改访问密码等认证相关配置，配合 ChangePasswordCard 使用。
+ * 使用场景：设置页的认证配置分区。
+ * @author Lensgcx (GaoCangxiong)
+ */
 export const AuthSettingsCard: React.FC = () => {
   const { authEnabled, setupState, refreshStatus } = useAuth();
   const { t } = useUiLanguage();

@@ -11,6 +11,8 @@
  * 使用场景：
  *   - 为图标、按钮、缩写等提供额外的解释性文案。
  *   - 需要无障碍支持（aria-describedby）与可聚焦（focusable）的提示场景。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

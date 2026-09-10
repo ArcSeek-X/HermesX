@@ -1,5 +1,7 @@
 /**
  * StockSearch component tests.
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';

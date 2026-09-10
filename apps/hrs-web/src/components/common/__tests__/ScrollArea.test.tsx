@@ -1,3 +1,8 @@
+/**
+ * @file ScrollArea.test.tsx
+ * @description ScrollArea 滚动容器组件的单元测试：覆盖渲染与滚动事件回调。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ScrollArea } from '../ScrollArea';

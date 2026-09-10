@@ -1,3 +1,10 @@
+/**
+ * @file SettingsField.tsx
+ * @description 设置字段渲染器：按 SystemConfigFieldSchema 动态渲染单个配置项（密码/下拉/开关/文本框等），
+ * 处理校验提示、敏感信息掩码与值变更回写。
+ * 使用场景：设置页各分区卡片中的字段行渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useState } from 'react';
 import type React from 'react';
 import { Badge, Button, PasswordInput, Select } from '../';

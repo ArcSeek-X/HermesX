@@ -1,3 +1,10 @@
+/**
+ * @file llmProviderTemplates.ts
+ * @description LLM 渠道协议与供应商预设模板：定义 ChannelProtocol、能力标记与各厂商（OpenAI/DeepSeek/
+ * Gemini/Anthropic/Vertex AI/Ollama）的默认地址、模型前缀与配置模板。
+ * 使用场景：LLMChannelEditor 的协议选择、模板导入与能力检查。
+ * @author Lensgcx (GaoCangxiong)
+ */
 export type ChannelProtocol = 'openai' | 'deepseek' | 'gemini' | 'anthropic' | 'vertex_ai' | 'ollama';
 export type LLMProviderCapability =
   | 'openai-compatible'

@@ -1,3 +1,8 @@
+/**
+ * @file ReportOverview.test.tsx
+ * @description ReportOverview 报告总览头部组件的单元测试：覆盖评分仪表、元信息与自选切换渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ReportOverview } from '../ReportOverview';

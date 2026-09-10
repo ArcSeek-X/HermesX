@@ -18,6 +18,8 @@
  *
  * 【使用方式】
  *   <JsonViewer data={someObject} maxHeight="500px" />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import React, { useState } from 'react';

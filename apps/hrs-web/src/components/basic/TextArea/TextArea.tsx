@@ -13,6 +13,7 @@
  *   - variant 沿用 HeroUI 规格（'primary' 默认带阴影、'secondary' 无阴影适配 Surface）。
  *   - 校验 / 标签 / 错误文案等高级能力，建议配合 HeroUI 的 <TextField> 包裹使用。
  *   - 内部样式全部基于 Tailwind 工具类，不引入或新建样式类（除复用项目既有 surface 变量）。
+ * @author Lensgcx (GaoCangxiong)
  */
 import type * as React from 'react';
 import { useId } from 'react';

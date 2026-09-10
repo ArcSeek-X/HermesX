@@ -2,6 +2,8 @@
  * @file DashboardStateBlock.tsx
  * @description 仪表盘状态区块组件，用于统一渲染加载中、空数据、错误等状态的占位展示
  * @module components/dashboard
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

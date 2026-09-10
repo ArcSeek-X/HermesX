@@ -4,6 +4,8 @@
  * 作用：以表格展示某条告警规则的后台评估记录（triggered / skipped / degraded / failed 等状态），
  * 并额外呈现每次评估时的「市场阶段 / 数据质量」上下文。支持加载态与空状态展示。
  * 组件为纯展示型，数据由 props 注入，自身不发起请求。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { Activity } from 'lucide-react';

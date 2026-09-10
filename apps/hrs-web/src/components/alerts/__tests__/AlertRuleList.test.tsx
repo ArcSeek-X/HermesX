@@ -1,3 +1,9 @@
+/**
+ * @file AlertRuleList.test.tsx
+ * @description AlertRuleList 告警规则列表的单元测试：覆盖规则渲染/筛选/分页、
+ * 后端 cooldownActive 字段消费、组合范围标签与子目标冷却提示、英文模式文案、测试与启用状态切换。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

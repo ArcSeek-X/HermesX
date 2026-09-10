@@ -1,3 +1,8 @@
+/**
+ * @file SettingsField.test.tsx
+ * @description SettingsField 设置字段渲染器的单元测试：覆盖各字段类型的渲染、校验与值回写。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';

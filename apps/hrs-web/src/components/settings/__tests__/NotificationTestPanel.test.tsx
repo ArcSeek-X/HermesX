@@ -1,3 +1,8 @@
+/**
+ * @file NotificationTestPanel.test.tsx
+ * @description NotificationTestPanel 通知测试面板的单元测试：覆盖渠道选择与测试发送结果展示。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';

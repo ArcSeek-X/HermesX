@@ -11,6 +11,8 @@
  * 使用场景：
  *   - 网络请求失败、后端返回非 2xx、解析异常等需要在界面上提示用户的场合。
  *   - 作为全局或局部的错误展示 UI，与 `api/error` 的解析结果配套使用。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

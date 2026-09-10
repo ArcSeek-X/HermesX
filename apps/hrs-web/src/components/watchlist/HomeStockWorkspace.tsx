@@ -16,6 +16,8 @@
  * - history 组件：StockBar
  * - i18n：useUiLanguage 提供多语言文案
  * - 工具函数：formatDateTime / truncateStockName / getSentimentColor / decisionAction
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useMemo, useState } from 'react';

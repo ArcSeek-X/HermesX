@@ -5,6 +5,7 @@
  * - 提供 sm/md/lg 三档尺寸（外加 xs 紧凑档），由 size 控制高度、字号与圆角。
  * - 仅承载 HeroUI Input 本身的能力：原生属性透传（含受控 value / type / onChange）。
  * - 密码场景（Lock / Key 图标、可见性切换）请使用 PasswordInput。
+ * @author Lensgcx (GaoCangxiong)
  */
 import type * as React from 'react';
 import { useId } from 'react';

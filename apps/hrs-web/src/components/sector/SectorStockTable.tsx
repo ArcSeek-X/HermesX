@@ -11,6 +11,8 @@
  * - 涨跌相关字段使用全局股票颜色工具类（stock-up / stock-down / stock-flat）
  *
  * 数据来源：父组件通过 props 传入 sectorName 和 stocks
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { Card } from '../';

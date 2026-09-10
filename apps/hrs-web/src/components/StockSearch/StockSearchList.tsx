@@ -4,6 +4,8 @@
  * 负责在 StockSearch 输入联想时，渲染候选股票/指数/ETF 列表。
  * 外层用 AnimCard 包裹（带渐变背景与外边阴影），内部 <ul> 为可滚动列表。
  * 每个候选项为三栏布局：市场徽标 | 名称+代码 | 匹配类型徽标。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type { CSSProperties } from 'react';

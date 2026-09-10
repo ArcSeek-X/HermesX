@@ -1,3 +1,8 @@
+/**
+ * @file StockBarItem.test.tsx
+ * @description StockBarItem 历史条目的单元测试：覆盖概要渲染与点击打开报告。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { StockBarItemComponent } from '../StockBarItem';

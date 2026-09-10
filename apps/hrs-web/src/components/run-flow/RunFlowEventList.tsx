@@ -1,3 +1,10 @@
+/**
+ * @file RunFlowEventList.tsx
+ * @description 运行流程事件列表：按级别过滤展示分析运行过程中的事件（警告/错误/分支等），
+ * 支持级别筛选与展开查看。
+ * 使用场景：运行流面板的事件列表区块。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Filter, GitBranch, ListFilter, OctagonAlert, XCircle } from 'lucide-react';

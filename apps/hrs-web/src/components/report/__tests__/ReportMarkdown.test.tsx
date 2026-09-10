@@ -1,3 +1,8 @@
+/**
+ * @file ReportMarkdown.test.tsx
+ * @description ReportMarkdown 兼容包装组件的单元测试：覆盖抽屉渲染与面板挂载。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { historyApi } from '../../../api/history';

@@ -1,3 +1,11 @@
+/**
+ * @file LightBloom.tsx
+ * @description 基于 WebGL shader 的光晕背景动画组件（源自 Originkit Light Bloom 设计）。
+ * 以全屏 canvas 渲染 bloom（柔光）或 shafts（光束）两种风格，光源方向/颜色/速度/悬停光强
+ * 均可通过 props 控制；渲染依赖 requestAnimationFrame，卸载时自动清理监听与动画帧。
+ * 使用场景：页面背景氛围光效，默认导出 LightBloom。
+ * @author Lensgcx (GaoCangxiong)
+ */
 // Light Bloom — Originkit
 // Using component defaults.
 

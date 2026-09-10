@@ -1,3 +1,10 @@
+/**
+ * @file MarketReviewRegionSelector.tsx
+ * @description 大盘复盘区域多选下拉：在中国/香港/美国/日本/韩国市场中多选复盘区域，
+ * value 为 undefined 时展示「服务端默认」占位；支持至少保留一个市场、禁用态、
+ * 点击外部关闭与键盘交互。状态由上层托管，组件仅通过 onChange 回传选择结果。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Globe2, RotateCcw } from 'lucide-react';

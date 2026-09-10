@@ -11,6 +11,8 @@
  * 对外契约：
  *   - onChange(value)：输入内容变化（原始文本）
  *   - onSubmit(code, name, source, metadata)：提交搜索，code 为规范代码（如 600519.SH）
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { Component, useRef, useEffect, useState } from 'react';

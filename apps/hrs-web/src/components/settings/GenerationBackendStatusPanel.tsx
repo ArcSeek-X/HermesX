@@ -1,3 +1,10 @@
+/**
+ * @file GenerationBackendStatusPanel.tsx
+ * @description 生成后端状态面板：轮询 systemConfigApi 展示报告生成后端（LLM 服务）连接/健康状态，
+ * 支持手动刷新，状态以图标 + 文案呈现。
+ * 使用场景：设置页的生成后端状态卡片。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { CheckCircle2, CircleAlert, CircleDashed, FlaskConical, RefreshCw } from 'lucide-react';

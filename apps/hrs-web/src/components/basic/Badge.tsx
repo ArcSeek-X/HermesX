@@ -11,6 +11,9 @@
  * - danger：危险红色
  * - info：信息青色
  * - history：历史紫色
+ *
+ * 使用场景：状态标记、分类标签、计数角标等；被消息日历、任务列表等模块引用。
+ * @author Lensgcx (GaoCangxiong)
  */
 import React from 'react';
 import { cn } from '../../utils/cn';
@@ -20,15 +23,15 @@ type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'his
 
 /** Badge 组件的属性定义 */
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  /** 徽章显示内容 */
+  /** 徽章显示内容，必填 */
   children: React.ReactNode;
-  /** 颜色变体 */
+  /** 颜色变体，默认 'default' */
   variant?: BadgeVariant;
-  /** 尺寸：sm 小 / md 中 */
+  /** 尺寸：sm 小 / md 中，默认 'sm' */
   size?: 'sm' | 'md';
-  /** 是否启用发光阴影效果 */
+  /** 是否启用发光阴影效果，默认 false */
   glow?: boolean;
-  /** 自定义 CSS 类名 */
+  /** 自定义 CSS 类名，默认空 */
   className?: string;
   /** 内联样式 */
   style?: React.CSSProperties;

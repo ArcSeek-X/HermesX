@@ -1,3 +1,10 @@
+/**
+ * @file IntelligentImport.tsx
+ * @description 智能导入组件：上传截图/图片（限 5MB、图片扩展名）交给后端提取股票配置（ExtractItem），
+ * 支持预览确认、冲突提示与导入结果展示。
+ * 使用场景：设置页的自选股/配置智能导入入口。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
 import { getParsedApiError } from '../../api/error';

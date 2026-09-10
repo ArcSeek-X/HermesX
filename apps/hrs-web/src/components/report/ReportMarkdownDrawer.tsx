@@ -1,3 +1,10 @@
+/**
+ * @file ReportMarkdownDrawer.tsx
+ * @description 报告 Markdown 抽屉：懒加载 ReportMarkdownPanel（降低首包体积），内置 ErrorBoundary
+ * 与 Suspense 加载态，关闭时先播退场动画再卸载。
+ * 使用场景：HomePage 点击报告记录打开完整 Markdown 报告。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Component, lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import type { ReportLanguage } from '../../types/analysis';

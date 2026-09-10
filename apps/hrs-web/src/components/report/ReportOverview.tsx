@@ -1,3 +1,10 @@
+/**
+ * @file ReportOverview.tsx
+ * @description 报告总览头部：展示报告 meta（时间、标的、语言）、情绪得分仪表（ScoreGauge）、
+ * 市场阶段/半仓标签与自选股切换操作。
+ * 使用场景：报告页顶部区块，被 ReportSummary 聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import type {
   ReportDetails as ReportDetailsType,

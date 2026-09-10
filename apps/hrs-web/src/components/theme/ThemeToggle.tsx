@@ -17,6 +17,8 @@
  * 主题状态来源：next-themes 的 useTheme()
  * - theme：用户选择的主题偏好（light / dark / system）
  * - resolvedTheme：实际生效的主题（system 模式下解析为 light 或 dark）
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';

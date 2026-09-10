@@ -10,6 +10,7 @@
  * 使用场景：
  *   - 列表页 / 分析页顶部的筛选器 + 操作按钮组合。
  *   - 任意需要将操作入口在水平两端分布的工具栏区域。
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';
@@ -30,6 +31,8 @@ interface ToolbarProps {
 /**
  * 工具条组件。
  * 将左右两区按统一布局渲染，窄屏纵向堆叠、宽屏左右分布，承载操作类元素。
+ * @param props - 组件属性，见 ToolbarProps（left / right / className）
+ * @returns 玻璃拟态面板样式的工具条容器
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ left, right, className = '' }) => {
   return (

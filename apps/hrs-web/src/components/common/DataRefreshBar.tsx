@@ -28,6 +28,8 @@
  *     onCountdownEnd={handleAutoRefresh}
  *     refreshInterval={30}
  *   />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

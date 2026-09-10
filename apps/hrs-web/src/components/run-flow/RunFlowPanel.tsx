@@ -1,3 +1,10 @@
+/**
+ * @file RunFlowPanel.tsx
+ * @description 运行流面板：按 recordId 拉取运行拓扑并组合 SummaryBar / Graph / EventList / NodeDetails，
+ * 支持刷新与空态/错误态。
+ * 使用场景：报告页打开「运行流程」抽屉/面板的入口组件。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { AlertCircle, RefreshCw, Workflow } from 'lucide-react';

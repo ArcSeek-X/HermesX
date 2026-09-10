@@ -1,3 +1,9 @@
+/**
+ * @file SettingsLoading.tsx
+ * @description 设置页加载态组件：设置数据加载中的占位骨架/提示。
+ * 使用场景：设置页数据加载期间。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 
 export const SettingsLoading: React.FC = () => {

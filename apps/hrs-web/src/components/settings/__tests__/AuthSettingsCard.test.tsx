@@ -1,3 +1,8 @@
+/**
+ * @file AuthSettingsCard.test.tsx
+ * @description AuthSettingsCard 认证设置卡片的单元测试：覆盖认证开关与密码配置交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthSettingsCard } from '../AuthSettingsCard';

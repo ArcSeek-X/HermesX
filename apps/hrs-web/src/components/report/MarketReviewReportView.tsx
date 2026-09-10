@@ -1,3 +1,10 @@
+/**
+ * @file MarketReviewReportView.tsx
+ * @description 大盘分析报告视图：解析并渲染 MarketReviewPayload 的结构化内容（顶部标题、
+ * 各 section 小节、风险提示、市场结构、情绪仪表），支持语言切换、复制、文本导出与打开运行流。
+ * 使用场景：大盘分析（market review）报告页，被 ReportSummary 按 payload 分支聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Clipboard, FileText, Gauge, Layers, ShieldAlert, TrendingUp, WalletCards, Workflow } from 'lucide-react';

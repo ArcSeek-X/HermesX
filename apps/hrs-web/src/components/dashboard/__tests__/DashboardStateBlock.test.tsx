@@ -1,3 +1,9 @@
+/**
+ * @file DashboardStateBlock.test.tsx
+ * @description DashboardStateBlock 状态区块组件的单元测试：覆盖默认段落标题、自定义标题级别、
+ * 图标/描述/操作按钮与加载态行为保持。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DashboardStateBlock } from '../DashboardStateBlock';

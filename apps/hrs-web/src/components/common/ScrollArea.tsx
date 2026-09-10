@@ -19,6 +19,8 @@
  *   <ScrollArea className="h-64" onScroll={handleScroll}>
  *     <LongList />
  *   </ScrollArea>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

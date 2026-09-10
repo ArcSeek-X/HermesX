@@ -1,3 +1,8 @@
+/**
+ * @file StockHistoryTrendDrawer.test.tsx
+ * @description StockHistoryTrendDrawer 趋势抽屉的单元测试：覆盖筛选、趋势列表与报告查看。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';

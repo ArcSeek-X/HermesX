@@ -1,3 +1,8 @@
+/**
+ * @file ReportDiagnostics.test.tsx
+ * @description ReportDiagnostics 运行诊断面板组件的单元测试：覆盖各组件状态徽章与总体状态渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { StrictMode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

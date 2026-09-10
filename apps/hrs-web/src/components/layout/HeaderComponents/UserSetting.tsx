@@ -18,6 +18,7 @@
  *   与下拉菜单的 open 解耦，避免相互干扰。
  * - 组件内部持有 ref，用于判断点击事件是否发生在组件之外（点外关闭）。
  * =====================================================================
+ * @author Lensgcx (GaoCangxiong)
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

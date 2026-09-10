@@ -1,3 +1,10 @@
+/**
+ * @file ReportSummary.tsx
+ * @description 报告聚合根组件：根据数据形态（个股 AnalysisReport / 大盘 MarketReviewPayload）
+ * 组合 Overview、Strategy、News、Details、Diagnostics、AnalysisContextSummary 与
+ * MarketReviewReportView 各区块，是报告展示的统一入口。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import React from 'react';
 import type { AnalysisResult, AnalysisReport } from '../../types/analysis';
 import { ReportOverview } from './ReportOverview';

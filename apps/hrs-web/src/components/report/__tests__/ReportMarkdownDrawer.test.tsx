@@ -1,3 +1,8 @@
+/**
+ * @file ReportMarkdownDrawer.test.tsx
+ * @description ReportMarkdownDrawer 报告 Markdown 抽屉组件的单元测试：覆盖懒加载、错误边界与关闭动画。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,3 +1,8 @@
+/**
+ * @file IntelligentImport.test.tsx
+ * @description IntelligentImport 智能导入组件的单元测试：覆盖图片上传、提取确认与冲突提示。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntelligentImport } from '../IntelligentImport';

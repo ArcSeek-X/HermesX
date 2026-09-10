@@ -1,3 +1,10 @@
+/**
+ * @file topologyViewModel.ts
+ * @description 运行流拓扑视图模型：定义 RunFlowTopologyModel 接口与后端拓扑数据的转换逻辑，
+ * 将 API 返回的节点/边数据映射为图组件可消费的视图模型。
+ * 使用场景：RunFlowGraph / RunFlowPanel 的数据层。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type {
   RunFlowEdge,
   RunFlowEvent,

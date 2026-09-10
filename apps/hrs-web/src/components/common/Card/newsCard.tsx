@@ -1,3 +1,10 @@
+/**
+ * @file newsCard.tsx
+ * @description 单条快讯卡片组件：展示 LiveNewsItem 的时间、标题、来源与情绪标签，
+ * 支持「只看重要的」模式（重要竖线/标签）、内容展开收起与按序号错位的入场动画。
+ * 使用场景：消息日历 List 视图与快讯流中的单条消息渲染，经 Card/index.ts 聚合导出。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { LiveNewsItem } from '../../../types/liveNews';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';

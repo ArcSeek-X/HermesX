@@ -1,3 +1,8 @@
+/**
+ * @file MarketReviewReportView.test.tsx
+ * @description MarketReviewReportView 大盘报告视图组件的单元测试：覆盖标题解析、各区块渲染与语言切换。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { AnalysisReport, MarketReviewPayload } from '../../../types/analysis';

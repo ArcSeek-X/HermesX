@@ -1,3 +1,8 @@
+/**
+ * @file RouteBoundary.test.tsx
+ * @description RouteBoundary 路由边界组件的单元测试：覆盖错误边界回退与 Suspense 加载态。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { lazy } from 'react';
 import type React from 'react';

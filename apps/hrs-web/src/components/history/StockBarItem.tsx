@@ -1,3 +1,9 @@
+/**
+ * @file StockBarItem.tsx
+ * @description 股票历史分析条目：单次历史分析的概要展示（时间、情绪色），点击打开对应报告，
+ * 被 StockBar 渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Badge, Button } from '../';
 import type { StockBarItem as StockBarItemType } from '../../types/analysis';

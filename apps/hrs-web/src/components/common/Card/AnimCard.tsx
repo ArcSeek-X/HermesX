@@ -1,3 +1,12 @@
+/**
+ * @file AnimCard.tsx
+ * @description 带动画入场效果的通用卡片组件（基于 motion/react）：
+ *   - 入场动画：淡入 + 上移，按网格序号 ordinal 错位延迟（0.05s/位）；
+ *   - 视觉变体：default 单层卡片 / gradient 渐变边框（外层衬底 + 内层盖板双层结构）；
+ *   - gradientBackground：左上角主题色渐变背景（::before 伪元素实现，随 --primary 换肤）。
+ * 使用场景：列表页 / 仪表盘等卡片网格的批量入场展示，经 Card/index.ts 聚合导出。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../../../utils/cn';

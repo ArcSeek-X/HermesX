@@ -8,6 +8,8 @@
  *   决定，菱形表示 alert/watch 类特殊标记，外层环线由状态决定（实线/虚线、透明度区分）。
  *   支持悬浮 Tooltip 查看详情、点击点选中信号（onSelect），并提供加载 / 错误 / 空 / 截断
  *   等多种状态展示。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

@@ -32,6 +32,8 @@
  *   >
  *     <YourDetailContent />
  *   </Drawer>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

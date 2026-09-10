@@ -1,3 +1,8 @@
+/**
+ * @file RunFlowPanel.test.tsx
+ * @description RunFlowPanel 运行流面板的单元测试：覆盖数据加载、拓扑渲染与刷新交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { analysisApi } from '../../../api/analysis';

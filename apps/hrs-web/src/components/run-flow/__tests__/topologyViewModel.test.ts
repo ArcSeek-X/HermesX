@@ -1,3 +1,8 @@
+/**
+ * @file topologyViewModel.test.ts
+ * @description topologyViewModel 拓扑视图模型的单元测试：覆盖节点/边映射与拓扑数据转换。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { describe, expect, it } from 'vitest';
 import type { RunFlowSnapshot } from '../../../types/runFlow';
 import { buildRunFlowTopologyModel } from '../topologyViewModel';

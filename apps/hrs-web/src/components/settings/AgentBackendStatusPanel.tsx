@@ -1,3 +1,10 @@
+/**
+ * @file AgentBackendStatusPanel.tsx
+ * @description Agent 后端状态面板：轮询 systemConfigApi 展示 Agent 后端连接/健康状态，
+ * 支持手动刷新，状态以图标 + 文案呈现。
+ * 使用场景：设置页的 Agent 后端状态卡片。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, CircleAlert, CircleDashed, RefreshCw } from 'lucide-react';
 import { systemConfigApi } from '../../api/systemConfig';

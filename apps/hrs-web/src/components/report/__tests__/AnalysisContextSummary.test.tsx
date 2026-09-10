@@ -1,3 +1,8 @@
+/**
+ * @file AnalysisContextSummary.test.tsx
+ * @description AnalysisContextSummary 分析上下文概览组件的单元测试：覆盖各数据块状态渲染与语言切换。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { historyApi } from '../../../api/history';

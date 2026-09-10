@@ -17,6 +17,8 @@
  *
  * 【使用方式】
  *   <Pagination currentPage={page} totalPages={total} onPageChange={setPage} />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

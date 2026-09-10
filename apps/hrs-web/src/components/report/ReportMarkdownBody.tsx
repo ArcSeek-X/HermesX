@@ -1,3 +1,10 @@
+/**
+ * @file ReportMarkdownBody.tsx
+ * @description 报告 Markdown 渲染主体：基于 react-markdown + remark-gfm 渲染报告正文，
+ * 应用 home-markdown-prose 排版（标题层级、代码块、表格样式），支持 testId 供测试定位。
+ * 使用场景：报告 Markdown 面板/抽屉的内容渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

@@ -1,3 +1,10 @@
+/**
+ * @file ReportDiagnostics.tsx
+ * @description 运行诊断信息面板：展示 RunDiagnosticSummary 的总体状态与各组件（数据源、LLM 等）
+ * 状态徽章，支持复制诊断摘要与跳转运行流。
+ * 使用场景：报告页的「运行诊断」区块，被 ReportSummary 聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Check, ChevronDown, Copy, Workflow } from 'lucide-react';

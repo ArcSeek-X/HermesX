@@ -1,3 +1,10 @@
+/**
+ * @file MarketStructureCard.tsx
+ * @description 市场结构卡片：展示 MarketStructureContext 的市场结构状态（ok / partial / unknown /
+ * not_supported）、趋势阶段、风险标签与主题强度排序，终端风格卡片。
+ * 使用场景：大盘分析报告的市场结构区块。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { AlertTriangle, Map, TrendingUp } from 'lucide-react';
 import type {

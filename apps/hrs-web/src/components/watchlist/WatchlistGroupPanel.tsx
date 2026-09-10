@@ -7,6 +7,8 @@
  * - 每条卡片右上角有「编辑 / 删除」操作（包裹层），编辑复用新增弹框
  *
  * 纯展示 + 交互回调，状态由父级（WatchlistPage / useWatchlistManager）托管。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { useState } from 'react';

@@ -1,3 +1,8 @@
+/**
+ * @file Input.test.tsx
+ * @description Input 基础输入框组件的单元测试：覆盖渲染、受控输入与只读展示。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Input } from '../../basic/Input';

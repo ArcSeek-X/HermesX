@@ -10,6 +10,8 @@
  *     - PortfolioSignalSummary：组合视角的信号一句话摘要。
  *   组件统一依赖各类 decisionSignal* 工具（标签映射、时间解析、画像 / 动作解析）
  *   做本地化与格式化，并通过多语言文案 t() 输出中文 / 英文界面。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

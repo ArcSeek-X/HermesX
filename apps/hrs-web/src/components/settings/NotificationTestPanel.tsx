@@ -32,6 +32,12 @@ function getChannelOptions(language: 'zh' | 'en'): Array<{ value: NotificationTe
   ];
 }
 
+/**
+ * @file NotificationTestPanel.tsx
+ * @description 通知测试面板：选择通知渠道发送测试消息，展示发送结果与耗时。
+ * 使用场景：设置页的通知配置分区。
+ * @author Lensgcx (GaoCangxiong)
+ */
 interface NotificationTestPanelProps {
   items: SystemConfigUpdateItem[];
   maskToken: string;

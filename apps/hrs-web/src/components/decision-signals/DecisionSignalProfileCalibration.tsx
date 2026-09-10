@@ -9,6 +9,8 @@
  *     1) 选择某一投资组合画像（profile）；
  *     2) 选择按「周期（horizon）」或「动作（action）」维度做二级拆解，查看子分桶指标。
  *   当样本量不足（sampleSufficient=false）时给出提示，而非展示不可靠指标。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

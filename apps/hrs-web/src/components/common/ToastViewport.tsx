@@ -18,6 +18,8 @@
  * 【使用方式】
  *   通常由 ToastProvider 内部渲染，无需手动使用：
  *   <ToastViewport>{toasts.map(t => <ToastItem key={t.id} {...t} />)}</ToastViewport>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

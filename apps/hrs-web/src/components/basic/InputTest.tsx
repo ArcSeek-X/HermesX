@@ -13,6 +13,8 @@
  *
  * 原生 input 属性（除 `size` 外）全部透传：
  * type / value / defaultValue / onChange / disabled / readOnly / placeholder / maxLength 等。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type * as React from 'react';
 import { useId, useState } from 'react';

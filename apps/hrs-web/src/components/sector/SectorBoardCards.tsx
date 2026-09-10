@@ -22,6 +22,8 @@
  * 视觉风格：
  * 采用项目统一的暗色终端风格，卡片使用 Card variant="bordered"，
  * 涨跌幅红涨绿跌配色与 K 线图保持一致。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';

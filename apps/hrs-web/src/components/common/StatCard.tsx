@@ -18,6 +18,8 @@
  *
  * 【使用方式】
  *   <StatCard label="总收益" value="+12.3%" hint="较上月 +5%" tone="success" icon={<TrendUp/>} />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

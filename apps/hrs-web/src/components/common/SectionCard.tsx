@@ -18,6 +18,8 @@
  *   <SectionCard title="持仓概览" subtitle="PORTFOLIO" actions={<Button>查看</Button>}>
  *     <YourContent />
  *   </SectionCard>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

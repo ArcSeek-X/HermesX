@@ -1,3 +1,8 @@
+/**
+ * @file HistoryList.test.tsx
+ * @description HistoryList 历史列表的单元测试：覆盖列表渲染、滚动加载与点击交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HistoryList } from '../HistoryList';

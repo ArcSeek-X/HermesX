@@ -12,6 +12,8 @@
  * - 备注列支持行内点击编辑。
  * - 表格行支持右键上下文菜单：修改分组（弹窗选择目标分类）、删除自选（二次确认弹窗）。
  * - 删除走二次确认（ConfirmDialog），避免误删。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { useState, useEffect, useRef } from 'react';

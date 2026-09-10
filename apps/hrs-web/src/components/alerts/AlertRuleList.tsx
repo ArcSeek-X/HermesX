@@ -4,6 +4,8 @@
  * 作用：以表格形式展示告警规则列表，支持按「是否启用」「告警类型」两个维度筛选与分页，
  * 并针对每条规则提供「测试 / 启用停用切换 / 删除」三类操作。删除前会弹出二次确认弹窗，
  * 避免误删。组件自身只负责渲染与交互编排，所有数据获取、状态变更都通过 props 回调交给上层。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useState } from 'react';

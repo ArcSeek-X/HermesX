@@ -1,3 +1,8 @@
+/**
+ * @file ThemeToggle.test.tsx
+ * @description ThemeToggle 主题切换按钮的单元测试：覆盖主题菜单打开与全部主题模式（light/dark/system）展示。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '../ThemeProvider';

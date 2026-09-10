@@ -1,3 +1,10 @@
+/**
+ * @file StockBar.tsx
+ * @description 股票历史分析侧栏：某一标的的历史分析记录列表（StockBarItem 集合），
+ * 支持加载状态、空态与点击查看历史趋势。
+ * 使用场景：个股页面/详情抽屉中的历史分析侧栏。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { Badge, Button, ScrollArea } from '../';

@@ -21,6 +21,8 @@
  *     variant="secondary"
  *     ariaLabel="板块切换"
  *   />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type { Key, ReactNode } from 'react';
 import { Tabs } from '@heroui/react';

@@ -5,6 +5,7 @@
  * - 内置前导图标（Lock / Key，仅装饰）。
  * - 内置可选的密码可见性切换按钮（受控 / 非受控）。
  * - 其余输入能力（样式、原生属性透传）委托给基础 Input。
+ * @author Lensgcx (GaoCangxiong)
  */
 import type * as React from 'react';
 import { useState } from 'react';

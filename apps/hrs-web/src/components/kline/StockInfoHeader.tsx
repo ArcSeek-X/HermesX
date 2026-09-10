@@ -3,6 +3,8 @@
  *
  * 显示股票名称、代码、当前价格、涨跌幅，以及关键指标网格：
  * 今开、昨收、最高、最低、成交量、成交额、换手率、振幅、市盈率(TTM)、总市值
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

@@ -14,6 +14,8 @@
  *
  * 样式约定：只产出 Tailwind 令牌类名（bg-* / text-*），不新建自定义 CSS/SCSS，
  * 与 .conventions/frontend/COMPONENTS.md 保持一致。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 /** 事件色板：底色（含 hover）、文字色、色点色 —— 对应 Breezy 的 event-color 混入方案 */

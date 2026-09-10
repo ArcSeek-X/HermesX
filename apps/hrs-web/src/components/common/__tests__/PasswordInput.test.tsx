@@ -1,3 +1,8 @@
+/**
+ * @file PasswordInput.test.tsx
+ * @description PasswordInput 密码输入框组件的单元测试：覆盖渲染、可见性切换与输入交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PasswordInput } from '../../basic/PasswordInput';

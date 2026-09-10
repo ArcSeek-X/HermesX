@@ -59,6 +59,7 @@ const DocsAnimCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_ani
 const DocsNewsCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_newsCard'));
 const DocsListCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_listCard'));
 const DocsTabNavPage = lazy(() => import('./pages/DocsPage/Components/Docs_tabNav'));
+const DocsSideBarPage = lazy(() => import('./pages/DocsPage/Components/Docs_sideBar'));
 const DocsInputPage = lazy(() => import('./pages/DocsPage/Components/Docs_input'));
 const DocsTextAreaPage = lazy(() => import('./pages/DocsPage/Components/Docs_textArea'));
 const DocsChipPage = lazy(() => import('./pages/DocsPage/Components/Docs_chip'));
@@ -191,6 +192,8 @@ const AppContent: React.FC = () => {
         <Route path="/docs/component/listCard" element={<DocsListCardPage />} />
         {/* 组件文档：标签页 */}
         <Route path="/docs/component/tabNav" element={<DocsTabNavPage />} />
+        {/* 组件文档：侧边栏 */}
+        <Route path="/docs/component/sideBar" element={<DocsSideBarPage />} />
         {/* 组件文档：输入框 */}
         <Route path="/docs/component/input" element={<DocsInputPage />} />
         {/* 组件文档：文本域 */}

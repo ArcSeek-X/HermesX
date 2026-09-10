@@ -1,3 +1,10 @@
+/**
+ * @file LLMChannelEditor.tsx
+ * @description LLM 渠道编辑器（设置页最大组件）：管理各 LLM 渠道（协议/地址/密钥/模型）的增删改查、
+ * 预设模板导入、能力检查（LLMCapabilityCheck）与连通性测试。
+ * 使用场景：设置页的 LLM 渠道配置分区。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { ParsedApiError } from '../../api/error';

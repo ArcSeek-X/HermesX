@@ -10,6 +10,8 @@
  * - RouteBoundary：核心边界组件，组合 ErrorBoundary + Suspense
  * - RouteOutletBoundary：用于嵌套路由（<Outlet />），非全屏模式
  * - StandaloneRouteBoundary：独立全屏边界，用于包裹非路由内容（如登录页）
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { Component, Suspense } from 'react';

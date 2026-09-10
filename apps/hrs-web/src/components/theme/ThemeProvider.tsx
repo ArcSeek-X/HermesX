@@ -9,6 +9,8 @@
  * - defaultTheme="system"：首次访问（无 localStorage 记录）时跟随系统偏好
  * - enableSystem：允许跟随系统偏好（prefers-color-scheme），用户选择 "system" 时生效
  * - disableTransitionOnChange：切换主题时禁用 CSS 过渡动画，避免颜色渐变闪烁
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';

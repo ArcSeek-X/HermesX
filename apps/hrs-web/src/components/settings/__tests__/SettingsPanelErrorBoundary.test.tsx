@@ -1,3 +1,8 @@
+/**
+ * @file SettingsPanelErrorBoundary.test.tsx
+ * @description SettingsPanelErrorBoundary 错误边界的单元测试：覆盖异常捕获、提示渲染与重试。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

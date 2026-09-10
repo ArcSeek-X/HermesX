@@ -22,6 +22,7 @@
  * - 按钮统一复用项目封装的 Button 组件，保持全站视觉与交互一致。
  * - 打开带淡入 + 缩放动画（animate-in fade-in zoom-in）。
  * =====================================================================
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { createPortal } from 'react-dom';

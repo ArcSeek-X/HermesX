@@ -17,6 +17,7 @@
  *   - 通过 className 透传，可在使用时追加 / 覆盖样式（合并进 cn）；
  *   其余原生 button 属性（onClick、type、aria-* 等）均透传。
  * ------------------------------------------------------------
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import React from 'react';

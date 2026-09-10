@@ -1,3 +1,8 @@
+/**
+ * @file Button.test.tsx
+ * @description Button 通用按钮组件的单元测试：覆盖渲染、loading 态与点击交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Button } from '../../basic/Button';

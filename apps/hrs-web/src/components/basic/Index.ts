@@ -1,3 +1,10 @@
+/**
+ * @file Index.ts
+ * @description 基础组件层（basic）的统一出口 barrel：集中 re-export 基础层组件的实例与公开类型，
+ * 供上层通过 `src/components/index.ts` 聚合后统一消费（仅导出基础层，不含 common / layout 等目录）。
+ * 约定：组件实例优先导出，公开类型用 export type 导出；未导出的类型视为内部实现细节。
+ * @author Lensgcx (GaoCangxiong)
+ */
 export * from './Button';
 export * from './Card';
 export * from './Checkbox';

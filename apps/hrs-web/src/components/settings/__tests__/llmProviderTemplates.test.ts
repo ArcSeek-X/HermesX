@@ -1,3 +1,8 @@
+/**
+ * @file llmProviderTemplates.test.ts
+ * @description llmProviderTemplates 协议与模板的单元测试：覆盖协议定义、模板字段与默认值。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { describe, expect, it } from 'vitest';
 import {
   LLM_PROVIDER_CAPABILITY_LABELS,

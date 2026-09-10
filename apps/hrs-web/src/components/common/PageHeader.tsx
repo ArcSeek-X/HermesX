@@ -10,6 +10,8 @@
  * 使用场景：
  *   - 各业务页面（如分析页、列表页、设置页）顶部的统一标题与操作入口区。
  *   - 需要在标题旁放置「返回 / 新建 / 刷新」等操作按钮的场合。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

@@ -1,3 +1,10 @@
+/**
+ * @file UiLanguageToggle.tsx
+ * @description UI 语言循环切换按钮：在 简体中文 → 繁體中文 → English 之间循环切换界面语言，
+ * 支持 default / nav / rail 三种形态变体与 iconOnly 纯图标模式，文案经 useUiLanguage 的 t() 多语言输出。
+ * 使用场景：头部操作区与侧边栏导航。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Languages } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';

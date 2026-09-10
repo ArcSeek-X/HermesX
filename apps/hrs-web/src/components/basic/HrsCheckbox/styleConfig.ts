@@ -9,6 +9,7 @@
  *     本主题 --accent 非期望蓝，故覆写为 primary）；
  *   - Indicator 内部勾选 / 半选图标强制 text-white（选中蓝底上的浅色勾）。
  * ------------------------------------------------------------
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type { HrsCheckboxSize, HrsCheckboxOrientation } from './HrsCheckbox';

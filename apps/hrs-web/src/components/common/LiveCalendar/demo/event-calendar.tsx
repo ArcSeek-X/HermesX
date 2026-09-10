@@ -1,3 +1,9 @@
+/**
+ * @file event-calendar.tsx
+ * @description FullCalendar 官方示例的 EventCalendar 封装（参考代码，不参与正式构建），
+ * 演示 Breezy 主题配色的月/周/日/列表视图，正式实现见 ../LiveCalendar.tsx。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import FullCalendar, { type CalendarOptions, type DayCellInfo, type DayHeaderInfo, joinClassNames } from '@fullcalendar/react'
 import '@fullcalendar/react/skeleton.css'
 import './palette.css'

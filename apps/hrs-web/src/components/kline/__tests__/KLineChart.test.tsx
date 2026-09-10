@@ -12,6 +12,8 @@
  *  - ../../hooks/useWindowWidth：固定宽度，保证确定性
  *
  * 运行：cd apps/hrs-web && npx vitest run src/components/kline/__tests__/KLineChart.test.tsx
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';

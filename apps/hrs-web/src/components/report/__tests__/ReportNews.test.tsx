@@ -1,3 +1,8 @@
+/**
+ * @file ReportNews.test.tsx
+ * @description ReportNews 报告相关资讯组件的单元测试：覆盖列表渲染、空态与错误重试。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { historyApi } from '../../../api/history';

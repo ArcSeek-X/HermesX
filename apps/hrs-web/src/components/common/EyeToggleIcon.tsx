@@ -19,6 +19,8 @@
  *   <button onClick={toggle} aria-label={visible ? '隐藏密码' : '显示密码'}>
  *     <EyeToggleIcon visible={visible} />
  *   </button>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

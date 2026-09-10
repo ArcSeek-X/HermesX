@@ -8,6 +8,12 @@ import { Button, PasswordInput } from '../';
 import { SettingsAlert } from './SettingsAlert';
 import { SettingsSectionCard } from './SettingsSectionCard';
 
+/**
+ * @file ChangePasswordCard.tsx
+ * @description 修改密码卡片：提交新旧密码修改访问认证密码，带强度校验与错误提示。
+ * 使用场景：设置页认证配置分区（AuthSettingsCard 旁）。
+ * @author Lensgcx (GaoCangxiong)
+ */
 export const ChangePasswordCard: React.FC = () => {
   const { changePassword } = useAuth();
   const { t } = useUiLanguage();

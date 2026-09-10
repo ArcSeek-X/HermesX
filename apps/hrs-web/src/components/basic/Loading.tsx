@@ -10,6 +10,7 @@
  * 使用场景：
  *   - 接口请求进行中、首屏数据初始化。
  *   - 列表 / 内容区域等待数据返回的占位提示。
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import React from 'react';
@@ -28,6 +29,8 @@ interface LoadingProps {
 /**
  * 加载中状态组件。
  * 居中渲染一个带旋转动画的环形图标与文案，封装为胶囊状的加载提示。
+ * @param props - 组件属性，见 LoadingProps（label / className）
+ * @returns 居中的胶囊状加载提示
  */
 export const Loading: React.FC<LoadingProps> = ({ label, className = '' }) => {
   const { t } = useUiLanguage();

@@ -1,3 +1,9 @@
+/**
+ * @file AlertRuleForm.test.tsx
+ * @description AlertRuleForm 告警规则表单的单元测试：覆盖 price_cross / price_change_percent / volume_spike /
+ * 技术指标四类规则载荷提交、禁用状态创建、非法指标边界拒绝与超出可获取历史周期的参数组合校验。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';

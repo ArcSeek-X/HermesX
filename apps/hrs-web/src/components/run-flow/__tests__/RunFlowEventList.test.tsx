@@ -1,3 +1,8 @@
+/**
+ * @file RunFlowEventList.test.tsx
+ * @description RunFlowEventList 事件列表的单元测试：覆盖级别过滤与展开交互。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunFlowEvent } from '../../../types/runFlow';

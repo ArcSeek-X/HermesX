@@ -12,6 +12,7 @@
  * - 预设色板可外部传入，缺省使用项目主题相关的默认色板
  * - 内置 HEX 合法性校验，非法输入不向上回写、仅本地提示
  * - 样式复用项目的 CSS 变量（卡片背景、边框、文字、主色）
+ * @author Lensgcx (GaoCangxiong)
  */
 import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
@@ -34,9 +35,9 @@ const HEX_PATTERN = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 /** ColorPicker 组件属性 */
 interface ColorPickerProps {
-  /** 当前颜色（HEX 字符串，建议带 #） */
+  /** 当前颜色（HEX 字符串，建议带 #），必填（受控） */
   value: string;
-  /** 颜色变更回调，仅在输入合法时触发 */
+  /** 颜色变更回调，仅在输入合法时触发，必填 */
   onChange: (value: string) => void;
   /** 预设色板，缺省使用 DEFAULT_PRESETS */
   presets?: string[];
@@ -46,9 +47,9 @@ interface ColorPickerProps {
   showInput?: boolean;
   /** 是否在 HEX 输入框右侧显示当前颜色示例色块，默认 false */
   showPreviewDot?: boolean;
-  /** 是否禁用 */
+  /** 是否禁用，默认 false */
   disabled?: boolean;
-  /** 自定义 CSS 类名 */
+  /** 自定义 CSS 类名（作用于根容器），默认空 */
   className?: string;
 }
 
@@ -79,9 +80,13 @@ export const ColorPicker = ({
   useEffect(() => {
     if (!isEditingRef.current) setDraft(value);
   }, [value]);
-  // 草稿是否非法（用于输入框边框提示）
+  /** 草稿是否非法（用于输入框边框提示） */
   const isDraftInvalid = !HEX_PATTERN.test(draft.trim());
 
+  /**
+   * 提交颜色：补全 # 前缀并校验通过后回写 onChange（统一大写）。
+   * @param next - 候选 HEX 字符串，可能不带 # 前缀
+   */
   const commit = (next: string) => {
     if (disabled) return;
     const normalized = next.startsWith('#') ? next : `#${next}`;
@@ -90,6 +95,10 @@ export const ColorPicker = ({
     }
   };
 
+  /**
+   * HEX 输入框变更处理：先同步草稿，仅当输入合法时才提交（非法输入只留在本地提示）。
+   * @param raw - 输入框当前原始值
+   */
   const handleInputChange = (raw: string) => {
     setDraft(raw);
     const trimmed = raw.trim();

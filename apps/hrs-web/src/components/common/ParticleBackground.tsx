@@ -26,6 +26,8 @@
  *     <ParticleBackground />
  *     <YourContent className="relative z-10" />
  *   </div>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { useEffect, useRef } from 'react';

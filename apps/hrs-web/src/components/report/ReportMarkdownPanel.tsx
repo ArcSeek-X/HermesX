@@ -1,3 +1,10 @@
+/**
+ * @file ReportMarkdownPanel.tsx
+ * @description 报告 Markdown 面板主体：按 recordId 拉取报告 Markdown 内容并渲染，
+ * 提供复制全文、复制纯文本与关闭操作，语言随 reportLanguage 切换。
+ * 使用场景：由 ReportMarkdownDrawer 懒加载挂载。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { historyApi } from '../../api/history';

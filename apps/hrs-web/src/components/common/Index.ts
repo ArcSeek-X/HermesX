@@ -1,3 +1,9 @@
+/**
+ * @file Index.ts
+ * @description 通用组件层（common）的统一出口 barrel：re-export 本目录卡片族、消息日历、
+ * 通用页面组件与跨目录 layout / theme 组件，供上层通过 `src/components/index.ts` 聚合后统一消费。
+ * @author Lensgcx (GaoCangxiong)
+ */
 export * from './Card';
 export * from './LiveCalendar';
 export * from './AppPage';

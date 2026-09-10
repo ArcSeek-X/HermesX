@@ -4,6 +4,8 @@
  * 头部「界面语言」入口：单一图标按钮，点击即在中文 / English 之间切换。
  * 图标随当前语言展示：中文显示文字「文」、英文显示「EN」（区分直观）。
  * 切换后由 useUiLanguage 持久化到 localStorage 并触发全站文案重渲染。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../../i18n/uiText';

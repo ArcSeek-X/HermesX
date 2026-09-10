@@ -12,6 +12,8 @@
  *
  * 数据来源：market-overview（涨跌/涨跌停/成交额/量能）、northbound-flow（北向）、
  * market-fund-flow（大盘主力）、board-list（最强板块），均通过后端代理。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type { ReactNode } from 'react';
 import { AnimatedValue } from '../../utils/animate.tsx';

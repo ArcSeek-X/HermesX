@@ -1,3 +1,10 @@
+/**
+ * @file ScoreGauge.tsx
+ * @description 情绪得分仪表盘组件：带发光环的动画圆环（SVG），颜色随情绪得分动态计算
+ * （贪婪/中性/恐惧三态映射），支持 sm/md/lg 三档尺寸与明暗主题适配。
+ * 使用场景：大盘/个股分析报告中的情绪评分展示，经 common/Index.ts 聚合导出。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';

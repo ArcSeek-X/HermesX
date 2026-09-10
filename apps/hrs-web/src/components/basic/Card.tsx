@@ -9,27 +9,30 @@
  * - bordered：带边框的卡片
  * - gradient：渐变边框卡片
  * 支持标题、副标题、悬停效果和多种内边距规格。
+ *
+ * 使用场景：页面内容区块容器、功能分组卡片等。
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { cn } from '../../utils/cn';
 
 /** Card 组件的属性定义 */
 interface CardProps {
-  /** 卡片标题 */
+  /** 卡片标题，可选；不传则不渲染标题区 */
   title?: string;
-  /** 卡片副标题（显示在标题上方） */
+  /** 卡片副标题（显示在标题上方），可选 */
   subtitle?: string;
-  /** 卡片内容 */
+  /** 卡片内容，必填 */
   children: React.ReactNode;
-  /** 自定义 CSS 类名 */
+  /** 自定义 CSS 类名，默认空 */
   className?: string;
   /** 内联样式 */
   style?: React.CSSProperties;
-  /** 卡片视觉风格：default 默认 / bordered 边框 / gradient 渐变 */
+  /** 卡片视觉风格：default 默认 / bordered 边框 / gradient 渐变，默认 'default' */
   variant?: 'default' | 'bordered' | 'gradient';
-  /** 是否启用悬停效果 */
+  /** 是否启用悬停效果，默认 false */
   hoverable?: boolean;
-  /** 内边距规格：none 无 / sm 小 / md 中 / lg 大 */
+  /** 内边距规格：none 无 / sm 小 / md 中 / lg 大，默认 'md' */
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 

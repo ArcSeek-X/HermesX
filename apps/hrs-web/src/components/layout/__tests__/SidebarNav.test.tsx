@@ -1,3 +1,8 @@
+/**
+ * @file SidebarNav.test.tsx
+ * @description SidebarNav 侧边导航组件的单元测试：覆盖菜单渲染、路由高亮与运行模式切换。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';

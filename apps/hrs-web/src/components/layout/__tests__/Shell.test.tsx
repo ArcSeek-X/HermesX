@@ -1,3 +1,8 @@
+/**
+ * @file Shell.test.tsx
+ * @description Shell 应用外壳组件的单元测试：覆盖侧边栏折叠、菜单切换与主题渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';

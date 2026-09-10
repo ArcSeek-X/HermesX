@@ -12,6 +12,8 @@
  * 4. 右侧操作区：主题设置、中英文切换、个人设置（齿轮）
  *
  * 注意：此组件在 Shell.tsx 的右侧列中使用，作为右侧内容区的顶部页头。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useState } from 'react';

@@ -8,6 +8,8 @@
  *
  * 数据来源：东方财富 push2his 日线资金流（klt=101）
  * 单位：亿（后端已完成 元→亿 转换，保留 2 位小数）
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';

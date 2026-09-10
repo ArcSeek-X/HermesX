@@ -1,3 +1,10 @@
+/**
+ * @file SectorTreemap.tsx
+ * @description 板块矩形树图（ECharts treemap）：按涨跌幅红涨绿跌配色展示行业板块层级，
+ * 支持鼠标滚轮离散缩放（参考 52etf.site）、拖拽平移（含边界钳制与 100ms 缩放动画）、
+ * 点击板块回调 onSectorClick 供上层钻取。数据由 props 注入，组件不发起请求。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as echarts from 'echarts';

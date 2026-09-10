@@ -1,3 +1,9 @@
+/**
+ * @file RunFlowSummaryBar.tsx
+ * @description 运行流摘要条：展示运行状态、耗时、节点数、事件数与分支数等关键指标。
+ * 使用场景：运行流面板顶部的概览条。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { Clock, Database, GitBranch, MessageSquareText, Workflow } from 'lucide-react';
 import { Badge, StatusDot } from '../';

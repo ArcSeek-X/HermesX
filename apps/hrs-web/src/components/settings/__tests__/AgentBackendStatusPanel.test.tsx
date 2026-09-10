@@ -1,3 +1,8 @@
+/**
+ * @file AgentBackendStatusPanel.test.tsx
+ * @description AgentBackendStatusPanel 组件的单元测试：覆盖状态轮询渲染与手动刷新。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

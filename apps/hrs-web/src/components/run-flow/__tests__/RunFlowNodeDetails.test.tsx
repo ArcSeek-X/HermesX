@@ -1,3 +1,8 @@
+/**
+ * @file RunFlowNodeDetails.test.tsx
+ * @description RunFlowNodeDetails 节点详情的单元测试：覆盖元信息渲染与展开收起。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { RunFlowNode } from '../../../types/runFlow';

@@ -9,9 +9,11 @@
  * 1. 渲染导航项列表，菜单集合随运行模式切换：产品使用模式用 PRODUCT_NAV_ITEMS，开发调试模式用 DEBUG_NAV_ITEMS
  * 2. 依据 AlphaSift 功能开关动态显隐「选股」入口
  * 3. 对话页支持未读完成标记（StatusDot 红点）
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
+import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sidebar as SidebarIcon, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -31,7 +33,7 @@ type SidebarNavProps = {
 };
 
 /** 单个导航项的配置 */
-type NavItem = {
+export type NavItem = {
   /** 唯一标识，同时用于 AlphaSift 过滤判断 */
   key: string;
   /** i18n 文案 key */
@@ -86,6 +88,7 @@ const DEBUG_NAV_ITEMS: NavItem[] = [
   { key: 'docs-input', labelKey: 'layout.nav.development.docsInput.title', to: '/docs/component/input', icon: TextCursorInput },
   { key: 'docs-text-area', labelKey: 'layout.nav.development.docsTextArea.title', to: '/docs/component/textArea', icon: WrapText },
   { key: 'docs-chip', labelKey: 'layout.nav.development.docsChip.title', to: '/docs/component/chip', icon: Tags },
+  { key: 'docs-side-bar', labelKey: 'layout.nav.development.docsSideBar.title', to: '/docs/component/sideBar', icon: SidebarIcon },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {

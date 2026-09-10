@@ -1,3 +1,8 @@
+/**
+ * @file LLMChannelEditor.test.tsx
+ * @description LLMChannelEditor 渠道编辑器的单元测试：覆盖渠道增删改查、模板导入与能力检查。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { useState } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

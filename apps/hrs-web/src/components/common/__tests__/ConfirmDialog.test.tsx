@@ -1,3 +1,8 @@
+/**
+ * @file ConfirmDialog.test.tsx
+ * @description ConfirmDialog 确认弹窗组件的单元测试：覆盖渲染、确认/取消回调与多语言文案。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';

@@ -13,6 +13,7 @@
  *   对外 props 接口保持不变（value / onChange / options / label 等）。
  * - searchable / searchPlaceholder / emptyText 为兼容保留字段：
  *   原生 <select> 不支持输入搜索，当前实现忽略这些 prop。
+ * @author Lensgcx (GaoCangxiong)
  */
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -29,19 +30,19 @@ interface SelectOption {
 interface SelectProps {
   /** 表单字段 ID */
   id?: string;
-  /** 当前选中的值 */
+  /** 当前选中的值，必填（受控） */
   value: string;
-  /** 值变更回调 */
+  /** 值变更回调，接收选中项 value，必填 */
   onChange: (value: string) => void;
-  /** 选项列表 */
+  /** 选项列表，必填 */
   options: SelectOption[];
-  /** 标签文本（显示在选择器上方） */
+  /** 标签文本（显示在选择器上方），可选 */
   label?: string;
-  /** 占位符文本 */
+  /** 占位符文本，默认「请选择」；未选中时渲染为禁用占位 option */
   placeholder?: string;
-  /** 是否禁用 */
+  /** 是否禁用，默认 false */
   disabled?: boolean;
-  /** 自定义 CSS 类名 */
+  /** 自定义 CSS 类名（作用于根容器），默认空 */
   className?: string;
   /** 是否启用搜索功能（原生实现不支持，保留兼容） */
   searchable?: boolean;
@@ -84,6 +85,7 @@ export const Select: React.FC<SelectProps> = ({
           disabled={disabled}
           className="input-surface input-focus-glow w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-9 text-sm text-foreground transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         >
+          {/* 未选中时展示的占位 option：禁用且不可选 */}
           {placeholder && !value && (
             <option value="" disabled>
               {placeholder}
@@ -95,6 +97,7 @@ export const Select: React.FC<SelectProps> = ({
             </option>
           ))}
         </select>
+        {/* 右侧下拉箭头：pointer-events-none 避免遮挡 select 点击 */}
         <ChevronDown
           aria-hidden
           className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text"

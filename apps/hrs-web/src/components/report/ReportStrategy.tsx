@@ -1,3 +1,10 @@
+/**
+ * @file ReportStrategy.tsx
+ * @description 投资策略卡片：逐条展示 ReportStrategy 的策略项（标签 + 内容 + 语气色），
+ * 支持中英文切换。
+ * 使用场景：报告页的「投资策略」区块，被 ReportSummary 聚合。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import type { ReportLanguage, ReportStrategy as ReportStrategyType } from '../../types/analysis';
 import { Card } from '../';

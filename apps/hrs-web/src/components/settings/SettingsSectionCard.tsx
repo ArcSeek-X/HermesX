@@ -1,3 +1,10 @@
+/**
+ * @file SettingsSectionCard.tsx
+ * @description 设置分区卡片：设置页统一分区容器（标题 + 描述 + 操作区 + 内容），
+ * 是所有设置卡片的布局基础。
+ * 使用场景：设置页各分类的内容容器。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { cn } from '../../utils/cn';
 

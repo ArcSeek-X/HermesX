@@ -14,6 +14,7 @@
  *   - 通过 className 透传，可在使用时追加 / 覆盖样式（合并进 cn）；
  *   其余原生 button 属性（onClick、type、aria-* 等）均透传。
  * ------------------------------------------------------------
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import React from 'react';
@@ -89,6 +90,8 @@ const BUTTON_VARIANT_STYLES = {
  * 通用按钮组件。
  * 负责把 size / variant / glow / className 等合并为最终 className，
  * 并处理 loading 态（渲染旋转图标 + 文案）。
+ * @param props - 组件属性，见 ButtonProps（variant / size / isLoading / loadingText / glow 及原生 button 属性）
+ * @returns 带项目统一风格的 <button> 元素
  */
 export const Button: React.FC<ButtonProps> = ({
   children,

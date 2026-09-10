@@ -1,3 +1,9 @@
+/**
+ * @file RunFlowNodeDetails.tsx
+ * @description 运行流节点详情抽屉：展示选中节点的元信息、状态、耗时与输入/输出摘要，支持展开收起。
+ * 使用场景：运行流面板中点击拓扑节点后的详情查看。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { ChevronDown, ChevronRight, Info, X } from 'lucide-react';
 import { Badge, Button, StatusDot } from '../';

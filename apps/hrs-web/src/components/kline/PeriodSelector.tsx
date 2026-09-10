@@ -6,6 +6,8 @@
  *
  * 激活态使用 cyan 高亮
  * 支持 i18n 多语言切换
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

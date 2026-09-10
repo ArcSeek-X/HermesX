@@ -11,6 +11,8 @@
  *   - 搜索 / 筛选无结果。
  *   - 列表为空（无收藏、无历史记录等）。
  *   - 数据加载完成但内容为空，需要引导用户下一步操作的场合。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

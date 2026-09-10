@@ -20,6 +20,8 @@
  *        showToast.success({ title, description, placement })
  *        showToast.warning({ title, description, placement })
  *        showToast.danger({ title, description, placement })
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import React, { useRef, useState } from 'react';

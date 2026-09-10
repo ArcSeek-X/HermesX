@@ -17,6 +17,8 @@
  *
  * 【使用方式】
  *   <InlineAlert variant="warning" title="注意" message="该操作不可撤销" action={<Button>确认</Button>} />
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

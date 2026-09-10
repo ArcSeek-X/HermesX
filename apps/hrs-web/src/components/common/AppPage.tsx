@@ -13,6 +13,8 @@
  *   <AppPage>
  *     <YourPageContent />
  *   </AppPage>
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useLocation } from 'react-router-dom';

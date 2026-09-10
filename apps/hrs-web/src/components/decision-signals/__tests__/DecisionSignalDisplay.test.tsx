@@ -1,3 +1,9 @@
+/**
+ * @file DecisionSignalDisplay.test.tsx
+ * @description DecisionSignalDisplay 决策信号卡片的单元测试：覆盖交互/非交互卡片详情按钮差异、
+ * 稀疏旧信号可选计划文案隐藏、entry_high 入场区间渲染、null profile 未知态与 JSON 字段安全渲染。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';

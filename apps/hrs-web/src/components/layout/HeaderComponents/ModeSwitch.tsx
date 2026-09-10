@@ -4,6 +4,8 @@
  * 头部「运行模式」入口：单一图标按钮，点击即在 产品使用模式 / 开发调试模式 之间切换。
  * 按钮内显示当前模式简称（常规 / 调试），图标随模式变化以直观区分。
  * 模式状态由 AppModeContext 统一持有（持久化到 localStorage），切换后侧边栏菜单随之切换。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import { Bug, CircleDot } from 'lucide-react';
 import { useAppMode } from '../../../contexts/AppModeContext';

@@ -1,3 +1,8 @@
+/**
+ * @file JsonViewer.test.tsx
+ * @description JsonViewer JSON 查看器组件的单元测试：覆盖 JSON 渲染、复制与多语言文案。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { render, screen } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it } from 'vitest';

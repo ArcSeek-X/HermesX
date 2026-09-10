@@ -1,3 +1,10 @@
+/**
+ * @file SettingsHelpButton.tsx
+ * @description 设置帮助按钮：点击以 Portal 浮层展示对应配置项的帮助文档（标题 + 说明 + 外链），
+ * 支持点击外部关闭与焦点管理。
+ * 使用场景：设置页每个字段行右侧的帮助入口。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { CircleHelp, ExternalLink, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type React from 'react';

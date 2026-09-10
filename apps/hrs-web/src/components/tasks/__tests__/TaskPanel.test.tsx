@@ -1,3 +1,9 @@
+/**
+ * @file TaskPanel.test.tsx
+ * @description TaskPanel 任务面板的单元测试：覆盖分析阶段徽标渲染、面板样式保持、窄侧栏布局、
+ * 打开运行流交互、取消请求任务可见性与已取消终止任务过滤。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TaskPanel } from '../TaskPanel';

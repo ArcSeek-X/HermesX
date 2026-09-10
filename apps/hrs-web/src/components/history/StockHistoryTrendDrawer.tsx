@@ -1,3 +1,10 @@
+/**
+ * @file StockHistoryTrendDrawer.tsx
+ * @description 股票历史趋势抽屉：按筛选条件（时间范围等）拉取某标的的历史报告，
+ * 以情绪趋势列表/图呈现，支持点击查看单次报告。
+ * 使用场景：StockBar 点击后弹出的历史趋势抽屉。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { AnalysisReport, HistoryItem, StockHistoryFilters, StockHistoryRange } from '../../types/analysis';

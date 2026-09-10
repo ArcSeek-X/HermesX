@@ -30,6 +30,8 @@
  * // 垂直分割线（常用于左右分区）
  * <Separator orientation="vertical" className="mx-3" />
  * ```
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type { FC } from 'react';
 import { Separator as HeroSeparator } from '@heroui/react';

@@ -1,4 +1,11 @@
 // React 类型导入
+/**
+ * @file SettingsCategoryNav.tsx
+ * @description 设置分类导航：以 ListCard 列表呈现设置各分类（图标 + 标题 + 描述），支持选中态高亮，
+ * 点击切换当前分类。
+ * 使用场景：设置页左侧分类导航。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 // 从 lucide-react 引入各分类所需的图标
 import { Bell, Bot, Database, Layers3, LineChart, Settings2, SlidersHorizontal } from 'lucide-react';

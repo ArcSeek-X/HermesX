@@ -1,3 +1,9 @@
+/**
+ * @file DecisionSignalProfileCalibration.test.tsx
+ * @description DecisionSignalProfileCalibration 组件的单元测试：覆盖样本门槛独立性与零值/无结果区分、
+ * 两个冻结的用户可见分解视图切换、英文模式控件与提示文案一致性。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';

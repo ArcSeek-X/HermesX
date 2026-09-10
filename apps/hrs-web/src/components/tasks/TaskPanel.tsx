@@ -1,3 +1,10 @@
+/**
+ * @file TaskPanel.tsx
+ * @description 分析任务面板：以卡片列表展示进行中/待处理/取消中的分析任务（TaskInfo），
+ * 渲染状态徽标、进度条、traceId 与请求的分析阶段，支持点击跳转运行流详情（onOpenRunFlow）。
+ * 使用场景：首页侧栏任务区（TaskPanel 默认导出），数据由 props 注入，组件不发起请求。
+ * @author Lensgcx (GaoCangxiong)
+ */
 import type React from 'react';
 import { ChevronDown, RefreshCw, Workflow } from 'lucide-react';
 import { Badge, Button, Card, StatusDot, Tooltip } from '../';

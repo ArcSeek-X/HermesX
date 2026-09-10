@@ -2,6 +2,8 @@
  * @file DashboardPanelHeader.tsx
  * @description 仪表盘面板头部组件，统一渲染面板的眉标（eyebrow）、标题、前导图标和操作按钮
  * @module components/dashboard
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import type React from 'react';

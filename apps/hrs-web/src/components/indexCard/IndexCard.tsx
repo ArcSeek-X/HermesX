@@ -7,6 +7,8 @@
  * 3. 成交额（A股）；海外指数无成交额时降级为振幅
  *
  * 行情经后端 /api/v1/sector/market-indices 代理自东方财富。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 import type { MarketIndexItem } from '../../api/sectorData';
 import { formatAmount, formatPercent, formatPricePoint, getChangeColorClass } from '../../utils/format';
