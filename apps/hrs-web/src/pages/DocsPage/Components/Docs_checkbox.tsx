@@ -30,7 +30,7 @@ export const DocsCheckboxPage: React.FC = () => {
     <AppPage>
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold text-primary-text">{t('layout.nav.docsCheckbox.title')}</h1>
+          <h1 className="text-lg font-semibold text-primary-text">{t('layout.nav.development.docsCheckbox.title')}</h1>
           <p className="text-xs text-muted">
             基于 HeroUI Checkbox 封装的通用勾选框（HrsCheckbox）。传 options 进入「多选组」模式，不传则退化为单个勾选框；
             原生能力（isDisabled / isReadOnly / isIndeterminate / isRequired / isInvalid 等）全部透传。

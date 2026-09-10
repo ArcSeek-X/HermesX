@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] 消息日历首次切入日视图定位到当月 1 日而非当天：`initialDate` 由「cursor 当月 1 日」改为「今天」，首屏月视图不变，切日/周视图时落在当天所在范围。
 - [chore] 消息日历 FullCalendar 封装组件重命名：目录 `components/common/LiveCalendarGrid/` → `components/common/LiveCalendar/`，文件 `LiveCalendarGrid.tsx` → `LiveCalendar.tsx`，导出组件 `LiveCalendarGrid` → `LiveCalendar`（Props 类型同步为 `LiveCalendarProps`）；纯命名调整无行为变化。同步修正按旧路径写入的引用与排除规则：`LiveCalendarPage.tsx` / `useLiveCalendar.ts` 的 import 路径、`tsconfig.app.json` 与 `eslint.config.js` 对 `demo/` 参考代码的排除路径（不改会导致 demo 泄入编译与 lint 范围）、`docs/Live-calendar.md` 全部路径与类型引用。
 - [chore] 消息日历 `LiveCalendar` 组件的容器层样式独立成文件：新增 `apps/hrs-web/src/components/common/LiveCalendar/csscover.ts`（导出 `LIVE_CALENDAR_CSS_COVER`，含 167 条 `[&_.fc-*]` 覆盖类名与 `--fc-*` 主题变量），组件文件由 1062 行降至 714 行，只保留 `cn(LIVE_CALENDAR_CSS_COVER, className)` 一次引用；纯代码组织重构，经 twMerge 比对确认最终 `className` 字符串与重构前逐字相等（Vite 产物 CSS 已验证可正常扫描到）。详见 `docs/Live-calendar.md` §9.4 / §9.6。
+- [文档] 新增 11 个组件文档 Demo 页（`/docs/component/*`：抽屉/按钮/下拉选择/分割线/表格/轻提示/模态框/动画卡片/快讯卡片/列表卡片/标签页），覆盖 HrsDrawer/HrsButton/HrsSelect/Separator/Table/Toast/Modal/AnimCard/NewsCard/ListCard/TabNav 的基础用法与常见变体示例。
+- [文档] 新增 Input / TextArea / Chip 三个组件文档 Demo 页（`/docs/component/input`、`/docs/component/textArea`、`/docs/component/chip`），覆盖尺寸档位、受控用法、type/variant 变体、只读与禁用态及表单组合场景。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 

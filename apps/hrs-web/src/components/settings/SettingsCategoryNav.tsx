@@ -5,7 +5,7 @@ import { Bell, Bot, Database, Layers3, LineChart, Settings2, SlidersHorizontal }
 // lucide 图标组件的属性类型
 import type { LucideIcon } from 'lucide-react';
 // 通用的列表卡片组件，用于渲染单个分类项
-import { ListCard } from '../common/ListCard';
+import { ListCard } from '../common/Card';
 // 多语言上下文，用于获取当前语言与翻译函数
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 // 分类标题与描述的 i18n 工具函数

@@ -86,7 +86,7 @@ const zh = {
   'layout.header.language': '界面语言', // 头部中英文切换按钮
   'layout.header.themeSettings': '主题设置', // 头部主题设置按钮
   'layout.header.userSettings': '个人设置', // 头部个人设置按钮
-  // 导航菜单 layout.nav.*
+  // 导航菜单（产品模式） layout.nav.*
   'layout.nav.alerts.title': '告警', // 告警导航项
   'layout.nav.alerts.description': '规则、触发记录与通知尝试', // 告警导航项描述
   'layout.nav.backtest.title': '回测', // 回测导航项
@@ -124,6 +124,38 @@ const zh = {
   'layout.nav.watchlist.title': '自选', // 自选导航项
   'layout.nav.watchlist.description': '自选股列表与行情跟踪', // 自选导航项描述
 
+  // 导航菜单（调试开发模式） layout.nav.development.*
+  'layout.nav.development.docsCheckbox.title': '复选框', // 复选框组件文档导航项
+  'layout.nav.development.docsCheckbox.description': 'HrsCheckbox 勾选框组件演示与用法', // 复选框导航项描述
+  'layout.nav.development.docsDrawer.title': '抽屉', // 抽屉组件文档导航项
+  'layout.nav.development.docsDrawer.description': 'HrsDrawer 侧滑抽屉组件演示与用法', // 抽屉导航项描述
+  'layout.nav.development.docsButton.title': '按钮', // 按钮组件文档导航项
+  'layout.nav.development.docsButton.description': 'HrsButton 通用按钮组件演示与用法', // 按钮导航项描述
+  'layout.nav.development.docsSelect.title': '下拉选择', // 下拉选择组件文档导航项
+  'layout.nav.development.docsSelect.description': 'HrsSelect 下拉选择器组件演示与用法', // 下拉选择导航项描述
+  'layout.nav.development.docsSeparator.title': '分割线', // 分割线组件文档导航项
+  'layout.nav.development.docsSeparator.description': 'Separator 分割线组件演示与用法', // 分割线导航项描述
+  'layout.nav.development.docsTable.title': '表格', // 表格组件文档导航项
+  'layout.nav.development.docsTable.description': 'Table 通用数据表格组件演示与用法', // 表格导航项描述
+  'layout.nav.development.docsToast.title': '轻提示', // 轻提示组件文档导航项
+  'layout.nav.development.docsToast.description': 'Toast 命令式轻提示组件演示与用法', // 轻提示导航项描述
+  'layout.nav.development.docsModal.title': '模态框', // 模态框组件文档导航项
+  'layout.nav.development.docsModal.description': 'Modal 模态框组件演示与用法', // 模态框导航项描述
+  'layout.nav.development.docsAnimCard.title': '动画卡片', // 动画卡片组件文档导航项
+  'layout.nav.development.docsAnimCard.description': 'AnimCard 动画卡片组件演示与用法', // 动画卡片导航项描述
+  'layout.nav.development.docsNewsCard.title': '快讯卡片', // 快讯卡片组件文档导航项
+  'layout.nav.development.docsNewsCard.description': 'NewsCard 财经快讯卡片组件演示与用法', // 快讯卡片导航项描述
+  'layout.nav.development.docsListCard.title': '列表卡片', // 列表卡片组件文档导航项
+  'layout.nav.development.docsListCard.description': 'ListCard 通用列表卡片组件演示与用法', // 列表卡片导航项描述
+  'layout.nav.development.docsTabNav.title': '标签页', // 标签页组件文档导航项
+  'layout.nav.development.docsTabNav.description': 'TabNav 标签页导航组件演示与用法', // 标签页导航项描述
+  'layout.nav.development.docsInput.title': '输入框', // 输入框组件文档导航项
+  'layout.nav.development.docsInput.description': 'Input 通用表单输入组件演示与用法', // 输入框导航项描述
+  'layout.nav.development.docsTextArea.title': '文本域', // 文本域组件文档导航项
+  'layout.nav.development.docsTextArea.description': 'TextArea 多行文本输入组件演示与用法', // 文本域导航项描述
+  'layout.nav.development.docsChip.title': '标签芯片', // 标签芯片组件文档导航项
+  'layout.nav.development.docsChip.description': 'Chip 圆角胶囊标签组件演示与用法', // 标签芯片导航项描述
+  
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日历事件全天标识
@@ -139,7 +171,19 @@ const zh = {
   'component.LiveCalendar.drawer.sourceName': '华尔街见闻', // 详情抽屉：数据源名称（外链文案）
   'component.LiveCalendar.drawer.noSummary': '暂无详情内容', // 详情抽屉：事件无前瞻/正文时的占位提示
   'component.LiveCalendar.empty': '本月暂无日历事件', // 空态：当月无事件
+  'component.LiveCalendar.emptyFilter': '没有符合筛选条件的事件，试试放宽筛选条件', // 空态：筛选无结果
   'component.LiveCalendar.emptyImportance': '没有符合重要级条件的事件，试试降低筛选条件', // 空态：重要级筛选无结果
+  'component.LiveCalendar.filter.apply': '确认', // 筛选区域：确认按钮
+  'component.LiveCalendar.filter.button': '筛选', // 筛选按钮（切换筛选区域展开）
+  'component.LiveCalendar.filter.country': '国家/地区', // 筛选区域：国家 / 地区
+  'component.LiveCalendar.filter.country.all': '全部国家/地区', // 筛选区域：国家下拉「全部」
+  'component.LiveCalendar.filter.importance': '重要度', // 筛选区域：重要度多选
+  'component.LiveCalendar.filter.importance.none': '无', // 筛选区域：重要度 0（数据源未提供重要度）
+  'component.LiveCalendar.filter.keyword': '关键词', // 筛选区域：标题关键词
+  'component.LiveCalendar.filter.keywordPlaceholder': '搜索新闻标题', // 筛选区域：关键词输入框占位符
+  'component.LiveCalendar.filter.reset': '重置', // 筛选区域：重置按钮
+  'component.LiveCalendar.filter.type': '类型', // 筛选区域：事件类型三态
+  'component.LiveCalendar.filter.type.all': '全部', // 筛选区域：事件类型「全部」
   'component.LiveCalendar.importance': '重要级', // List 视图列头：重要级
   'component.LiveCalendar.includeEconomicData': '显示经济数据', // 是否显示 FD 经济数据开关
   'component.LiveCalendar.list.columns.time': '时间', // List 视图列头：时间

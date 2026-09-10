@@ -17,7 +17,7 @@
 import type * as React from 'react';
 import { useId } from 'react';
 import { TextArea as HeroTextArea } from '@heroui/react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /**
  * TextArea 的 Props。继承原生 textarea 属性 —— 所有原生属性都会透传给内部 HeroUI TextArea。

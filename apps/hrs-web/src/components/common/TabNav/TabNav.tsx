@@ -24,7 +24,7 @@
  */
 import type { Key, ReactNode } from 'react';
 import { Tabs } from '@heroui/react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 export interface TabNavItem<T extends string = string> {
   /** 该 Tab 对应的唯一值（同时作为选中态 key）。 */

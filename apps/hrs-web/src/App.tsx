@@ -48,6 +48,20 @@ const StockKLinePage = lazy(() => import('./pages/StockKLinePage'));
 const StockDashboardPage = lazy(() => import('./pages/StockDashboardPage'));
 const CodeTestPage = lazy(() => import('./pages/CodeTestPage'));
 const DocsCheckboxPage = lazy(() => import('./pages/DocsPage/Components/Docs_checkbox'));
+const DocsDrawerPage = lazy(() => import('./pages/DocsPage/Components/Docs_drawer'));
+const DocsButtonPage = lazy(() => import('./pages/DocsPage/Components/Docs_button'));
+const DocsSelectPage = lazy(() => import('./pages/DocsPage/Components/Docs_select'));
+const DocsSeparatorPage = lazy(() => import('./pages/DocsPage/Components/Docs_separator'));
+const DocsTablePage = lazy(() => import('./pages/DocsPage/Components/Docs_table'));
+const DocsToastPage = lazy(() => import('./pages/DocsPage/Components/Docs_toast'));
+const DocsModalPage = lazy(() => import('./pages/DocsPage/Components/Docs_modal'));
+const DocsAnimCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_animCard'));
+const DocsNewsCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_newsCard'));
+const DocsListCardPage = lazy(() => import('./pages/DocsPage/Components/Docs_listCard'));
+const DocsTabNavPage = lazy(() => import('./pages/DocsPage/Components/Docs_tabNav'));
+const DocsInputPage = lazy(() => import('./pages/DocsPage/Components/Docs_input'));
+const DocsTextAreaPage = lazy(() => import('./pages/DocsPage/Components/Docs_textArea'));
+const DocsChipPage = lazy(() => import('./pages/DocsPage/Components/Docs_chip'));
 const LiveNewsPage = lazy(() => import('./pages/LiveNewsPage'));
 const LiveCalendarPage = lazy(() => import('./pages/LiveCalendarPage'));
 
@@ -155,6 +169,34 @@ const AppContent: React.FC = () => {
         <Route path="/codeTest" element={<CodeTestPage />} />
         {/* 组件文档：复选框 */}
         <Route path="/docs/component/checkbox" element={<DocsCheckboxPage />} />
+        {/* 组件文档：抽屉 */}
+        <Route path="/docs/component/drawer" element={<DocsDrawerPage />} />
+        {/* 组件文档：按钮 */}
+        <Route path="/docs/component/button" element={<DocsButtonPage />} />
+        {/* 组件文档：下拉选择 */}
+        <Route path="/docs/component/select" element={<DocsSelectPage />} />
+        {/* 组件文档：分割线 */}
+        <Route path="/docs/component/separator" element={<DocsSeparatorPage />} />
+        {/* 组件文档：表格 */}
+        <Route path="/docs/component/table" element={<DocsTablePage />} />
+        {/* 组件文档：轻提示 */}
+        <Route path="/docs/component/toast" element={<DocsToastPage />} />
+        {/* 组件文档：模态框 */}
+        <Route path="/docs/component/modal" element={<DocsModalPage />} />
+        {/* 组件文档：动画卡片 */}
+        <Route path="/docs/component/animCard" element={<DocsAnimCardPage />} />
+        {/* 组件文档：快讯卡片 */}
+        <Route path="/docs/component/newsCard" element={<DocsNewsCardPage />} />
+        {/* 组件文档：列表卡片 */}
+        <Route path="/docs/component/listCard" element={<DocsListCardPage />} />
+        {/* 组件文档：标签页 */}
+        <Route path="/docs/component/tabNav" element={<DocsTabNavPage />} />
+        {/* 组件文档：输入框 */}
+        <Route path="/docs/component/input" element={<DocsInputPage />} />
+        {/* 组件文档：文本域 */}
+        <Route path="/docs/component/textArea" element={<DocsTextAreaPage />} />
+        {/* 组件文档：标签芯片 */}
+        <Route path="/docs/component/chip" element={<DocsChipPage />} />
         {/* 系统设置 */}
         <Route path="/settings" element={<SettingsPage />} />
         {/* 兜底：未匹配任何路由时展示 404 */}

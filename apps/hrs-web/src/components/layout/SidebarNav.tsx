@@ -11,7 +11,7 @@
  * 3. 对话页支持未读完成标记（StatusDot 红点）
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, MessageSquareQuote, Newspaper, Search, Settings2, Star } from 'lucide-react';
+import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -69,9 +69,23 @@ const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'code-test', labelKey: 'layout.nav.codeTest.title', to: '/codeTest', icon: FlaskConical },
 ];
 
-/** 调试菜单：开发调试模式（debug）下呈现 */
+/** 开发调试菜单：开发调试模式（debug）下呈现 */
 const DEBUG_NAV_ITEMS: NavItem[] = [
-  { key: 'docs-checkbox', labelKey: 'layout.nav.docsCheckbox.title', to: '/docs/component/checkbox', icon: CheckSquare },
+  { key: 'docs-checkbox', labelKey: 'layout.nav.development.docsCheckbox.title', to: '/docs/component/checkbox', icon: CheckSquare },
+  { key: 'docs-drawer', labelKey: 'layout.nav.development.docsDrawer.title', to: '/docs/component/drawer', icon: PanelRight },
+  { key: 'docs-button', labelKey: 'layout.nav.development.docsButton.title', to: '/docs/component/button', icon: MousePointerClick },
+  { key: 'docs-select', labelKey: 'layout.nav.development.docsSelect.title', to: '/docs/component/select', icon: ChevronsUpDown },
+  { key: 'docs-separator', labelKey: 'layout.nav.development.docsSeparator.title', to: '/docs/component/separator', icon: Minus },
+  { key: 'docs-table', labelKey: 'layout.nav.development.docsTable.title', to: '/docs/component/table', icon: Table },
+  { key: 'docs-toast', labelKey: 'layout.nav.development.docsToast.title', to: '/docs/component/toast', icon: BellRing },
+  { key: 'docs-modal', labelKey: 'layout.nav.development.docsModal.title', to: '/docs/component/modal', icon: AppWindow },
+  { key: 'docs-anim-card', labelKey: 'layout.nav.development.docsAnimCard.title', to: '/docs/component/animCard', icon: Sparkles },
+  { key: 'docs-news-card', labelKey: 'layout.nav.development.docsNewsCard.title', to: '/docs/component/newsCard', icon: Newspaper },
+  { key: 'docs-list-card', labelKey: 'layout.nav.development.docsListCard.title', to: '/docs/component/listCard', icon: List },
+  { key: 'docs-tab-nav', labelKey: 'layout.nav.development.docsTabNav.title', to: '/docs/component/tabNav', icon: LayoutList },
+  { key: 'docs-input', labelKey: 'layout.nav.development.docsInput.title', to: '/docs/component/input', icon: TextCursorInput },
+  { key: 'docs-text-area', labelKey: 'layout.nav.development.docsTextArea.title', to: '/docs/component/textArea', icon: WrapText },
+  { key: 'docs-chip', labelKey: 'layout.nav.development.docsChip.title', to: '/docs/component/chip', icon: Tags },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {

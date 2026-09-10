@@ -123,7 +123,37 @@ const zhHant = {
   'layout.nav.usage.description': 'LLM Token 消耗與模型呼叫明細', // 用量导航项描述
   'layout.nav.watchlist.title': '自選', // 自選導航項
   'layout.nav.watchlist.description': '自選股列表與行情追蹤', // 自选导航项描述
-
+  'layout.nav.development.docsCheckbox.title': '複選框', // 複選框組件文檔導航項
+  'layout.nav.development.docsCheckbox.description': 'HrsCheckbox 勾選框組件演示與用法', // 复选框导航项描述
+  'layout.nav.development.docsDrawer.title': '抽屜', // 抽屜組件文檔導航項
+  'layout.nav.development.docsDrawer.description': 'HrsDrawer 側滑抽屜組件演示與用法', // 抽屉导航项描述
+  'layout.nav.development.docsButton.title': '按鈕', // 按鈕組件文檔導航項
+  'layout.nav.development.docsButton.description': 'HrsButton 通用按鈕組件演示與用法', // 按钮导航项描述
+  'layout.nav.development.docsSelect.title': '下拉選擇', // 下拉選擇組件文檔導航項
+  'layout.nav.development.docsSelect.description': 'HrsSelect 下拉選擇器組件演示與用法', // 下拉选择导航项描述
+  'layout.nav.development.docsSeparator.title': '分隔線', // 分隔線組件文檔導航項
+  'layout.nav.development.docsSeparator.description': 'Separator 分隔線組件演示與用法', // 分割线导航项描述
+  'layout.nav.development.docsTable.title': '表格', // 表格組件文檔導航項
+  'layout.nav.development.docsTable.description': 'Table 通用資料表格組件演示與用法', // 表格导航项描述
+  'layout.nav.development.docsToast.title': '輕提示', // 輕提示組件文檔導航項
+  'layout.nav.development.docsToast.description': 'Toast 命令式輕提示組件演示與用法', // 轻提示导航项描述
+  'layout.nav.development.docsModal.title': '模態框', // 模態框組件文檔導航項
+  'layout.nav.development.docsModal.description': 'Modal 模態框組件演示與用法', // 模态框导航项描述
+  'layout.nav.development.docsAnimCard.title': '動畫卡片', // 動畫卡片組件文檔導航項
+  'layout.nav.development.docsAnimCard.description': 'AnimCard 動畫卡片組件演示與用法', // 动画卡片导航项描述
+  'layout.nav.development.docsNewsCard.title': '快訊卡片', // 快訊卡片組件文檔導航項
+  'layout.nav.development.docsNewsCard.description': 'NewsCard 財經快訊卡片組件演示與用法', // 快讯卡片导航项描述
+  'layout.nav.development.docsListCard.title': '列表卡片', // 列表卡片組件文檔導航項
+  'layout.nav.development.docsListCard.description': 'ListCard 通用列表卡片組件演示與用法', // 列表卡片导航项描述
+  'layout.nav.development.docsTabNav.title': '標籤頁', // 標籤頁組件文檔導航項
+  'layout.nav.development.docsTabNav.description': 'TabNav 標籤頁導航組件演示與用法', // 标签页导航项描述
+  'layout.nav.development.docsInput.title': '輸入框', // 輸入框組件文檔導航項
+  'layout.nav.development.docsInput.description': 'Input 通用表單輸入組件演示與用法', // 輸入框導航項描述
+  'layout.nav.development.docsTextArea.title': '文本域', // 文本域組件文檔導航項
+  'layout.nav.development.docsTextArea.description': 'TextArea 多行文本輸入組件演示與用法', // 文本域導航項描述
+  'layout.nav.development.docsChip.title': '標籤芯片', // 標籤芯片組件文檔導航項
+  'layout.nav.development.docsChip.description': 'Chip 圓角膠囊標籤組件演示與用法', // 標籤芯片導航項描述
+  
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日曆事件全天標識
@@ -139,7 +169,19 @@ const zhHant = {
   'component.LiveCalendar.drawer.sourceName': '華爾街見聞', // 詳情抽屜：數據源名稱（外鏈文案）
   'component.LiveCalendar.drawer.noSummary': '暫無詳情內容', // 詳情抽屜：事件無前瞻/正文時的占位提示
   'component.LiveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
+  'component.LiveCalendar.emptyFilter': '沒有符合篩選條件的事件，試試放寬篩選條件', // 空態：篩選無結果
   'component.LiveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
+  'component.LiveCalendar.filter.apply': '確認', // 篩選區域：確認按鈕
+  'component.LiveCalendar.filter.button': '篩選', // 篩選按鈕（切換篩選區域展開）
+  'component.LiveCalendar.filter.country': '國家/地區', // 篩選區域：國家 / 地區
+  'component.LiveCalendar.filter.country.all': '全部國家/地區', // 篩選區域：國家下拉「全部」
+  'component.LiveCalendar.filter.importance': '重要度', // 篩選區域：重要度多選
+  'component.LiveCalendar.filter.importance.none': '無', // 篩選區域：重要度 0（數據源未提供重要度）
+  'component.LiveCalendar.filter.keyword': '關鍵詞', // 篩選區域：標題關鍵詞
+  'component.LiveCalendar.filter.keywordPlaceholder': '搜尋新聞標題', // 篩選區域：關鍵詞輸入框占位符
+  'component.LiveCalendar.filter.reset': '重置', // 篩選區域：重置按鈕
+  'component.LiveCalendar.filter.type': '類型', // 篩選區域：事件類型三態
+  'component.LiveCalendar.filter.type.all': '全部', // 篩選區域：事件類型「全部」
   'component.LiveCalendar.importance': '重要級', // List 視圖列頭：重要級
   'component.LiveCalendar.includeEconomicData': '顯示經濟資料', // 是否顯示 FD 經濟資料開關
   'component.LiveCalendar.list.columns.time': '時間', // List 視圖列頭：時間

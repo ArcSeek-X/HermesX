@@ -40,8 +40,8 @@
  */
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Modal as HeroUIModal } from '@heroui/react';
-import { cn } from '../../utils/cn';
-import { Separator } from './Separator';
+import { cn } from '../../../utils/cn';
+import { Separator } from '../Separator';
 
 /** 尺寸 → Dialog 圆角映射 */
 const SIZE_RADIUS_MAP: Record<string, string> = {

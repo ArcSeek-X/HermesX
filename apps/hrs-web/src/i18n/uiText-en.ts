@@ -126,7 +126,37 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.usage.description': 'LLM token consumption and model call details',
   'layout.nav.watchlist.title': 'Watchlist',
   'layout.nav.watchlist.description': 'Watchlist stocks and market tracking',
-
+  'layout.nav.development.docsCheckbox.title': 'Checkbox',
+  'layout.nav.development.docsCheckbox.description': 'HrsCheckbox component demo and usage',
+  'layout.nav.development.docsDrawer.title': 'Drawer',
+  'layout.nav.development.docsDrawer.description': 'HrsDrawer side drawer component demo and usage',
+  'layout.nav.development.docsButton.title': 'Button',
+  'layout.nav.development.docsButton.description': 'HrsButton button component demo and usage',
+  'layout.nav.development.docsSelect.title': 'Select',
+  'layout.nav.development.docsSelect.description': 'HrsSelect dropdown select component demo and usage',
+  'layout.nav.development.docsSeparator.title': 'Separator',
+  'layout.nav.development.docsSeparator.description': 'Separator divider component demo and usage',
+  'layout.nav.development.docsTable.title': 'Table',
+  'layout.nav.development.docsTable.description': 'Table data table component demo and usage',
+  'layout.nav.development.docsToast.title': 'Toast',
+  'layout.nav.development.docsToast.description': 'Toast command-style toast component demo and usage',
+  'layout.nav.development.docsModal.title': 'Modal',
+  'layout.nav.development.docsModal.description': 'Modal dialog component demo and usage',
+  'layout.nav.development.docsAnimCard.title': 'Anim Card',
+  'layout.nav.development.docsAnimCard.description': 'AnimCard animated card component demo and usage',
+  'layout.nav.development.docsNewsCard.title': 'News Card',
+  'layout.nav.development.docsNewsCard.description': 'NewsCard live news card component demo and usage',
+  'layout.nav.development.docsListCard.title': 'List Card',
+  'layout.nav.development.docsListCard.description': 'ListCard list card component demo and usage',
+  'layout.nav.development.docsTabNav.title': 'Tabs',
+  'layout.nav.development.docsTabNav.description': 'TabNav tabs navigation component demo and usage',
+  'layout.nav.development.docsInput.title': 'Input',
+  'layout.nav.development.docsInput.description': 'Input form input component demo and usage',
+  'layout.nav.development.docsTextArea.title': 'Text Area',
+  'layout.nav.development.docsTextArea.description': 'TextArea multiline text input component demo and usage',
+  'layout.nav.development.docsChip.title': 'Chip',
+  'layout.nav.development.docsChip.description': 'Chip rounded capsule tag component demo and usage',
+  
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': 'All day', // calendar event all-day marker
@@ -142,7 +172,19 @@ const en: Record<UiTextKey, string> = {
   'component.LiveCalendar.drawer.sourceName': 'Wallstreetcn', // detail drawer: data source name (link text)
   'component.LiveCalendar.drawer.noSummary': 'No details available', // detail drawer: placeholder when event has no summary/foresight
   'component.LiveCalendar.empty': 'No calendar events this month', // empty: no events this month
+  'component.LiveCalendar.emptyFilter': 'No events match the filters, try relaxing them', // empty: filter has no results
   'component.LiveCalendar.emptyImportance': 'No events matching the importance filter, try lowering it', // empty: importance filter has no results
+  'component.LiveCalendar.filter.apply': 'Apply', // filter panel: apply button
+  'component.LiveCalendar.filter.button': 'Filter', // filter toggle button
+  'component.LiveCalendar.filter.country': 'Country/Region', // filter panel: country / region
+  'component.LiveCalendar.filter.country.all': 'All countries/regions', // filter panel: "all" option of country select
+  'component.LiveCalendar.filter.importance': 'Importance', // filter panel: multi-select importance
+  'component.LiveCalendar.filter.importance.none': 'None', // filter panel: importance 0 (source provides no level)
+  'component.LiveCalendar.filter.keyword': 'Keyword', // filter panel: title keyword
+  'component.LiveCalendar.filter.keywordPlaceholder': 'Search news title', // filter panel: keyword input placeholder
+  'component.LiveCalendar.filter.reset': 'Reset', // filter panel: reset button
+  'component.LiveCalendar.filter.type': 'Type', // filter panel: event type tri-state
+  'component.LiveCalendar.filter.type.all': 'All', // filter panel: event type "all"
   'component.LiveCalendar.importance': 'Importance', // List view column header: importance
   'component.LiveCalendar.includeEconomicData': 'Show economic data', // toggle: show FD economic data
   'component.LiveCalendar.list.columns.time': 'Time', // List view column header: time

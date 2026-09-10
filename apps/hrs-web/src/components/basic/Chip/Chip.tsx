@@ -14,7 +14,7 @@
  */
 import React from 'react';
 import { Xmark } from '@gravity-ui/icons';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /** 视觉风格变体 */
 type ChipVariant = 'primary' | 'secondary' | 'tertiary' | 'soft';
