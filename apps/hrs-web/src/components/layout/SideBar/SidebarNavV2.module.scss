@@ -1,0 +1,81 @@
+/* =====================================================================
+   SidebarNavV2 菜单项内部样式覆盖层（CSS Module，原生 CSS）
+   ---------------------------------------------------------------------
+   对标 SidebarNav.tsx：44px 行高 / 20px 图标 / 4px 圆角 / 主色高亮体系。
+   V2 基于 HeroUI Pro，菜单项内部由 content/icon/label 三层封装，无法逐元素直写，
+   只能从 MenuItem 外层（.menuItem 即 HeroUI 的 .sidebar__menu-item）用属性选择器远程覆盖内层。
+
+   为何用原生 CSS 而非 @apply：Tailwind vite 插件只展开主入口（@import "tailwindcss"）
+   链路上的 @apply，独立 .module.scss 不在该管道内，@apply 会被 sass 透传成无效 CSS（已验证）。
+
+   层叠：基础态选择器 (0,2,0) 高于 HeroUI 默认 (0,1,0)，直接生效；hover/激活态与 HeroUI 同为 (0,3,0)。
+   仅对 HeroUI 在同 specificity 明确设置了冲突值的 3 个属性加 !important 兜底（不依赖 chunk 注入顺序）：
+   hover/激活态 content 的 background-color（HeroUI 设 var(--default)）、激活态 icon 的 color（HeroUI 设 var(--foreground)）。
+   其余属性（color/border-color/font-weight 等）HeroUI 未在同 specificity 设置或值相同，靠 specificity 与顺序即可生效。
+   ===================================================================== */
+
+/* 菜单项通用样式（一/二级共用）。.menuItem 挂在 Sidebar.MenuItem 外层，即 .sidebar__menu-item */
+
+
+.menuItem {
+  /* 内容层：固定 44px 行高 + 4px 圆角 + 占位透明边框（激活换主色边框不抖动） */
+  [data-slot='sidebar-menu-item-content'] {
+    height: var(--nav-item-height);
+    padding-block: 0;
+    border-radius: calc(var(--radius) - 4px);
+    border: 1px solid transparent;
+    color: hsl(var(--secondary-text));
+  }
+
+  /* 文字：默认次要色 + 行高 1 + 常规字重（覆盖 HeroUI 默认 medium） */
+  [data-slot='sidebar-menu-label'] {
+    color: hsl(var(--secondary-text));
+    line-height: 1;
+    font-weight: 400;
+  }
+
+  /* 图标/箭头：跟随文字色（覆盖 HeroUI 默认 muted） */
+  [data-slot='sidebar-menu-icon'],
+  [data-slot='sidebar-menu-indicator'] {
+    color: currentColor;
+  }
+
+  /* hover：主色 5% 背景，文字/图标变亮 */
+  &:hover [data-slot='sidebar-menu-item-content'] {
+    color: hsl(var(--foreground));
+    background-color: var(--nav-hover-bg) !important;
+  }
+
+  &:hover [data-slot='sidebar-menu-label'] {
+    color: hsl(var(--foreground));
+  }
+
+  /* 激活（data-current=true 在外层）：主色 9% 背景 + 24% 边框 + 主色文字/图标/加粗 */
+  &[data-current='true'] [data-slot='sidebar-menu-item-content'] {
+    color: hsl(var(--primary));
+    background-color: var(--nav-active-bg) !important;
+    border-color: var(--nav-active-border);
+  }
+
+  &[data-current='true'] [data-slot='sidebar-menu-label'] {
+    color: hsl(var(--primary));
+    font-weight: 500;
+  }
+
+  &[data-current='true'] [data-slot='sidebar-menu-icon'] {
+    color: var(--nav-icon-active) !important;
+  }
+}
+
+/* 一级菜单项：16px 左右内边距（对标 SidebarNav px-4）；二级保留 HeroUI 默认缩进以区分层级 */
+.menuItemLevel1 {
+  [data-slot='sidebar-menu-item-content'] {
+    padding-inline: calc(var(--spacing) * 4);
+  }
+}
+
+/* 菜单容器：项间距 6px（对标 SidebarNav gap-1.5，覆盖 HeroUI 默认 2px） */
+.menu {
+  gap: calc(var(--spacing) * 1.5);
+}
+

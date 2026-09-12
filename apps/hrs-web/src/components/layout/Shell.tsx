@@ -51,6 +51,7 @@ import { Outlet } from 'react-router-dom';
 import { Drawer } from '../common/Drawer';
 import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SidebarNav';
+import { SidebarNavV2 } from './SideBar';
 import { cn } from '../../utils/cn';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useCachedState } from '../../hooks/useCachedState';
@@ -120,17 +121,18 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
         {/* h-[calc(100%-0.5rem)]：扣除 mt-2 后撑满内容高度，底部与容器 padding-bottom 对齐，避免侵入底部留白 */}
         {/* 圆角 1.5rem + 半透明背景 + 毛玻璃模糊 + 柔和阴影，终端风格视觉 */}
         {/* transition-[width] 支持折叠/展开时的宽度过渡动画（200ms） */}
-        <aside
-          className={cn(
-            'hrs-side z-40 hidden p-2.5 mt-2 mr-4 h-[calc(100%-0.5rem)] shrink-0 overflow-visible border border-[var(--shell-sidebar-border)] bg-card/72 shadow-shell-sidebar backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex',
-            // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
-            collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[136px] rounded-lg'
-          )}
-          aria-label={t('layout.desktopSidebar')}
-        >
+
           {/* 侧边栏导航组件：variant="rail" 表示桌面端紧凑模式，onNavigate 导航后关闭移动端抽屉 */}
-          <SidebarNav collapsed={collapsed} variant="rail" onNavigate={() => setMobileOpen(false)} />
-        </aside>
+          {/* <SidebarNav collapsed={collapsed} variant="rail" onNavigate={() => setMobileOpen(false)} /> */}
+
+            <SidebarNavV2
+             className={cn(
+            // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
+            collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[200px] rounded-lg'
+          )}
+
+            onNavigate={() => setMobileOpen(false)} />
+       
 
         {/* ===== 右侧列：页头 + 主内容区 ===== */}
         {/* flex-col 纵向排列，flex-1 占据侧边栏之外的所有剩余宽度，高度拉伸填满容器 */}
@@ -141,15 +143,15 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
             collapsed={collapsed}
             onToggleSidebar={() => setCollapsed((c) => !c)}
             onOpenMobileNav={() => setMobileOpen(true)}
-          
+
           />
 
           {/* ===== 主内容区域（滚动容器）===== */}
           {/* min-h-0：允许 flex 子元素收缩，使 overflow-y-auto 生效 */}
           {/* bg-background：确保 padding 区域不透明，遮挡滚动内容 */}
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
-          <main className="hrs-page-container 
-            min-h-0 min-w-0 
+          <main className="hrs-page-container
+            min-h-0 min-w-0
             pt-4
             flex-1 overflow-y-auto bg-background touch-pan-y"
           >
@@ -162,6 +164,9 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
       {/* ===== 移动端抽屉导航（从左侧滑出，仅移动端使用）===== */}
       {/* Drawer 组件提供遮罩层 + 滑入动画，width="max-w-xs" 限制最大宽度 320px */}
       {/* zIndex=90 确保在顶部浮动栏（z-40）之上显示 */}
+
+       {/* <SidebarNavV2 onNavigate={() => setMobileOpen(false)} /> */}
+
       <Drawer
         isOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
@@ -170,8 +175,11 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
         zIndex={90}
         side="left"
       >
-        {/* 抽屉内的侧边栏导航：variant 默认为 full 模式，导航后自动关闭抽屉 */}
-        <SidebarNav onNavigate={() => setMobileOpen(false)} />
+        {/* 抽屉内的侧边栏导航：改用 SidebarNavV2（HeroUI Pro Sidebar），导航后经 onNavigate 关闭抽屉 */}
+        <SidebarNavV2 onNavigate={() => setMobileOpen(false)} />
+
+
+
       </Drawer>
     </div>
   );

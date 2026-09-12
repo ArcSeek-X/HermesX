@@ -168,10 +168,14 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
   const itemLabelClass = cn('truncate', isRail ? 'text-center' : '');
 
   return (
-    <div className="hrs-side-container flex w-full h-full flex-col">
+    <aside
+      className="hrs-side flex flex-col w-full h-full p-2.5 mr-4 shrink-0 overflow-visible bg-card/72 shadow-shell-sidebar backdrop-blur-sm transition-[width,border-radius] duration-200 lg:flex"
+      aria-label={t('layout.desktopSidebar')}
+    >
       {/* 品牌 Logo 区域 */}
       <div
         className={cn(
+          'hrs-side-container',
           'flex items-center',
           isRail ? 'mb-5 justify-center gap-2 pt-1' : 'mb-4 gap-2 px-1',
           collapsed || isRail ? 'justify-center' : ''
@@ -202,48 +206,48 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
         {navItems.map(({ key, labelKey, to, icon: Icon, exact, badge }) => {
           const label = t(labelKey);
           return (
-          <NavLink
-            key={key}
-            to={to}
-            end={exact}
-            onClick={onNavigate}
-            aria-label={label}
-            className={({ isActive }) =>
-              cn(
-                itemBaseClass,
-                itemInteractiveClass,
-                isActive ? itemActiveClass : ''
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon className={cn(itemIconClass, isActive ? 'text-[var(--nav-icon-active)]' : 'text-current')} />
-                {/* 折叠时隐藏文字标签 */}
-                {!collapsed ? <span className={itemLabelClass}>{label}</span> : null}
-                {/* 对话完成未读标记：右上角红点 */}
-                {badge === 'completion' && completionBadge ? (
-                  <StatusDot
-                    tone="info"
-                    data-testid="chat-completion-badge"
-                    className={cn(
-                      'absolute right-3 border-2 border-background shadow-[0_0_10px_var(--nav-indicator-shadow)]',
-                      collapsed ? 'right-2 top-2' : ''
-                    )}
-                    aria-label={t('layout.newChatMessage')}
-                  />
-                ) : null}
-              </>
-            )}
-          </NavLink>
-        );
+            <NavLink
+              key={key}
+              to={to}
+              end={exact}
+              onClick={onNavigate}
+              aria-label={label}
+              className={({ isActive }) =>
+                cn(
+                  itemBaseClass,
+                  itemInteractiveClass,
+                  isActive ? itemActiveClass : ''
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon className={cn(itemIconClass, isActive ? 'text-[var(--nav-icon-active)]' : 'text-current')} />
+                  {/* 折叠时隐藏文字标签 */}
+                  {!collapsed ? <span className={itemLabelClass}>{label}</span> : null}
+                  {/* 对话完成未读标记：右上角红点 */}
+                  {badge === 'completion' && completionBadge ? (
+                    <StatusDot
+                      tone="info"
+                      data-testid="chat-completion-badge"
+                      className={cn(
+                        'absolute right-3 border-2 border-background shadow-[0_0_10px_var(--nav-indicator-shadow)]',
+                        collapsed ? 'right-2 top-2' : ''
+                      )}
+                      aria-label={t('layout.newChatMessage')}
+                    />
+                  ) : null}
+                </>
+              )}
+            </NavLink>
+          );
         })}
       </nav>
 
       {/* 底部固定区：设置入口，始终贴在侧边栏底部 */}
       {/* 顶部分割线：浅色，用于隔开上方导航列表与设置入口 */}
       <div className={cn('ggggg mt-auto w-full pt-3', isRail && collapsed ? 'flex justify-center' : '')}>
-        <div className={cn('h-px w-full bg-[var(--nav-divider)]',isRail && collapsed ? 'w-6' : '' )}/>
+        <div className={cn('h-px w-full bg-[var(--nav-divider)]', isRail && collapsed ? 'w-6' : '')} />
       </div>
       <div className="flex flex-col items-center pt-">
         <NavLink
@@ -266,6 +270,6 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
           )}
         </NavLink>
       </div>
-    </div>
+    </aside>
   );
 };
