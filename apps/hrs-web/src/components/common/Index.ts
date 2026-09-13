@@ -6,7 +6,7 @@
  */
 export * from './Card';
 export * from './LiveCalendar';
-export * from './AppPage';
+export * from '../layout/AppPage';
 export * from './SectionCard';
 export * from './StatCard';
 export * from './EmptyState';
