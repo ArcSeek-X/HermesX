@@ -5,9 +5,8 @@
  */
 import React, { useState } from 'react';
 import { AppPage } from '../components';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useTheme } from 'next-themes';
-import { useThemeColor } from '../hooks/useThemeColor';
+import { useThemeStore } from '../stores/themeStore';
 import LightBloom from '../components/vibeBack/LightBloom';
 import { StockSearch } from '../components/StockSearch';
 
@@ -18,9 +17,8 @@ import { StockSearch } from '../components/StockSearch';
  * 当前提供统一页面容器、标题区与占位内容，保证路由 /review 可访问且视觉与全站一致。
  */
 const ReviewPage: React.FC = () => {
-  const { t } = useUiLanguage();
   // 取自系统主题主色（HEX），用户切换主色/主题时实时联动
-  const { color } = useThemeColor();
+  const { themeColor } = useThemeStore();
   // 仅在暗色主题下展示 LightBloom 背景光晕
   const { resolvedTheme } = useTheme();
   // 首页股票搜索（受控）
@@ -32,7 +30,7 @@ const ReviewPage: React.FC = () => {
         <LightBloom
           style={{ position: 'fixed', inset: 0, zIndex: 0 }}
           background="transparent"
-          baseColor={color}
+          baseColor={themeColor}
         />
       )}
       <div className="relative h-full z-10 flex min-h-screen items-center justify-center  px-4">

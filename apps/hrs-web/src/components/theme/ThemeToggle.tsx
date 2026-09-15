@@ -1,5 +1,5 @@
 /**
- * 主题切换组件（ThemeToggle）
+ * 主题切换组件（ThemeToggle） - 该组件暂时未使用
  *
  * 提供浅色 / 暗色 / 跟随系统三种主题切换能力，以弹出菜单形式呈现。
  *
@@ -14,9 +14,10 @@
  * 3. 点击选项后立即切换主题并关闭菜单
  * 4. 点击组件外部区域自动关闭菜单
  *
- * 主题状态来源：next-themes 的 useTheme()
- * - theme：用户选择的主题偏好（light / dark / system）
- * - resolvedTheme：实际生效的主题（system 模式下解析为 light 或 dark）
+ * 主题状态来源：themeStore（Zustand）是唯一真值，本组件只从 store 读 themeMode / 写 setThemeMode；
+ * 写 store 后由 ThemeSync 桥接 next-themes（切 <html> class + 联动 resolvedTheme）。
+ * - themeMode：用户选择的主题偏好（light / dark / system），来自 store
+ * - resolvedTheme：实际生效的主题（system 模式下解析为 light 或 dark），仅用于图标展示，来自 next-themes
  *
  * @author Lensgcx (GaoCangxiong)
  */
@@ -25,11 +26,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useThemeStore } from '../../stores/themeStore';
 import type { UiTextKey } from '../../i18n/uiText';
 import { cn } from '../../utils/cn';
+import type { ThemeMode } from '../../types/theme';
 
-/** 可选主题值 */
-type ThemeOption = 'light' | 'dark' | 'system';
 /** 组件展示形态 */
 type ThemeToggleVariant = 'default' | 'nav' | 'rail';
 
@@ -38,7 +39,7 @@ type ThemeToggleVariant = 'default' | 'nav' | 'rail';
  * 用于渲染下拉菜单中的三个选项
  */
 const THEME_OPTIONS: Array<{
-  value: ThemeOption;
+  value: ThemeMode;
   labelKey: UiTextKey;
   icon: typeof Sun;
 }> = [
@@ -88,9 +89,11 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   iconClassName,
   labelClassName,
 }) => {
-  // theme=用户选择的主题偏好，resolvedTheme=实际生效主题，setTheme=切换主题
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  // resolvedTheme=实际生效主题（system 模式解析为 light/dark），仅用于图标展示
+  const { resolvedTheme } = useTheme();
   const { t } = useUiLanguage();
+  // 主题偏好（light/dark/system）来自 store（唯一真值）；切换经 store action -> ThemeSync 桥接 next-themes
+  const { themeMode, setThemeMode } = useThemeStore();
   // 下拉菜单是否展开
   const [open, setOpen] = useState(false);
   // 外层容器引用，用于判断点击是否在组件外部
@@ -118,7 +121,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   }, [open]);
 
   // 用户选择的主题偏好（未设置时回退为 system）
-  const activeTheme = (theme as ThemeOption | undefined) ?? 'system';
+  const activeTheme = themeMode;
   // 实际生效的视觉主题（system 模式下会解析为 light 或 dark）
   const visualTheme = resolvedTheme ?? 'dark';
   // 触发按钮图标：浅色显示太阳，暗色显示月亮
@@ -184,7 +187,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 role="menuitemradio"
                 aria-checked={isActive}
                 onClick={() => {
-                  setTheme(value);
+                  setThemeMode(value);
                   setOpen(false);
                 }}
                 className={cn(

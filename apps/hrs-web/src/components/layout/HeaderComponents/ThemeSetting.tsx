@@ -2,7 +2,8 @@
  * ThemeSetting
  *
  * 主题设置弹窗：包含「主题模式（浅色/暗色/跟随系统）」与「主色配置」两部分。
- * 主色通过 useThemeColor 写入 --primary 并持久化到 localStorage，全局联动生效。
+ * 主题模式 / 主色由 themeStore（Zustand）统一管理并持久化；本组件作为使用层从 store 读取，
+ * 向基础组件（TabNav / ColorPicker）传 props：操作即预览、点「保存」才提交到 store 落库。
  *
  * 层级处理：弹层通过 createPortal 渲染到 document.body，并用 fixed 定位，
  * 避免被父级（如 <header class="z-30">）的 stacking context / overflow 影响层级，
@@ -10,12 +11,13 @@
  *
  * @author Lensgcx (GaoCangxiong)
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Palette } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
-import { useThemeColor } from '../../../hooks/useThemeColor';
+import { useThemeStore } from '../../../stores/themeStore';
+import type { ThemeMode } from '../../../types/theme';
+import { applyPrimaryColor, applyModePreview } from '../../../utils/themeColor';
 import { ColorPicker } from '../../basic/ColorPicker';
 import { Button } from '../../basic/Button';
 import { TabNav } from '../../common/TabNav';
@@ -41,22 +43,79 @@ const PRIMARY_PRESETS = [
   '#64748B', // 灰蓝
 ];
 
+/**
+ * 切换主题时的"过渡抑制"机关（suppress / restore 一对函数）。
+ * ---------------------------------------------------------------------------
+ * 背景（为什么需要）：
+ *   正式链路 setThemeMode -> ThemeSync -> next-themes 由 disableTransitionOnChange
+ *   负责在切换瞬间禁用过渡；但弹层内的预览路径走的是 applyModePreview / applyPrimaryColor
+ *   直接改 <html> 的 light/dark class 与 --primary，完全绕过 next-themes，于是
+ *   disableTransitionOnChange 不生效 —— 切换瞬间部分元素瞬变、部分元素仍走 CSS
+ *   过渡渐变，产生视觉时间差。这里手工复刻 next-themes 的"切换瞬间禁用过渡"行为，
+ *   让预览与正式切换的视觉表现一致。
+ * 机制：切换前把一条全局 transition:none 的 <style> 注入 <head>，切换后下一帧移除。
+ */
+let noTransitionStyle: HTMLStyleElement | null = null;
+/** 切换前调用：临时禁用全站过渡/动画（保留 TabNav 指示条滑动），消除预览切换的时间差 */
+function suppressThemeTransition(): void {
+  if (typeof document === 'undefined') return; // SSR 安全：服务端无 DOM，直接跳过，避免报错
+  if (!noTransitionStyle) {
+    // 懒创建单例 style 节点（模块级复用，避免每次预览都 createElement + 重复插入）
+    noTransitionStyle = document.createElement('style');
+    noTransitionStyle.textContent =
+      // 全局杀掉过渡与动画：颜色/背景/边框等一律瞬变，不渐变，消除时间差
+      '*,*::before,*::after{transition:none!important;animation:none!important}' +
+      // 例外：TabNav 指示条只做 transform 位移，不在主题换色范围，单独放开其滑动动画
+      '[data-slot="tabs-indicator"]{transition:transform 200ms ease!important}';
+  }
+  document.head.appendChild(noTransitionStyle);
+  // 强制同步重排（读 offsetHeight 触发 reflow）：让"过渡已禁用"这个样式在
+  // 下方 applyModePreview / applyPrimaryColor 改 <html> class 之前先生效，
+  // 否则插入 style 与改 class 落在同一帧、浏览器可能合并渲染，仍会闪一下
+  void document.documentElement.offsetHeight;
+}
+
+/** 切换后（requestAnimationFrame 中）调用：移除注入的 style，恢复全站过渡/动画 */
+function restoreThemeTransition(): void {
+  if (noTransitionStyle && noTransitionStyle.parentNode) {
+    noTransitionStyle.parentNode.removeChild(noTransitionStyle);
+  }
+}
+
 export const ThemeSetting = () => {
   const { t } = useUiLanguage();
-  const { theme, setTheme } = useTheme();
-  // 选中态用本地 state 驱动 TabNav，避免直接依赖 next-themes 的 theme：
-  // setTheme 会连带切换 <html> 的 dark/light class，打断 react-aria indicator 的
-  // 连续挂载/卸载快照链，导致 tab 切换无滑动动画。本地 state 同步更新可恢复滑动。
-  const [modeState, setModeState] = useState<string>(theme ?? 'system');
-  useEffect(() => {
-    if (theme) setModeState(theme);
-  }, [theme]);
-  const { color, setColor, reset } = useThemeColor();
-  const [open, setOpen] = useState(false);
+  // 已保存真值（last-saved）：来自 Zustand，刷新/切换后保持
+  const { themeMode, themeColor, setThemeMode, setThemeColor } = useThemeStore();
+  // 弹层内预览草稿：操作即所见，仅点「保存」才提交到 store
+  const [draftMode, setDraftMode] = useState<ThemeMode>(themeMode);
+  const [draftColor, setDraftColor] = useState<string>(themeColor);
+  // 预览应用：把 draft 即时写到 DOM（切 <html> class + 改 --primary），不落库
+  const applyPreview = useCallback(
+    (m: ThemeMode, c: string) => {
+      // 预览前临时禁用全局过渡（与 next-themes disableTransitionOnChange 对齐），
+      // 避免切换瞬间各元素过渡不一致产生时间差；指示条 transform 滑动单独保留。
+      suppressThemeTransition();
+      applyModePreview(m);
+      applyPrimaryColor(c);
+      requestAnimationFrame(restoreThemeTransition);
+    },
+    []
+  );
+  const [open, setOpen] = useState(false); // 弹层开关：true 时渲染主题设置弹层
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  // 打开：草稿初始化为「上次保存的状态」；关闭：丢弃预览、DOM 还原为已保存值
+  useEffect(() => {
+    if (!open) {
+      setDraftMode(themeMode);
+      setDraftColor(themeColor);
+      applyPreview(themeMode, themeColor);
+    }
+    // 仅依赖 open：关闭时用闭包里的 store 当前值（即 last-saved）还原
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   // 弹层定位：top 紧贴触发按钮底部、right 与按钮右边缘对齐
-  const [popoverStyle, setPopoverStyle] = useState<{ top: number; right: number } | null>(null);
+  const [popoverStyle, setPopoverStyle] = useState<{ top: number; right: number } | null>(null); // 弹层 fixed 定位坐标（top/right），null 表示尚未计算
 
   /** 依据触发按钮的位置计算弹层 fixed 定位 */
   const updatePopoverPosition = () => {
@@ -136,40 +195,50 @@ export const ThemeSetting = () => {
           style={{ top: popoverStyle.top, right: popoverStyle.right }}
         >
           <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.menu')}</div>
-         
+
           <TabNav
             items={THEME_MODES.map((mode) => ({ value: mode.value, label: t(mode.labelKey) }))}
-            value={modeState}
-            onChange={(mode) => {
-              setModeState(mode);
-              // 延后一帧再切换 <html> 的 dark/light class：
-              // 否则 next-themes 切换主题会重渲染 ThemeProvider，打断 react-aria
-              // SelectionIndicator 的"旧 indicator 卸载存快照→新 indicator 挂载读快照"链，
-              // 导致模块级 prevSnapshot 被清空，tab 切换无滑动动画。
-              requestAnimationFrame(() => setTheme(mode));
+            value={draftMode}
+            onChange={(m) => {
+              setDraftMode(m as ThemeMode);
+              applyPreview(m as ThemeMode, draftColor);
             }}
             variant="primary"
             ariaLabel={t('theme.menu')}
             className='mb-3'
             tabsClassName="theme-mode-switch w-full"
           />
-       
-         
+
+
           <div className="mb-2 text-xs font-medium text-muted-text">{t('theme.primary')}</div>
 
           <ColorPicker
-            value={color}
-            onChange={setColor}
+            value={draftColor}
+            onChange={(c) => {
+              setDraftColor(c);
+              applyPreview(draftMode, c);
+            }}
             presets={PRIMARY_PRESETS}
             showPreviewDot
             className="w-full [&_.react-colorful]:!w-full [&_.react-colorful-wrapper]:w-full"
           />
           <div className="mt-3 flex justify-end gap-3">
             <Button
-              type="button" variant="settings-primary" onClick={() => {}}>
+              type="button" variant="settings-primary"
+              onClick={() => {
+                setThemeMode(draftMode);
+                setThemeColor(draftColor);
+                setOpen(false);
+              }}>
               {t('theme.save')}
             </Button>
-            <Button type="button" variant="settings-secondary" onClick={reset}>
+            <Button
+              type="button" variant="settings-secondary"
+              onClick={() => {
+                setDraftMode(themeMode);
+                setDraftColor(themeColor);
+                applyPreview(themeMode, themeColor);
+              }}>
               {t('theme.reset')}
             </Button>
           </div>
