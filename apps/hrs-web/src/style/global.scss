@@ -15,14 +15,61 @@
     background: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+
+  /* 归入 @layer base：滚动条默认样式属基础层。放入层内后，@layer utilities 里的
+   .scrollbar-none 才能正常覆盖其 width/height（CSS 级联层中「未分层」样式优先级
+   高于任何分层样式，若本段留在未分层位置，会压制 utilities 层里 .scrollbar-none
+   的 width/height:0；此前正是靠 display:none 才达成隐藏）。 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
 }
 
+
+/* 此处不写 @tailwind base/components/utilities 指令：项目为 Tailwind v4，
+   三层样式由唯一入口 style/index.css 的 @import "tailwindcss" 生成，
+   本文件只在 Tailwind 已声明的同名层（base / components / utilities）里追加自定义内容。 */
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+
 @layer components {
+
   /* 指数卡片：1px 淡灰外边框，颜色取自设计令牌 --border-subtle（亮色 foreground/0.08，暗色 /0.04） */
   .hrs-index-card {
     border: 1px solid var(--border-subtle) !important;
   }
 }
+
+
+
+
+
 
 
 /* ============ Circular Gauge ============ */
@@ -205,30 +252,12 @@
 }
 
 
-/* ============ Custom Scrollbar ============ */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 /* ============ Animations ============ */
 @keyframes spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -239,6 +268,7 @@
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -250,6 +280,7 @@
     opacity: 0;
     transform: translateY(-0.25rem);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -261,6 +292,7 @@
     opacity: 0;
     transform: translateY(-0.5rem);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -272,6 +304,7 @@
     opacity: 0;
     transform: translateY(0.5rem);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -317,15 +350,19 @@
 .text-cyan-400 {
   color: hsl(var(--color-cyan-400));
 }
+
 .text-emerald-400 {
   color: hsl(var(--color-emerald-400));
 }
+
 .text-red-400 {
   color: hsl(var(--color-red-400));
 }
+
 .text-amber-400 {
   color: hsl(var(--color-amber-400));
 }
+
 .text-purple {
   color: hsl(var(--color-purple));
 }
@@ -340,10 +377,12 @@
 .bg-base {
   background: var(--bg-base);
 }
+
 /* 后续card需要拆分，不少input和button都是用这个 */
 .bg-card {
   background: var(--bg-card);
 }
+
 .bg-elevated {
   background: var(--bg-elevated);
 }
@@ -359,9 +398,11 @@
 .border-accent {
   border-color: var(--border-accent);
 }
+
 .border-purple {
   border-color: var(--border-purple);
 }
+
 .border-cyan {
   border-color: var(--border-cyan);
 }
@@ -399,11 +440,9 @@ textarea {
   overflow: hidden;
   border-radius: 1rem;
   border: 1px solid var(--terminal-card-border);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--card) / 0.96),
-    hsl(var(--background) / 0.96)
-  );
+  background: linear-gradient(180deg,
+      hsl(var(--card) / 0.96),
+      hsl(var(--background) / 0.96));
   box-shadow: var(--terminal-card-shadow);
 }
 
@@ -413,12 +452,10 @@ textarea {
   inset: 0;
   border-radius: 1rem;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    var(--terminal-card-gradient-start) 0%,
-    var(--terminal-card-gradient-mid) 52%,
-    var(--terminal-card-gradient-end) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--terminal-card-gradient-start) 0%,
+      var(--terminal-card-gradient-mid) 52%,
+      var(--terminal-card-gradient-end) 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -449,23 +486,19 @@ textarea {
   border-radius: 1rem;
   padding: 1px;
   /* 渐变方向由调用方通过 --gradient-angle 控制，默认 135deg（左上角对角线） */
-  background: linear-gradient(
-    var(--gradient-angle, 135deg),
-    var(--border-accent) 0%,
-    var(--border-purple) 50%,
-    var(--border-dim) 100%
-  );
+  background: linear-gradient(var(--gradient-angle, 135deg),
+      var(--border-accent) 0%,
+      var(--border-purple) 50%,
+      var(--border-dim) 100%);
   box-shadow: var(--shadow-soft-card);
 }
 
 .gradient-border-card-inner {
   height: 100%;
   border-radius: calc(1rem - 1px);
-  background: linear-gradient(
-    135deg,
-    hsl(var(--elevated) / 0.98),
-    hsl(var(--card) / 0.98)
-  );
+  background: linear-gradient(135deg,
+      hsl(var(--elevated) / 0.98),
+      hsl(var(--card) / 0.98));
 }
 
 .glass-card {
@@ -485,12 +518,10 @@ textarea {
   inset: 0;
   border-radius: 1rem;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    var(--border-accent) 0%,
-    var(--border-purple) 50%,
-    var(--border-subtle) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--border-accent) 0%,
+      var(--border-purple) 50%,
+      var(--border-subtle) 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -509,12 +540,10 @@ textarea {
   left: 14%;
   right: 14%;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--bg-subtle) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--bg-subtle) 50%,
+      transparent 100%);
   pointer-events: none;
 }
 
@@ -545,12 +574,10 @@ textarea {
   inset: 0;
   border-radius: 1rem;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    var(--border-accent) 0%,
-    var(--border-purple) 50%,
-    var(--border-subtle) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--border-accent) 0%,
+      var(--border-purple) 50%,
+      var(--border-subtle) 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -569,12 +596,10 @@ textarea {
   left: 14%;
   right: 14%;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--bg-subtle) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--bg-subtle) 50%,
+      transparent 100%);
   pointer-events: none;
 }
 
@@ -629,12 +654,10 @@ textarea {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    var(--home-panel-gradient-mid) 0%,
-    transparent 45%,
-    var(--home-panel-gradient-start) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--home-panel-gradient-mid) 0%,
+      transparent 45%,
+      var(--home-panel-gradient-start) 100%);
   opacity: 0;
   transition: opacity 0.2s ease;
   -webkit-mask:
@@ -977,12 +1000,10 @@ textarea {
   right: 1.25rem;
   top: 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(var(--primary) / 0.18) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.18) 50%,
+      transparent 100%);
   pointer-events: none;
 }
 
@@ -1057,7 +1078,7 @@ textarea {
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.72);
 }
 
-.home-trace-toggle > span:first-child {
+.home-trace-toggle>span:first-child {
   color: hsl(var(--secondary-text) / 0.88);
 }
 
@@ -1080,12 +1101,10 @@ textarea {
 
 .dark .home-report-hero::after,
 .dark .home-rail-card::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(var(--primary) / 0.24) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.24) 50%,
+      transparent 100%);
 }
 
 .dark .home-rail-card {
@@ -1149,7 +1168,7 @@ textarea {
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04);
 }
 
-.dark .home-trace-toggle > span:first-child {
+.dark .home-trace-toggle>span:first-child {
   color: hsl(var(--secondary-text) / 0.88);
 }
 
@@ -1214,6 +1233,7 @@ textarea {
   padding: 0.5rem 1rem;
   color: var(--text-secondary-text);
 }
+
 .label-uppercase {
   display: inline-flex;
   align-items: center;
@@ -1246,11 +1266,9 @@ textarea {
 
 .btn-primary {
   border: 1px solid rgba(0, 212, 255, 0.26);
-  background: linear-gradient(
-    135deg,
-    rgba(0, 212, 255, 0.96),
-    rgba(0, 168, 204, 0.96)
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.96),
+      rgba(0, 168, 204, 0.96));
   color: #041118;
   box-shadow: 0 12px 28px rgba(0, 212, 255, 0.2);
 }
@@ -1369,11 +1387,9 @@ textarea {
 
 .settings-button-primary {
   border-color: hsl(var(--primary) / 0.26);
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.96),
-    hsl(var(--primary) / 0.78)
-  );
+  background: linear-gradient(135deg,
+      hsl(var(--primary) / 0.96),
+      hsl(var(--primary) / 0.78));
   color: hsl(var(--primary-foreground));
   box-shadow: 0 12px 28px hsl(var(--primary) / 0.2);
 }
@@ -1540,10 +1556,22 @@ textarea {
   font-weight: 600;
 }
 
-.chat-prose h1 { font-size: 1.125rem; }
-.chat-prose h2 { font-size: 1rem; color: hsl(var(--foreground) / 0.92); }
-.chat-prose h3 { font-size: 0.9375rem; }
-.chat-prose h4 { font-size: 0.875rem; }
+.chat-prose h1 {
+  font-size: 1.125rem;
+}
+
+.chat-prose h2 {
+  font-size: 1rem;
+  color: hsl(var(--foreground) / 0.92);
+}
+
+.chat-prose h3 {
+  font-size: 0.9375rem;
+}
+
+.chat-prose h4 {
+  font-size: 0.875rem;
+}
 
 .chat-prose p {
   margin-bottom: 0.5rem;
@@ -1816,6 +1844,7 @@ textarea {
   background: hsl(var(--destructive) / 0.08);
   color: hsl(349 82% 56%);
 }
+
 /* =========================================
    Backtest Workspace Styles
    ========================================= */
@@ -1827,19 +1856,23 @@ textarea {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--backtest-border-dim);
 }
+
 .backtest-metric-row:last-child {
   border-bottom: none;
 }
+
 .backtest-metric-row .label {
   font-size: 0.75rem;
   color: var(--text-secondary-text);
 }
+
 .backtest-metric-row .value {
   font-size: 0.875rem;
   font-family: monospace;
   font-weight: 600;
   color: hsl(var(--foreground));
 }
+
 .backtest-metric-row .value.accent {
   color: hsl(var(--primary));
 }
@@ -1865,26 +1898,33 @@ textarea {
   font-size: 0.75rem;
   font-family: monospace;
 }
+
 .backtest-summary .label {
   color: var(--text-secondary-text);
 }
+
 .backtest-summary .label.message {
   flex-basis: 100%;
   line-height: 1.4;
   white-space: normal;
 }
+
 .backtest-summary .value {
   color: hsl(var(--foreground));
 }
+
 .backtest-summary .value.primary {
   color: hsl(var(--primary));
 }
+
 .backtest-summary .value.success {
   color: hsl(var(--color-success));
 }
+
 .backtest-summary .value.warning {
   color: hsl(var(--color-warning));
 }
+
 .backtest-summary .value.danger {
   color: hsl(var(--color-danger));
 }
@@ -1903,20 +1943,24 @@ textarea {
   background: transparent;
   color: var(--text-muted-text);
 }
+
 .backtest-force-btn:hover:not(:disabled) {
   border-color: hsl(var(--foreground) / 0.20);
   color: var(--text-secondary-text);
 }
+
 .backtest-force-btn.active {
   border-color: var(--backtest-border-cyan-soft);
   background: var(--backtest-bg-cyan-subtle);
   color: hsl(var(--primary));
   box-shadow: var(--backtest-shadow-cyan-glow);
 }
+
 .backtest-force-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .backtest-force-btn .dot {
   width: 0.375rem;
   height: 0.375rem;
@@ -1924,6 +1968,7 @@ textarea {
   background: hsl(var(--border));
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
+
 .backtest-force-btn.active .dot {
   background: hsl(var(--primary));
   box-shadow: var(--backtest-shadow-cyan-glow-strong);
@@ -1935,10 +1980,12 @@ textarea {
   border-top-color: var(--backtest-spinner-head);
   animation: spin 1s linear infinite;
 }
+
 .backtest-spinner.sm {
   width: 2rem;
   height: 2rem;
 }
+
 .backtest-spinner.md {
   width: 2.5rem;
   height: 2.5rem;
@@ -2023,9 +2070,11 @@ textarea {
   border-top: 1px solid var(--backtest-border-dim);
   transition: background-color 0.15s ease;
 }
+
 .backtest-table-row:nth-child(even) {
   background: hsl(var(--foreground) / 0.026);
 }
+
 .backtest-table-row:hover {
   background: hsl(var(--hover) / 0.9);
 }
@@ -2075,6 +2124,7 @@ textarea {
   height: 16rem;
   text-align: center;
 }
+
 .backtest-empty-state .icon-wrap {
   width: 3rem;
   height: 3rem;
@@ -2085,12 +2135,14 @@ textarea {
   align-items: center;
   justify-content: center;
 }
+
 .backtest-empty-state .title {
   font-size: 1rem;
   font-weight: 500;
   color: hsl(var(--foreground));
   margin-bottom: 0.375rem;
 }
+
 .backtest-empty-state .desc {
   font-size: 0.75rem;
   color: var(--text-muted-text);
@@ -2112,9 +2164,22 @@ textarea {
    股票涨跌颜色工具类（红涨绿跌）
    全局统一配色，替代各组件中硬编码的 text-red-500 / text-green-500
    ========================================== */
-.stock-up { color: hsl(var(--stock-up)); }
-.stock-down { color: hsl(var(--stock-down)); }
-.stock-flat { color: hsl(var(--stock-flat)); }
-.bg-stock-up { background-color: hsl(var(--stock-up)); }
-.bg-stock-up-10 { background-color: hsl(var(--stock-up) / 0.1); }
+.stock-up {
+  color: hsl(var(--stock-up));
+}
 
+.stock-down {
+  color: hsl(var(--stock-down));
+}
+
+.stock-flat {
+  color: hsl(var(--stock-flat));
+}
+
+.bg-stock-up {
+  background-color: hsl(var(--stock-up));
+}
+
+.bg-stock-up-10 {
+  background-color: hsl(var(--stock-up) / 0.1);
+}
