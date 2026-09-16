@@ -43,9 +43,9 @@ const THEME_OPTIONS: Array<{
   labelKey: UiTextKey;
   icon: typeof Sun;
 }> = [
-  { value: 'light', labelKey: 'theme.light', icon: Sun },
-  { value: 'dark', labelKey: 'theme.dark', icon: Moon },
-  { value: 'system', labelKey: 'theme.system', icon: Monitor },
+  { value: 'light', labelKey: 'theme.themeMode.light', icon: Sun },
+  { value: 'dark', labelKey: 'theme.themeMode.dark', icon: Moon },
+  { value: 'system', labelKey: 'theme.themeMode.system', icon: Monitor },
 ];
 
 /**
@@ -55,11 +55,11 @@ const THEME_OPTIONS: Array<{
 function resolveThemeLabel(theme: string | undefined, t: (key: UiTextKey) => string) {
   switch (theme) {
     case 'light':
-      return t('theme.light');
+      return t('theme.themeMode.light');
     case 'dark':
-      return t('theme.dark');
+      return t('theme.themeMode.dark');
     default:
-      return t('theme.system');
+      return t('theme.themeMode.system');
   }
 }
 
@@ -169,7 +169,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       {open ? (
         <div
           role="menu"
-          aria-label={t('theme.menu')}
+          aria-label={t('theme.themeMode.settingTitle')}
           className={cn(
             'z-[100] min-w-[8rem] overflow-hidden rounded-2xl border border-border/70 bg-elevated p-1.5 shadow-[0_24px_48px_rgba(3,8,20,0.32)] backdrop-blur-xl',
             // nav/rail 模式菜单向上弹出（底部空间不足），default 模式向下弹出

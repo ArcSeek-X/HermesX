@@ -16,17 +16,16 @@ import { createPortal } from 'react-dom';
 import { Palette } from 'lucide-react';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useThemeStore } from '../../../stores/themeStore';
-import type { ThemeMode } from '../../../types/theme';
+import type { ThemeMode, SidebarTheme } from '../../../types/theme';
 import { applyPrimaryColor, applyModePreview } from '../../../utils/themeColor';
-import { ColorPicker } from '../../basic/ColorPicker';
-import { Button } from '../../basic/Button';
-import { TabNav } from '../../common/TabNav';
+import { Button,ColorPicker,TabNav } from '../../index';
+
 
 /** 主题模式选项 */
 const THEME_MODES = [
-  { value: 'light', labelKey: 'theme.light' as const },
-  { value: 'dark', labelKey: 'theme.dark' as const },
-  { value: 'system', labelKey: 'theme.system' as const },
+  { value: 'light', labelKey: 'theme.themeMode.light' as const },
+  { value: 'dark', labelKey: 'theme.themeMode.dark' as const },
+  { value: 'system', labelKey: 'theme.themeMode.system' as const },
 ];
 
 /** 主色预设色板（覆盖中性色、语义色与项目主色系） */
@@ -41,6 +40,12 @@ const PRIMARY_PRESETS = [
   '#10B981', // 绿
   '#14B8A6', // 蓝绿
   '#64748B', // 灰蓝
+];
+
+/** 侧栏视觉主题选项（驱动 SidebarNavNew 外观，与明暗模式正交） */
+const SIDEBAR_THEMES = [
+  { value: 'pill',   labelKey: 'theme.sidebarTheme.pill' as const },
+  { value: 'square', labelKey: 'theme.sidebarTheme.square' as const },
 ];
 
 /**
@@ -85,10 +90,12 @@ function restoreThemeTransition(): void {
 export const ThemeSetting = () => {
   const { t } = useUiLanguage();
   // 已保存真值（last-saved）：来自 Zustand，刷新/切换后保持
-  const { themeMode, themeColor, setThemeMode, setThemeColor } = useThemeStore();
+  const { themeMode, themeColor, sidebarTheme, setThemeMode, setThemeColor, setSidebarTheme } = useThemeStore();
   // 弹层内预览草稿：操作即所见，仅点「保存」才提交到 store
   const [draftMode, setDraftMode] = useState<ThemeMode>(themeMode);
   const [draftColor, setDraftColor] = useState<string>(themeColor);
+  // 侧栏视觉主题草稿：与主题模式/主色同走 draft + 保存，避免未提交即作用到真实侧栏（侧栏在弹层背后，无法实时 DOM 预览）
+  const [draftSidebarTheme, setDraftSidebarTheme] = useState<SidebarTheme>(sidebarTheme);
   // 预览应用：把 draft 即时写到 DOM（切 <html> class + 改 --primary），不落库
   const applyPreview = useCallback(
     (m: ThemeMode, c: string) => {
@@ -109,6 +116,7 @@ export const ThemeSetting = () => {
     if (!open) {
       setDraftMode(themeMode);
       setDraftColor(themeColor);
+      setDraftSidebarTheme(sidebarTheme);
       applyPreview(themeMode, themeColor);
     }
     // 仅依赖 open：关闭时用闭包里的 store 当前值（即 last-saved）还原
@@ -194,7 +202,7 @@ export const ThemeSetting = () => {
           ref={popoverRef}
           style={{ top: popoverStyle.top, right: popoverStyle.right }}
         >
-          <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.menu')}</div>
+          <div className="mb-3 text-xs font-medium text-muted-text">{t('theme.themeMode.settingTitle')}</div>
 
           <TabNav
             items={THEME_MODES.map((mode) => ({ value: mode.value, label: t(mode.labelKey) }))}
@@ -204,13 +212,13 @@ export const ThemeSetting = () => {
               applyPreview(m as ThemeMode, draftColor);
             }}
             variant="primary"
-            ariaLabel={t('theme.menu')}
+            ariaLabel={t('theme.themeMode.settingTitle')}
             className='mb-3'
             tabsClassName="theme-mode-switch w-full"
           />
 
 
-          <div className="mb-2 text-xs font-medium text-muted-text">{t('theme.primary')}</div>
+          <div className="mb-2 text-xs font-medium text-muted-text">{t('theme.themeColor.settingTitle')}</div>
 
           <ColorPicker
             value={draftColor}
@@ -222,12 +230,45 @@ export const ThemeSetting = () => {
             showPreviewDot
             className="w-full [&_.react-colorful]:!w-full [&_.react-colorful-wrapper]:w-full"
           />
+
+          {/* 侧栏风格：与主题模式/主色同走 draft，保存后才作用到真实侧栏；
+              预览用下方缩略示意（pill/square 长相随 draft 即时切换），弹层背后的真实侧栏不实时变 */}
+          <div className="mb-2 mt-1 text-xs font-medium text-muted-text">{t('theme.sidebarTheme.settingTitle')}</div>
+
+          <TabNav
+            items={SIDEBAR_THEMES.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+            value={draftSidebarTheme}
+            onChange={(v) => setDraftSidebarTheme(v as SidebarTheme)}
+            variant="primary"
+            ariaLabel={t('theme.sidebarTheme.settingTitle')}
+            className="mb-3"
+            tabsClassName="theme-sidebar-switch w-full"
+          />
+
+          {/* 缩略预览：随 draft 即时切换，示意 pill（大圆角胶囊）/ square（方角） */}
+          <div className="mb-3 flex items-center justify-center rounded-lg border border-border/60 bg-card/50 p-3">
+            <div
+              className={
+                draftSidebarTheme === 'pill'
+                  ? 'h-24 w-12 overflow-hidden rounded-2xl border border-primary/30 bg-background shadow-[0_4px_12px_-4px_hsl(var(--primary)/0.3)]'
+                  : 'h-24 w-12 overflow-hidden rounded-none border-r border-border bg-background'
+              }
+            >
+              <div className="m-1.5 space-y-1.5">
+                <div className="h-3 rounded bg-foreground/10" />
+                <div className="h-3 rounded bg-foreground/10" />
+                <div className="h-3 rounded bg-foreground/10" />
+              </div>
+            </div>
+          </div>
+
           <div className="mt-3 flex justify-end gap-3">
             <Button
               type="button" variant="settings-primary"
               onClick={() => {
                 setThemeMode(draftMode);
                 setThemeColor(draftColor);
+                setSidebarTheme(draftSidebarTheme);
                 setOpen(false);
               }}>
               {t('theme.save')}
@@ -237,6 +278,7 @@ export const ThemeSetting = () => {
               onClick={() => {
                 setDraftMode(themeMode);
                 setDraftColor(themeColor);
+                setDraftSidebarTheme(sidebarTheme);
                 applyPreview(themeMode, themeColor);
               }}>
               {t('theme.reset')}
