@@ -197,6 +197,7 @@ type ShaftDef = { count?: number; amount?: number; drift?: number }
 type FinishDef = { grain?: number; vignette?: number }
 
 type Props = {
+    className?: string                   // React 容器类名
     style?: React.CSSProperties          // React 容器样式（宽高、定位等）
     variant?: "bloom" | "shafts"         // "bloom" | "shafts" 光晕样式
     direction?: "bottom" | "top" | "left" | "right"  // 光源方向
@@ -219,6 +220,7 @@ const D_FINISH: Required<FinishDef> = { grain: 12, vignette: 25 }
 
 export default function LightBloom(props: Props) {
     const {
+        className,
         style,
         variant = "shafts",
         direction = "bottom",
@@ -428,9 +430,9 @@ export default function LightBloom(props: Props) {
             canvas.removeEventListener("pointerleave", onLeave)
         }
     }, [])
-
     return (
         <div
+            className={className}
             style={{
                 position: "relative",
                 overflow: "hidden",
