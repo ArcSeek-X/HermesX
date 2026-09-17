@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [文档] 新增「侧边栏」组件文档 Demo 页（`/docs/component/sideBar`，仅开发调试模式可见）：同时演示应用主导航 SidebarNav（default/rail 形态与折叠态）与基于 HeroUI Pro Sidebar 的 SidebarNavV2（复用同一份菜单数据，随运行模式切换，点击走 SPA 路由跳转）。
 - [改进] 消息日历筛选区域去掉外围边框；国家/地区下拉按中文名拼音首字母 A-Z 分组（组内按全拼排序，无拼音者归入 `#` 组），选项显示「国旗 + 国家名称」，下拉弹层限高（弹层与 HeroUI 内部 list-box 一并限高，滚动条落在 list-box）；关键词输入框改为占满本行剩余宽度，右对齐到操作区。
 - [修复] 消息日历筛选点「重置」不生效：草稿同步按引用比较，而重置回到的 `DEFAULT_LIVE_CALENDAR_FILTER` 与初始/上次生效值可能是同一引用，比较判定无变化导致草稿不回灌；改为 `createDefaultLiveCalendarFilter()` 每次生成新对象，面板重置时先本地回灌草稿再通知 Page。
 - [新功能] 消息日历新增筛选：Tab 行右侧筛选按钮（带条件数角标与展开箭头），展开区域支持重要度多选、类型三态（全部/经济数据/大事件）、国家地区下拉与标题关键词；点确认后月/周/日/列表四视图同步过滤，全部为客户端过滤不新增请求。

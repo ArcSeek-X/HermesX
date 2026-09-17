@@ -9,6 +9,7 @@
 - **i18n**：新增 key 需 zh/zh-Hant/en 三语同时补齐，`UiTextKey` 由 uiText-zh.ts 推导；命名按业务域分层（如 `theme.themeMode.*` / `theme.themeColor.*` / `theme.sidebarTheme.*`）。
 - **CSS 变量分层**：主题/语义 token 与 `--nav-*` 唯一来源 `src/style/palette.css`，组件勿复制；`--spacing` 是 Tailwind v4 默认变量不可覆盖；`.module.scss` 自带值须作用域内或 `var(--x, 兜底)`。
 - **HeroUI Pro 覆盖**：未分层 CSS 在同特异性恒赢，冲突属性必须加 v4 后缀 `!`。`text-md` 有效勿删。
+- **HeroUI 组件样式机制**：`@heroui/react` 组件**不走 portal**（原地渲染）；样式为语义类名（`modal__backdrop`/`modal__container` 等，定义在 `@heroui/styles` 的 `heroui.min.css`，非 Tailwind utilities，与 tailwind content 扫描无关）。二次封装时若替换内部层（如用 rac `ModalOverlay` 替代 `HeroUIModal.Backdrop`），必须手动带上对应 slot 类，否则无定位样式（弹层不可见）。
 - **仅大小写重命名坑（macOS 不敏感 FS）**：如 `layoutStore.ts`→`LayoutStore.ts` 改用 shell heredoc 重写并 `wc -c` 校验，勿混 `rm`。
 - **端口**：后端 Uvicorn :8000；前端 Vite 实际 :1022（`LOCAL_RUN_GUIDE` 的 5173 过时），`/api`→127.0.0.1:8000，需 Node v20。
 - **类型收口**：跨模块共享类型放 `src/types/`；`utils/` 是叶子层，禁止反向 import stores 类型（类型下沉到 types）。

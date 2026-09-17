@@ -137,6 +137,7 @@ const AppContent: React.FC = () => {
           </Shell>
         )}
       >
+
         {/* 总览：市场行情与核心指标看板 */}
         <Route path="/stock-dashboard" element={<StockDashboardPage />} />
         {/* 根路径兼容旧链接：重定向到首页 */}

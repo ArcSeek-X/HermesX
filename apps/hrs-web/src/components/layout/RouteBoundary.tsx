@@ -18,6 +18,10 @@ import { Component, Suspense } from 'react';
 import type { ErrorInfo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { Modal } from '../basic/Modal/Modal';
+import { HrsButton } from '../basic/HrsButton/HrsButton';
+import { ThemeToggle } from '../theme/ThemeToggle';
+import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
 
 /** 页面加载中占位符：居中展示旋转 spinner，支持全屏 / 区域两种模式 */
 type PageLoadingFallbackProps = {
@@ -90,37 +94,30 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
       return this.props.children;
     }
 
+    // 错误态以模态框呈现：遮罩 + 居中对话框；点遮罩/关闭按钮回首页（路由变化触发错误重置）
     return (
-      <div
-        className={
-          this.props.fullPage
-            ? 'flex min-h-screen items-center justify-center bg-base px-4'
-            : 'flex min-h-[60vh] items-center justify-center px-2 py-8'
-        }
-      >
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card/94 p-6 text-center shadow-soft-card">
-          <h1 className="text-xl font-semibold text-foreground">{this.props.text.title}</h1>
-          <p className="mt-3 text-sm leading-6 text-secondary-text">
-            {this.props.text.description}
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => window.location.reload()}
-            >
-              {this.props.text.reload}
-            </button>
-            <button
-              type="button"
-              className="rounded-xl border border-border/70 bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-hover"
-              onClick={() => window.location.assign('/')}
-            >
-              {this.props.text.backHome}
-            </button>
+      <Modal isOpen={this.state.hasError} isDismissable={false} variant="blur" hideCloseButton onClose={() => window.location.assign('/')} size="md" footerClassName="justify-center">
+        <Modal.Header>
+          <Modal.Heading>{this.props.text.title}</Modal.Heading>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-sm leading-6 text-secondary-text">{this.props.text.description}</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <HrsButton variant="primary" size="md" onClick={() => window.location.reload()}>
+            {this.props.text.reload}
+          </HrsButton>
+          <HrsButton variant="secondary" size="md" onClick={() => window.location.assign('/')}>
+            {this.props.text.backHome}
+          </HrsButton>
+        </Modal.Footer>
+        <Modal.Freedom>
+          <div className="absolute top-4 right-4 z-99 flex items-center gap-2 rounded-md  bg-card px-2 py-1.5  shadow-sm backdrop-blur">
+            <ThemeToggle />
+            <LanguageSwitch />
           </div>
-        </div>
-      </div>
+        </Modal.Freedom>
+      </Modal>
     );
   }
 }

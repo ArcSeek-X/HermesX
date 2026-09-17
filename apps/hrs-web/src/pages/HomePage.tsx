@@ -10,6 +10,8 @@ import { useThemeStore } from '../stores/themeStore';
 import LightBloom from '../components/vibeBack/LightBloom';
 import { StockSearch } from '../components/StockSearch';
 
+
+
 /**
  * 复盘页面组件
  *
@@ -23,8 +25,8 @@ const ReviewPage: React.FC = () => {
   const { resolvedTheme } = useTheme();
   // 首页股票搜索（受控）
   const [query, setQuery] = useState('');
-
   return (
+
     <AppPage>
       {resolvedTheme === 'dark' && (
         <LightBloom

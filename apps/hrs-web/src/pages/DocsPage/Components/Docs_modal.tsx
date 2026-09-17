@@ -20,7 +20,7 @@ const MODAL_VARIANTS = ['opaque', 'blur', 'transparent'] as const;
  * 模态框组件文档演示页。
  *
  * Modal 基于 HeroUI Modal 二次封装：isOpen / onClose 控制显隐，
- * children 用 Modal.Header / Modal.Heading / Modal.Body / Modal.Footer 组织内容；
+ * children 用 Modal.Header / Modal.Heading / Modal.Body / Modal.Footer / Modal.Freedom 组织内容；
  * Header 与 Body 之间自动渲染渐变分割线（Separator）。
  */
 export const DocsModalPage: React.FC = () => {
@@ -38,6 +38,8 @@ export const DocsModalPage: React.FC = () => {
   const [noCloseBtnOpen, setNoCloseBtnOpen] = useState(false);
   // 示例五：长内容滚动
   const [scrollDemo, setScrollDemo] = useState<'inside' | 'outside' | null>(null);
+  // 示例六：Freedom 自由插槽
+  const [freedomOpen, setFreedomOpen] = useState(false);
 
   return (
     <AppPage>
@@ -122,6 +124,19 @@ export const DocsModalPage: React.FC = () => {
             </HrsButton>
             <HrsButton variant="secondary" onClick={() => setScrollDemo('outside')}>
               outside
+            </HrsButton>
+          </div>
+        </section>
+
+        {/* 6. Freedom 自由插槽 */}
+        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
+          <h2 className="text-sm font-medium text-primary-text">示例六：自由插槽（Modal.Freedom）</h2>
+          <p className="text-xs text-muted">
+            Modal.Freedom 可在 modal__backdrop 下的子层自由注入 DOM，适合放右上角语言切换、帮助入口或全局提示。
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <HrsButton variant="secondary" onClick={() => setFreedomOpen(true)}>
+              打开 Freedom 示例
             </HrsButton>
           </div>
         </section>
@@ -227,6 +242,28 @@ export const DocsModalPage: React.FC = () => {
         </Modal.Body>
         <Modal.Footer>
           <HrsButton variant="primary" onClick={() => setScrollDemo(null)}>关闭</HrsButton>
+        </Modal.Footer>
+      </Modal>
+
+      {/* 示例六模态框：Freedom 自由插槽 */}
+      <Modal isOpen={freedomOpen} onClose={() => setFreedomOpen(false)} size="md" variant="blur">
+        <Modal.Freedom>
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-full border border-border/70 bg-card/90 px-3 py-1 text-xs text-secondary-text shadow-sm backdrop-blur">
+            <span>EN</span>
+            <span className="text-muted">|</span>
+            <span>中</span>
+          </div>
+        </Modal.Freedom>
+        <Modal.Header>
+          <Modal.Heading>Freedom 右上角扩展示例</Modal.Heading>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-sm leading-6 text-secondary-text">
+            这里演示 Modal.Freedom 的典型用法：在模态框内容之外、但仍处于同一层 backdrop 子树下，挂载一个右上角自由元素。
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <HrsButton variant="primary" onClick={() => setFreedomOpen(false)}>关闭</HrsButton>
         </Modal.Footer>
       </Modal>
     </AppPage>

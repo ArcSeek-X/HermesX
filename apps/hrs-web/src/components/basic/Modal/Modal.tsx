@@ -13,6 +13,9 @@
  *   <Modal.Header>
  *     <Modal.Heading>编辑持仓</Modal.Heading>
  *   </Modal.Header>
+ *   <Modal.Freedom>
+ *     <div className="absolute top-4 right-4">右上角自由元素</div>
+ *   </Modal.Freedom>
  *   <Modal.Body>
  *     <input ... />
  *   </Modal.Body>
@@ -66,7 +69,7 @@ const VARIANT_GRADIENT_MAP: Record<string, string> = {
 
 /** 声明式 Modal 属性 */
 interface HrsModalProps {
-  /** 子组件内容（Header / Body / Footer） */
+  /** 子组件内容（Header / Body / Footer / Freedom） */
   children: React.ReactNode;
   /** 是否显示 */
   isOpen?: boolean;
@@ -96,6 +99,13 @@ interface HrsModalProps {
   onClose?: () => void;
 }
 
+/** Freedom 自由插槽：允许在 backdrop 子层中注入任意 DOM */
+interface HrsModalFreedomProps {
+  children?: ReactNode;
+}
+
+const HrsModalFreedom: React.FC<HrsModalFreedomProps> = ({ children }) => <>{children}</>;
+
 
 /** 声明式 Modal（内部实现） */
 const HrsModal: React.FC<HrsModalProps> = ({
@@ -118,9 +128,12 @@ const HrsModal: React.FC<HrsModalProps> = ({
   const bodyParts: ReactNode[] = [];
   const headerParts: ReactNode[] = [];
   const footerParts: ReactNode[] = [];
+  const freedomParts: ReactNode[] = [];
 
   Children.forEach(children, (child: ReactNode) => {
-    if (isValidElement(child) && child.type === HeroUIModal.Footer) {
+    if (isValidElement(child) && child.type === HrsModalFreedom) {
+      freedomParts.push((child.props as { children?: ReactNode }).children);
+    } else if (isValidElement(child) && child.type === HeroUIModal.Footer) {
       footerParts.push((child.props as { children?: ReactNode }).children);
     } else if (isValidElement(child) && child.type === HeroUIModal.Header) {
       headerParts.push((child.props as { children?: ReactNode }).children);
@@ -130,18 +143,19 @@ const HrsModal: React.FC<HrsModalProps> = ({
   });
 
   const resolvedFooter = footerParts.length > 0 ? footerParts : null;
+  const resolvedFreedom = freedomParts.length > 0 ? freedomParts : null;
 
   return (
     <HeroUIModal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose?.(); }}>
       {/* 不用 HeroUIModal.Backdrop：它内部把 children 用 ModalContext.Provider 包裹后传给 rac 的
           ModalOverlay，而 ModalOverlay 内的 Pressable 要求子节点是单一 DOM 元素，Provider 非 DOM 会触发
           "PressResponder was rendered without a pressable child"。这里直接用 rac ModalOverlay，
-          子节点直接是 Container（forwardRef DOM），规避该警告。 */}
+          子节点直接是单一 DOM 包装层，里面再放 Container 和 Freedom，规避该警告。 */}
       <ModalOverlay
         isDismissable={isDismissable}
-        className={cn('hrs-modal-backdrop', VARIANT_GRADIENT_MAP[variant], variant === 'blur' && 'backdrop-blur', backdropClassName)}
+        className={cn('modal__backdrop hrs-modal-backdrop', VARIANT_GRADIENT_MAP[variant], variant === 'blur' && 'backdrop-blur', backdropClassName)}
       >
-        <HeroUIModal.Container size={size} placement={placement} scroll={scroll}>
+        <HeroUIModal.Container className="w-full relative" size={size} placement={placement} scroll={scroll}>
           <HeroUIModal.Dialog className={cn('hrs-modal-dialog', SIZE_RADIUS_MAP[size] ?? 'rounded-lg', dialogClassName)}>
             {/* Header + 关闭按钮 */}
             {(headerParts.length > 0 || !hideCloseButton) && (
@@ -152,7 +166,7 @@ const HrsModal: React.FC<HrsModalProps> = ({
             )}
 
             {/* Header 与 Body 之间的分割线：default 变体 + 两端渐隐 */}
-            <Separator className="my-3" gradient/>
+            <Separator className="my-3" gradient />
 
             {/* Body */}
             <HeroUIModal.Body className={cn('hrs-modal-body', bodyClassName)}>
@@ -166,7 +180,11 @@ const HrsModal: React.FC<HrsModalProps> = ({
               </HeroUIModal.Footer>
             )}
           </HeroUIModal.Dialog>
+            {/* Freedom 自由插槽：必须渲染在 Dialog 之后，确保 DOM 顺序在后、层级高于对话框，
+           其中的绝对定位元素（如右上角主题/语言切换）才能正常点击；其 absolute 定位仍相对 backdrop（fixed 创建定位上下文） */}
+        {resolvedFreedom}
         </HeroUIModal.Container>
+
       </ModalOverlay>
     </HeroUIModal.Root>
   );
@@ -174,6 +192,7 @@ const HrsModal: React.FC<HrsModalProps> = ({
 
 /** Modal 对外导出（Object.assign 合并声明式 + 复合组件） */
 export const Modal = Object.assign(HrsModal, {
+  Freedom: HrsModalFreedom,
   Root: HeroUIModal.Root,
   Trigger: HeroUIModal.Trigger,
   Backdrop: HeroUIModal.Backdrop,
