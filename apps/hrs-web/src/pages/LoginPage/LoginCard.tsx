@@ -24,6 +24,7 @@ import type { ParsedApiError } from '../../api/error';
 import { isParsedApiError } from '../../api/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useMenuStore } from '../../stores';
 
 /**
  * 登录表单卡片组件
@@ -38,6 +39,8 @@ const LoginCard: React.FC = () => {
   const { t } = useUiLanguage();
   /** 路由导航函数 */
   const navigate = useNavigate();
+  /** 菜单构建：登录成功后创建并持久化全量菜单数据（MenuStore 场景一） */
+  const buildMenuData = useMenuStore((s) => s.buildMenuData);
 
   /** URL 查询参数，用于提取登录成功后的重定向地址 */
   const [searchParams] = useSearchParams();
@@ -78,6 +81,9 @@ const LoginCard: React.FC = () => {
       // 调用登录接口验证密码
       const result = await login(password);
       if (result.success) {
+        // 登录成功：先构建并持久化全量菜单数据（菜单以存储为权威源），再跳转目标页；
+        // 不传 loginModuleId 时由 store 自动取第一个可用模块。
+        buildMenuData();
         // 登录成功，重定向到目标页面（替换历史记录，避免后退回登录页）
         navigate(redirect, { replace: true });
       } else {
