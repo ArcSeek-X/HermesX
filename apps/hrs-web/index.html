@@ -6,10 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (() => {
-        const storageKey = 'theme';
+        const storageKey = 'hrs-pref-theme.themeMode';
         const root = document.documentElement;
         const storedTheme = localStorage.getItem(storageKey);
-        const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+        // 存储值为 light/dark 时直接采用；为 system 或缺失时跟随系统偏好（避免首屏闪烁）
+        const theme = storedTheme === 'light' || storedTheme === 'dark'
+          ? storedTheme
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         root.classList.remove('light', 'dark');
         root.classList.add(theme);
         root.style.colorScheme = theme;

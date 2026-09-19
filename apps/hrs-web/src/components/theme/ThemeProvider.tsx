@@ -1,16 +1,12 @@
 /**
- * 主题上下文提供者（ThemeProvider）
+ * ThemeProvider —— 基于 next-themes 的全局主题提供者
  *
- * 基于 next-themes 库封装的全局主题提供者，在应用根节点包裹此组件后，
- * 子树中可通过 useTheme() 获取当前主题并切换。
- *
- * 配置说明：
- * - attribute="class"：通过在 <html> 上添加/移除 class（"light" / "dark"）来切换主题
- * - defaultTheme="system"：首次访问（无 localStorage 记录）时跟随系统偏好
- * - enableSystem：允许跟随系统偏好（prefers-color-scheme），用户选择 "system" 时生效
- * - disableTransitionOnChange：切换主题时禁用 CSS 过渡动画，避免颜色渐变闪烁
- *
- * @author Lensgcx (GaoCangxiong)
+ * 关键约定：storageKey="hrs-pref-theme.themeMode" 让应用主题键成为唯一真值
+ * （不再有裸 `theme` 键），next-themes 以原始字符串读写它。
+ * - attribute="class"：在 <html> 上切 .light/.dark class
+ * - defaultTheme / enableSystem：无记录时跟随系统（prefers-color-scheme）
+ * - disableTransitionOnChange：切换时禁用过渡，避免颜色闪烁
+ * 内部渲染 <ThemeSync/> 完成 store <-> DOM 的桥接。
  */
 import type React from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
@@ -24,6 +20,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   return (
     <NextThemesProvider
       attribute="class"
+      storageKey="hrs-pref-theme.themeMode"
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
