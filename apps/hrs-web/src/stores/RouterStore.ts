@@ -59,7 +59,7 @@ const toAsyncRouteNode = (
   moduleId: node.moduleId,
   menuType: node.menuType,
   redirect: node.redirect,
-  loader: node.loader,
+  menuPagePath: node.menuPagePath,
   children: children?.length ? children : undefined,
 });
 
@@ -81,7 +81,7 @@ const buildAsyncRouteTree = (nodes: AppRouteNode[]): AsyncRouteNode[] =>
 /**
  * 读取持久化的动态路由树（asyncRouterData）。
  * 存储即唯一权威数据源：写入方（buildAsyncRouterData）产出的是结构干净的 AsyncRouteNode[]，
- * 经 JSON 往返后字段无损（除函数型 loader，见下方说明），故此处不做逐节点清洗，
+ * 经 JSON 往返后字段无损（menuPagePath 为字符串，可随树一同持久化），故此处不做逐节点清洗，
  * 只做顶层数组形态校验——与 MenuStore.readStoredMenuData 的「信任自有持久化」策略一致。
  * 存储缺失、解析失败、非数组一律视为「没有」，返回空数组（刻意的合法初值）。
  * 副作用：读取 localStorage（'local' 作用域）的 ASYNC_ROUTER_STORAGE_KEY。
@@ -113,7 +113,9 @@ export const useRouterStore = create<RouterState>((set) => ({
 
   // 场景一：首次登录成功 → 构建全量动态路由树并持久化
   buildAsyncRouterData: () => {
-    const asyncRouterData = buildAsyncRouteTree(MENU_MANIFEST);
+    const asyncRouterData = buildAsyncRouteTree(
+      MENU_MANIFEST.flatMap((moduleNode) => moduleNode.children ?? []),
+    );
     applyAsyncRouterData(set, asyncRouterData);
   },
 }));

@@ -1,7 +1,6 @@
 import type {
   ModuleId,
   RouteAuthPolicy,
-  RouteLoader,
   RouteMenuType,
 } from '../router/manifest';
 
@@ -15,6 +14,7 @@ export type AsyncRouteNode = {
   moduleId?: ModuleId[];
   menuType: Exclude<RouteMenuType, 'group'>;
   redirect?: string;
-  loader?: RouteLoader;
+  /** 页面模块路径（字符串，如 'pages/StockDashboardPage'）：运行时经 pageImporter 解析为懒加载导入函数 */
+  menuPagePath?: string;
   children?: AsyncRouteNode[];
 };

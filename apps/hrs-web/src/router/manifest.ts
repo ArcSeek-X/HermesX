@@ -28,22 +28,45 @@ export type AppRouteNode = Omit<NavMenuNode, 'description' | 'exact' | 'children
   /** 关联的功能开关名（如 'alphasift'），由消费方决定是否按开关过滤该菜单项 */
   featureFlag?: string;
   redirect?: string;
-  loader?: RouteLoader;
+  /** 页面模块路径（字符串，如 'pages/StockDashboardPage'）：运行时经 pageImporter 解析为懒加载导入函数 */
+  menuPagePath?: string;
 };
 
-/** 主业务真源：产品模式与开发模式的菜单树与页面清单。 */
-export const MENU_MANIFEST: AppRouteNode[] = [
+/**
+ * 模块节点（真源第一层）：与菜单节点分离建模，便于日后模块走独立的数据库表与字段。
+ * - moduleId：模块唯一标识，也是 MenuStore 的 currentModuleId 取值与持久化键。
+ * - moduleName / moduleDescription：模块级文案（区别于菜单的 menuName / menuDescription）。
+ * - children：模块下的菜单树，节点均为 AppRouteNode。
+ */
+export type ModuleNode = {
+  /** 模块唯一标识（也是 currentModuleId 取值与持久化键） */
+  moduleId: ModuleId;
+  /** 模块名称：i18n key 或直写文案 */
+  moduleName: string;
+  /** 模块描述文案 */
+  moduleDescription?: string;
+  /** 模块根路由路径（可选，用于模块级跳转/重定向） */
+  routePath?: string;
+  /** 模块所属分组 id（可选，便于日后按分组聚合 / 关联独立模块表） */
+  moduleGroupId?: string;
+  /** 模块分组名称（可选） */
+  moduleGroupName?: string;
+  /** 模块图标名（对应 menuIconRegistry，可选） */
+  moduleIcon?: string;
+  /** 模块下的菜单树（第一层为菜单/分组，不再含模块自身字段） */
+  children: AppRouteNode[];
+};
+
+/** 主业务真源：按模块划分的菜单树与页面清单（第一层为 ModuleNode，其 children 为 AppRouteNode）。 */
+export const MENU_MANIFEST: ModuleNode[] = [
   {
-    menuId: 'product-root',
-    menuName: '产品',
-    routePath: '',
-    menuPosition: 'content',
-    level: 0,
-    menuExpanded: false,
-    menuDescription: '产品使用模式菜单',
-    menuType: 'group',
-    moduleId: ['productModel'],
-    menuVisible: false,
+    moduleId: 'productModel',
+    moduleName: '产品',
+    moduleDescription: '产品使用模式菜单',
+    routePath: '/home',
+    moduleGroupId: 'business',
+    moduleGroupName: '业务模块',
+    moduleIcon: 'LayoutDashboard',
     children: [
       {
         menuId: 'home',
@@ -58,7 +81,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/HomePage'),
+        menuPagePath: 'pages/HomePage',
       },
       {
         menuId: 'stock-dashboard',
@@ -73,7 +96,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/StockDashboardPage'),
+        menuPagePath: 'pages/StockDashboardPage',
       },
       {
         menuId: 'sector-analysis',
@@ -88,7 +111,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/SectorAnalysisPage'),
+        menuPagePath: 'pages/SectorAnalysisPage',
       },
       {
         menuId: 'watchlist',
@@ -103,7 +126,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/WatchlistPage'),
+        menuPagePath: 'pages/WatchlistPage',
       },
       {
         menuId: 'live-calendar',
@@ -118,7 +141,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/LiveCalendarPage'),
+        menuPagePath: 'pages/LiveCalendarPage',
       },
       {
         menuId: 'live-news',
@@ -133,7 +156,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/LiveNewsPage'),
+        menuPagePath: 'pages/LiveNewsPage',
       },
       {
         menuId: 'kline',
@@ -148,7 +171,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/StockKLinePage'),
+        menuPagePath: 'pages/StockKLinePage',
       },
       {
         menuId: 'chat',
@@ -163,7 +186,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/ChatPage'),
+        menuPagePath: 'pages/ChatPage',
       },
       {
         menuId: 'review',
@@ -178,7 +201,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/reviewPage'),
+        menuPagePath: 'pages/reviewPage',
       },
       {
         menuId: 'portfolio',
@@ -193,7 +216,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/PortfolioPage'),
+        menuPagePath: 'pages/PortfolioPage',
       },
       {
         menuId: 'decision-signals',
@@ -208,7 +231,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/DecisionSignalsPage'),
+        menuPagePath: 'pages/DecisionSignalsPage',
       },
       {
         menuId: 'backtest',
@@ -223,7 +246,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/BacktestPage'),
+        menuPagePath: 'pages/BacktestPage',
       },
       {
         menuId: 'alerts',
@@ -238,7 +261,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/AlertsPage'),
+        menuPagePath: 'pages/AlertsPage',
       },
       {
         menuId: 'usage',
@@ -253,7 +276,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/TokenUsagePage'),
+        menuPagePath: 'pages/TokenUsagePage',
       },
       {
         menuId: 'screening',
@@ -269,7 +292,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         moduleId: ['productModel'],
         featureFlag: 'alphasift',
         menuVisible: true,
-        loader: () => import('../pages/StockScreeningPage'),
+        menuPagePath: 'pages/StockScreeningPage',
       },
       {
         menuId: 'code-test',
@@ -284,7 +307,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/CodeTestPage'),
+        menuPagePath: 'pages/CodeTestPage',
       },
       {
         menuId: 'settings',
@@ -299,21 +322,18 @@ export const MENU_MANIFEST: AppRouteNode[] = [
         auth: 'protected',
         moduleId: ['productModel'],
         menuVisible: true,
-        loader: () => import('../pages/SettingsPage'),
+        menuPagePath: 'pages/SettingsPage',
       },
     ],
   },
   {
-    menuId: 'development-root',
-    menuName: '开发调试',
-    routePath: '',
-    menuPosition: 'content',
-    level: 0,
-    menuExpanded: false,
-    menuDescription: '开发调试模式菜单',
-    menuType: 'group',
-    moduleId: ['developmentMode'],
-    menuVisible: false,
+    moduleId: 'developmentMode',
+    moduleName: '开发调试',
+    moduleDescription: '开发调试模式菜单',
+    routePath: '/docs-input',
+    moduleGroupId: 'debug',
+    moduleGroupName: '调试模块',
+    moduleIcon: 'FlaskConical',
     children: [
       {
         menuId: 'Basic',
@@ -341,7 +361,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_button'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_button',
           },
         ],
       },
@@ -370,7 +390,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_input'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_input',
           },
           {
             menuId: 'docs-text-area',
@@ -384,7 +404,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_textArea'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_textArea',
           },
           {
             menuId: 'docs-select',
@@ -398,7 +418,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_select'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_select',
           },
           {
             menuId: 'docs-checkbox',
@@ -412,7 +432,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_checkbox'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_checkbox',
           },
         ],
       },
@@ -441,7 +461,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_chip'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_chip',
           },
           {
             menuId: 'docs-table',
@@ -455,7 +475,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_table'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_table',
           },
         ],
       },
@@ -484,7 +504,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_sideBar'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_sideBar',
           },
           {
             menuId: 'docs-tab-nav',
@@ -498,7 +518,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_tabNav'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_tabNav',
           },
         ],
       },
@@ -527,7 +547,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_separator'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_separator',
           },
           {
             menuId: 'docs-anim-card',
@@ -541,7 +561,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_animCard'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_animCard',
           },
           {
             menuId: 'docs-news-card',
@@ -555,7 +575,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_newsCard'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_newsCard',
           },
           {
             menuId: 'docs-list-card',
@@ -569,7 +589,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_listCard'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_listCard',
           },
         ],
       },
@@ -598,7 +618,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_drawer'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_drawer',
           },
           {
             menuId: 'docs-toast',
@@ -612,7 +632,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_toast'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_toast',
           },
           {
             menuId: 'docs-modal',
@@ -626,7 +646,7 @@ export const MENU_MANIFEST: AppRouteNode[] = [
             auth: 'protected',
             moduleId: ['developmentMode'],
             menuVisible: true,
-            loader: () => import('../pages/DocsPage/Components/Docs_modal'),
+            menuPagePath: 'pages/DocsPage/Components/Docs_modal',
           },
         ],
       },

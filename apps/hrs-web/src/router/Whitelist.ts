@@ -28,7 +28,7 @@ export const WHITE_LIST_ROUTE: AppRouteNode[] = [
     auth: 'public',
     moduleId: ['productModel', 'developmentMode'],
     menuVisible: false,
-    loader: () => import('../pages/LoginPage/LoginPage'),
+    menuPagePath: 'pages/LoginPage/LoginPage',
   },
 ];
 
@@ -47,7 +47,7 @@ export const EXCEPTION_ROUTE: AppRouteNode[] = [
     auth: 'protected',
     moduleId: ['productModel', 'developmentMode'],
     menuVisible: false,
-    loader: () => import('../pages/NotFoundPage'),
+    menuPagePath: 'pages/NotFoundPage',
   }
 ];
 

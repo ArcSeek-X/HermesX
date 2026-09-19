@@ -47,30 +47,6 @@ interface MenuState {
 }
 
 /**
- * 深度遍历路由清单，收集所有出现过的模块 id（去重）。
- * 这些 id 即各菜单节点 `moduleId` 字段的取值集合，也是 currentModuleId 的合法取值范围。
- * @param nodes 路由节点森林（可能含多级 children），不允许为 null
- * @returns 去重后的模块 id 数组；未收集到时返回空数组
- */
-const collectModuleIds = (nodes: AppRouteNode[]): ModuleId[] => {
-  const ids = new Set<ModuleId>();
-  const walk = (list: AppRouteNode[]): void => {
-    for (const node of list) {
-      if (node.moduleId?.length) {
-        for (const id of node.moduleId) {
-          ids.add(id);
-        }
-      }
-      if (node.children?.length) {
-        walk(node.children);
-      }
-    }
-  };
-  walk(nodes);
-  return Array.from(ids);
-};
-
-/**
  * 将路由节点（AppRouteNode）映射为导航菜单节点（NavMenuNode）。
  * 仅搬运展示所需的字段，未命中的字段回退为默认值；若存在子节点则一并挂上。
  * @param node 源路由节点，不允许为 null
@@ -127,10 +103,10 @@ const buildModuleMenuNodes = (nodes: AppRouteNode[], moduleId: ModuleId): NavMen
  * @returns 形如 { [moduleId]: NavMenuNode[] } 的全量菜单数据
  */
 const buildRuntimeMenuData = (): ModuleMenuData => {
-  const moduleIds = collectModuleIds(MENU_MANIFEST);
   const menuData = {} as ModuleMenuData;
-  for (const moduleId of moduleIds) {
-    menuData[moduleId] = buildModuleMenuNodes(MENU_MANIFEST, moduleId);
+  for (const moduleNode of MENU_MANIFEST) {
+    // 模块身份由 ModuleNode.moduleId 表达；直接取模块子树构建菜单，无需再按 moduleId 过滤全森林
+    menuData[moduleNode.moduleId] = buildModuleMenuNodes(moduleNode.children ?? [], moduleNode.moduleId);
   }
   return menuData;
 };
