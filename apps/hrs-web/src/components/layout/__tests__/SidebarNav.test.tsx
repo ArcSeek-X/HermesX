@@ -1,18 +1,14 @@
 /**
  * @file SidebarNav.test.tsx
- * @description SidebarNav 侧边导航组件的单元测试：覆盖菜单渲染、路由高亮与运行模式切换。
+ * @description SidebarNavOld 侧边导航组件的单元测试：覆盖菜单渲染、路由高亮与运行模式切换。
  * @author Lensgcx (GaoCangxiong)
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { SidebarNav } from '../SidebarNav';
+import { SidebarNavOld } from '../SideBar/SidebarNav-old';
 
 const mockGetAlphaSiftStatus = vi.fn().mockResolvedValue({ enabled: false, available: false, installSpecIsDefault: false });
-const mockThemeToggle = vi.fn(({ collapsed }: { collapsed?: boolean }) => (
-  <button type="button">{collapsed ? '切换主题(折叠)' : '切换主题'}</button>
-));
-
 const completionBadgeState = { value: true };
 
 vi.mock('../../../contexts/AuthContext', () => ({
@@ -34,17 +30,13 @@ vi.mock('../../../api/alphasift', () => ({
   },
 }));
 
-vi.mock('../../theme/ThemeToggle', () => ({
-  ThemeToggle: (props: { collapsed?: boolean }) => mockThemeToggle(props),
-}));
-
-describe('SidebarNav', () => {
+describe('SidebarNavOld', () => {
   it('hides the screening navigation item while AlphaSift is disabled', () => {
     mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: false, available: false, installSpecIsDefault: false });
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -56,7 +48,7 @@ describe('SidebarNav', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -68,7 +60,7 @@ describe('SidebarNav', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -85,7 +77,7 @@ describe('SidebarNav', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -101,7 +93,7 @@ describe('SidebarNav', () => {
 
     const { rerender } = render(
       <MemoryRouter initialEntries={['/chat']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -111,30 +103,18 @@ describe('SidebarNav', () => {
     completionBadgeState.value = false;
     rerender(
       <MemoryRouter initialEntries={['/chat']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
     expect(screen.queryByTestId('chat-completion-badge')).not.toBeInTheDocument();
   });
 
-  it('renders the collapsed theme toggle variant when the sidebar is collapsed', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <SidebarNav collapsed />
-      </MemoryRouter>,
-    );
-
-    expect(mockThemeToggle).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'nav', collapsed: true }),
-    );
-    expect(screen.getByRole('button', { name: '切换主题(折叠)' })).toBeInTheDocument();
-  });
 
   it('renders the alerts navigation item and marks it active', () => {
     render(
       <MemoryRouter initialEntries={['/alerts']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -146,7 +126,7 @@ describe('SidebarNav', () => {
   it('renders the AI signals navigation item and marks it active', () => {
     render(
       <MemoryRouter initialEntries={['/decision-signals']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
@@ -158,7 +138,7 @@ describe('SidebarNav', () => {
   it('does not render a logout entry (logout lives in UserSetting)', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
-        <SidebarNav />
+        <SidebarNavOld />
       </MemoryRouter>,
     );
 
