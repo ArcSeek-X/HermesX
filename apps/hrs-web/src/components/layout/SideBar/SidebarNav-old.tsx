@@ -15,13 +15,13 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sidebar as SidebarIcon, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
-import { useAgentChatStore } from '../../stores/agentChatStore';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { useAppMode } from '../../contexts/AppModeContext';
-import type { UiTextKey } from '../../i18n/uiText';
-import { cn } from '../../utils/cn';
-import { StatusDot } from '../common/StatusDot';
+import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
+import { useAgentChatStore } from '../../../stores/agentChatStore';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useAppMode } from '../../../contexts/AppModeContext';
+import type { UiTextKey } from '../../../i18n/uiText';
+import { cn } from '../../../utils/cn';
+import { StatusDot } from '../../common/StatusDot';
 
 type SidebarNavProps = {
   /** 是否折叠：仅显示图标，隐藏文字标签 */
@@ -91,7 +91,7 @@ const DEBUG_NAV_ITEMS: NavItem[] = [
   { key: 'docs-side-bar', labelKey: 'layout.nav.development.docsSideBar.title', to: '/docs/component/sideBar', icon: SidebarIcon },
 ];
 
-export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
+export const SidebarNavOld: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
   const { t } = useUiLanguage();
   // 运行模式：决定侧边栏呈现产品菜单还是调试菜单
   const { isDevelopmentMode } = useAppMode();

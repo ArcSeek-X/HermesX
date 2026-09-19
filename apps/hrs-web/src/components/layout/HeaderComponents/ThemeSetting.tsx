@@ -42,7 +42,7 @@ const PRIMARY_PRESETS = [
   '#64748B', // 灰蓝
 ];
 
-/** 侧栏视觉主题选项（驱动 SidebarNavNew 外观，与明暗模式正交） */
+/** 侧栏视觉主题选项（驱动 SidebarNav 外观，与明暗模式正交） */
 const SIDEBAR_THEMES = [
   { value: 'pill',   labelKey: 'theme.sidebarTheme.pill' as const },
   { value: 'square', labelKey: 'theme.sidebarTheme.square' as const },

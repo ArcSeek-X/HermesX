@@ -14,7 +14,7 @@ export type RouteLoader = () => Promise<{ default: ComponentType }>;
 
 /**
  * 真源节点：
- * - 菜单相关字段以 menudata.ts 为基线，便于后续平滑替换 Sidebar 数据源
+ * - 菜单相关字段以 router/manifest 为唯一真源，运行时由 MenuStore 派生 currentMenuData，便于平滑替换 Sidebar 数据源
  * - 路由/权限相关字段作为扩展字段叠加，不破坏菜单语义
  */
 export type AppRouteNode = Omit<NavMenuNode, 'description' | 'exact' | 'children'> & {

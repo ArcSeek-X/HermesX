@@ -27,7 +27,7 @@ export * from './ConfirmDialog';
 export * from './DataRefreshBar';
 export * from './TabNav';
 export * from '../layout/Shell';
-export * from '../layout/SidebarNav';
+export * from '../layout/SideBar/SidebarNav-old';
 export * from '../layout/ShellHeader';
 export * from '../theme/ThemeProvider';
 export * from '../theme/ThemeToggle';

@@ -1,6 +1,6 @@
 /**
- * @file SidebarNav-new.tsx
- * @description 轻量侧边导航组件 SidebarNavNew。
+ * @file SidebarNav.tsx
+ * @description 轻量侧边导航组件 SidebarNav。
  *
  * 作用：纯 React + Tailwind 自研（零第三方 UI 依赖），渲染品牌区 + 主菜单（content）+ 底部菜单（footer），
  *   支持两级菜单、运行模式（产品/调试）切换、AlphaSift 开关过滤「选股」、三态折叠联动、
@@ -12,7 +12,7 @@
  * - ./MenuNode.tsx：单个菜单节点的渲染、路由高亮、跳转与子级递归
  *
  * 样式全部用 Tailwind + 主题 CSS 变量（--nav-*，来源 src/style/palette.css），
- * 与侧边栏 v1（SidebarNav.tsx）共用同一套视觉令牌，保证明暗主题一致。
+ * 与侧边栏 v1（SidebarNav-old.tsx）共用同一套视觉令牌，保证明暗主题一致。
  *
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-14
@@ -68,7 +68,7 @@ const THEME_CONFIG: Record<
 /** easeOutQuint：起步快、收尾缓。宽度用无回弹缓动——回弹会让菜单内容被压得比目标更窄而抖动/截断 */
 const SIDEBAR_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-type SidebarNavNewProps = {
+type SidebarNavProps = {
   /** 根节点（motion.div 容器）的额外类名，可选，不传则无附加样式 */
   className?: string;
   /** 导航完成后的回调（如移动端抽屉跳转后关闭），可选，不传则不处理 */
@@ -88,7 +88,7 @@ type SidebarNavNewProps = {
  * 轻量侧边导航：渲染品牌区 + 主菜单（content）+ 底部菜单（footer）。
  * 宽度由本组件根节点的 motion.div 按折叠态动画；折叠态由外部传入（Shell 取自 useLayoutStore）。
  */
-export const SidebarNavNew: React.FC<SidebarNavNewProps> = ({
+export const SidebarNav: React.FC<SidebarNavProps> = ({
   className,
   onNavigate,
   menuMode = 'collapse',
@@ -242,4 +242,4 @@ export const SidebarNavNew: React.FC<SidebarNavNewProps> = ({
   );
 };
 
-export default SidebarNavNew;
+export default SidebarNav;
