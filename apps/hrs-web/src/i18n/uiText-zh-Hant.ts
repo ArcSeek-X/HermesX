@@ -57,13 +57,16 @@ const zhHant = {
   'language.uiLanguage': '界面語言', // 界面語言設定項標題
 
   // ---- 第 3 类 主题 theme ----
-  'theme.dark': '深色', // 深色主題名稱
-  'theme.light': '淺色', // 淺色主題名稱
-  'theme.menu': '主題模式', // 主題模式菜單標題
-  'theme.primary': '主色', // 主題主色配置標簽
+  'theme.themeMode.dark': '深色', // 深色主題名稱
+  'theme.themeMode.light': '淺色', // 淺色主題名稱
+  'theme.themeMode.settingTitle': '主題模式', // 主題模式菜單標題
+  'theme.themeColor.settingTitle': '主色', // 主題主色配置標簽
   'theme.reset': '重置', // 重置主題主色按鈕
   'theme.save': '儲存', // 儲存主題設定按鈕
-  'theme.system': '跟随系統', // 跟随系統主題
+  'theme.themeMode.system': '跟随系統', // 跟随系統主題
+  'theme.sidebarTheme.settingTitle': '側欄風格', // 側欄視覺主題設定標題
+  'theme.sidebarTheme.pill': '膠囊圓角', // 側欄風格：大圓角膠囊感
+  'theme.sidebarTheme.square': '方正', // 側欄風格：方角
   'theme.theme': '主題', // 主題通用標簽
   'theme.toggle': '切換主題', // 切換主題按鈕提示
 
@@ -147,6 +150,8 @@ const zhHant = {
   'layout.nav.development.docsListCard.description': 'ListCard 通用列表卡片組件演示與用法', // 列表卡片导航项描述
   'layout.nav.development.docsTabNav.title': '標籤頁', // 標籤頁組件文檔導航項
   'layout.nav.development.docsTabNav.description': 'TabNav 標籤頁導航組件演示與用法', // 标签页导航项描述
+  'layout.nav.development.docsSideBar.title': '側邊欄', // 側邊欄組件文檔導航項
+  'layout.nav.development.docsSideBar.description': 'SidebarNav 側邊導航組件演示與用法', // 侧边栏导航项描述
   'layout.nav.development.docsInput.title': '輸入框', // 輸入框組件文檔導航項
   'layout.nav.development.docsInput.description': 'Input 通用表單輸入組件演示與用法', // 輸入框導航項描述
   'layout.nav.development.docsTextArea.title': '文本域', // 文本域組件文檔導航項

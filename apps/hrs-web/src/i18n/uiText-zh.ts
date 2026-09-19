@@ -57,13 +57,16 @@ const zh = {
   'language.uiLanguage': '界面语言', // 界面语言设置项标题
 
   // ---- 第 3 类 主题 theme ----
-  'theme.dark': '深色', // 深色主题名称
-  'theme.light': '浅色', // 浅色主题名称
-  'theme.menu': '主题模式', // 主题模式菜单标题
-  'theme.primary': '主色', // 主题主色配置标签
+  'theme.themeMode.dark': '深色', // 深色主题名称
+  'theme.themeMode.light': '浅色', // 浅色主题名称
+  'theme.themeMode.settingTitle': '主题模式', // 主题模式菜单标题
+  'theme.themeColor.settingTitle': '主色', // 主题主色配置标签
   'theme.reset': '重置', // 重置主题主色按钮
   'theme.save': '保存', // 保存主题设置按钮
-  'theme.system': '跟随系统', // 跟随系统主题
+  'theme.themeMode.system': '跟随系统', // 跟随系统主题
+  'theme.sidebarTheme.settingTitle': '侧栏风格', // 侧栏视觉主题设置标题
+  'theme.sidebarTheme.pill': '胶囊圆角', // 侧栏风格：大圆角胶囊感
+  'theme.sidebarTheme.square': '方正', // 侧栏风格：方角
   'theme.theme': '主题', // 主题通用标签
   'theme.toggle': '切换主题', // 切换主题按钮提示
 
@@ -99,7 +102,7 @@ const zh = {
   'layout.nav.dashboard.description': '市场行情与核心指标总览', // 总览导航项描述
   'layout.nav.decisionSignals.title': 'AI 建议', // AI 建议导航项
   'layout.nav.decisionSignals.description': 'AI 建议、风险与观察条件', // AI 建议导航项描述
-  'layout.nav.home.title': '首页', // 首页导航项
+  'layout.nav.home.title': '首页111', // 首页导航项
   'layout.nav.home.description': '股票分析与历史报告工作台', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线导航项
   'layout.nav.kline.description': '个股 K 线走势、技术指标与多周期分析', // K 线导航项描述
@@ -149,13 +152,15 @@ const zh = {
   'layout.nav.development.docsListCard.description': 'ListCard 通用列表卡片组件演示与用法', // 列表卡片导航项描述
   'layout.nav.development.docsTabNav.title': '标签页', // 标签页组件文档导航项
   'layout.nav.development.docsTabNav.description': 'TabNav 标签页导航组件演示与用法', // 标签页导航项描述
+  'layout.nav.development.docsSideBar.title': '侧边栏', // 侧边栏组件文档导航项
+  'layout.nav.development.docsSideBar.description': 'Sidebar 侧边导航组件演示与用法', // 侧边栏导航项描述
   'layout.nav.development.docsInput.title': '输入框', // 输入框组件文档导航项
   'layout.nav.development.docsInput.description': 'Input 通用表单输入组件演示与用法', // 输入框导航项描述
   'layout.nav.development.docsTextArea.title': '文本域', // 文本域组件文档导航项
   'layout.nav.development.docsTextArea.description': 'TextArea 多行文本输入组件演示与用法', // 文本域导航项描述
   'layout.nav.development.docsChip.title': '标签芯片', // 标签芯片组件文档导航项
   'layout.nav.development.docsChip.description': 'Chip 圆角胶囊标签组件演示与用法', // 标签芯片导航项描述
-  
+
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日历事件全天标识
