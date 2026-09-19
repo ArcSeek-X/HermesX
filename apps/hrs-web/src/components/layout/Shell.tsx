@@ -1,90 +1,44 @@
 /**
- * ===================================
- * 应用外壳布局组件（Shell）
- * ===================================
+ * @file Shell.tsx
+ * @description 应用外壳布局：桌面端固定侧栏 + 顶部页头 + 主内容区（Web 端已登录页路由根）。
  *
- * 作用：
- * 作为整个 Web 应用的最外层布局骨架，负责搭建页面的整体结构框架。
- * 所有已登录页面都嵌套在此组件内部，它决定了「侧边栏 / 顶部栏 / 内容区」的排布方式。
- *
- * 核心职责：
- * 1. 顶部页头（ShellHeader）：
- *    - 固定在右侧列顶部，不随内容区滚动（滚动发生在 hrs-page-container）
- *    - 移动端（< lg）：左侧汉堡菜单 + 中间页面标题 + 右侧换肤/语言切换
- *    - 桌面端（>= lg）：左侧侧边栏折叠按钮 + 中间页面标题 + 右侧换肤/语言切换
- * 2. 移动端（< lg 断点，即 < 1024px）：
- *    - 通过 Drawer 抽屉从左侧滑出导航菜单
- *    - 主内容区域全宽显示
- * 3. 桌面端（>= lg 断点，即 >= 1024px）：
- *    - 左侧显示固定侧边栏（不随内容区滚动）
- *    - 侧边栏宽度：展开 136px / 折叠 64px，由用户点击页头折叠按钮控制，状态持久化到 localStorage
- *    - 主内容区域紧邻侧边栏右侧
- * 4. 响应式切换：
- *    - 当窗口从移动端放大到桌面端（>= 1024px）时，自动关闭抽屉，
- *      避免桌面端同时出现固定侧边栏和抽屉导航
- *
- * 布局层级：
- *   Shell（最外层）
- *   └── 主体容器（max-w-[1680px] 居中，flex 行布局，h-[calc(100vh-1.5rem)] 固定高度，不滚动）
- *       ├── 左侧：桌面端侧边栏（lg:flex，self-start 固定）
- *       └── 右侧列（flex-col，flex-1）
- *           ├── ShellHeader（h-12，固定，不参与滚动）
- *           └── 主内容区 hrs-page-container（flex-1，overflow-y-auto 滚动容器，渲染 children 或 Outlet）
- *   + 移动端抽屉导航（Drawer，从左侧滑出，挂载在 Shell 下）
- *
- * 使用方式：
- *   作为路由布局组件使用，子路由通过 <Outlet /> 渲染：
- *   <Route element={<Shell />}>
- *     <Route path="dashboard" element={<DashboardPage />} />
- *   </Route>
- *
- *   也可以直接包裹内容：
- *   <Shell>
- *     <YourContent />
- *   </Shell>
+ * 骨架：外层 min-h-screen 不滚动，滚动只发生在内部 hrs-page-container；
+ * 子路由经 <Outlet /> 渲染，也可直接包裹 children。桌面侧栏用自研 SidebarNav，
+ * 移动端汉堡由 ShellHeader 触发（onOpenMobileNav → mobileOpen；抽屉当前未挂载）。
  *
  * @author Lensgcx (GaoCangxiong)
+ * @date 2026-09-14
  */
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Drawer } from '../common/Drawer';
 import { ShellHeader } from './ShellHeader';
-import { SidebarNav } from './SidebarNav';
-import { SidebarNavV2 } from './SideBar';
-import { cn } from '../../utils/cn';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { useCachedState } from '../../hooks/useCachedState';
+import { SidebarNav } from './SideBar/SidebarNav';
+import { useLayoutStore } from '../../stores';
+import { useThemeStore } from '../../stores/themeStore';
 
-/** Shell 组件的属性定义 */
 type ShellProps = {
-  /** 可选的子内容；若未提供，则通过 react-router 的 <Outlet /> 渲染子路由 */
+  /** 可选子内容（React 节点），不传时改由 <Outlet /> 渲染子路由，默认不传 */
   children?: React.ReactNode;
 };
 
 /**
- * 应用外壳布局组件
- *
- * 渲染整个应用的最外层骨架，包括：
- * - 顶部页头 ShellHeader（固定在右侧列顶部：页面标题 + 换肤/语言切换）
- * - 桌面端左侧固定侧边栏（SidebarNav）
- * - 主内容区域 hrs-page-container（overflow-y-auto 滚动容器，children 或 <Outlet />）
- * - 移动端抽屉导航（Drawer）
- *
- * 内部通过 useState 管理移动端抽屉的开关状态，
- * 通过 useEffect 监听窗口 resize 事件实现响应式自动关闭。
- *
- * @param props - 组件属性
- * @param props.children - 可选的子内容，优先于 <Outlet /> 渲染
- * @returns 完整的应用布局骨架
+ * 应用外壳布局。
+ * @param props.children 可选子内容，优先于 <Outlet /> 渲染（直接包裹模式）
+ * @returns 完整的应用布局骨架（侧边栏 + 页头 + 内容区）
  */
 export const Shell: React.FC<ShellProps> = ({ children }) => {
-  /** 移动端抽屉导航的展开/收起状态 */
+  /** 移动端抽屉导航展开态，默认收起 */
   const [mobileOpen, setMobileOpen] = useState(false);
-  /** 桌面端侧边栏折叠状态：true=折叠（64px）/ false=展开（136px），通过 useCachedState 持久化到 localStorage */
-  const [collapsed, setCollapsed] = useCachedState<boolean>('layout.sidebarCollapsed', false);
-  /** 国际化翻译函数，用于获取多语言文本 */
-  const { t } = useUiLanguage();
+  /**
+   * 桌面端侧边栏折叠状态（三态）：offcanvas=正常 / collapsed=半折叠 / fully=完全折叠。
+   * 由 Zustand 全局 store（stores/LayoutStore）承载，供跨子树组件读写；
+   * 持久化在 store 的 action 内写回 localStorage。
+   */
+  const menuCollapsedState = useLayoutStore((state) => state.menuCollapsedState);
+  const toggleMenuCollapsedState = useLayoutStore((state) => state.toggleMenuCollapsedState);
+  /** 侧栏视觉主题：订阅 themeStore，作为 prop 透传给 SidebarNav（与折叠态透传同模式） */
+  const sidebarTheme = useThemeStore((state) => state.sidebarTheme);
 
   /**
    * 监听窗口尺寸变化：
@@ -109,44 +63,24 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
   }, [mobileOpen]);
 
   return (
-    // 最外层容器：撑满整个视口，应用全局背景色和文字颜色
+    // 最外层容器：撑满视口，应用全局背景色与文字色
     <div className="hrs-layout min-h-screen bg-background text-foreground">
-      {/* ===== 主体区域容器：左侧边栏 + 右侧（页头 + 内容区）===== */}
-      {/* mx-auto 水平居中，max-w-[1680px] 限制最大宽度，防止超宽屏内容拉伸 */}
-      {/* flex 行布局：左侧侧边栏 + 右侧列 */}
-      {/* h-[calc(100vh-1.5rem)]：固定高度，不滚动；滚动发生在内部 hrs-page-container 上 */}
-      {/* 响应式内边距：px-3 py-3 → sm:px-4 sm:py-4 → lg:px-5 */}
-      <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px] px-3 pb-3 sm:px-4 sm:pb-4 lg:px-4">
-        {/* ===== 左侧：桌面端固定侧边栏（仅 >= lg 断点显示）===== */}
-        {/* h-[calc(100%-0.5rem)]：扣除 mt-2 后撑满内容高度，底部与容器 padding-bottom 对齐，避免侵入底部留白 */}
-        {/* 圆角 1.5rem + 半透明背景 + 毛玻璃模糊 + 柔和阴影，终端风格视觉 */}
-        {/* transition-[width] 支持折叠/展开时的宽度过渡动画（200ms） */}
+      {/* 主体容器：max-w-[1680px] 居中限制最大宽度；flex 行布局；h-[calc(100vh)] 固定高度不滚动，滚动发生在内部 hrs-page-container */}
+      <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px]">
+        {/* 桌面端固定侧边栏（仅 >= lg 显示）：宽度与三态折叠动画由 SidebarNav 内部 motion.div 驱动，此处仅透传折叠态；onNavigate 在导航后关闭移动端抽屉 */}
+        <SidebarNav className="" theme={sidebarTheme} menuCollapsedState={menuCollapsedState} onNavigate={() => setMobileOpen(false)} />
 
-          {/* 侧边栏导航组件：variant="rail" 表示桌面端紧凑模式，onNavigate 导航后关闭移动端抽屉 */}
-          {/* <SidebarNav collapsed={collapsed} variant="rail" onNavigate={() => setMobileOpen(false)} /> */}
 
-            <SidebarNavV2
-             className={cn(
-            // 宽度：折叠 64px / 展开 136px；圆角：折叠态小圆角、展开态大圆角
-            collapsed ? 'w-[64px] rounded-lg items-center justify-center' : 'w-[200px] rounded-lg'
-          )}
-
-            onNavigate={() => setMobileOpen(false)} />
-       
-
-        {/* ===== 右侧列：页头 + 主内容区 ===== */}
-        {/* flex-col 纵向排列，flex-1 占据侧边栏之外的所有剩余宽度，高度拉伸填满容器 */}
-        {/* lg:pl-3：桌面端与侧边栏之间保留 12px 间距 */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          {/* ===== 顶部页头（固定，不随内容区滚动）===== */}
+        {/* 右侧列：flex-col 纵向排列，flex-1 占据侧边栏外的剩余宽度；lg:px-4 与侧边栏保留 16px 间距 */}
+        <div className="flex min-h-0 flex-1 flex-col pb-3 sm:pb-4 sm:px-4 lg:px-4">
+          {/* 顶部页头：固定在右侧列顶部，不随内容区滚动 */}
           <ShellHeader
-            collapsed={collapsed}
-            onToggleSidebar={() => setCollapsed((c) => !c)}
+            onToggleSidebar={toggleMenuCollapsedState}
             onOpenMobileNav={() => setMobileOpen(true)}
 
           />
 
-          {/* ===== 主内容区域（滚动容器）===== */}
+          {/* 主内容区域：唯一滚动容器 */}
           {/* min-h-0：允许 flex 子元素收缩，使 overflow-y-auto 生效 */}
           {/* bg-background：确保 padding 区域不透明，遮挡滚动内容 */}
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
@@ -160,27 +94,6 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
           </main>
         </div>
       </div>
-
-      {/* ===== 移动端抽屉导航（从左侧滑出，仅移动端使用）===== */}
-      {/* Drawer 组件提供遮罩层 + 滑入动画，width="max-w-xs" 限制最大宽度 320px */}
-      {/* zIndex=90 确保在顶部浮动栏（z-40）之上显示 */}
-
-       {/* <SidebarNavV2 onNavigate={() => setMobileOpen(false)} /> */}
-
-      <Drawer
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        title={t('layout.navMenu')}
-        width="max-w-xs"
-        zIndex={90}
-        side="left"
-      >
-        {/* 抽屉内的侧边栏导航：改用 SidebarNavV2（HeroUI Pro Sidebar），导航后经 onNavigate 关闭抽屉 */}
-        <SidebarNavV2 onNavigate={() => setMobileOpen(false)} />
-
-
-
-      </Drawer>
     </div>
   );
 };
