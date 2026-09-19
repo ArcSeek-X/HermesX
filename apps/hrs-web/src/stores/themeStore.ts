@@ -10,7 +10,7 @@
  *                   next-themes.setTheme 时（同时切 <html> class）。
  * - themeColor   -> hrs-pref-theme.themeColor：store 经 utils/storage 写盘。
  * - sidebarTheme -> hrs-pref-theme.sidebarTheme：store 经 utils/storage 写盘，
- *                   由 Shell 作 prop 透传 SidebarNavNew 消费（非全局 CSS）。
+ *                   由 Shell 作 prop 透传 SidebarNav 消费（非全局 CSS）。
  *
  * 读取均校验合法性，非法/缺失回退默认。
  * =====================================================================
@@ -70,13 +70,13 @@ interface ThemeState {
   themeMode: ThemeMode;
   /** 主色（HEX 字符串） */
   themeColor: string;
-  /** 侧栏视觉主题：pill=大圆角（胶囊感）/ square=方角，驱动 SidebarNavNew 外观 */
+  /** 侧栏视觉主题：pill=大圆角（胶囊感）/ square=方角，驱动 SidebarNav 外观 */
   sidebarTheme: SidebarTheme;
   /** 设定主题模式（落盘由 ThemeSync 桥接） */
   setThemeMode: (mode: ThemeMode) => void;
   /** 设定主色并落盘 */
   setThemeColor: (hex: string) => void;
-  /** 设定侧栏视觉主题并落盘（外观由 SidebarNavNew 消费） */
+  /** 设定侧栏视觉主题并落盘（外观由 SidebarNav 消费） */
   setSidebarTheme: (theme: SidebarTheme) => void;
   /** 恢复出厂默认（themeMode=system, themeColor=默认青蓝, sidebarTheme=square）并落盘 */
   themeReset: () => void;
@@ -107,7 +107,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
   },
 
   /**
-   * 设定侧栏视觉主题：写盘并更新内存（外观由 SidebarNavNew 消费）。
+   * 设定侧栏视觉主题：写盘并更新内存（外观由 SidebarNav 消费）。
    * @param theme 目标侧栏主题（pill/square）
    */
   setSidebarTheme: (theme) => {
