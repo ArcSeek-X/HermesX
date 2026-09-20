@@ -1,11 +1,11 @@
 /**
  * @file Button.test.tsx
- * @description Button 通用按钮组件的单元测试：覆盖渲染、loading 态与点击交互。
+ * @description Button 通用按钮组件的单元测试：覆盖渲染、变体、加载态与点击交互。
  * @author Lensgcx (GaoCangxiong)
  */
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { Button } from '../../basic/Button';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { Button } from '../Button';
 
 describe('Button', () => {
   it('renders children', () => {
@@ -32,11 +32,18 @@ describe('Button', () => {
     expect(screen.getByText('Saving')).toBeInTheDocument();
   });
 
-  it('supports the danger-soft variant', () => {
-    render(<Button variant="danger-soft">Bulk Delete</Button>);
+  it('falls back to the i18n processing label while loading', () => {
+    render(<Button isLoading>Save</Button>);
+
+    // 未传 loadingText 时回退到多语言「处理中」
+    expect(screen.getByRole('button')).toHaveTextContent('处理中');
+  });
+
+  it('supports the danger-subtle variant', () => {
+    render(<Button variant="danger-subtle">Bulk Delete</Button>);
 
     const button = screen.getByRole('button', { name: 'Bulk Delete' });
-    expect(button).toHaveAttribute('data-variant', 'danger-soft');
+    expect(button).toHaveAttribute('data-variant', 'danger-subtle');
     expect(button.className).toContain('border-danger/60');
     expect(button.className).toContain('bg-danger/10');
   });
@@ -52,5 +59,16 @@ describe('Button', () => {
     expect(button.className).toContain(bgToken);
     expect(button.className).toContain(borderToken);
     expect(button.className).toContain(textToken);
+  });
+
+  it('forwards click events and keeps the button disabled when explicitly disabled', () => {
+    const onClick = vi.fn();
+    render(<Button onClick={onClick}>Submit</Button>);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+
+    render(<Button disabled>Blocked</Button>);
+    expect(screen.getByRole('button', { name: 'Blocked' })).toBeDisabled();
   });
 });

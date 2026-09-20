@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 // 测试框架：beforeEach/describe/it/vi/expect
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // 被测页面组件
+import { MemoryRouter } from 'react-router-dom';
 import AlertsPage from '../AlertsPage';
 
 // 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：
@@ -123,7 +124,11 @@ describe('AlertsPage', () => {
   // 用例 1：初次加载应展示页面说明、规则列表、触发历史与「无通知」空态，
   // 并断言三个列表接口都以默认分页参数被调用
   it('loads rules, trigger history, and notification empty state', async () => {
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     // 页面说明文案出现
     expect(screen.getByText('管理事件告警、日线技术指标、自选股、持仓/账户联动和大盘红绿灯规则，执行一次性测试，并查看后台评估任务记录的触发历史。')).toBeInTheDocument();
@@ -146,7 +151,11 @@ describe('AlertsPage', () => {
   // 不展示非展示用的内部字段（如 dataSource=realtime_quote）
   it('runs a dry-run test and renders only declared response fields', async () => {
     listTriggers.mockResolvedValueOnce({ items: [], total: 0, page: 1, pageSize: 20 });
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     fireEvent.click(await screen.findByRole('button', { name: '测试' }));
 
@@ -194,7 +203,11 @@ describe('AlertsPage', () => {
         },
       ],
     });
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     fireEvent.click(await screen.findByRole('button', { name: '测试' }));
 
@@ -208,7 +221,11 @@ describe('AlertsPage', () => {
   // 用例 4：通过表单创建规则，断言 createRule 被调用时标的代码被规整为大写、
   // 参数方向/阈值被正确封装，并出现创建成功提示
   it('creates a rule through the page form and reloads rules', async () => {
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     await screen.findByText('茅台价格突破');
     fireEvent.change(screen.getByLabelText('标的代码'), { target: { value: 'aapl' } });
@@ -229,7 +246,11 @@ describe('AlertsPage', () => {
   // 用例 5：创建接口失败时，表单应保持已填值不被清空，便于用户修改重试
   it('keeps create form values when create API fails', async () => {
     createRule.mockRejectedValueOnce({ parsedError });
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     await screen.findByText('茅台价格突破');
     fireEvent.change(screen.getByLabelText('标的代码'), { target: { value: 'aapl' } });
@@ -252,7 +273,11 @@ describe('AlertsPage', () => {
       .mockResolvedValueOnce({ items: [], total: 20, page: 2, pageSize: 20 })
       .mockResolvedValue({ items: [rule], total: 20, page: 1, pageSize: 20 });
 
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText('茅台价格突破')).toBeInTheDocument();
     // 翻到第 2 页并删除该页规则
@@ -281,16 +306,22 @@ describe('AlertsPage', () => {
     const filteredRequest = createDeferred<{ items: Array<typeof rule>; total: number; page: number; pageSize: number }>();
     const staleRule = { ...rule, id: 3, name: '旧筛选规则', enabled: true };
     const filteredRule = { ...rule, id: 4, name: '停用规则', enabled: false };
-    // 第一次调用返回初始请求（滞后 resolve），第二次返回筛选请求（先 resolve）
+    // 第一次调用返回初始请求（滞后 resolve），第二次返回筛选请求（先 resolve）。
+    // 注意：此处不要调用 mockReset()，否则会清掉 beforeEach 注入的默认实现，
+    // 并污染后续用例（如 InlineTipCard 用例）的 mock 状态。
     listRules
-      .mockReset()
       .mockReturnValueOnce(initialRequest.promise)
       .mockReturnValueOnce(filteredRequest.promise);
 
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
-    // 改变启停状态为「停用」，触发第二次筛选请求（共 2 次调用）
-    fireEvent.change(screen.getByLabelText('启停状态'), { target: { value: 'disabled' } });
+    // 改变启停状态为「停用」，触发第二次筛选请求（共 2 次调用）。
+    // 该筛选是原生 <select>（role=combobox），通过当前展示值「全部状态」定位并触发变更。
+    fireEvent.change(screen.getByDisplayValue('全部状态'), { target: { value: 'disabled' } });
     await waitFor(() => expect(listRules).toHaveBeenCalledTimes(2));
 
     // 先 resolve 筛选请求，页面应展示「停用规则」
@@ -305,9 +336,13 @@ describe('AlertsPage', () => {
 
   // 用例 8：规则列表接口失败时，应通过 InlineTipCard 展示解析后的错误标题与消息
   it('renders API errors through InlineTipCard', async () => {
-    listRules.mockRejectedValueOnce({ parsedError });
+    listRules.mockRejectedValue({ parsedError });
 
-    render(<AlertsPage />);
+    render(
+      <MemoryRouter>
+        <AlertsPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText('加载失败')).toBeInTheDocument();
     expect(screen.getByText('告警 API 不可用')).toBeInTheDocument();

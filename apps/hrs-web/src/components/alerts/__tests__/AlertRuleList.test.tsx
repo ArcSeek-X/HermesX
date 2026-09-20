@@ -71,6 +71,17 @@ describe('AlertRuleList', () => {
     window.localStorage.clear();
   });
 
+  // 筛选下拉（启用状态 / 告警类型）采用「<div><label>文案</label><select></div>」结构，
+  // label 未通过 htmlFor 与 select 关联，故 getByLabelText 无法定位。按「标签文案 → 父容器 → 控件」回退查找。
+  function field(labelText: string): HTMLElement {
+    const label = screen.getByText(labelText, { selector: 'label' });
+    const control = label.parentElement?.querySelector('input, select, textarea');
+    if (!control) {
+      throw new Error(`未找到与标签「${labelText}」关联的控件`);
+    }
+    return control as HTMLElement;
+  }
+
   function renderList(overrides: Partial<React.ComponentProps<typeof AlertRuleList>> = {}) {
     render(
       <AlertRuleList
@@ -126,8 +137,8 @@ describe('AlertRuleList', () => {
     expect(screen.getByText('KDJ(9,3,3) 死叉')).toBeInTheDocument();
     expect(screen.getByText('冷却中')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('启停状态'), { target: { value: 'enabled' } });
-    fireEvent.change(screen.getByLabelText('规则类型'), { target: { value: 'price_cross' } });
+    fireEvent.change(field('启停状态'), { target: { value: 'enabled' } });
+    fireEvent.change(field('规则类型'), { target: { value: 'price_cross' } });
     fireEvent.click(screen.getByRole('button', { name: '2' }));
 
     expect(onEnabledFilterChange).toHaveBeenCalledWith('enabled');
@@ -250,7 +261,7 @@ describe('AlertRuleList', () => {
     expect(screen.getByText('红灯 / 黄灯')).toBeInTheDocument();
     expect(screen.getByText('Score 下降 >= 15')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('规则类型'), { target: { value: 'market_light_score_drop' } });
+    fireEvent.change(field('规则类型'), { target: { value: 'market_light_score_drop' } });
 
     expect(onAlertTypeFilterChange).toHaveBeenCalledWith('market_light_score_drop');
   });

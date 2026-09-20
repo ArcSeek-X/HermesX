@@ -4,12 +4,14 @@
  * 定位与适用范围：
  * - 提供 sm/md/lg 三档尺寸（外加 xs 紧凑档），由 size 控制高度、字号与圆角。
  * - 仅承载 HeroUI Input 本身的能力：原生属性透传（含受控 value / type / onChange）。
+ * - 支持左 / 右插槽（prefixNode / suffixNode）：传入任一插槽时自动切换为
+ *   HeroUI InputGroup 组合结构（边框与背景由外层 group 承载），未传时仍是单个输入框。
  * - 密码场景（Lock / Key 图标、可见性切换）请使用 PasswordInput。
  * @author Lensgcx (GaoCangxiong)
  */
 import type * as React from 'react';
 import { useId } from 'react';
-import { Input as HeroInput } from '@heroui/react';
+import { Input as HeroInput, InputGroup } from '@heroui/react';
 import { cn } from '../../utils/cn';
 
 /**
@@ -33,6 +35,10 @@ export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** 输入框尺寸，控制高度、行高与字号，默认 'sm'。 */
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  /** 左侧插槽内容（如图标）；传入后组件切换为 InputGroup 组合结构。 */
+  prefixNode?: React.ReactNode;
+  /** 右侧插槽内容（如密码可见性切换按钮）；传入后组件切换为 InputGroup 组合结构。 */
+  suffixNode?: React.ReactNode;
 }
 
 /**
@@ -43,6 +49,8 @@ export interface InputProps
 export const Input = ({
   className = '',
   size = 'sm',
+  prefixNode,
+  suffixNode,
   ...props
 }: InputProps) => {
   const generatedId = useId();
@@ -66,11 +74,15 @@ export const Input = ({
   // "provided a value prop to a form field without an onChange handler"。
   // 此时语义即为「只读展示」，这里自动补 readOnly，消除告警且不改变既有视觉/行为。
   const isReadOnlyView = props.value !== undefined && props.onChange === undefined;
+  // 是否走 InputGroup 组合：只要有任一插槽就需要外层 group 承载边框与背景。
+  const hasSlots = Boolean(prefixNode) || Boolean(suffixNode);
+  // 边框 / 背景 / 尺寸：组合模式下上提到外层 group，输入框自身只保留文字与圆角。
+  const surfaceClasses = 'hrs-input-surface border';
+
   const heroProps = {
     id: inputId,
     className: cn(
-      'hrs-input w-50',
-      'hrs-input-surface border',
+      hasSlots ? 'hrs-input w-full' : cn('hrs-input w-50', surfaceClasses),
 
       // 'input-surface input-focus-glow border bg-transparent transition-all',
       // 'focus:outline-none',
@@ -95,7 +107,21 @@ export const Input = ({
     } as React.CSSProperties,
   };
 
+  // 无插槽：维持原有的单个输入框结构（零额外 DOM）。
+  if (!hasSlots) {
+    return <HeroInput {...(heroProps as object)} />;
+  }
+
+  // 有插槽：用 HeroUI InputGroup 承载边框 / 背景，插槽分别落入 Prefix / Suffix，
+  // 避免把 React 节点作为未知属性透传到 <input> 上（会被 React 告警并序列化成 [object Object]）。
   return (
-    <HeroInput {...(heroProps as object)} />
+    <InputGroup.Root
+      className={cn('hrs-input-group w-50', surfaceClasses, sizeClasses[size])}
+      style={heroProps.style as React.CSSProperties}
+    >
+      {prefixNode ? <InputGroup.Prefix>{prefixNode}</InputGroup.Prefix> : null}
+      <InputGroup.Input {...(heroProps as object)} />
+      {suffixNode ? <InputGroup.Suffix>{suffixNode}</InputGroup.Suffix> : null}
+    </InputGroup.Root>
   );
 };

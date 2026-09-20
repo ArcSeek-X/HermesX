@@ -468,8 +468,9 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
     if (targetScope === 'single_symbol') {
       return (
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">{text.targetCode}</label>
+          <label htmlFor="alert-rule-target-code" className="mb-2 block text-sm font-medium text-foreground">{text.targetCode}</label>
           <Input
+            id="alert-rule-target-code"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
             placeholder="600519 / AAPL / hk00700"
@@ -567,8 +568,9 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
               onChange={(value) => setPriceDirection(value as 'above' | 'below')}
             />
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">{text.priceThreshold}</label>
+              <label htmlFor="alert-rule-price-threshold" className="mb-2 block text-sm font-medium text-foreground">{text.priceThreshold}</label>
               <Input
+                id="alert-rule-price-threshold"
                 type="number"
                 min="0"
                 step="0.0001"

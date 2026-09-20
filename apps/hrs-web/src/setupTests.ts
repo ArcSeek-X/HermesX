@@ -65,6 +65,47 @@ Object.defineProperty(globalThis, 'IntersectionObserver', {
 });
 
 /**
+ * ResizeObserver 的空实现（no-op mock）。
+ * 滚动容器、虚拟列表等组件会监听尺寸变化，jsdom 未实现该 API，这里用空方法占位。
+ */
+class ResizeObserverMock implements ResizeObserver {
+  disconnect() {}
+
+  observe() {}
+
+  unobserve() {}
+}
+
+// 用空实现替换全局 ResizeObserver，避免组件因缺失该 API 而直接抛错
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverMock,
+});
+
+/**
+ * matchMedia 的空实现：默认全部不匹配（matches=false），
+ * 需要特定媒体查询（如 prefers-color-scheme）的用例可在用例内自行覆盖。
+ */
+const hasMatchMedia = typeof globalThis.matchMedia === 'function';
+
+if (!hasMatchMedia) {
+  Object.defineProperty(globalThis, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
+/**
  * 探测当前运行环境是否具备可用的 localStorage：
  * 检查关键方法是否都为函数，并包裹 try/catch 以防某些环境下访问 localStorage 直接抛错。
  */

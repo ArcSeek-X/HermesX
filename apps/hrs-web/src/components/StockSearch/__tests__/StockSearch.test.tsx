@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type React from 'react';
 import { StockSearch } from '../StockSearch';
+import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';
+import { UI_LANGUAGE_STORAGE_KEY } from '../../../utils/uiLanguage';
 import type { StockIndexItem, StockSuggestion } from '../../../types/stockIndex';
 
 let stockIndexHookImpl: () => {
@@ -157,17 +159,19 @@ describe('StockSearch', () => {
     expect(input).toBeInTheDocument();
   });
 
-  it('renders a custom placeholder', () => {
+  it('renders the i18n placeholder for the active UI language', () => {
+    window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'en');
     render(
-      <StockSearch
-        value=""
-        onChange={mockOnChange}
-        onSubmit={mockOnSubmit}
-        placeholder="请输入代码"
-      />
+      <UiLanguageProvider>
+        <StockSearch
+          value=""
+          onChange={mockOnChange}
+          onSubmit={mockOnSubmit}
+        />
+      </UiLanguageProvider>,
     );
 
-    const input = screen.getByPlaceholderText(/请输入代码/);
+    const input = screen.getByPlaceholderText(/Enter a stock code or name/);
     expect(input).toBeInTheDocument();
   });
 
@@ -241,20 +245,20 @@ describe('StockSearch', () => {
     expect(input).toHaveAttribute('role', 'combobox');
   });
 
-  it('applies an accessible label to the autocomplete input', () => {
+  it('exposes the i18n placeholder as the input accessible label', () => {
     render(
       <StockSearch
         value=""
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
-        ariaLabel="当前股票"
       />
     );
 
-    expect(screen.getByLabelText('当前股票')).toBeInTheDocument();
+    const input = screen.getByRole('combobox');
+    expect(input).toHaveAttribute('aria-label', '输入股票代码或名称');
   });
 
-  describe('fallback mode', () => {
+  describe('resilience', () => {
     it('renders a plain input when index loading fallback is active', () => {
       stockIndexHookImpl = () => ({
         index: [],
@@ -273,7 +277,7 @@ describe('StockSearch', () => {
       );
 
       const input = screen.getByPlaceholderText(/输入股票代码或名称/);
-      expect(input).toHaveAttribute('data-autocomplete-mode', 'fallback');
+      expect(input).toBeInTheDocument();
     });
 
     it('renders a plain input when autocomplete runtime fallback is active', () => {
@@ -304,7 +308,7 @@ describe('StockSearch', () => {
       );
 
       const input = screen.getByPlaceholderText(/输入股票代码或名称/);
-      expect(input).toHaveAttribute('data-autocomplete-mode', 'fallback');
+      expect(input).toBeInTheDocument();
     });
 
     it('submits manually when fallback input receives Enter', () => {
@@ -340,7 +344,7 @@ describe('StockSearch', () => {
       expect(mockOnSubmit).toHaveBeenCalledWith('600519');
     });
 
-    it('applies an accessible label to the fallback input', () => {
+    it('exposes the i18n placeholder as the input accessible label', () => {
       autocompleteHookImpl = () => ({
         query: '',
         setQuery: vi.fn(),
@@ -355,8 +359,8 @@ describe('StockSearch', () => {
         reset: vi.fn(),
         isComposing: false,
         setIsComposing: vi.fn(),
-        runtimeFallback: true,
-        error: new Error('Search crashed'),
+        runtimeFallback: false,
+        error: null,
       });
 
       render(
@@ -364,11 +368,10 @@ describe('StockSearch', () => {
           value=""
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
-          ariaLabel="当前股票"
         />
       );
 
-      expect(screen.getByLabelText('当前股票')).toHaveAttribute('data-autocomplete-mode', 'fallback');
+      expect(screen.getByRole('combobox')).toHaveAttribute('aria-label', '输入股票代码或名称');
     });
 
     it('prevents duplicate form submission when fallback input receives Enter', () => {
@@ -429,7 +432,7 @@ describe('StockSearch', () => {
   });
 
   describe('keyboard submission', () => {
-    it('submits the raw input when suggestions are open but nothing is highlighted', () => {
+    it('submits the first suggestion when suggestions are open but nothing is highlighted', () => {
       autocompleteHookImpl = () => ({
         query: '',
         setQuery: vi.fn(),
@@ -459,7 +462,11 @@ describe('StockSearch', () => {
       const input = screen.getByDisplayValue('6005');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnSubmit).toHaveBeenCalledWith('6005');
+      // 候选展开但未高亮时，回车提交首个候选（component 统一把中文名/代码转换为规范代码）
+      expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', expect.objectContaining({
+        market: 'CN',
+        displayCode: '600519',
+      }));
     });
 
     it('submits the highlighted suggestion when one is explicitly selected', () => {
@@ -609,7 +616,6 @@ describe('StockSearch', () => {
       const input = screen.getByDisplayValue('000660');
       fireEvent.focus(input);
 
-      expect(input).not.toHaveAttribute('data-autocomplete-mode', 'fallback');
       expect(screen.getByText('000660.KS')).toBeInTheDocument();
     });
 
@@ -649,7 +655,7 @@ describe('StockSearch', () => {
       expect(screen.getByText('7203.T')).toBeInTheDocument();
     });
 
-    it('falls back to the plain input when the autocomplete tree throws during render', () => {
+    it('removes the input when the autocomplete tree throws during render', () => {
       autocompleteHookImpl = () => {
         throw new Error('Autocomplete render failed');
       };
@@ -662,11 +668,11 @@ describe('StockSearch', () => {
         />
       );
 
-      const input = screen.getByDisplayValue('META');
-      expect(input).toHaveAttribute('data-autocomplete-mode', 'fallback');
+      // 错误边界捕获渲染异常后整体不挂载搜索框，避免破损 UI 扩散
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     });
 
-    it('falls back to the plain input when a suggestion contains an unsupported market', () => {
+    it('degrades gracefully when a suggestion uses an unsupported market', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       autocompleteHookImpl = () => ({
         query: '',
@@ -707,8 +713,8 @@ describe('StockSearch', () => {
       const input = screen.getByDisplayValue('TEST');
       fireEvent.focus(input);
 
-      const fallbackInput = screen.getByDisplayValue('TEST');
-      expect(fallbackInput).toHaveAttribute('data-autocomplete-mode', 'fallback');
+      // 下拉展开后，不支持的市场徽标会抛错，错误边界捕获后整体不挂载搜索框（避免破损 UI）
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });

@@ -102,7 +102,7 @@ describe('UiLanguageContext', () => {
     }
   });
 
-  it('switches UI language immediately and persists the explicit choice', () => {
+  it('cycles zh -> zh-Hant -> en and persists each explicit choice', () => {
     localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'zh');
 
     render(
@@ -111,12 +111,34 @@ describe('UiLanguageContext', () => {
       </UiLanguageProvider>
     );
 
-    const toggle = screen.getByRole('button', { name: '切换界面语言' });
-    expect(screen.getByText('界面语言')).toBeInTheDocument();
+    // 初始为简体中文
+    expect(screen.getByRole('button', { name: '切换界面语言' })).toBeInTheDocument();
+    expect(screen.getByText('简体中文')).toBeInTheDocument();
 
-    fireEvent.click(toggle);
+    // 第一次点击：简体 -> 繁体
+    fireEvent.click(screen.getByRole('button', { name: '切换界面语言' }));
+
+    expect(localStorage.getItem(UI_LANGUAGE_STORAGE_KEY)).toBe('zh-Hant');
+    expect(screen.getByRole('button', { name: '切換界面語言' })).toBeInTheDocument();
+    expect(screen.getByText('繁體中文')).toBeInTheDocument();
+
+    // 第二次点击：繁体 -> 英文
+    fireEvent.click(screen.getByRole('button', { name: '切換界面語言' }));
 
     expect(localStorage.getItem(UI_LANGUAGE_STORAGE_KEY)).toBe('en');
+    expect(screen.getByRole('button', { name: 'Switch UI language' })).toBeInTheDocument();
+    expect(screen.getByText('English')).toBeInTheDocument();
+  });
+
+  it('restores the persisted language on the next mount', () => {
+    localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'en');
+
+    render(
+      <UiLanguageProvider>
+        <UiLanguageToggle />
+      </UiLanguageProvider>
+    );
+
     expect(screen.getByRole('button', { name: 'Switch UI language' })).toBeInTheDocument();
     expect(screen.getByText('English')).toBeInTheDocument();
   });
