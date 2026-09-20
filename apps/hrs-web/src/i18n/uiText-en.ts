@@ -323,7 +323,15 @@ const en: Record<UiTextKey, string> = {
   'component.taskPanel.statusAria': 'Task status: {status}',
   'component.taskPanel.title': 'Analysis tasks',
 
-  // ---- 第 6 类 登录/注册 auth ----
+  // ---- 第 6 类 异常页面 （404页面/重定向页面） ----
+  'exception.404.title': '404',
+  'exception.404.description': '404 page not found',
+  'exception.redirect.title': 'Redirect',
+  'exception.redirect.description': 'Automatically redirected to the target page',
+
+  // ---- 第 7 类 登录/注册 auth ----
+  'auth.login.title': 'Login page',
+  'auth.login.description': 'Admin login to access the quantitative decision workspace',
   'auth.login.adminLogin': 'Admin login',
   'auth.login.adminPassword': 'Admin password',
   'auth.login.confirmPassword': 'Confirm password',
@@ -350,7 +358,7 @@ const en: Record<UiTextKey, string> = {
   'auth.login.usernameRequired': 'Please enter your account',
   'auth.login.validationFailed': 'Validation failed',
 
-  // ---- 第 7 类 页面 ----
+  // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': 'Alerts - HRS', // Alert page document title
   // chat.*

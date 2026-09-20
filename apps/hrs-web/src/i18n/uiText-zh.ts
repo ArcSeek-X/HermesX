@@ -89,6 +89,7 @@ const zh = {
   'layout.header.language': '界面语言', // 头部中英文切换按钮
   'layout.header.themeSettings': '主题设置', // 头部主题设置按钮
   'layout.header.userSettings': '个人设置', // 头部个人设置按钮
+
   // 导航菜单（产品模式） layout.nav.*
   'layout.nav.alerts.title': '告警', // 告警导航项
   'layout.nav.alerts.description': '规则、触发记录与通知尝试', // 告警导航项描述
@@ -322,7 +323,15 @@ const zh = {
   'component.taskPanel.statusAria': '任务状态：{status}', // 任务状态无障碍标签
   'component.taskPanel.title': '分析任务', // 任务面板标题
 
-  // ---- 第 6 类 登录/注册 auth ----
+  // ---- 第 6 类 异常页面 （404页面/重定向页面） ----
+  'exception.404.title': '404', // 404 路由标题（route handle）
+  'exception.404.description': '404 页面未找到', // 404 路由描述（route handle）
+  'exception.redirect.title': '重定向', // 重定向路由标题（route handle）
+  'exception.redirect.description': '自动重定向到目标页面', // 重定向路由描述（route handle）
+
+  // ---- 第 7 类 登录/注册 auth ----
+  'auth.login.title': '登录页', // 管理员登录页标题（route handle）
+  'auth.login.description': '管理员登录认证，进入量化决策工作台', // 管理员登录页路由描述（route handle）
   'auth.login.adminLogin': '管理员登录', // 管理员登录标题
   'auth.login.adminPassword': '管理员密码', // 管理员密码标签
   'auth.login.confirmPassword': '确认密码', // 确认密码标签
@@ -349,7 +358,7 @@ const zh = {
   'auth.login.usernameRequired': '请输入账号', // 账号必填校验提示
   'auth.login.validationFailed': '验证未通过', // 验证失败提示
 
-  // ---- 第 7 类 页面 ----
+  // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': '告警中心 - HRS', // 告警页文档标题
   // chat.*

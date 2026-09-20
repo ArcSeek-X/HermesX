@@ -320,7 +320,15 @@ const zhHant = {
   'component.taskPanel.statusAria': '任務狀態：{status}', // 任務狀態无障碍標簽
   'component.taskPanel.title': '分析任務', // 任務面板標題
 
-  // ---- 第 6 类 登录/注册 auth ----
+  // ---- 第 6 类 异常页面 （404頁面/重定向頁面） ----
+  'exception.404.title': '404',
+  'exception.404.description': '404 頁面未找到', // 404 路由描述（route handle）
+  'exception.redirect.title': '重定向', // 重定向路由標題（route handle）
+  'exception.redirect.description': '自動重定向到目標頁面', // 重定向路由描述（route handle）
+
+  // ---- 第 7 类 登录/注册 auth ----
+  'auth.login.title': '登入頁', // 管理員登入頁標題（route handle）
+  'auth.login.description': '管理員登錄認證，進入量化決策工作台', // 管理員登入頁路由描述（route handle）
   'auth.login.adminLogin': '管理员登入', // 管理员登入標題
   'auth.login.adminPassword': '管理员密碼', // 管理员密碼標簽
   'auth.login.confirmPassword': '確認密碼', // 確認密碼標簽
@@ -347,7 +355,7 @@ const zhHant = {
   'auth.login.usernameRequired': '請輸入帳號', // 帳號必填校驗提示
   'auth.login.validationFailed': '驗證未通過', // 驗證失敗提示
 
-  // ---- 第 7 类 页面 ----
+  // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': '告警中心 - HRS', // 告警頁文件標題
   // chat.*
