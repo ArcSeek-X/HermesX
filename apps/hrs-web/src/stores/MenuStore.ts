@@ -67,20 +67,16 @@ const toNavMenuNode = (node: AppRouteNode, children?: NavMenuNode[]): NavMenuNod
 });
 
 /**
- * 递归构建「指定模块」下的菜单节点数组。
- * 过滤规则：① 不属于目标模块的节点直接剔除；② menuVisible === false 的节点剔除；
- * ③ group 类型节点不可见时仅透传其子节点（不保留分组壳），可见时作为分组项保留。
- * @param nodes 路由节点森林
- * @param moduleId 目标模块 id，非空；仅 moduleId 列表包含它（或节点未声明 moduleId）的节点才会保留
- * @returns 该模块下可见的菜单节点数组（不含不可见节点）；无匹配时返回空数组
+ * 递归构建菜单节点数组。
+ * 过滤规则：① menuVisible === false 的节点剔除；
+ * ② group 类型节点不可见时仅透传其子节点（不保留分组壳），可见时作为分组项保留。
+ * 模块归属已由 MENU_MANIFEST 的模块子树结构性保证，无需逐节点按 moduleId 过滤。
+ * @param nodes 路由节点森林（已是某一模块的子树）
+ * @returns 可见的菜单节点数组（不含不可见节点）；无匹配时返回空数组
  */
-const buildModuleMenuNodes = (nodes: AppRouteNode[], moduleId: ModuleId): NavMenuNode[] =>
+const buildModuleMenuNodes = (nodes: AppRouteNode[]): NavMenuNode[] =>
   nodes.flatMap((node) => {
-    if (node.moduleId?.length && !node.moduleId.includes(moduleId)) {
-      return [];
-    }
-
-    const children = node.children?.length ? buildModuleMenuNodes(node.children, moduleId) : undefined;
+    const children = node.children?.length ? buildModuleMenuNodes(node.children) : undefined;
     const isVisible = node.menuVisible !== false;
 
     if (node.menuType === 'group') {
@@ -105,8 +101,8 @@ const buildModuleMenuNodes = (nodes: AppRouteNode[], moduleId: ModuleId): NavMen
 const buildRuntimeMenuData = (): ModuleMenuData => {
   const menuData = {} as ModuleMenuData;
   for (const moduleNode of MENU_MANIFEST) {
-    // 模块身份由 ModuleNode.moduleId 表达；直接取模块子树构建菜单，无需再按 moduleId 过滤全森林
-    menuData[moduleNode.moduleId] = buildModuleMenuNodes(moduleNode.children ?? [], moduleNode.moduleId);
+    // 直接取模块子树构建菜单（模块归属已结构性保证）
+    menuData[moduleNode.moduleId] = buildModuleMenuNodes(moduleNode.children ?? []);
   }
   return menuData;
 };

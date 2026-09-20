@@ -19,17 +19,13 @@ export type RouteLoader = () => Promise<{ default: ComponentType }>;
  */
 export type AppRouteNode = Omit<NavMenuNode, 'description' | 'exact' | 'children'> & {
   menuDescription: string;
-  children?: AppRouteNode[];
-
   menuType: RouteMenuType;
   auth?: RouteAuthPolicy;
-  moduleId?: ModuleId[];
   menuVisible?: boolean;
-  /** 关联的功能开关名（如 'alphasift'），由消费方决定是否按开关过滤该菜单项 */
-  featureFlag?: string;
   redirect?: string;
   /** 页面模块路径（字符串，如 'pages/StockDashboardPage'）：运行时经 pageImporter 解析为懒加载导入函数 */
   menuPagePath?: string;
+  children?: AppRouteNode[];
 };
 
 /**
@@ -79,7 +75,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.home.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/HomePage',
       },
@@ -94,7 +89,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.dashboard.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/StockDashboardPage',
       },
@@ -109,7 +103,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.sectorAnalysis.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/SectorAnalysisPage',
       },
@@ -124,7 +117,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.watchlist.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/WatchlistPage',
       },
@@ -139,7 +131,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.liveCalendar.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/LiveCalendarPage',
       },
@@ -154,7 +145,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.liveNews.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/LiveNewsPage',
       },
@@ -169,7 +159,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.kline.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/StockKLinePage',
       },
@@ -184,7 +173,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.chat.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/ChatPage',
       },
@@ -199,7 +187,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.review.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/reviewPage',
       },
@@ -214,7 +201,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.portfolio.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/PortfolioPage',
       },
@@ -229,7 +215,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.decisionSignals.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/DecisionSignalsPage',
       },
@@ -244,7 +229,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.backtest.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/BacktestPage',
       },
@@ -259,7 +243,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.alerts.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/AlertsPage',
       },
@@ -274,7 +257,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.usage.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/TokenUsagePage',
       },
@@ -289,8 +271,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.screening.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
-        featureFlag: 'alphasift',
         menuVisible: true,
         menuPagePath: 'pages/StockScreeningPage',
       },
@@ -305,7 +285,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.codeTest.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/CodeTestPage',
       },
@@ -320,7 +299,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuDescription: 'layout.nav.settings.description',
         menuType: 'page',
         auth: 'protected',
-        moduleId: ['productModel'],
         menuVisible: true,
         menuPagePath: 'pages/SettingsPage',
       },
@@ -346,7 +324,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: true,
         menuDescription: '基础',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -359,7 +336,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsButton.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_button',
           },
@@ -375,7 +351,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: false,
         menuDescription: '表单',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -388,7 +363,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsInput.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_input',
           },
@@ -402,7 +376,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsTextArea.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_textArea',
           },
@@ -416,7 +389,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsSelect.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_select',
           },
@@ -430,7 +402,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsCheckbox.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_checkbox',
           },
@@ -446,7 +417,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: false,
         menuDescription: '数据展示',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -459,7 +429,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsChip.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_chip',
           },
@@ -473,7 +442,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsTable.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_table',
           },
@@ -489,7 +457,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: false,
         menuDescription: '导航',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -502,7 +469,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsSideBar.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_sideBar',
           },
@@ -516,7 +482,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsTabNav.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_tabNav',
           },
@@ -532,7 +497,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: false,
         menuDescription: '布局',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -545,7 +509,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsSeparator.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_separator',
           },
@@ -559,7 +522,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsAnimCard.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_animCard',
           },
@@ -573,7 +535,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsNewsCard.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_newsCard',
           },
@@ -587,7 +548,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsListCard.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_listCard',
           },
@@ -603,7 +563,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuExpanded: false,
         menuDescription: '浮层',
         menuType: 'group',
-        moduleId: ['developmentMode'],
         menuVisible: true,
         children: [
           {
@@ -616,7 +575,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsDrawer.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_drawer',
           },
@@ -630,7 +588,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsToast.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_toast',
           },
@@ -644,7 +601,6 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuDescription: 'layout.nav.development.docsModal.description',
             menuType: 'page',
             auth: 'protected',
-            moduleId: ['developmentMode'],
             menuVisible: true,
             menuPagePath: 'pages/DocsPage/Components/Docs_modal',
           },

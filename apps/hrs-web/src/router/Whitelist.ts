@@ -1,60 +1,43 @@
-import type { AppRouteNode } from './manifest';
+import type { AsyncRouteNode } from '../types/router';
 
-/** 白名单路由：无需进入主业务菜单树即可单独消费，典型如登录页与根路径重定向。 */
-export const WHITE_LIST_ROUTE: AppRouteNode[] = [
+/** 白名单路由：无需进入主业务菜单树即可单独消费，典型如登录页与根路径重定向。字段与 AsyncRouteNode 一一对应。 */
+export const WHITE_LIST_ROUTE: AsyncRouteNode[] = [
   {
-    menuId: 'root-redirect',
-    menuName: 'layout.appFallbackTitle',
-    routePath: '/',
-    menuPosition: 'content',
-    level: 0,
-    menuExpanded: false,
-    menuDescription: '根路径兼容旧链接：重定向到首页',
-    menuType: 'redirect',
+    routerKey: 'root-redirect',
+    routerName: 'exception.redirect.title',
+    routerPath: '/',
+    routerDescription: 'exception.redirect.description',
+    routerType: 'redirect',
     auth: 'protected',
-    moduleId: ['productModel', 'developmentMode'],
-    menuVisible: false,
+    routerPagePath: '',
     redirect: '/home',
   },
   {
-    menuId: 'login',
-    menuName: '登录',
-    routePath: '/login',
-    menuPosition: 'content',
-    level: 0,
-    menuExpanded: false,
-    menuDescription: '登录页（独立布局）',
-    menuType: 'page',
+    routerKey: 'login',
+    routerName: 'auth.login.title',
+    routerPath: '/login',
+    routerDescription: 'auth.login.description',
+    routerType: 'page',
     auth: 'public',
-    moduleId: ['productModel', 'developmentMode'],
-    menuVisible: false,
-    menuPagePath: 'pages/LoginPage/LoginPage',
+    routerPagePath: 'pages/LoginPage/LoginPage',
   },
 ];
 
-
-/** 异常路由：兜底或错误态页面，独立于主业务树维护。 */
-export const EXCEPTION_ROUTE: AppRouteNode[] = [
-{
-    menuId: 'not-found',
-    menuName: '404',
-    routePath: '*',
-    menuPosition: 'content',
-    level: 0,
-    menuExpanded: false,
-    menuDescription: '兜底未命中路由',
-    menuType: 'fallback',
+/** 异常路由：兜底或错误态页面，独立于主业务树维护。字段与 AsyncRouteNode 一一对应，文案走 i18n。 */
+export const EXCEPTION_ROUTE: AsyncRouteNode[] = [
+  {
+    routerKey: 'not-found',
+    routerName: 'exception.404.title',
+    routerPath: '*',
+    routerDescription: 'exception.404.description',
+    routerType: 'fallback',
     auth: 'protected',
-    moduleId: ['productModel', 'developmentMode'],
-    menuVisible: false,
-    menuPagePath: 'pages/NotFoundPage',
-  }
+    routerPagePath: 'pages/NotFoundPage',
+  },
 ];
 
-
-
-/** 汇总后的完整路由真源。 */
-export const WHITE_LIST_ROUTE_MANIFEST: AppRouteNode[] = [
+/** 汇总后的完整白名单路由真源。 */
+export const WHITE_LIST_ROUTE_MANIFEST: AsyncRouteNode[] = [
   ...WHITE_LIST_ROUTE,
   ...EXCEPTION_ROUTE,
 ];

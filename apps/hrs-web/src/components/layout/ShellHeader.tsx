@@ -2,7 +2,7 @@
  * 顶部页头 ShellHeader（h-14，固定在右侧列顶部，不随内容滚动）
  *
  * 含：移动端菜单按钮（< lg）、桌面端侧栏折叠按钮（>= lg）、当前路由标题/描述
- * （查 ROUTE_META，与侧栏同源无需维护映射）、右侧操作区
+ * （查当前路由 handle，与侧栏/路由同源无需维护映射）、右侧操作区
  * （股票搜索 / 主题设置 / 语言切换 / 个人设置）。
  *
  * @author Lensgcx (GaoCangxiong)
@@ -10,11 +10,10 @@
 import type React from 'react';
 import { useState } from 'react';
 import { ChevronsLeft, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useMatches, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import { useLayoutStore } from '../../stores';
-import { ROUTE_META } from '../../router/routeMeta';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
@@ -38,13 +37,18 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   onOpenMobileNav,
   className,
 }) => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { t } = useUiLanguage();
   // 折叠态直接订阅 store（决定折叠按钮的图标与无障碍提示），无需外部传入
   const menuCollapsedState = useLayoutStore((state) => state.menuCollapsedState);
-  // 当前页标题/描述：直接查菜单数据派生的索引（改菜单即改页头，无需在此维护映射）
-  const current = ROUTE_META[location.pathname];
+  // 当前页标题/描述：从当前命中的路由 handle 读取（与侧栏/路由同源，改菜单即改页头，无需维护映射）
+  const matches = useMatches();
+  const currentHandle = matches[matches.length - 1]?.handle as
+    | { menuName?: string; menuId?: string; description?: string }
+    | undefined;
+  const current = currentHandle
+    ? { title: currentHandle.menuName ?? currentHandle.menuId ?? '', description: currentHandle.description }
+    : undefined;
 
   // 头部股票搜索框：提交后将规范代码写入 sessionStorage（与 K 线页共享键）并跳转 /kline
   const [stockQuery, setStockQuery] = useState('');

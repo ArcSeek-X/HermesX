@@ -25,25 +25,19 @@ import { useRouterStore } from './stores/RouterStore';
 import { EXCEPTION_ROUTE, WHITE_LIST_ROUTE } from './router/Whitelist';
 import { resolvePageImporter } from './router/pageImporter';
 import type { AsyncRouteNode } from './types/router';
-import { type AppRouteNode } from './router/manifest';
 
 /**
  * ===================== 数据源驱动的动态路由 =====================
- * 路由不再写死，全部由数据生成：
- * - 主业务路由：来自 RouterStore.asyncRouterData（由真源 MENU_MANIFEST 加工成 AsyncRouteNode[]）。
- * - 白名单路由：来自 router/Whitelist（根路径重定向、404 兜底、登录页）。
- *
- * menuPagePath 是字符串（页面模块路径，如 'pages/StockDashboardPage'），运行时经 resolvePageImporter
- * （基于 import.meta.glob 收集的真源页面模块）解析为懒加载导入函数。真源 MENU_MANIFEST 为准，
- * 节点自带 menuPagePath 即视为有效，无需额外兜底。
+ * 主业务路由来自 RouterStore.asyncRouterData（页面路径内联为 routerPagePath）；
+ * 白名单路由来自 router/Whitelist（自带 menuPagePath）。两者均经 resolvePageImporter 解析为懒加载组件。
  */
 
-/** 懒加载组件缓存：同一 menuId 复用同一个 lazy 组件，避免每次渲染重建导致页面重挂载 */
+/** 懒加载组件缓存：同一 key 复用同一个 lazy 组件，避免每次渲染重建导致页面重挂载 */
 const lazyPageCache = new Map<string, React.LazyExoticComponent<React.ComponentType>>();
 
-/** 按 menuId + 页面路径字符串解析并缓存懒加载组件；无 menuPagePath 或未命中返回 null */
+/** 按 key + 页面路径字符串解析并缓存懒加载组件；无页面路径或未命中返回 null */
 const getLazyPage = (
-  menuId: string,
+  key: string,
   pagePath?: string,
 ): React.LazyExoticComponent<React.ComponentType> | null => {
   if (!pagePath) {
@@ -53,10 +47,10 @@ const getLazyPage = (
   if (!importer) {
     return null;
   }
-  let page = lazyPageCache.get(menuId);
+  let page = lazyPageCache.get(key);
   if (!page) {
     page = lazy(importer);
-    lazyPageCache.set(menuId, page);
+    lazyPageCache.set(key, page);
   }
   return page;
 };
@@ -64,38 +58,35 @@ const getLazyPage = (
 /** 把动态路由树扁平化并剔除无 path 的分组节点，便于统一渲染 */
 const flattenAsyncRoutes = (nodes: AsyncRouteNode[]): AsyncRouteNode[] =>
   nodes.flatMap((node) => [
-    ...(node.path ? [node] : []),
+    ...(node.routerPath ? [node] : []),
     ...(node.children ? flattenAsyncRoutes(node.children) : []),
   ]);
 
-/** 把单个主业务动态路由节点（AsyncRouteNode，使用 path）转换为 <Route>：redirect 走 Navigate，page 走懒加载 */
-const renderDynamicRoute = (node: AsyncRouteNode): React.ReactNode => {
-  const handle = { menuName: node.menuName, icon: node.menuDescription };
-  if (node.menuType === 'redirect' && node.redirect) {
-    return <Route key={node.menuId} path={node.path} element={<Navigate to={node.redirect} replace />} handle={handle} />;
+/** 通用 <Route> 构造：redirect 节点走 Navigate，page 节点走懒加载页面；无 path 或无页面则返回 null */
+const buildRoute = (
+  key: string,
+  path?: string,
+  pagePath?: string,
+  handle: { menuName?: string; menuId?: string; description?: string; icon?: string } = {},
+  redirect?: string,
+): React.ReactNode => {
+  if (!path) return null;
+  if (redirect) {
+    return <Route key={key} path={path} element={<Navigate to={redirect} replace />} handle={handle} />;
   }
-  const Page = getLazyPage(node.menuId, node.menuPagePath);
-  if (!Page) {
-    return null;
-  }
-  return <Route key={node.menuId} path={node.path} element={<Page />} handle={handle} />;
+  const Page = getLazyPage(key, pagePath);
+  return Page ? <Route key={key} path={path} element={<Page />} handle={handle} /> : null;
 };
 
-/** 把单个白名单路由节点（AppRouteNode，使用 routePath）转换为 <Route> */
-const renderWhitelistRoute = (node: AppRouteNode): React.ReactNode => {
-  if (!node.routePath) {
-    return null;
-  }
-  const handle = { menuName: node.menuName, icon: node.menuDescription };
-  if (node.menuType === 'redirect' && node.redirect) {
-    return <Route key={node.menuId} path={node.routePath} element={<Navigate to={node.redirect} replace />} handle={handle} />;
-  }
-  const Page = getLazyPage(node.menuId, node.menuPagePath);
-  if (!Page) {
-    return null;
-  }
-  return <Route key={node.menuId} path={node.routePath} element={<Page />} handle={handle} />;
-};
+/** 主业务动态路由节点（AsyncRouteNode）→ <Route> */
+const renderDynamicRoute = (node: AsyncRouteNode): React.ReactNode =>
+  buildRoute(
+    node.routerKey,
+    node.routerPath,
+    node.routerPagePath,
+    { menuName: node.routerName, menuId: node.routerKey, description: node.routerDescription, icon: node.routerDescription },
+    node.routerType === 'redirect' ? node.redirect : undefined,
+  );
 
 /**
  * 登录页需脱离 Shell 独立渲染，且在模块级从 Whitelist 预构建懒加载组件，
@@ -103,25 +94,19 @@ const renderWhitelistRoute = (node: AppRouteNode): React.ReactNode => {
  */
 const LoginLazyPage = getLazyPage(
   'login',
-  WHITE_LIST_ROUTE.find((n) => n.menuId === 'login')?.menuPagePath,
+  WHITE_LIST_ROUTE.find((n) => n.routerKey === 'login')?.routerPagePath,
 );
 
 /**
  * 路由内部组件，必须位于 <Router> 之内，才能使用 useLocation / useAuth 等钩子。
  */
 const AppContent: React.FC = () => {
-  // 当前路由信息（含 pathname 与 search）
   const location = useLocation();
-  // 鉴权状态：是否开启鉴权、是否已登录、是否正在初始化、初始化错误等
   const { authEnabled, loggedIn, isLoading, loadError, refreshStatus } = useAuth();
-  // UI 多语言文案函数
   const { t } = useUiLanguage();
 
-  // === 动态路由数据源 ===
-  // asyncRouterData 由登录成功分支（见 LoginCard）构建并持久化；持久化被删除/为空则视为缺少路由信息，
-  // 此时无业务路由可渲染，由鉴权/重定向逻辑导向登录页，无需在此刻意重建。
+  // 业务路由数据源：由登录成功分支（见 LoginCard）构建并持久化；为空则无业务路由可渲染
   const asyncRouterData = useRouterStore((s) => s.asyncRouterData);
-  // 全量主业务动态路由（来自 MENU_MANIFEST，经 asyncRouterData 扁平化），替换原所有硬编码路由
   const dynamicRoutes = useMemo(() => flattenAsyncRoutes(asyncRouterData), [asyncRouterData]);
 
   // 每次路由变化时，把当前路径同步给对话 store，供 ChatPage 等组件感知当前所在页
@@ -152,10 +137,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 开启了鉴权但未登录：
-  // - 当前正好在 /login，则独立渲染登录页（不带导航壳）
-  // - 否则把目标路径编码进 query，重定向到 /login?redirect=...，登录后可跳回
-  if (authEnabled && !loggedIn) {
+
+
+
+  // 开启鉴权但未登录：在 /login 独立渲染登录页，否则重定向到 /login?redirect=当前路径. authEnabled && !loggedI
+  if (true) {
+
+    alert(location.pathname)
     if (location.pathname === '/login') {
       return LoginLazyPage ? (
         <StandaloneRouteBoundary>
@@ -179,11 +167,11 @@ const AppContent: React.FC = () => {
         )}
       >
         {/* 白名单：根路径重定向（数据驱动，来自 Whitelist） */}
-        {WHITE_LIST_ROUTE.filter((n) => n.menuId !== 'login').map(renderWhitelistRoute)}
+        {WHITE_LIST_ROUTE.filter((n) => n.routerKey !== 'login').map(renderDynamicRoute)}
         {/* 主业务动态路由：全部来自 MENU_MANIFEST，替换原所有硬编码路由 */}
         {dynamicRoutes.map(renderDynamicRoute)}
         {/* 白名单：404 兜底（数据驱动，来自 Whitelist，置于最后） */}
-        {EXCEPTION_ROUTE.map(renderWhitelistRoute)}
+        {EXCEPTION_ROUTE.map(renderDynamicRoute)}
       </Route>
     </Routes>
   );

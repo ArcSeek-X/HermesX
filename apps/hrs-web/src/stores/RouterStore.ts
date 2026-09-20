@@ -51,15 +51,14 @@ const toAsyncRouteNode = (
   node: AppRouteNode & { menuType: 'page' | 'redirect' | 'fallback' },
   children?: AsyncRouteNode[],
 ): AsyncRouteNode => ({
-  menuId: node.menuId,
-  menuName: node.menuName,
-  menuDescription: node.menuDescription,
-  path: node.routePath ?? '',
+  routerKey: node.menuId,
+  routerName: node.menuName,
+  routerPath: node.routePath ?? '',
+  routerPagePath: node.menuPagePath ?? '',
+  routerType: node.menuType,
   auth: node.auth,
-  moduleId: node.moduleId,
-  menuType: node.menuType,
   redirect: node.redirect,
-  menuPagePath: node.menuPagePath,
+  routerDescription: node.menuDescription,
   children: children?.length ? children : undefined,
 });
 
@@ -81,7 +80,7 @@ const buildAsyncRouteTree = (nodes: AppRouteNode[]): AsyncRouteNode[] =>
 /**
  * 读取持久化的动态路由树（asyncRouterData）。
  * 存储即唯一权威数据源：写入方（buildAsyncRouterData）产出的是结构干净的 AsyncRouteNode[]，
- * 经 JSON 往返后字段无损（menuPagePath 为字符串，可随树一同持久化），故此处不做逐节点清洗，
+ * 经 JSON 往返后字段无损（routerKey/routerPath/routerDescription 等均为可序列化基本类型），故此处不做逐节点清洗，
  * 只做顶层数组形态校验——与 MenuStore.readStoredMenuData 的「信任自有持久化」策略一致。
  * 存储缺失、解析失败、非数组一律视为「没有」，返回空数组（刻意的合法初值）。
  * 副作用：读取 localStorage（'local' 作用域）的 ASYNC_ROUTER_STORAGE_KEY。
@@ -91,7 +90,13 @@ const readStoredAsyncRouterData = (): AsyncRouteNode[] => {
   const stored = getStorageItem<AsyncRouteNode[]>(ASYNC_ROUTER_STORAGE_KEY, 'local');
   // 只接受数组形态：null（缺失/解析失败/存储不可用）与 JSON 基本类型一律视为「没有」。
   // 空数组是刻意的合法初值，不伪装成已初始化。
-  return Array.isArray(stored) ? stored : [];
+  // 字段名随版本演进（menuId→routerKey、新增 routerPagePath 等）；旧格式 blob 不含关键字段，
+  // 视为无效并丢弃，避免拿着旧字段名去读新结构导致路由全部渲染为空（登录尚未实现时无法自动重建，更需稳妥兜底）。
+  // routerPagePath 允许为 ''（redirect 节点本就无页面），故只校验其为 string 类型即可。
+  return Array.isArray(stored)
+    && stored.every((n) => n && typeof n.routerKey === 'string' && typeof n.routerPagePath === 'string')
+    ? stored
+    : [];
 };
 
 // ===== 场景二：从持久化加载 - store 初始化（模块加载时自动执行）=====
@@ -108,10 +113,10 @@ const applyAsyncRouterData = (
 };
 
 export const useRouterStore = create<RouterState>((set) => ({
-  // 场景二：以下初始 state 在 store 初始化时由 localStorage 还原（见 initial*），直接内联无需 return
+  // 初始 state 在 store 初始化时由 localStorage 还原（见 initial*），直接内联无需 return
   asyncRouterData: initialAsyncRouterData,
 
-  // 场景一：首次登录成功 → 构建全量动态路由树并持久化
+  // 场景：首次登录成功 → 构建全量动态路由树并持久化
   buildAsyncRouterData: () => {
     const asyncRouterData = buildAsyncRouteTree(
       MENU_MANIFEST.flatMap((moduleNode) => moduleNode.children ?? []),
