@@ -13,6 +13,7 @@ import { ChevronsLeft, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useMatches, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
+import type { RouteHandle } from '../../types/router';
 import { useLayoutStore } from '../../stores';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
@@ -41,14 +42,15 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   const { t } = useUiLanguage();
   // 折叠态直接订阅 store（决定折叠按钮的图标与无障碍提示），无需外部传入
   const menuCollapsedState = useLayoutStore((state) => state.menuCollapsedState);
-  // 当前页标题/描述：从当前命中的路由 handle 读取（与侧栏/路由同源，改菜单即改页头，无需维护映射）
   const matches = useMatches();
-  const currentHandle = matches[matches.length - 1]?.handle as
-    | { menuName?: string; menuId?: string; description?: string }
-    | undefined;
-  const current = currentHandle
-    ? { title: currentHandle.menuName ?? currentHandle.menuId ?? '', description: currentHandle.description }
-    : undefined;
+  // 当前页标题/描述：经 useMatches 读取路由 handle（数据路由原生能力），与侧栏/路由同源；按字段独立 i18n 兜底
+  const handle = matches[matches.length - 1]?.handle as RouteHandle | undefined;
+  const title = handle?.routerName
+    ? t(handle.routerName as UiTextKey) || handle.routerName
+    : t('layout.appFallbackTitle');
+  const description = handle?.routerDescription
+    ? t(handle.routerDescription as UiTextKey) || handle.routerDescription
+    : t('layout.appFallbackDescription');
 
   // 头部股票搜索框：提交后将规范代码写入 sessionStorage（与 K 线页共享键）并跳转 /kline
   const [stockQuery, setStockQuery] = useState('');
@@ -85,19 +87,10 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           )}
         </button>
 
-
-
         {/* 当前路由标题 + 描述 */}
         <div className="min-w-0 flex-1">
-          {/* 命中菜单时取菜单文案（t 未命中 i18n key 会返回 undefined，故回退到原始文案，兼容直写中文） */}
-          <p className="truncate text-sm font-semibold text-foreground">
-            {current ? t(current.title as UiTextKey) || current.title : t('layout.appFallbackTitle')}
-          </p>
-          <p className="truncate text-xs text-secondary-text">
-            {current?.description
-              ? t(current.description as UiTextKey) || current.description
-              : t('layout.appFallbackDescription')}
-          </p>
+          <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+          <p className="truncate text-xs text-secondary-text">{description}</p>
         </div>
 
         {/* 右侧操作区：股票搜索 / 主题设置 / 中英文切换 / 个人设置 */}
