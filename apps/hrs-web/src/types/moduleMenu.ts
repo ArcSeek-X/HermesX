@@ -8,7 +8,7 @@ export type NavMenuNode = {
   menuName?: string;
   /** 路由路径：不传或空串表示不可跳转 */
   routePath?: string;
-  /** 菜单图标：图标名字符串（在 menuIconRegistry 中映射回组件） */
+  /** 菜单图标：图标名字符串（lucide-react 组件名，按名称解析回组件） */
   menuIcon?: string;
   /** 菜单徽章标志 */
   menuBadge?: string;

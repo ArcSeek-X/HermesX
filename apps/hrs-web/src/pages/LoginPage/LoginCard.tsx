@@ -50,8 +50,9 @@ const LoginCard: React.FC = () => {
   const rawRedirect = searchParams.get('redirect') ?? '';
   /** 安全校验后的重定向地址：仅允许相对路径（防止开放重定向攻击） */
   // 必须以 / 开头且不以 // 开头（// 会被浏览器解析为协议相对 URL，可能导致跳转到外部站点）
+  // 缺省跳转首页（而非根路径 '/'，避免根 index 再把已登录用户弹回登录页形成死循环）
   const redirect =
-    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/home';
 
   /** 用户输入的账号 */
   const [username, setUsername] = useState('');
@@ -88,6 +89,8 @@ const LoginCard: React.FC = () => {
         // 不传 loginModuleId 时由 store 自动取第一个可用模块。
         buildMenuData();
         buildAsyncRouterData();
+        // 登录成功后注入业务路由（patchRoutes 到 protected 布局），再跳转目标页
+        useRouterStore.getState().registerAsyncRoutes();
         // 登录成功，重定向到目标页面（替换历史记录，避免后退回登录页）
         navigate(redirect, { replace: true });
       } else {

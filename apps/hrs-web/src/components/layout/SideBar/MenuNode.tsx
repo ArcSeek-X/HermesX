@@ -3,10 +3,8 @@
  * @description 侧边栏单个菜单节点（<li>）：负责一个节点的路由高亮判定、点击跳转与子级递归渲染，
  *              由 SidebarNav 在菜单列表中逐个渲染。
  *              折叠态由父级传入；路由与 i18n 由本组件自行从 hook 获取，免去逐层透传。
- *
  *              设计说明：四种形态（图标栏 / 分组标题 / 可折叠 / 叶子）各自仅出现一次，
  *              故全部内联为 return 分支、不额外拆子组件，避免单点复用带来的阅读跳转成本。
- *
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-14
  */
@@ -14,11 +12,11 @@ import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { menuIconRegistry } from './MenuIcon';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../i18n/uiText';
 import { cn } from '../../../utils/cn';
 import type { NavMenuNode } from '../../../types/moduleMenu';
-import { menuIconRegistry } from '../../../router/menuIcons';
 
 /** 一级菜单展示模式：group=一级作为分区标题（不可折叠）；collapse=一级为可折叠项 */
 export type SidebarMenuMode = 'group' | 'collapse';
@@ -106,7 +104,7 @@ const MenuNode: React.FC<MenuNodeProps> = ({
   const navigate = useNavigate();
 
   const { menuId, menuName, routePath, menuIcon: menuIconName, children, exact } = node;
-  // menuIconName 是图标名字符串，经注册表解析回组件（未命中则为 undefined，渲染时空占位）
+  // menuIconName 是图标名字符串，经白名单解析回组件（未命中则为 undefined，渲染时空占位）
   const MenuIcon = menuIconName ? menuIconRegistry[menuIconName] : undefined;
   // 菜单名解析：优先按 i18n key 翻译，非 key（如直写文案）原样显示
   const label = menuName ? t(menuName as UiTextKey) || menuName : '';

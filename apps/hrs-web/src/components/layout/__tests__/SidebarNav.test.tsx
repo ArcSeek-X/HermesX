@@ -11,7 +11,7 @@ import { SidebarNavOld } from '../SideBar/SidebarNav-old';
 const mockGetAlphaSiftStatus = vi.fn().mockResolvedValue({ enabled: false, available: false, installSpecIsDefault: false });
 const completionBadgeState = { value: true };
 
-vi.mock('../../../contexts/AuthContext', () => ({
+vi.mock('../../../stores/AuthStore', () => ({
   useAuth: () => ({
     authEnabled: true,
   }),

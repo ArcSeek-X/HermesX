@@ -12,7 +12,7 @@ import { useMenuStore } from '../../../stores/MenuStore';
 import { RouteOutletBoundary } from '../RouteBoundary';
 import { Shell } from '../Shell';
 
-vi.mock('../../../contexts/AuthContext', () => ({
+vi.mock('../../../stores/AuthStore', () => ({
   useAuth: () => ({
     authEnabled: false,
     logout: vi.fn().mockResolvedValue(undefined),

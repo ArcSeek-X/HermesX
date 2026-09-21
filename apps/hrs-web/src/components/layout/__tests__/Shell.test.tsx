@@ -12,7 +12,7 @@ import { Shell } from '../Shell';
 
 const mockLogout = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../../contexts/AuthContext', () => ({
+vi.mock('../../../stores/AuthStore', () => ({
   useAuth: () => ({
     authEnabled: true,
     logout: mockLogout,

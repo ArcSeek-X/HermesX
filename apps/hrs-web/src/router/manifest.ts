@@ -3,14 +3,10 @@
  * @description 应用路由唯一真源：以菜单字段为基线，同时承载路由、模式、鉴权与 feature flag 信息。
  */
 
-import type { ComponentType } from 'react';
 import type { ModuleId, NavMenuNode } from '../types/moduleMenu';
-
-
 export type { ModuleId } from '../types/moduleMenu';
 export type RouteAuthPolicy = 'public' | 'protected';
 export type RouteMenuType = 'page' | 'group' | 'redirect' | 'fallback';
-export type RouteLoader = () => Promise<{ default: ComponentType }>;
 
 /**
  * 真源节点：
@@ -23,7 +19,7 @@ export type AppRouteNode = Omit<NavMenuNode, 'description' | 'exact' | 'children
   auth?: RouteAuthPolicy;
   menuVisible?: boolean;
   redirect?: string;
-  /** 页面模块路径（字符串，如 'pages/StockDashboardPage'）：运行时经 pageImporter 解析为懒加载导入函数 */
+  /** 页面模块路径（字符串，如 'pages/StockDashboardPage'）：运行时经 asyncRouteFactory 的 resolvePageImporter 解析为懒加载导入函数 */
   menuPagePath?: string;
   children?: AppRouteNode[];
 };
@@ -47,7 +43,7 @@ export type ModuleNode = {
   moduleGroupId?: string;
   /** 模块分组名称（可选） */
   moduleGroupName?: string;
-  /** 模块图标名（对应 menuIconRegistry，可选） */
+  /** 模块图标名（lucide-react 组件名 PascalCase，按名称解析，可选） */
   moduleIcon?: string;
   /** 模块下的菜单树（第一层为菜单/分组，不再含模块自身字段） */
   children: AppRouteNode[];

@@ -697,6 +697,7 @@ const zh = {
   'liveNews.title': '快讯中心', // 快讯中心页面标题
   // notFound.*
   'notFound.backHome': '返回首页', // 404 返回首页
+  'notFound.relogin': '重新登录', // 404 重新登录
   'notFound.description': '抱歉，您访问的页面不存在或已被移动', // 404 描述
   'notFound.documentTitle': '页面未找到 - HermesX', // 404 文档标题（document.title）
   'notFound.title': '页面未找到', // 404 标题
@@ -761,6 +762,7 @@ const zh = {
   'review.unknownTaskStatus': '收到未知任务状态：{status}', // 未知任务状态提示
   // routeError.*
   'routeError.backHome': '返回首页', // 路由错误返回首页
+  'routeError.backToLogin': '返回登录', // 路由错误返回登录
   'routeError.description': '当前页面资源或组件未能正常加载，可能是网络中断或页面版本已更新。请重新加载页面，或返回首页后再试。', // 路由错误描述
   'routeError.reload': '重新加载页面', // 路由错误重新加载
   'routeError.title': '页面加载失败', // 路由错误标题

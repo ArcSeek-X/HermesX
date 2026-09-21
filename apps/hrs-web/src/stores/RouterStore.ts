@@ -1,22 +1,22 @@
 /**
  * @file RouterStore.ts
  * @description 动态路由状态 Store（Zustand）。以路由清单 `MENU_MANIFEST` 为唯一真值源，
- *   在登录后构建全量动态路由树（asyncRouterData）并持久化；刷新浏览器时直接从持久化还原，
+ *   在登录后构建全量动态路由树（asyncRouteData）并持久化；刷新浏览器时直接从持久化还原，
  *   无需重建。白名单路由（登录页、404 兜底等）不进入本 Store，由路由注册层在最终注册时合并。
  *
  * 持久化边界：
- * - asyncRouterData：动态路由树（含 children 的树状结构），需持久化到 localStorage；
+ * - asyncRouteData：动态路由树（含 children 的树状结构），需持久化到 localStorage；
  *   存储即唯一权威数据源，有则直接可用，缺失视为未登录（空数组）。
  *
  * 两个业务场景与 Store 入口的对应关系（登录功能尚未实现，以下入口供后续直接调用）：
  * - 场景一 首次登录：登录成功后调用 `buildAsyncRouterData()` ——
  *   遍历真源数据、按转换关系构建全量动态路由树并持久化。
  * - 场景二 刷新浏览器（已登录）：store 初始化时（模块加载）自动从 localStorage
- *   还原 asyncRouterData（见文件底部 `initial*` 初始化），无需手动调用；
- *   路由注册层直接消费 `asyncRouterData` 将其挂入路由表（"建立动态路由"）。
+ *   还原 asyncRouteData（见文件底部 `initial*` 初始化），无需手动调用；
+ *   路由注册层直接消费 `asyncRouteData` 将其挂入路由表（"建立动态路由"）。
  *
- * 使用场景：被路由注册层经由 `useRouterStore` 读取 `asyncRouterData`，
- *   并叠加 Whitelist 中的白名单路由后注册为最终的动态路由表。
+ * 使用场景：被路由注册层经由 `useRouterStore` 读取 `asyncRouteData`，
+ *   将其注册为最终的动态路由表（登录/404 等静态路由在 appRouter 中独立声明，不在此列）。
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-19
  */
@@ -28,16 +28,25 @@ import {
 } from '../router/manifest';
 import type { AsyncRouteNode } from '../types/router';
 import { getStorageItem, setStorageItem } from '../utils/storage';
+import { router } from '../router/appRouter';
+import { buildAsyncRoutes } from '../router/asyncRouteFactory';
 
-/** localStorage 中持久化「动态路由树（asyncRouterData）」的键；存储即路由数据源，有则直接可用 */
-const ASYNC_ROUTER_STORAGE_KEY = 'router.asyncRouterData';
+/** localStorage 中持久化「动态路由树（asyncRouteData）」的键；存储即路由数据源，有则直接可用 */
+const ASYNC_ROUTER_STORAGE_KEY = 'router.asyncRouteData';
 
 interface RouterState {
   /** 动态路由树（树状结构，含 children）。需持久化（见 ASYNC_ROUTER_STORAGE_KEY）；
    *  存储缺失（未登录）时为空数组，登录后由 buildAsyncRouterData 构建并落盘 */
-  asyncRouterData: AsyncRouteNode[];
+  asyncRouteData: AsyncRouteNode[];
   /** 场景一：登录后构建全量动态路由树并持久化 */
   buildAsyncRouterData: () => void;
+  /** 业务路由是否已注入受保护布局：true=尚未注入（需 patchRoutes），false=已注入。
+   *  用于避免路由守卫每次导航都重复 patchRoutes 触发受保护布局重渲染 */
+  addRouteFlag: boolean;
+  /** 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局（patchRoutes 到 protected） */
+  registerAsyncRoutes: () => void;
+  /** 登出时：清空受保护布局下的业务路由（patchRoutes 空数组） */
+  uninstallAsyncRoutes: () => void;
 }
 
 /**
@@ -78,7 +87,7 @@ const buildAsyncRouteTree = (nodes: AppRouteNode[]): AsyncRouteNode[] =>
   });
 
 /**
- * 读取持久化的动态路由树（asyncRouterData）。
+ * 读取持久化的动态路由树（asyncRouteData）。
  * 存储即唯一权威数据源：写入方（buildAsyncRouterData）产出的是结构干净的 AsyncRouteNode[]，
  * 经 JSON 往返后字段无损（routerKey/routerPath/routerDescription 等均为可序列化基本类型），故此处不做逐节点清洗，
  * 只做顶层数组形态校验——与 MenuStore.readStoredMenuData 的「信任自有持久化」策略一致。
@@ -100,27 +109,50 @@ const readStoredAsyncRouterData = (): AsyncRouteNode[] => {
 };
 
 // ===== 场景二：从持久化加载 - store 初始化（模块加载时自动执行）=====
-// 刷新浏览器（已登录）时直接从 localStorage 还原 asyncRouterData；未登录则为空数组，无需手动调用。
+// 刷新浏览器（已登录）时直接从 localStorage 还原 asyncRouteData；未登录则为空数组，无需手动调用。
 const initialAsyncRouterData = readStoredAsyncRouterData();
 
 /** 内部统一出口：持久化 + 写入 state（消除 action 的重复骨架）。 */
 const applyAsyncRouterData = (
   set: (partial: Partial<RouterState>) => void,
-  asyncRouterData: AsyncRouteNode[],
+  asyncRouteData: AsyncRouteNode[],
 ): void => {
-  setStorageItem(ASYNC_ROUTER_STORAGE_KEY, asyncRouterData, 'local');
-  set({ asyncRouterData });
+  setStorageItem(ASYNC_ROUTER_STORAGE_KEY, asyncRouteData, 'local');
+  set({ asyncRouteData });
 };
 
-export const useRouterStore = create<RouterState>((set) => ({
+export const useRouterStore = create<RouterState>((set, get) => ({
   // 初始 state 在 store 初始化时由 localStorage 还原（见 initial*），直接内联无需 return
-  asyncRouterData: initialAsyncRouterData,
+  asyncRouteData: initialAsyncRouterData,
+  // 初始为 true：本会话尚未注入业务路由，首次 registerAsyncRoutes 时注入
+  addRouteFlag: true,
 
   // 场景：首次登录成功 → 构建全量动态路由树并持久化
   buildAsyncRouterData: () => {
-    const asyncRouterData = buildAsyncRouteTree(
+    const asyncRouteData = buildAsyncRouteTree(
       MENU_MANIFEST.flatMap((moduleNode) => moduleNode.children ?? []),
     );
-    applyAsyncRouterData(set, asyncRouterData);
+    applyAsyncRouterData(set, asyncRouteData);
+    // 路由数据已（重新）产出 → 标记需重新注入，避免沿用上一次的「已注入」标记
+    set({ addRouteFlag: true });
+  },
+
+  // 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局（异常兜底 404/* 已在 appRouter 顶层平级，不在此注入）
+  registerAsyncRoutes: () => {
+    // 已注入则跳过：避免每次导航都重复 patchRoutes 触发受保护布局重渲染。
+    // addRouteFlag 初始为 true；登录重建路由时 buildAsyncRouterData 会重置为 true 以允许再次注入。
+    if (!get().addRouteFlag) return;
+    const routerData = get().asyncRouteData;
+    router.patchRoutes('protected', [...buildAsyncRoutes(routerData)]);
+    // 注入完成后置位，后续导航不再重复注入
+    set({ addRouteFlag: false });
+  },
+
+  // 登出时：清空受保护布局下的业务路由（业务路由以持久化为权威源，清空即无业务路由）
+  uninstallAsyncRoutes: () => {
+    router.patchRoutes('protected', []);
+    // 清空后逻辑上回到「未注入」状态：重置标记，使下一次 registerAsyncRoutes 能重新注入，
+    // 避免依赖 login 流程里 buildAsyncRouterData 的顺手重置（解除隐性耦合）。
+    set({ addRouteFlag: true });
   },
 }));

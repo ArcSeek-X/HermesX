@@ -16,3 +16,9 @@ export type AsyncRouteNode = {
   routerDescription: string;
   children?: AsyncRouteNode[];
 };
+
+/** 路由 handle 元数据：挂载在 React Router 路由对象上的静态配置，供页头 ShellHeader 经 useMatches 读取。 */
+export type RouteHandle = {
+  routerName?: string;
+  routerDescription?: string;
+};

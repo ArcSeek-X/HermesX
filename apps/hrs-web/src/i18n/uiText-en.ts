@@ -697,6 +697,7 @@ const en: Record<UiTextKey, string> = {
   'liveNews.title': 'Newsflash',
   // notFound.*
   'notFound.backHome': 'Back Home',
+  'notFound.relogin': 'Re-login',
   'notFound.description': 'The page you requested does not exist or has moved.',
   'notFound.documentTitle': 'Page not found - HermesX',
   'notFound.title': 'Page not found',
@@ -761,6 +762,7 @@ const en: Record<UiTextKey, string> = {
   'review.unknownTaskStatus': 'Received unknown task status: {status}',
   // routeError.*
   'routeError.backHome': 'Back home',
+  'routeError.backToLogin': 'Back to login',
   'routeError.description': 'This page or component could not load. The network may be unavailable, or the page version may have changed. Reload the page or return home and try again.',
   'routeError.reload': 'Reload page',
   'routeError.title': 'Page failed to load',

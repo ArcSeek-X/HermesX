@@ -16,7 +16,7 @@
 import type React from 'react';
 import { Component, Suspense } from 'react';
 import type { ErrorInfo } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useRouteError, isRouteErrorResponse } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { Modal } from '../basic/Modal/Modal';
 import { HrsButton } from '../basic/HrsButton/HrsButton';
@@ -69,7 +69,7 @@ type RouteErrorBoundaryState = {
  * - 通过 componentDidCatch 将错误输出到控制台
  * - 路由切换（resetKey 变化）时自动重置错误状态，无需手动刷新
  */
-class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
+class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
   override state: RouteErrorBoundaryState = {
     hasError: false,
   };
@@ -96,7 +96,7 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
 
     // 错误态以模态框呈现：遮罩 + 居中对话框；点遮罩/关闭按钮回首页（路由变化触发错误重置）
     return (
-      <Modal isOpen={this.state.hasError} isDismissable={false} variant="blur" hideCloseButton onClose={() => window.location.assign('/')} size="md" footerClassName="justify-center">
+      <Modal isOpen={this.state.hasError} isDismissable={false} variant="blur" hideCloseButton size="md" footerClassName="justify-center">
         <Modal.Header>
           <Modal.Heading>{this.props.text.title}</Modal.Heading>
         </Modal.Header>
@@ -140,7 +140,7 @@ export const RouteBoundary: React.FC<{ children: React.ReactNode; fullPage?: boo
   const resetKey = `${location.pathname}${location.search}`;
 
   return (
-    <RouteErrorBoundary
+    <RouteErrorBoundaryInner
       resetKey={resetKey}
       fullPage={fullPage}
       text={{
@@ -151,7 +151,7 @@ export const RouteBoundary: React.FC<{ children: React.ReactNode; fullPage?: boo
       }}
     >
       <Suspense fallback={<PageLoadingFallback fullPage={fullPage} />}>{children}</Suspense>
-    </RouteErrorBoundary>
+    </RouteErrorBoundaryInner>
   );
 };
 
@@ -168,3 +168,54 @@ export const StandaloneRouteBoundary: React.FC<{ children: React.ReactNode }> = 
     {children}
   </RouteBoundary>
 );
+
+/**
+ * 轻量路由错误边界（数据路由 errorElement）：读取 useRouteError，展示错误提示并提供重新加载。
+ * 用于受保护布局 / 登录路由的 loader 或 lazy 加载失败兜底，与 RouteOutletBoundary（页面渲染错误）分工。
+ */
+export const RouteErrorBoundary: React.FC = () => {
+  const error = useRouteError();
+
+  console.log(error)
+  const { t } = useUiLanguage();
+  const isRouteError = isRouteErrorResponse(error);
+  const detail = isRouteError
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : '';
+  return (
+    <Modal
+      isOpen
+      isDismissable={false}
+      variant="blur"
+      hideCloseButton
+      size="md"
+      footerClassName="justify-center"
+    >
+      <Modal.Header>
+        <Modal.Heading>{t('routeError.title')}</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p className="text-sm leading-6 text-secondary-text">{t('routeError.description')}</p>
+        <p className="text-sm leading-6 text-secondary-text">（{detail}）</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <HrsButton variant="primary" size="md" onClick={() => window.location.reload()}>
+          {t('routeError.reload')}
+        </HrsButton>
+        <HrsButton variant="secondary" size="md" onClick={() => window.location.assign('/login')}>
+          {t('routeError.backToLogin')}
+        </HrsButton>
+      </Modal.Footer>
+      <Modal.Freedom>
+        <div className="absolute top-4 right-4 z-99 flex items-center gap-2 rounded-md bg-card px-2 py-1.5 shadow-sm backdrop-blur">
+          <ThemeToggle />
+          <LanguageSwitch />
+        </div>
+      </Modal.Freedom>
+    </Modal>
+  );
+};
+
+

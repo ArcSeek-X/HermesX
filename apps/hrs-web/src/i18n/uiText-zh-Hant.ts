@@ -694,6 +694,7 @@ const zhHant = {
   'liveNews.title': '快訊中心', // 快訊中心頁面標題
   // notFound.*
   'notFound.backHome': '返回首頁', // 404 返回首頁
+  'notFound.relogin': '重新登入', // 404 重新登入
   'notFound.description': '抱歉，您訪問的頁面不存在或已被移動', // 404 描述
   'notFound.documentTitle': '頁面未找到 - HermesX', // 404 文檔標題（document.title）
   'notFound.title': '頁面未找到', // 404 標題
@@ -758,6 +759,7 @@ const zhHant = {
   'review.unknownTaskStatus': '收到未知任務狀態：{status}', // 未知任務狀態提示
   // routeError.*
   'routeError.backHome': '返回首頁', // 路由錯誤返回首頁
+  'routeError.backToLogin': '返回登錄', // 路由錯誤返回登錄
   'routeError.description': '目前頁面資源或組件未能正常載入，可能是網絡中断或頁面版本已更新。請重新載入頁面，或返回首頁後再試。', // 路由錯誤描述
   'routeError.reload': '重新載入頁面', // 路由錯誤重新載入
   'routeError.title': '頁面載入失敗', // 路由錯誤標題

@@ -3,7 +3,7 @@
  * @description 应用外壳布局：桌面端固定侧栏 + 顶部页头 + 主内容区（Web 端已登录页路由根）。
  *
  * 骨架：外层 min-h-screen 不滚动，滚动只发生在内部 hrs-page-container；
- * 子路由经 <Outlet /> 渲染，也可直接包裹 children。桌面侧栏用自研 SidebarNav，
+ * 子路由经 <Outlet /> 渲染（包在 RouteOutletBoundary 内），也可直接包裹 children。桌面侧栏用自研 SidebarNav，
  * 移动端汉堡由 ShellHeader 触发（onOpenMobileNav → mobileOpen；抽屉当前未挂载）。
  *
  * @author Lensgcx (GaoCangxiong)
@@ -11,11 +11,27 @@
  */
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet,useLocation } from 'react-router-dom';
+import { RouteOutletBoundary } from './RouteBoundary';
 import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SideBar/SidebarNav';
 import { useLayoutStore } from '../../stores';
 import { useThemeStore } from '../../stores/themeStore';
+import { useAgentChatStore } from '../../stores/agentChatStore';
+
+/**
+ * 常驻副作用组件：把当前路径同步给 agentChatStore，供 agentChatStore 感知所在页
+ * （如离开 /chat 时决定是否弹出 completionBadge）。
+ * 原先定义在 routeElements.AppRoot 内，但业务路由实际挂在 Shell 之下、AppRoot 从未覆盖，
+ * 故迁移到此处以保证 currentRoute 能真实反映业务页位置。
+ */
+const RouteSync: React.FC = () => {
+  const location = useLocation();
+  useEffect(() => {
+    useAgentChatStore.getState().setCurrentRoute(location.pathname);
+  }, [location.pathname]);
+  return null;
+};
 
 type ShellProps = {
   /** 可选子内容（React 节点），不传时改由 <Outlet /> 渲染子路由，默认不传 */
@@ -65,11 +81,12 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
   return (
     // 最外层容器：撑满视口，应用全局背景色与文字色
     <div className="hrs-layout min-h-screen bg-background text-foreground">
+      {/* 常驻副作用：同步当前路径到 agentChatStore（离开 /chat 时驱动 completionBadge） */}
+      <RouteSync />
       {/* 主体容器：max-w-[1680px] 居中限制最大宽度；flex 行布局；h-[calc(100vh)] 固定高度不滚动，滚动发生在内部 hrs-page-container */}
       <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px]">
         {/* 桌面端固定侧边栏（仅 >= lg 显示）：宽度与三态折叠动画由 SidebarNav 内部 motion.div 驱动，此处仅透传折叠态；onNavigate 在导航后关闭移动端抽屉 */}
         <SidebarNav className="" theme={sidebarTheme} menuCollapsedState={menuCollapsedState} onNavigate={() => setMobileOpen(false)} />
-
 
         {/* 右侧列：flex-col 纵向排列，flex-1 占据侧边栏外的剩余宽度；lg:px-4 与侧边栏保留 16px 间距 */}
         <div className="flex min-h-0 flex-1 flex-col pb-3 sm:pb-4 sm:px-4 lg:px-4">
@@ -89,8 +106,11 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
             pt-4
             flex-1 overflow-y-auto bg-background touch-pan-y"
           >
-            {/* 优先渲染 children（直接包裹模式），否则渲染 <Outlet />（路由模式） */}
-            {children ?? <Outlet />}
+            {/* 优先渲染 children（直接包裹模式），否则经 RouteOutletBoundary 渲染匹配的子路由（含 Suspense 与错误边界） */}
+            {children ?? <RouteOutletBoundary />}
+
+
+                {/* <Outlet /> */}
           </main>
         </div>
       </div>

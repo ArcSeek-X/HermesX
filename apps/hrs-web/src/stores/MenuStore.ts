@@ -78,7 +78,6 @@ const buildModuleMenuNodes = (nodes: AppRouteNode[]): NavMenuNode[] =>
   nodes.flatMap((node) => {
     const children = node.children?.length ? buildModuleMenuNodes(node.children) : undefined;
     const isVisible = node.menuVisible !== false;
-
     if (node.menuType === 'group') {
       if (!isVisible) {
         return children ?? [];
