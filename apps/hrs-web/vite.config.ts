@@ -5,6 +5,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { fileURLToPath } from 'node:url'
 
 const frontendDir = __dirname
 const repoRoot = path.resolve(frontendDir, '../..')
@@ -217,6 +218,13 @@ export default defineConfig({
     __APP_PACKAGE_VERSION__: JSON.stringify(appVersion),
     __APP_REVISION__: JSON.stringify(appRevision),
     __APP_BUILD_TIME__: JSON.stringify(buildTime),
+  },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
+      '@components': fileURLToPath(new URL('./src/components', import.meta.url)),
+    },
   },
   plugins: [
     buildMetadataPlugin(),

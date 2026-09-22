@@ -16,7 +16,7 @@ import { Outlet, useLocation, useRouteError, isRouteErrorResponse } from 'react-
 import { Check, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { copyToClipboard } from '../../utils/copypaste';
+import { copyToClipboard } from '@utils/copypaste';
 import { Modal, HrsButton, ThemeToggle, LanguageSwitch } from '../../components';
 
 /** 异步加载占位：居中 spinner；fullPage 时占满视口，否则占 60vh。 */
