@@ -6,22 +6,16 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { useAuth } from '../hooks';
+import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useAuth } from '../../hooks';
 import { Home, LogIn } from 'lucide-react';
-import { HrsButton } from '../components';
-import { router } from '../router/appRouter';
+import { HrsButton } from '../../components';
 /**
  * 404 页面未找到组件
  * 当用户访问的 URL 不匹配任何已注册路由时，渲染该页面，展示 404 提示并提供返回首页按钮
  * @returns 404 页面的 JSX 元素
  */
 const NotFoundPage: React.FC = () => {
-
-  console.log('RouteObject：', router);
-
-
-
   /** 路由导航函数，用于编程式跳转 */
   const navigate = useNavigate();
   const { logout } = useAuth();

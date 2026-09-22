@@ -1,6 +1,6 @@
 /**
  * @file routeRegistry.test.ts
- * @description RouterStore 路由注册单测：验证 registerAsyncRoutes 经 router.patchRoutes('protected', ...)
+ * @description RouterStore 路由注册单测：验证 registerAsyncRoutes 经 router.patchRoutes('business', ...)
  *   注入业务路由、addRouteFlag 为 false 时跳过；uninstallAsyncRoutes 清空。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,7 @@ beforeEach(() => {
 describe('RouterStore 路由注册', () => {
   it('registerAsyncRoutes：patchRoutes 注入业务路由', () => {
     useRouterStore.getState().registerAsyncRoutes();
-    expect(patchRoutes).toHaveBeenCalledWith('protected', expect.any(Array));
+    expect(patchRoutes).toHaveBeenCalledWith('business', expect.any(Array));
     const injected = patchRoutes.mock.calls[0][1] as Array<{ path?: string }>;
     expect(injected.some((r) => r.path === 'home')).toBe(true);
   });
@@ -46,6 +46,6 @@ describe('RouterStore 路由注册', () => {
 
   it('uninstallAsyncRoutes：patchRoutes 注入空数组', () => {
     useRouterStore.getState().uninstallAsyncRoutes();
-    expect(patchRoutes).toHaveBeenCalledWith('protected', []);
+    expect(patchRoutes).toHaveBeenCalledWith('business', []);
   });
 });

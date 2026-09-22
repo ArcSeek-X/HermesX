@@ -11,8 +11,8 @@
  */
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { Outlet,useLocation } from 'react-router-dom';
-import { RouteOutletBoundary } from './RouteBoundary';
+import { useLocation } from 'react-router-dom';
+import { RouteOutletBoundary } from '../../pages/ErrorPage/RouteBoundary';
 import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SideBar/SidebarNav';
 import { useLayoutStore } from '../../stores';

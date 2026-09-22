@@ -103,7 +103,7 @@ const zh = {
   'layout.nav.dashboard.description': '市场行情与核心指标总览', // 总览导航项描述
   'layout.nav.decisionSignals.title': 'AI 建议', // AI 建议导航项
   'layout.nav.decisionSignals.description': 'AI 建议、风险与观察条件', // AI 建议导航项描述
-  'layout.nav.home.title': '首页111', // 首页导航项
+  'layout.nav.home.title': '首页', // 首页导航项
   'layout.nav.home.description': '股票分析与历史报告工作台', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线导航项
   'layout.nav.kline.description': '个股 K 线走势、技术指标与多周期分析', // K 线导航项描述
@@ -763,8 +763,13 @@ const zh = {
   // routeError.*
   'routeError.backHome': '返回首页', // 路由错误返回首页
   'routeError.backToLogin': '返回登录', // 路由错误返回登录
-  'routeError.description': '当前页面资源或组件未能正常加载，可能是网络中断或页面版本已更新。请重新加载页面，或返回首页后再试。', // 路由错误描述
-  'routeError.reload': '重新加载页面', // 路由错误重新加载
+  'routeError.description': '当前页面资源或组件未能正常加载，可能是网络中断或系统版本已更新。请重新加载页面，或返回登录后再试。', // 路由错误描述
+  'routeError.details': '查看详情', // 路由错误展开详情
+  'routeError.hideDetails': '收起详情', // 路由错误收起详情
+  'routeError.errorDetail': '错误详情', // 路由错误详情代码块标题
+  'routeError.copy': '复制', // 复制错误详情
+  'routeError.copied': '已复制', // 错误详情已复制到剪贴板
+  'routeError.reload': '重新加载', // 路由错误重新加载
   'routeError.title': '页面加载失败', // 路由错误标题
   // sector.*
   'sector.tab.board': '板块', // 板块分析一级 TAB：板块

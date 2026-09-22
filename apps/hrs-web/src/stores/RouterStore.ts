@@ -43,9 +43,9 @@ interface RouterState {
   /** 业务路由是否已注入受保护布局：true=尚未注入（需 patchRoutes），false=已注入。
    *  用于避免路由守卫每次导航都重复 patchRoutes 触发受保护布局重渲染 */
   addRouteFlag: boolean;
-  /** 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局（patchRoutes 到 protected） */
+  /** 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局下的 business 子路由（404 兜底固定在 protected 内，不在此注入） */
   registerAsyncRoutes: () => void;
-  /** 登出时：清空受保护布局下的业务路由（patchRoutes 空数组） */
+  /** 登出时：清空 business 子路由下的业务路由（patchRoutes 空数组） */
   uninstallAsyncRoutes: () => void;
 }
 
@@ -137,20 +137,20 @@ export const useRouterStore = create<RouterState>((set, get) => ({
     set({ addRouteFlag: true });
   },
 
-  // 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局（异常兜底 404/* 已在 appRouter 顶层平级，不在此注入）
+  // 登录后 / 刷新时：把持久化的动态业务路由树注入受保护布局下的 business 子路由（404 兜底固定在 protected 内，不在此注入）
   registerAsyncRoutes: () => {
     // 已注入则跳过：避免每次导航都重复 patchRoutes 触发受保护布局重渲染。
     // addRouteFlag 初始为 true；登录重建路由时 buildAsyncRouterData 会重置为 true 以允许再次注入。
     if (!get().addRouteFlag) return;
     const routerData = get().asyncRouteData;
-    router.patchRoutes('protected', [...buildAsyncRoutes(routerData)]);
+    router.patchRoutes('business', [...buildAsyncRoutes(routerData)]);
     // 注入完成后置位，后续导航不再重复注入
     set({ addRouteFlag: false });
   },
 
   // 登出时：清空受保护布局下的业务路由（业务路由以持久化为权威源，清空即无业务路由）
   uninstallAsyncRoutes: () => {
-    router.patchRoutes('protected', []);
+    router.patchRoutes('business', []);
     // 清空后逻辑上回到「未注入」状态：重置标记，使下一次 registerAsyncRoutes 能重新注入，
     // 避免依赖 login 流程里 buildAsyncRouterData 的顺手重置（解除隐性耦合）。
     set({ addRouteFlag: true });

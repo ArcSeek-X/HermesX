@@ -1,7 +1,7 @@
 /**
  * @file appRouter.tsx
  * @description 数据路由实例与守卫：创建 createBrowserRouter，定义登录路由、受保护布局（Shell），
- *   并暴露 protectedLoader。业务路由经 RouterStore.registerAsyncRoutes 动态注入 protected.children。
+ *   并暴露 protectedLoader。业务路由经 RouterStore.registerAsyncRoutes 动态注入 protected 下的 business 子路由（404 兜底固定在 Shell 内，不在此注入）。
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-21
  */
@@ -16,33 +16,34 @@ import type { RouteHandle } from '../types/router';
 import { buildAsyncRoutes } from './asyncRouteFactory';
 import LoginPage from '../pages/LoginPage/LoginPage';
 import { Shell } from '../components';
-import { RouteErrorBoundary } from '../components/layout/RouteBoundary';
-import NotFoundPage from '../pages/NotFoundPage';
+import { RouteErrorBoundary } from '../pages/ErrorPage/RouteBoundary';
+import NotFoundPage from '../pages/ErrorPage/NotFoundPage';
 
-/** 受保护布局守卫：未登录且开启鉴权时重定向到登录页（携来源路径，登录后可原路返回） */
-export const protectedLoader = ({ request }: LoaderFunctionArgs): Response | null => {
+/**
+ * 鉴权守卫：未登录且开启鉴权时返回「跳登录页」的 Response（携来源路径），否则返回 null 放行。
+ * 供 protectedLoader、404 兜底、* 兜底三处 loader 共用，避免重复鉴权逻辑。
+ */
+const guardAuthRedirect = (request: Request): Response | null => {
   const { authEnabled, loggedIn } = useAuthStore.getState();
-  // 仅开启鉴权且未登录才拦截；已登录或未开启鉴权直接放行
   if (authEnabled && !loggedIn) {
     const url = new URL(request.url);
-    throw redirect(`/login?redirect=${encodeURIComponent(url.pathname + url.search)}`);
+    return redirect(`/login?redirect=${encodeURIComponent(url.pathname + url.search)}`);
   }
   return null;
 };
 
-/** 业务路由种子：从持久化的 asyncRouteData 同步还原，作为 protected.children 初始值。
+/** 受保护布局守卫：未登录且开启鉴权时重定向到登录页（携来源路径，登录后可原路返回） */
+export const protectedLoader = ({ request }: LoaderFunctionArgs): Response | null =>
+  guardAuthRedirect(request);
+
+/** 业务路由种子：从持久化的 asyncRouteData 同步还原，作为 protected 下 business 子路由的初始值。
  *  必须写进 createBrowserRouter 初始配置（而非仅运行时 patchRoutes）：否则刷新时初始匹配早于注入，
- *  会把已登录业务地址（如 /home）误判为未匹配而落到 * 兜底跳 /404。登录后 registerAsyncRoutes 仍以 patchRoutes 整体替换。 */
+ *  会把已登录业务地址（如 /home）误判为未匹配而落到 * 兜底跳 /404。登录后 registerAsyncRoutes 以 patchRoutes('business') 整体替换。 */
 const initialBusinessRoutes = buildAsyncRoutes(useRouterStore.getState().asyncRouteData);
 
 export const router = createBrowserRouter([
-  // 根路径：重定向至登录页
-  {
-    path: '/',
-    children: [
-      { index: true, loader: () => redirect('/login'), errorElement: <RouteErrorBoundary /> },
-    ],
-  },
+  // 根路径：重定向至登录页（顶层 index 路由，无需再包一层 path: '/'）
+  { index: true, loader: () => redirect('/login'), errorElement: <RouteErrorBoundary /> },
   {
     path: '/login',
     element: <LoginPage />,
@@ -57,37 +58,27 @@ export const router = createBrowserRouter([
     id: 'protected',
     element: <Shell />,
     loader: protectedLoader,
-
+    errorElement: <RouteErrorBoundary />,
     children: [
-      // 异常兜底 404：置于顶层（不挂在 protected 之下），避免被 registerAsyncRoutes 的 patchRoutes 整体替换时覆盖
+      // 异常兜底 404：固定在 Shell 内（底座为 Shell），不参与动态注入，避免被 patchRoutes 整体替换时冲掉
       {
         path: '404',
-        loader: ({ request }) => {
-          const { authEnabled, loggedIn } = useAuthStore.getState();
-          if (authEnabled && !loggedIn) {
-            const url = new URL(request.url);
-            throw redirect(`/login?redirect=${encodeURIComponent(url.pathname + url.search)}`);
-          }
-          console.log("404")
-          return null;
-        },
+        loader: () => null,
         element: <NotFoundPage />,
       },
-      // 业务路由种子：刷新时初始匹配即可命中；登录后由 registerAsyncRoutes 整体替换
-      ...initialBusinessRoutes,
+      // 动态业务路由容器：刷新时初始匹配即可命中；登录后由 registerAsyncRoutes 以 patchRoutes('business') 整体替换
+      {
+        id: 'business',
+        children: initialBusinessRoutes,
+      },
     ],
   },
-  // 异常兜底：顶层 * 路由
+  // 异常兜底：顶层 * 路由，未匹配路径统一收口（未登录跳登录，已登录跳 /404）
   {
     path: '*',
     loader: ({ request }) => {
-      const { authEnabled, loggedIn } = useAuthStore.getState();
-      const url = new URL(request.url);
-      // 未登录且开启鉴权：优先跳登录（单跳直达）；否则跳 /404
-      if (authEnabled && !loggedIn) {
-        return redirect(`/login?redirect=${encodeURIComponent(url.pathname + url.search)}`);
-      }
-      console.log("*******")
+      const res = guardAuthRedirect(request);
+      if (res) return res;
       return redirect('/404');
     },
   },

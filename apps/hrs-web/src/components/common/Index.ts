@@ -31,4 +31,5 @@ export * from '../layout/SideBar/SidebarNav-old';
 export * from '../layout/ShellHeader';
 export * from '../theme/ThemeProvider';
 export * from '../theme/ThemeToggle';
+export * from '../layout/HeaderComponents/LanguageSwitch';
 export * from './ParticleBackground';

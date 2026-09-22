@@ -9,7 +9,7 @@ import type React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { useMenuStore } from '../../../stores/MenuStore';
-import { RouteOutletBoundary } from '../RouteBoundary';
+import { RouteOutletBoundary } from '../../../pages/ErrorPage/RouteBoundary';
 import { Shell } from '../Shell';
 
 vi.mock('../../../stores/AuthStore', () => ({

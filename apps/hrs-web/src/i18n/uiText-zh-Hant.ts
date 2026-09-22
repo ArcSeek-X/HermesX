@@ -760,8 +760,13 @@ const zhHant = {
   // routeError.*
   'routeError.backHome': '返回首頁', // 路由錯誤返回首頁
   'routeError.backToLogin': '返回登錄', // 路由錯誤返回登錄
-  'routeError.description': '目前頁面資源或組件未能正常載入，可能是網絡中断或頁面版本已更新。請重新載入頁面，或返回首頁後再試。', // 路由錯誤描述
-  'routeError.reload': '重新載入頁面', // 路由錯誤重新載入
+  'routeError.description': '目前頁面資源或組件未能正常載入，可能是網絡中断或系統版本已更新。請重新載入頁面，或返回登錄後再試。', // 路由錯誤描述
+  'routeError.details': '查看詳情', // 路由錯誤展開詳情
+  'routeError.hideDetails': '收起詳情', // 路由錯誤收起詳情
+  'routeError.errorDetail': '錯誤詳情', // 路由錯誤詳情代碼塊標題
+  'routeError.copy': '複製', // 複製錯誤詳情
+  'routeError.copied': '已複製', // 錯誤詳情已複製到剪貼板
+  'routeError.reload': '重新載入', // 路由錯誤重新載入
   'routeError.title': '頁面載入失敗', // 路由錯誤標題
   // sector.*
   'sector.tab.board': '板塊', // 板塊分析一級 TAB：板塊

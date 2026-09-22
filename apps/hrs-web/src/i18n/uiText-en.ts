@@ -763,8 +763,13 @@ const en: Record<UiTextKey, string> = {
   // routeError.*
   'routeError.backHome': 'Back home',
   'routeError.backToLogin': 'Back to login',
-  'routeError.description': 'This page or component could not load. The network may be unavailable, or the page version may have changed. Reload the page or return home and try again.',
-  'routeError.reload': 'Reload page',
+  'routeError.description': 'This page or component could not load. The network may be unavailable, or the system version may have changed. Reload the page or return to login and try again.',
+  'routeError.details': 'View details',
+  'routeError.hideDetails': 'Hide details',
+  'routeError.errorDetail': 'Error detail',
+  'routeError.copy': 'Copy',
+  'routeError.copied': 'Copied',
+  'routeError.reload': 'Reload',
   'routeError.title': 'Page failed to load',
   // sector.*
   'sector.tab.board': 'Sector', // Primary tab: Sector
