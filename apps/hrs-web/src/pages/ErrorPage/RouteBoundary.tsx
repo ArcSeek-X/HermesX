@@ -16,6 +16,7 @@ import { Outlet, useLocation, useRouteError, isRouteErrorResponse } from 'react-
 import { Check, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { copyToClipboard } from '../../utils/copypaste';
 import { Modal, HrsButton, ThemeToggle, LanguageSwitch } from '../../components';
 
 /** 异步加载占位：居中 spinner；fullPage 时占满视口，否则占 60vh。 */
@@ -35,21 +36,23 @@ type ErrorModalProps = {
   backLabel: string;
   onBack: () => void;
   /** 错误详情（如异常 message），有值时显示「查看详情」开关 */
-  detail?: string;
+  problemDetails?: string;
 };
 
 /** 错误 Modal 骨架：标题 + 描述 + 详情开关 + 重新加载/返回 + 主题与语言切换。两处错误路径共用。 */
-const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, backLabel, onBack, detail }) => {
+const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, backLabel, onBack, problemDetails }) => {
   const { t } = useUiLanguage();
   const [showDetail, setShowDetail] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    if (!detail) return;
-    navigator.clipboard?.writeText(detail).then(() => {
+  const handleCopy = async () => {
+    if (!problemDetails) return;
+    // copyToClipboard 内部已处理「非安全上下文回退」与异常，仅成功时切换为已复制态
+    const ok = await copyToClipboard(problemDetails);
+    if (ok) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    });
+    }
   };
 
   return (
@@ -59,7 +62,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, bac
       </Modal.Header>
       <Modal.Body>
         <p className="text-sm leading-6 text-secondary-text">{description}</p>
-        {detail && (
+        {problemDetails && (
           <span
             role="button"
             tabIndex={0}
@@ -74,13 +77,13 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, bac
           >
             {
               showDetail ?
-                (<>{t('routeError.hideDetails')}<ChevronUp className="h-4 w-4"/></>) :
-                (<>{t('routeError.details')}<ChevronDown className="h-4 w-4"/></>)
+                (<>{t('exception.routeBoundary.hideDetails')}<ChevronUp className="h-4 w-4"/></>) :
+                (<>{t('exception.routeBoundary.details')}<ChevronDown className="h-4 w-4"/></>)
             }
           </span>
         )}
         <AnimatePresence initial={false}>
-          {showDetail && detail && (
+          {showDetail && problemDetails && (
             <motion.div
               key="error-detail"
               initial={{ opacity: 0, height: 0 }}
@@ -92,7 +95,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, bac
               <div className="mt-2 overflow-hidden rounded-md border border-dim bg-muted">
                 <div className="flex items-center justify-between border-b border-dim px-3 py-1.5">
                   <span className="text-[11px] font-medium uppercase tracking-wide text-foreground-soft">
-                    {t('routeError.errorDetail')}
+                    {t('exception.routeBoundary.errorDetail')}
                   </span>
                   <HrsButton
                     variant="ghost"
@@ -101,11 +104,11 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, bac
                     className="text-primary hover:text-primary/80"
                   >
                     {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copied ? t('routeError.copied') : t('routeError.copy')}
+                    {copied ? t('exception.routeBoundary.copied') : t('exception.routeBoundary.copy')}
                   </HrsButton>
                 </div>
                 <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words px-3 py-2 text-xs leading-6 text-foreground-soft">
-                  {detail}
+                  {problemDetails}
                 </pre>
               </div>
             </motion.div>
@@ -114,7 +117,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ isOpen, title, description, bac
       </Modal.Body>
       <Modal.Footer>
         <HrsButton variant="primary" size="md" onClick={() => window.location.reload()}>
-          {t('routeError.reload')}
+          {t('exception.routeBoundary.reload')}
         </HrsButton>
         <HrsButton variant="secondary" size="md" onClick={onBack}>
           {backLabel}
@@ -141,7 +144,7 @@ type RouteErrorBoundaryProps = {
   };
 };
 
-type RouteErrorBoundaryState = { hasError: boolean; errorMessage?: string };
+type RouteErrorBoundaryState = { hasError: boolean; problemDetails?: string };
 
 /** React 错误边界：捕获子组件渲染期异常，展示错误 Modal（重新加载 / 返回首页）。 */
 class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
@@ -152,14 +155,18 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // 收集「异常信息 + 调用栈 + 出错组件栈」作为详情，供模态框「查看详情」展示（与路由 errorElement 侧一致）
     console.error('Route page failed to render or load', error, errorInfo);
-    this.setState({ errorMessage: error.message });
+    const detail = [error.message, error.stack, errorInfo?.componentStack]
+      .filter((part): part is string => Boolean(part))
+      .join('\n');
+    this.setState({ problemDetails: detail });
   }
 
   // 路由切换时自动重置错误态，使新路由重新尝试渲染
   override componentDidUpdate(prevProps: RouteErrorBoundaryProps) {
     if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
-      this.setState({ hasError: false, errorMessage: undefined });
+      this.setState({ hasError: false, problemDetails: undefined });
     }
   }
 
@@ -172,7 +179,7 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
         title={this.props.text.title}
         description={this.props.text.description}
         backLabel={this.props.text.backHome}
-        detail={this.state.errorMessage}
+        problemDetails={this.state.problemDetails}
         onBack={() => window.location.assign('/')}
       />
     );
@@ -192,9 +199,9 @@ export const RouteBoundary: React.FC<{ children: React.ReactNode; fullPage?: boo
     <RouteErrorBoundaryInner
       resetKey={resetKey}
       text={{
-        title: t('routeError.title'),
-        description: t('routeError.description'),
-        backHome: t('routeError.backHome'),
+        title: t('exception.routeBoundary.title'),
+        description: t('exception.routeBoundary.description'),
+        backHome: t('exception.routeBoundary.backHome'),
       }}
     >
       <Suspense fallback={<PageLoadingFallback fullPage={fullPage} />}>{children}</Suspense>
@@ -222,19 +229,18 @@ export const RouteErrorBoundary: React.FC = () => {
   const error = useRouteError();
   const { t } = useUiLanguage();
   const isRouteError = isRouteErrorResponse(error);
-  const detail = isRouteError
+  const problemDetails = isRouteError
     ? `${error.status} ${error.statusText}`
     : error instanceof Error
       ? error.message
       : '';
-
   return (
     <ErrorModal
       isOpen
-      title={t('routeError.title')}
-      description={t('routeError.description')}
-      backLabel={t('routeError.backToLogin')}
-      detail={detail}
+      title={t('exception.routeBoundary.title')}
+      description={t('exception.routeBoundary.description')}
+      backLabel={t('exception.routeBoundary.backToLogin')}
+      problemDetails={problemDetails}
       onBack={() => window.location.assign('/login')}
     />
   );

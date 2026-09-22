@@ -26,8 +26,8 @@ describe('RouteErrorBoundary（轻量）', () => {
     render(<RouteErrorBoundary />);
     expect(screen.getByText('boom')).toBeInTheDocument();
     // 重新加载按钮存在（i18n 已被 mock 为原 key）
-    expect(screen.getByText('routeError.reload')).toBeInTheDocument();
+    expect(screen.getByText('exception.routeBoundary.reload')).toBeInTheDocument();
     // 返回登录按钮存在
-    expect(screen.getByText('routeError.backToLogin')).toBeInTheDocument();
+    expect(screen.getByText('exception.routeBoundary.backToLogin')).toBeInTheDocument();
   });
 });

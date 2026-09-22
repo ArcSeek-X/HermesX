@@ -323,11 +323,23 @@ const en: Record<UiTextKey, string> = {
   'component.taskPanel.statusAria': 'Task status: {status}',
   'component.taskPanel.title': 'Analysis tasks',
 
-  // ---- 第 6 类 异常页面 （404页面/重定向页面） ----
-  'exception.404.title': '404',
-  'exception.404.description': '404 page not found',
-  'exception.redirect.title': 'Redirect',
-  'exception.redirect.description': 'Automatically redirected to the target page',
+  // ---- 第 6 类 异常页面  ----
+  // 404页面/重定向页面
+  'exception.404.title': '404', // 404 route title (route handle)
+  'exception.404.description': '404 page not found', // 404 route description (route handle)
+  'exception.redirect.title': 'Redirect', // redirect route title (route handle)
+  'exception.redirect.description': 'Automatically redirected to the target page', // redirect route description (route handle)
+  // exception.routeBoundary.*
+  'exception.routeBoundary.backHome': 'Back home', // route error: back to home
+  'exception.routeBoundary.backToLogin': 'Back to login', // route error: back to login
+  'exception.routeBoundary.description': 'This page or component could not load. The network may be unavailable, or the system version may have changed. Reload the page or return to login and try again.', // route error description
+  'exception.routeBoundary.details': 'View details', // route error: expand details
+  'exception.routeBoundary.hideDetails': 'Hide details', // route error: collapse details
+  'exception.routeBoundary.errorDetail': 'Error detail', // route error detail block title
+  'exception.routeBoundary.copy': 'Copy', // copy error detail
+  'exception.routeBoundary.copied': 'Copied', // error detail copied to clipboard
+  'exception.routeBoundary.reload': 'Reload', // route error: reload
+  'exception.routeBoundary.title': 'Page failed to load', // route error title
 
   // ---- 第 7 类 登录/注册 auth ----
   'auth.login.title': 'Login page',
@@ -760,17 +772,6 @@ const en: Record<UiTextKey, string> = {
   'review.taskStatus': 'Task status: {status} ({progress})',
   'review.taskStatusWithRegion': 'Task status: {status} ({progress}); effective region: {region}',
   'review.unknownTaskStatus': 'Received unknown task status: {status}',
-  // routeError.*
-  'routeError.backHome': 'Back home',
-  'routeError.backToLogin': 'Back to login',
-  'routeError.description': 'This page or component could not load. The network may be unavailable, or the system version may have changed. Reload the page or return to login and try again.',
-  'routeError.details': 'View details',
-  'routeError.hideDetails': 'Hide details',
-  'routeError.errorDetail': 'Error detail',
-  'routeError.copy': 'Copy',
-  'routeError.copied': 'Copied',
-  'routeError.reload': 'Reload',
-  'routeError.title': 'Page failed to load',
   // sector.*
   'sector.tab.board': 'Sector', // Primary tab: Sector
   'sector.tab.boardConcept': 'Concept', // "Sector" secondary tab: Concept

@@ -323,11 +323,23 @@ const zh = {
   'component.taskPanel.statusAria': '任务状态：{status}', // 任务状态无障碍标签
   'component.taskPanel.title': '分析任务', // 任务面板标题
 
-  // ---- 第 6 类 异常页面 （404页面/重定向页面） ----
+  // ---- 第 6 类 异常页面  ----
+  // 404页面/重定向页面
   'exception.404.title': '404', // 404 路由标题（route handle）
   'exception.404.description': '404 页面未找到', // 404 路由描述（route handle）
   'exception.redirect.title': '重定向', // 重定向路由标题（route handle）
   'exception.redirect.description': '自动重定向到目标页面', // 重定向路由描述（route handle）
+  // exception.routeBoundary.*
+  'exception.routeBoundary.backHome': '返回首页', // 路由错误返回首页
+  'exception.routeBoundary.backToLogin': '返回登录', // 路由错误返回登录
+  'exception.routeBoundary.description': '当前页面资源或组件未能正常加载，可能是网络中断或系统版本已更新。请重新加载页面，或返回登录后再试。', // 路由错误描述
+  'exception.routeBoundary.details': '查看详情', // 路由错误展开详情
+  'exception.routeBoundary.hideDetails': '收起详情', // 路由错误收起详情
+  'exception.routeBoundary.errorDetail': '错误详情', // 路由错误详情代码块标题
+  'exception.routeBoundary.copy': '复制', // 复制错误详情
+  'exception.routeBoundary.copied': '已复制', // 错误详情已复制到剪贴板
+  'exception.routeBoundary.reload': '重新加载', // 路由错误重新加载
+  'exception.routeBoundary.title': '页面加载失败', // 路由错误标题
 
   // ---- 第 7 类 登录/注册 auth ----
   'auth.login.title': '登录页', // 管理员登录页标题（route handle）
@@ -760,17 +772,6 @@ const zh = {
   'review.taskStatus': '任务状态：{status}（{progress}）', // 任务状态文案
   'review.taskStatusWithRegion': '任务状态：{status}（{progress}）；实际市场：{region}', // 任务状态含市场
   'review.unknownTaskStatus': '收到未知任务状态：{status}', // 未知任务状态提示
-  // routeError.*
-  'routeError.backHome': '返回首页', // 路由错误返回首页
-  'routeError.backToLogin': '返回登录', // 路由错误返回登录
-  'routeError.description': '当前页面资源或组件未能正常加载，可能是网络中断或系统版本已更新。请重新加载页面，或返回登录后再试。', // 路由错误描述
-  'routeError.details': '查看详情', // 路由错误展开详情
-  'routeError.hideDetails': '收起详情', // 路由错误收起详情
-  'routeError.errorDetail': '错误详情', // 路由错误详情代码块标题
-  'routeError.copy': '复制', // 复制错误详情
-  'routeError.copied': '已复制', // 错误详情已复制到剪贴板
-  'routeError.reload': '重新加载', // 路由错误重新加载
-  'routeError.title': '页面加载失败', // 路由错误标题
   // sector.*
   'sector.tab.board': '板块', // 板块分析一级 TAB：板块
   'sector.tab.boardConcept': '概念板块', // 「板块」二级 TAB：概念板块
