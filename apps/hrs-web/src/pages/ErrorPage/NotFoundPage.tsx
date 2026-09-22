@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useAuth } from '../../hooks';
 import { Home, LogIn } from 'lucide-react';
-import { HrsButton } from '../../components';
+import { HrsButton } from '@components';
 /**
  * 404 页面未找到组件
  * 当用户访问的 URL 不匹配任何已注册路由时，渲染该页面，展示 404 提示并提供返回首页按钮

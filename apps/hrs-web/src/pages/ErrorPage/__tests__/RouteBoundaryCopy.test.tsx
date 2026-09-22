@@ -14,7 +14,7 @@ const { copyMock } = vi.hoisted(() => ({
 vi.mock('clipboard-copy', () => ({ default: copyMock }));
 
 // 2) 拦截 barrel，避免其 transitive 引入 appRouter（既有循环依赖会让测试在加载阶段崩溃）
-vi.mock('../../../components', () => {
+vi.mock('@components', () => {
   const Box = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
   const Modal = Object.assign(Box, { Header: Box, Heading: Box, Body: Box, Footer: Box, Freedom: Box });
   return {

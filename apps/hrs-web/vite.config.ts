@@ -1,3 +1,9 @@
+/**
+ * @file vite.config.ts
+ * @description HrsWeb 前端构建配置（Vite）：开发/生产构建、路径别名、产物分块与 Tailwind 等。
+ * @author gaocangxiong <Lensgcx@163.com>
+ */
+
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -220,6 +226,8 @@ export default defineConfig({
     __APP_BUILD_TIME__: JSON.stringify(buildTime),
   },
   resolve: {
+    // 路径别名：@ → src，@utils → src/utils，@components → src/components（桶写法由各自 index.ts 提供）。
+    // 需与 tsconfig.app.json(compilerOptions.paths) 和 vitest.config.ts(resolve.alias) 同步，否则解析不一致。
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
