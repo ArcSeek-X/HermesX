@@ -9,7 +9,7 @@
 
 import type React from 'react';
 import { cn } from '../../utils/cn';
-import AnimCard from './Card/AnimCard';
+import AnimCard from '../common/Card/AnimCard';
 
 /** PageHeader 组件入参。 */
 interface PageHeaderProps {

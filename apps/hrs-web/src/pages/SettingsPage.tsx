@@ -16,7 +16,8 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, ConfirmDialog, EmptyState } from '@components';
+import { InlineTipCard, Button, ConfirmDialog } from '@components';
+import { EmptyState } from '@components/page-layout';
 import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 import { AgentBackendStatusPanel } from '@components/settings/AgentBackendStatusPanel';
 import { AuthSettingsCard } from '@components/settings/AuthSettingsCard';

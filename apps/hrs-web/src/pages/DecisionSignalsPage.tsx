@@ -31,7 +31,8 @@ import {
 } from '../api/decisionSignals'; // 决策信号 API 接口
 import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
 import { historyApi } from '../api/history'; // 历史记录 API
-import { InlineTipCard, Card, ConfirmDialog, Drawer, EmptyState, InlineAlert, PageHeader, Pagination } from '@components';
+import { InlineTipCard, Card, ConfirmDialog, Drawer, InlineAlert, Pagination } from '@components';
+import { EmptyState, PageHeader } from '@components/page-layout';
 import { AppPage } from '@components/layout/AppPage';
 import { DecisionSignalCard, DecisionSignalDetails } from '@components/decision-signals/DecisionSignalDisplay';
 import { DecisionSignalProfileCalibration } from '@components/decision-signals/DecisionSignalProfileCalibration';

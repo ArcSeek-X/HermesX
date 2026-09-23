@@ -15,7 +15,8 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip, Legend, Cell } from 'recha
 import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { InlineTipCard, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '@components';
+import { InlineTipCard, Card, Badge, ConfirmDialog, InlineAlert } from '@components';
+import { EmptyState } from '@components/page-layout';
 import { PortfolioSignalSummary } from '@components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';

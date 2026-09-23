@@ -35,7 +35,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { agentApi, type AgentStatusResponse, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '@components';
+import { InlineTipCard, Badge, Button, ConfirmDialog, InlineAlert, ScrollArea, Tooltip } from '@components';
+import { EmptyState } from '@components/page-layout';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
 import { createParsedApiError, getParsedApiError } from '../api/error';
 
