@@ -7,6 +7,7 @@ export { default as AnimCard } from './AnimCard';
 export { NewsCard } from './newsCard';
 export { ListCard } from './ListCard';
 export { StatCard } from './StatCard';
+export type { StatCardProps } from './StatCard';
 export type { AnimCardProps } from './AnimCard';
 export type { NewsCardProps } from './newsCard';
 export type { ListCardProps } from './ListCard';
