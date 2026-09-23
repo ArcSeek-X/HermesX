@@ -150,7 +150,9 @@
   --ring: 193 100% 43%;
   --elevated: 0 0% 100%;
   --hover: 214 29% 90%;
+  /* 次要文字 */
   --secondary-text: 224 18% 28%;
+  /* 弱化文字 */
   --muted-text: 224 12% 35%;
 
   --color-cyan: hsl(var(--primary));
@@ -454,7 +456,9 @@
   --ring: 190 100% 50%;
   --elevated: 230 22% 12%;
   --hover: 231 20% 16%;
+   /* 次要文字 */
   --secondary-text: 228 16% 72%;
+   /* 弱化文字 */
   --muted-text: 228 10% 48%;
 
   --color-cyan: hsl(var(--primary));
