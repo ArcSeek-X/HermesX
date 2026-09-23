@@ -114,7 +114,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
         menuType: 'page',
         auth: 'protected',
         menuVisible: true,
-        menuPagePath: 'pages/WatchlistPage',
+        menuPagePath: 'pages/WatchlistPage/WatchlistPage',
       },
       {
         menuId: 'live-calendar',

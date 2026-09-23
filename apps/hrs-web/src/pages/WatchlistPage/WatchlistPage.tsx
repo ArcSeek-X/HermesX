@@ -7,16 +7,16 @@
 import { sortByOrder, sortByFieldDesc } from '@utils/sortFilter';
 import { useMemo, useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
-import { useWatchlistManager } from '../hooks/useWatchlistManager';
-import { Modal, InlineTipCard, HrsButton, Input, TextArea, HrsSelect, AnimCard } from '@components';
+import { useWatchlistManager } from '../../hooks/useWatchlistManager';
+import { Modal, InlineTipCard, HrsButton, HrsInput, TextArea, HrsSelect, AnimCard } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { StockSearch } from '@components/StockSearch/StockSearch';
-import WatchlistGroupPanel from '@components/watchlist/WatchlistGroupPanel';
-import WatchlistStockTable from '@components/watchlist/WatchlistStockTable';
+import WatchlistGroupPanel from './components/WatchlistGroupPanel';
+import WatchlistStockTable from './components/WatchlistStockTable';
 import { BookmarkFill } from '@gravity-ui/icons';
 import { Label, TextField, Description } from '@heroui/react';
-import { type WatchlistItemWithQuote } from '../api/watchlist';
-import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { type WatchlistItemWithQuote } from '../../api/watchlist';
+import { getParsedApiError, type ParsedApiError } from '../../api/error';
 
 
 type SortKey = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';

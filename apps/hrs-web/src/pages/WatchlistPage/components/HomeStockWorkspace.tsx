@@ -33,16 +33,16 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
-import { Badge, Button, Input, ScrollArea, StatusDot } from '../';
-import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
-import { StockBar } from '../history';
-import type { StockBarItem, TaskInfo } from '../../types/analysis';
-import { getSentimentColor } from '../../types/analysis';
-import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../utils/decisionAction';
-import { formatDateTime } from '../../utils/format';
-import { truncateStockName } from '../../utils/stockName';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import type { UiTextKey, UiTextParams } from '../../i18n/uiText';
+import { Badge, Button, HrsInput, ScrollArea, StatusDot } from '@components';
+import { DashboardPanelHeader, DashboardStateBlock } from '@components/dashboard';
+import { StockBar } from '@components/history';
+import type { StockBarItem, TaskInfo } from '../../../types/analysis';
+import { getSentimentColor } from '../../../types/analysis';
+import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../../utils/decisionAction';
+import { formatDateTime } from '../../../utils/format';
+import { truncateStockName } from '../../../utils/stockName';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import type { UiTextKey, UiTextParams } from '../../../i18n/uiText';
 
 /** 首页工作区 TAB 类型：'watchlist'=自选股 | 'today'=今日分析 | 'history'=历史记录 */
 export type HomeWorkspaceTab = 'watchlist' | 'today' | 'history';
@@ -482,7 +482,7 @@ export const HomeStockWorkspace: React.FC<HomeStockWorkspaceProps> = ({
             </div>
             {/* 添加自选股表单：输入框 + 提交按钮 */}
             <form className="grid grid-cols-[minmax(0,1fr)_auto] gap-2" onSubmit={handleAddSubmit}>
-              <Input
+              <HrsInput
                 value={draftCode}
                 onChange={(event) => setDraftCode(event.target.value)}
                 placeholder={t('watchlist.addPlaceholder')}

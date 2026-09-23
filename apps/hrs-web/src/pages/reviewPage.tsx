@@ -26,7 +26,7 @@ import { MarketReviewRegionSelector } from '@components/market-review/MarketRevi
 import { ReportSummary } from '@components/report/ReportSummary';
 import { RunFlowPanel } from '@components/run-flow/RunFlowPanel';
 import { TaskPanel } from '@components/tasks/TaskPanel';
-import { HomeStockWorkspace, type HomeWatchlistRow, type HomeWorkspaceTab, type WatchlistAnalyzeMode } from '@components/watchlist/HomeStockWorkspace';
+import { HomeStockWorkspace, type HomeWatchlistRow, type HomeWorkspaceTab, type WatchlistAnalyzeMode } from './WatchlistPage/components/HomeStockWorkspace';
 
 import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
 import { useWatchlist } from '../hooks/useWatchlist';

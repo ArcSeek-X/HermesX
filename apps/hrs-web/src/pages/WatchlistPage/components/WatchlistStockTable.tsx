@@ -18,13 +18,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { HrsButton } from '../basic/HrsButton';
-import { Select } from '../basic/Select';
-import { Table, type TableColumnDef, type PaginationDef } from '../basic/Table';
-import { ConfirmDialog } from '../common/ConfirmDialog';
-import type { WatchlistItemWithQuote, WatchlistGroup } from '../../api/watchlist';
+import { HrsButton } from '@components/basic/HrsButton';
+import { Select } from '@components/basic/Select';
+import { Table, type TableColumnDef, type PaginationDef } from '@components/basic/Table';
+import { ConfirmDialog } from '@components/common/ConfirmDialog';
+import type { WatchlistItemWithQuote, WatchlistGroup } from '../../../api/watchlist';
 // 复用全局格式化工具：涨跌幅、涨跌颜色 class（与全站行情展示保持一致）
-import { formatPercent, getChangeColorClass } from '../../utils/format';
+import { formatPercent, getChangeColorClass } from '../../../utils/format';
 
 export interface WatchlistStockTableProps {
   items: WatchlistItemWithQuote[];

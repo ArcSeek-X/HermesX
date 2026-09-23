@@ -13,15 +13,15 @@
 
 import { useState } from 'react';
 import { Plus, Layers3 } from 'lucide-react';
-import AnimCard from '../common/Card/AnimCard';
-import { ListCard } from '../common/Card';
-import { HrsButton, Input, TextArea } from '@components';
+import AnimCard from '@components/common/Card/AnimCard';
+import { ListCard } from '@components/common/Card';
+import { HrsButton, HrsInput, TextArea } from '@components';
 import { Description, TextField } from '@heroui/react';
 
 
-import { Modal } from '../basic/Modal';
-import { ConfirmDialog } from '../common/ConfirmDialog';
-import type { WatchlistGroup } from '../../api/watchlist';
+import { Modal } from '@components/basic/Modal';
+import { ConfirmDialog } from '@components/common/ConfirmDialog';
+import type { WatchlistGroup } from '../../../api/watchlist';
 
 export interface WatchlistGroupPanelProps {
   groups: WatchlistGroup[];
@@ -145,7 +145,7 @@ export default function WatchlistGroupPanel({
               <label className="text-sm font-medium text-text">
                 分类名称<span className="text-danger ml-0.5">*</span>
               </label>
-              <Input
+              <HrsInput
                 className="w-full"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
