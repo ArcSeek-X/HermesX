@@ -214,29 +214,28 @@ const TokenUsagePage: React.FC = () => {
           eyebrow={t('usage.eyebrow')}
           title={t('usage.title')}
           description={t('usage.description')}
-          actions={(
-            <TabNav<UsagePeriod>
-              ariaLabel={t('usage.period.label')}
-              variant="primary"
-              items={PERIOD_OPTIONS.map((option) => ({
-                value: option,
-                label: t(PERIOD_LABEL_KEYS[option]),
-              }))}
-              value={period}
-              onChange={setPeriod}
-              rightSlot={(
-                <HrsButton
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void loadDashboard()}
-                  isLoading={loading}
-                  loadingText={t('usage.refresh')}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  {t('usage.refresh')}
-                </HrsButton>
-              )}
-            />
+          rightSlot={(
+            <>
+              <TabNav<UsagePeriod>
+                ariaLabel={t('usage.period.label')}
+                variant="primary"
+                items={PERIOD_OPTIONS.map((option) => ({
+                  value: option,
+                  label: t(PERIOD_LABEL_KEYS[option]),
+                }))}
+                value={period}
+                onChange={setPeriod}
+              />
+              <HrsButton
+                size="sm"
+                onClick={() => void loadDashboard()}
+                isLoading={loading}
+                loadingText={t('usage.refresh')}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {t('usage.refresh')}
+              </HrsButton>
+            </>
           )}
         />
 
@@ -255,7 +254,7 @@ const TokenUsagePage: React.FC = () => {
         {dashboard ? (
           <>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label={t('usage.totalTokens')} value={formatNumber(dashboard.totalTokens, language)} hint={t('usage.dateRange', { from: dashboard.fromDate, to: dashboard.toDate })} icon={<Database className="h-5 w-5" />} tone="primary" />
+              <StatCard label={t('usage.totalTokens')} value={formatNumber(dashboard.totalTokens, language)} hint={t('usage.dateRange', { from: dashboard.fromDate, to: dashboard.toDate })} icon={<Database className="h-5 w-5" />} variant="primary" />
               <StatCard label={t('usage.totalCalls')} value={formatNumber(dashboard.totalCalls, language)} hint={t('usage.totalCallsHint')} icon={<Activity className="h-5 w-5" />} />
               <StatCard label={t('usage.promptTokens')} value={formatNumber(dashboard.totalPromptTokens, language)} hint={t('usage.promptTokensHint')} icon={<Cpu className="h-5 w-5" />} />
               <StatCard label={t('usage.completionTokens')} value={formatNumber(dashboard.totalCompletionTokens, language)} hint={t('usage.completionTokensHint')} icon={<Gauge className="h-5 w-5" />} />
@@ -278,6 +277,7 @@ const TokenUsagePage: React.FC = () => {
                 </section>
 
                 <section className="space-y-4">
+
                   <Card title={t('usage.callTypeTitle')} subtitle={t('usage.breakdown')} className="rounded-lg">
                     <div className="space-y-4">
                       {dashboard.byCallType.map((item) => (

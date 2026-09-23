@@ -1384,7 +1384,7 @@ const DecisionSignalsPage: React.FC = () => {
           eyebrow={t('decisionSignals.activeOnly')}
           title={t('decisionSignals.title')}
           description={t('decisionSignals.description')}
-          actions={(
+          rightSlot={(
             <button
               type="button"
               className="btn-secondary inline-flex items-center gap-2"
