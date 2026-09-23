@@ -1127,6 +1127,7 @@ const zh = {
   'usage.period.all': '全部', // 全部时间范围
   'usage.period.month': '本月', // 本月时间范围
   'usage.period.today': '今日', // 今日时间范围
+  'usage.period.label': '时间范围', // 时间范围切换标签（无障碍）
   'usage.promptTokens': 'Prompt tokens', // Prompt token 数量
   'usage.promptTokensHint': '输入上下文消耗', // Prompt token 说明
   'usage.recentCalls': '最近调用', // 最近调用区块标题

@@ -6,11 +6,10 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '@utils/cn';
 import { Activity, Clock3, Cpu, Database, Gauge, RefreshCw } from 'lucide-react';
 import { usageApi, type UsageDashboard, type UsageModelBreakdown, type UsagePeriod } from '../api/usage';
 import type { ParsedApiError } from '../api/error';
-import { InlineTipCard, Card, EmptyState, PageHeader, StatCard } from '@components';
+import { InlineTipCard, Card, EmptyState, PageHeader, StatCard, HrsButton, TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey, UiTextParams } from '../i18n/uiText';
@@ -216,34 +215,28 @@ const TokenUsagePage: React.FC = () => {
           title={t('usage.title')}
           description={t('usage.description')}
           actions={(
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-xl border border-border/70 bg-card/70 p-1">
-                {PERIOD_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setPeriod(option)}
-                    className={cn(
-                      'rounded-lg px-3 py-1.5 text-sm transition-colors',
-                      period === option
-                        ? 'bg-cyan text-background shadow-soft-card'
-                        : 'text-secondary-text hover:bg-hover hover:text-foreground'
-                    )}
-                  >
-                    {t(PERIOD_LABEL_KEYS[option])}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="btn-secondary inline-flex items-center gap-2"
-                onClick={() => void loadDashboard()}
-                disabled={loading}
-              >
-                <RefreshCw className={cn('h-4 w-4', loading ? 'animate-spin' : '')} />
-                {t('usage.refresh')}
-              </button>
-            </div>
+            <TabNav<UsagePeriod>
+              ariaLabel={t('usage.period.label')}
+              variant="primary"
+              items={PERIOD_OPTIONS.map((option) => ({
+                value: option,
+                label: t(PERIOD_LABEL_KEYS[option]),
+              }))}
+              value={period}
+              onChange={setPeriod}
+              rightSlot={(
+                <HrsButton
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void loadDashboard()}
+                  isLoading={loading}
+                  loadingText={t('usage.refresh')}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {t('usage.refresh')}
+                </HrsButton>
+              )}
+            />
           )}
         />
 

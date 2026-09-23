@@ -1124,6 +1124,7 @@ const zhHant = {
   'usage.period.all': '全部', // 全部時間範圍
   'usage.period.month': '本月', // 本月時間範圍
   'usage.period.today': '今日', // 今日時間範圍
+  'usage.period.label': '時間範圍', // 時間範圍切換標籤（無障礙）
   'usage.promptTokens': 'Prompt tokens', // Prompt token 數量
   'usage.promptTokensHint': '輸入上下文消耗', // Prompt token 說明
   'usage.recentCalls': '最近調用', // 最近調用區塊標題

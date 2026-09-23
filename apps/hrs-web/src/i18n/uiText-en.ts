@@ -1127,6 +1127,7 @@ const en: Record<UiTextKey, string> = {
   'usage.period.all': 'All',
   'usage.period.month': 'This month',
   'usage.period.today': 'Today',
+  'usage.period.label': 'Time range',
   'usage.promptTokens': 'Prompt tokens',
   'usage.promptTokensHint': 'Input context consumption',
   'usage.recentCalls': 'Recent calls',

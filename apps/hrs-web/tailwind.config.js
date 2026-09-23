@@ -130,9 +130,10 @@ export default {
         'cyan/22': '0 18px 34px rgba(0, 212, 255, 0.22)',
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
+        xs: 'calc(var(--radius) - 6px)',
         sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 2px)',
+        lg: 'var(--radius)',
         xl: '12px',
         '2xl': '16px',
         '3xl': '20px',
