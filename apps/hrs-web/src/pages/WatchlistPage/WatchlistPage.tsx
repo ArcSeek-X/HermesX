@@ -162,7 +162,7 @@ const WatchlistPage: React.FC = () => {
                 options={SORT_OPTIONS}
                 placeholder="排序"
               />
-              <Input
+              <HrsInput
                 className="flex-1 min-w-0"
                 placeholder="搜索名称/代码/拼音"
                 value={keyword}
@@ -267,7 +267,7 @@ const WatchlistPage: React.FC = () => {
           </div>
           <div className="mb-4">
             <label className="text-sm text-foreground-soft">备注</label>
-            <Input
+            <HrsInput
               value={addNote}
               onChange={(e) => setAddNote(e.target.value)}
               placeholder="选填"
