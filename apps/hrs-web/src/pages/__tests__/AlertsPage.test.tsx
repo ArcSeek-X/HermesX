@@ -1,9 +1,9 @@
 // 测试库：fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 测试框架：beforeEach/describe/it/vi/expect
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-// 被测页面组件
 import { MemoryRouter } from 'react-router-dom';
+// 测试框架：beforeEach/describe/it/vi/expect
+// 被测页面组件
 import AlertsPage from '../AlertsPage';
 
 // 用 vi.hoisted 在 mock 之前创建可被外部引用的共享 mock：

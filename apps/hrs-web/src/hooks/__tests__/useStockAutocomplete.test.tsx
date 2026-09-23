@@ -9,7 +9,7 @@ import type { StockIndexItem } from '../../types/stockIndex';
 
 const searchStocksMock = vi.fn();
 
-vi.mock('../../utils/searchStocks', () => ({
+vi.mock('@utils/searchStocks', () => ({
   searchStocks: (...args: unknown[]) => searchStocksMock(...args),
 }));
 

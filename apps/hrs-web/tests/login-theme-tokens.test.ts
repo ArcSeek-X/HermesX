@@ -19,8 +19,8 @@
 // 引入 Node 文件系统与路径工具，用于在测试内读取 index.css
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-// 引入 Vitest 测试原语
 import { describe, expect, it } from 'vitest';
+// 引入 Vitest 测试原语
 
 // 登录页必需的 CSS 主题 Token 清单（变量名即语义，涵盖交互的各态）
 const REQUIRED_LOGIN_TOKENS = [

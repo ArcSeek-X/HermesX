@@ -15,8 +15,8 @@
  *   1. 落盘写在 action 内（而非 store 订阅），行为与原先 useCachedState 的即时写入一致。
  *   2. 读取时做合法性校验，非法值（含迁移前遗留的布尔值）一律回退默认 offcanvas。
  */
+import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
-import { getStorageItem, setStorageItem } from '../utils/storage';
 
 /** 侧栏折叠状态：offcanvas=正常（不折叠）/ collapsed=半折叠 / fully=完全折叠 */
 export type MenuCollapsedState = 'offcanvas' | 'collapsed' | 'fully';

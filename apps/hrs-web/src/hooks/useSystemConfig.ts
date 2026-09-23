@@ -1,3 +1,4 @@
+import { serializeStockListValue } from '@utils/stockList';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createParsedApiError, getParsedApiError, type ParsedApiError } from '../api/error';
 import { systemConfigApi, SystemConfigConflictError, SystemConfigValidationError } from '../api/systemConfig';
@@ -7,7 +8,6 @@ import type {
   SystemConfigItem,
   SystemConfigUpdateItem,
 } from '../types/systemConfig';
-import { serializeStockListValue } from '../utils/stockList';
 
 /** Toast 提示状态：成功提示、错误提示（携带解析后的错误信息），或空。 */
 type ToastState = {

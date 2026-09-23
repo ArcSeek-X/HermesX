@@ -6,8 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton, dismissAllToasts, dismissToast, showToast } from '../../../components';
-import type { ToastPlacement, ToastVariant } from '../../../components';
+import { HrsButton, dismissAllToasts, dismissToast, showToast, type ToastPlacement, type ToastVariant } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 6 个浮层方位（示例二展示） */

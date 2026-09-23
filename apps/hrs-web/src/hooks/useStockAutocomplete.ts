@@ -14,10 +14,10 @@
  * 导致搜索框组件渲染崩溃并永久降级，请勿再混淆。
  */
 
+import { searchStocks } from '@utils/searchStocks';
+import { SEARCH_CONFIG } from '@utils/stockIndexSchema';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { StockIndexItem, StockSuggestion } from '../types/stockIndex';
-import { searchStocks } from '../utils/searchStocks';
-import { SEARCH_CONFIG } from '../utils/stockIndexSchema';
 
 /** useStockAutocomplete 可配置项 */
 export interface UseStockAutocompleteOptions {

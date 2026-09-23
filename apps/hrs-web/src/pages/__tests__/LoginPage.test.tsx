@@ -1,7 +1,7 @@
 // 测试库：render 渲染组件、screen 查询 DOM、fireEvent 模拟交互、waitFor 等待异步更新
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 测试框架：beforeEach 每个用例前重置、describe 用例分组、it 单个用例、vi 做 mock、expect 断言
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 测试框架：beforeEach 每个用例前重置、describe 用例分组、it 单个用例、vi 做 mock、expect 断言
 // 被测页面组件
 import LoginPage from '../LoginPage/LoginPage';
 

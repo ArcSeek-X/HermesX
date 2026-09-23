@@ -1,5 +1,5 @@
 import apiClient from './index';
-import { API_BASE_URL } from '../utils/constants';
+import { API_BASE_URL } from '@utils/constants';
 import { createApiError, isApiRequestError, parseApiError } from './error';
 import { toCamelCase } from './utils';
 import type { AgentBackendStatusResponse } from '../types/systemConfig';

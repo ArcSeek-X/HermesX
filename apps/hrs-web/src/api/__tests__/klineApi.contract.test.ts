@@ -14,6 +14,7 @@
  * 通过 mock apiClient.get 捕获真实发出的请求参数，断言前端调用契约正确。
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { klineApi, type KLineResponse, type StockInfo, type StockSearchResult } from '../kline';
 
 // 捕获 axios 实例上的 get 调用
 const getMock = vi.fn();
@@ -33,7 +34,6 @@ vi.mock('../index', () => {
   };
 });
 
-import { klineApi, type KLineResponse, type StockInfo, type StockSearchResult } from '../kline';
 
 /** 构造一组合法的后端返回（契约样本），用于校验结构可被解析 */
 function makeKLineResponse(): KLineResponse {

@@ -10,14 +10,15 @@
  * @date 2026-09-20
  */
 import type React from 'react';
-import { Component, Suspense, useState } from 'react';
-import type { ErrorInfo } from 'react';
+import { copyToClipboard } from '@utils/copypaste';
+import { Component, Suspense, useState, type ErrorInfo } from 'react';
 import { Outlet, useLocation, useRouteError, isRouteErrorResponse } from 'react-router-dom';
 import { Check, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { copyToClipboard } from '@utils';
-import { Modal, HrsButton, ThemeToggle, LanguageSwitch } from '@components';
+import { Modal, HrsButton } from '@components';
+import { ThemeToggle } from '@components/theme/ThemeToggle';
+import { LanguageSwitch } from '@components/layout/HeaderComponents/LanguageSwitch';
 
 /** 异步加载占位：居中 spinner；fullPage 时占满视口，否则占 60vh。 */
 type PageLoadingFallbackProps = { fullPage?: boolean };

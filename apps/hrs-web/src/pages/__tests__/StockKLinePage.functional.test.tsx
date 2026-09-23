@@ -14,6 +14,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { PageStateProvider } from '../../stores/PageStateStore';
 
 // ---- mock echarts（KLineChart 依赖）----
 vi.mock('echarts', () => {
@@ -40,7 +41,7 @@ vi.mock('echarts', () => {
 });
 
 // ---- mock StockSearch，暴露 onSubmit 为可点击按钮 ----
-vi.mock('../../components/StockSearch/StockSearch', () => ({
+vi.mock('@components/StockSearch/StockSearch', () => ({
   StockSearch: ({
     onSubmit,
   }: {
@@ -66,7 +67,6 @@ vi.mock('../../api/kline', () => ({
 }));
 
 import StockKLinePage from '../StockKLinePage';
-import { PageStateProvider } from '../../stores/PageStateStore';
 
 /** 包裹页面必需的 Provider 后渲染（功能走查不联网、不依赖真实后端） */
 function renderPage() {

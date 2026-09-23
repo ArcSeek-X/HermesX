@@ -8,14 +8,14 @@
  *    - StrictMode：开发期启用双重渲染等额外检查，帮助发现副作用问题。
  *    - ThemeProvider：提供主题（深色/浅色）上下文，控制全局配色。
  */
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { initScrollLockCompensation } from '@utils/scrollLockCompensation';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider } from '@components/theme/ThemeProvider';
+import { useAuthStore } from './stores/AuthStore';
+import { useRouterStore } from './stores/RouterStore';
 import './style/index.css'
 import App from './App.tsx'
-import { ThemeProvider } from './components/theme/ThemeProvider'
-import { initScrollLockCompensation } from './utils/scrollLockCompensation'
-import { useAuthStore } from './stores/AuthStore'
-import { useRouterStore } from './stores/RouterStore'
 
 // 弹层锁滚动（overflow: hidden）时补等宽 padding-right，消除整页横向抖动
 initScrollLockCompensation()

@@ -1,7 +1,7 @@
 /**
  * @file appRouter.tsx
  * @description 数据路由实例与守卫：创建 createBrowserRouter，定义登录路由、受保护布局（Shell），
- *   并暴露 protectedLoader。业务路由经 RouterStore.registerAsyncRoutes 动态注入 protected 下的 business 子路由（404 兜底固定在 Shell 内，不在此注入）。
+ *   并暴露 protectedLoader。业务路由经 routeRegistration.registerAsyncRoutes 动态注入 protected 下的 business 子路由（404 兜底固定在 Shell 内，不在此注入）。
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-21
  */
@@ -14,9 +14,9 @@ import { useAuthStore } from '../stores/AuthStore';
 import { useRouterStore } from '../stores/RouterStore';
 import type { RouteHandle } from '../types/router';
 import { buildAsyncRoutes } from './asyncRouteFactory';
-import LoginPage from '../pages/LoginPage/LoginPage';
-import { Shell } from '../components';
+import { Shell } from '@components/layout/Shell';
 import { RouteErrorBoundary } from '../pages/ErrorPage/RouteBoundary';
+import LoginPage from '../pages/LoginPage/LoginPage';
 import NotFoundPage from '../pages/ErrorPage/NotFoundPage';
 
 /**

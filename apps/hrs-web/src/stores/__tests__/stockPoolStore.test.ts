@@ -1,6 +1,8 @@
+import { getRecentStartDate, getTodayInShanghai } from '@utils/format';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { analysisApi, DuplicateTaskError } from '../../api/analysis';
 import { historyApi } from '../../api/history';
+import { useStockPoolStore } from '../stockPoolStore';
 import type {
   AnalysisReport,
   HistoryListResponse,
@@ -8,8 +10,6 @@ import type {
   TaskInfo,
   TaskListResponse,
 } from '../../types/analysis';
-import { getRecentStartDate, getTodayInShanghai } from '../../utils/format';
-import { useStockPoolStore } from '../stockPoolStore';
 
 vi.mock('../../api/history', () => ({
   historyApi: {
@@ -20,14 +20,27 @@ vi.mock('../../api/history', () => ({
   },
 }));
 
-vi.mock('../../api/analysis', async () => {
-  const actual = await vi.importActual<typeof import('../../api/analysis')>('../../api/analysis');
+// 自包含 mock：不依赖 vi.importActual，避免为构造 mock 而加载真实 api/analysis 及其重型依赖链
+//（api/index → Toast → @components 桶 → appRouter → createBrowserRouter），该链在全量测试并行负载下
+// 偶发加载/绑定异常，会导致 store 与测试拿到不同的 analysisApi 实例（flaky）。此处仅 mock store 实际
+// 用到的 analysisApi 与 DuplicateTaskError（store 用 instanceof 判断，需为同一引用）。
+vi.mock('../../api/analysis', () => {
+  class DuplicateTaskError extends Error {
+    stockCode: string;
+    taskId: string;
+    constructor(stockCode: string, taskId: string, message?: string) {
+      super(message);
+      this.name = 'DuplicateTaskError';
+      this.stockCode = stockCode;
+      this.taskId = taskId;
+    }
+  }
   return {
-    ...actual,
     analysisApi: {
       analyzeAsync: vi.fn(),
       getTasks: vi.fn(),
     },
+    DuplicateTaskError,
   };
 });
 

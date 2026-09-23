@@ -9,8 +9,8 @@
  * - useCachedState：使用 PageStateStore + sessionStorage/localStorage，适合复杂页面状态共享。
  */
 
+import { getStorageItem, setStorageItem } from '@utils/storage';
 import { useCallback, useState } from 'react';
-import { getStorageItem, setStorageItem } from '../utils/storage';
 
 /**
  * 读取并使用某个用户偏好。

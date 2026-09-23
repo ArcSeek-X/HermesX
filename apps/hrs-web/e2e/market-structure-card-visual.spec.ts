@@ -1,13 +1,16 @@
 import { chromium, expect, test, type TestInfo } from '@playwright/test';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import fs from 'node:fs';
 import { createServer } from 'node:http';
-import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { build as viteBuild } from 'vite';
 import type { MarketStructureContext } from '../src/types/analysis';
+import { createRoot } from 'react-dom/client';
+import { MarketStructureCard } from '${componentImport}';
+import type { MarketStructureContext } from '${typeImport}';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import fs from 'node:fs';
+import path from 'node:path';
 
 test.use({ locale: 'zh-CN' });
 
@@ -106,10 +109,7 @@ async function buildRealComponentFixture(): Promise<{
     entryPath,
     `
       import React from 'react';
-      import { createRoot } from 'react-dom/client';
       import '${cssImport}';
-      import { MarketStructureCard } from '${componentImport}';
-      import type { MarketStructureContext } from '${typeImport}';
 
       const context: MarketStructureContext = ${JSON.stringify(context, null, 8)};
 

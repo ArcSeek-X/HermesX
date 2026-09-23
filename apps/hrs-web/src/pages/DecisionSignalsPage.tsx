@@ -24,30 +24,20 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, BarChart3, RefreshCw, Search, ShieldCheck } from 'lucide-react';
+import type { Market } from '../types/market';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
 } from '../api/decisionSignals'; // 决策信号 API 接口
 import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
 import { historyApi } from '../api/history'; // 历史记录 API
-import {
-  InlineTipCard,
-  AppPage,
-  Card,
-  ConfirmDialog,
-  Drawer,
-  EmptyState,
-  InlineAlert,
-  PageHeader,
-  Pagination,
-} from '../components'; // 通用 UI 组件
-import {
-  DecisionSignalCard,
-  DecisionSignalDetails,
-} from '../components/decision-signals/DecisionSignalDisplay'; // 决策信号展示组件
-import { DecisionSignalProfileCalibration } from '../components/decision-signals/DecisionSignalProfileCalibration'; // 策略校准展示
-import { DecisionSignalTimeline } from '../components/decision-signals/DecisionSignalTimeline'; // 时间线组件
-import { StockSearch } from '../components/StockSearch'; // 股票自动补全输入
+import { InlineTipCard, Card, ConfirmDialog, Drawer, EmptyState, InlineAlert, PageHeader, Pagination } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { DecisionSignalCard, DecisionSignalDetails } from '@components/decision-signals/DecisionSignalDisplay';
+import { DecisionSignalProfileCalibration } from '@components/decision-signals/DecisionSignalProfileCalibration';
+import { DecisionSignalTimeline } from '@components/decision-signals/DecisionSignalTimeline';
+import { StockSearch } from '@components/StockSearch/StockSearch';
+
 import { useUiLanguage } from '../contexts/UiLanguageContext'; // UI 语言上下文
 import { useStockIndex } from '../hooks/useStockIndex'; // 股票索引 Hook
 import { usePreference } from '../hooks/usePreference'; // 用户偏好持久化 Hook
@@ -68,18 +58,17 @@ import type {
   DecisionProfile,
   DecisionProfileDisplay,
 } from '../types/decisionSignals'; // 决策信号类型定义
-import type { Market } from '../types/market';
 import type { StockIndexItem } from '../types/stockIndex'; // 股票索引类型
-import { cn } from '../utils/cn'; // className 合并工具
-import { buildDecisionActionLabelMap } from '../utils/decisionAction'; // 决策动作标签构建
+import { cn } from '@utils/cn'; // className 合并工具
+import { buildDecisionActionLabelMap } from '@utils/decisionAction'; // 决策动作标签构建
 import {
   getDecisionSignalMarketLabel,
   getDecisionSignalMarketPhaseLabel,
   getDecisionSignalSourceTypeLabel,
-} from '../utils/decisionSignalLabels'; // 决策信号标签工具
-import { getDecisionProfile } from '../utils/decisionSignalProfile'; // 决策策略解析
-import { parseDecisionSignalDate } from '../utils/decisionSignalTime'; // 信号时间解析
-import { areStockCodesEquivalent } from '../utils/stockCode'; // 股票代码等价判断
+} from '@utils/decisionSignalLabels'; // 决策信号标签工具
+import { getDecisionProfile } from '@utils/decisionSignalProfile'; // 决策策略解析
+import { parseDecisionSignalDate } from '@utils/decisionSignalTime'; // 信号时间解析
+import { areStockCodesEquivalent } from '@utils/stockCode'; // 股票代码等价判断
 
 // 分页大小常量
 const PAGE_SIZE = 20; // 列表分页每页条数

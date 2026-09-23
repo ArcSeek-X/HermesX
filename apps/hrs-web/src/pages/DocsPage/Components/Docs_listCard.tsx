@@ -7,8 +7,8 @@
 
 import React, { useState } from 'react';
 import { Star, Folder, Bell } from 'lucide-react';
-import { AppPage, HrsButton, showToast } from '../../../components';
-import { ListCard } from '../../../components/common/Card';
+import { HrsButton, showToast, ListCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 组合列表演示数据（示例四）：分类列表 */

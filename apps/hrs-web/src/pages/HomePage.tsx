@@ -4,11 +4,11 @@
  * @module pages
  */
 import React, { useState } from 'react';
-import { AppPage } from '../components';
+import { AppPage } from '@components/layout/AppPage';
+import { StockSearch } from '@components/StockSearch/StockSearch';
+import LightBloom from '@components/vibeBack/LightBloom';
 import { useTheme } from 'next-themes';
 import { useThemeStore } from '../stores/themeStore';
-import LightBloom from '../components/vibeBack/LightBloom';
-import { StockSearch } from '../components/StockSearch';
 
 
 

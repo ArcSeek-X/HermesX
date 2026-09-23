@@ -6,8 +6,8 @@
  */
 
 import React from 'react';
-import { AppPage, Separator } from '../../../components';
-import type { HrsSeparatorVariant } from '../../../components';
+import { Separator, type HrsSeparatorVariant } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 颜色变体（示例一 / 二展示） */

@@ -5,10 +5,10 @@
  */
 import type * as React from 'react';
 import { useEffect } from 'react';
-import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
-import { Network } from "lucide-react";
-import { ParticleBackground } from '../../components';
-import { UiLanguageToggle } from '../../components/i18n/UiLanguageToggle';
+import { motion, useMotionValue, useTransform, useSpring } from 'motion/react';
+import { Network } from 'lucide-react';
+import { ParticleBackground } from '@components';
+import { UiLanguageToggle } from '@components/i18n/UiLanguageToggle';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import LoginCard from './LoginCard';
 

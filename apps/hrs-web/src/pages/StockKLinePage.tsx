@@ -17,17 +17,19 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppPage, Switch } from '../components';
-import AnimCard from '../components/common/Card/AnimCard';
-import { StockSearch } from '../components/StockSearch/StockSearch';
-import { KLineChart } from '../components/kline/KLineChart';
-import { StockInfoHeader } from '../components/kline/StockInfoHeader';
-import { PeriodSelector } from '../components/kline/PeriodSelector';
+import { Switch, AnimCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { StockSearch } from '@components/StockSearch/StockSearch';
+import { KLineChart } from '@components/kline/KLineChart';
+import { StockInfoHeader } from '@components/kline/StockInfoHeader';
+import { PeriodSelector } from '@components/kline/PeriodSelector';
+
 import { klineApi, type KLinePeriod } from '../api/kline';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useCachedState } from '../hooks/useCachedState';
 import { usePageState } from '../stores/PageStateStore';
 import type { Market } from '../types/market';
+
 
 /**
  * 个股 K 线页面组件

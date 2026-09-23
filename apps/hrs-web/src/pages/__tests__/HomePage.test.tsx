@@ -1,26 +1,26 @@
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
+import { getReportText, normalizeReportLanguage } from '@utils/reportLanguage';
+import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 路由：用 MemoryRouter 做内存路由
 import { MemoryRouter } from 'react-router-dom';
-// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-// 分析 API（含 DuplicateTaskError 重复任务错误）与 agent API、历史 API、系统配置 API
 import { analysisApi, DuplicateTaskError } from '../../api/analysis';
 import { agentApi } from '../../api/agent';
 import { historyApi } from '../../api/history';
 import { systemConfigApi } from '../../api/systemConfig';
-// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
-// 任务流 hook（本文件 mock 为 vi.fn 以便断言调用）
 import { useTaskStream } from '../../hooks/useTaskStream';
-// 自选股 store
 import { useStockPoolStore } from '../../stores';
-// 运行流快照类型
 import type { RunFlowSnapshot } from '../../types/runFlow';
+// 路由：用 MemoryRouter 做内存路由
+// 测试框架
+// 分析 API（含 DuplicateTaskError 重复任务错误）与 agent API、历史 API、系统配置 API
+// 国际化 Provider
+// 任务流 hook（本文件 mock 为 vi.fn 以便断言调用）
+// 自选股 store
+// 运行流快照类型
 // 报告语言工具（getReportText 取报告文本、normalizeReportLanguage 规整语言）
-import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
 // 语言存储键
-import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
 // 被测页面
 import HomePage from '../HomePage';
 

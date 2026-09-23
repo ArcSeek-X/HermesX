@@ -6,8 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsSelect } from '../../../components';
-import type { HrsSelectDataSourceDef, HrsSelectSize } from '../../../components';
+import { HrsSelect, type HrsSelectDataSourceDef, type HrsSelectSize } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 基础单选数据源（示例一 / 四 / 五 / 六共用） */

@@ -5,9 +5,15 @@
  */
 import type * as React from 'react';
 import { useState } from 'react';
-import { motion } from "motion/react";
-import { Lock } from "lucide-react";
-import { Eye, EyeClosed } from "@gravity-ui/icons";
+import { motion } from 'motion/react';
+import { Lock } from 'lucide-react';
+import { Eye, EyeClosed } from '@gravity-ui/icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { isParsedApiError, type ParsedApiError } from '../../api/error';
+import { useAuth } from '../../hooks';
+import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { useMenuStore, useRouterStore } from '../../stores';
+import { registerAsyncRoutes } from '../../router/routeRegistration';
 import {
   Alert,
   Button,
@@ -19,12 +25,6 @@ import {
   Spinner,
   TextField,
 } from '@heroui/react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { ParsedApiError } from '../../api/error';
-import { isParsedApiError } from '../../api/error';
-import { useAuth } from '../../hooks';
-import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { useMenuStore, useRouterStore } from '../../stores';
 
 /**
  * 登录表单卡片组件
@@ -90,7 +90,7 @@ const LoginCard: React.FC = () => {
         buildMenuData();
         buildAsyncRouterData();
         // 登录成功后注入业务路由（patchRoutes 到 protected 布局），再跳转目标页
-        useRouterStore.getState().registerAsyncRoutes();
+        registerAsyncRoutes();
         // 登录成功，重定向到目标页面（替换历史记录，避免后退回登录页）
         navigate(redirect, { replace: true });
       } else {

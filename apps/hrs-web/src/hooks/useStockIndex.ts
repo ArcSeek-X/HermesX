@@ -15,10 +15,10 @@
  * 导致搜索框自动补全组件渲染崩溃并永久降级，请勿再混淆。
  */
 
+import { loadStockIndex } from '@utils/stockIndexLoader';
+import type { IndexLoadResult } from '@utils/stockIndexLoader';
 import { useState, useEffect } from 'react';
 import type { StockIndexItem } from '../types/stockIndex';
-import { loadStockIndex } from '../utils/stockIndexLoader';
-import type { IndexLoadResult } from '../utils/stockIndexLoader';
 
 /** useStockIndex 返回的状态集合 */
 export interface UseStockIndexResult {

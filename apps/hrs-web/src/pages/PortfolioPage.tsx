@@ -5,19 +5,22 @@
  */
 
 import type React from 'react';
+import { areStockCodesEquivalent, normalizeStockCode } from '@utils/stockCode';
+import { parseDecisionSignalDate } from '@utils/decisionSignalTime';
+import { buildDecisionActionLabelMap, getDecisionActionLabel } from '@utils/decisionAction';
+import { toCnOrEn } from '@utils/uiLanguage';
+import type { FxRefreshFeedback } from '@utils/portfolioFormat';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
 import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
-import type { ParsedApiError } from '../api/error';
-import { getParsedApiError } from '../api/error';
-import { InlineTipCard, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '../components';
-import { PortfolioSignalSummary } from '../components/decision-signals/DecisionSignalDisplay';
+import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { InlineTipCard, Card, Badge, ConfirmDialog, EmptyState, InlineAlert } from '@components';
+import { PortfolioSignalSummary } from '@components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
 import { PORTFOLIO_TEXT } from '../locales/featureText';
 import { usePreference } from '../hooks/usePreference';
-import type { FxRefreshFeedback } from '../utils/portfolioFormat';
 import {
   buildFxRefreshFeedback,
   formatBrokerLabel,
@@ -35,7 +38,7 @@ import {
   getPositionPriceLabel,
   getTodayIso,
   hasPositionPrice,
-} from '../utils/portfolioFormat';
+} from '@utils/portfolioFormat';
 import type {
   DecisionSignalItem,
   DecisionSignalMarket,
@@ -56,10 +59,6 @@ import type {
   PortfolioSnapshotResponse,
   PortfolioTradeListItem,
 } from '../types/portfolio';
-import { areStockCodesEquivalent, normalizeStockCode } from '../utils/stockCode';
-import { parseDecisionSignalDate } from '../utils/decisionSignalTime';
-import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../utils/decisionAction';
-import { toCnOrEn } from '../utils/uiLanguage';
 
 /** 饼图颜色调色板 */
 const PIE_COLORS = ['#00d4ff', '#00ff88', '#ffaa00', '#ff7a45', '#7f8cff', '#ff4466'];

@@ -32,16 +32,20 @@
  */
 
 import type React from 'react';
+import { apiCache } from '@utils/apiCache';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronUp, Check, LayoutGrid, Boxes, TrendingUp, Search } from 'lucide-react';
-import { AppPage, Card, DataRefreshBar, Select, TabNav, type TabNavItem } from '../components';
+import { Card, DataRefreshBar, Select, TabNav, type TabNavItem } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { SectorTreemap } from '@components/sector/SectorTreemap';
+import { SectorStockTable } from '@components/sector/SectorStockTable';
+import { SectorFundFlowChart } from '@components/sector/SectorFundFlowChart';
+import { SectorBoardCards, type BoardType } from '@components/sector/SectorBoardCards';
+import { useCachedState } from '../hooks/useCachedState';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
 import {
   InputGroup,
 } from '@heroui/react';
-import { SectorTreemap } from '../components/sector/SectorTreemap';
-import { SectorStockTable } from '../components/sector/SectorStockTable';
-import { SectorFundFlowChart } from '../components/sector/SectorFundFlowChart';
-import { SectorBoardCards, type BoardType } from '../components/sector/SectorBoardCards';
 import {
   fetchIndustryTree,
   fetchStockCloudMap,
@@ -57,9 +61,6 @@ import {
   type SectorFundFlowResponse,
   type SectorFundFlowSectorItem,
 } from '../api/sectorData';
-import { useCachedState } from '../hooks/useCachedState';
-import { apiCache } from '../utils/apiCache';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
 
 /**
  * 交易时段快照时间点（9:30 ~ 15:00，每 30 分钟一个）

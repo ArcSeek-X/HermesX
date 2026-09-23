@@ -6,8 +6,9 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton } from '../../../components';
-import type { HrsButtonVariant } from '../../../components/basic/HrsButton';
+import { HrsButton } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import type { HrsButtonVariant } from '@components';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 主操作类变体（示例一展示） */

@@ -2,19 +2,20 @@
 import type React from 'react';
 // 测试库：within 用于在某个 DOM 子树内查询
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { historyApi } from '../../api/history';
+import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+import type { StockBarResponse } from '../../types/analysis';
+import type { StockIndexItem } from '../../types/stockIndex';
+// 测试框架
 // 决策信号 API 与「重评估被阻断」错误构造器
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
 } from '../../api/decisionSignals';
 // 历史 API（本页 mock 其 K 线列表）
-import { historyApi } from '../../api/history';
 // 国际化 Provider
-import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 // 分析相关类型
-import type { StockBarResponse } from '../../types/analysis';
 // 决策信号相关类型
 import type {
   DecisionSignalFeedbackItem,
@@ -25,7 +26,6 @@ import type {
   DecisionSignalReassessResponse,
 } from '../../types/decisionSignals';
 // 股票索引项类型
-import type { StockIndexItem } from '../../types/stockIndex';
 // 被测页面
 import DecisionSignalsPage from '../DecisionSignalsPage';
 

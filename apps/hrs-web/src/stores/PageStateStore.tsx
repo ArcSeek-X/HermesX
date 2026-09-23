@@ -16,8 +16,8 @@
  */
 
 import type React from 'react';
+import { getStorageItem, setStorageItem } from '@utils/storage';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { getStorageItem, setStorageItem } from '../utils/storage';
 import type { KLinePeriod, StockInfo, KLinePoint } from '../api/kline';
 
 // ============ 类型定义 ============

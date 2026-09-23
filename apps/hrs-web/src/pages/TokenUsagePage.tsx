@@ -6,13 +6,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '@utils/cn';
 import { Activity, Clock3, Cpu, Database, Gauge, RefreshCw } from 'lucide-react';
 import { usageApi, type UsageDashboard, type UsageModelBreakdown, type UsagePeriod } from '../api/usage';
 import type { ParsedApiError } from '../api/error';
-import { InlineTipCard, AppPage, Card, EmptyState, PageHeader, StatCard } from '../components';
+import { InlineTipCard, Card, EmptyState, PageHeader, StatCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey, UiTextParams } from '../i18n/uiText';
-import { cn } from '../utils/cn';
 
 /** 翻译函数类型：根据国际化 key 和可选参数返回本地化文本 */
 type Translate = (key: UiTextKey, params?: UiTextParams) => string;

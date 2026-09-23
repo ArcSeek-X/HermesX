@@ -25,7 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings2, UserCog } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useAuth } from '../../../hooks';
-import { useRouterStore } from '../../../stores/RouterStore';
+import { uninstallAsyncRoutes } from '../../../router/routeRegistration';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { ConfirmDialog } from '../..';
 
@@ -139,7 +139,7 @@ export const UserSetting = () => {
             await logout();
           } finally {
             // 清空业务路由（业务路由以持久化为权威源，清空即无业务路由），再回登录页
-            useRouterStore.getState().uninstallAsyncRoutes();
+            uninstallAsyncRoutes();
             navigate('/login');
           }
         }}

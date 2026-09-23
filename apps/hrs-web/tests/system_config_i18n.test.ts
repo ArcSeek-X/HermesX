@@ -16,13 +16,13 @@
  */
 
 // 引入 Vitest 测试原语
+import { getFieldDescriptionZh, getFieldOptionLabelZh, getFieldTitleZh } from '@utils';
 import { describe, expect, it } from 'vitest';
-// 引入全局 UI 文案资源（中英双语键值对）
 import { UI_TEXT } from '../src/i18n/uiText';
-// 引入设置页帮助文案获取函数
 import { getSettingsHelpContent } from '../src/locales/settingsHelp';
+// 引入全局 UI 文案资源（中英双语键值对）
+// 引入设置页帮助文案获取函数
 // 引入配置项国际化辅助函数：标题/描述/选项标签（中文）
-import { getFieldDescriptionZh, getFieldOptionLabelZh, getFieldTitleZh } from '../src/utils/systemConfigI18n';
 
 // 需要被本地化覆盖的「已知配置 key」清单（来自系统配置各模块）
 // 涵盖：Tickflow、行情、PYTDX、BIAS、生成后端、LLM、各通知渠道、

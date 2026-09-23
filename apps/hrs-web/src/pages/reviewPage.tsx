@@ -4,6 +4,9 @@
  * @module pages
  */
 import type React from 'react';
+import { normalizeReportLanguage } from '@utils/reportLanguage';
+import { getTodayInShanghai } from '@utils/format';
+import { normalizeStockCode } from '@utils/stockCode';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, Check, SlidersHorizontal, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -12,27 +15,24 @@ import { analysisApi, DuplicateTaskError } from '../api/analysis';
 import { historyApi } from '../api/history';
 import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, Drawer, EmptyState, InlineAlert } from '../components';
-import { DashboardStateBlock } from '../components/dashboard';
-import { StockSearch } from '../components/StockSearch';
-import { StockHistoryTrendDrawer } from '../components/history';
-import { ReportMarkdownDrawer } from '../components/report/ReportMarkdownDrawer';
-import { MarketReviewReportView } from '../components/report/MarketReviewReportView';
-import { MarketReviewRegionSelector } from '../components/market-review/MarketReviewRegionSelector';
-import { ReportSummary } from '../components/report/ReportSummary';
-import { RunFlowPanel } from '../components/run-flow';
-import { TaskPanel } from '../components/tasks';
-import {
-  HomeStockWorkspace,
-  type HomeWatchlistRow,
-  type HomeWorkspaceTab,
-  type WatchlistAnalyzeMode,
-} from '../components/watchlist/HomeStockWorkspace';
+import { InlineTipCard, Button, Drawer, EmptyState, InlineAlert } from '@components';
+import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
+import { StockSearch } from '@components/StockSearch/StockSearch';
+import { StockHistoryTrendDrawer } from '@components/history/StockHistoryTrendDrawer';
+import { ReportMarkdownDrawer } from '@components/report/ReportMarkdownDrawer';
+import { MarketReviewReportView } from '@components/report/MarketReviewReportView';
+import { MarketReviewRegionSelector } from '@components/market-review/MarketReviewRegionSelector';
+import { ReportSummary } from '@components/report/ReportSummary';
+import { RunFlowPanel } from '@components/run-flow/RunFlowPanel';
+import { TaskPanel } from '@components/tasks/TaskPanel';
+import { HomeStockWorkspace, type HomeWatchlistRow, type HomeWorkspaceTab, type WatchlistAnalyzeMode } from '@components/watchlist/HomeStockWorkspace';
+
 import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
 import { useWatchlist } from '../hooks/useWatchlist';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type { SetupStatusResponse } from '../types/systemConfig';
-import { normalizeReportLanguage } from '../utils/reportLanguage';
+import type { RunFlowSnapshotSource } from '../types/runFlow';
+
 import type {
   AnalyzeAsyncResponse,
   HistoryItem,
@@ -41,9 +41,6 @@ import type {
   StockBarItem,
   TaskInfo,
 } from '../types/analysis';
-import type { RunFlowSnapshotSource } from '../types/runFlow';
-import { getTodayInShanghai } from '../utils/format';
-import { normalizeStockCode } from '../utils/stockCode';
 
 /** 大盘回顾通知类型：包含变体（成功/警告/危险）、标题和消息 */
 type MarketReviewNotice = {

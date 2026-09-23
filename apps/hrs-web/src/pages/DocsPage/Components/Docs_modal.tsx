@@ -6,7 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton, Modal } from '../../../components';
+import { HrsButton, Modal } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 尺寸档位（示例二展示） */

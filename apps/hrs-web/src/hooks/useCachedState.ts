@@ -8,8 +8,8 @@
  * 底层复用 utils/storage 的存储工具，自带前缀与异常安全降级。
  */
 
+import { getStorageItem, removeStorageItem, setStorageItem } from '@utils/storage';
 import { useCallback, useEffect, useState } from 'react';
-import { getStorageItem, removeStorageItem, setStorageItem } from '../utils/storage';
 
 export interface UseCachedStateOptions {
   /** 存储类型：'local'（localStorage，永久，默认）或 'session'（sessionStorage，会话级） */

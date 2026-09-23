@@ -23,18 +23,14 @@
  */
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { AppPage, TabNav } from '../components';
+import { TabNav } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';
+import IndexCard from '@components/indexCard/IndexCard';
 import { useCachedState } from '../hooks/useCachedState';
-import IndexCard from '../components/indexCard/IndexCard';
 
-import {
-  MarketBreadthCard,
-  LimitUpDownCard,
-  TotalAmountCard,
-  NorthboundCard,
-  MainFlowCard,
-  StrongestSectorCard,
-} from '../components/indexCard/MarketStatCards';
+
+
 import {
   fetchAsiaIndices,
   fetchBoardList,
@@ -49,7 +45,6 @@ import {
   type MarketOverviewData,
   type NorthboundFlowData,
 } from '../api/sectorData';
-import { CardRoot } from '@heroui/react';
 
 /** 数据自动刷新间隔：30 秒（与原板块分析页仪表盘行为保持一致） */
 const REFRESH_INTERVAL_MS = 30_000;

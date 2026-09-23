@@ -29,9 +29,9 @@
  */
 
 import type React from 'react';
+import { getRuntimeInitialLanguage, getUiLanguageStorage, persistUiLanguage } from '@utils/uiLanguage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { formatUiText, UI_TEXT, type UiLanguage, type UiTextKey, type UiTextParams } from '../i18n/uiText';
-import { getRuntimeInitialLanguage, getUiLanguageStorage, persistUiLanguage } from '../utils/uiLanguage';
 
 /**
  * 界面语言上下文值类型定义

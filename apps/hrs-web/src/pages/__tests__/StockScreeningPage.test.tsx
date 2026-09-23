@@ -1,7 +1,7 @@
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 测试框架：beforeEach/describe/it/vi/expect
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// 测试框架：beforeEach/describe/it/vi/expect
 // 被测页面组件
 import StockScreeningPage from '../StockScreeningPage';
 

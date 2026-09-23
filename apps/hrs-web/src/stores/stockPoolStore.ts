@@ -1,12 +1,11 @@
+import { getRecentStartDate, getTodayInShanghai } from '@utils/format';
+import { normalizeStockCode } from '@utils/stockCode';
+import { isObviouslyInvalidStockQuery, looksLikeStockCode, validateStockCode } from '@utils/validation';
 import { create } from 'zustand';
 import { analysisApi, DuplicateTaskError } from '../api/analysis';
-import type { ParsedApiError } from '../api/error';
-import { getParsedApiError } from '../api/error';
+import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { historyApi } from '../api/history';
 import type { AnalysisReport, HistoryItem, HistoryListResponse, ReportLanguage, StockBarItem, StockHistoryFilters, StockHistoryRange, TaskInfo } from '../types/analysis';
-import { getRecentStartDate, getTodayInShanghai } from '../utils/format';
-import { normalizeStockCode } from '../utils/stockCode';
-import { isObviouslyInvalidStockQuery, looksLikeStockCode, validateStockCode } from '../utils/validation';
 
 /** 普通历史报告列表每页条数 */
 const PAGE_SIZE = 20;

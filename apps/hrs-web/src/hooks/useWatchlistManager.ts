@@ -11,6 +11,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { stocksApi } from '../api/stocks';
+import { useStockIndex } from './useStockIndex';
 import {
   getWatchlistGroups,
   createWatchlistGroup as apiCreateGroup,
@@ -26,8 +28,6 @@ import {
   type WatchlistItemWithQuote,
   type WatchlistQuote,
 } from '../api/watchlist';
-import { stocksApi } from '../api/stocks';
-import { useStockIndex } from './useStockIndex';
 
 /**
  * 空行情占位对象。

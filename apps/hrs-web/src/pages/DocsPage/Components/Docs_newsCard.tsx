@@ -6,7 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton, NewsCard } from '../../../components';
+import { HrsButton, NewsCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import type { LiveNewsItem } from '../../../types/liveNews';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 

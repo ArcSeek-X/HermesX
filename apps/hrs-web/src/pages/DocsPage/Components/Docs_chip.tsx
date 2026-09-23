@@ -7,7 +7,8 @@
 
 import React, { useState } from 'react';
 import { Star, TrendingUp, TrendingDown, Bell, Folder } from 'lucide-react';
-import { AppPage, Chip, showToast } from '../../../components';
+import { Chip, showToast } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 视觉风格变体（示例一） */

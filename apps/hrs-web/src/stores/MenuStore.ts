@@ -20,10 +20,10 @@
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-17
  */
+import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
 import { MENU_MANIFEST, type AppRouteNode } from '../router/manifest';
 import type { ModuleMenuData, ModuleId, NavMenuNode } from '../types/moduleMenu';
-import { getStorageItem, setStorageItem } from '../utils/storage';
 
 /** localStorage 中持久化「全量菜单数据（menuData）」的键；存储即菜单数据源，有则直接可用 */
 const MENU_DATA_STORAGE_KEY = 'menu.menuData';

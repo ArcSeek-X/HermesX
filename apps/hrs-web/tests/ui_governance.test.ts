@@ -18,8 +18,8 @@
 // 引入 Node 文件系统与路径工具，用于遍历 src 目录
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-// 引入 Vitest 测试原语
 import { describe, expect, it } from 'vitest';
+// 引入 Vitest 测试原语
 
 // 以当前工作目录下的 src 为源码根目录
 const srcRoot = join(process.cwd(), 'src');

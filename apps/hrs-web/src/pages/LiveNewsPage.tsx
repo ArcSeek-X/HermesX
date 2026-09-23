@@ -16,13 +16,12 @@
  * 接口契约与降级策略详见 docs/live-news.md。
  */
 
+import { toDateKey } from '@utils/format';
 import { useMemo, useState } from 'react';
-// 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
-import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, } from '../components';
-import { NewsCard } from '../components/common/Card/newsCard';
+import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
-import { toDateKey } from '../utils/format';
+// 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
 
 const LiveNewsPage: React.FC = () => {
     const { t } = useUiLanguage();

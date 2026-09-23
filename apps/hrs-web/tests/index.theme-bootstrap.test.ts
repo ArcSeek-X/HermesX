@@ -20,8 +20,8 @@
 // 引入 Node 文件系统与路径工具，用于在测试内读取 index.html
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-// 引入 Vitest 测试原语：describe 聚合用例，it 定义单条用例，expect 断言
 import { describe, expect, it } from 'vitest';
+// 引入 Vitest 测试原语：describe 聚合用例，it 定义单条用例，expect 断言
 
 // 测试套件：围绕「index.html 主题引导」展开
 describe('index.html theme bootstrap', () => {

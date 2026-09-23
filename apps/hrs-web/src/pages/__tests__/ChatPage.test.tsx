@@ -1,24 +1,24 @@
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
+import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
+import { extractStockCodeFromMessage, extractStockCodesFromMessage } from '@utils/chatStockCode';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 使用 StrictMode 做严格模式渲染校验
 import { StrictMode } from 'react';
-// 路由：用 MemoryRouter / RouterProvider 做内存路由，避免真实浏览器历史
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
-// 测试框架：beforeAll（全局一次）/ beforeEach（每个用例前）/ describe/it/expect/vi
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-// 解析后的 API 错误构造器，用于部分用例构造错误对象
 import { createParsedApiError } from '../../api/error';
-// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
-// 历史 API（本文件 mock 其 getDetail）
 import { historyApi } from '../../api/history';
-// 聊天 store 的类型：消息与进度步骤
 import type { Message, ProgressStep } from '../../stores/agentChatStore';
-import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
+// 使用 StrictMode 做严格模式渲染校验
+// 路由：用 MemoryRouter / RouterProvider 做内存路由，避免真实浏览器历史
+// 测试框架：beforeAll（全局一次）/ beforeEach（每个用例前）/ describe/it/expect/vi
+// 解析后的 API 错误构造器，用于部分用例构造错误对象
+// 国际化 Provider
+// 历史 API（本文件 mock 其 getDetail）
+// 聊天 store 的类型：消息与进度步骤
 // 被测页面
 import ChatPage from '../ChatPage';
 // 从消息文本中解析股票代码的工具函数（部分用例做纯函数单测）
-import { extractStockCodeFromMessage, extractStockCodesFromMessage } from '../../utils/chatStockCode';
 
 // 创建一个可手动控制完成时机的 Promise（deferred，含 resolve/reject），用于模拟异步/乱序请求
 function createDeferred<T>() {
@@ -127,7 +127,7 @@ vi.mock('../../api/systemConfig', () => ({
 }));
 
 // mock 聊天导出工具：把下载/格式化为 Markdown 的方法指向对应 mock
-vi.mock('../../utils/chatExport', () => ({
+vi.mock('@utils/chatExport', () => ({
   downloadSession: mockDownloadSession,
   formatSessionAsMarkdown: mockFormatSessionAsMarkdown,
 }));

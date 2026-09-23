@@ -24,38 +24,38 @@
  * @module pages
  */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { cn } from '@utils/cn';
+import { downloadSession, formatSessionAsMarkdown } from '@utils/chatExport';
+import { isNearBottom } from '@utils/chatScroll';
+import { getReportText } from '@utils/reportLanguage';
+import { extractStockCodesFromMessage } from '@utils/chatStockCode';
+import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '@utils/stockCode';
+import type { ChatFollowUpContext } from '@utils/chatFollowUp';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { agentApi, type AgentStatusResponse, type SkillInfo } from '../api/agent';
+import { systemConfigApi } from '../api/systemConfig';
+import { InlineTipCard, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '@components';
+import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
+import { createParsedApiError, getParsedApiError } from '../api/error';
+
+import { useStockIndex } from '../hooks/useStockIndex';
+import type { StockIndexItem } from '../types/stockIndex';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ChevronDown, SlidersHorizontal } from 'lucide-react';
-import { cn } from '../utils/cn';
-import { agentApi } from '../api/agent';
-import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Badge, Button, ConfirmDialog, EmptyState, InlineAlert, ScrollArea, Tooltip } from '../components';
-import { createParsedApiError, getParsedApiError } from '../api/error';
-import type { AgentStatusResponse, SkillInfo } from '../api/agent';
-import { DashboardStateBlock } from '../components/dashboard';
 import {
   useAgentChatStore,
   type Message,
   type ProgressStep,
 } from '../stores/agentChatStore';
-import { downloadSession, formatSessionAsMarkdown } from '../utils/chatExport';
-import type { ChatFollowUpContext } from '../utils/chatFollowUp';
 import {
   buildFollowUpPrompt,
   parseFollowUpRecordId,
   resolveChatFollowUpContext,
   sanitizeFollowUpStockCode,
   sanitizeFollowUpStockName,
-} from '../utils/chatFollowUp';
-import { isNearBottom } from '../utils/chatScroll';
-import { getReportText } from '../utils/reportLanguage';
-import { extractStockCodesFromMessage } from '../utils/chatStockCode';
-import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '../utils/stockCode';
-import { useStockIndex } from '../hooks/useStockIndex';
-import type { StockIndexItem } from '../types/stockIndex';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
+} from '@utils/chatFollowUp';
 
 // 当前活跃股票上下文类型，从追问上下文中提取股票代码和名称
 type ActiveStockContext = Pick<ChatFollowUpContext, 'stock_code' | 'stock_name'>;

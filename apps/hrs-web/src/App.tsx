@@ -10,7 +10,7 @@ import { AppModeProvider } from './contexts/AppModeContext';
 import { PageStateProvider } from './stores/PageStateStore';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router/appRouter';
-import { Toast } from './components/basic/Toast';
+import { Toast } from '@components';
 import './App.css';
 
 const App: React.FC = () => (

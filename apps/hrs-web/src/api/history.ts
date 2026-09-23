@@ -1,5 +1,6 @@
 import apiClient from './index';
 import { toCamelCase } from './utils';
+import type { RunFlowSnapshot } from '../types/runFlow';
 import type {
   HistoryListResponse,
   HistoryItem,
@@ -10,7 +11,6 @@ import type {
   RunDiagnosticSummary,
   StockBarResponse,
 } from '../types/analysis';
-import type { RunFlowSnapshot } from '../types/runFlow';
 
 /**
  * 历史分析（History）相关 API。

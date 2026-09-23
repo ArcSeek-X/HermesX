@@ -1,10 +1,10 @@
 // 测试库：within 用于在某个 DOM 子树内查询（如某一行表格）
+import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-// 国际化 Provider 与语言存储键（用于在用例里切换到英文 UI）
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
-import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
+// 测试框架
+// 国际化 Provider 与语言存储键（用于在用例里切换到英文 UI）
 // 被测页面组件
 import BacktestPage from '../BacktestPage';
 

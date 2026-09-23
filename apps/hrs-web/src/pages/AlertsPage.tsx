@@ -5,20 +5,19 @@
  */
 
 import type React from 'react';
+import { formatDateTime } from '@utils/format';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BellRing } from 'lucide-react';
 import { alertsApi } from '../api/alerts';
-import type { ParsedApiError } from '../api/error';
-import { getParsedApiError } from '../api/error';
-import { AlertRuleForm } from '../components/alerts/AlertRuleForm';
-import {
-  AlertRuleList,
-  type AlertRuleBusyState,
-  type AlertRuleEnabledFilter,
-  type AlertTypeFilter,
-} from '../components/alerts/AlertRuleList';
-import { AlertTriggerHistory } from '../components/alerts/AlertTriggerHistory';
-import { InlineTipCard, AppPage, Card, EmptyState, InlineAlert, Loading, PageHeader } from '../components';
+import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { InlineTipCard, Card, EmptyState, InlineAlert, Loading, PageHeader } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { AlertRuleForm } from '@components/alerts/AlertRuleForm';
+import { AlertTriggerHistory } from '@components/alerts/AlertTriggerHistory';
+import { AlertRuleList, type AlertRuleBusyState, type AlertRuleEnabledFilter, type AlertTypeFilter } from '@components/alerts/AlertRuleList';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { usePreference } from '../hooks/usePreference';
+
 import type {
   AlertNotificationItem,
   AlertRuleCreateRequest,
@@ -27,9 +26,6 @@ import type {
   AlertTriggerItem,
   AlertType,
 } from '../types/alerts';
-import { formatDateTime } from '../utils/format';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { usePreference } from '../hooks/usePreference';
 
 /** 每页请求的数据条数 */
 const PAGE_SIZE = 20;

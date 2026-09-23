@@ -4,20 +4,20 @@
  * @module pages
  */
 
+import { sortByOrder, sortByFieldDesc } from '@utils/sortFilter';
 import { useMemo, useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { useWatchlistManager } from '../hooks/useWatchlistManager';
-import WatchlistGroupPanel from '../components/watchlist/WatchlistGroupPanel';
-import WatchlistStockTable from '../components/watchlist/WatchlistStockTable';
-import StockSearch from '../components/StockSearch/StockSearch';
-import AnimCard from '../components/common/Card/AnimCard';
-import { AppPage, Modal, InlineTipCard, HrsButton, Input, TextArea } from '../components';
-import { HrsSelect } from '../components/basic/HrsSelect';
-import { BookmarkFill } from "@gravity-ui/icons";
-import { Label, TextField, Description } from "@heroui/react";
+import { Modal, InlineTipCard, HrsButton, Input, TextArea, HrsSelect, AnimCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { StockSearch } from '@components/StockSearch/StockSearch';
+import WatchlistGroupPanel from '@components/watchlist/WatchlistGroupPanel';
+import WatchlistStockTable from '@components/watchlist/WatchlistStockTable';
+import { BookmarkFill } from '@gravity-ui/icons';
+import { Label, TextField, Description } from '@heroui/react';
 import { type WatchlistItemWithQuote } from '../api/watchlist';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { sortByOrder, sortByFieldDesc } from '../utils/sortFilter';
+
 
 type SortKey = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';
 

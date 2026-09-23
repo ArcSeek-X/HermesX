@@ -10,13 +10,13 @@
 // 仅类型导入 React（用于 components mock 的节点类型标注）
 import type React from 'react';
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
+import { resolveWebBuildInfo } from '@utils/constants';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-// Web 构建信息解析工具
-import { resolveWebBuildInfo } from '../../utils/constants';
-// 系统配置设置状态响应类型
 import type { SetupStatusResponse } from '../../types/systemConfig';
+// 测试框架
+// Web 构建信息解析工具
+// 系统配置设置状态响应类型
 // 被测页面
 import SettingsPage from '../SettingsPage';
 
@@ -135,8 +135,8 @@ vi.mock('../../api/alphasift', () => ({
 
 // mock constants：保留真实导出，只把 WEB_BUILD_INFO 替换为固定测试构建信息
 // 注意：此块曾因多写一个右括号（}));）导致语法错误、阻断 tsc -b 构建，已修正为 });
-vi.mock('../../utils/constants', async () => {
-  const actual = await vi.importActual<typeof import('../../utils/constants')>('../../utils/constants');
+vi.mock('@utils/constants', async () => {
+  const actual = await vi.importActual<typeof import('@utils/constants')>('../../utils/constants');
   return {
     ...actual,
     WEB_BUILD_INFO: webBuildInfoMock,
@@ -147,7 +147,7 @@ vi.mock('../../utils/constants', async () => {
 // 让测试聚焦设置页的编排逻辑而非子组件细节。
 // 其中 LLMChannelEditor 提供「emit llm draft / save llm channels」按钮供驱动草稿与保存；
 // IntelligentImport 提供合并股票列表的回调；GenerationBackendStatusPanel 展示状态项。
-vi.mock('../../components/settings', () => ({
+vi.mock('@components/settings', () => ({
   AuthSettingsCard: () => <div>认证与登录保护</div>,
   ChangePasswordCard: () => <div>修改密码</div>,
   IntelligentImport: ({ onMerged }: { onMerged: (value: string) => void }) => (

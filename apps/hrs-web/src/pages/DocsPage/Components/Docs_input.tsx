@@ -6,7 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton, Input, showToast } from '../../../components';
+import { HrsButton, Input, showToast } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 尺寸档位数据（示例一） */

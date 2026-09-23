@@ -7,7 +7,8 @@
 
 import React, { useState } from 'react';
 import { LayoutDashboard, Cloud, Wallet } from 'lucide-react';
-import { AppPage, HrsButton, TabNav } from '../../../components';
+import { HrsButton, TabNav } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 标签数据（示例一 / 二 / 四共用） */

@@ -6,14 +6,17 @@
  * @module pages
  */
 import type React from 'react';
+import { buildDecisionActionLabelMap, getDecisionActionLabel } from '@utils/decisionAction';
+import { getMarketPhaseSummaryLabel } from '@utils/marketPhase';
+import { toCnOrEn } from '@utils/uiLanguage';
 import { useState, useEffect, useCallback } from 'react';
 import { Check, Minus, X } from 'lucide-react';
 import { backtestApi } from '../api/backtest';
-import type { ParsedApiError } from '../api/error';
-import { getParsedApiError } from '../api/error';
-import { InlineTipCard, Card, Badge, EmptyState, Pagination, StatusDot, Tooltip } from '../components';
+import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { InlineTipCard, Card, Badge, EmptyState, Pagination, StatusDot, Tooltip } from '@components';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
+import { usePreference } from '../hooks/usePreference';
 import {
   BACKTEST_DIRECTION_EXPECTED_LABELS,
   BACKTEST_MOVEMENT_LABELS,
@@ -29,10 +32,6 @@ import type {
   PerformanceMetrics,
   BacktestPhaseFilter,
 } from '../types/backtest';
-import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../utils/decisionAction';
-import { getMarketPhaseSummaryLabel } from '../utils/marketPhase';
-import { usePreference } from '../hooks/usePreference';
-import { toCnOrEn } from '../utils/uiLanguage';
 
 /** 回测页面标准输入框样式类名 */
 const BACKTEST_INPUT_CLASS =

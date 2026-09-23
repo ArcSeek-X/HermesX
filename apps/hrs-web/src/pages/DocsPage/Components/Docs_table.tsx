@@ -7,8 +7,9 @@
 
 import React, { useMemo, useState } from 'react';
 import type { Selection, SortDescriptor } from '@heroui/react';
-import { AppPage, HrsButton } from '../../../components';
-import { Table, type TableColumnDef, type PaginationDef } from '../../../components/basic/Table';
+import { HrsButton } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { Table, type TableColumnDef, type PaginationDef } from '@components/basic/Table/Table';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /** 行数据类型：泛型 T 必须包含 id 字段作为唯一标识 */

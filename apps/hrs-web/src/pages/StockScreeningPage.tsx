@@ -14,6 +14,11 @@
  */
 import type React from 'react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { formatParsedApiError, getParsedApiError, toApiErrorMessage, type ParsedApiError } from '../api/error';
+import { Button, InlineAlert } from '@components';
+import { AppPage } from '@components/layout/AppPage';
+import { usePreference } from '../hooks/usePreference';
 import {
   Activity,
   Bookmark,
@@ -39,7 +44,6 @@ import {
   Utensils,
   Wrench,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import {
   alphasiftApi,
   type AlphaSiftCandidate,
@@ -50,9 +54,6 @@ import {
   type AlphaSiftScreenTaskStatus,
   type AlphaSiftStrategy,
 } from '../api/alphasift';
-import { formatParsedApiError, getParsedApiError, toApiErrorMessage, type ParsedApiError } from '../api/error';
-import { AppPage, Button, InlineAlert } from '../components';
-import { usePreference } from '../hooks/usePreference';
 
 // ============ 常量与类型定义 ============
 

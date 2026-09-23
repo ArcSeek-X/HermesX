@@ -12,10 +12,10 @@
  * 4. 依赖变化或卸载时通过 AbortController 取消在途请求，防止竞态导致数据错乱。
  */
 
+import { toDateKeyFromSeconds } from '@utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getLiveNews, getLiveNewsChannels, refreshLiveNews } from '../api/liveNews';
 import type { LiveNewsChannel, LiveNewsDateGroup, LiveNewsItem } from '../types/liveNews';
-import { toDateKeyFromSeconds } from '../utils/format';
 
 /** 默认轮询间隔（毫秒） */
 const DEFAULT_POLL_INTERVAL_MS = 30_000;

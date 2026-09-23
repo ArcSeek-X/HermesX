@@ -1,9 +1,9 @@
+import { loadStockIndex } from '@utils/stockIndexLoader';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStockIndex } from '../useStockIndex';
-import { loadStockIndex } from '../../utils/stockIndexLoader';
 
-vi.mock('../../utils/stockIndexLoader', () => ({
+vi.mock('@utils/stockIndexLoader', () => ({
   loadStockIndex: vi.fn(),
 }));
 

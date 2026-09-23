@@ -6,7 +6,8 @@
  */
 
 import React from 'react';
-import { AppPage, AnimCard } from '../../../components';
+import { AnimCard } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /**

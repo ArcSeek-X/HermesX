@@ -6,7 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsCheckbox, type HrsCheckboxSize } from '../../../components';
+import { HrsCheckbox, type HrsCheckboxSize } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /**

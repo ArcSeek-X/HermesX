@@ -5,7 +5,9 @@
  */
 
 import apiClient from './index';
+import { serializeMarketReviewRegions } from '@utils/marketReviewRegion';
 import { toCamelCase } from './utils';
+import type { RunFlowSnapshot } from '../types/runFlow';
 import type {
   AnalysisRequest,
   AnalysisResult,
@@ -17,8 +19,6 @@ import type {
   TaskStatus,
   TaskListResponse,
 } from '../types/analysis';
-import type { RunFlowSnapshot } from '../types/runFlow';
-import { serializeMarketReviewRegions } from '../utils/marketReviewRegion';
 
 // ============ API Interfaces ============
 

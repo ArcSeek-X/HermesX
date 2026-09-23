@@ -5,6 +5,9 @@
  * @module pages
  */
 import type React from 'react';
+import { WEB_BUILD_INFO } from '@utils/constants';
+import { parseStockListValue } from '@utils/stockList';
+import { getCategoryDescription, getCategoryTitle } from '@utils/systemConfigI18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, CircleAlert, CircleDashed, Clock, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useAuth, useSystemConfig } from '../hooks';
@@ -13,25 +16,21 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, ConfirmDialog, EmptyState } from '../components';
-import {
-  AgentBackendStatusPanel,
-  AuthSettingsCard,
-  ChangePasswordCard,
-  GenerationBackendStatusPanel,
-  IntelligentImport,
-  LLMChannelEditor,
-  NotificationTestPanel,
-  SettingsCategoryNav,
-  SettingsAlert,
-  SettingsField,
-  SettingsLoading,
-  SettingsPanelErrorBoundary,
-  SettingsSectionCard,
-} from '../components/settings';
-import { WEB_BUILD_INFO } from '../utils/constants';
-import { parseStockListValue } from '../utils/stockList';
-import { getCategoryDescription, getCategoryTitle } from '../utils/systemConfigI18n';
+import { InlineTipCard, Button, ConfirmDialog, EmptyState } from '@components';
+import type { UiLanguage, UiTextKey } from '../i18n/uiText';
+import { AgentBackendStatusPanel } from '@components/settings/AgentBackendStatusPanel';
+import { AuthSettingsCard } from '@components/settings/AuthSettingsCard';
+import { ChangePasswordCard } from '@components/settings/ChangePasswordCard';
+import { GenerationBackendStatusPanel } from '@components/settings/GenerationBackendStatusPanel';
+import { IntelligentImport } from '@components/settings/IntelligentImport';
+import { LLMChannelEditor } from '@components/settings/LLMChannelEditor';
+import { NotificationTestPanel } from '@components/settings/NotificationTestPanel';
+import { SettingsCategoryNav } from '@components/settings/SettingsCategoryNav';
+import { SettingsAlert } from '@components/settings/SettingsAlert';
+import { SettingsField } from '@components/settings/SettingsField';
+import { SettingsLoading } from '@components/settings/SettingsLoading';
+import { SettingsPanelErrorBoundary } from '@components/settings/SettingsPanelErrorBoundary';
+import { SettingsSectionCard } from '@components/settings/SettingsSectionCard';
 import type {
   ConfigValidationIssue,
   SchedulerStatusResponse,
@@ -41,7 +40,6 @@ import type {
   SystemConfigItem,
   SystemConfigUpdateItem,
 } from '../types/systemConfig';
-import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 
 /** 桌面端 Electron 注入的全局 window 对象类型，包含版本信息和更新相关 API */
 type DesktopWindow = Window & {

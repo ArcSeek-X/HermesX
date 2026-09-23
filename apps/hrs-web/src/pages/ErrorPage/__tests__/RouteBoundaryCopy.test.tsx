@@ -6,6 +6,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { RouteErrorBoundary } from '../RouteBoundary';
 
 // 1) 拦截真实 clipboard-copy，便于断言调用（vi.hoisted 使 mock 工厂可引用）
 const { copyMock } = vi.hoisted(() => ({
@@ -34,7 +35,6 @@ vi.mock('../../../contexts/UiLanguageContext', () => ({
   useUiLanguage: () => ({ t: (k: string) => k }),
 }));
 
-import { RouteErrorBoundary } from '../RouteBoundary';
 
 describe('RouteErrorBoundary 复制功能（clipboard-copy）', () => {
   beforeEach(() => copyMock.mockClear());

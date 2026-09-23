@@ -17,10 +17,10 @@
 
 // 引入 Vitest 测试原语
 import { describe, expect, it } from 'vitest';
-// 引入 React 服务端静态渲染工具，将组件渲染为 HTML 字符串以便断言
 import { renderToStaticMarkup } from 'react-dom/server';
+import { SettingsField } from '@components/settings/SettingsField';
+// 引入 React 服务端静态渲染工具，将组件渲染为 HTML 字符串以便断言
 // 引入被测组件 SettingsField（设置项字段渲染组件）
-import { SettingsField } from '../src/components/settings/SettingsField';
 
 // 测试套件：SettingsField 描述回退策略
 describe('SettingsField description fallback', () => {

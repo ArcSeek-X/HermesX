@@ -1,19 +1,19 @@
 // 仅类型导入 React（用于 recharts mock 的节点类型标注）
 import type React from 'react';
 // 测试库：within 用于在某个 DOM 子树内查询
+import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-// 测试框架
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-// 决策信号 API（持仓页展示信号）
 import { decisionSignalsApi } from '../../api/decisionSignals';
-// 错误构造器（createApiError / createParsedApiError 用于构造 API 错误）
 import { createApiError, createParsedApiError } from '../../api/error';
-// 国际化 Provider
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
-// 决策信号项类型
 import type { DecisionSignalItem } from '../../types/decisionSignals';
+// 测试框架
+// 决策信号 API（持仓页展示信号）
+// 错误构造器（createApiError / createParsedApiError 用于构造 API 错误）
+// 国际化 Provider
+// 决策信号项类型
 // 语言存储键
-import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
 // 被测页面
 import PortfolioPage from '../PortfolioPage';
 

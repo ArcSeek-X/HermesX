@@ -6,8 +6,8 @@
  */
 
 import React, { useState } from 'react';
-import { AppPage, HrsButton, HrsDrawer } from '../../../components';
-import type { HrsDrawerPlacement, HrsDrawerSize, HrsDrawerVariant } from '../../../components';
+import { HrsButton, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
 /**

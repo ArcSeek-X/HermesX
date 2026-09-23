@@ -8,12 +8,12 @@
  */
 import { create } from 'zustand';
 import { authApi } from '../api/auth';
+import { useStockPoolStore } from './stockPoolStore';
 import {
   createParsedApiError,
   getParsedApiError,
   type ParsedApiError,
 } from '../api/error';
-import { useStockPoolStore } from './stockPoolStore';
 
 /** 初始设置状态：enabled=已启用 | password_retained=密码已保留 | no_password=未设置密码 */
 type SetupState = 'enabled' | 'password_retained' | 'no_password';

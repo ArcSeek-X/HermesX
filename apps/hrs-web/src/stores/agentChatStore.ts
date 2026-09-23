@@ -18,9 +18,9 @@
  *   - ../api/error：统一错误解析与封装（ParsedApiError）
  *   - ../utils/uuid：UUID 生成，用于会话 ID
  */
+import { generateUUID } from '@utils/uuid';
 import { create } from 'zustand';
-import { agentApi, isAbortError } from '../api/agent';
-import type { ChatSessionItem, ChatStreamRequest } from '../api/agent';
+import { agentApi, isAbortError, type ChatSessionItem, type ChatStreamRequest } from '../api/agent';
 import {
   createParsedApiError,
   getParsedApiError,
@@ -28,7 +28,6 @@ import {
   isParsedApiError,
   type ParsedApiError,
 } from '../api/error';
-import { generateUUID } from '../utils/uuid';
 
 /** 当前会话 ID 在 localStorage 中的存储键名 */
 const STORAGE_KEY_SESSION = 'hrs_chat_session_id';

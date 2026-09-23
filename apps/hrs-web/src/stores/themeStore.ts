@@ -15,10 +15,10 @@
  * 读取均校验合法性，非法/缺失回退默认。
  * =====================================================================
  */
+import { getStorageItem, setStorageItem } from '@utils/storage';
+import { DEFAULT_PRIMARY_COLOR } from '@utils/themeColor';
 import { create } from 'zustand';
-import { getStorageItem, setStorageItem } from '../utils/storage';
 import { LOCAL_STORAGE_PREFIX } from '../constants/cacheConfig';
-import { DEFAULT_PRIMARY_COLOR } from '../utils/themeColor';
 import type { ThemeMode, SidebarTheme } from '../types/theme';
 
 /** 键名片段（utils/storage 自动加 hrs-pref- 前缀）。
