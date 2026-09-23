@@ -40,7 +40,7 @@ import {
   ALERT_THRESHOLD_DIRECTION_OPTIONS,
 } from '../../locales/featureText';
 import { validateStockCode } from '../../utils/validation';
-import { Button, Card, Checkbox, Input, Select } from '../';
+import { Button, Card, Checkbox, HrsInput, Select } from '@components';
 import { toCnOrEn } from '../../utils/uiLanguage';
 
 // 单标的（个股/指数）类告警类型，中文文案直接写死，英文由 featureText 提供
@@ -469,7 +469,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
       return (
         <div>
           <label htmlFor="alert-rule-target-code" className="mb-2 block text-sm font-medium text-foreground">{text.targetCode}</label>
-          <Input
+          <HrsInput
             id="alert-rule-target-code"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
@@ -483,7 +483,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
       return (
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{text.target}</label>
-          <Input
+          <HrsInput
             value="default"
             onChange={() => undefined}
             disabled
@@ -523,7 +523,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground">{text.ruleName}</label>
-            <Input
+            <HrsInput
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder={text.ruleNamePlaceholder}
@@ -569,7 +569,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label htmlFor="alert-rule-price-threshold" className="mb-2 block text-sm font-medium text-foreground">{text.priceThreshold}</label>
-              <Input
+              <HrsInput
                 id="alert-rule-price-threshold"
                 type="number"
                 min="0"
@@ -593,7 +593,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.changePctThreshold}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="0"
                 step="0.01"
@@ -608,7 +608,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         {alertType === 'volume_spike' ? (
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground">{text.volumeMultiplier}</label>
-            <Input
+            <HrsInput
               type="number"
               min="0"
               step="0.01"
@@ -630,7 +630,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.maWindow}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -654,7 +654,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.rsiPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -666,7 +666,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.rsiThreshold}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="0"
                 max="100"
@@ -690,7 +690,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.fastPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -702,7 +702,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.slowPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -714,7 +714,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.signalPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -738,7 +738,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.kdjPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -750,7 +750,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.kPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -762,7 +762,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.dPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -786,7 +786,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             />
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.cciPeriod}</label>
-              <Input
+              <HrsInput
                 type="number"
                 min="2"
                 max="250"
@@ -798,7 +798,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">{text.cciThreshold}</label>
-              <Input
+              <HrsInput
                 type="number"
                 step="0.01"
                 value={threshold}
@@ -839,7 +839,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         {alertType === 'market_light_score_drop' ? (
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground">{text.scoreDropThreshold}</label>
-            <Input
+            <HrsInput
               type="number"
               min="0"
               max="100"

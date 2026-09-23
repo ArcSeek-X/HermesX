@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { HrsButton, Input, showToast } from '@components';
+import { HrsButton, HrsInput, showToast } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 
@@ -65,7 +65,7 @@ export const DocsInputPage: React.FC = () => {
             {SIZE_ITEMS.map((item) => (
               <div key={item.size} className="flex flex-col gap-1">
                 <span className="text-xs text-secondary-text">{item.label}</span>
-                <Input size={item.size} placeholder="请输入内容" />
+                <HrsInput size={item.size} placeholder="请输入内容" />
               </div>
             ))}
           </div>
@@ -78,7 +78,7 @@ export const DocsInputPage: React.FC = () => {
             原生受控写法：value + onChange，值变化实时回显；点击「清空」重置状态。
           </p>
           <div className="flex items-center gap-3">
-            <Input value={controlled} onChange={(e) => setControlled(e.target.value)} placeholder="输入任意内容" />
+            <HrsInput value={controlled} onChange={(e) => setControlled(e.target.value)} placeholder="输入任意内容" />
             <HrsButton size="sm" variant="ghost" onClick={() => setControlled('')}>清空</HrsButton>
           </div>
           <p className="text-xs text-secondary-text">当前值：{controlled || '（空）'}</p>
@@ -93,15 +93,15 @@ export const DocsInputPage: React.FC = () => {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">type=email（受控）</span>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
+              <HrsInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">type=number（受控）</span>
-              <Input type="number" value={num} onChange={(e) => setNum(e.target.value)} placeholder="输入数字" />
+              <HrsInput type="number" value={num} onChange={(e) => setNum(e.target.value)} placeholder="输入数字" />
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">type=search（受控）</span>
-              <Input type="search" value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="搜索框" />
+              <HrsInput type="search" value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="搜索框" />
             </div>
           </div>
         </section>
@@ -116,11 +116,11 @@ export const DocsInputPage: React.FC = () => {
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">只读展示（value 无 onChange）</span>
-              <Input value="不可编辑的展示值" />
+              <HrsInput value="不可编辑的展示值" />
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">禁用态（disabled）</span>
-              <Input value="禁用输入框" disabled />
+              <HrsInput value="禁用输入框" disabled />
             </div>
           </div>
         </section>
@@ -131,7 +131,7 @@ export const DocsInputPage: React.FC = () => {
           <p className="text-xs text-muted">
             placeholder 颜色经组件内联 CSS 变量调淡；maxLength 为原生限制，配合实时字数回显。
           </p>
-          <Input
+          <HrsInput
             value={limited}
             onChange={(e) => setLimited(e.target.value)}
             placeholder="最多输入 20 个字符"
@@ -147,7 +147,7 @@ export const DocsInputPage: React.FC = () => {
             Input 与 HrsButton 组合模拟搜索场景；输入框内按 Enter 或点击「搜索」按钮均触发，结果经 Toast 回显。
           </p>
           <div className="flex items-center gap-3">
-            <Input
+            <HrsInput
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => {

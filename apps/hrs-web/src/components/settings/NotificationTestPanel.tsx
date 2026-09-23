@@ -9,7 +9,7 @@ import type {
   TestNotificationChannelResponse,
   SystemConfigUpdateItem,
 } from '../../types/systemConfig';
-import { InlineTipCard, Badge, Button, InlineAlert, Input, Select } from '../';
+import { InlineTipCard, Badge, Button, InlineAlert, HrsInput, Select } from '@components';
 import { SettingsSectionCard } from './SettingsSectionCard';
 import { toCnOrEn } from '../../utils/uiLanguage';
 
@@ -130,7 +130,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         />
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTitle')}</label>
-          <Input
+          <HrsInput
             value={title}
             maxLength={80}
             disabled={disabled || isTesting}
@@ -142,7 +142,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTimeout')}</label>
-          <Input
+          <HrsInput
             type="number"
             min={1}
             max={120}

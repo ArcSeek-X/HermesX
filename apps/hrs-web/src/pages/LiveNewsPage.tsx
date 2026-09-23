@@ -18,7 +18,7 @@
 
 import { toDateKey } from '@utils/format';
 import { useMemo, useState } from 'react';
-import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
+import { Checkbox, HrsButton, HrsSelect, HrsInput, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
 import { PageHeader } from '@components/page-layout';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
@@ -111,7 +111,7 @@ const LiveNewsPage: React.FC = () => {
 
             {/* 工具条：搜索 / 只看重要的 / 日期 / 刷新 */}
             <div className="flex flex-wrap items-center gap-3 mb-5">
-                <Input
+                <HrsInput
                     type="text"
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}

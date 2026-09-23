@@ -11,7 +11,7 @@ import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
 import { systemConfigApi } from '../../api/systemConfig';
 import type { LLMCapabilityCheck, LLMCapabilityCheckResult } from '../../types/systemConfig';
-import { InlineTipCard, Badge, Button, InlineAlert, Input, PasswordInput, Select, StatusDot, Tooltip } from '../';
+import { InlineTipCard, Badge, Button, InlineAlert, HrsInput, PasswordInput, Select, StatusDot, Tooltip } from '@components';
 import type { ChannelProtocol } from './llmProviderTemplates';
 import {
   LLM_PROVIDER_CAPABILITY_LABELS,
@@ -551,7 +551,7 @@ const ChannelRow: React.FC<ChannelRowProps> = ({
                 helpKey="settings.llm_channel.channel_name"
                 examples={['LLM_CHANNELS=deepseek,aihubmix', 'LLM_DEEPSEEK_MODELS=deepseek-v4-flash,deepseek-v4-pro']}
               />
-            <Input
+            <HrsInput
               id={channelNameInputId}
               value={channel.name}
               disabled={busy}
@@ -586,7 +586,7 @@ const ChannelRow: React.FC<ChannelRowProps> = ({
               helpKey="settings.llm_channel.base_url"
               examples={['LLM_DEEPSEEK_BASE_URL=https://api.deepseek.com', 'LLM_OPENROUTER_BASE_URL=https://openrouter.ai/api/v1']}
             />
-          <Input
+          <HrsInput
             id={baseUrlInputId}
             value={channel.baseUrl}
             disabled={busy}
@@ -727,7 +727,7 @@ const ChannelRow: React.FC<ChannelRowProps> = ({
                 helpKey="settings.llm_channel.models"
                 examples={['LLM_DEEPSEEK_MODELS=deepseek-v4-flash,deepseek-v4-pro', 'LLM_OLLAMA_MODELS=qwen3:8b,llama3.1:8b']}
               />
-            <Input
+            <HrsInput
               id={modelsInputId}
               value={channel.models}
               disabled={busy}
