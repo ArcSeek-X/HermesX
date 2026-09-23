@@ -1,5 +1,5 @@
 /**
- * Input —— 通用表单输入组件（基础层），基于 HeroUI（@heroui/react）的 Input 封装。
+ * HrsInput —— 通用表单输入组件（基础层），基于 HeroUI（@heroui/react）的 Input 封装。
  *
  * 定位与适用范围：
  * - 提供 sm/md/lg 三档尺寸（外加 xs 紧凑档），由 size 控制高度、字号与圆角。
@@ -12,16 +12,16 @@
 import type * as React from 'react';
 import { useId } from 'react';
 import { Input as HeroInput, InputGroup } from '@heroui/react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /**
- * Input 的 Props。继承原生 input 属性 —— 所有原生属性都会透传给内部 HeroUI Input。
+ * HrsInput 的 Props。继承原生 input 属性 —— 所有原生属性都会透传给内部 HeroUI Input。
  *
  * 受控用法（参考 HeroUI Input）：
  *   // 原生受控（推荐，本项目统一用此写法）
- *   <Input value={value} onChange={(e) => setValue(e.target.value)} type="text" />
+ *   <HrsInput value={value} onChange={(e) => setValue(e.target.value)} type="text" />
  *   // HeroUI / react-aria 风格
- *   <Input value={value} onValueChange={setValue} type="password" />
+ *   <HrsInput value={value} onValueChange={setValue} type="password" />
  *
  * 其中 value / type / onChange 均来自继承的原生 input 属性，会通过 ...props 透传。
  *
@@ -41,12 +41,7 @@ export interface InputProps
   suffixNode?: React.ReactNode;
 }
 
-/**
- * 通用文本输入组件，底层渲染 HeroUI 的 Input。
- * - 组件不渲染表单控件包裹层；hint / error 提示由调用方在外层渲染。
- * - 需要密码可见性切换请使用 PasswordInput。
- */
-export const Input = ({
+export const HrsInput = ({
   className = '',
   size = 'sm',
   prefixNode,
@@ -82,20 +77,9 @@ export const Input = ({
   const heroProps = {
     id: inputId,
     className: cn(
+      // 有插槽时输入框恒为 w-full 填满外层 group；无插槽时用户 className 直接作用于输入框自身。
       hasSlots ? 'hrs-input w-full' : cn('hrs-input w-50', surfaceClasses),
-
-      // 'input-surface input-focus-glow border bg-transparent transition-all',
-      // 'focus:outline-none',
-      // // 外部阴影调淡：覆盖默认 surface 阴影
-      // '!shadow-xs',
-      // // 聚焦时外框不变色，仅保留一圈更淡的聚焦光圈反馈
-      // 'focus:!border-border focus:!shadow-[0_0_0_2px_hsl(var(--primary)/0.10)]',
-      // 'disabled:cursor-not-allowed disabled:opacity-60',
-
-      // '!placeholder:text-muted / 0.1',
-
-       sizeClasses[size],
-      className,
+      sizeClasses[size],
     ),
     ...props,
     readOnly: props.readOnly ?? (isReadOnlyView ? true : undefined),
@@ -107,16 +91,19 @@ export const Input = ({
     } as React.CSSProperties,
   };
 
-  // 无插槽：维持原有的单个输入框结构（零额外 DOM）。
+  // 无插槽：维持原有的单个输入框结构（零额外 DOM）。用户 className 直接作用于输入框。
   if (!hasSlots) {
+    heroProps.className = cn(heroProps.className, className);
     return <HeroInput {...(heroProps as object)} />;
   }
 
   // 有插槽：用 HeroUI InputGroup 承载边框 / 背景，插槽分别落入 Prefix / Suffix，
   // 避免把 React 节点作为未知属性透传到 <input> 上（会被 React 告警并序列化成 [object Object]）。
+  // 注意：有插槽时用户传入的 className 作用于外层 group 容器（而非内层输入框），
+  // 以保证 w-* 等容器级样式能控制整体宽度，内层输入框保持 w-full 填满容器。
   return (
     <InputGroup.Root
-      className={cn('hrs-input-group w-50', surfaceClasses, sizeClasses[size])}
+      className={cn('hrs-input-group w-50', surfaceClasses, sizeClasses[size], className)}
       style={heroProps.style as React.CSSProperties}
     >
       {prefixNode ? <InputGroup.Prefix>{prefixNode}</InputGroup.Prefix> : null}

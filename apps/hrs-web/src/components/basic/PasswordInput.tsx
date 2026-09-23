@@ -13,7 +13,7 @@ import { Lock, Key } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
 import { EyeToggleIcon } from '../common/EyeToggleIcon';
-import { Input, type InputProps } from './Input';
+import { HrsInput, type InputProps } from './HrsInput';
 
 /**
  * PasswordInput 的 Props。继承基础 Input 的全部属性。
@@ -115,7 +115,7 @@ export const PasswordInput = ({
   ) : null;
 
   return (
-    <Input
+    <HrsInput
       {...props}
       type={effectiveType}
       // 前导图标放入左侧插槽（prefixNode），切换按钮放入右侧插槽（suffixNode）。

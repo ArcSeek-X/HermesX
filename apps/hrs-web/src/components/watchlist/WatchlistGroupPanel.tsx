@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { Plus, Layers3 } from 'lucide-react';
 import AnimCard from '../common/Card/AnimCard';
 import { ListCard } from '../common/Card';
-import { HrsButton, Input, TextArea } from '../index';
+import { HrsButton, Input, TextArea } from '@components';
 import { Description, TextField } from '@heroui/react';
 
 

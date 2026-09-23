@@ -5,11 +5,11 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Input } from '../Input';
+import { HrsInput } from '../HrsInput';
 
 describe('Input', () => {
   it('renders a single input element by default', () => {
-    render(<Input placeholder="用户名" data-testid="native-input" />);
+    render(<HrsInput placeholder="用户名" data-testid="native-input" />);
 
     const input = screen.getByTestId('native-input');
     expect(input.tagName).toBe('INPUT');
@@ -25,14 +25,14 @@ describe('Input', () => {
     ['md', 'h-9'],
     ['lg', 'h-10'],
   ] as const)('applies the %s size classes', (size, heightClass) => {
-    render(<Input size={size} placeholder="尺寸" data-testid="native-input" />);
+    render(<HrsInput size={size} placeholder="尺寸" data-testid="native-input" />);
 
     expect(screen.getByTestId('native-input').className).toContain(heightClass);
   });
 
   it('passes through native input attributes', () => {
     render(
-      <Input
+      <HrsInput
         placeholder="测试"
         type="text"
         maxLength={10}
@@ -46,20 +46,20 @@ describe('Input', () => {
   });
 
   it('marks a value without onChange as read-only to avoid react-aria warnings', () => {
-    render(<Input value="只读值" data-testid="native-input" />);
+    render(<HrsInput value="只读值" data-testid="native-input" />);
 
     expect(screen.getByTestId('native-input')).toHaveAttribute('readonly');
   });
 
   it('keeps an editable input when onChange is provided', () => {
-    render(<Input value="可编辑" onChange={() => undefined} data-testid="native-input" />);
+    render(<HrsInput value="可编辑" onChange={() => undefined} data-testid="native-input" />);
 
     expect(screen.getByTestId('native-input')).not.toHaveAttribute('readonly');
   });
 
   it('renders prefix and suffix nodes through the input group without leaking them to the DOM', () => {
     render(
-      <Input
+      <HrsInput
         placeholder="令牌"
         data-testid="native-input"
         prefixNode={<span>@</span>}
@@ -76,7 +76,7 @@ describe('Input', () => {
   });
 
   it('merges the caller className into the generated class list', () => {
-    render(<Input className="custom-input" data-testid="native-input" />);
+    render(<HrsInput className="custom-input" data-testid="native-input" />);
 
     expect(screen.getByTestId('native-input').className).toContain('custom-input');
   });

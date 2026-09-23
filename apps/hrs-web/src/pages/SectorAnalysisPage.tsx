@@ -36,7 +36,7 @@ import { apiCache } from '@utils/apiCache';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronUp, Check, LayoutGrid, Boxes, TrendingUp, Search } from 'lucide-react';
 import { Card, DataRefreshBar, Select, TabNav, type TabNavItem } from '@components';
-import { Input } from '@components/basic/Input';
+import { HrsInput } from '@components/basic/HrsInput';
 import { AppPage } from '@components/layout/AppPage';
 import { PageHeader } from '@components/page-layout';
 import { SectorTreemap } from '@components/sector/SectorTreemap';
@@ -590,7 +590,7 @@ const SectorAnalysisPage: React.FC = () => {
               ariaLabel="二级导航（板块类型）"
               rightSlot={
                 // 板块搜索框（仅「板块」下显示，挂在二级 TAB 的右侧）
-                <Input
+                <HrsInput
                   className="w-60"
                   value={boardSearchKeyword}
                   type="text"
