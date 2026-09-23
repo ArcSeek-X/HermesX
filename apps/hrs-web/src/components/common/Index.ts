@@ -11,7 +11,6 @@
 export * from './Card';
 export * from './LiveCalendar';
 export * from './SectionCard';
-export * from './StatCard';
 export * from './EmptyState';
 export * from './InlineAlert';
 export * from './StickyActionBar';

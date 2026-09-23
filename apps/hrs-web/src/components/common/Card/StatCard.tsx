@@ -23,7 +23,7 @@
  */
 
 import type React from 'react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /** StatCard 组件的 Props 定义 */
 interface StatCardProps {
