@@ -25,6 +25,8 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
+import { PageHeader } from '@components/page-layout';
+import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';
 import IndexCard from '@components/indexCard/IndexCard';
 import { useCachedState } from '../hooks/useCachedState';
@@ -61,11 +63,11 @@ const ASIA_INDEX_PLACEHOLDER_COUNT = 2;
 /** 总览页市场 TAB：a=A股 / hk-us=港美 / jp-kr=日韩 */
 type MarketTab = 'a' | 'hk-us' | 'jp-kr';
 
-/** 市场 TAB 标签（顺序即展示顺序） */
-const MARKET_TABS: { key: MarketTab; label: string }[] = [
-  { key: 'a', label: 'A股' },
-  { key: 'hk-us', label: '港美' },
-  { key: 'jp-kr', label: '日韩' },
+/** 市场 TAB 标签（顺序即展示顺序），label 经 i18n 映射，labelKey 指向 dashboard.tab.* */
+const MARKET_TABS: { key: MarketTab; labelKey: 'dashboard.tab.a' | 'dashboard.tab.hkUs' | 'dashboard.tab.jpKr' }[] = [
+  { key: 'a', labelKey: 'dashboard.tab.a' },
+  { key: 'hk-us', labelKey: 'dashboard.tab.hkUs' },
+  { key: 'jp-kr', labelKey: 'dashboard.tab.jpKr' },
 ];
 
 /** 空数据占位指数：字段全 null，IndexCard 渲染为 '--'（接口未返回时先行渲染占位） */
@@ -140,6 +142,7 @@ const IndexCardGrid: React.FC<{
  * 占位卡片无感渲染、A股 TAB 下指数卡与统计卡一体化网格布局。
  */
 const StockDashboardPage: React.FC = () => {
+  const { t } = useUiLanguage();
   // ---- 市场数据状态（按卡片区域分组）----
   /** 指数行情列表（含涨跌点数、成交额） */
   const [indices, setIndices] = useState<MarketIndexItem[]>([]);
@@ -268,16 +271,16 @@ const StockDashboardPage: React.FC = () => {
 
   return (
     <AppPage>
-      <div className="space-y-4">
+      <div className="space-y-3">
+        <PageHeader title={t('layout.nav.dashboard.title')} description={t('layout.nav.dashboard.description')}/>
         {/* ===== 市场 TAB：A股 / 港美 / 日韩（均接入真实指数数据）===== */}
         <TabNav<MarketTab>
-          ariaLabel="市场切换"
+          ariaLabel={t('dashboard.marketSwitch')}
           variant="secondary"
-          items={MARKET_TABS.map(({ key, label }) => ({ value: key, label }))}
+          items={MARKET_TABS.map(({ key, labelKey }) => ({ value: key, label: t(labelKey) }))}
           value={marketTab}
           onChange={setMarketTab}
         />
-
         {/* 按 TAB 渲染不同内容（提取为独立函数，避免深层嵌套三元导致 JSX 上下文切换异常） */}
         {renderMarketContent()}
       </div>

@@ -31,7 +31,7 @@ import {
 } from '../api/decisionSignals'; // 决策信号 API 接口
 import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
 import { historyApi } from '../api/history'; // 历史记录 API
-import { InlineTipCard, Card, ConfirmDialog, Drawer, InlineAlert, Pagination } from '@components';
+import { InlineTipCard, Card, ConfirmDialog, Drawer, InlineAlert, Pagination, HrsButton } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import { AppPage } from '@components/layout/AppPage';
 import { DecisionSignalCard, DecisionSignalDetails } from '@components/decision-signals/DecisionSignalDisplay';
@@ -1380,24 +1380,24 @@ const DecisionSignalsPage: React.FC = () => {
 
   return (
     <AppPage>
-      <div className="space-y-5">
+      <div className="space-y-3">
         <PageHeader
           eyebrow={t('decisionSignals.activeOnly')}
           title={t('decisionSignals.title')}
           description={t('decisionSignals.description')}
           rightSlot={(
-            <button
-              type="button"
-              className="btn-secondary inline-flex items-center gap-2"
+            <HrsButton
+              isLoading={loading}
+              loadingText={t('decisionSignals.refresh')}
+              className="gap-2"
               onClick={() => {
                 void loadSignals();
                 void loadOutcomeStats();
               }}
-              disabled={loading}
             >
-              <RefreshCw className={cn('h-4 w-4', loading ? 'animate-spin' : '')} />
+              <RefreshCw className="h-4 w-4"/>
               {t('decisionSignals.refresh')}
-            </button>
+            </HrsButton>
           )}
         />
 

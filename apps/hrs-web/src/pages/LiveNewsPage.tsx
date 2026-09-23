@@ -19,6 +19,7 @@
 import { toDateKey } from '@utils/format';
 import { useMemo, useState } from 'react';
 import { Checkbox, HrsButton, HrsSelect, Input, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
+import { PageHeader } from '@components/page-layout';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
 // 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
@@ -81,11 +82,8 @@ const LiveNewsPage: React.FC = () => {
     }, [effectiveImportantOnly, keyword, dateValue, t]);
 
     return (
-        <div className="mx-auto w-full">
-            <header className="mb-4">
-                <h1 className="text-xl font-semibold text-foreground">{t('liveNews.title')}</h1>
-                <p className="mt-1 text-xs text-muted-text">{t('liveNews.subtitle')}</p>
-            </header>
+        <div className="mx-auto w-full space-y-3">
+            <PageHeader title={t('liveNews.title')} description={t('liveNews.subtitle')}/>
 
             {/* 降级提示：官方源不可用时告知用户能力已收敛 */}
             {(degraded || listDegraded) && (
@@ -112,7 +110,7 @@ const LiveNewsPage: React.FC = () => {
             )}
 
             {/* 工具条：搜索 / 只看重要的 / 日期 / 刷新 */}
-            <div className="mt-3 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 mb-5">
                 <Input
                     type="text"
                     value={keyword}
@@ -149,7 +147,7 @@ const LiveNewsPage: React.FC = () => {
             </div>
 
             {/* 内容区：按日期分组 */}
-            <div className="mt-4">
+            <div>
                 {loading ? (
                     <div className="py-10">
                         <Loading label={t('liveNews.loading')} />

@@ -147,7 +147,7 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* ===== 卡片网格（搜索框与类型切换器由父页面统一渲染在二级 TAB 与其右侧插槽）===== */}
       {loading && boards.length === 0 ? (
         <div className="flex items-center justify-center py-24">

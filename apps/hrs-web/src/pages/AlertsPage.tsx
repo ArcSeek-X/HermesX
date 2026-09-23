@@ -338,13 +338,9 @@ const AlertsPage: React.FC = () => {
   };
 
   return (
-    <AppPage className="space-y-5">
+    <AppPage className="space-y-3">
       {/* ===== 页面标题区 ===== */}
-      <PageHeader
-        eyebrow="Alert Center"
-        title="告警中心"
-        description="管理事件告警、日线技术指标、自选股、持仓/账户联动和大盘红绿灯规则，执行一次性测试，并查看后台评估任务记录的触发历史。"
-      />
+      <PageHeader eyebrow={t('alerts.headerEyebrow')} title={t('alerts.title')} description={t('alerts.subtitle')}/>
 
       {/* ===== 错误与成功提示区 ===== */}
       {createError ? <InlineTipCard variant="danger" content={createError} onDismiss={() => setCreateError(null)} /> : null}

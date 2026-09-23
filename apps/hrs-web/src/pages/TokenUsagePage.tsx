@@ -209,12 +209,13 @@ const TokenUsagePage: React.FC = () => {
 
   return (
     <AppPage>
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* ===== 页面标题与操作区（周期切换 + 刷新按钮）===== */}
         <PageHeader
           eyebrow={t('usage.eyebrow')}
           title={t('usage.title')}
           description={t('usage.description')}
+          mode='pill'
           rightSlot={(
             <>
               <TabNav<UsagePeriod>

@@ -36,16 +36,15 @@ import { apiCache } from '@utils/apiCache';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronUp, Check, LayoutGrid, Boxes, TrendingUp, Search } from 'lucide-react';
 import { Card, DataRefreshBar, Select, TabNav, type TabNavItem } from '@components';
+import { Input } from '@components/basic/Input';
 import { AppPage } from '@components/layout/AppPage';
+import { PageHeader } from '@components/page-layout';
 import { SectorTreemap } from '@components/sector/SectorTreemap';
 import { SectorStockTable } from '@components/sector/SectorStockTable';
 import { SectorFundFlowChart } from '@components/sector/SectorFundFlowChart';
 import { SectorBoardCards, type BoardType } from '@components/sector/SectorBoardCards';
 import { useCachedState } from '../hooks/useCachedState';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
-import {
-  InputGroup,
-} from '@heroui/react';
 import {
   fetchIndustryTree,
   fetchStockCloudMap,
@@ -226,7 +225,7 @@ const SectorAnalysisPage: React.FC = () => {
 
   /** 加载板块云图数据（申万行业分类），time 为空表示实时 */
   const loadSectorCloudMap = useCallback(async (time?: string) => {
-      console.log('loadSectorCloudMap', cloudMapTab, time);
+    console.log('loadSectorCloudMap', cloudMapTab, time);
     setLoading(true);
     try {
       const result = await fetchIndustryTree(time);
@@ -545,7 +544,20 @@ const SectorAnalysisPage: React.FC = () => {
   // ===================================================================
   return (
     <AppPage>
-      <div className="hrs-page-sector space-y-4">
+      <div className="hrs-page-sector space-y-3">
+        <PageHeader
+          title={t('layout.nav.sectorAnalysis.title')}
+          description={t('layout.nav.sectorAnalysis.description')}
+          rightSlot={(
+            <DataRefreshBar
+              lastUpdate={lastUpdate}
+              snapshotTime={selectedTime}
+              loading={loading}
+              onRefresh={refreshActiveTabData}
+              onCountdownEnd={refreshActiveTabData}
+            />
+          )} />
+
         {/* ===== 整体说明 =====
          * 一级 TAB 行右侧统一挂「更新时间 / 刷新」栏；
          * 二级 TAB 随一级切换：
@@ -557,22 +569,13 @@ const SectorAnalysisPage: React.FC = () => {
 
 
         <div className="space-y-3">
-           {/* ===== 一级TAB导航 ===== */}
+          {/* ===== 一级TAB导航 ===== */}
           <TabNav<PrimaryTab>
             items={PRIMARY_TABS}
             value={primaryTabValue}
             onChange={(v) => setPrimaryTab(v)}
             variant="primary"
             ariaLabel="一级导航"
-            rightSlot={
-              <DataRefreshBar
-                lastUpdate={lastUpdate}
-                snapshotTime={selectedTime}
-                loading={loading}
-                onRefresh={refreshActiveTabData}
-                onCountdownEnd={refreshActiveTabData}
-              />
-            }
           />
 
 
@@ -587,23 +590,20 @@ const SectorAnalysisPage: React.FC = () => {
               ariaLabel="二级导航（板块类型）"
               rightSlot={
                 // 板块搜索框（仅「板块」下显示，挂在二级 TAB 的右侧）
-                <InputGroup className="rounded-sm w-60">
-                  <InputGroup.Prefix>
-                    <Search className="h-3.5 w-3.5 text-muted-text" />
-                  </InputGroup.Prefix>
-                  <InputGroup.Input
-                    type="text"
-                    placeholder="搜索板块..."
-                    value={boardSearchKeyword}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setBoardSearchKeyword(e.target.value)
-                    }
-                  />
-                </InputGroup>
+                <Input
+                  className="w-60"
+                  value={boardSearchKeyword}
+                  type="text"
+                  placeholder="搜索板块..."
+                  prefixNode={<Search className="h-3.5 w-3.5 text-muted-text" />}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setBoardSearchKeyword(e.target.value)
+                  }
+                />
               }
             />
           )}
-           {/* ===== 一级TAB为” 云图“ ===== */}
+          {/* ===== 一级TAB为” 云图“ ===== */}
           {primaryTabValue === 'cloud-map' && (
             <TabNav<CloudMapTab>
               items={CLOUD_MAP_TABS}
@@ -676,11 +676,10 @@ const SectorAnalysisPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleTimeSelect('')}
-                        className={`px-2 py-1 rounded transition-colors ${
-                          !selectedTime
-                            ? 'bg-cyan/20 text-cyan font-medium'
-                            : 'text-muted-text hover:text-foreground'
-                        }`}
+                        className={`px-2 py-1 rounded transition-colors ${!selectedTime
+                          ? 'bg-cyan/20 text-cyan font-medium'
+                          : 'text-muted-text hover:text-foreground'
+                          }`}
                       >
                         实时
                       </button>
@@ -693,13 +692,12 @@ const SectorAnalysisPage: React.FC = () => {
                             type="button"
                             disabled={!available}
                             onClick={() => available && handleTimeSelect(t)}
-                            className={`px-2 py-1 rounded transition-colors ${
-                              isSelected
-                                ? 'bg-cyan/20 text-cyan font-medium'
-                                : available
-                                  ? 'text-muted-text hover:text-foreground'
-                                  : 'text-muted-text/30 cursor-not-allowed'
-                            }`}
+                            className={`px-2 py-1 rounded transition-colors ${isSelected
+                              ? 'bg-cyan/20 text-cyan font-medium'
+                              : available
+                                ? 'text-muted-text hover:text-foreground'
+                                : 'text-muted-text/30 cursor-not-allowed'
+                              }`}
                             title={available ? `${t} 快照` : `${t} 未到`}
                           >
                             {t}
@@ -815,11 +813,10 @@ const SectorAnalysisPage: React.FC = () => {
                   type="button"
                   onClick={() => loadFundFlow()}
                   disabled={fundFlowLoading}
-                  className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg border transition-all duration-150 ${
-                    fundFlowLoading
-                      ? 'border-cyan/60 bg-cyan/15 text-cyan'
-                      : 'border-cyan/60 bg-cyan/10 text-cyan hover:bg-cyan/20'
-                  } disabled:opacity-50`}
+                  className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg border transition-all duration-150 ${fundFlowLoading
+                    ? 'border-cyan/60 bg-cyan/15 text-cyan'
+                    : 'border-cyan/60 bg-cyan/10 text-cyan hover:bg-cyan/20'
+                    } disabled:opacity-50`}
                 >
                   查询
                 </button>
@@ -1011,11 +1008,10 @@ function SectorMultiSelect({ items, value, onChange }: SectorMultiSelectProps) {
                     key={s.code}
                     type="button"
                     onClick={() => handleToggle(s.code)}
-                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors ${
-                      isSelected
-                        ? 'text-cyan font-medium'
-                        : 'text-foreground hover:bg-muted/10'
-                    }`}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors ${isSelected
+                      ? 'text-cyan font-medium'
+                      : 'text-foreground hover:bg-muted/10'
+                      }`}
                   >
                     <span>{s.name}</span>
                     {isSelected && <Check className="h-3.5 w-3.5 text-cyan" />}

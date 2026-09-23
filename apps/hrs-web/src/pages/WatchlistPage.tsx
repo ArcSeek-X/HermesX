@@ -131,7 +131,7 @@ const WatchlistPage: React.FC = () => {
 
 
   return (
-    <AppPage className="space-y-4 h-full">
+    <AppPage className="space-y-3 h-full">
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-stretch h-full">
         {/* 左侧：分类（grid 默认 stretch，WatchlistGroupPanel 根节点自带 h-full 撑满高度） */}
         <WatchlistGroupPanel

@@ -99,7 +99,11 @@ const zhHant = {
   'layout.nav.codeTest.title': '測試', // 測試頁導航項
   'layout.nav.codeTest.description': '元件展示與聯調測試頁', // 测试导航项描述
   'layout.nav.dashboard.title': '總覽', // 總覽導航項
-  'layout.nav.dashboard.description': '市場行情與核心指標總覽', // 总览导航项描述
+  'layout.nav.dashboard.description': 'A股、港股、美股、日韓市場行情與核心指標總覽', // 总览导航项描述
+  'dashboard.tab.a': 'A股', // 总览页市场TAB：A股
+  'dashboard.tab.hkUs': '港美', // 总览页市场TAB：港美
+  'dashboard.tab.jpKr': '日韓', // 总览页市场TAB：日韓
+  'dashboard.marketSwitch': '市場切換', // 总览页市场TAB切换无障碍标签
   'layout.nav.decisionSignals.title': 'AI 建议', // AI 建议導航項
   'layout.nav.decisionSignals.description': 'AI 建議、風險與觀察條件', // AI 建议导航项描述
   'layout.nav.home.title': '首頁', // 首頁導航項
@@ -370,6 +374,9 @@ const zhHant = {
   // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': '告警中心 - HRS', // 告警頁文件標題
+  'alerts.headerEyebrow': 'Alert Center', // 告警中心頁眉標籤
+  'alerts.title': '告警中心', // 告警中心頁標題
+  'alerts.subtitle': '管理事件告警、日線技術指標、自選股、持倉/帳戶聯動和大盤紅綠燈規則，執行一次性測試，並查看後台評估任務記錄的觸發歷史。', // 告警中心頁副標題
   // chat.*
   'chat.agentBackendUnavailableTitle': '目前問股方式不可用', // 問股方式不可用標題
   'chat.agentModeDisabled': 'Agent 模式尚未啟用，請前往 Agent 設定啟用並儲存後再試。', // Agent 模式未啟用提示
@@ -737,6 +744,8 @@ const zhHant = {
   'review.marketRegionOneTimeHint': '仅影响本次触發，不會修改全局配置。', // 市场選擇一次性提示
   'review.marketRegionSelector': '選擇大盤復盘市场', // 市场選擇器標題
   'review.marketRegionServerDefault': '伺服器預設', // 伺服器預設市场
+  'review.title': '大盤復盘', // 大盤復盤頁標題
+  'review.subtitle': '整合股票分析、大盤復盤與任務面板，基於收盤數據、行業數據、輿情數據自動定時形成分析復盤報告推送', // 首頁副標題
   'review.marketRegionTitle': '本次復盘市场', // 本次復盘市场標題
   'review.marketRegionUs': '美股', // 美股市场
   'review.marketReview': '大盤復盘', // 大盤復盘入口
@@ -986,6 +995,7 @@ const zhHant = {
   'settings.openConfigItems': '查看配置項', // 查看配置項按鈕
   'settings.pageDescription': '統一管理模型、數據源、通知、安全認證與匯入能力。', // 設定頁描述
   'settings.pageTitle': '系統設定', // 系統設定標題
+  'settings.eyebrow': 'Settings', // 系統設定頁眉標籤
   'settings.pageTitleDocument': '系統設定 - HRS', // 系統設定文檔標題
   'settings.promptCacheAdvancedDescription': '維護 provider prompt cache 的观測、主動 hint 與脱敏诊断；預設配置已適合普通使用。', // Prompt Cache 高級設定說明
   'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache 高級設定', // Prompt Cache 高級設定標題

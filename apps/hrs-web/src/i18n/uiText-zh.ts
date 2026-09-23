@@ -100,7 +100,11 @@ const zh = {
   'layout.nav.codeTest.title': '测试', // 测试页导航项
   'layout.nav.codeTest.description': '组件演示与联调测试页', // 测试导航项描述
   'layout.nav.dashboard.title': '总览', // 总览导航项
-  'layout.nav.dashboard.description': '市场行情与核心指标总览', // 总览导航项描述
+  'layout.nav.dashboard.description': 'A股、港股、美股、日韩市场行情与核心指标总览', // 总览导航项描述
+  'dashboard.tab.a': 'A股', // 总览页市场TAB：A股
+  'dashboard.tab.hkUs': '港美', // 总览页市场TAB：港美
+  'dashboard.tab.jpKr': '日韩', // 总览页市场TAB：日韩
+  'dashboard.marketSwitch': '市场切换', // 总览页市场TAB切换无障碍标签
   'layout.nav.decisionSignals.title': 'AI 建议', // AI 建议导航项
   'layout.nav.decisionSignals.description': 'AI 建议、风险与观察条件', // AI 建议导航项描述
   'layout.nav.home.title': '首页', // 首页导航项
@@ -373,6 +377,9 @@ const zh = {
   // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': '告警中心 - HRS', // 告警页文档标题
+  'alerts.headerEyebrow': 'Alert Center', // 告警中心页眉标签
+  'alerts.title': '告警中心', // 告警中心页标题
+  'alerts.subtitle': '管理事件告警、日线技术指标、自选股、持仓/账户联动和大盘红绿灯规则，执行一次性测试，并查看后台评估任务记录的触发历史。', // 告警中心页副标题
   // chat.*
   'chat.agentBackendUnavailableTitle': '当前问股方式不可用', // 问股方式不可用标题
   'chat.agentModeDisabled': 'Agent 模式尚未启用，请前往 Agent 设置启用并保存后再试。', // Agent 模式未启用提示
@@ -740,6 +747,8 @@ const zh = {
   'review.marketRegionOneTimeHint': '仅影响本次触发，不会修改全局配置。', // 市场选择一次性提示
   'review.marketRegionSelector': '选择大盘复盘市场', // 市场选择器标题
   'review.marketRegionServerDefault': '服务器默认', // 服务器默认市场
+  'review.title': '大盘复盘', // 大盘复盘页标题
+  'review.subtitle': '集成股票分析、大盘回顾与任务面板，基于收盘数据、行业数据、舆情数据自动定时形成分析复盘报告推送', // 首页副标题
   'review.marketRegionTitle': '本次复盘市场', // 本次复盘市场标题
   'review.marketRegionUs': '美股', // 美股市场
   'review.marketReview': '大盘复盘', // 大盘复盘入口
@@ -989,6 +998,7 @@ const zh = {
   'settings.openConfigItems': '查看配置项', // 查看配置项按钮
   'settings.pageDescription': '统一管理模型、数据源、通知、安全认证与导入能力。', // 设置页描述
   'settings.pageTitle': '系统设置', // 系统设置标题
+  'settings.eyebrow': 'Settings', // 系统设置页眉标签
   'settings.pageTitleDocument': '系统设置 - HRS', // 系统设置文档标题
   'settings.promptCacheAdvancedDescription': '维护 provider prompt cache 的观测、主动 hint 与脱敏诊断；默认配置已适合普通使用。', // Prompt Cache 高级设置说明
   'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache 高级设置', // Prompt Cache 高级设置标题

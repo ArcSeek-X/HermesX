@@ -102,7 +102,11 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.codeTest.title': 'Test',
   'layout.nav.codeTest.description': 'Component showcase and integration test page',
   'layout.nav.dashboard.title': 'Overview',
-  'layout.nav.dashboard.description': 'Market overview and key indicators',
+  'layout.nav.dashboard.description': 'A-shares, HK, US, and Japan/Korea market overview and key indicators',
+  'dashboard.tab.a': 'A-Shares', // Dashboard market TAB: A-Shares
+  'dashboard.tab.hkUs': 'HK & US', // Dashboard market TAB: HK & US
+  'dashboard.tab.jpKr': 'Japan & Korea', // Dashboard market TAB: Japan & Korea
+  'dashboard.marketSwitch': 'Market switch', // Dashboard market TAB switch aria label
   'layout.nav.decisionSignals.title': 'AI signals',
   'layout.nav.decisionSignals.description': 'AI recommendations, risks, and watch conditions',
   'layout.nav.home.title': 'Home',
@@ -161,7 +165,7 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.development.docsTextArea.description': 'TextArea multiline text input component demo and usage',
   'layout.nav.development.docsChip.title': 'Chip',
   'layout.nav.development.docsChip.description': 'Chip rounded capsule tag component demo and usage',
-  
+
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': 'All day', // calendar event all-day marker
@@ -373,6 +377,9 @@ const en: Record<UiTextKey, string> = {
   // ---- 第 8 类 页面 ----
   // alerts.*
   'alerts.pageTitle': 'Alerts - HRS', // Alert page document title
+  'alerts.headerEyebrow': 'Alert Center', // Alert center header eyebrow
+  'alerts.title': 'Alert Center', // Alert center page title
+  'alerts.subtitle': 'Manage event alerts, daily technical indicators, watchlists, position/account linkage, and market traffic-light rules; run one-off tests, and review the trigger history recorded by background evaluation tasks.', // Alert center page subtitle
   // chat.*
   'chat.agentBackendUnavailableTitle': 'The selected ask-stock method is unavailable',
   'chat.agentModeDisabled': 'Agent Mode is disabled. Open Agent settings, enable it, and save before trying again.',
@@ -740,6 +747,8 @@ const en: Record<UiTextKey, string> = {
   'review.marketRegionOneTimeHint': 'Applies only to this run and does not change global settings.',
   'review.marketRegionSelector': 'Select market review regions',
   'review.marketRegionServerDefault': 'Server default',
+  'review.title': 'Market Review', // Market Review page title
+  'review.subtitle': 'Integrated stock analysis, market review, and task panels—auto-generating scheduled analysis review reports from closing, industry, and sentiment data', // Home page subtitle
   'review.marketRegionTitle': 'Markets for this review',
   'review.marketRegionUs': 'US',
   'review.marketReview': 'Market review',
@@ -841,7 +850,7 @@ const en: Record<UiTextKey, string> = {
   'settings.authSuccessUpdated': 'Authentication settings updated',
   'settings.authTitle': 'Authentication and login protection',
   'settings.categoryNavDescription': 'System settings and authentication capabilities grouped by module.',
-  'settings.categoryNavTitle': 'Configuration categories',
+  'settings.categoryNavTitle': 'Categories',
   'settings.changePasswordConfirm': 'Confirm new password',
   'settings.changePasswordConfirmPlaceholder': 'Enter the new password again',
   'settings.changePasswordCurrent': 'Current password',
@@ -989,6 +998,7 @@ const en: Record<UiTextKey, string> = {
   'settings.openConfigItems': 'View fields',
   'settings.pageDescription': 'Manage models, data sources, notifications, security authentication, and import capabilities.',
   'settings.pageTitle': 'System settings',
+  'settings.eyebrow': 'Settings', // System settings header eyebrow
   'settings.pageTitleDocument': 'System settings - HRS',
   'settings.promptCacheAdvancedDescription': 'Maintain provider prompt-cache telemetry, active hints, and sanitized diagnostics. Defaults are suitable for normal use.',
   'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache advanced settings',

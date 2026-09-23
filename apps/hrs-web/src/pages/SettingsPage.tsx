@@ -16,8 +16,8 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, ConfirmDialog } from '@components';
-import { EmptyState } from '@components/page-layout';
+import { InlineTipCard, Button, ConfirmDialog, HrsButton } from '@components';
+import { EmptyState, PageHeader } from '@components/page-layout';
 import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 import { AgentBackendStatusPanel } from '@components/settings/AgentBackendStatusPanel';
 import { AuthSettingsCard } from '@components/settings/AuthSettingsCard';
@@ -1844,35 +1844,34 @@ const SettingsPage: React.FC = () => {
   );
 
   return (
-    <div className="settings-page min-h-full px-4 pb-6 pt-4 md:px-6">
-      {/* ===== 页面头部：描述 + 重置/保存按钮（页面标题已由顶部 header 展示）===== */}
-      <div className="mb-4 rounded-lg border settings-border bg-card/90 px-4 py-4 shadow-soft-card backdrop-blur-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <p className="max-w-3xl text-xs leading-5 text-muted-text sm:text-sm sm:leading-6">
-              {t('settings.pageDescription')}
-            </p>
-          </div>
+    <div className="settings-page space-y-3 min-h-full px-4 pb-6 pt-4 md:px-6">
 
+      {/* ===== 页面头部：标题 + 描述 + 重置/保存按钮（统一 PageHeader）===== */}
+      <PageHeader
+        eyebrow={t('settings.eyebrow')}
+        title={t('settings.pageTitle')}
+        description={t('settings.pageDescription')}
+        mode="pill"
+        rightSlot={
           <div className="flex flex-wrap items-center gap-2">
-            <Button
+            <HrsButton
               type="button"
               variant="settings-secondary"
               size="sm"
               className="px-2.5"
               onClick={resetDraft}
-              disabled={isLoading || isSaving}
+              isDisabled={isLoading || isSaving}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               {t('settings.reset')}
-            </Button>
-            <Button
+            </HrsButton>
+            <HrsButton
               type="button"
               variant="settings-primary"
               size="sm"
               className="px-2.5"
               onClick={() => void handleSaveConfig()}
-              disabled={!effectiveHasDirty || isSaving || isLoading}
+              isDisabled={!effectiveHasDirty || isLoading}
               isLoading={isSaving}
               loadingText={t('settings.saving')}
             >
@@ -1882,20 +1881,19 @@ const SettingsPage: React.FC = () => {
                 : effectiveDirtyCount
                   ? t('settings.saveConfigWithCount', { count: effectiveDirtyCount })
                   : t('settings.saveConfig')}
-            </Button>
+            </HrsButton>
           </div>
-        </div>
-
-        {saveError ? (
-          <InlineTipCard
-            variant="danger"
-            className="mt-3"
-            content={saveError}
-            actionLabel={retryAction === 'save' ? t('settings.saveRetry') : undefined}
-            onAction={retryAction === 'save' ? () => void retry() : undefined}
-          />
-        ) : null}
-      </div>
+        }
+      />
+      {saveError ? (
+        <InlineTipCard
+          variant="danger"
+          className="mt-3"
+          content={saveError}
+          actionLabel={retryAction === 'save' ? t('settings.saveRetry') : undefined}
+          onAction={retryAction === 'save' ? () => void retry() : undefined}
+        />
+      ) : null}
 
       {/* ===== 加载错误提示区 ===== */}
       {loadError ? (
@@ -1912,7 +1910,7 @@ const SettingsPage: React.FC = () => {
       {isLoading ? (
         <SettingsLoading />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* ===== 左侧：配置分类导航 ===== */}
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <SettingsCategoryNav
@@ -1924,7 +1922,7 @@ const SettingsPage: React.FC = () => {
           </aside>
 
           {/* ===== 右侧：配置面板区 ===== */}
-          <section className="space-y-4">
+          <section className="space-y-3">
             {/* ===== 首次运行引导卡片（仅基础分类） ===== */}
             {shouldShowFirstRunSetup ? (
               <FirstRunSetupCard

@@ -16,7 +16,7 @@ import { historyApi } from '../api/history';
 import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
 import { InlineTipCard, Button, Drawer, InlineAlert } from '@components';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState, PageHeader } from '@components/page-layout';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
 import { StockSearch } from '@components/StockSearch/StockSearch';
 import { StockHistoryTrendDrawer } from '@components/history/StockHistoryTrendDrawer';
@@ -1575,9 +1575,12 @@ const HomePage: React.FC = () => {
       data-testid="home-dashboard"
       className="flex h-[calc(100vh-5rem)] w-full flex-col overflow-hidden md:flex-row sm:h-[calc(100vh-5.5rem)] lg:h-[calc(100vh-2rem)]"
     >
-      <div className="flex-1 flex flex-col min-h-0 min-w-0 max-w-full lg:max-w-6xl mx-auto w-full">
+      <div className="flex-1 flex flex-col space-y-3 min-h-0 min-w-0 max-w-full lg:max-w-6xl mx-auto w-full">
+
+        <PageHeader title={t('review.title')} description={t('review.subtitle')}/>
+
         {/* ===== 顶部操作栏：股票搜索 + 策略选择 + 大盘回顾 + 分析按钮 ===== */}
-        <header className="relative z-30 flex min-w-0 flex-shrink-0 items-center overflow-visible px-3 py-3 md:px-4 md:py-4">
+        <header className="relative z-30 flex min-w-0 flex-shrink-0 items-center overflow-visible px-3 md:px-4">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
               <button
