@@ -16,7 +16,7 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, ConfirmDialog, HrsButton } from '@components';
+import { InlineTipCard, ConfirmDialog, HrsButton } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 import { AgentBackendStatusPanel } from '@components/settings/AgentBackendStatusPanel';
@@ -538,9 +538,9 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
             <p className="text-sm font-semibold text-foreground">{t('settings.setupGuideHiddenTitle')}</p>
             <p className="mt-1 text-xs leading-5 text-muted-text">{t('settings.setupGuideHiddenDescription')}</p>
           </div>
-          <Button type="button" variant="settings-secondary" size="sm" onClick={() => setIsHidden(false)}>
+          <HrsButton type="button" variant="settings-secondary" size="sm" onClick={() => setIsHidden(false)}>
             {t('settings.setupGuideOpen')}
-          </Button>
+          </HrsButton>
         </div>
       </div>
     );
@@ -563,21 +563,20 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Button
+            <HrsButton
               type="button"
               variant="settings-secondary"
               size="sm"
-              disabled={isLoading}
               isLoading={isLoading}
               loadingText={t('settings.setupGuideRefreshing')}
               onClick={() => void onRefresh()}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               {t('settings.setupGuideRefresh')}
-            </Button>
-            <Button type="button" variant="settings-secondary" size="sm" onClick={() => setIsHidden(true)}>
+            </HrsButton>
+            <HrsButton type="button" variant="settings-secondary" size="sm" onClick={() => setIsHidden(true)}>
               {t('settings.setupGuideHide')}
-            </Button>
+            </HrsButton>
           </div>
         </div>
 
@@ -617,20 +616,20 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
 
         {/* ===== 操作按钮区：跳转配置分类 + 运行冒烟测试 ===== */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('ai_model')}>
+          <HrsButton type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('ai_model')}>
             {t('settings.setupGuideConfigureLlm')}
-          </Button>
-          <Button type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('base')}>
+          </HrsButton>
+          <HrsButton type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('base')}>
             {t('settings.setupGuideAddStocks')}
-          </Button>
-          <Button type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('notification')}>
+          </HrsButton>
+          <HrsButton type="button" variant="settings-secondary" size="sm" onClick={() => onSelectCategory('notification')}>
             {t('settings.setupGuideConfigureNotification')}
-          </Button>
-          <Button
+          </HrsButton>
+          <HrsButton
             type="button"
             variant="settings-primary"
             size="sm"
-            disabled={!canRunSmoke || isSaving || isRunningSmoke}
+            isDisabled={!canRunSmoke || isSaving || isRunningSmoke}
             isLoading={isRunningSmoke}
             loadingText={t('settings.setupGuideSmokeRunning')}
             title={!firstStockCode ? t('settings.setupGuideSmokeNeedsStock') : undefined}
@@ -638,7 +637,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
           >
             <Play className="h-4 w-4" aria-hidden="true" />
             {t('settings.setupGuideRunSmoke')}
-          </Button>
+          </HrsButton>
         </div>
 
         {/* ===== 冒烟测试结果提示区 ===== */}
@@ -927,35 +926,35 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
                       }}
                     />
                     {scheduleTimes.length > 1 ? (
-                      <Button
+                      <HrsButton
                         type="button"
                         variant="settings-secondary"
                         size="sm"
                         className="h-8 w-8 rounded-lg px-0"
                         aria-label={t('settings.schedulerRemoveTime')}
                         title={t('settings.schedulerRemoveTime')}
-                        disabled={disabled}
+                        isDisabled={disabled}
                         onClick={() => {
                           updateScheduleTimes(scheduleTimes.filter((_, currentIndex) => currentIndex !== index));
                         }}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </Button>
+                      </HrsButton>
                     ) : null}
                   </div>
                 ))}
-                <Button
+                <HrsButton
                   type="button"
                   variant="settings-secondary"
                   size="sm"
                   className="h-11 shrink-0"
                   data-testid="scheduler-add-time-button"
-                  disabled={disabled}
+                  isDisabled={disabled}
                   onClick={() => updateScheduleTimes([...scheduleTimes, SCHEDULER_DEFAULT_TIME])}
                 >
                   <Plus className="h-4 w-4" aria-hidden="true" />
                   {t('settings.schedulerAddTime')}
-                </Button>
+                </HrsButton>
               </div>
             </div>
           </div>
@@ -997,32 +996,32 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
               ) : null}
             </dl>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
+              <HrsButton
                 type="button"
                 variant="settings-secondary"
                 size="sm"
                 data-testid="scheduler-refresh-status-button"
-                disabled={disabled || isRefreshingStatus}
+                isDisabled={disabled || isRefreshingStatus}
                 isLoading={isRefreshingStatus}
                 loadingText={t('settings.schedulerRefreshing')}
                 onClick={() => void refreshSchedulerStatus()}
               >
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 {t('settings.schedulerRefresh')}
-              </Button>
-              <Button
+              </HrsButton>
+              <HrsButton
                 type="button"
                 variant="settings-primary"
                 size="sm"
                 data-testid="scheduler-run-now-button"
-                disabled={disabled || isRunningNow}
+                isDisabled={disabled || isRunningNow}
                 isLoading={isRunningNow}
                 loadingText={t('settings.schedulerRunningNow')}
                 onClick={() => void runSchedulerNow()}
               >
                 <Play className="h-4 w-4" aria-hidden="true" />
                 {t('settings.schedulerRunNow')}
-              </Button>
+              </HrsButton>
             </div>
           </div>
         </div>
@@ -1928,7 +1927,7 @@ const SettingsPage: React.FC = () => {
               <FirstRunSetupCard
                 status={setupStatus}
                 isLoading={isRefreshingSetupStatus}
-                content={setupStatusError}
+                error={setupStatusError}
                 firstStockCode={firstSetupStockCode}
                 isSaving={isSaving}
                 isRunningSmoke={isRunningSetupSmoke}
@@ -1960,23 +1959,23 @@ const SettingsPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button
+                    <HrsButton
                       type="button"
                       variant="settings-secondary"
                       onClick={() => setActiveCategory('data_source')}
                     >
                       {t('settings.viewConfigItems')}
-                    </Button>
-                    <Button
+                    </HrsButton>
+                    <HrsButton
                       type="button"
                       variant={alphasiftEnabled ? 'settings-secondary' : 'settings-primary'}
                       onClick={() => void updateAlphaSiftEnabled(!alphasiftEnabled)}
-                      disabled={isSaving || isLoading || isUpdatingAlphaSift}
+                      isDisabled={isSaving || isLoading || isUpdatingAlphaSift}
                       isLoading={isUpdatingAlphaSift}
                       loadingText={alphasiftEnabled ? t('settings.disablingAlphaSift') : t('settings.enablingAlphaSift')}
                     >
                       {alphasiftEnabled ? t('settings.disableAlphaSift') : t('settings.enableAlphaSift')}
-                    </Button>
+                    </HrsButton>
                   </div>
                 </div>
                 {alphaSiftActionError ? (
@@ -2062,16 +2061,16 @@ const SettingsPage: React.FC = () => {
                           {t('settings.desktopUpdateDescription')}
                         </p>
                       </div>
-                      <Button
+                      <HrsButton
                         type="button"
                         variant="settings-secondary"
                         onClick={() => void handleDesktopUpdateCheck()}
-                        disabled={isCheckingDesktopUpdate}
+                        isDisabled={isCheckingDesktopUpdate}
                         isLoading={isCheckingDesktopUpdate}
                         loadingText={t('settings.checkingDesktopUpdate')}
                       >
                         {t('settings.checkDesktopUpdate')}
-                      </Button>
+                      </HrsButton>
                     </div>
                     {desktopUpdateNotice ? (
                       <SettingsAlert
@@ -2114,26 +2113,26 @@ const SettingsPage: React.FC = () => {
                     </p>
                   ) : null}
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button
+                    <HrsButton
                       type="button"
                       variant="settings-secondary"
                       onClick={() => void downloadEnvBackup()}
-                      disabled={envBackupActionDisabled}
+                      isDisabled={envBackupActionDisabled}
                       isLoading={isExportingEnv}
                       loadingText={t('settings.exportingEnv')}
                     >
                       {t('settings.exportEnv')}
-                    </Button>
-                    <Button
+                    </HrsButton>
+                    <HrsButton
                       type="button"
                       variant="settings-primary"
                       onClick={beginEnvBackupImport}
-                      disabled={envBackupActionDisabled}
+                      isDisabled={envBackupActionDisabled}
                       isLoading={isImportingEnv}
                       loadingText={t('settings.importingEnv')}
                     >
                       {t('settings.importEnv')}
-                    </Button>
+                    </HrsButton>
                     <input
                       ref={envBackupImportRef}
                       type="file"
