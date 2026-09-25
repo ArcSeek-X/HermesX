@@ -112,7 +112,7 @@
 
 - 不进入 Zustand 状态层
 - 不参与本地持久化
-- 不混入 `asyncRouterList`
+- 不混入 `asyncRouterData`
 - 在最终路由注册时与动态路由合并
 
 典型白名单示例：
@@ -199,35 +199,34 @@ MenuStore 实际提供以下 Action：
 
 ### 8.1 State 定义
 
-#### `asyncRouterList`
+#### `asyncRouterData`
 
-动态路由列表，需持久化。
+动态路由树（树状结构，含 children），需持久化。
 
 要求：
 
 - 是一份完整的动态路由树状结构
 - 支持一二级路由
 - 不在状态层中拆分为 `businessRoutes`、`exceptionRoutes`
-- 不包含白名单数据
+- 仅由 `MENU_MANIFEST` 加工得到；白名单路由不在其中，由注册层合并
 
 ### 8.2 Action 设计
 
-建议在 Store 中提供以下方法：
+建议在 Store 中提供以下方法，覆盖两个核心场景：
 
-- `setAsyncRouterList`
-- `buildAsyncRouterList`
-- `refreshAsyncRouterList`
-- `resetAsyncRouterList`
+- `buildAsyncRouterData`：场景一，登录成功后构建全量动态路由树并持久化（唯一写入点）
+
+场景二（刷新浏览器，已登录）不提供单独方法：store 初始化时直接从 localStorage 还原 `asyncRouterData`，路由注册层消费它即可建立动态路由，无需手动调用。
 
 ### 8.3 路由处理逻辑
 
 处理顺序如下：
 
 1. 从 [manifest.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/router/manifest.ts) 读取真源
-2. 过滤出参与动态路由的节点
+2. 过滤出参与动态路由的节点（page/redirect/fallback；group 仅透传 children）
 3. 将真源加工为一份完整的树状动态路由结构
-4. 存入 `asyncRouterList`
-5. 在路由注册阶段，将 [Whitelist.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/router/Whitelist.ts) 中的白名单路由与 `asyncRouterList` 合并后使用
+4. 存入 `asyncRouterData` 并落盘（场景一）；刷新时从持久化还原（场景二）
+5. 在路由注册阶段，将 [Whitelist.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/router/Whitelist.ts) 中的白名单路由与 `asyncRouterData` 合并后使用
 
 ## 9. 数据处理流程
 
@@ -246,14 +245,14 @@ manifest 真源
 
 ```text
 manifest 真源
-  -> RouterStore.buildAsyncRouterList()
-  -> asyncRouterList
+  -> RouterStore.buildAsyncRouterData()（场景一：登录后构建并落盘）
+  -> asyncRouterData（场景二：刷新时从持久化还原）
 
 Whitelist 白名单
   -> 路由注册层
 
 最终路由
-  = whiteListRoutes + asyncRouterList
+  = whiteListRoutes + asyncRouterData
 ```
 
 ## 10. 持久化策略
@@ -278,7 +277,7 @@ Whitelist 白名单
 
 需要持久化：
 
-- `asyncRouterList`
+- `asyncRouterData`
 
 不需要持久化：
 
@@ -286,7 +285,7 @@ Whitelist 白名单
 
 说明：
 
-- `asyncRouterList` 属于一次加工后的完整结果
+- `asyncRouterData` 属于一次加工后的完整结果
 - 页面刷新后可直接恢复，避免重复处理
 
 ## 11. 文件职责划分
@@ -331,7 +330,7 @@ Whitelist 白名单
 
 ### 13.3 动态路由树结构
 
-`asyncRouterList` 需要在一开始就明确树状结构格式，避免后续路由注册层再次做二次转换。
+`asyncRouterData` 需要在一开始就明确树状结构格式，避免后续路由注册层再次做二次转换。
 
 ### 13.4 白名单职责边界
 
@@ -353,7 +352,7 @@ Whitelist 白名单
 
 - [manifest.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/router/manifest.ts) 和 [Whitelist.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/router/Whitelist.ts) 只保存原始真源
 - [MenuStore](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/stores/MenuStore) 负责菜单数据的加工、存储、持久化、模块切换编排
-- [RouterStore.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/stores/RouterStore.ts) 负责动态路由树的加工、存储、持久化
+- [RouterStore.ts](file:///Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/apps/hrs-web/src/stores/RouterStore.ts) 负责动态路由树的加工、存储、持久化（登录构建 + 刷新还原两场景）
 - 白名单独立维护，不进入 Zustand 状态层
 
 该方案兼容当前本地真源模式，也兼容后续接口化真源模式，适合作为下一阶段菜单和动态路由重构的正式设计基础。
