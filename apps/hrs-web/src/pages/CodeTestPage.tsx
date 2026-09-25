@@ -6,15 +6,19 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { AppPage, InlineTipCard, Input, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant } from '../components';
+import { InlineTipCard, HrsInput, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant, HrsCheckbox, type HrsCheckboxSize, showToast, type ToastPlacement, type ToastVariant } from '@components';
+import { AppPage } from '@components/layout/AppPage';
 import { type ParsedApiError } from '../api/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
-import { showToast, type ToastPlacement, type ToastVariant } from '../components/basic/Toast';
+
 /**
  * 测试页面组件
  * 当前为占位内容，可在开发过程中按需挂载待验证的组件与逻辑。
  */
+
+    // if (import.meta.env.DEV) throw new Error('component inside debug :RouteOutletBoundary');
+
 
 /** 把 Toast 主题配色映射到 HrsButton 支持的 variant */
 const toastVariantToButton: Record<
@@ -84,66 +88,66 @@ const inlineTipSamples: {
     label: string;
     content: ParsedApiError;
 }[] = [
-    {
-        key: 'default',
-        variant: 'default',
-        label: '中性灰，不抢视觉',
-        content: {
-            title: '行情数据来自第三方行情源',
-            message: '行情可能存在 15 分钟延迟，页面数据仅供参考，不构成投资建议。',
-            rawMessage: 'quote_source=third_party, delay=15min, provider=akshare',
-            category: 'unknown',
+        {
+            key: 'default',
+            variant: 'default',
+            label: '中性灰，不抢视觉',
+            content: {
+                title: '行情数据来自第三方行情源',
+                message: '行情可能存在 15 分钟延迟，页面数据仅供参考，不构成投资建议。',
+                rawMessage: 'quote_source=third_party, delay=15min, provider=akshare',
+                category: 'unknown',
+            },
         },
-    },
-    {
-        key: 'accent',
-        variant: 'accent',
-        label: '强调 / 信息',
-        content: {
-            title: 'Agent 模式已开启',
-            message: '本次分析将启用工具调用与多轮推理，耗时通常比标准模式更长。',
-            rawMessage: 'agent_mode=enabled, max_tool_rounds=8, backend=codex_app_server',
-            category: 'unknown',
+        {
+            key: 'accent',
+            variant: 'accent',
+            label: '强调 / 信息',
+            content: {
+                title: 'Agent 模式已开启',
+                message: '本次分析将启用工具调用与多轮推理，耗时通常比标准模式更长。',
+                rawMessage: 'agent_mode=enabled, max_tool_rounds=8, backend=codex_app_server',
+                category: 'unknown',
+            },
         },
-    },
-    {
-        key: 'success',
-        variant: 'success',
-        label: '成功',
-        content: {
-            title: '配置已保存',
-            message: '系统配置已写入并生效，无需重启服务。',
-            rawMessage: 'POST /api/v1/system-config 200 OK, updated_items=12',
-            status: 200,
-            category: 'unknown',
+        {
+            key: 'success',
+            variant: 'success',
+            label: '成功',
+            content: {
+                title: '配置已保存',
+                message: '系统配置已写入并生效，无需重启服务。',
+                rawMessage: 'POST /api/v1/system-config 200 OK, updated_items=12',
+                status: 200,
+                category: 'unknown',
+            },
         },
-    },
-    {
-        key: 'warning',
-        variant: 'warning',
-        label: '警告',
-        content: {
-            title: '上游模型响应较慢',
-            message: '当前模型连续两次响应超过 60 秒，建议切换通道或降低并发后再试。',
-            rawMessage: 'upstream latency=63.4s, threshold=60s, channel=deepseek-chat',
-            category: 'upstream_timeout',
+        {
+            key: 'warning',
+            variant: 'warning',
+            label: '警告',
+            content: {
+                title: '上游模型响应较慢',
+                message: '当前模型连续两次响应超过 60 秒，建议切换通道或降低并发后再试。',
+                rawMessage: 'upstream latency=63.4s, threshold=60s, channel=deepseek-chat',
+                category: 'upstream_timeout',
+            },
         },
-    },
-    {
-        key: 'danger',
-        variant: 'danger',
-        label: '危险（原 ApiErrorAlert 的红色样式）；此处 message 故意写长，用于验证 line-clamp-3 截断',
-        content: {
-            title: '无法连接到本地服务',
-            message:
-                '请确认 HermesX 后端已启动（默认监听 http://127.0.0.1:8000），且浏览器所在机器可以访问该地址；若服务部署在容器或远程主机，请检查端口映射与防火墙规则，确认无误后点击右侧「重试」再次发起请求。',
-            rawMessage:
-                'AxiosError: Network Error at http://127.0.0.1:8000/api/v1/watchlist (ERR_CONNECTION_REFUSED)\n  at XMLHttpRequest.handleError (xhr.js:117)\n  at dispatchEvent (event-target.js:59)',
-            status: 0,
-            category: 'local_connection_failed',
+        {
+            key: 'danger',
+            variant: 'danger',
+            label: '危险（原 ApiErrorAlert 的红色样式）；此处 message 故意写长，用于验证 line-clamp-3 截断',
+            content: {
+                title: '无法连接到本地服务',
+                message:
+                    '请确认 HermesX 后端已启动（默认监听 http://127.0.0.1:8000），且浏览器所在机器可以访问该地址；若服务部署在容器或远程主机，请检查端口映射与防火墙规则，确认无误后点击右侧「重试」再次发起请求。',
+                rawMessage:
+                    'AxiosError: Network Error at http://127.0.0.1:8000/api/v1/watchlist (ERR_CONNECTION_REFUSED)\n  at XMLHttpRequest.handleError (xhr.js:117)\n  at dispatchEvent (event-target.js:59)',
+                status: 0,
+                category: 'local_connection_failed',
+            },
         },
-    },
-];
+    ];
 
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
@@ -153,11 +157,21 @@ const CodeTestPage: React.FC = () => {
     // HrsSelect 演示：基础受控单选（共享同一状态，用于对比各尺寸）
     const [selectMarket, setSelectMarket] = useState<Key | null>('a');
     // HrsSelect 演示：分组受控单选
-    const [selectIndex, setSelectIndex] = useState<Key | null>('usa');
+    const [selectIndex, setSelectIndex] = useState<Key | null>(null);
     // HrsSelect 演示：多选（受控，Key[]）
     const [selectIndicators, setSelectIndicators] = useState<Key[]>(['macd']);
     // HrsSelect 演示：校验态（未选择时展示错误提示）
     const [selectStrategy, setSelectStrategy] = useState<Key | null>(null);
+    // HrsCheckbox 演示：多选组受控（选项 value 集合）
+    const [notifyValues, setNotifyValues] = useState<string[]>(['newsletter']);
+    // HrsCheckbox 演示：单选框受控（是否选中）
+    const [acceptTerms, setAcceptTerms] = useState(true);
+    // HrsCheckbox 演示：受控 value 多选组
+    const [groupBValues, setGroupBValues] = useState<string[]>(['a']);
+    // HrsCheckbox 演示：min / max 约束（最少 / 最多可选数量）
+    const [boundValues, setBoundValues] = useState<string[]>(['b', 'c']);
+    // HrsCheckbox 演示：required + invalid 必填校验（取消到 0 项时联动报错）
+    const [reqGroupValues, setReqGroupValues] = useState<string[]>(['email']);
     // InlineTipCard 关闭演示：记录被 onDismiss 关掉的卡片 key
     const [dismissedTips, setDismissedTips] = useState<string[]>([]);
     // Chip 关闭演示：受控标签列表
@@ -187,10 +201,211 @@ const CodeTestPage: React.FC = () => {
         console.log('打开模态框')
     }
 
-
+    // throw 的位置决定了效果：
+    // 放在在组件外面：它会在 lazy 动态 import() 加载该模块、模块求值阶段就执行——这发生渲染它之前，所以被路由”*“捕获
+    // 放在组件里面：发生在 RouteOutletBoundary 包裹的 <Outlet/> 子树之内，继而显示<RouteOutletBoundary />
+    if (import.meta.env.DEV) throw new Error('component inside debug :RouteOutletBoundary');
 
     return (
         <AppPage>
+            {/* ============ HrsCheckbox 勾选框组件演示 ============ */}
+            <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
+                <h3 className="text-sm font-medium text-primary-text">HrsCheckbox（勾选框）组件演示</h3>
+                <p className="text-xs text-muted">
+                    基于 HeroUI Checkbox 封装，内部固定组装 Checkbox → Checkbox.Content → Checkbox.Control →
+                    Checkbox.Indicator。传 options 数组即进入「多选组」模式（循环渲染、统一维护选中集合）；不传 options 则退化为
+                    单个勾选框（原生 isSelected / defaultSelected / onChange 用法完全一致）。原生能力全部保留：
+                    isDisabled / isReadOnly / isIndeterminate / isRequired / isInvalid / name / validate 等，选项级字段优先级高于组件级。
+                </p>
+
+                {/* 1. 多选组（受控）：value 为 string[]，onChange 回传选中项 value 集合 */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-xs text-secondary-text">
+                        多选组（受控，当前选中：{notifyValues.length > 0 ? notifyValues.join(' / ') : '无'}）
+                    </span>
+                    <HrsCheckbox
+                        name="notifications"
+                        value={notifyValues}
+                        onChange={(next) => {
+                            console.log('[HrsCheckbox] notifications onChange:', next);
+                            setNotifyValues(next as string[]);
+                        }}
+                        options={[
+                            { value: 'notifications', label: 'Enable notifications' },
+                            { value: 'newsletter', label: 'Subscribe to newsletter', defaultSelected: true },
+                            { value: 'marketing', label: 'Receive marketing updates' },
+                            { value: 'sms', label: 'SMS 推送（disabled 子项）', disabled: true },
+                        ]}
+
+                    />
+                </div>
+
+                {/* 2. 多选组（非受控）：defaultValue 或选项 defaultSelected 决定初始选中 */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">多选组（非受控，defaultValue 与 option.defaultSelected 均可决定初始选中）</span>
+                    <span className="text-xs text-secondary-text">
+                        多选组（受控 value，当前选中：{groupBValues.length > 0 ? groupBValues.join(' / ') : '无'}）
+                    </span>
+                    <HrsCheckbox
+                        value={groupBValues}
+                        defaultValue={['b']}
+                        onChange={(next) => {
+                            console.log('[HrsCheckbox] 受控组 value onChange:', next);
+                            setGroupBValues(next as string[]);
+                        }}
+                        options={[
+                            { value: 'a', label: '选项 A' },
+                            { value: 'b', label: '选项 B（defaultValue 命中）' },
+                            { value: 'c', label: '选项 C（defaultSelected）', defaultSelected: true },
+                        ]}
+                    />
+                </div>
+
+                {/* 3. 单选框（原生用法）：isSelected + onChange(boolean) */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">
+                        单选框（原生 Checkbox 用法，isSelected={String(acceptTerms)}，onChange 回传 boolean）
+                    </span>
+                    <HrsCheckbox
+                        name="terms"
+                        label="Accept terms and conditions"
+                        value="on"
+                        isSelected={acceptTerms}
+                        onChange={(value) => setAcceptTerms(value as boolean)}
+                    />
+                </div>
+
+                {/* 4. 尺寸对比：size sm / md / lg */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">size 对比（sm / md / lg，非受控 defaultSelected）</span>
+                    <div className="flex flex-wrap items-start gap-6">
+                        {(['sm', 'md', 'lg'] as HrsCheckboxSize[]).map((size) => (
+                            <HrsCheckbox
+                                key={size}
+                                size={size}
+                                value={`cb-${size}`}
+                                label={`size=${size}`}
+                                defaultSelected
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* 5. 状态字段：disabled / indeterminate / description / required / invalid */}
+                <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">
+                        状态字段：disabled / indeterminate（半选）/ description（说明）/ required（必填星标）/ invalid + errorMessage（校验报错）
+                    </span>
+
+                    {/* 5a. 静态状态字段 */}
+                    <HrsCheckbox
+                        name="states"
+                        options={[
+                            { value: 'disabled', label: '禁用项（disabled）', disabled: true },
+                            { value: 'indeterminate', label: '半选项（indeterminate）', indeterminate: true },
+                            {
+                                value: 'desc',
+                                label: '带说明项（description）',
+                                description: '这是一段辅助说明文本，渲染在选项下方',
+                                defaultSelected: true,
+                            },
+                        ]}
+                    />
+
+                    {/* 5b. required：单项必填，渲染必填星标（isRequired） */}
+                    <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                        <span className="text-[11px] text-muted">required（isRequired，渲染必填星标）</span>
+                        <HrsCheckbox
+                            name="required-demo"
+                            value="agree"
+                            label="我已阅读并接受《用户协议》（required）"
+                            isRequired
+                            defaultSelected
+                        />
+                    </div>
+
+                    {/* 5c. invalid + errorMessage：必填组取消到 0 项时联动报错 */}
+                    <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                        <span className="text-[11px] text-muted">
+                            invalid + errorMessage（多选组必填，取消到 0 项时联动报错；当前选中 {reqGroupValues.length} 项）
+                        </span>
+                        <HrsCheckbox
+                            name="required-group"
+                            value={reqGroupValues}
+                            onChange={(next) => setReqGroupValues(next as string[])}
+                            options={[
+                                { value: 'email', label: '邮件通知' },
+                                { value: 'sms', label: '短信通知' },
+                                { value: 'push', label: '推送通知' },
+                            ].map((o, i) =>
+                                reqGroupValues.length === 0
+                                    ? {
+                                        ...o,
+                                        invalid: true,
+                                        ...(i === 0
+                                            ? { errorMessage: '此项为必填，请至少选择一项' }
+                                            : {}),
+                                    }
+                                    : o,
+                            )}
+                        />
+                    </div>
+                </div>
+
+                {/* 6. 纵向排列：orientation="vertical" */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">横向排列（orientation=&quot;horizontal&quot;）</span>
+                    <HrsCheckbox
+                        name="vertical"
+                        orientation="vertical"
+                        options={[
+                            { value: 'disabled', label: '禁用项（disabled）', disabled: true },
+                            { value: 'indeterminate', label: '半选项（indeterminate）', indeterminate: true },
+                            {
+                                value: 'invalid',
+                                label: '校验失败项（isInvalid + errorMessage）',
+                                invalid: true,
+                                errorMessage: '此项为必选项',
+                                defaultSelected: true,
+                            },
+                            {
+                                value: 'desc',
+                                label: '带说明项（description）',
+                                description: '这是一段辅助说明文本，渲染在选项下方',
+                                defaultSelected: true,
+                            },
+                        ]}
+                    />
+                </div>
+
+                {/* 7. min / max 约束：最小 / 最多可选数量（集中演示） */}
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+                    <span className="text-xs text-secondary-text">
+                        min / max 约束：min=1（至少 1 项，触达下限后已选项锁定不可取消）、max=3（至多 3 项，触达上限后未选项锁定不可勾选）。当前选中
+                        {boundValues.length} 项（限制 1 ~ 3）
+                    </span>
+                    <HrsCheckbox
+                        name="bound"
+                        value={boundValues}
+                        onChange={(next) => {
+                            console.log('[HrsCheckbox] min/max onChange:', next);
+                            setBoundValues(next as string[]);
+                        }}
+                        min={1}
+                        max={3}
+                        options={[
+                            { value: 'a', label: '选项 A' },
+                            { value: 'b', label: '选项 B（初始选中）' },
+                            { value: 'c', label: '选项 C（初始选中）' },
+                            { value: 'd', label: '选项 D' },
+                            { value: 'e', label: '选项 E（disabled 子项）', disabled: true },
+                        ]}
+                    />
+                    <span className="text-[11px] text-muted">
+                        触达上限（3 项）时剩余未选项变灰禁用、无法再勾；取消到仅剩 1 项时，已选项变灰禁用、无法再减。
+                    </span>
+                </div>
+            </div>
             {/* ============ HrsDrawer（侧滑抽屉）组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
                 <h3 className="text-sm font-medium text-primary-text">HrsDrawer（侧滑抽屉）组件演示</h3>
@@ -396,6 +611,7 @@ const CodeTestPage: React.FC = () => {
                                     placeholder="请选择市场"
                                     options={selectMarketOptions}
                                     value={selectMarket}
+                                    selectionMode="multiple"
                                     onChange={(value) => setSelectMarket(value as Key | null)}
                                 />
                             </div>
@@ -428,6 +644,7 @@ const CodeTestPage: React.FC = () => {
                     </span>
                     <div className="w-72">
                         <HrsSelect
+                            size='lg'
                             label="技术指标"
                             placeholder="请选择技术指标"
                             description="可组合多个指标进行叠加分析"
@@ -468,6 +685,8 @@ const CodeTestPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+
 
             {/* ============ TextArea 多行文本输入组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
@@ -686,7 +905,7 @@ const CodeTestPage: React.FC = () => {
                 </div>
             </div>
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
-                <Input
+                <HrsInput
                     aria-label="Search projects"
                     className="w-64 rounded-xl border border-border/80 bg-default text-foreground placeholder:text-muted"
                     placeholder="Search projects..."
@@ -733,27 +952,27 @@ const CodeTestPage: React.FC = () => {
 
             </div>
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
-                <Input
+                <HrsInput
                     className="w-100"
                     placeholder="新分组名称（xs）"
                     size="xs"
                     value={newName}
 
                 />
-                <Input
+                <HrsInput
                     className="w-200"
                     placeholder="新分组名称（sm）"
                     size="sm"
                     value={newName}
                 />
-                <Input
+                <HrsInput
                     className="w-full"
                     placeholder="新分组名称（md）"
                     size="md"
                     value={newName}
 
                 />
-                <Input
+                <HrsInput
                     placeholder="新分组名称（lg）"
                     size="lg"
                     value={newName}
