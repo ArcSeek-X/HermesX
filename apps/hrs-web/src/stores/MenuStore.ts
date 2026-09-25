@@ -61,6 +61,7 @@ const toNavMenuNode = (node: AppRouteNode, children?: NavMenuNode[]): NavMenuNod
   menuBadge: node.menuBadge,
   menuPosition: node.menuPosition,
   level: node.level,
+  menuType: node.menuType,
   menuExpanded: node.menuExpanded,
   description: node.menuDescription,
   children: children?.length ? children : undefined,

@@ -110,6 +110,9 @@ const MenuNode: React.FC<MenuNodeProps> = ({
   const label = menuName ? t(menuName as UiTextKey) || menuName : '';
   const hasChildren = !!children?.length;
   const expanded = isExpanded(node);
+  // 分组节点（menuType==='group'）：仅作分区标题、不可点击跳转；以节点自身 menuType 为准，
+  // 与全局 menuMode 无关（menuMode 仅作为无 menuType 时的回退）。
+  const isGroup = node.menuType === 'group';
 
   // 自身命中路由，或子项命中时父级同步高亮（对齐 V2 的 selfCurrent / childCurrent）
   const active =
@@ -129,10 +132,9 @@ const MenuNode: React.FC<MenuNodeProps> = ({
     goToRoute();
   };
 
-  /** 含子级节点主区点击：跳转 + 切换展开 */
+  /** 含子级节点主区点击：仅切换展开/收起，不跳转路由（父级为容器，路由由其子项承载） */
   const handleParentClick: React.MouseEventHandler<HTMLElement> = (event) => {
     event.preventDefault();
-    goToRoute();
     onToggle(menuId);
   };
 
@@ -145,14 +147,22 @@ const MenuNode: React.FC<MenuNodeProps> = ({
 
   // —— 图标栏（半折叠 64px）：只保留图标入口，可访问性用 title / aria-label 兜底 ——
   if (collapsedState === 'collapsed') {
+    // 分组节点不可跳转，仅作图标占位（避免点击 group 路由 404）
+    const navigable = !!routePath && !isGroup;
     return (
       <li className={`menu-node-collapsed-${level}`}>
         <a
-          href={routePath}
-          onClick={handleClick}
+          href={navigable ? routePath : undefined}
+          onClick={navigable ? handleClick : undefined}
           title={label}
           aria-label={label}
-          className={cn(MENU_ITEM_BASE, 'justify-center px-0', MENU_ITEM_HOVER, active && MENU_ITEM_ACTIVE)}
+          className={cn(
+            MENU_ITEM_BASE,
+            'justify-center px-0',
+            MENU_ITEM_HOVER,
+            active && MENU_ITEM_ACTIVE,
+            !navigable && 'cursor-default',
+          )}
         >
           {menuIcon}
         </a>
@@ -175,7 +185,8 @@ const MenuNode: React.FC<MenuNodeProps> = ({
       />
     ));
 
-    // group 模式：分区标题 + 平铺子项（始终展开，不可折叠）
+    // 全局 group 模式：所有含子级的一级菜单均渲染为静态分区标题（纯文字、始终展开、无箭头、不可跳转）。
+    // 注意：collapse 模式下即使 menuType==='group'，也走下方 accordion 分支（带 ChevronRight、点击展开/收起、不跳转路由）。
     if (menuMode === 'group') {
       return (
         <li className={`menu-node-group-${level}`}>
@@ -203,6 +214,7 @@ const MenuNode: React.FC<MenuNodeProps> = ({
             {menuIcon}
             <span className="truncate">{label}</span>
           </span>
+
           <ChevronRight
             className={cn('flex h-4 w-4 transition-transform text-foreground-soft text-xs', expanded && 'rotate-90')}
           />

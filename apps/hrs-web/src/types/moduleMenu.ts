@@ -16,6 +16,8 @@ export type NavMenuNode = {
   menuPosition: 'header' | 'content' | 'footer';
   /** 菜单层级 */
   level: number;
+  /** 菜单类型：page=可跳转页 / group=分组（仅作分区标题、不可点击跳转） / redirect / fallback */
+  menuType?: 'page' | 'group' | 'redirect' | 'fallback';
   /** 菜单是否默认展开 */
   menuExpanded: boolean;
   /** 页面描述文案 */
