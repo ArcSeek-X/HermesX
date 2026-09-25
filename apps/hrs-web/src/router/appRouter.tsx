@@ -41,45 +41,63 @@ export const protectedLoader = ({ request }: LoaderFunctionArgs): Response | nul
  *  会把已登录业务地址（如 /home）误判为未匹配而落到 * 兜底跳 /404。登录后 registerAsyncRoutes 以 patchRoutes('business') 整体替换。 */
 const initialBusinessRoutes = buildAsyncRoutes(useRouterStore.getState().asyncRouteData);
 
+/** 初始 hydration 占位：React Router v7 数据路由在首屏初始化（跑 loader）期间会渲染 HydrateFallback；
+ *  若不提供，开发期会告警 "No `HydrateFallback` element provided to render during initial hydration"。
+ *  这里给一个轻量加载占位，等价于原先空白渲染，但消除告警并避免首屏白屏闪烁。 */
+function RouteHydrateFallback() {
+  return (
+    <div className="flex h-screen w-full items-center justify-center text-muted-text">
+      Loading…
+    </div>
+  );
+}
+
 export const router = createBrowserRouter([
-  // 根路径：重定向至登录页（顶层 index 路由，无需再包一层 path: '/'）
-  { index: true, loader: () => redirect('/login'), errorElement: <RouteErrorBoundary /> },
   {
-    path: '/login',
-    element: <LoginPage />,
-    errorElement: <RouteErrorBoundary />,
-    // 登录页静态元数据（i18n 键），供 ShellHeader 经 useMatches 读取渲染页头
-    handle: {
-      routerName: 'auth.login.title',
-      routerDescription: 'auth.login.description',
-    } satisfies RouteHandle,
-  },
-  {
-    id: 'protected',
-    element: <Shell />,
-    loader: protectedLoader,
-    errorElement: <RouteErrorBoundary />,
+    // 显式根路由：包裹登录 / 受保护布局 / 兜底路由；挂 HydrateFallback 消除上述 dev 告警。
+    // 等价于原先的隐式根，不影响现有匹配与 patchRoutes('business') 注入。
+    HydrateFallback: RouteHydrateFallback,
     children: [
-      // 异常兜底 404：固定在 Shell 内（底座为 Shell），不参与动态注入，避免被 patchRoutes 整体替换时冲掉
+      // 根路径：重定向至登录页（顶层 index 路由，无需再包一层 path: '/'）
+      { index: true, loader: () => redirect('/login'), errorElement: <RouteErrorBoundary /> },
       {
-        path: '404',
-        loader: () => null,
-        element: <NotFoundPage />,
+        path: '/login',
+        element: <LoginPage />,
+        errorElement: <RouteErrorBoundary />,
+        // 登录页静态元数据（i18n 键），供 ShellHeader 经 useMatches 读取渲染页头
+        handle: {
+          routerName: 'auth.login.title',
+          routerDescription: 'auth.login.description',
+        } satisfies RouteHandle,
       },
-      // 动态业务路由容器：刷新时初始匹配即可命中；登录后由 registerAsyncRoutes 以 patchRoutes('business') 整体替换
       {
-        id: 'business',
-        children: initialBusinessRoutes,
+        id: 'protected',
+        element: <Shell />,
+        loader: protectedLoader,
+        errorElement: <RouteErrorBoundary />,
+        children: [
+          // 异常兜底 404：固定在 Shell 内（底座为 Shell），不参与动态注入，避免被 patchRoutes 整体替换时冲掉
+          {
+            path: '404',
+            loader: () => null,
+            element: <NotFoundPage />,
+          },
+          // 动态业务路由容器：刷新时初始匹配即可命中；登录后由 registerAsyncRoutes 以 patchRoutes('business') 整体替换
+          {
+            id: 'business',
+            children: initialBusinessRoutes,
+          },
+        ],
+      },
+      // 异常兜底：顶层 * 路由，未匹配路径统一收口（未登录跳登录，已登录跳 /404）
+      {
+        path: '*',
+        loader: ({ request }) => {
+          const res = guardAuthRedirect(request);
+          if (res) return res;
+          return redirect('/404');
+        },
       },
     ],
-  },
-  // 异常兜底：顶层 * 路由，未匹配路径统一收口（未登录跳登录，已登录跳 /404）
-  {
-    path: '*',
-    loader: ({ request }) => {
-      const res = guardAuthRedirect(request);
-      if (res) return res;
-      return redirect('/404');
-    },
   },
 ]);
