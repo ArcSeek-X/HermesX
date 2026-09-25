@@ -98,8 +98,12 @@ const zhHant = {
   'layout.nav.chat.description': '多輪策略問答與歷史會話管理', // 问股导航项描述
   'layout.nav.codeTest.title': '測試', // 測試頁導航項
   'layout.nav.codeTest.description': '元件展示與聯調測試頁', // 测试导航项描述
-  'layout.nav.dashboard.title': '總覽', // 總覽導航項
-  'layout.nav.dashboard.description': 'A股、港股、美股、日韓市場行情與核心指標總覽', // 总览导航项描述
+  'layout.nav.index.title': '總覽', // 行情總覽導航項
+  'layout.nav.index.description': 'A股、港股、美股、日韓市場行情與核心指標總覽', // 行情總覽導航項描述
+  'layout.nav.market.title': '行情', // 行情一級分組導航項
+  'layout.nav.market.description': '市場行情、指數總覽與板塊分析', // 行情一級分組導航項描述
+  'layout.nav.stock.title': '個股', // 個股一級分組導航項
+  'layout.nav.stock.description': '個股行情、K 線與多週期分析', // 個股一級分組導航項描述
   'dashboard.tab.a': 'A股', // 总览页市场TAB：A股
   'dashboard.tab.hkUs': '港美', // 总览页市场TAB：港美
   'dashboard.tab.jpKr': '日韓', // 总览页市场TAB：日韓
@@ -114,6 +118,12 @@ const zhHant = {
   'layout.nav.liveCalendar.description': '宏觀、財報、新股、活動等重要事件日曆', // 日曆導航項描述
   'layout.nav.liveNews.title': '快訊', // 即時快訊導航項
   'layout.nav.liveNews.description': '7x24 財經快訊，依頻道篩選與重要級過濾', // 快讯导航项描述
+  'layout.nav.news.title': '資訊', // 資訊一級分組導航項
+  'layout.nav.news.description': '財經資訊與日曆', // 資訊一級分組導航項描述
+  'layout.nav.choose.title': '選股', // 選股一級分組導航項
+  'layout.nav.choose.description': 'AI 對話選股與智能決策建議', // 選股一級分組導航項描述
+  'layout.nav.trading.title': '交易', // 交易一級分組導航項
+  'layout.nav.trading.description': '組合持倉與交易管理', // 交易一級分組導航項描述
   'layout.nav.portfolio.title': '持倉', // 持倉導航項
   'layout.nav.portfolio.description': '組合快照、手工錄入與風險分析', // 持仓导航项描述
   'layout.nav.review.title': '復盤', // 復盤導航項

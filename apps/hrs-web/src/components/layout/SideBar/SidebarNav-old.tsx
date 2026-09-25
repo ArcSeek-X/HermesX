@@ -54,7 +54,7 @@ export type NavItem = {
  */
 const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'home', labelKey: 'layout.nav.home.title', to: '/home', icon: Home, exact: true },
-  { key: 'stock-dashboard', labelKey: 'layout.nav.dashboard.title', to: '/stock-dashboard', icon: LayoutDashboard },
+  { key: 'stock-dashboard', labelKey: 'layout.nav.index.title', to: '/stock-dashboard', icon: LayoutDashboard },
   { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis.title', to: '/sector-analysis', icon: LayoutGrid },
   { key: 'watchlist', labelKey: 'layout.nav.watchlist.title', to: '/watchlist', icon: Star },
   { key: 'live-calendar', labelKey: 'layout.nav.liveCalendar.title', to: '/live-calendar', icon: CalendarDays },

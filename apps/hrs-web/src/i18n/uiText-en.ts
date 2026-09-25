@@ -101,8 +101,12 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.chat.description': 'Multi-turn strategy Q&A and sessions',
   'layout.nav.codeTest.title': 'Test',
   'layout.nav.codeTest.description': 'Component showcase and integration test page',
-  'layout.nav.dashboard.title': 'Overview',
-  'layout.nav.dashboard.description': 'A-shares, HK, US, and Japan/Korea market overview and key indicators',
+  'layout.nav.index.title': 'Overview',
+  'layout.nav.index.description': 'A-shares, HK, US, and Japan/Korea market overview and key indicators',
+  'layout.nav.market.title': 'Markets',
+  'layout.nav.market.description': 'Market quotes, index overview, and sector analysis',
+  'layout.nav.stock.title': 'Stocks',
+  'layout.nav.stock.description': 'Individual stock quotes, K-line, and multi-period analysis',
   'dashboard.tab.a': 'A-Shares', // Dashboard market TAB: A-Shares
   'dashboard.tab.hkUs': 'HK & US', // Dashboard market TAB: HK & US
   'dashboard.tab.jpKr': 'Japan & Korea', // Dashboard market TAB: Japan & Korea
@@ -117,6 +121,12 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.liveCalendar.description': 'Calendar of macro, earnings, IPO, and event items',
   'layout.nav.liveNews.title': 'Newsflash',
   'layout.nav.liveNews.description': '24/7 financial newsflash with channel and importance filters',
+  'layout.nav.news.title': 'News', // News top-level group
+  'layout.nav.news.description': 'Market news & financial calendar', // News top-level group description
+  'layout.nav.choose.title': 'Stock Picking',
+  'layout.nav.choose.description': 'AI chat-based stock picking and smart decision signals',
+  'layout.nav.trading.title': 'Trading',
+  'layout.nav.trading.description': 'Portfolio positions and trade management',
   'layout.nav.portfolio.title': 'Portfolio',
   'layout.nav.portfolio.description': 'Portfolio snapshots, manual entries, and risk analysis',
   'layout.nav.review.title': 'Review',

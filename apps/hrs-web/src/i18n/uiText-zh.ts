@@ -99,8 +99,12 @@ const zh = {
   'layout.nav.chat.description': '多轮策略问答与历史会话管理', // 问股导航项描述
   'layout.nav.codeTest.title': '测试', // 测试页导航项
   'layout.nav.codeTest.description': '组件演示与联调测试页', // 测试导航项描述
-  'layout.nav.dashboard.title': '总览', // 总览导航项
-  'layout.nav.dashboard.description': 'A股、港股、美股、日韩市场行情与核心指标总览', // 总览导航项描述
+  'layout.nav.index.title': '总览', // 行情总览导航项
+  'layout.nav.index.description': 'A股、港股、美股、日韩市场行情与核心指标总览', // 行情总览导航项描述
+  'layout.nav.market.title': '行情', // 行情一级分组导航项
+  'layout.nav.market.description': '市场行情、指数总览与板块分析', // 行情一级分组导航项描述
+  'layout.nav.stock.title': '个股', // 个股一级分组导航项
+  'layout.nav.stock.description': '个股行情、K 线与多周期分析', // 个股一级分组导航项描述
   'dashboard.tab.a': 'A股', // 总览页市场TAB：A股
   'dashboard.tab.hkUs': '港美', // 总览页市场TAB：港美
   'dashboard.tab.jpKr': '日韩', // 总览页市场TAB：日韩
@@ -115,6 +119,12 @@ const zh = {
   'layout.nav.liveCalendar.description': '宏观、财报、新股、活动等重要事件日历', // 日历导航项描述
   'layout.nav.liveNews.title': '快讯', // 实时快讯导航项
   'layout.nav.liveNews.description': '7x24 财经快讯，按频道筛选与重要级过滤', // 快讯导航项描述
+  'layout.nav.news.title': '资讯', // 资讯一级分组导航项
+  'layout.nav.news.description': '财经资讯与日历', // 资讯一级分组导航项描述
+  'layout.nav.choose.title': '选股', // 选股一级分组导航项
+  'layout.nav.choose.description': 'AI 对话选股与智能决策建议', // 选股一级分组导航项描述
+  'layout.nav.trading.title': '交易', // 交易一级分组导航项
+  'layout.nav.trading.description': '组合持仓与交易管理', // 交易一级分组导航项描述
   'layout.nav.portfolio.title': '持仓', // 持仓导航项
   'layout.nav.portfolio.description': '组合快照、手工录入与风险分析', // 持仓导航项描述
   'layout.nav.review.title': '复盘', // 复盘导航项

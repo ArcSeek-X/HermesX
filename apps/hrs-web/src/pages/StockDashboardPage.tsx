@@ -272,7 +272,7 @@ const StockDashboardPage: React.FC = () => {
   return (
     <AppPage>
       <div className="space-y-3">
-        <PageHeader title={t('layout.nav.dashboard.title')} description={t('layout.nav.dashboard.description')}/>
+        <PageHeader title={t('layout.nav.index.title')} description={t('layout.nav.index.description')}/>
         {/* ===== 市场 TAB：A股 / 港美 / 日韩（均接入真实指数数据）===== */}
         <TabNav<MarketTab>
           ariaLabel={t('dashboard.marketSwitch')}
