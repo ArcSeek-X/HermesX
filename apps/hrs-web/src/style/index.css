@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "@heroui-pro/react/css";
 @import "./palette.css";
 @config "../../tailwind.config.js";
 @import "./hsl-inline.css";
