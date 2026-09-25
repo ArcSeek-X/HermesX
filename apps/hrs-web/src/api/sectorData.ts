@@ -88,6 +88,23 @@ export type SectorStocksResponse = {
   stocks: StockItem[];
 };
 
+/**
+ * 按 code 去重，保留首次出现的项。
+ *
+ * 后端代理的东财接口偶发返回重复 code 的板块，前端若直接用 code 作为 React key，
+ * 会触发 "Encountered two children with the same key" 警告，并可能导致列表项被复用/丢失。
+ * 因此在数据入口统一去重，让各消费方拿到的列表天然唯一。
+ */
+function dedupeByCode<T extends { code: string }>(list: T[] | undefined | null): T[] {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set<string>();
+  return list.filter((item) => {
+    if (seen.has(item.code)) return false;
+    seen.add(item.code);
+    return true;
+  });
+}
+
 /** 获取行业板块树形数据（一级行业包含二级行业子节点） */
 export async function fetchIndustryTree(time?: string): Promise<{ sectors: SectorNode[]; snapshotTime: string | null }> {
   const response = await apiClient.get('/api/v1/sector/industry', {
@@ -104,7 +121,8 @@ export async function fetchBoardList(
   const response = await apiClient.get('/api/v1/sector/board-list', {
     params: { sector_type: sectorType },
   });
-  return response.data;
+  // 后端偶发返回重复板块：去重后再交给消费方（卡片/榜单用 code 作 key）
+  return { ...response.data, boards: dedupeByCode(response.data?.boards) };
 }
 
 export async function fetchIndustrySectors(): Promise<SectorItem[]> {
@@ -323,6 +341,7 @@ export async function fetchSectorFundFlowSectorList(
   const response = await apiClient.get('/api/v1/sector/fund-flow-sectors', {
     params: { sector_type: sectorType },
   });
-  return response.data.sectors;
+  // 同上：多选下拉用 code 作 key，需保证唯一
+  return dedupeByCode(response.data?.sectors);
 }
 
