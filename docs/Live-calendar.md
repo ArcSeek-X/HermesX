@@ -575,7 +575,8 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 ### 9.1 路由与页面
 
-- 路由 `/live-calendar`（`router/manifest.ts`：`menuId=live-calendar`，`menuPagePath=pages/LiveCalendarPage`，`auth=protected`）。
+- 路由 `/live-calendar`，归属一级菜单组 `news`（`router/manifest.ts`：`menuName=layout.nav.news.title`、`menuDescription=layout.nav.news.description`、`menuType=group`、`menuVisible=true`），与 `live-news` 同属「资讯」分组；文案由 `apps/hrs-web/src/i18n/uiText-{zh,zh-Hant,en}.ts` 提供（zh：`资讯` / `财经资讯与日历`）。
+- 本页节点（`router/manifest.ts`）：`menuId=live-calendar`、`menuPagePath=pages/LiveCalendarPage`、`level=1`、`auth=protected`。
 - 页面 `pages/LiveCalendarPage.tsx` 布局：页头 + 降级提示条 + 抬升卡片（TabNav + 筛选面板 + 日历主体）+ 选中日详情面板（始终置于日历下方，多列网格）。
 
 ### 9.2 组件树
