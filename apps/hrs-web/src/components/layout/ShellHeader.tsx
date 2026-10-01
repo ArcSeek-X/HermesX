@@ -10,6 +10,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import { ChevronsLeft, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useMatches, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
@@ -18,6 +19,7 @@ import { useLayoutStore } from '../../stores';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
+import { MyApps } from './HeaderComponents/MyApps';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { ModeSwitch } from './HeaderComponents/ModeSwitch';
 import { StockSearch } from '../StockSearch/StockSearch';
@@ -87,10 +89,24 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           )}
         </button>
 
+        {/* 回到主页按钮：点击跳转 /home */}
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/70 text-secondary-text transition-colors hover:bg-hover hover:text-foreground"
+          aria-label={t('layout.header.goHome')}
+          title={t('layout.header.goHome')}
+        >
+          <Home className="h-5 w-5" />
+        </button>
+
+        {/* 我的应用下拉面板：应用入口从 MENU_MANIFEST 真源渲染 */}
+        <MyApps />
+
         {/* 当前路由标题 + 描述 */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{title}</p>
-          <p className="truncate text-xs text-secondary-text">{description}</p>
+          {/* <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+          <p className="truncate text-xs text-secondary-text">{description}</p> */}
         </div>
 
         {/* 右侧操作区：股票搜索 / 主题设置 / 中英文切换 / 个人设置 */}
