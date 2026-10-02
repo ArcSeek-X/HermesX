@@ -207,6 +207,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     //构建完整的模块菜单数据
     const menuData = buildRuntimeMenuData();
     const currentModuleId = getValidModuleId(menuData, loginModuleId);
+    console.log('menuData',menuData)
     applyMenuState(set, menuData, currentModuleId, true);
   },
 

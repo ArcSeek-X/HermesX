@@ -9,17 +9,17 @@
  */
 import type React from 'react';
 import { useState } from 'react';
-import { ChevronsLeft, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Home } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useMatches, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import type { RouteHandle } from '../../types/router';
-import { useLayoutStore } from '../../stores';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
-import { MyApps } from './HeaderComponents/MyApps';
+import { ApplicationMenu } from './HeaderComponents/ApplicationMenu';
+import { MenuSwitcher } from './HeaderComponents/MenuSwitcher';
+import { BackToHome } from './HeaderComponents/BackToHome';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { ModeSwitch } from './HeaderComponents/ModeSwitch';
 import { StockSearch } from '../StockSearch/StockSearch';
@@ -42,8 +42,6 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useUiLanguage();
-  // 折叠态直接订阅 store（决定折叠按钮的图标与无障碍提示），无需外部传入
-  const menuCollapsedState = useLayoutStore((state) => state.menuCollapsedState);
   const matches = useMatches();
   // 当前页标题/描述：经 useMatches 读取路由 handle（数据路由原生能力），与侧栏/路由同源；按字段独立 i18n 兜底
   const handle = matches[matches.length - 1]?.handle as RouteHandle | undefined;
@@ -71,37 +69,13 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         </button>
 
         {/* 桌面端侧边栏折叠/展开按钮（>= lg 断点显示） */}
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          className="hidden h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/70 text-secondary-text transition-colors hover:bg-hover hover:text-foreground lg:inline-flex"
-          aria-label={
-            menuCollapsedState === 'fully' ? t('layout.expandSidebar') : t('layout.collapseSidebar')
-          }
-        >
-          {/* 三态图标：fully 显示展开；collapsed 显示「继续完全收起」；offcanvas 显示收起 */}
-          {menuCollapsedState === 'fully' ? (
-            <PanelLeftOpen className="h-5 w-5" />
-          ) : menuCollapsedState === 'collapsed' ? (
-            <ChevronsLeft className="h-5 w-5" />
-          ) : (
-            <PanelLeftClose className="h-5 w-5" />
-          )}
-        </button>
+        <MenuSwitcher onToggleSidebar={onToggleSidebar} />
 
         {/* 回到主页按钮：点击跳转 /home */}
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/70 text-secondary-text transition-colors hover:bg-hover hover:text-foreground"
-          aria-label={t('layout.header.goHome')}
-          title={t('layout.header.goHome')}
-        >
-          <Home className="h-5 w-5" />
-        </button>
+        <BackToHome />
 
         {/* 我的应用下拉面板：应用入口从 MENU_MANIFEST 真源渲染 */}
-        <MyApps />
+        <ApplicationMenu />
 
         {/* 当前路由标题 + 描述 */}
         <div className="min-w-0 flex-1">
