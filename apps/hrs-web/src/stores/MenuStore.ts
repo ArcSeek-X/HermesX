@@ -33,7 +33,7 @@ const CURRENT_MODULE_STORAGE_KEY = 'menu.currentModuleId';
 const DEFAULT_MODULE_ID: ModuleId = 'productModel';
 
 interface MenuState {
-  /** 按模块划分的完整菜单数据：{ [moduleId]: ModuleMenu }（含模块元数据与菜单树）。需持久化（见 MENU_DATA_STORAGE_KEY） */
+  /** 按模块划分的完整菜单数据：{ [moduleId]: NavModuleNode }（含模块元数据与菜单树）。需持久化（见 MENU_DATA_STORAGE_KEY） */
   menuData: ModuleMenuData;
   /** 当前激活的模块 id；取值来自各菜单节点的 moduleId 字段，需持久化（见 CURRENT_MODULE_STORAGE_KEY） */
   currentModuleId: ModuleId;
@@ -96,7 +96,7 @@ const buildModuleMenuNodes = (nodes: AppRouteNode[]): NavMenuNode[] =>
 /**
  * 构建全量运行时菜单数据：遍历每个模块，生成「模块元数据 + 菜单树」的完整模块对象。
  * 基于路由清单实时计算、不读 localStorage，因此始终反映最新路由结构。
- * @returns 形如 { [moduleId]: ModuleMenu } 的全量菜单数据
+ * @returns 形如 { [moduleId]: NavModuleNode } 的全量菜单数据
  */
 const buildRuntimeMenuData = (): ModuleMenuData => {
   const menuData = {} as ModuleMenuData;
@@ -154,7 +154,7 @@ const getValidModuleId = (menuData: ModuleMenuData, moduleId?: ModuleId | null):
 const readStoredMenuData = (): ModuleMenuData => {
   const stored = getStorageItem<ModuleMenuData>(MENU_DATA_STORAGE_KEY, 'local');
   // 只接受对象形态：null（缺失/解析失败/存储不可用）与 JSON 基本类型一律视为「没有」。
-  // 这里断言而非补壳二个模块键：ModuleMenuData 为 Record<ModuleId, ModuleMenu>，
+  // 这里断言而非补壳二个模块键：ModuleMenuData 为 Record<ModuleId, NavModuleNode>，
   // 「空对象」是刻意的合法初值，补 { productModel: [], developmentMode: [] } 反而伪装成已初始化。
   if (!stored || typeof stored !== 'object') {
     return {} as ModuleMenuData;

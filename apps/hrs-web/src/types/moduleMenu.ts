@@ -29,7 +29,7 @@ export type NavMenuNode = {
 };
 
 /** 模块菜单：模块级元数据 + 该模块下的菜单树。 */
-export type ModuleMenu = {
+export type NavModuleNode = {
   /** 模块唯一标识（也是 currentModuleId 取值与持久化键） */
   moduleId: ModuleId;
   /** 模块名称：i18n key 或直写文案 */
@@ -49,4 +49,4 @@ export type ModuleMenu = {
 };
 
 /** 按模块划分的菜单数据：键为 moduleId，值为模块（含元数据与菜单树）。 */
-export type ModuleMenuData = Record<ModuleId, ModuleMenu>;
+export type ModuleMenuData = Record<ModuleId, NavModuleNode>;
