@@ -28,5 +28,25 @@ export type NavMenuNode = {
   children?: NavMenuNode[];
 };
 
-/** 按模块划分的菜单数据。 */
-export type ModuleMenuData = Record<ModuleId, NavMenuNode[]>;
+/** 模块菜单：模块级元数据 + 该模块下的菜单树。 */
+export type ModuleMenu = {
+  /** 模块唯一标识（也是 currentModuleId 取值与持久化键） */
+  moduleId: ModuleId;
+  /** 模块名称：i18n key 或直写文案 */
+  moduleName: string;
+  /** 模块描述文案 */
+  moduleDescription?: string;
+  /** 模块根路由路径（可选） */
+  routePath?: string;
+  /** 模块所属分组 id（可选，便于按分组聚合） */
+  moduleGroupId?: string;
+  /** 模块分组名称（可选） */
+  moduleGroupName?: string;
+  /** 模块图标名（lucide-react 组件名，按名称解析，可选） */
+  moduleIcon?: string;
+  /** 该模块下的菜单树（已由路由节点转换） */
+  children: NavMenuNode[];
+};
+
+/** 按模块划分的菜单数据：键为 moduleId，值为模块（含元数据与菜单树）。 */
+export type ModuleMenuData = Record<ModuleId, ModuleMenu>;

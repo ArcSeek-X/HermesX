@@ -2,9 +2,9 @@
  * ApplicationMenu
  *
  * 头部「我的应用」下拉面板：点击触发按钮弹出应用入口列表（motion.div 动画）。
- * 应用数据以 router/manifest.ts 的 MENU_MANIFEST（模块真源）渲染，
- * 当前即 productModel（产品）与 developmentMode（开发调试）两个模块；
- * 后续新增模块无需改此组件，自动随真源渲染。
+ * 应用数据来自 MenuStore 的 menuData（由 router/manifest.ts 真源构建），
+ * 当前含 productModel（产品）与 developmentMode（开发调试）两个模块；
+ * 模块级元数据（名称/图标/描述）随 menuData 一并下发，新增模块无需改此组件。
  *
  * 层级处理：弹层通过 createPortal 渲染到 document.body（fixed 定位），
  * 避免被父级（如 <header class="z-30">）的 stacking context / overflow 影响层级，
@@ -18,8 +18,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { LayoutGrid } from 'lucide-react';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../i18n/uiText';
-import { MENU_MANIFEST } from '../../../router/manifest';
-import type { ModuleId, ModuleNode } from '../../../router/manifest';
 import { useMenuStore } from '../../../stores/MenuStore';
 import { menuIconRegistry } from '../SideBar/MenuIcon';
 
@@ -28,17 +26,11 @@ export const ApplicationMenu = () => {
   // 与 ModeSwitch 同路：点击应用项时同步切换当前模块，首页跳转由 SidebarNav 监听
   // currentMenuData 变化的 effect 自动完成（无需在此显式 navigate，避免重复跳转）。
   const setCurrentModuleId = useMenuStore((s) => s.setCurrentModuleId);
-  // 模块列表直接来自 MenuStore 的 menuData 键（与菜单数据同步）：
-  // 登录/构建后 menuData 含已激活模块；未登录（menuData 为空）时回退 MENU_MANIFEST 键，避免下拉空白。
-  // 模块级展示信息（名称/图标/描述）store 不持有，仍从 MENU_MANIFEST 取。
+  // 模块列表直接来自 MenuStore 的 menuData（与菜单数据同步，且已含模块名/图标/描述等元数据）。
+  // menuData 在登录后由 buildMenuData 构建，未登录时为空，下拉自然为空。
   const menuData = useMenuStore((s) => s.menuData);
   const currentModuleId = useMenuStore((s) => s.currentModuleId);
-  const moduleIds = (
-    Object.keys(menuData).length ? Object.keys(menuData) : MENU_MANIFEST.map((m) => m.moduleId)
-  ) as ModuleId[];
-  const modules = moduleIds
-    .map((id) => MENU_MANIFEST.find((m) => m.moduleId === id))
-    .filter((m): m is ModuleNode => Boolean(m));
+  const modules = Object.values(menuData);
 
 
 

@@ -33,7 +33,7 @@ const CURRENT_MODULE_STORAGE_KEY = 'menu.currentModuleId';
 const DEFAULT_MODULE_ID: ModuleId = 'productModel';
 
 interface MenuState {
-  /** 按模块划分的完整菜单数据：{ [moduleId]: NavMenuNode[] }。需持久化（见 MENU_DATA_STORAGE_KEY） */
+  /** 按模块划分的完整菜单数据：{ [moduleId]: ModuleMenu }（含模块元数据与菜单树）。需持久化（见 MENU_DATA_STORAGE_KEY） */
   menuData: ModuleMenuData;
   /** 当前激活的模块 id；取值来自各菜单节点的 moduleId 字段，需持久化（见 CURRENT_MODULE_STORAGE_KEY） */
   currentModuleId: ModuleId;
@@ -94,15 +94,24 @@ const buildModuleMenuNodes = (nodes: AppRouteNode[]): NavMenuNode[] =>
   });
 
 /**
- * 构建全量运行时菜单数据：遍历每个模块 id，生成对应的菜单树。
+ * 构建全量运行时菜单数据：遍历每个模块，生成「模块元数据 + 菜单树」的完整模块对象。
  * 基于路由清单实时计算、不读 localStorage，因此始终反映最新路由结构。
- * @returns 形如 { [moduleId]: NavMenuNode[] } 的全量菜单数据
+ * @returns 形如 { [moduleId]: ModuleMenu } 的全量菜单数据
  */
 const buildRuntimeMenuData = (): ModuleMenuData => {
   const menuData = {} as ModuleMenuData;
   for (const moduleNode of MENU_MANIFEST) {
-    // 直接取模块子树构建菜单（模块归属已结构性保证）
-    menuData[moduleNode.moduleId] = buildModuleMenuNodes(moduleNode.children ?? []);
+    // 模块级元数据 + 菜单树一并搬运（模块归属已结构性保证）
+    menuData[moduleNode.moduleId] = {
+      moduleId: moduleNode.moduleId,
+      moduleName: moduleNode.moduleName,
+      moduleDescription: moduleNode.moduleDescription,
+      routePath: moduleNode.routePath,
+      moduleGroupId: moduleNode.moduleGroupId,
+      moduleGroupName: moduleNode.moduleGroupName,
+      moduleIcon: moduleNode.moduleIcon,
+      children: buildModuleMenuNodes(moduleNode.children ?? []),
+    };
   }
   return menuData;
 };
@@ -116,7 +125,7 @@ const buildRuntimeMenuData = (): ModuleMenuData => {
  */
 const getFirstAvailableModuleId = (menuData: ModuleMenuData): ModuleId => {
   const keys = Object.keys(menuData) as ModuleId[];
-  const first = keys.find((item) => Array.isArray(menuData[item]) && menuData[item].length > 0);
+  const first = keys.find((item) => menuData[item].children.length > 0);
   return first ?? DEFAULT_MODULE_ID;
 };
 
@@ -128,7 +137,7 @@ const getFirstAvailableModuleId = (menuData: ModuleMenuData): ModuleId => {
  * @returns 有效的模块 id（必为 menuData 中存在的键）
  */
 const getValidModuleId = (menuData: ModuleMenuData, moduleId?: ModuleId | null): ModuleId => {
-  if (moduleId && Array.isArray(menuData[moduleId])) {
+  if (moduleId && menuData[moduleId]) {
     return moduleId;
   }
   return getFirstAvailableModuleId(menuData);
@@ -145,7 +154,7 @@ const getValidModuleId = (menuData: ModuleMenuData, moduleId?: ModuleId | null):
 const readStoredMenuData = (): ModuleMenuData => {
   const stored = getStorageItem<ModuleMenuData>(MENU_DATA_STORAGE_KEY, 'local');
   // 只接受对象形态：null（缺失/解析失败/存储不可用）与 JSON 基本类型一律视为「没有」。
-  // 这里断言而非补壳二个模块键：ModuleMenuData 为 Record<ModuleId, NavMenuNode[]>，
+  // 这里断言而非补壳二个模块键：ModuleMenuData 为 Record<ModuleId, ModuleMenu>，
   // 「空对象」是刻意的合法初值，补 { productModel: [], developmentMode: [] } 反而伪装成已初始化。
   if (!stored || typeof stored !== 'object') {
     return {} as ModuleMenuData;
@@ -171,7 +180,7 @@ const readStoredCurrentModuleId = (menuData: ModuleMenuData): ModuleId => {
 // 刷新浏览器时即走此路径，无需手动调用。
 const initialMenuData = readStoredMenuData();
 const initialCurrentModuleId = readStoredCurrentModuleId(initialMenuData) || "";
-const initialCurrentMenuData = initialMenuData[initialCurrentModuleId] ?? [];
+const initialCurrentMenuData = initialMenuData[initialCurrentModuleId]?.children ?? [];
 
 /**
  * 内部统一出口：派生视图 + 持久化 + 写入 state（消除各 action 的重复骨架）。
@@ -187,7 +196,7 @@ const applyMenuState = (
   currentModuleId: ModuleId,
   init: boolean,
 ): void => {
-  const currentMenuData = menuData[currentModuleId] ?? [];
+  const currentMenuData = menuData[currentModuleId]?.children ?? [];
   if (init) {
     // menuIcon 为图标名字符串，可随节点一同 JSON 序列化落盘，无需针对图标做特殊处理
     setStorageItem(MENU_DATA_STORAGE_KEY, menuData, 'local');
