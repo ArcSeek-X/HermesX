@@ -1,4 +1,9 @@
-export type ModuleId = 'productModel' | 'developmentMode';
+/**
+ * 模块唯一标识。
+ * 与 NavMenuNode.menuId 同理：取值来自数据真源（MENU_MANIFEST 的模块 id），
+ * 不写死为固定字面量联合，保持为动态字符串；运行期合法性由 MenuStore.getValidModuleId 校验。
+ */
+export type ModuleId = string;
 
 /** 菜单节点：一级（分组）与二级（子项）共用同一套字段。 */
 export type NavMenuNode = {
