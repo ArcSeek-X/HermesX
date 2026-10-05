@@ -14,6 +14,7 @@ import { useAuthStore } from '../stores/AuthStore';
 import { useRouterStore } from '../stores/RouterStore';
 import type { RouteHandle } from '../types/router';
 import { buildAsyncRoutes } from './asyncRouteFactory';
+import { attachRouter } from './routeRegistration';
 import { Shell } from '@components/layout/Shell';
 import { RouteErrorBoundary } from '../pages/ErrorPage/RouteBoundary';
 import LoginPage from '../pages/LoginPage/LoginPage';
@@ -101,4 +102,7 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
+
+// 将 router 实例回注 routeRegistration，解耦其「routeRegistration → appRouter」的静态反向依赖（避免循环依赖）
+attachRouter(router);
 
