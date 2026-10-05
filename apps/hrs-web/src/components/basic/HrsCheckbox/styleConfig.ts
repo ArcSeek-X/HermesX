@@ -12,7 +12,11 @@
  * @author Lensgcx (GaoCangxiong)
  */
 
-import type { HrsCheckboxSize, HrsCheckboxOrientation } from './HrsCheckbox';
+/** 尺寸档位（业务增量：同时缩放勾选框、图标与文案） */
+export type HrsCheckboxSize = 'sm' | 'md' | 'lg';
+
+/** 多选组的排列方向 */
+export type HrsCheckboxOrientation = 'vertical' | 'horizontal';
 
 /** 勾选框 - 各尺寸档位对应的勾选框（Control）尺寸 */
 export const CONTROL_SIZE_STYLES: Record<HrsCheckboxSize, string> = {

@@ -11,7 +11,8 @@ import { useState } from 'react';
 import type { ComponentType, SVGProps } from 'react';
 import { motion } from 'motion/react';
 import { Pencil, Trash2, Layers3 } from 'lucide-react';
-import { Chip, HrsButton } from '../../';
+import { Chip } from '../../basic/Chip';
+import { HrsButton } from '../../basic/HrsButton';
 import { cn } from '../../../utils/cn';
 
 export interface ListCardProps {

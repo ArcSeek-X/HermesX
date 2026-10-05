@@ -9,7 +9,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { LiveNewsItem } from '../../../types/liveNews';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { motion } from 'motion/react';
-import { Chip } from '../../../components';
+import { Chip } from '../../basic/Chip';
 import { HrsButton } from '../../basic/HrsButton';
 import { Separator } from '../../basic/Separator';
 import { ChevronDown } from 'lucide-react';
