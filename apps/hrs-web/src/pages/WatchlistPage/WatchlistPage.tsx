@@ -8,7 +8,7 @@ import { sortByOrder, sortByFieldDesc } from '@utils/sortFilter';
 import { useMemo, useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { useWatchlistManager } from '../../hooks/useWatchlistManager';
-import { Modal, InlineTipCard, HrsButton, HrsInput, TextArea, HrsSelect, AnimCard } from '@components';
+import { Modal, InlineToast, HrsButton, HrsInput, TextArea, HrsSelect, AnimCard } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { StockSearch } from '@components/StockSearch/StockSearch';
 import WatchlistGroupPanel from './components/WatchlistGroupPanel';
@@ -242,7 +242,7 @@ const WatchlistPage: React.FC = () => {
             </TextField>
             <div className="mb-4">
               {addError && (
-                <InlineTipCard variant="danger" content={addError} onDismiss={() => setAddError(null)} />
+                <InlineToast variant="danger" content={addError} onClose={() => setAddError(null)} />
               )}
             </div>
 
@@ -276,7 +276,7 @@ const WatchlistPage: React.FC = () => {
           </div>
           {addError ? (
             <div className="mb-4">
-              <InlineTipCard variant="danger" content={addError} onDismiss={() => setAddError(null)} />
+              <InlineToast variant="danger" content={addError} onClose={() => setAddError(null)} />
             </div>
           ) : null} */}
         </Modal.Body>

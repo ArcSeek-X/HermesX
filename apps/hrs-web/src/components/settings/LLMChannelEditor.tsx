@@ -11,7 +11,7 @@ import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
 import { systemConfigApi } from '../../api/systemConfig';
 import type { LLMCapabilityCheck, LLMCapabilityCheckResult } from '../../types/systemConfig';
-import { InlineTipCard, Badge, Button, InlineAlert, HrsInput, PasswordInput, Select, StatusDot, Tooltip } from '@components';
+import { InlineToast, Badge, Button, InlineAlert, HrsInput, PasswordInput, Select, StatusDot, Tooltip } from '@components';
 import type { ChannelProtocol } from './llmProviderTemplates';
 import {
   LLM_PROVIDER_CAPABILITY_LABELS,
@@ -2497,7 +2497,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
             />
           ) : null}
 
-          {saveMessage?.type === 'error' ? <InlineTipCard variant="danger" content={saveMessage.error} /> : null}
+          {saveMessage?.type === 'error' ? <InlineToast variant="danger" content={saveMessage.error} /> : null}
         </div>
       ) : null}
     </div>

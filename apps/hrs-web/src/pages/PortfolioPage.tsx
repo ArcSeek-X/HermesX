@@ -15,7 +15,7 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip, Legend, Cell } from 'recha
 import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { InlineTipCard, Card, Badge, ConfirmDialog, InlineAlert } from '@components';
+import { InlineToast, Card, Badge, ConfirmDialog, InlineAlert } from '@components';
 import { EmptyState } from '@components/page-layout';
 import { PortfolioSignalSummary } from '@components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
@@ -1226,7 +1226,7 @@ const PortfolioPage: React.FC = () => {
       </section>
 
       {/* ===== 全局提示区（错误/风险/写入/分析提示）===== */}
-      {error ? <InlineTipCard variant="danger" content={error} onDismiss={() => setError(null)} /> : null}
+      {error ? <InlineToast variant="danger" content={error} onClose={() => setError(null)} /> : null}
       {riskWarning ? (
         <InlineAlert
           variant="warning"

@@ -11,9 +11,6 @@
 
 // —— 基础层（basic）——
 export * from './basic/Index';
-export * from './basic/ScrollShadow';
-// basic 仅导出了 HrsButton 组件实例，其公开类型 HrsButtonVariant 在此补导出，供外部按桶引用
-export type { HrsButtonVariant } from './basic/HrsButton';
 
 // —— 通用层（common，已剔除越界聚合的 layout/theme 组件）——
 export * from './common/Index';

@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Fragment, useState } from 'react';
-import { InlineTipCard, HrsInput, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant, HrsCheckbox, type HrsCheckboxSize, showToast, type ToastPlacement, type ToastVariant } from '@components';
+import { InlineToast, HrsInput, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant, HrsCheckbox, type HrsCheckboxSize, showToast, type ToastPlacement, type ToastVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { type ParsedApiError } from '../api/error';
 import { type Key } from '@heroui/react';
@@ -26,7 +26,7 @@ const toastVariantToButton: Record<
     'primary' | 'secondary' | 'danger' | 'ghost'
 > = {
     default: 'ghost',
-    accent: 'primary',
+    primary: 'primary',
     success: 'primary',
     warning: 'secondary',
     danger: 'danger',
@@ -78,13 +78,13 @@ const selectMultiOptions: HrsSelectOptionDef[] = [
     { key: 'ma', label: 'MA 均线' },
 ];
 
-/** InlineTipCard 的 variant 枚举（组件内部类型未导出，此处按同名字面量集合声明） */
-type InlineTipCardVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
+/** InlineToast 的 variant 枚举（组件内部类型未导出，此处按同名字面量集合声明） */
+type InlineToastVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
 
-/** InlineTipCard 演示：variant 语义色 × ParsedApiError 示例内容 */
+/** InlineToast 演示：variant 语义色 × ParsedApiError 示例内容 */
 const inlineTipSamples: {
     key: string;
-    variant: InlineTipCardVariant;
+    variant: InlineToastVariant;
     label: string;
     content: ParsedApiError;
 }[] = [
@@ -172,7 +172,7 @@ const CodeTestPage: React.FC = () => {
     const [boundValues, setBoundValues] = useState<string[]>(['b', 'c']);
     // HrsCheckbox 演示：required + invalid 必填校验（取消到 0 项时联动报错）
     const [reqGroupValues, setReqGroupValues] = useState<string[]>(['email']);
-    // InlineTipCard 关闭演示：记录被 onDismiss 关掉的卡片 key
+    // InlineToast 关闭演示：记录被 onClose 关掉的卡片 key
     const [dismissedTips, setDismissedTips] = useState<string[]>([]);
     // Chip 关闭演示：受控标签列表
     const [chips, setChips] = useState<string[]>([
@@ -526,9 +526,9 @@ const CodeTestPage: React.FC = () => {
                 </HrsDrawer>
             </div>
 
-            {/* ============ InlineTipCard（内联提示卡片）组件演示 ============ */}
+            {/* ============ InlineToast（内联提示卡片）组件演示 ============ */}
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
-                <h3 className="text-sm font-medium text-primary-text">InlineTipCard（内联提示卡片）组件演示</h3>
+                <h3 className="text-sm font-medium text-primary-text">InlineToast（内联提示卡片）组件演示</h3>
                 <p className="text-xs text-muted">
                     内联插入页面 DOM 流的提示卡片，与 Toast（浮层、命令式）视觉同源、场景互补。
                     入参 content 为请求层解析好的 ParsedApiError；当 rawMessage 与 message 不一致时自动出现「详情」展开面板；
@@ -538,7 +538,7 @@ const CodeTestPage: React.FC = () => {
                 {/* 1. variant 语义色 + 关闭按钮 + 操作按钮 */}
                 <div className="flex flex-col gap-2">
                     <span className="text-xs text-secondary-text">
-                        1. variant 语义色（default / accent / success / warning / danger）；均带「详情」展开、onDismiss 关闭按钮与 actionLabel 操作按钮
+                        1. variant 语义色（default / accent / success / warning / danger）；均带「详情」展开、onClose 关闭按钮与 actionLabel 操作按钮
                     </span>
                     <div className="flex flex-col gap-3">
                         {inlineTipSamples.map(({ key, variant, label, content }) =>
@@ -547,12 +547,12 @@ const CodeTestPage: React.FC = () => {
                                     <span className="text-[11px] text-muted">
                                         variant=&quot;{variant}&quot; · {label}
                                     </span>
-                                    <InlineTipCard
+                                    <InlineToast
                                         variant={variant}
                                         content={content}
                                         actionLabel="重试"
-                                        onAction={() => console.log('[InlineTipCard] onAction:', key)}
-                                        onDismiss={() => setDismissedTips((prev) => [...prev, key])}
+                                        onAction={() => console.log('[InlineToast] onAction:', key)}
+                                        onClose={() => setDismissedTips((prev) => [...prev, key])}
                                     />
                                 </div>
                             ),
@@ -573,9 +573,9 @@ const CodeTestPage: React.FC = () => {
                 {/* 2. 极简用法：无详情、无按钮 */}
                 <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
                     <span className="text-xs text-secondary-text">
-                        2. 极简用法：rawMessage 与 message 一致时不渲染「详情」；不传 actionLabel / onDismiss 则不显示按钮
+                        2. 极简用法：rawMessage 与 message 一致时不渲染「详情」；不传 actionLabel / onClose 则不显示按钮
                     </span>
-                    <InlineTipCard
+                    <InlineToast
                         variant="accent"
                         content={{
                             title: '已开启自动刷新',
@@ -746,7 +746,7 @@ const CodeTestPage: React.FC = () => {
                     {(
                         [
                             { variant: 'default' as ToastVariant, label: 'Default' },
-                            { variant: 'accent' as ToastVariant, label: 'Accent' },
+                            { variant: 'primary' as ToastVariant, label: 'Primary' },
                             { variant: 'success' as ToastVariant, label: 'Success' },
                             { variant: 'warning' as ToastVariant, label: 'Warning' },
                             { variant: 'danger' as ToastVariant, label: 'Danger' },

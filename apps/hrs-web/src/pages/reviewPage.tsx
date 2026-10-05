@@ -15,7 +15,7 @@ import { analysisApi, DuplicateTaskError } from '../api/analysis';
 import { historyApi } from '../api/history';
 import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Button, Drawer, InlineAlert } from '@components';
+import { InlineToast, Button, Drawer, InlineAlert } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
 import { StockSearch } from '@components/StockSearch/StockSearch';
@@ -1742,7 +1742,7 @@ const HomePage: React.FC = () => {
         {/* ===== 系统初始化不完整提示区 ===== */}
         {setupNeedsAction ? (
           <div className="px-3 pb-2 md:px-4">
-             <InlineTipCard
+             <InlineToast
               variant="warning"
               content={{
                 title: t('review.setupIncomplete'),
@@ -1801,11 +1801,11 @@ const HomePage: React.FC = () => {
             {/* 大盘回顾错误提示 */}
             {marketReviewError ? (
               <div className="mb-3">
-                <InlineTipCard
+                <InlineToast
                   variant="danger"
                   content={marketReviewError}
                   className="mb-1"
-                  onDismiss={() => setMarketReviewError(null)}
+                  onClose={() => setMarketReviewError(null)}
                 />
               </div>
             ) : null}
@@ -1822,11 +1822,11 @@ const HomePage: React.FC = () => {
 
             {/* 通用错误提示 */}
             {error ? (
-              <InlineTipCard
+              <InlineToast
                 variant="danger"
                 content={error}
                 className="mb-3"
-                onDismiss={clearError}
+                onClose={clearError}
               />
             ) : null}
             {/* ===== 报告加载中状态 ===== */}

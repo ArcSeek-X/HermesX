@@ -1,7 +1,7 @@
 /**
  * @file ReportNews.tsx
  * @description 报告相关资讯列表：按 recordId 拉取报告补充资讯（NewsIntelItem），
- * 展示来源、标题与时间，空态/错误态用 InlineTipCard 提示。
+ * 展示来源、标题与时间，空态/错误态用 InlineToast 提示。
  * 使用场景：报告页的「相关资讯」区块，被 ReportSummary 聚合。
  * @author Lensgcx (GaoCangxiong)
  */
@@ -9,7 +9,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import type { ParsedApiError } from '../../api/error';
 import { getParsedApiError } from '../../api/error';
-import { InlineTipCard, Card } from '../';
+import { InlineToast, Card } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
 import { historyApi } from '../../api/history';
 import type { NewsIntelItem, ReportLanguage } from '../../types/analysis';
@@ -104,7 +104,7 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
       </p>
 
       {error && !isLoading && (
-        <InlineTipCard
+        <InlineToast
           variant="danger"
           error={error}
           actionLabel={text.retry}

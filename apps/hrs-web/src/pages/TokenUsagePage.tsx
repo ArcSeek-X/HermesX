@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Clock3, Cpu, Database, Gauge, RefreshCw } from 'lucide-react';
 import { usageApi, type UsageDashboard, type UsageModelBreakdown, type UsagePeriod } from '../api/usage';
 import type { ParsedApiError } from '../api/error';
-import { InlineTipCard, Card, StatCard, HrsButton, TabNav } from '@components';
+import { InlineToast, Card, StatCard, HrsButton, TabNav } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
@@ -242,7 +242,7 @@ const TokenUsagePage: React.FC = () => {
         />
 
         {/* ===== 错误提示区 ===== */}
-        {error ? <InlineTipCard variant="danger" content={error} actionLabel={t('common.retry')} onAction={() => void loadDashboard()} /> : null}
+        {error ? <InlineToast variant="danger" content={error} actionLabel={t('common.retry')} onAction={() => void loadDashboard()} /> : null}
 
         {/* ===== 骨架屏（首次加载中）===== */}
         {loading && !dashboard ? (

@@ -40,10 +40,10 @@ export const DocsToastPage: React.FC = () => {
         <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
           <h2 className="text-sm font-medium text-primary-text">示例一：五种视觉变体（variant）</h2>
           <p className="text-xs text-muted">
-            default / accent / success / warning / danger；便捷方法 showToast.info / success / warning / danger 预置对应变体。
+            default / primary / success / warning / danger；便捷方法 showToast.info / success / warning / danger 预置对应变体。
           </p>
           <div className="flex flex-wrap gap-3">
-            {(['default', 'accent', 'success', 'warning', 'danger'] as ToastVariant[]).map((v) => (
+            {(['default', 'primary', 'success', 'warning', 'danger'] as ToastVariant[]).map((v) => (
               <HrsButton
                 key={v}
                 variant="secondary"

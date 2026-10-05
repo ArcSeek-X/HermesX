@@ -35,7 +35,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { agentApi, type AgentStatusResponse, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, Badge, Button, ConfirmDialog, InlineAlert, ScrollArea, Tooltip } from '@components';
+import { InlineToast, Badge, Button, ConfirmDialog, InlineAlert, ScrollArea, Tooltip } from '@components';
 import { EmptyState } from '@components/page-layout';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
 import { createParsedApiError, getParsedApiError } from '../api/error';
@@ -699,7 +699,7 @@ const ChatPage: React.FC = () => {
       : agentStatus?.backend === 'codex_app_server'
         ? t('chat.codexUnavailableMessage')
         : t('chat.defaultUnavailableMessage');
-  // 构造 Agent 不可用时的结构化错误对象，供 InlineTipCard 展示
+  // 构造 Agent 不可用时的结构化错误对象，供 InlineToast 展示
   const agentUnavailableError = agentConfirmedUnavailable
     ? createParsedApiError({
         title: t('chat.agentBackendUnavailableTitle'),
@@ -1626,7 +1626,7 @@ const ChatPage: React.FC = () => {
           <div className="border-t border-white/6 bg-card/88 p-4 md:p-6 relative z-20">
             <div className="space-y-3">
               {/* --- 错误与状态提示：聊天错误、取消、超时、停止失败 --- */}
-              {chatError ? <InlineTipCard variant="danger" content={chatError} /> : null}
+              {chatError ? <InlineToast variant="danger" content={chatError} /> : null}
               {terminalStatus === 'cancelled' ? (
                 <div role="status" className="rounded-xl border border-slate-500/20 bg-slate-500/5 px-4 py-3 text-sm">
                   {t('chat.analysisStopped')}
@@ -1645,7 +1645,7 @@ const ChatPage: React.FC = () => {
               {/* --- Agent 状态提示：不可用、状态获取失败、检查中、追问上下文加载中 --- */}
               {agentUnavailableError ? (
                 <div className="space-y-2">
-                  <InlineTipCard
+                  <InlineToast
                     variant="danger"
                     content={agentUnavailableError}
                     actionLabel={t('chat.openAgentSettings')}

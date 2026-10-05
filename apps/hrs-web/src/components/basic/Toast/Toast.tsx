@@ -6,8 +6,8 @@
  *   视觉上参考 HeroUI Toast 风格：圆角卡片 + 语义色边/淡色底/图标 + 头部（图标+标题+关闭按钮）
  *   + 主体（描述+查看详情+右侧操作插槽），定位走视口浮层（placement 固定到上/下 × 左/中/右 6 方位）。
  *
- * 与 InlineTipCard 的区别：
- *   - InlineTipCard：内联插入页面 DOM 流，由调用方就地渲染。
+ * 与 InlineToast 的区别：
+ *   - InlineToast：内联插入页面 DOM 流，由调用方就地渲染。
  *   - Toast：固定在视口角落，通过 <Toast /> 挂在 body 下的 portal 渲染，
  *     用命令式 showToast() 在任意位置（如 API 拦截器）触发，零第三方依赖。
  *
@@ -16,7 +16,7 @@
  *   2. 任意位置命令式调用，入参统一为单对象（含 title/description/variant/placement 等）：
  *        showToast({ title, description, variant: 'success', placement: 'top' })
  *     便捷方法（variant 预设，入参对象可不传 variant）：
- *        showToast.info({ title, description, placement })      // accent 风格
+ *        showToast.info({ title, description, placement })      // primary 风格
  *        showToast.success({ title, description, placement })
  *        showToast.warning({ title, description, placement })
  *        showToast.danger({ title, description, placement })
@@ -43,7 +43,7 @@ export type ToastPlacement =
     | 'bottom end';
 
 /** Toast 视觉风格 */
-export type ToastVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
+export type ToastVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger';
 
 /** Toast 内容与展示配置（命令式入参），同时作为 ToastContent 的内容契约 */
 export interface ToastDef {
@@ -114,7 +114,7 @@ const variantStylesConfig: Record<
         iconBg: 'bg-surface-2',
         title: 'text-foreground',
     },
-    accent: {
+    primary: {
         bg: 'bg-primary',
         surface: 'bg-elevated/96',
         icon: 'text-primary',
@@ -146,9 +146,9 @@ const variantStylesConfig: Record<
 
 /**
  * 各 variant 对应的默认状态图标（HeroUI 风格描边 SVG）。
- * 注意：accent 与 default 共用同一「信息」图标（圆圈 + 竖线 + 圆点），差异仅由配色体现。
+ * 注意：primary 与 default 共用同一「信息」图标（圆圈 + 竖线 + 圆点），差异仅由配色体现。
  */
-function VariantIcon({ variant }: { variant: ToastVariant }): React.ReactElement {
+export function VariantIcon({ variant }: { variant: ToastVariant }): React.ReactElement {
     const cls = 'h-4 w-4';
     switch (variant) {
         case 'success':
@@ -174,7 +174,7 @@ function VariantIcon({ variant }: { variant: ToastVariant }): React.ReactElement
                     <path d="M9 9l6 6M15 9l-6 6" />
                 </svg>
             );
-        case 'accent':
+        case 'primary':
         case 'default':
         default:
             return (
@@ -332,7 +332,7 @@ function getSnapshot(): ToastItem[] {
 export interface ShowToastAPI {
     /** 以单对象入参触发一个 Toast */
     (options: ToastDef): string;
-    /** info 便捷封装：固定 variant 为 accent（信息/强调风格） */
+    /** info 便捷封装：固定 variant 为 primary（信息/强调风格） */
     info: (options: Omit<ToastDef, 'variant'>) => string;
     /** success 便捷封装：固定 variant 为 success */
     success: (options: Omit<ToastDef, 'variant'>) => string;
@@ -364,7 +364,7 @@ function toastFn(options: ToastDef): string {
  * @returns       toast id，可用于 dismissToast
  */
 export const showToast: ShowToastAPI = Object.assign(toastFn, {
-    info: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'accent' }),
+    info: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'primary' }),
     success: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'success' }),
     warning: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'warning' }),
     danger: (options: Omit<ToastDef, 'variant'>): string => toastFn({ ...options, variant: 'danger' }),

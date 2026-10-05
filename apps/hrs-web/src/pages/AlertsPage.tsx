@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BellRing } from 'lucide-react';
 import { alertsApi } from '../api/alerts';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { InlineTipCard, Card, InlineAlert, Loading } from '@components';
+import { InlineToast, Card, InlineAlert, Loading } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import { AppPage } from '@components/layout/AppPage';
 import { AlertRuleForm } from '@components/alerts/AlertRuleForm';
@@ -343,7 +343,7 @@ const AlertsPage: React.FC = () => {
       <PageHeader eyebrow={t('alerts.headerEyebrow')} title={t('alerts.title')} description={t('alerts.subtitle')}/>
 
       {/* ===== 错误与成功提示区 ===== */}
-      {createError ? <InlineTipCard variant="danger" content={createError} onDismiss={() => setCreateError(null)} /> : null}
+      {createError ? <InlineToast variant="danger" content={createError} onClose={() => setCreateError(null)} /> : null}
       {createSuccess ? (
         <InlineAlert
           title="创建成功"
@@ -356,7 +356,7 @@ const AlertsPage: React.FC = () => {
           )}
         />
       ) : null}
-      {rulesError ? <InlineTipCard variant="danger" content={rulesError} onDismiss={() => setRulesError(null)} /> : null}
+      {rulesError ? <InlineToast variant="danger" content={rulesError} onClose={() => setRulesError(null)} /> : null}
 
       {/* ===== 规则表单与列表区 ===== */}
       <div className="grid items-stretch gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -396,11 +396,11 @@ const AlertsPage: React.FC = () => {
       </div>
 
       {/* ===== 触发历史区 ===== */}
-      {triggersError ? <InlineTipCard variant="danger" content={triggersError} onDismiss={() => setTriggersError(null)} /> : null}
+      {triggersError ? <InlineToast variant="danger" content={triggersError} onClose={() => setTriggersError(null)} /> : null}
       <AlertTriggerHistory triggers={triggers} isLoading={triggersLoading} />
 
       {/* ===== 通知尝试记录区 ===== */}
-      {notificationsError ? <InlineTipCard variant="danger" content={notificationsError} onDismiss={() => setNotificationsError(null)} /> : null}
+      {notificationsError ? <InlineToast variant="danger" content={notificationsError} onClose={() => setNotificationsError(null)} /> : null}
       <Card title="通知尝试记录" subtitle="通知结果" variant="bordered" padding="md">
         {notificationsLoading ? <Loading label="正在加载通知尝试记录" /> : null}
         {!notificationsLoading && notifications.length === 0 ? (

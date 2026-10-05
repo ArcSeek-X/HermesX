@@ -17,7 +17,6 @@ export * from './ToastViewport';
 export * from './EyeToggleIcon';
 export * from './Drawer';
 export * from './ScrollArea';
-export * from './InlineTipCard';
 export * from './Collapsible';
 export * from './ScoreGauge';
 export * from './JsonViewer';

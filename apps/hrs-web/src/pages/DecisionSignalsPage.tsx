@@ -31,7 +31,7 @@ import {
 } from '../api/decisionSignals'; // 决策信号 API 接口
 import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
 import { historyApi } from '../api/history'; // 历史记录 API
-import { InlineTipCard, Card, ConfirmDialog, Drawer, InlineAlert, Pagination, HrsButton } from '@components';
+import { InlineToast, Card, ConfirmDialog, Drawer, InlineAlert, Pagination, HrsButton } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import { AppPage } from '@components/layout/AppPage';
 import { DecisionSignalCard, DecisionSignalDetails } from '@components/decision-signals/DecisionSignalDisplay';
@@ -1239,7 +1239,7 @@ const DecisionSignalsPage: React.FC = () => {
             message={t('decisionSignals.reassessUnsupported')}
           />
         ) : null}
-        {reassessError ? <InlineTipCard variant="danger" className="mt-3" content={reassessError} /> : null}
+        {reassessError ? <InlineToast variant="danger" className="mt-3" content={reassessError} /> : null}
         {reassessPersistBlocked ? (
           <div className="mt-3 space-y-2">
             <InlineAlert
@@ -1560,7 +1560,7 @@ const DecisionSignalsPage: React.FC = () => {
         <Card title={t('decisionSignals.statsTitle')} subtitle={t('decisionSignals.statsDescription')} padding="md">
           <p className="mb-3 text-sm text-secondary-text">{t('decisionSignals.statsGlobalScope')}</p>
           {statsError ? (
-            <InlineTipCard
+            <InlineToast
               variant="danger"
               content={{ ...statsError, title: t('decisionSignals.statsErrorTitle') }}
               actionLabel={t('common.retry')}
@@ -1615,7 +1615,7 @@ const DecisionSignalsPage: React.FC = () => {
               icon={<Activity className="h-6 w-6" />}
             />
           ) : null}
-          {latestError ? <InlineTipCard variant="danger" className="mt-3" content={latestError} /> : null}
+          {latestError ? <InlineToast variant="danger" className="mt-3" content={latestError} /> : null}
           {latestSearched && !latestLoading && !latestError && latestItems.length === 0 ? (
             <EmptyState
               className="mt-4 border-none bg-transparent py-6 shadow-none"
@@ -1723,7 +1723,7 @@ const DecisionSignalsPage: React.FC = () => {
         </Card>
 
         {error ? (
-          <InlineTipCard
+          <InlineToast
             variant="danger"
             content={{ ...error, title: t('decisionSignals.errorTitle') }}
             actionLabel={t('common.retry')}

@@ -16,7 +16,7 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
-import { InlineTipCard, ConfirmDialog, HrsButton } from '@components';
+import { InlineToast, ConfirmDialog, HrsButton } from '@components';
 import { EmptyState, PageHeader } from '@components/page-layout';
 import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 import { AgentBackendStatusPanel } from '@components/settings/AgentBackendStatusPanel';
@@ -580,7 +580,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
           </div>
         </div>
 
-        {error ? <InlineTipCard variant="danger" content={error} /> : null}
+        {error ? <InlineToast variant="danger" content={error} /> : null}
 
         {isLoading && !status ? (
           <p className="text-sm text-muted-text">{t('common.loading')}</p>
@@ -646,7 +646,7 @@ const FirstRunSetupCard: React.FC<FirstRunSetupCardProps> = ({
             {firstStockCode ? t('settings.setupGuideSmokeNotReady') : t('settings.setupGuideSmokeNeedsStock')}
           </p>
         ) : null}
-        {smokeError ? <InlineTipCard variant="danger" content={smokeError} /> : null}
+        {smokeError ? <InlineToast variant="danger" content={smokeError} /> : null}
         {!smokeError && smokeSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={smokeSuccess} variant="success" />
         ) : null}
@@ -1034,8 +1034,8 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
             ))}
           </div>
         ) : null}
-        {statusError ? <InlineTipCard variant="danger" content={statusError} /> : null}
-        {runNowError ? <InlineTipCard variant="danger" content={runNowError} /> : null}
+        {statusError ? <InlineToast variant="danger" content={statusError} /> : null}
+        {runNowError ? <InlineToast variant="danger" content={runNowError} /> : null}
         {!runNowError && runNowSuccess ? (
           <SettingsAlert title={t('settings.actionSuccess')} message={runNowSuccess} variant="success" />
         ) : null}
@@ -1885,7 +1885,7 @@ const SettingsPage: React.FC = () => {
         }
       />
       {saveError ? (
-        <InlineTipCard
+        <InlineToast
           variant="danger"
           className="mt-3"
           content={saveError}
@@ -1896,7 +1896,7 @@ const SettingsPage: React.FC = () => {
 
       {/* ===== 加载错误提示区 ===== */}
       {loadError ? (
-        <InlineTipCard
+        <InlineToast
           variant="danger"
           content={loadError}
           actionLabel={retryAction === 'load' ? t('common.retry') : t('settings.reload')}
@@ -1980,7 +1980,7 @@ const SettingsPage: React.FC = () => {
                 </div>
                 {alphaSiftActionError ? (
                   <div className="mt-3">
-                    <InlineTipCard variant="danger" content={alphaSiftActionError} />
+                    <InlineToast variant="danger" content={alphaSiftActionError} />
                   </div>
                 ) : null}
                 {!alphaSiftActionError && alphaSiftActionSuccess ? (
@@ -2150,7 +2150,7 @@ const SettingsPage: React.FC = () => {
                     {t('settings.envDockerNote')}
                   </p>
                   {envBackupActionError ? (
-                    <InlineTipCard
+                    <InlineToast
                       variant="danger"
                       content={envBackupActionError}
                       actionLabel={envBackupActionError.status === 409 ? t('settings.reload') : undefined}
@@ -2275,7 +2275,7 @@ const SettingsPage: React.FC = () => {
                   presentation="toast"
                 />
               )
-            : <InlineTipCard variant="danger" content={toast.error} />}
+            : <InlineToast variant="danger" content={toast.error} />}
         </div>
       ) : null}
       <ConfirmDialog

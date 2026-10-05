@@ -308,7 +308,7 @@ describe('AlertsPage', () => {
     const filteredRule = { ...rule, id: 4, name: '停用规则', enabled: false };
     // 第一次调用返回初始请求（滞后 resolve），第二次返回筛选请求（先 resolve）。
     // 注意：此处不要调用 mockReset()，否则会清掉 beforeEach 注入的默认实现，
-    // 并污染后续用例（如 InlineTipCard 用例）的 mock 状态。
+    // 并污染后续用例（如 InlineToast 用例）的 mock 状态。
     listRules
       .mockReturnValueOnce(initialRequest.promise)
       .mockReturnValueOnce(filteredRequest.promise);
@@ -334,8 +334,8 @@ describe('AlertsPage', () => {
     expect(screen.getByText('停用规则')).toBeInTheDocument();
   });
 
-  // 用例 8：规则列表接口失败时，应通过 InlineTipCard 展示解析后的错误标题与消息
-  it('renders API errors through InlineTipCard', async () => {
+  // 用例 8：规则列表接口失败时，应通过 InlineToast 展示解析后的错误标题与消息
+  it('renders API errors through InlineToast', async () => {
     listRules.mockRejectedValue({ parsedError });
 
     render(
