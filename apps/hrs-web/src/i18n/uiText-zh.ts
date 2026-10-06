@@ -195,7 +195,6 @@ const zh = {
   'component.LiveCalendar.drawer.sourceName': '华尔街见闻', // 详情抽屉：数据源名称（外链文案）
   'component.LiveCalendar.drawer.noSummary': '暂无详情内容', // 详情抽屉：事件无前瞻/正文时的占位提示
   'component.LiveCalendar.empty': '本月暂无日历事件', // 空态：当月无事件
-  'component.LiveCalendar.emptyFilter': '没有符合筛选条件的事件，试试放宽筛选条件', // 空态：筛选无结果
   'component.LiveCalendar.emptyImportance': '没有符合重要级条件的事件，试试降低筛选条件', // 空态：重要级筛选无结果
   'component.LiveCalendar.filter.apply': '确认', // 筛选区域：确认按钮
   'component.LiveCalendar.filter.button': '筛选', // 筛选按钮（切换筛选区域展开）
@@ -695,12 +694,9 @@ const zh = {
   // liveCalendar.*
   'liveCalendar.degradedTip.title': '数据源暂不可用', // 降级提示条
   'liveCalendar.degradedTip.message': '当前展示本地缓存数据，请检查数据源的查询情况', // 降级提示条
-  'liveCalendar.emptyTab': '当前分类下本月暂无事件，试试「全部」', // 空态：某分类无事件
-  'liveCalendar.eventsCount': '共 {count} 条事件', // 详情面板事件计数
   'liveCalendar.loading': '正在加载日历…', // 加载中文案
   'liveCalendar.refresh': '刷新日历', // 手动刷新按钮
   'liveCalendar.refreshing': '刷新中', // 刷新按钮加载态文案
-  'liveCalendar.selectHint': '点击日历中的日期查看当日事件', // 详情面板空态提示
   'liveCalendar.subtitle': '宏观、财报、新股、活动等重要事件的财经日历', // 页面副标题
   'liveCalendar.tabs.activity': '活动', // 分类 Tab：活动
   'liveCalendar.tabs.all': '全部', // 分类 Tab：全部

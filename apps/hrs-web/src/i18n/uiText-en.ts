@@ -195,7 +195,6 @@ const en: Record<UiTextKey, string> = {
   'component.LiveCalendar.drawer.sourceName': 'Wallstreetcn', // detail drawer: data source name (link text)
   'component.LiveCalendar.drawer.noSummary': 'No details available', // detail drawer: placeholder when event has no summary/foresight
   'component.LiveCalendar.empty': 'No calendar events this month', // empty: no events this month
-  'component.LiveCalendar.emptyFilter': 'No events match the filters, try relaxing them', // empty: filter has no results
   'component.LiveCalendar.emptyImportance': 'No events matching the importance filter, try lowering it', // empty: importance filter has no results
   'component.LiveCalendar.filter.apply': 'Apply', // filter panel: apply button
   'component.LiveCalendar.filter.button': 'Filter', // filter toggle button
@@ -695,12 +694,9 @@ const en: Record<UiTextKey, string> = {
   // liveCalendar.*
   'liveCalendar.degradedTip.title': 'Data source temporarily unavailable',
   'liveCalendar.degradedTip.message': 'Displaying locally cached data. Please check the data source query status.',
-  'liveCalendar.emptyTab': 'No events in this category this month, try "All"',
-  'liveCalendar.eventsCount': '{count} events',
   'liveCalendar.loading': 'Loading calendar…',
   'liveCalendar.refresh': 'Refresh calendar',
   'liveCalendar.refreshing': 'Refreshing…',
-  'liveCalendar.selectHint': 'Click a date to view events',
   'liveCalendar.subtitle': 'Financial calendar for macro, earnings, IPO, and event items',
   'liveCalendar.tabs.activity': 'Events',
   'liveCalendar.tabs.all': 'All',

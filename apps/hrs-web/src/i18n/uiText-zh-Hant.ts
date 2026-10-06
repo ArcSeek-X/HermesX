@@ -192,7 +192,6 @@ const zhHant = {
   'component.LiveCalendar.drawer.sourceName': '華爾街見聞', // 詳情抽屜：數據源名稱（外鏈文案）
   'component.LiveCalendar.drawer.noSummary': '暫無詳情內容', // 詳情抽屜：事件無前瞻/正文時的占位提示
   'component.LiveCalendar.empty': '本月暫無日曆事件', // 空態：當月無事件
-  'component.LiveCalendar.emptyFilter': '沒有符合篩選條件的事件，試試放寬篩選條件', // 空態：篩選無結果
   'component.LiveCalendar.emptyImportance': '沒有符合重要級條件的事件，試試降低篩選條件', // 空態：重要級篩選無結果
   'component.LiveCalendar.filter.apply': '確認', // 篩選區域：確認按鈕
   'component.LiveCalendar.filter.button': '篩選', // 篩選按鈕（切換篩選區域展開）
@@ -692,12 +691,9 @@ const zhHant = {
   // liveCalendar.*
   'liveCalendar.degradedTip.title': '資料源暫不可用', // 降級提示條
   'liveCalendar.degradedTip.message': '目前展示本地快取資料，請檢查資料源的查詢情況', // 降級提示條
-  'liveCalendar.emptyTab': '目前分類下本月暫無事件，試試「全部」', // 空態：某分類無事件
-  'liveCalendar.eventsCount': '共 {count} 條事件', // 詳情面板事件計數
   'liveCalendar.loading': '正在載入日曆…', // 載入中文案
-  'liveCalendar.refresh': '重新整理日曆', // 手動重新整理按鈕
+  'liveCalendar.refresh': '重整日曆', // 手動重新整理按鈕
   'liveCalendar.refreshing': '重新整理中', // 重新整理按鈕載入態文案
-  'liveCalendar.selectHint': '點擊日曆中的日期查看當日事件', // 詳情面板空態提示
   'liveCalendar.subtitle': '宏觀、財報、新股、活動等重要事件的財經日曆', // 頁面副標題
   'liveCalendar.tabs.activity': '活動', // 分類 Tab：活動
   'liveCalendar.tabs.all': '全部', // 分類 Tab：全部
