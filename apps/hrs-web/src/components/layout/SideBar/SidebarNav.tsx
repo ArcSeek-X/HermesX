@@ -20,7 +20,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
-import { motion } from 'motion/react';
 import MenuNode, { type SidebarMenuMode } from './MenuNode';
 import { ScrollShadow } from '../../index';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
@@ -65,8 +64,6 @@ const THEME_CONFIG: Record<
 };
 
 
-/** easeOutQuint：起步快、收尾缓。宽度用无回弹缓动——回弹会让菜单内容被压得比目标更窄而抖动/截断 */
-const SIDEBAR_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 type SidebarNavProps = {
   /** 根节点（motion.div 容器）的额外类名，可选，不传则无附加样式 */
@@ -201,12 +198,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const asideClass = themeConfig.aside;
 
   return (
-    // 根节点：三态宽度动画（首屏不触发）+ overflow-hidden 裁剪
-    <motion.div
-      initial={false}
-      animate={{ width: sidebarWidth }}
-      transition={{ duration: 0.2, ease: SIDEBAR_EASE }}
-      className={cn('hrs-sidebar h-full shrink-0 overflow-hidden z-1', containerClass, className)}
+    // 根节点：三态宽度动画（首屏不触发）。改用纯 CSS 过渡驱动 width，并提升为合成层
+    // （transform-gpu + will-change:width），避免 motion 逐帧在主线程改 width 触发整页重排。
+    <div
+      style={{ width: sidebarWidth, willChange: 'width' }}
+      className={cn(
+        'hrs-sidebar h-full shrink-0 overflow-hidden z-1 transform-gpu',
+        'transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        'motion-reduce:transition-none',
+        containerClass,
+        className,
+      )}
     >
       <aside className={cn('flex h-full w-full flex-col ', asideClass)} aria-label={t('layout.desktopSidebar')} >
         {/* 品牌区：图标栏态仅显示 logo */}
@@ -217,7 +219,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           >
             <BarChart3 className="h-5 w-5" />
           </div>
-          {!isCollapsedRail ? <span className="truncate text-md font-semibold text-foreground">HRS</span> : null}
+          {/* 品牌文字常驻挂载：折叠态仅用 w-0/opacity-0 隐藏，避免切换瞬间 DOM 增删导致布局抖动 */}
+          <span
+            className={cn(
+              'truncate text-md font-semibold text-foreground transition-all duration-200',
+              isCollapsedRail && 'w-0 overflow-hidden opacity-0',
+            )}
+          >
+            HRS
+          </span>
         </div>
 
         {/* 主菜单区：占满剩余空间并在自身内部滚动；上下边缘随滚动位置渐隐（封装于 ScrollShadow） */}
@@ -238,7 +248,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         ) : null}
       </aside>
 
-    </motion.div>
+    </div>
   );
 };
 

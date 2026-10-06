@@ -165,6 +165,8 @@ const MenuNode: React.FC<MenuNodeProps> = ({
           )}
         >
           {menuIcon}
+          {/* 文字常驻挂载（折叠态隐藏），与展开态结构一致，避免切换瞬间 DOM 增删 */}
+          <span className="w-0 overflow-hidden opacity-0">{label}</span>
         </a>
       </li>
     );

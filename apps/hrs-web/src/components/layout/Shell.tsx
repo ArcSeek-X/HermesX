@@ -102,9 +102,9 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
           {/* bg-background：确保 padding 区域不透明，遮挡滚动内容 */}
           {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
           <main className="hrs-page-container
-            min-h-0 min-w-0
-            pt-4
-            flex-1 overflow-y-auto bg-background touch-pan-y"
+            min-h-0 min-w-0 pt-4
+            flex-1 overflow-y-auto bg-background touch-pan-y
+            [contain:layout_paint] will-change-[width]"
           >
             {/* 优先渲染 children（直接包裹模式），否则经 RouteOutletBoundary 渲染匹配的子路由（含 Suspense 与错误边界） */}
             {children ?? <RouteOutletBoundary />}
