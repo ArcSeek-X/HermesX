@@ -1602,13 +1602,13 @@ class IntelligenceService:
     _CALENDAR_ECONOMIC_DATA_SCOPE = "economic_data"
 
     # 分类 Tab 定义（单一真源：API / 前端 Tab 均以此为准）。label 为前端 Tab 文案，
-    # order 即前端 Tab 展示顺序。
+    # order 即前端 Tab 展示顺序：「全部」置首且为前端默认选中项，其余按业务分类依次排列。
     _CALENDAR_TABS: Tuple[Dict[str, Any], ...] = (
-        {"value": "macro", "label": "宏观", "order": 1},
-        {"value": "earnings", "label": "财报", "order": 2},
-        {"value": "ipo", "label": "新股", "order": 3},
-        {"value": "activity", "label": "活动", "order": 4},
-        {"value": "all", "label": "全部", "order": 5},
+        {"value": "all", "label": "全部", "order": 1},
+        {"value": "macro", "label": "宏观", "order": 2},
+        {"value": "earnings", "label": "财报", "order": 3},
+        {"value": "ipo", "label": "新股", "order": 4},
+        {"value": "activity", "label": "活动", "order": 5},
     )
 
     # 分类打标规则：FE 事件按 title + foresight 关键字命中（可多归属，一事件拆多行）。
