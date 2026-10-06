@@ -22,10 +22,11 @@
  */
 
 import axios from 'axios';
-import { API_BASE_URL } from '../utils/constants';
+import { API_BASE_URL } from '@utils/constants';
 import { attachParsedApiError } from './error';
-import apiCache from '../utils/apiCache';
 import { buildCacheKey, getCacheTTL } from '../constants/cacheConfig';
+import { showToast } from '../components/basic/Toast/Toast';
+import apiCache from '@utils/apiCache';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -86,6 +87,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+
     // 处理 401 未授权
     if (error.response?.status === 401) {
       const path = window.location.pathname + window.location.search;
@@ -94,7 +96,18 @@ apiClient.interceptors.response.use(
         window.location.assign(`/login?redirect=${redirect}`);
       }
     }
-    attachParsedApiError(error);
+    const parsed = attachParsedApiError(error);
+
+
+    // TODO: API 报错逻辑后续需完善修改（当前 401 整页跳转 + 统一 Toast 仅为临时实现，
+    // 待重构为 SPA 路由跳转与更细化的错误分类/重试策略，不在本期范围内）。
+    showToast.danger({
+      title: parsed.title || '请求失败',
+      description: parsed.message,
+      rawMessage: parsed.rawMessage,
+    });
+
+
     return Promise.reject(error);
   }
 );
