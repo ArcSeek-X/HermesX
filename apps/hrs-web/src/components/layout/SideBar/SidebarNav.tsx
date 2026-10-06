@@ -39,7 +39,7 @@ export type { SidebarTheme };
 
 /**
  * 主题配置（模块级常量，避免每次渲染重建）：按主题分组的
- * - width：三态宽度（px），motion 动画的目标值
+ * - width：三态宽度（px），CSS 过渡（transition-[width]）的目标值
  * - aside_container：外层容器按状态的类名（如 pill 的 p-3、fully 时隐藏边框）
  * - aside：侧栏面板自身的圆角 / 边框 / 阴影
  */
@@ -66,7 +66,7 @@ const THEME_CONFIG: Record<
 
 
 type SidebarNavProps = {
-  /** 根节点（motion.div 容器）的额外类名，可选，不传则无附加样式 */
+  /** 根节点容器（div）的额外类名，可选，不传则无附加样式 */
   className?: string;
   /** 导航完成后的回调（如移动端抽屉跳转后关闭），可选，不传则不处理 */
   onNavigate?: () => void;
@@ -83,7 +83,7 @@ type SidebarNavProps = {
 
 /**
  * 轻量侧边导航：渲染品牌区 + 主菜单（content）+ 底部菜单（footer）。
- * 宽度由本组件根节点的 motion.div 按折叠态动画；折叠态由外部传入（Shell 取自 useLayoutStore）。
+ * 宽度由本组件根节点（div）按折叠态做 CSS 过渡动画（transition-[width]）；折叠态由外部传入（Shell 取自 useLayoutStore）。
  */
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   className,
@@ -219,11 +219,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           >
             <BarChart3 className="h-5 w-5" />
           </div>
-          {/* 品牌文字常驻挂载：折叠态仅用 w-0/opacity-0 隐藏，避免切换瞬间 DOM 增删导致布局抖动 */}
+          {/* 品牌文字常驻挂载：折叠态用 hidden 完全移出布局，避免 gap 把 logo 挤偏；与展开态结构一致，避免切换瞬间 DOM 增删 */}
           <span
             className={cn(
               'truncate text-md font-semibold text-foreground transition-all duration-200',
-              isCollapsedRail && 'w-0 overflow-hidden opacity-0',
+              isCollapsedRail && 'hidden',
             )}
           >
             HRS
