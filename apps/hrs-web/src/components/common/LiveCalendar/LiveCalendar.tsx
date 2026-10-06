@@ -64,8 +64,8 @@ export interface LiveCalendarRangeRequest {
 export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
     /** 按天归格的事件（key = YYYY-MM-DD） */
     eventsMap: Map<string, LiveCalendarEventDef[]>;
-    /** 点日期空白区 → 通知 Page 选中该日（由 Page 决定如何展示当日全部详情） */
-    onSelectDay: (day: string) => void;
+    /** 点日期空白区 → 通知外部选中该日（可选；当前由日历内部切日视图承担展示，外部可不传） */
+    onSelectDay?: (day: string) => void;
     /**
      * 点单条事件 → LiveCalendar 内部自动打开详情抽屉（自管 selectedEvent）。
      * 该回调为可选：如外部需感知点击事件（埋点等）可传入，不影响内部开抽屉行为。
@@ -447,7 +447,7 @@ function shiftDays(date: Date, days: number): Date {
  * 消息日历主组件。
  *
  * @param props.eventsMap 按天归格后的事件映射
- * @param props.onSelectDay 点日期后的回调
+ * @param props.onSelectDay 点日期后的回调（可选）
  * @param props.onSelectEvent 点单条事件后的补充回调，默认只在组件内开详情抽屉
  * @param props.countries 国家字典，供详情抽屉展示国家名 / 货币 / 国旗
  * @param props.onRangeRequest 组件内部需要新数据时抛出的范围请求事件
@@ -661,8 +661,8 @@ const LiveCalendarInner: React.FC<LiveCalendarProps> = ({
     /** 点日期格：月视图切日视图展示当日全部事件；周 / 日视图仅更新选中日 */
     const handleDateClick = useCallback((info: DateClickArg) => {
         const dayKey = info.dateStr.slice(0, 10);
-        onSelectDay(dayKey);
-        if (info.view.type === 'dayGridMonth') {
+        onSelectDay?.(dayKey);
+        if (info.view.type === 'dayGridMonth' || info.view.type === 'timeGridWeek') {
             goToDayView(info.date);
         }
     }, [goToDayView, onSelectDay]);
