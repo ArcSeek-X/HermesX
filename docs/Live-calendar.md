@@ -5,6 +5,9 @@
 > 路由：`/live-calendar`；页面组件：`pages/LiveCalendarPage`。
 >
 > 本文为**方案文档**，同时与当前实现保持一致：所有接口契约、字段映射、分类规则均对应已落地的代码，改动实现须同步更新本文。
+>
+> 作者：Lensgcx (GaoCangxiong)
+> 最近更新：2026-10-06
 
 ***
 
@@ -19,6 +22,8 @@
 - [7. 后端接口规格](#7-后端接口规格)
 - [8. 落库与查询流程](#8-落库与查询流程)
 - [9. 前端设计](#9-前端设计)
+- [9.8 交互设计补充](#98-交互设计补充)
+- [9.9 性能优化设计（前后端）](#99-性能优化设计前后端)
 - [10. 时间维度与精简标题规则](#10-时间维度与精简标题规则)
 - [11. 降级策略](#11-降级策略)
 - [12. 边界条件与空态](#12-边界条件与空态)
@@ -39,8 +44,8 @@
 | 项 | 内容 |
 | -- | -- |
 | 文档名称 | 消息日历（Live Calendar）设计方案 |
-| 作者 | HermesX 平台组 |
-| 最近更新 | 2026-09-25 |
+| 作者 | Lensgcx (GaoCangxiong) / HermesX 平台组 |
+| 最近更新 | 2026-10-06 |
 | 状态 | 已落地，与当前实现同步 |
 | 适用范围 | 后端 `data_provider` / `src/services` / `src/repositories` / `api`；前端 `apps/hrs-web` |
 | 维护约定 | 任何接口契约 / 分类规则 / 落库结构变更须同步更新本文对应章节 |
@@ -49,6 +54,7 @@
 
 | 版本 | 日期 | 作者 | 变更摘要 |
 | -- | -- | -- | -- |
+| v1.1 | 2026-10-06 | Lensgcx (GaoCangxiong) / HermesX 平台组 | 同步前端交互与性能优化落地：补充 `LiveCalendar` 内部 `onRangeRequest + dataReadyKey` 范围握手、月视图 staged mount、自绘 List 视图职责、按月缓存 / in-flight 去重 / 相邻月预取 / 无筛选快速归格路径，并更新手动验证重点 |
 | v1.0 | 2026-09-25 | HermesX 平台组 | 基于当前代码重写方案：固化数据源契约、系统架构、分类打标、重要度量纲、落库/聚合、后端接口（表格化出入参）、前端设计、降级策略；新增接口统一设计要点、前后端核心实现代码、条件筛选功能、文档信息与变更日志 |
 
 ***
@@ -566,8 +572,8 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 ### 8.3 过滤优先级（服务端 + 客户端）
 
-- **服务端过滤**（触发重新请求）：`include_economic_data`（决定是否拉取 FD）。
-- **客户端过滤**（内存中，不重新请求）：`tab` / `country_id` / `importance_min` / `importance`（多选）/ `calendar_type`（FE/FD）/ `keyword`。前端整月数据已在内存，过滤不触发新请求（见 §9.3）。
+- **服务端过滤能力**：接口支持按 `include_economic_data` / `tab` / `country_id` / `importance_min` 过滤。
+- **当前前端策略**：页面固定按覆盖月份请求并固定 `includeEconomicData=true`；`tab` / `country_id` / `importance`（多选）/ `calendar_type`（FE/FD）/ `keyword` 均在内存中过滤，不触发新请求（见 §9.3）。
 
 ***
 
@@ -585,11 +591,13 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 LiveCalendarPage
 ├─ useLiveCalendarTabs        → Tab 列表（后端驱动，label 经 i18n）
 ├─ useLiveCalendarCountries   → 国家字典（含 degraded）
-├─ useLiveCalendarMonths      → 多月合并 + 归格 + 客户端过滤
+├─ useLiveCalendarMonths      → 按月缓存 + 多月合并 + 归格 + 客户端过滤
 ├─ TabNav (分类 Tab)          → 全部 / 宏观 / 财报 / 新股 / 活动
 ├─ LiveCalendarFilterPanel    → 筛选：重要度多选 / 类型(FE·FD) / 国家 / 关键词
 ├─ LiveCalendar (FullCalendar 封装)
 │   ├─ 月 / 周 / 日 / 列表 四视图
+│   ├─ onRangeRequest         → 向 Page 申请目标范围数据
+│   ├─ dataReadyKey           → 等待外层数据 ready 后再提交月视图切换
 │   ├─ LiveCalendarEventDrawer  → 点事件打开详情抽屉
 │   └─ LiveCalendarListView     → 自绘列表视图（四列真表头）
 └─ 选中日详情面板 (EventCard 列表)
@@ -597,17 +605,21 @@ LiveCalendarPage
 
 ### 9.3 数据获取与归格
 
-- `useLiveCalendarMonths(months, options)`：可见范围覆盖的月份**并行拉取**后合并（视图可见范围可能跨月，如月视图含上/下月填充格、周视图跨月周次）。
+- `useLiveCalendarMonths(months, options)`：可见范围覆盖的月份**按月缓存 + 缺月拉取**后合并（视图可见范围可能跨月，如月视图含上/下月填充格、周视图跨月周次）。
 - 时区处理：按**本地时区** `YYYY-MM-DD` 归格（`toDateKeyFromSeconds`），避免 `toISOString()` 的 UTC 错位；覆盖月份两端各外扩 1 天以兼容任意时区下本地可见日与 UTC 日期的偏移。
-- 竞态防护：`AbortController` 在中止在途请求，避免乱序覆盖；`items=null` 区分「加载中」与「已加载失败」。
-- 筛选不重新请求：`tab` / 国家 / 重要度 / 类型 / 关键词均在内存过滤；仅 `include_economic_data` 与可见月份范围变化触发重新请求。
+- 按月缓存：缓存键为 `year-month-includeEconomicData`；命中缓存时直接回填当前可见月份，不等待网络。
+- 并发去重：同一月份在途请求由 `inflightRef` 复用，避免用户快速切月时重复打相同月份请求。
+- 相邻月预取：当前覆盖月份命中后，后台预取前后相邻月份，优化月视图 `prev/next` 首次切换体感。
+- 无筛选快速路径：当页面处于“全部 + 无附加筛选”时，直接合并各月份缓存中的 `eventsByDay`，避免每次切月都重新 `flatMap + groupBy`。
+- 筛选不重新请求：`tab` / 国家 / 重要度 / 类型 / 关键词均在内存过滤；当前页面固定 `includeEconomicData=true`，实际触发重拉的只有**可见范围变化**与**手动刷新**。
 - 同格排序：按重要级降序、时间升序，重要事件优先露出。
+- `resolvedMonthsKey`：Hook 会返回“当前已应用到页面的数据覆盖了哪些月份”，供 `LiveCalendar` 判断月视图目标月份是否已经 ready。
 
 ### 9.4 视图模式
 
 基于 `FullCalendar` v6 封装，提供**月 / 周 / 日 / 列表**四视图：
 
-- **月视图**：按天归格，最多 3 条 + `+N` 折叠；点事件 → 详情抽屉，点日期格 → 切入日视图定位当日。
+- **月视图**：按天归格，最多 3 条 + `+N` 折叠；点事件 → 详情抽屉，点日期格 → 切入日视图定位当日。`prev / next / today` 不直接提交实例内切月，而是由组件内部先抛 `onRangeRequest` 请求目标范围，等待外层 `dataReadyKey` 对齐后再 remount 月视图实例。
 - **周视图**：同时段（默认 60 分钟窗口）达阈值（默认 3 条）的消息归集成一张卡片，卡片内按（时间, 重要度）双层结构展示。
 - **日视图**：时间轴逐条展示，同时间段事件纵向错开。
 - **列表视图**：不走 FullCalendar 的 list 插件（其仅两列），由 `LiveCalendarListView` 自绘四列真表头。
@@ -629,18 +641,76 @@ LiveCalendarPage
 
 | 维度 | 取值 | 过滤位置 | 是否触发新请求 | 说明 |
 | -- | -- | -- | -- | -- |
-| 分类 Tab | `all` / `macro` / `earnings` / `ipo` / `activity` | 服务端 + 客户端 | 否（客户端） | `tab` 变化在已加载整月数据上内存过滤；不重新拉取（见 §7.3） |
+| 分类 Tab | `all` / `macro` / `earnings` / `ipo` / `activity` | 客户端（接口保留服务端能力） | 否 | `tab` 变化在已加载整月数据上内存过滤；不重新拉取（见 §7.3） |
 | 重要度 | 多选 `0~4` | 客户端（`importance` 集合） | 否 | `LiveCalendarFilterState.importance` 多选；前端按 `importance ∈ set` 过滤 |
 | 类型 | `all` / `FE` / `FD` | 客户端（`calendar_type`） | 否 | `all` 不区分；`FD` 仅当 `include_economic_data=true` 已拉取时可见 |
-| 国家 | 国家代码（`countryId`） | 服务端 + 客户端 | 否（客户端） | 服务端 `country_id` 已过滤；客户端再按 `countryId` 二次过滤 |
+| 国家 | 国家代码（`countryId`） | 客户端（接口保留服务端能力） | 否 | 当前页面不按国家重新请求，直接在已加载整月数据上过滤 |
 | 关键词 | 自由文本 | 客户端（`keyword`） | 否 | 匹配 `title` / `short_title`（大小写不敏感） |
 
 筛选交互要点：
 
-- **仅两类变化触发新请求**：`include_economic_data`（首次请求是否拉取 `FD`）与可见月份范围变化会重新调用 `GET /live-calendar`；其余维度均在内存过滤，降低请求量（见 §9.3）。
+- **当前页面仅一类变化触发新请求**：可见月份范围变化会重新调用 `GET /live-calendar`；其余维度均在内存过滤，降低请求量（见 §9.3）。接口层保留 `include_economic_data` 能力，但当前页面固定按 `true` 拉取。
 - **服务端与客户端对应**：服务端过滤由 `IntelligenceService._filter_calendar` 实现（见 §18.3）；客户端过滤在 `useLiveCalendarMonths` 的 `events` 记忆化中完成（见 §18.7）。
 - **空态优先级**：分类无结果 > 筛选无结果 > 通用无事件（见 §12）。
 - **UI 承载**：筛选面板 `LiveCalendarFilterPanel` 由 `LiveCalendarFilterState` 驱动，置于页头抬升卡片内（见 §9.2）；维度状态与分类 Tab 相互独立，可叠加生效。
+
+### 9.8 交互设计补充
+
+#### 9.8.1 月视图翻月握手
+
+- `LiveCalendar` 为月视图维护内部 `pendingMonthRequest`；
+- 用户点击 `prev / next / today` 时，组件内部先计算目标月的可见范围并抛出 `onRangeRequest`；
+- `LiveCalendarPage` 只负责接收 `range`、驱动 `useLiveCalendarMonths(months)` 取数，不再持有月视图专属状态；
+- 当 `resolvedMonthsKey === requestKey` 时，`LiveCalendar` 再更新 `monthViewDate` 与 `monthViewRenderKey`，一次性 remount 月视图实例。
+
+这样做的目的是把“月视图切换”尽量变回首屏路径：**先准备数据，再显示目标月份**，避免 FullCalendar 旧实例先内部切月、再做大规模 diff。
+
+#### 9.8.2 视图切换职责
+
+- **月 / 周 / 日**：由同一个 `LiveCalendar` 实例承载；
+- **List**：与 FullCalendar 平级渲染，切到 List 时隐藏 FC 实例但不销毁，切回后调用 `updateSize()` 恢复布局；
+- **详情抽屉**：事件点击优先打开 `LiveCalendarEventDrawer`，抽屉层级高于月格 `more popover`，避免两个浮层叠加时互相遮挡；
+- **选中日详情面板**：始终保留在页面下方，服务于“点日期看当天全部”的阅读路径，和 Drawer 的“点单条看详情”职责分离。
+
+#### 9.8.3 范围请求事件契约
+
+`LiveCalendar` 对外只暴露一条正式数据请求出口：
+
+```ts
+type LiveCalendarRangeRequest = {
+  viewType: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'list';
+  range: { start: Date; end: Date };
+  anchorDate: Date;
+  reason: 'init' | 'prev' | 'next' | 'today' | 'view-change' | 'date-click' | 'list-nav';
+  requestKey: string;
+};
+```
+
+- `viewType`：请求由哪个视图发起；
+- `range`：外层应准备数据的可见范围；
+- `anchorDate`：当前视图的锚点日期；
+- `reason`：行为来源，便于调试与后续埋点；
+- `requestKey`：外层通过 `dataReadyKey` 回传给组件，作为“数据已准备好”的握手标识。
+
+### 9.9 性能优化设计（前后端）
+
+#### 9.9.1 前端
+
+- **按月缓存**：`useLiveCalendarMonths` 以 `year-month-includeEconomicData` 为键缓存整月结果，命中后直接回填页面，减少重复请求与等待。
+- **single-flight**：同一月份若已有在途请求，后续调用直接复用 Promise，避免快速点击 `prev / next` 时对同月发起并发重复请求。
+- **相邻月预取**：当前可见月份加载完成后，后台静默预取前后相邻月，优化下一次翻月响应。
+- **无筛选快速归格**：页面处于“全部 + 无附加筛选”时，直接合并缓存内 `eventsByDay`，不重复做整批事件的 `flatMap + groupBy + sort`。
+- **月视图 staged mount**：点击翻月时先发起范围请求，待数据 ready 再通过 `monthViewRenderKey` remount 月视图实例，绕开旧实例内部切月的高成本更新路径。
+- **timeGrid 合帧重排**：周 / 日视图事件挂载后通过 `requestAnimationFrame` 合帧调度同时间段事件错位，避免每条事件 mount 都立即触发一次全量重排。
+- **保留上一帧数据**：请求失败时不清空当前可见数据，错误由 `error` 承载，避免空屏闪烁。
+
+#### 9.9.2 后端
+
+- **按月查询契约**：`GET /live-calendar` 以 `year + month` 为最小粒度，和前端月缓存天然对齐；跨月范围由前端拆成覆盖月份并行请求，不要求后端额外提供范围分页接口。
+- **惰性抓取**：`list_calendar` 在本月冷启动且库中无数据时会先 `refresh_calendar` 再查询，保证页面首次进入尽量拿到结果。
+- **upsert 幂等**：刷新写入走统一去重键，手动刷新与惰性抓取重复触发时不会重复落库。
+- **国家字典 TTL 缓存**：`/live-calendar/countries` 走进程内缓存，避免页面首屏每次都打上游国家字典接口。
+- **降级优先可用**：上游异常时优先返回已落库数据并标记 `degraded=true`，和前端“保留上一帧数据”策略配合，减少全链路空白态。
 
 ***
 
@@ -673,6 +743,7 @@ LiveCalendarPage
 | 上游非 20000 / HTTP 非 200 | 抓取器抛 `CalendarFetchError`，由服务层收敛为降级而非崩溃          |
 | 能力开关关闭              | 所有日历接口返回空且不抓取（`degraded=true`）               |
 | 前端单月加载失败           | 保留上一帧数据，避免空屏；错误态由 `error` 承载               |
+| 前端月视图切月期间         | 维持当前月实例，待目标月份数据 ready 后再 remount，避免先切空白月再补数据 |
 
 - 前端统一在页眉下方展示 `degraded` 提示条（「数据源暂不可用，当前展示本地缓存数据」）。
 
@@ -742,6 +813,11 @@ LiveCalendarPage
 - 后端：日历抓取 / 打标 / 聚合 / API 尚未有独立 pytest 用例覆盖（当前 CI 未强制）。维护时建议补充：`_tag_calendar_event` 多归属、`_shorten_calendar_title` 截断、`_aggregate_calendar_rows` 合并、`list_calendar` 过滤与降级路径。
 - 前端：`apps/hrs-web` 已具备 lint / build 校验；日历组件遵循 `.conventions/frontend` 命名与组件约定（React.ComponentProps 继承、cn 合并、业务属性解构）。
 - 手动验证路径：启动后端后访问 `/docs` 的 `live-calendar` 接口，或前端 `/live-calendar` 页面，确认 Tab / 国家 / 月历 / 详情抽屉 / 筛选 / 手动刷新均可用，降级提示条在断网时生效。
+- 当前前端重点回归路径：
+  - 月视图 `prev / next / today`：确认走“目标月 ready 后再切”的 staged mount；
+  - 月格 `+N more` → 详情抽屉：确认 Drawer 层级高于 more popover；
+  - 周 / 日视图同时间段事件：确认错位渲染与归集卡片不互相覆盖；
+  - 筛选面板：确认分类 / 重要度 / 类型 / 国家 / 关键词均为客户端过滤且不触发重复请求。
 
 ***
 
@@ -756,13 +832,13 @@ LiveCalendarPage
 - **挂载与鉴权**：四个端点挂在 `/api/v1/intelligence` 路由组下（`live-calendar` 前缀），沿用项目统一鉴权与错误模型；非预期异常统一收敛为 `500 → ErrorResponse`，不在接口层透出上游细节。
 - **时区口径**：所有月份查询以 **UTC 月**为口径（`year` / `month` 对应 UTC 月）；`start_at` 返回**秒级 UTC**；前端按本地时区归格与排版，避免 UTC 错位。
 - **过滤职责分离**：
-  - 服务端过滤：`include_economic_data`（决定是否返回 `FD` 经济数据）、`tab`、`country_id`、`importance_min` 均在 `list_calendar` 内生效。
-  - 客户端过滤：`tab` / 国家 / 重要度多选 / 类型 / 关键词在已加载整月数据后由前端内存过滤，**不触发新请求**，降低请求量。
+  - 服务端过滤能力：`include_economic_data`（决定是否返回 `FD` 经济数据）、`tab`、`country_id`、`importance_min` 均在 `list_calendar` 内生效。
+  - 当前前端请求策略：页面固定按月请求并固定 `includeEconomicData=true`，`tab` / 国家 / 重要度多选 / 类型 / 关键词在已加载整月数据后由前端内存过滤，**不触发新请求**，降低请求量。
 - **`include_economic_data` 默认值差异（有意为之）**：API 侧 `Query` 默认 `false`（保守，避免默认拉取大量 `FD`）；前端 `useLiveCalendarMonths` 默认 `true`（用户默认看全部）。两端口径已对齐，文档与实现保持一致。
 - **降级标记 `degraded`**：贯穿 `tabs` / `countries` / `month` / `refresh` 四类响应；任意覆盖月份降级时 `month.degraded=true`，前端据此弱化国家展示并提示「数据源暂不可用」。
 - **`source` 常量**：固定 `"wallstreetcn"`，为多数据源扩展预留字段。
 - **幂等与去重**：`refresh` 幂等，写入按 §6.2 去重键 `upsert`，重复刷新不重复落库。
-- **分页策略**：按月整月返回（单月量级 500~900 条），不做游标分页；跨月可见范围由前端按覆盖月份并行拉取合并（见 §9.3）。
+- **分页策略**：按月整月返回（单月量级 500~900 条），不做游标分页；跨月可见范围由前端按覆盖月份并行拉取合并，并配合按月缓存、single-flight 与相邻月预取（见 §9.3 / §9.9）。
 
 ***
 

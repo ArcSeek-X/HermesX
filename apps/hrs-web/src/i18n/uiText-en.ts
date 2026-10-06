@@ -89,7 +89,9 @@ const en: Record<UiTextKey, string> = {
   'layout.newChatMessage': 'New Ask update',
   'layout.openNav': 'Open navigation',
   // 头部操作区 layout.header.*
+  'layout.header.goHome': 'Go home',
   'layout.header.language': 'UI language',
+  'layout.header.myApps': 'My apps',
   'layout.header.themeSettings': 'Theme settings',
   'layout.header.userSettings': 'User settings',
   // 导航菜单 layout.nav.*
@@ -157,6 +159,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.development.docsTable.description': 'Table data table component demo and usage',
   'layout.nav.development.docsToast.title': 'Toast',
   'layout.nav.development.docsToast.description': 'Toast command-style toast component demo and usage',
+  'layout.nav.development.docsInlineToast.title': 'Inline Toast',
+  'layout.nav.development.docsInlineToast.description': 'InlineToast inline toast component demo and usage',
   'layout.nav.development.docsModal.title': 'Modal',
   'layout.nav.development.docsModal.description': 'Modal dialog component demo and usage',
   'layout.nav.development.docsAnimCard.title': 'Anim Card',
@@ -208,6 +212,7 @@ const en: Record<UiTextKey, string> = {
   'component.LiveCalendar.includeEconomicData': 'Show economic data', // toggle: show FD economic data
   'component.LiveCalendar.list.columns.time': 'Time', // List view column header: time
   'component.LiveCalendar.list.columns.title': 'Title', // List view column header: news title
+  'component.LiveCalendar.loading': 'Loading…', // loading copy during internal month navigation
   'component.LiveCalendar.more': 'More info', // calendar cell overflow "+N" label
   'component.LiveCalendar.nextMonth': 'Next month', // List view nav: next
   'component.LiveCalendar.prevMonth': 'Previous month', // List view nav: previous
@@ -688,7 +693,8 @@ const en: Record<UiTextKey, string> = {
   'kline.tooltip.open': 'Open',
   'kline.tooltip.volume': 'Volume',
   // liveCalendar.*
-  'liveCalendar.degradedTip': 'Data source temporarily unavailable, showing cached data',
+  'liveCalendar.degradedTip.title': 'Data source temporarily unavailable',
+  'liveCalendar.degradedTip.message': 'Displaying locally cached data. Please check the data source query status.',
   'liveCalendar.emptyTab': 'No events in this category this month, try "All"',
   'liveCalendar.eventsCount': '{count} events',
   'liveCalendar.loading': 'Loading calendar…',
@@ -1203,7 +1209,6 @@ const en: Record<UiTextKey, string> = {
 };
 
 export default en;
-
 
 
 

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [文档] 更新消息日历方案文档 `docs/Live-calendar.md`：补充 `LiveCalendar` 的 `onRangeRequest + dataReadyKey` 范围握手、月视图 staged mount、自绘 List 视图职责，以及前后端按月缓存 / single-flight / 相邻月预取 / 降级保留上一帧数据等交互与性能设计说明；同步更新作者、最近更新时间与手动验证重点。
 - [文档] 新增「侧边栏」组件文档 Demo 页（`/docs/component/sideBar`，仅开发调试模式可见）：同时演示应用主导航 SidebarNav（default/rail 形态与折叠态）与基于 HeroUI Pro Sidebar 的 SidebarNavV2（复用同一份菜单数据，随运行模式切换，点击走 SPA 路由跳转）。
 - [改进] 消息日历筛选区域去掉外围边框；国家/地区下拉按中文名拼音首字母 A-Z 分组（组内按全拼排序，无拼音者归入 `#` 组），选项显示「国旗 + 国家名称」，下拉弹层限高（弹层与 HeroUI 内部 list-box 一并限高，滚动条落在 list-box）；关键词输入框改为占满本行剩余宽度，右对齐到操作区。
 - [修复] 消息日历筛选点「重置」不生效：草稿同步按引用比较，而重置回到的 `DEFAULT_LIVE_CALENDAR_FILTER` 与初始/上次生效值可能是同一引用，比较判定无变化导致草稿不回灌；改为 `createDefaultLiveCalendarFilter()` 每次生成新对象，面板重置时先本地回灌草稿再通知 Page。

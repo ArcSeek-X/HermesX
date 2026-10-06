@@ -14,13 +14,17 @@
  * 3. **纯客户端过滤**：四个条件都不触发网络请求，过滤逻辑在
  *    `hooks/useLiveCalendar.ts` 的 `useLiveCalendarMonths` 内完成，
  *    故月 / 周 / 日 / List 四视图同时生效。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { memo, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { pinyin } from 'pinyin-pro';
 import { TextField, Label } from '@heroui/react';
-import { HrsButton, Input, HrsSelect, type HrsSelectDataSourceDef, type HrsSelectOptionDef, } from '../../../components';
+import { HrsButton } from '../../basic/HrsButton';
+import { HrsInput } from '../../basic/HrsInput';
+import { HrsSelect, type HrsSelectDataSourceDef, type HrsSelectOptionDef } from '../../basic/HrsSelect';
 import { motion } from 'motion/react';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
@@ -269,7 +273,7 @@ export const LiveCalendarFilterPanel = memo(
                                     aria-hidden
                                     className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-text"
                                 />
-                                <Input
+                                <HrsInput
                                     className="w-full pl-7"
                                     value={draft.keyword}
                                     placeholder={t('component.LiveCalendar.filter.keywordPlaceholder')}

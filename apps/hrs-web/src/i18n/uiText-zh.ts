@@ -86,7 +86,9 @@ const zh = {
   'layout.newChatMessage': '问股有新消息', // 问股新消息提示
   'layout.openNav': '打开导航菜单', // 打开导航菜单提示
   // 头部操作区 layout.header.*
+  'layout.header.goHome': '回到主页', // 头部回到主页按钮
   'layout.header.language': '界面语言', // 头部中英文切换按钮
+  'layout.header.myApps': '我的应用', // 头部我的应用按钮
   'layout.header.themeSettings': '主题设置', // 头部主题设置按钮
   'layout.header.userSettings': '个人设置', // 头部个人设置按钮
 
@@ -157,6 +159,8 @@ const zh = {
   'layout.nav.development.docsTable.description': 'Table 通用数据表格组件演示与用法', // 表格导航项描述
   'layout.nav.development.docsToast.title': '轻提示', // 轻提示组件文档导航项
   'layout.nav.development.docsToast.description': 'Toast 命令式轻提示组件演示与用法', // 轻提示导航项描述
+  'layout.nav.development.docsInlineToast.title': '内联轻提示', // InlineToast 内联轻提示组件文档导航项
+  'layout.nav.development.docsInlineToast.description': 'InlineToast 内联轻提示组件演示与用法', // 内联轻提示导航项描述
   'layout.nav.development.docsModal.title': '模态框', // 模态框组件文档导航项
   'layout.nav.development.docsModal.description': 'Modal 模态框组件演示与用法', // 模态框导航项描述
   'layout.nav.development.docsAnimCard.title': '动画卡片', // 动画卡片组件文档导航项
@@ -208,6 +212,7 @@ const zh = {
   'component.LiveCalendar.includeEconomicData': '显示经济数据', // 是否显示 FD 经济数据开关
   'component.LiveCalendar.list.columns.time': '时间', // List 视图列头：时间
   'component.LiveCalendar.list.columns.title': '新闻标题', // List 视图列头：新闻标题
+  'component.LiveCalendar.loading': '加载中…', // 组件内部月份切换中的加载文案
   'component.LiveCalendar.more': '更多信息', // 日历格子溢出折叠提示
   'component.LiveCalendar.nextMonth': '下月', // List 视图导航：下月
   'component.LiveCalendar.prevMonth': '上月', // List 视图导航：上月
@@ -688,12 +693,13 @@ const zh = {
   'kline.tooltip.open': '开盘', // tooltip 开盘价
   'kline.tooltip.volume': '成交量', // tooltip 成交量
   // liveCalendar.*
-  'liveCalendar.degradedTip': '数据源暂不可用，当前展示本地缓存数据', // 降级提示条
+  'liveCalendar.degradedTip.title': '数据源暂不可用', // 降级提示条
+  'liveCalendar.degradedTip.message': '当前展示本地缓存数据，请检查数据源的查询情况', // 降级提示条
   'liveCalendar.emptyTab': '当前分类下本月暂无事件，试试「全部」', // 空态：某分类无事件
   'liveCalendar.eventsCount': '共 {count} 条事件', // 详情面板事件计数
   'liveCalendar.loading': '正在加载日历…', // 加载中文案
   'liveCalendar.refresh': '刷新日历', // 手动刷新按钮
-  'liveCalendar.refreshing': '刷新日历中', // 刷新按钮加载态文案
+  'liveCalendar.refreshing': '刷新中', // 刷新按钮加载态文案
   'liveCalendar.selectHint': '点击日历中的日期查看当日事件', // 详情面板空态提示
   'liveCalendar.subtitle': '宏观、财报、新股、活动等重要事件的财经日历', // 页面副标题
   'liveCalendar.tabs.activity': '活动', // 分类 Tab：活动
@@ -1205,7 +1211,6 @@ const zh = {
 export type UiTextKey = keyof typeof zh;
 
 export default zh;
-
 
 
 

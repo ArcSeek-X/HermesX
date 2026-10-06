@@ -86,7 +86,9 @@ const zhHant = {
   'layout.newChatMessage': '問股有新消息', // 問股新消息提示
   'layout.openNav': '打開導航菜單', // 打開導航菜單提示
   // 头部操作区 layout.header.*
+  'layout.header.goHome': '回到主頁', // 頭部回到主頁按鈕
   'layout.header.language': '界面語言', // 頭部中英文切換按鈕
+  'layout.header.myApps': '我的應用', // 頭部我的應用按鈕
   'layout.header.themeSettings': '主題設定', // 頭部主題設定按鈕
   'layout.header.userSettings': '個人設定', // 頭部個人設定按鈕
   // 导航菜单 layout.nav.*
@@ -154,6 +156,8 @@ const zhHant = {
   'layout.nav.development.docsTable.description': 'Table 通用資料表格組件演示與用法', // 表格导航项描述
   'layout.nav.development.docsToast.title': '輕提示', // 輕提示組件文檔導航項
   'layout.nav.development.docsToast.description': 'Toast 命令式輕提示組件演示與用法', // 轻提示导航项描述
+  'layout.nav.development.docsInlineToast.title': '內聯輕提示', // InlineToast 內聯輕提示組件文檔導航項
+  'layout.nav.development.docsInlineToast.description': 'InlineToast 內聯輕提示組件演示與用法', // 內聯輕提示導航項描述
   'layout.nav.development.docsModal.title': '模態框', // 模態框組件文檔導航項
   'layout.nav.development.docsModal.description': 'Modal 模態框組件演示與用法', // 模态框导航项描述
   'layout.nav.development.docsAnimCard.title': '動畫卡片', // 動畫卡片組件文檔導航項
@@ -172,7 +176,7 @@ const zhHant = {
   'layout.nav.development.docsTextArea.description': 'TextArea 多行文本輸入組件演示與用法', // 文本域導航項描述
   'layout.nav.development.docsChip.title': '標籤芯片', // 標籤芯片組件文檔導航項
   'layout.nav.development.docsChip.description': 'Chip 圓角膠囊標籤組件演示與用法', // 標籤芯片導航項描述
-  
+
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
   'component.LiveCalendar.allDay': '全天', // 日曆事件全天標識
@@ -205,6 +209,7 @@ const zhHant = {
   'component.LiveCalendar.includeEconomicData': '顯示經濟資料', // 是否顯示 FD 經濟資料開關
   'component.LiveCalendar.list.columns.time': '時間', // List 視圖列頭：時間
   'component.LiveCalendar.list.columns.title': '新聞標題', // List 視圖列頭：新聞標題
+  'component.LiveCalendar.loading': '載入中…', // 組件內部月份切換中的載入文案
   'component.LiveCalendar.more': '更多資訊', // 日曆格子溢出摺疊提示
   'component.LiveCalendar.nextMonth': '下月', // List 視圖導航：下月
   'component.LiveCalendar.prevMonth': '上月', // List 視圖導航：上月
@@ -685,12 +690,13 @@ const zhHant = {
   'kline.tooltip.open': '開盤', // tooltip 開盤价
   'kline.tooltip.volume': '成交量', // tooltip 成交量
   // liveCalendar.*
-  'liveCalendar.degradedTip': '資料源暫不可用，目前展示本地快取資料', // 降級提示條
+  'liveCalendar.degradedTip.title': '資料源暫不可用', // 降級提示條
+  'liveCalendar.degradedTip.message': '目前展示本地快取資料，請檢查資料源的查詢情況', // 降級提示條
   'liveCalendar.emptyTab': '目前分類下本月暫無事件，試試「全部」', // 空態：某分類無事件
   'liveCalendar.eventsCount': '共 {count} 條事件', // 詳情面板事件計數
   'liveCalendar.loading': '正在載入日曆…', // 載入中文案
   'liveCalendar.refresh': '重新整理日曆', // 手動重新整理按鈕
-  'liveCalendar.refreshing': '重新整理日曆中', // 重新整理按鈕載入態文案
+  'liveCalendar.refreshing': '重新整理中', // 重新整理按鈕載入態文案
   'liveCalendar.selectHint': '點擊日曆中的日期查看當日事件', // 詳情面板空態提示
   'liveCalendar.subtitle': '宏觀、財報、新股、活動等重要事件的財經日曆', // 頁面副標題
   'liveCalendar.tabs.activity': '活動', // 分類 Tab：活動
@@ -1202,8 +1208,6 @@ const zhHant = {
 // 注意：UiTextKey 的唯一真源是 uiText-zh.ts，此处不再重复导出。
 // 三语 key 集合对齐由 uiText.ts 的 Record<UiLanguage, Record<UiTextKey, string>> 类型强制校验。
 export default zhHant;
-
-
 
 
 

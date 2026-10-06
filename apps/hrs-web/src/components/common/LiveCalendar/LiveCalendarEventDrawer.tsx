@@ -19,6 +19,7 @@
  *     再延迟卸载（300ms），避免内容在动画途中被抽掉；
  *   - 货币符号来自国家字典（由 Page 传入，避免重复请求）；字典未就绪时降级为只显示国家名。
  * ------------------------------------------------------------
+ * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -85,6 +86,9 @@ export const LiveCalendarEventDrawer: React.FC<{
             onClose={handleClose}
             placement="right"
             size="md"
+            // FullCalendar 的 more-popover 默认 z-index = 9999，事件详情抽屉需要明确压过它。
+            backdropClassName="z-[10010]"
+            contentClassName="z-[10011]"
             // ⚠ 三段容器样式统一走 *ClassName：HrsDrawer 分拣子元素时只取 children，
             // 会丢弃 <HrsDrawer.Body className="..."> 上的 className，写在子元素上不生效。
             headerClassName="items-start"

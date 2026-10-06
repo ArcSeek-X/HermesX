@@ -1,39 +1,20 @@
 /**
  * LiveCalendar.tsx
- * ------------------------------------------------------------
- * 消息日历组件：基于 FullCalendar v6（6.1.21）的二次封装，提供
- * **月 / 周 / 日 / 列表**四种视图。
+ * 消息日历组件：基于 FullCalendar v6 封装月 / 周 / 日视图，并补齐自绘 List 视图、
+ * 月视图受控翻月、周视图同时间段归集卡片、日/周视图事件纵向错位等业务行为。
  *
- * 视觉目标：对齐 FullCalendar 官方 Breezy 主题（参考同目录 `demo/event-calendar.tsx`），
- * 在 v6 能力范围内高保真近似：细网格线、星期胶囊表头、今日主题色 pill、
- * 圆角淡色事件块（色点 + 时间在上、标题在下）、溢出折叠为「+N」。
+ * 使用场景：
+ * - 供 `LiveCalendarPage` 直接消费；
+ * - 外部只负责按请求范围准备 `eventsMap`，组件内部管理视图切换、详情抽屉和月视图 staged mount。
  *
- * 视图要点：
- * - 月视图：按天归格，最多 3 条 + `+N` 折叠；点事件 / 日期格 → 切入日视图定位当日。
- * - 周视图：同时段（默认 60 分钟窗口）达阈值（默认 3 条）的消息归集成一张卡片，
- *   卡片内按时间分组、组内按重要度降序；详见 `GroupedEventContent`。
- * - 日视图：时间轴逐条展示，同时间段事件纵向错开。
- * - List 视图：**不走 FullCalendar**（v6 的 list 插件只有「时间 + 标题」两列，做不出
- *   四列真表头），由 `LiveCalendarListView` 自绘，与本组件平级、按 `viewType` 条件渲染。
+ * 样式入口统一在同目录 `csscover.ts`，这里主要维护交互与数据转换逻辑。
  *
- * 版本约束：Breezy 主题基于 FullCalendar 7.x 的 Themes API（`viewClass` / `dayHeaderClass`
- * / `rowEventClass` 等一整套 `*Class` hook），本项目锁 6.1.21，这些 hook 均不存在，
- * 因此改用 v6 等价入口实现同一视觉：`dayHeaderContent` / `dayCellClassNames` /
- * `eventContent` / `moreLinkContent` / `viewClassNames`。故本实现是「视觉近似」，
- * 不可能与 7.x demo 逐像素 1:1。
- *
- * 样式分层：容器层的 `[&_.fc-*]` 覆盖与 `--fc-*` 变量集中在同目录 `csscover.ts`
- * （常量 `LIVE_CALENDAR_CSS_COVER`），改样式请去那里（维护约定写在该文件头部）。
- *
- * 遵循 .conventions/frontend/COMPONENTS.md：`React.ComponentProps` 继承原生 TS 类型、
- * 业务属性解构后其余透传、`cn()` 合并样式且外部 className 优先级最高。
- *
- * 选型理由与主题映射详见 docs/Live-calendar.md §9；List 视图详见 §20。
+ * @author Lensgcx (GaoCangxiong)
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { memo, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import type { EventClickArg, EventMountArg } from '@fullcalendar/core';
+import type { DatesSetArg, EventClickArg, EventMountArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -66,6 +47,19 @@ export interface LiveCalendarRange {
     end: Date;
 }
 
+export interface LiveCalendarRangeRequest {
+    /** 当前目标视图类型 */
+    viewType: CalendarViewType;
+    /** 视图所需的数据范围 */
+    range: LiveCalendarRange;
+    /** 当前请求对应的锚点日期（月视图取当月 1 号；周/日/List 取当前焦点日期） */
+    anchorDate: Date;
+    /** 触发原因 */
+    reason: 'init' | 'prev' | 'next' | 'today' | 'view-change' | 'list-nav';
+    /** 供外层回传 `dataReadyKey` 的稳定 key */
+    requestKey: string;
+}
+
 /** 业务扩展属性：数据契约经转化喂给 FullCalendar */
 export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
     /** 按天归格的事件（key = YYYY-MM-DD） */
@@ -79,15 +73,24 @@ export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
     onSelectEvent?: (event: LiveCalendarEventDef) => void;
     /** 国家字典（国旗 / 货币 / 国家名），来自 Page 的 `useLiveCalendarCountries()`，供详情抽屉渲染 */
     countries?: CalendarCountryDef[];
-    /**
-     * 视图日期范围变化回调（切换视图 / prev / next / today 触发），Page 据此拉取覆盖月份的数据。
-     * 必须下发完整可见范围而非单一月份：周视图可能跨月（如 9 月第一周的周一落在 8/31），
-     * 只拉周一所在月份会让跨月日无事件。
-     */
-    onRangeChange?: (range: LiveCalendarRange) => void;
+    /** 组件内部发起的范围请求事件：外层据此准备对应范围的数据 */
+    onRangeRequest?: (payload: LiveCalendarRangeRequest) => void;
+    /** 外层数据已准备好的 requestKey；月视图会等该 key 就绪后再切换实例 */
+    dataReadyKey?: string;
     /** 外层容器自定义类名 */
     className?: string;
 };
+
+/** 日历支持的视图类型 */
+type CalendarViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'list';
+
+/** 月视图切换中的待提交请求 */
+interface PendingMonthRequest {
+    /** 外层准备数据后回传的 requestKey */
+    requestKey: string;
+    /** 数据 ready 后真正切换到的目标月份 */
+    targetDate: Date;
+}
 
 /** 归集卡片的分组方式（暂不对外暴露，内部预留扩展） */
 type GroupMethod = 'timeAndImportance' | 'time';
@@ -110,15 +113,50 @@ const GROUP_FIRST_ROW_HEIGHT = 24;
 const GROUP_ROW_HEIGHT = 20;
 /** 归集卡片上下内距（px）。 */
 const GROUP_PADDING = 10;
+const FULL_CALENDAR_PLUGINS = [dayGridPlugin, timeGridPlugin, interactionPlugin];
+const FULL_CALENDAR_HEADER_TOOLBAR = {
+    start: 'prev,today,next',
+    center: 'title',
+    end: 'dayGridMonth timeGridWeek timeGridDay list',
+} as const;
+const MONTH_TOOLBAR_BUTTON_WIDTH = 'w-[80px]';
+const TIME_GRID_EVENT_HEIGHT = 10;
+const TIME_GRID_EVENT_GAP = 10;
 
-/**
- * 归集分组（**双层数据结构**）。
- *
- * 归集卡片的本质是「合并相同时间、相同重要度的新闻消息」，所以数据不再是扁平的
- * 事件数组，而是先按 (startAt, importance) 分出一层「组」，组内再放该时间点的消息列表。
- * - 外层：组（一个时间点 + 一个重要级），携带 dot 色点 + 时间，作为不可交互的分组标题；
- * - 内层：该组下的消息列表，每条可 hover、可点击。
- */
+function monthAnchorDateOf(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function monthGridRangeOf(date: Date): LiveCalendarRange {
+    const first = monthAnchorDateOf(date);
+    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+    const start = new Date(first);
+    start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+    const end = new Date(last);
+    end.setDate(last.getDate() + (6 - ((last.getDay() + 6) % 7)));
+    return { start, end };
+}
+
+function monthsKeyOfRange(range: LiveCalendarRange): string {
+    const start = new Date(range.start);
+    start.setDate(start.getDate() - 1);
+    const end = new Date(range.end);
+    end.setDate(end.getDate() + 1);
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    const keys: string[] = [];
+    while (cursor <= endMonth) {
+        keys.push(`${cursor.getFullYear()}-${cursor.getMonth() + 1}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return keys.join('|');
+}
+
+function shiftMonthDate(date: Date, delta: number): Date {
+    return monthAnchorDateOf(new Date(date.getFullYear(), date.getMonth() + delta, 1));
+}
+
+/** 归集卡片的双层数据结构：外层是时间组，内层是该组下的事件列表。 */
 export interface GroupedEventGroup {
     /** 该组的时间戳（秒）；组内所有消息时间相同 */
     startAt: number;
@@ -133,11 +171,11 @@ export interface GroupedEventGroup {
 }
 
 /**
- * 把桶内事件整理成双层结构：
- * - `time`（默认）：只按 `startAt` 分组，同时间的消息不论重要度合并一组，组内按重要度降序；
- * - `timeAndImportance`：按 (startAt, importance) 分组，时间与重要度都相同才合并。
+ * 把同一时间桶内的事件整理成归集卡片需要的双层结构。
  *
- * ⚠ 输入须已按 `startAt` 升序（`toFullCalendarEvents` 已保证），否则「相邻」判定失效。
+ * @param events 需先按 `startAt` 升序传入
+ * @param method 分组方式；默认只按时间聚合
+ * @returns 归集卡片使用的分组结果
  */
 function eventGroupByTimeAndImportance(
     events: LiveCalendarEventDef[],
@@ -192,17 +230,20 @@ function calcGroupCardHeight(groups: GroupedEventGroup[]): number {
 }
 
 /**
- * 把按天归格的事件展平为 FullCalendar 的 EventInput 数组。（eventsMap的Map类型转成events平铺的array类型）
+ * 把按天归格的事件展平为 FullCalendar 可消费的事件数组。
  *
- * **同时段归集仅周视图生效**（`viewType === 'timeGridWeek'`）：组内条数 ≥ `GROUP_THRESHOLD`
- * 时合并为一个 FC 事件（`extendedProps.groupEvents` 携带原数组，渲染成归集卡片），
- * 未达阈值则逐条输出；月 / 日视图一律逐条输出。
+ * 约定：
+ * - 周视图满足阈值的同时间段事件合并成归集卡片；
+ * - 月 / 日视图保持逐条渲染；
+ * - 输出 id 必须稳定，供挂载后缓存 DOM 和定位重排。
  *
- * 合并事件的 `eventDef` 取桶内第一条作「代表」，用于点击卡片整体时的详情定位。
+ * @param eventsMap 按天归格的事件映射
+ * @param viewType 当前视图类型
+ * @returns FullCalendar 事件数组
  */
 function toFullCalendarEvents(
     eventsMap: Map<string, LiveCalendarEventDef[]>,
-    viewType: string,
+    viewType: CalendarViewType,
 ) {
     const result: Array<{
         // 稳定 id（`evt-...` / `group-...`）：eventDidMount 靠它关联 DOM（纵向重排、卡片撑高）
@@ -218,16 +259,19 @@ function toFullCalendarEvents(
     }> = [];
 
     for (const [dayKey, events] of eventsMap) {
-        // 按时间升序
-        const sorted = events.slice().sort((a, b) => a.startAt - b.startAt);
-
         // 仅周视图归集
         const enableGrouping = viewType === 'timeGridWeek';
+        const orderedEvents =
+            viewType === 'dayGridMonth'
+                ? events
+                : events.slice().sort((a, b) => a.startAt - b.startAt);
 
         // 滑动时间窗口聚类：相邻事件差 ≤ 窗口 → 同组
         const windowSec = SAME_TIME_WINDOW_MIN * 60;
         const groups: Array<{ startAt: number; items: LiveCalendarEventDef[] }> = [];
-        sorted.forEach((event) => {
+        // 月视图直接复用 hook 层的「重要级优先」顺序；周 / 日视图再按时间升序，
+        // 保证时间轴布局与归集窗口判断都基于真实时间顺序。
+        orderedEvents.forEach((event) => {
             const tail = groups[groups.length - 1];
             if (tail && (event.startAt - tail.startAt) <= windowSec) {
                 tail.items.push(event);
@@ -268,7 +312,7 @@ function toFullCalendarEvents(
     return result;
 }
 
-/** 单条事件的格子内容：[色点 + 时间] 在上、标题在下，对齐 Breezy rowEvent 的节奏 */
+/** 单条事件在月 / 日 / 周视图中的默认卡片内容。 */
 function CalendarEventContent({ event }: { event: LiveCalendarEventDef }) {
     const theme = eventThemeMap(event.importance);
     return (
@@ -300,12 +344,10 @@ function CalendarEventContent({ event }: { event: LiveCalendarEventDef }) {
 }
 
 /**
- * 归集卡片内容：按「组（时间 + 重要级）→ 组内消息」双层结构渲染。
+ * 周视图归集卡片内容。
  *
- * 交互约定：
- * - **组头（色点 + 时间）纯展示**，无 hover、无点击——它只表达这一组的时间与重要级；
- * - **每条消息是 `<button>`**，点击触发 `onSelectEvent(item)` 并 `stopPropagation()`，
- *   否则会冒泡到 FullCalendar 的 eventClick、用「代表事件」打开错误详情。
+ * 组头只负责展示时间和重要级；真正可点击的是组内每一条消息，
+ * 需要阻止冒泡，避免落回 FullCalendar 的代表事件点击逻辑。
  */
 function GroupedEventContent({
     groups,
@@ -383,10 +425,6 @@ function calendarLocaleOf(language: UiLanguage) {
     return undefined;
 }
 
-// ── List 视图的范围计算 ─────────────────────────────────────────────────
-// 渲染组件在 `LiveCalendarListView.tsx`（自绘，FC 的 list 插件做不出四列真表头）。
-// 这里只保留驱动它所需的范围计算：进入时取当前 FC 可见范围所在周，prev / next 按 7 天平移。
-
 /** 取某日所在自然周（firstDay=1 周一）的 [start, end] */
 function weekRangeOf(date: Date): { start: Date; end: Date } {
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -406,25 +444,38 @@ function shiftDays(date: Date, days: number): Date {
 }
 
 /**
- * FullCalendar v6 二次封装：月 / 周 / 日视图 + List 视图（后者见 `LiveCalendarListView`）。
+ * 消息日历主组件。
  *
- * 月视图点事件或日期格 → 切日视图并定位该日（数据仍来自 Page 按月拉取的 eventsMap，
- * 切视图不触发重新请求）；周 / 日 / List 视图点击走 onSelectDay / onSelectEvent 的详情定位语义。
+ * @param props.eventsMap 按天归格后的事件映射
+ * @param props.onSelectDay 点日期后的回调
+ * @param props.onSelectEvent 点单条事件后的补充回调，默认只在组件内开详情抽屉
+ * @param props.countries 国家字典，供详情抽屉展示国家名 / 货币 / 国旗
+ * @param props.onRangeRequest 组件内部需要新数据时抛出的范围请求事件
+ * @param props.dataReadyKey 外层已准备好的请求 key，月视图据此再切换月份
+ * @param props.className 外层自定义类名
+ * @returns 日历组件
  */
-export const LiveCalendar = ({
+const LiveCalendarInner: React.FC<LiveCalendarProps> = ({
     eventsMap,
     onSelectDay,
     onSelectEvent,
     countries,
-    onRangeChange,
+    onRangeRequest,
+    dataReadyKey,
     className,
     ...props
-}: LiveCalendarProps) => {
-    // 当前视图类型（dayGridMonth / timeGridWeek / timeGridDay / list），由 datesSet 同步
-    const [viewType, setViewType] = useState<string>('dayGridMonth');
-    // 详情抽屉选中事件（点消息 → 打开；onClose → 清空）
+}) => {
+    /** 当前视图类型，由 FullCalendar `datesSet` 与 List 视图切换共同维护。 */
+    const [viewType, setViewType] = useState<CalendarViewType>('dayGridMonth');
+    /** 月视图当前显示的月份锚点。 */
+    const [monthViewDate, setMonthViewDate] = useState<Date>(() => monthAnchorDateOf(new Date()));
+    /** 月视图 remount key：仅在目标月数据 ready 后更新。 */
+    const [monthViewRenderKey, setMonthViewRenderKey] = useState<string>(() => `month-${Date.now()}`);
+    /** 月视图翻月中的待提交请求。 */
+    const [pendingMonthRequest, setPendingMonthRequest] = useState<PendingMonthRequest | null>(null);
+    /** 当前选中的事件；有值时打开详情抽屉。 */
     const [selectedEvent, setSelectedEvent] = useState<LiveCalendarEventDef | null>(null);
-    /** 点单条事件：内部打开详情抽屉，并可选地通知外部（埋点等） */
+    /** 点单条事件：内部打开详情抽屉，并可选地通知外部。 */
     const handleSelectEvent = useCallback(
         (event: LiveCalendarEventDef) => {
             setSelectedEvent(event);
@@ -432,14 +483,13 @@ export const LiveCalendar = ({
         },
         [onSelectEvent],
     );
-    // List 视图可见范围：步长 7 天，默认「今天所在周」
+    /** List 视图可见范围，默认取今天所在周。 */
     const [listRange, setListRange] = useState<{ start: Date; end: Date }>(() =>
         weekRangeOf(new Date()),
     );
-    /** viewType 的 ref 镜像：datesSet 可能被 FC 持有旧闭包，用 ref 才能可靠判断「FC 处于隐藏态」 */
-    const viewTypeRef = useRef<string>('dayGridMonth');
-    viewTypeRef.current = viewType;
-    /** 最近一次 FullCalendar 可见范围：切到 List 视图时作为初始范围 */
+    /** `datesSet` 里要用到最新视图类型，避免拿到旧闭包。 */
+    const viewTypeRef = useRef<CalendarViewType>('dayGridMonth');
+    /** 最近一次 FullCalendar 的可见范围，切到 List 视图时用它确定初始周范围。 */
     const lastFCRange = useRef<{ start: Date; end: Date } | null>(null);
     const events = useMemo(
         () => toFullCalendarEvents(eventsMap, viewType),
@@ -447,8 +497,16 @@ export const LiveCalendar = ({
     );
     const calendarRef = useRef<FullCalendar | null>(null);
     const { t, language } = useUiLanguage();
-    // initialDate 为 initial-only，用空依赖固化一次，避免跨午夜重渲染时漂移
-    const initialDate = useMemo(() => new Date(), []);
+    const initializedRef = useRef(false);
+    const isMonthNavigating = pendingMonthRequest !== null;
+    const monthToolbarTitle = useMemo(
+        () =>
+            new Intl.DateTimeFormat(
+                language === 'zh-Hant' ? 'zh-TW' : language === 'zh' ? 'zh-CN' : 'en-US',
+                { year: 'numeric', month: 'long' },
+            ).format(monthViewDate),
+        [language, monthViewDate],
+    );
 
     /**
      * 手动纵向堆叠：FC timeGrid 原生不支持同时间段事件垂直错开
@@ -462,18 +520,13 @@ export const LiveCalendar = ({
      * 多次重排会不断叠加偏移、事件越排越下。基准只在 eventDidMount 时记录（那时还是 FC 原值）。
      */
     const eventBaseTops = useRef(new Map<string, number>());
-    /** 纵向堆叠时每条事件的高度（px） */
-    const SAME_TIME_EVENT_HEIGHT = 10;
-    /** 纵向堆叠时事件之间的垂直间隔（px） */
-    const SAME_TIME_EVENT_GAP = 10;
-
+    const rearrangeFrameRef = useRef<number | null>(null);
     const rearrangeSameTimeEvents = useCallback(() => {
         const api = calendarRef.current?.getApi();
         if (!api) return;
         // 仅在 timeGrid（周/日）视图生效；月视图有自己的事件布局策略，不要干预。
         if (api.view.type !== 'timeGridWeek' && api.view.type !== 'timeGridDay') return;
 
-        // 1) 收集当前可见事件：id / startMs / harness DOM
         const all = api.getEvents();
         type Entry = { id: string; startMs: number; el: HTMLElement };
         const entries: Entry[] = [];
@@ -487,7 +540,6 @@ export const LiveCalendar = ({
         });
         if (entries.length === 0) return;
 
-        // 2) 按列（日期）分组
         const byDay = new Map<string, Entry[]>();
         entries.forEach((entry) => {
             const d = new Date(entry.startMs);
@@ -496,7 +548,6 @@ export const LiveCalendar = ({
             byDay.get(dayKey)!.push(entry);
         });
 
-        // 3) 每列内：按时间排序，按「同时间段窗口」分组成堆叠单元
         const windowMs = SAME_TIME_WINDOW_MIN * 60 * 1000;
         byDay.forEach((dayEntries) => {
             dayEntries.sort((a, b) => a.startMs - b.startMs);
@@ -526,26 +577,95 @@ export const LiveCalendar = ({
                 }
                 group.forEach((entry, i) => {
                     const baseTop = baseTops[i] ?? 0;
-                    entry.el.style.top = `${baseTop + i * (SAME_TIME_EVENT_HEIGHT + SAME_TIME_EVENT_GAP)}px`;
-                    entry.el.style.height = `${SAME_TIME_EVENT_HEIGHT}px`;
+                    entry.el.style.top = `${baseTop + i * (TIME_GRID_EVENT_HEIGHT + TIME_GRID_EVENT_GAP)}px`;
+                    entry.el.style.height = `${TIME_GRID_EVENT_HEIGHT}px`;
                 });
             });
         });
     }, []);
 
+    const scheduleRearrange = useCallback(() => {
+        if (rearrangeFrameRef.current !== null) return;
+        rearrangeFrameRef.current = requestAnimationFrame(() => {
+            rearrangeFrameRef.current = null;
+            rearrangeSameTimeEvents();
+        });
+    }, [rearrangeSameTimeEvents]);
+
+    useEffect(() => {
+        viewTypeRef.current = viewType;
+    }, [viewType]);
+
+    useEffect(() => {
+        return () => {
+            if (rearrangeFrameRef.current !== null) {
+                cancelAnimationFrame(rearrangeFrameRef.current);
+            }
+        };
+    }, []);
+
+    /** 月视图切月时，等外层数据 ready 再真正提交月份切换。 */
+    useEffect(() => {
+        if (!pendingMonthRequest || dataReadyKey !== pendingMonthRequest.requestKey) return;
+        const commitId = window.setTimeout(() => {
+            setMonthViewDate(pendingMonthRequest.targetDate);
+            setMonthViewRenderKey(`${pendingMonthRequest.requestKey}-${Date.now()}`);
+            setPendingMonthRequest(null);
+        }, 0);
+        return () => window.clearTimeout(commitId);
+    }, [dataReadyKey, pendingMonthRequest]);
+
+    /**
+     * 向外抛出数据请求事件。
+     *
+     * @param viewType 目标视图
+     * @param range 请求范围
+     * @param anchorDate 视图锚点日期
+     * @param reason 触发原因
+     * @returns 本次请求的稳定 key
+     */
+    const emitDataRequest = useCallback((
+        nextViewType: CalendarViewType,
+        range: LiveCalendarRange,
+        anchorDate: Date,
+        reason: LiveCalendarRangeRequest['reason'],
+    ) => {
+        const requestKey = monthsKeyOfRange(range);
+        const payload: LiveCalendarRangeRequest = {
+            viewType: nextViewType,
+            range,
+            anchorDate,
+            reason,
+            requestKey,
+        };
+        onRangeRequest?.(payload);
+        return requestKey;
+    }, [onRangeRequest]);
+
+    /** 月视图翻月时先只发起数据请求，等外层数据 ready 后再 remount 日历实例。 */
+    const emitMonthDataRequest = useCallback((
+        targetDate: Date,
+        reason: LiveCalendarRangeRequest['reason'],
+    ) => {
+        const anchorDate = monthAnchorDateOf(targetDate);
+        const range = monthGridRangeOf(anchorDate);
+        const requestKey = emitDataRequest('dayGridMonth', range, anchorDate, reason);
+        return { anchorDate, requestKey };
+    }, [emitDataRequest]);
+
     /** 切换到日视图并定位到指定日期（供月视图点击穿透使用；changeView 接受 DateInput） */
-    const goToDayView = (date: Date | string) => {
+    const goToDayView = useCallback((date: Date | string) => {
         calendarRef.current?.getApi().changeView('timeGridDay', date);
-    };
+    }, []);
 
     /** 点日期格：月视图切日视图展示当日全部事件；周 / 日视图仅更新选中日 */
-    const handleDateClick = (info: DateClickArg) => {
+    const handleDateClick = useCallback((info: DateClickArg) => {
         const dayKey = info.dateStr.slice(0, 10);
         onSelectDay(dayKey);
         if (info.view.type === 'dayGridMonth') {
             goToDayView(info.date);
         }
-    };
+    }, [goToDayView, onSelectDay]);
 
     /**
      * 点事件块：**只打开 Drawer 详情，不切视图**（月 / 周 / 日三视图语义一致）。
@@ -553,26 +673,28 @@ export const LiveCalendar = ({
      * 两条路径刻意分开：点消息看这条的内容，点日期看那天的全部。
      * 归集卡片内的具体消息走 `GroupedEventContent` 内 onClick（stopPropagation 阻断冒泡）。
      */
-    const handleEventClick = (info: EventClickArg) => {
+    const handleEventClick = useCallback((info: EventClickArg) => {
         const eventDef = info.event.extendedProps.eventDef as LiveCalendarEventDef;
         handleSelectEvent(eventDef);
-    };
+    }, [handleSelectEvent]);
 
     /**
      * 视图切换（月 / 周 / 日 / List）。
-     * - 切到 List：以当前 FC 可见范围所在周（无则今天所在周）为初始范围并通知 Page 拉数；
-     * - 切回 FC 视图：⚠ 必须 `updateSize()`——List 下 FC 为 display:none，恢复后不重算会布局塌陷。
+     * List 视图是自绘实现，切过去时要单独维护它的范围；切回 FC 视图后要调用
+     * `updateSize()`，否则隐藏期间的布局不会自动恢复。
      */
-    const handleViewChange = (next: string) => {
+    const handleViewChange = useCallback((next: CalendarViewType) => {
         if (next === 'list') {
+            setPendingMonthRequest(null);
             const base = lastFCRange.current?.start ?? new Date();
             const nextRange = weekRangeOf(base);
             setListRange(nextRange);
             setViewType('list');
-            if (onRangeChange) {
-                onRangeChange({ start: nextRange.start, end: nextRange.end });
-            }
+            emitDataRequest('list', { start: nextRange.start, end: nextRange.end }, nextRange.start, 'view-change');
             return;
+        }
+        if (next !== 'dayGridMonth') {
+            setPendingMonthRequest(null);
         }
         setViewType(next);
         requestAnimationFrame(() => {
@@ -581,179 +703,303 @@ export const LiveCalendar = ({
             api.changeView(next);
             api.updateSize();
         });
-    };
+    }, [emitDataRequest]);
 
-    /** List 视图的 prev / today / next：按 7 天平移可见范围，并通知 Page 拉数 */
-    const handleListNav = (dir: 'prev' | 'next' | 'today') => {
-        const next =
+    /** List 视图导航：按整周平移范围。 */
+    const handleListNav = useCallback((dir: 'prev' | 'next' | 'today') => {
+        setListRange((prev) => {
+            const next =
+                dir === 'today'
+                    ? weekRangeOf(new Date())
+                    : {
+                          start: shiftDays(prev.start, dir === 'prev' ? -7 : 7),
+                          end: shiftDays(prev.end, dir === 'prev' ? -7 : 7),
+                      };
+            emitDataRequest('list', { start: next.start, end: next.end }, next.start, 'list-nav');
+            return next;
+        });
+    }, [emitDataRequest]);
+
+    const customButtons = useMemo(
+        () => ({
+            list: {
+                text: t('common.datetime.list'),
+                click: () => handleViewChange('list'),
+            },
+        }),
+        [handleViewChange, t],
+    );
+
+    const buttonText = useMemo(
+        () => ({
+            today: t('common.datetime.today'),
+            dayGridMonth: t('common.datetime.month'),
+            timeGridWeek: t('common.datetime.week'),
+            timeGridDay: t('common.datetime.day'),
+        }),
+        [t],
+    );
+
+    const headerToolbar = useMemo(
+        () => (viewType === 'dayGridMonth' ? false : FULL_CALENDAR_HEADER_TOOLBAR),
+        [viewType],
+    );
+
+    /** 月视图 prev / next / today：先请求数据，再等外层 ready 后切换实例。 */
+    const handleMonthNavigate = useCallback((dir: 'prev' | 'next' | 'today') => {
+        const targetDate =
             dir === 'today'
-                ? weekRangeOf(new Date())
-                : {
-                      start: shiftDays(listRange.start, dir === 'prev' ? -7 : 7),
-                      end: shiftDays(listRange.end, dir === 'prev' ? -7 : 7),
-                  };
-        setListRange(next);
-        if (onRangeChange) {
-            onRangeChange({ start: next.start, end: next.end });
+                ? monthAnchorDateOf(new Date())
+                : shiftMonthDate(monthViewDate, dir === 'prev' ? -1 : 1);
+        if (dir === 'today' && monthViewDate.getFullYear() === targetDate.getFullYear() &&
+            monthViewDate.getMonth() === targetDate.getMonth()) {
+            return;
         }
-    };
+        const request = emitMonthDataRequest(targetDate, dir);
+        setPendingMonthRequest((prev) =>
+            prev?.requestKey === request.requestKey
+                ? prev
+                : { requestKey: request.requestKey, targetDate: request.anchorDate }
+        );
+    }, [emitMonthDataRequest, monthViewDate]);
+
+    const handleDatesSet = useCallback((arg: DatesSetArg) => {
+        lastFCRange.current = { start: arg.start, end: arg.end };
+        if (viewTypeRef.current === 'list') return;
+        const nextViewType = arg.view.type as CalendarViewType;
+        const nextRange = { start: arg.start, end: arg.end };
+        const anchorDate =
+            nextViewType === 'dayGridMonth'
+                ? monthAnchorDateOf(arg.view.currentStart)
+                : new Date(arg.view.currentStart);
+        if (nextViewType === 'dayGridMonth' && !pendingMonthRequest) {
+            setMonthViewDate(anchorDate);
+        }
+        emitDataRequest(nextViewType, nextRange, anchorDate, initializedRef.current ? 'view-change' : 'init');
+        initializedRef.current = true;
+        startTransition(() => {
+            setViewType(nextViewType);
+        });
+        scheduleRearrange();
+    }, [emitDataRequest, pendingMonthRequest, scheduleRearrange]);
+
+    /** 缓存事件 DOM，并在 timeGrid 视图中记录 FC 原始 top 供后续重排使用。 */
+    const handleEventDidMount = useCallback((info: EventMountArg) => {
+        const harness = (info.el.closest('.fc-timegrid-event-harness') ?? info.el) as HTMLElement;
+        eventRefs.current.set(info.event.id, harness);
+        const cacheBaseTop = (retriesLeft: number) => {
+            const raw = parseFloat(harness.style.top);
+            if (Number.isFinite(raw)) {
+                eventBaseTops.current.set(info.event.id, raw);
+                scheduleRearrange();
+            } else if (retriesLeft > 0) {
+                requestAnimationFrame(() => cacheBaseTop(retriesLeft - 1));
+            }
+        };
+        cacheBaseTop(4);
+        const groupEvents = info.event.extendedProps.groupEvents as
+            | LiveCalendarEventDef[]
+            | undefined;
+        if (groupEvents && groupEvents.length > 0) {
+            const groups = eventGroupByTimeAndImportance(groupEvents);
+            harness.style.height = `${calcGroupCardHeight(groups)}px`;
+        }
+    }, [scheduleRearrange]);
+
+    const handleEventWillUnmount = useCallback((info: EventMountArg) => {
+        eventRefs.current.delete(info.event.id);
+        eventBaseTops.current.delete(info.event.id);
+    }, []);
+
+    const handleDayHeaderContent = useCallback((arg: { isToday: boolean; text: string }) => (
+        <span
+            className={cn(
+                'inline-flex items-center justify-center px-1.5 py-1 text-xs font-semibold tracking-wide transition-colors',
+                arg.isToday
+                    ? 'rounded-full bg-primary text-primary-foreground'
+                    : 'rounded-sm text-muted-foreground',
+            )}
+        >
+            {arg.text}
+        </span>
+    ), []);
+
+    const handleEventContent = useCallback((arg: {
+        event: {
+            extendedProps: {
+                eventDef: LiveCalendarEventDef;
+                groupEvents?: LiveCalendarEventDef[];
+            };
+        };
+    }) => {
+        const groupEvents = arg.event.extendedProps.groupEvents;
+        if (groupEvents && groupEvents.length > 0) {
+            const groups = eventGroupByTimeAndImportance(groupEvents);
+            return (
+                <GroupedEventContent
+                    groups={groups}
+                    onSelectEvent={handleSelectEvent}
+                />
+            );
+        }
+        return <CalendarEventContent event={arg.event.extendedProps.eventDef} />;
+    }, [handleSelectEvent]);
+
+    const handleMoreLinkContent = useCallback((arg: { num: number }) => (
+        <span className="flex items-center gap-1 px-1.5 py-1 text-xs font-normal text-foreground-dim hover:font-semibold">
+            +{arg.num} {t('component.LiveCalendar.more')}
+        </span>
+    ), [t]);
 
     return (
         <div
-            // 覆盖层在前、className 在后：保证调用方类名优先级最高（twMerge 后写的赢）
             className={cn(LIVE_CALENDAR_CSS_COVER, className)}
         >
-            {/* FullCalendar：List 视图下隐藏（实例保留，切回时即时恢复、不重建不重拉） */}
+            {viewType === 'dayGridMonth' ? (
+                <div className="fc-toolbar fc-header-toolbar">
+                    <div className="fc-toolbar-chunk">
+                        <div className="fc-button-group">
+                            <button
+                                type="button"
+                                className="fc-button fc-button-primary fc-prev-button"
+                                onClick={() => handleMonthNavigate('prev')}
+                                disabled={isMonthNavigating}
+                                aria-label={t('component.LiveCalendar.prevMonth')}
+                            >
+                                <span className="fc-icon fc-icon-chevron-left" />
+                            </button>
+                            <button
+                                type="button"
+                                className={cn('fc-button fc-button-primary fc-today-button', MONTH_TOOLBAR_BUTTON_WIDTH)}
+                                onClick={() => handleMonthNavigate('today')}
+                                disabled={isMonthNavigating}
+                            >
+                                {isMonthNavigating
+                                    ? t('component.LiveCalendar.loading')
+                                    : t('component.LiveCalendar.today')}
+                            </button>
+                            <button
+                                type="button"
+                                className="fc-button fc-button-primary fc-next-button"
+                                onClick={() => handleMonthNavigate('next')}
+                                disabled={isMonthNavigating}
+                                aria-label={t('component.LiveCalendar.nextMonth')}
+                            >
+                                <span className="fc-icon fc-icon-chevron-right" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="fc-toolbar-chunk">
+                        <h2 className="fc-toolbar-title">{monthToolbarTitle}</h2>
+                    </div>
+                    <div className="fc-toolbar-chunk">
+                        <button
+                            type="button"
+                            className={cn(
+                                'fc-button fc-button-primary fc-dayGridMonth-button',
+                                'fc-button-active',
+                            )}
+                            onClick={() => handleViewChange('dayGridMonth')}
+                        >
+                            {t('common.datetime.month')}
+                        </button>
+                        <button
+                            type="button"
+                            className="fc-button fc-button-primary fc-timeGridWeek-button"
+                            onClick={() => handleViewChange('timeGridWeek')}
+                        >
+                            {t('common.datetime.week')}
+                        </button>
+                        <button
+                            type="button"
+                            className="fc-button fc-button-primary fc-timeGridDay-button"
+                            onClick={() => handleViewChange('timeGridDay')}
+                        >
+                            {t('common.datetime.day')}
+                        </button>
+                        <button
+                            type="button"
+                            className="fc-button fc-button-primary fc-list-button"
+                            onClick={() => handleViewChange('list')}
+                        >
+                            {t('common.datetime.list')}
+                        </button>
+                    </div>
+                </div>
+            ) : null}
             <div className={cn(viewType === 'list' && 'hidden')}>
-            <FullCalendar
-                ref={calendarRef}
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                locale={calendarLocaleOf(language)}
-                firstDay={1}
-                dayMaxEvents={3}
-                // 关闭当前时间指示器：易与今日 pill / 事件块混淆，
-                // 「今日」语义由 dayHeaderContent 的主题色 pill 承担
-                nowIndicator={false}
-                // 按内容自由展开（不用固定 height / aspectRatio，避免内部滚动条与挤压）
-                contentHeight="auto"
-                expandRows={true}
-                // ── 工具栏 ──────────────────────────────────────────────
-                // start 用逗号 = 同一个 .fc-button-group（prev/today/next 连体胶囊）；
-                // end 用空格 = 月/周/日/list 四个独立按钮（配合 csscover 的 :is(...) 渲染成纯文字切换器）。
-                // List 按钮只借用 FC 的按钮位与样式（.fc-list-button，见 csscover 的 VIEW_SWITCHER），
-                // 它并非 FC 视图，点击后由 handleViewChange('list') 切到自绘 List 视图。
-                customButtons={{
-                    list: {
-                        text: t('common.datetime.list'),
-                        click: () => handleViewChange('list'),
-                    },
-                }}
-                headerToolbar={{
-                    start: 'prev,today,next',
-                    center: 'title',
-                    end: 'dayGridMonth timeGridWeek timeGridDay list',
-                }}
-                buttonText={{
-                    today: t('common.datetime.today'),
-                    dayGridMonth: t('common.datetime.month'),
-                    timeGridWeek: t('common.datetime.week'),
-                    timeGridDay: t('common.datetime.day'),
-                }}
-                // 下发完整可见范围（而非单一月份），原因见 onRangeChange 注释
-                datesSet={(arg) => {
-                    // 记录 FC 可见范围，供切到 List 视图时作初始范围
-                    lastFCRange.current = { start: arg.start, end: arg.end };
-                    // List 视图下 FC 处于隐藏态，其 datesSet 若继续生效会把 viewType 打回 dayGridMonth
-                    if (viewTypeRef.current === 'list') return;
-                    if (onRangeChange) {
-                        onRangeChange({ start: arg.start, end: arg.end });
+                <FullCalendar
+                    /** 月视图数据 ready 后通过变更 key 强制 remount 实例。 */
+                    key={monthViewRenderKey}
+                    /** 持有 FullCalendar 实例，供视图切换和布局重排读取 API。 */
+                    ref={calendarRef}
+                    /** 注册月 / 周 / 日所需的 FullCalendar 插件。 */
+                    plugins={FULL_CALENDAR_PLUGINS}
+                    /** 首次挂载默认进入月视图。 */
+                    initialView="dayGridMonth"
+                    /** 跟随当前 UI 语言切换日历本地化文案。 */
+                    locale={calendarLocaleOf(language)}
+                    /** 以周一作为一周起始日。 */
+                    firstDay={1}
+                    /** 月视图单日最多展示 3 条事件，其余折叠到 more popover。 */
+                    dayMaxEvents={3}
+                    /** 关闭当前时间红线，避免和业务高亮样式冲突。 */
+                    nowIndicator={false}
+                    /** 让日历按内容自然撑高，不使用内部滚动。 */
+                    contentHeight="auto"
+                    /** 补齐网格行高，避免月视图行高不齐。 */
+                    expandRows={true}
+                    /** 注入自定义导航 / 视图切换按钮定义。 */
+                    customButtons={customButtons}
+                    /** 配置顶部工具栏布局。 */
+                    headerToolbar={headerToolbar}
+                    /** 覆盖 FullCalendar 内置按钮文案。 */
+                    buttonText={buttonText}
+                    /** 视图或日期范围变化时同步组件内部状态并向外抛范围请求。 */
+                    datesSet={handleDatesSet}
+                    /** 事件集合变化后统一调度 timeGrid 视图的错位重排。 */
+                    eventsSet={scheduleRearrange}
+                    /** 传入当前范围内已加工好的事件数组。 */
+                    events={events}
+                    /** 事件挂载后缓存 DOM 引用，供 timeGrid 手动重排使用。 */
+                    eventDidMount={handleEventDidMount}
+                    /** 事件卸载时清理缓存，避免持有失效 DOM。 */
+                    eventWillUnmount={handleEventWillUnmount}
+                    /** 短事件使用紧凑高度，贴近当前视觉设计。 */
+                    eventShortHeight={24}
+                    /** timeGrid 事件不横向重叠，改由组件手动做纵向错位。 */
+                    slotEventOverlap={false}
+                    /** 去掉星期表头默认边框和背景，交给自定义内容控制。 */
+                    dayHeaderClassNames="border-0 bg-transparent"
+                    /** 自定义星期表头内容，渲染今日高亮和本地化星期。 */
+                    dayHeaderContent={handleDayHeaderContent}
+                    /** 非本月日期格做弱化处理，今日格保持透明底。 */
+                    dayCellClassNames={(arg) =>
+                        cn(arg.isToday && 'bg-transparent', arg.isOther && 'bg-muted/20')
                     }
-                    // 记录视图类型，触发 events 重算（归集仅周视图生效）
-                    setViewType(arg.view.type);
-                    // rAF 等到 eventDidMount 之后再重排，避免读到尚未写入的 inline style.top
-                    requestAnimationFrame(() => rearrangeSameTimeEvents());
-                }}
-                events={events}
-                // 事件挂载时记录 event.id → 定位容器(harness) DOM 映射，供手动重排使用；
-                // 卸载时清理，避免 Map 持有已脱离 DOM 的元素。
-                eventDidMount={(info: EventMountArg) => {
-                    // top/height 写在 .fc-timegrid-event-harness 上，info.el 可能是内层 <a>，用 closest 兜底
-                    const harness = (info.el.closest('.fc-timegrid-event-harness') ?? info.el) as HTMLElement;
-                    eventRefs.current.set(info.event.id, harness);
-                    // ⚠ 首帧 slat 坐标可能未测量完成 → top 为空串（parseFloat = NaN）。
-                    // 若把 NaN 当 0 缓存，同组事件会被堆到时间轴顶部（首屏错位、导航后恢复）。
-                    // 故重试几帧，读到有效像素才缓存；始终无效则不缓存（rearrange 侧会跳过该组）。
-                    const cacheBaseTop = (retriesLeft: number) => {
-                        const raw = parseFloat(harness.style.top);
-                        if (Number.isFinite(raw)) {
-                            eventBaseTops.current.set(info.event.id, raw);
-                            requestAnimationFrame(() => rearrangeSameTimeEvents());
-                        } else if (retriesLeft > 0) {
-                            requestAnimationFrame(() => cacheBaseTop(retriesLeft - 1));
-                        }
-                    };
-                    cacheBaseTop(4);
-                    // 归集卡片按双层结构撑高：FC 只按 duration 给约 24px，桶内多条会被裁切
-                    const groupEvents = info.event.extendedProps.groupEvents as
-                        | LiveCalendarEventDef[]
-                        | undefined;
-                    if (groupEvents && groupEvents.length > 0) {
-                        const groups = eventGroupByTimeAndImportance(groupEvents);
-                        harness.style.height = `${calcGroupCardHeight(groups)}px`;
-                    }
-                }}
-                eventWillUnmount={(info: EventMountArg) => {
-                    eventRefs.current.delete(info.event.id);
-                    eventBaseTops.current.delete(info.event.id);
-                }}
-                // 短事件按 Breezy 的紧凑高度渲染（v6 支持该选项）
-                eventShortHeight={24}
-                // 时间网格（周/日视图）：关闭事件堆叠。同时间段多条事件（如同分钟发布的快讯）
-                // 改为横向并排分列，避免全部叠成一团；默认 true 会让同 slot 的事件按 z-index 堆叠
-                // 并互相截断，导致「12:02 一坨」的问题。月视图不受此选项影响。
-                slotEventOverlap={false}
-                // ── 表头：星期胶囊
-                dayHeaderClassNames="border-0 bg-transparent"
-                dayHeaderContent={(arg) => (
-                    // 今日用主题色 pill 高亮，非今日为灰色圆角
-                    <span
-                        className={cn(
-                            'inline-flex items-center justify-center px-1.5 py-1 text-xs font-semibold tracking-wide transition-colors',
-                            arg.isToday
-                                ? 'rounded-full bg-primary text-primary-foreground'
-                                : 'rounded-sm text-muted-foreground',
-                        )}
-                    >
-                        {arg.text}
-                    </span>
-                )}
-                // ── 日期格：非本月淡化
-                dayCellClassNames={(arg) =>
-                    cn(arg.isToday && 'bg-transparent', arg.isOther && 'bg-muted/20')
-                }
-                // 月视图不自定义 dayCellContent：沿用 FC 默认日期数字，今日高亮由 dayHeaderContent 承担
-                // ── 事件块：圆角淡色
-                eventClassNames={() => [
-                    'group block w-full cursor-pointer rounded-md',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-                ]}
-                eventContent={(arg) => {
-                    // groupEvents 非空 → 归集卡片（双层结构）；否则单条事件
-                    const groupEvents = arg.event.extendedProps.groupEvents as
-                        | LiveCalendarEventDef[]
-                        | undefined;
-                    if (groupEvents && groupEvents.length > 0) {
-                        // 分组在调用处算好再传入，GroupedEventContent 只负责渲染。
-                        // 点组内某条消息：与月 / 日视图点事件语义一致 —— 只开 Drawer 详情，不切视图。
-                        const groups = eventGroupByTimeAndImportance(groupEvents);
-                        return (
-                            <GroupedEventContent
-                                groups={groups}
-                                onSelectEvent={handleSelectEvent}
-                            />
-                        );
-                    }
-                    return (
-                        <CalendarEventContent event={arg.event.extendedProps.eventDef as LiveCalendarEventDef} />
-                    );
-                }}
-                // ── 折叠「+N」：浅色胶囊
-                moreLinkClassNames="block w-full cursor-pointer border-0 rounded-sm! bg-transparent hover:bg-foreground-subtle"
-                moreLinkContent={(arg) => (
-                    <span className="flex items-center gap-1 px-1.5 py-1 text-xs font-normal text-foreground-dim hover:font-semibold">
-                        +{arg.num} {t('component.LiveCalendar.more')}
-                    </span>
-                )}
-                dateClick={handleDateClick}
-                eventClick={handleEventClick}
-                initialDate={initialDate}
-                {...props}
-            />
+                    /** 给事件节点追加统一的交互态类名。 */
+                    eventClassNames={() => [
+                        'group block w-full cursor-pointer rounded-md',
+                        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                    ]}
+                    /** 自定义事件块内容，区分普通事件和周视图归集卡片。 */
+                    eventContent={handleEventContent}
+                    /** more 链接使用当前组件的轻量样式。 */
+                    moreLinkClassNames="block w-full cursor-pointer border-0 rounded-sm! bg-transparent hover:bg-foreground-subtle"
+                    /** 自定义 more 链接文案，显示 “+N more”。 */
+                    moreLinkContent={handleMoreLinkContent}
+                    /** 点击日期格时切到对应日期并同步外层选中日。 */
+                    dateClick={handleDateClick}
+                    /** 点击事件时打开详情抽屉或命中归集卡片的选择逻辑。 */
+                    eventClick={handleEventClick}
+                    /** 月视图 remount 后从当前受控月份重新初始化。 */
+                    initialDate={monthViewDate}
+                    {...props}
+                />
             </div>
 
-            {/* List 视图：与 FullCalendar 平级；点击走 onSelectEvent（详情面板定位） */}
             {viewType === 'list' ? (
+                /** List 视图不走 FullCalendar，改用自绘列表承接同一批事件数据。 */
                 <LiveCalendarListView
                     eventsMap={eventsMap}
                     range={listRange}
@@ -763,8 +1009,8 @@ export const LiveCalendar = ({
                 />
             ) : null}
 
-            {/* 详情抽屉：点消息 → 内部自管打开（Page 不再挂载此抽屉） */}
             {selectedEvent ? (
+                /** 选中事件后显示详情抽屉，覆盖月格 more popover 等浮层。 */
                 <LiveCalendarEventDrawer
                     event={selectedEvent}
                     countries={countries ?? []}
@@ -774,3 +1020,9 @@ export const LiveCalendar = ({
         </div>
     );
 };
+
+export const LiveCalendar = memo(LiveCalendarInner) as React.MemoExoticComponent<
+    React.FC<LiveCalendarProps>
+>;
+
+LiveCalendar.displayName = 'LiveCalendar';

@@ -32,6 +32,8 @@
  * ── 交互 ────────────────────────────────────────────────────────────────
  * 整行可点击 → 打开详情（`onSelectEvent`，必需）；同时上抛 `onEventClick`（可选），
  * 语义为「点了列表里这一条消息」，**不预设跳转行为**，具体动作由调用方决定。
+ *
+ * @author Lensgcx (GaoCangxiong)
  */
 
 import { useMemo } from 'react';
@@ -164,7 +166,7 @@ export function LiveCalendarListView({
                             className="fc-button fc-button-primary fc-today-button"
                             onClick={() => onNavigate('today')}
                         >
-                            {t('common.datetime.today')}
+                            {t('component.LiveCalendar.today')}
                         </button>
                         <button
                             type="button"
