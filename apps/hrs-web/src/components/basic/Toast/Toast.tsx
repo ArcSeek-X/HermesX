@@ -59,7 +59,7 @@ export interface ToastDef {
     variant?: ToastVariant;
     /** 内容区右侧操作按钮插槽 */
     action?: React.ReactNode;
-    /** 自动关闭毫秒数，默认 3000；传 0 则不自动关闭 */
+    /** 自动关闭毫秒数（毫秒）；不传默认 3000 自动关闭；传 0 则不自动关闭，需手动点 × 或调用 dismissToast */
     duration?: number;
     /** 附加到外层卡片的 className */
     className?: string;
@@ -405,7 +405,7 @@ export const Toast: React.FC = () => {
     // 注册自动关闭定时器 / 清理已消失 toast 的定时器
     React.useEffect(() => {
         items.forEach((item) => {
-            const dur = item.options.duration ?? 0;//3000
+            const dur = item.options.duration ?? 3000; // 不传 duration 默认 3000ms 自动关闭；传 0 则不自动关闭
             if (dur > 0 && !timers.current.has(item.id)) {
                 const handle = setTimeout(() => dismissToast(item.id), dur);
                 timers.current.set(item.id, handle);
