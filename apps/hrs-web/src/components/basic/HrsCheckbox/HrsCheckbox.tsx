@@ -66,13 +66,12 @@ import {
     INDICATOR_SIZE_STYLES,
     LABEL_SIZE_STYLES,
     ORIENTATION_STYLES,
+    type HrsCheckboxSize,
+    type HrsCheckboxOrientation,
 } from './styleConfig';
 
-/** 尺寸档位（业务增量：同时缩放勾选框、图标与文案） */
-export type HrsCheckboxSize = 'sm' | 'md' | 'lg';
-
-/** 多选组的排列方向 */
-export type HrsCheckboxOrientation = 'vertical' | 'horizontal';
+// 尺寸 / 排列方向类型外提至 styleConfig.ts（见该文件导出），此处仅转口以保持公开 API 稳定。
+export type { HrsCheckboxSize, HrsCheckboxOrientation } from './styleConfig';
 
 /**
  * 多选组的单个选项数据结构。
