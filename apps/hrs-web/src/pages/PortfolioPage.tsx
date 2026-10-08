@@ -1217,10 +1217,9 @@ const PortfolioPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <InlineAlert
+          <InlineToast
             variant="warning"
-            className="inline-block rounded-lg px-3 py-2 text-xs shadow-none"
-            message={text.noAccounts}
+            content={{ title: text.noAccountsTitle, message: text.noAccountsMsg, rawMessage:'', category: 'unknown' }}
           />
         )}
       </section>
