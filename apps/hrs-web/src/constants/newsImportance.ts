@@ -34,6 +34,15 @@ export const IMPORTANCE_LABELS: Record<ImportanceLevel, string> = {
   4: '非常重要',
 };
 
+/** 全部重要级（升序），供多选筛选判定「是否全选」 */
+export const ALL_IMPORTANCE_LEVELS: ImportanceLevel[] = [
+  IMPORTANCE.NONE,
+  IMPORTANCE.NORMAL,
+  IMPORTANCE.MINOR,
+  IMPORTANCE.IMPORTANT,
+  IMPORTANCE.CRITICAL,
+];
+
 /**
  * 色阶映射（快讯重要竖线 / 日历格子色点共用）。
  * 值全取 tailwind.config 语义令牌，随主题（浅/深色）联动。
