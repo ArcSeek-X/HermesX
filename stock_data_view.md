@@ -1,10 +1,11 @@
-# 本地 StockDB 行情数据浏览页 · 建设方案
+# 本地 StockDB 数据视图看板 · 建设方案
 
 > 文档状态：方案（未实现） · 目标仓库：HermesX
 > 外部数据源：StockDB（本地服务 `127.0.0.1:7899`，数据目录 `stockdb/data`）
 > 参考页面：`stockdb/调用方式/ai_自动开发文档/示范.html`
 > 作者：高仓雄（gaocangxiong）
 > 更新时间：2026-10-06
+> **架构决策基准（本方案为遵守者）**：**`backend_architecture_adr.md`（ADR-001）** 是 HermesX 后端的**全局架构决策基准**（四层架构、`data_provider` 唯一脏活层、基础能力统一数据源策略），面向整个后端工程，不隶属于本方案。本方案是 ADR-001 的**遵守者 / 首个落地方案**：在"接入本地 StockDB（`127.0.0.1:7899`）作为 K 线 / 基础信息 / 代码搜索三类能力的 `local` source"这一范围内，严格遵循 ADR-001 的分层、脏活层与统一数据源约束；凡本方案与 ADR-001 不一致处，以 ADR-001 为准。方案范围已由「本地 StockDB 浏览页」升级为「行情基础能力统一层（多源可切换）」。
 
 ---
 
@@ -69,6 +70,7 @@
   - [A.1 文档信息](#a1-文档信息)
   - [A.2 契约事实来源](#a2-契约事实来源)
   - [A.3 变更日志](#a3-变更日志)
+- [架构决策记录 ADR-001（独立文档）](./backend_architecture_adr.md) —— 后端分层 / 统一数据源策略的权威依据
 
 ---
 
@@ -86,7 +88,7 @@ HermesX 目前没有"直接查看本地全量历史行情（日K/分钟K/周月K
 |---|---|
 | ① 能结合本地数据源 `stockdb/data` 做出来吗？ | **能**。`data/` 由 StockDB 服务进程独占管理，HermesX **不直接读文件**，统一走 HTTP 接口。已实测：`cmd=get&t=日k:600633:20260729&json=1` 正常返回 JSON。 |
 | ② `stockdb/` 下是否有可复用代码？ | **有**：`pybao/stock_sdk.py` + `stockdb.abi3.so`（Python SDK `rd`/`bk`/`zb`，实测 Python 3.11 可 import 并打印 URL）、`http/http_api.py`（HTTP 范式）、`ai_自动开发文档/gp.js`（JS SDK，已混淆不可读改）。<br>**本方案不复用任何代码文件**，只复用**协议与表结构约定**（§2），理由见 §3.2。 |
-| ③ 如何结合而不耦合？ | 见 §3：独立集成包 + 独立路由前缀 + 独立开关；不 import 业务 service/repository/model，不写 HermesX 主库，不进 `api/v1`。 |
+| ③ 如何结合而不耦合？ | 见 §3 与 **ADR-001**：统一基础能力层（K 线 / 基础信息 / 代码搜索），`data_provider` 为唯一脏活层；StockDB 作为统一层的 `local` source，不另立独立包；不 import 业务 service/repository/model，不写 HermesX 主库。 |
 
 ### 1.3 目标与非目标
 
@@ -103,7 +105,7 @@ HermesX 目前没有"直接查看本地全量历史行情（日K/分钟K/周月K
 | AC-3 | `qfq` 结果与官方前端逐行对账误差 ≤ `1e-6`（≥3 只有送转史标的 + 1 只无除权标的） |
 | AC-4 | 分钟K 可查；`5m/15m/30m/60m/1w/1M` 聚合与手工核算一致 |
 | AC-5 | StockDB 未启动时页面显示空态，HermesX 其余功能不受影响 |
-| AC-6 | `STOCKDB_ENABLED=false` 时 `/api/stockdb/*` 全部 503，且 `/api/v1/*` 全部正常 |
+| AC-6 | `STOCKDB_ENABLED=false` 时，K 线等端点按 ADR-001 回退其他源或返回空态（不再有 `/api/stockdb/*` 503 路径），`/api/v1/*` 其余功能不受影响 |
 | AC-7 | 全市场某日快照请求数 ≤ 5，单次响应 ≤ `STOCKDB_MAX_ROWS` |
 
 ---
@@ -203,64 +205,241 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 ## 3. 系统架构与分层
 
-### 3.1 分层视图
+### 3.1 分层视图（权威依据见 ADR-001 §4）
 
-```
-浏览器 apps/hrs-web
-  StockDataViewPage → src/api/stockdb.ts → apiClient → /api/stockdb/*
-        │ 同源（vite dev 已把 /api 代理到 127.0.0.1:8000）
-        ▼
-HermesX 后端 FastAPI（server.py → api/app.py）
-  api/stockdb/                    ← 路由层（前缀 /api/stockdb）
-    ├── router.py                 ← 参数校验 + 错误映射
-    └── schemas.py                ← Pydantic 出入参
-        │
-  src/integrations/stockdb/       ← 集成层（新增独立包）
-    ├── config.py     Settings / 开关
-    ├── client.py     HTTP 协议客户端（URL 构造 + 超时 + 冷却）
-    ├── codec.py      键表达式编码 / 日期规范化
-    ├── transform.py  复权 + 周期聚合 + 排序 + 投影 + 截断
-    └── cache.py      进程内 TTL 缓存
-        │ requests.get(..., timeout=)
-        ▼
-StockDB 独立进程 127.0.0.1:7899 → data/*.ldb
-```
+本方案的后端分层与统一数据源策略以 **`backend_architecture_adr.md`（ADR-001）** 为**唯一权威基线**。四层架构（数据库层 / 接口对接层（脏活层）/ 功能接口层 / 横切基础辅助层）、各层职责、目录落点、调用链路与端点模型**均见 ADR-001 §3–§5**，本方案不再复述。
+
+> **范围澄清（与 ADR-001 一致）**：本方案的"四源平等 + 自动回退 + 周期全集 + 统一契约"策略**仅约束 `K 线 / 基础信息 / 代码搜索` 三类基础能力**；实时行情（akshare / tickflow）、板块（eastmoney）、财务基本面（tushare）、新闻资讯（wallstreetcn）、机构持仓（tw_institutional）等其余功能仍按各自既定专属源接入，不受四源平等约束，亦不受本方案改造影响。三类能力的"四源平等"实现完全封装在 `data_provider/kline/*`、`stockinfo/*`、`codesearch/*` 各自文件内，不影响项目中其他使用数据源的地方。能力源归属详见 ADR-001 §4.5 / §4.4。
+
+> **架构升级说明（StockDB 接入方式）**：原方案「独立 `/api/stockdb` 页 + 独立包 `src/integrations/stockdb/`」的设计已被 **ADR-001** 取代——StockDB 不再是独立页面 / 独立包，而是统一基础能力层的一个 `local` source。本方案中任何 `/api/stockdb/*` 路由前缀与 `src/integrations/stockdb/` 包路径均为**占位**，以 ADR-001 的目录决策为准；其请求 / 响应契约仍作为统一 `KLinePoint` / `StockInfo` / `CodeSearch` 契约有效（见 §5）。
+
+
 
 ### 3.2 解耦策略（关键）
 
 | 维度 | 做法 | 为什么不用另一种 |
 |---|---|---|
-| **代码** | 新建 `src/integrations/stockdb/`，只依赖 `requests` + 标准库 | 不用 `pybao/stock_sdk.py`：会把 `stockdb.abi3.so` 拉进 HermesX 进程，引入外部二进制、Python 版本与部署形态约束（Docker / Desktop 打包均受影响） |
+| **代码** | 所有源对接代码下沉到 `data_provider/`（含新增 `stockdb_fetcher` 与 `kline/stockinfo/codesearch` 子包），只依赖 `requests` + 标准库 | 不用 `pybao/stock_sdk.py`：会把 `stockdb.abi3.so` 拉进 HermesX 进程，引入外部二进制、Python 版本与部署形态约束 |
 | **协议** | 只复用 §2.2 的 HTTP 文本协议 | 不用 `gp.js`：混淆不可维护，且是浏览器直连形态 |
-| **路由** | 挂 `/api/stockdb`，**不进 `api/v1/router.py`** | `api/v1` 受 `ADMIN_AUTH` 中间件保护且与业务 schema 混杂；独立前缀更易开关与下线 |
+| **路由** | 复用既有 `api/v1/kline` 端点（瘦端点化），新增 `api/v1/stock-info`、`api/v1/code-search` 同属 `/api/v1` | 不再另立 `/api/stockdb` 独立前缀；统一继承 `ADMIN_AUTH`（属管理后台能力，合理），且前端零改动 |
 | **数据** | HermesX 主库**零新增表**，只做进程内 TTL 缓存 | 行情体量大（单股日K 实测 5444 条，全市场 GB 级）；StockDB 数据有独立许可边界 |
-| **依赖** | 不 import `src/services/*`、`src/repositories/*`、`src/core/*` | 保证模块可整体删除且不留悬挂引用 |
-| **故障** | `STOCKDB_ENABLED=false` → 503；超时/连接失败 → 空态 | StockDB 不可用不得影响主流程、调度、报告、通知 |
-| **生命周期** | 不注册进 `app_lifespan` 调度体系，只用惰性单例客户端 | 避免与 `RuntimeSchedulerService` 争抢启停顺序 |
+| **依赖** | 各 source 只依赖 `data_provider` 基类与 `config`，不 import 业务 `src/services/*`、`src/repositories/*`、`src/core/*` | 保证能力可独立增删、不污染既有分析层（stock_service / 组合风险 / 预警 / 回测等） |
+| **故障** | `STOCKDB_ENABLED=false` 或本地源失败 → 按 `KLINE_SOURCE_PRIORITY` 自动回退其他源 / 返回空态 | StockDB 不可用不得影响主流程、调度、报告、通知 |
+| **切换** | 数据源由配置 `KLINE_DATA_SOURCE` 等驱动，「设置 → 数据源」Tab 可改、无需重启 | 消除原 `kline.py` 硬编码三级降级（东财→腾讯→新浪）的不可配置问题 |
 
-> 说明：`api/middlewares/auth.py` 只拦截 `/api/v1/` 前缀，故 `/api/stockdb/*` 默认**不受** `ADMIN_AUTH` 保护。若需保护，见 §9 `STOCKDB_REQUIRE_AUTH`。
+> 说明：复用 `/api/v1/kline` 意味着 K 线接口继承 `ADMIN_AUTH`（原方案为避开鉴权而用 `/api/stockdb` 独立前缀，此取舍在 ADR-001 中被有意反转）。若后续确须无鉴权暴露本地行情，可再评估独立前缀，但默认不采用。
 
-### 3.3 对宿主仓库的改动点（均为纯新增）
+### 3.3 对宿主仓库的改动点
 
-**后端 3 处**
+**后端**
+1. `api/app.py`：无需新增 `include_router`（复用既有 `api/v1/kline` 路由）；若新增 `stock-info` / `code-search` 端点，则各加 1 处 `include_router`。
+2. `src/config.py`：新增数据源切换配置（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 等，§9）+ StockDB 连接配置（§9，沿用 `_FALSEY_ENV_VALUES`）。
+3. `data_provider/`：新增 `stockdb_fetcher.py` 与 `kline/`、`stockinfo/`、`codesearch/` 三套能力子包（base + N source + transform）。
+4. `api/v1/endpoints/kline.py`：瘦端点化，删除内联 `_fetch_from_*`，改调 `KlineDataSourceManager`。
+5. `.env.example`：新增配置块（§9）。
 
-1. `api/app.py`：新增 1 处 `include_router(stockdb_router, prefix="/api/stockdb")`。
-2. `src/config.py`：新增 6 个 `os.getenv` 配置项（§9）。
-3. `.env.example`：新增配置项注释块。
-
-**前端 4 处**
-
-1. `src/router/manifest.ts`：新增菜单节点。
-2. `src/pages/StockDataViewPage.tsx`：新增页面。
-3. `src/api/stockdb.ts`：新增 API 模块。
-4. `src/i18n/uiText-{zh,en,zh-Hant}.ts`：各新增 2 条导航 key。
+**前端**
+1. `src/router/manifest.ts`：K 线菜单保留；新增「设置 → 数据源」Tab 节点（或复用既有 `/settings`）。
+2. `src/pages/StockDataViewPage.tsx`：保留（K 线页，数据源可配）。
+3. `src/api/stockdb.ts`：改为调用 `/api/v1/kline` 等（或并入既有 kline API 模块）。
+4. `src/i18n/uiText-{zh,en,zh-Hant}.ts`：补充「数据源设置」相关 key。
+5. 新增「数据源配置」页面 / 组件（参考既有 `SettingsPage`）。
 
 ### 3.4 与既有"外部 HTTP 服务对接"范式的一致性
 
-`src/services/stock_index_remote_service.py` 已是仓库内对接外部 HTTP 服务的既有范式：`@dataclass(frozen=True) Settings` + `settings_from_config(config)` + `requests.get(url, timeout=...)` + 失败计数/熔断 + 原子写缓存。
-本方案沿用同一形状，但**放在独立包内不复用其代码**，避免与其业务语义绑定。
+`src/services/stock_index_remote_service.py` 是仓库内对接外部 HTTP 的既有范式：`@dataclass(frozen=True) Settings` + `settings_from_config(config)` + `requests.get(url, timeout=...)` + 失败计数/熔断 + 原子写缓存。本方案的 `data_provider` 各 source 沿用同一形状（ADR-001 D2/D3），并复用 `DataFetcherManager` 思想（能力过滤 + 优先级 + 健康度故障转移），但针对 K 线多周期与 UI 契约做独立抽象，避免与日线分析层耦合。
 
 ---
+
+### 3.5 Python 标准化目录结构与命名规范（代码落地模板）
+
+> 目录结构与命名公约（四层落点、`snake_case` 模块、`<source>_source.py` / `<Source>DataSource` 类、`__init__.py` 等）以 **ADR-001 §4.4 / §4.5** 为唯一权威，本方案不再复述。以下仅补充 StockDB 接入引入的**增量命名决定**。
+
+#### 3.5.1 新增能力子包的命名决定（消除 `*fetcher` vs `*source` 歧义）
+
+为避免同目录两套语义混淆，明确边界：
+
+- **既有顶层 `data_provider/*_fetcher.py`** = "日线/指标取数器"，被分析层（`stock_service`/组合风险/回测等）消费，**保留不动**。
+- **新增三类能力子包**（`kline/` `stockinfo/` `codesearch/`）内，适配器文件统一用 `<source>_source.py`，类名 `<Source>DataSource`；基类 `KlineDataSource(ABC)` 与 `KlineDataSourceManager` 放 `base.py`。
+  - 理由：子包是"面向 UI 的统一数据源能力"，用 **DataSource** 概念更贴切；与顶层"日线 Fetcher"区分，避免同一 `data_provider/` 下两套 `*_fetcher` 语义纠缠。
+- **共享 StockDB 客户端**：`data_provider/stockdb_fetcher.py`（遵循顶层 `*_fetcher.py` 公约），作为三能力的 `local` source 公共 HTTP 客户端，被 `kline/local_stockdb_source.py`、`stockinfo/local_stockdb_source.py`、`codesearch/local_stockdb_source.py` 复用。
+
+#### 3.5.2 契约（DTO）落点
+
+- `KLinePoint` / `StockInfo` / `CodeSearchResult` 统一契约：定义在各自能力 `base.py`（与 `STANDARD_COLUMNS` 同处，现状已如此）——契约即该能力的抽象一部分，端点与 service 由此导入。
+- 端点对外响应模型（Pydantic）按 HermesX 惯例放 `src/schemas/` 或端点文件内；`KLinePoint` 作为 data_provider 内部产出契约，端点按需映射为响应模型。
+- 跨能力共用增多时，再抽到 `src/schemas/`；当前阶段不前置抽象。
+
+### 3.6 后端代码合规性审计与改造范围（基于 ADR-001 设计规则）
+
+> 对既有 HermesX 后端代码按 ADR-001（D2 脏活层唯一、D3/D4 统一契约 + 配置驱动、D6 瘦端点）的合规性审计结论，已直接落入 **§3.7 执行清单**：仅 **Tier A（K 线 / 基础信息 / 代码搜索统一 source + 端点瘦身）** 在本方案范围；同根因的 `sector.py`（1819 行、17 个内联取数）列为 **Tier B** 独立 follow-up；service 层直连 SaaS 属不同边界，**Tier C** 不纳入。详细核验证据表属分析过程产物，此处不再保留。
+
+### 3.7 代码改造代办清单（落地执行项 / TODO）
+
+> 本清单是 §3.6 审计结论的**可执行落地版**。后续按本方案改代码时，以此为逐项勾选的执行台账；所有项完成（或显式标注"不在本期"）后，本方案后端才算达标。
+>
+> **图例**：`文件/位置` → 目标动作；`[规则]` = 违反的 ADR-001 决策；`档位` = A 必须 / B 建议 / C 不纳入；`前端` = 是否需前端改动。所有项默认 `[ ] 未开始`。
+
+#### 3.7.1 Tier A — 本方案必须（逐项必做）
+
+- [ ] **A1. `api/v1/endpoints/kline.py` 瘦身**
+  - 当前：内联 `_fetch_kline_from_sina` / `_fetch_kline_from_eastmoney` / `_fetch_kline_from_tencent`（约 560/978 行，73% 为取数脏活），硬编码三级降级；路由被压到第 743 行。`[D2][D6]`
+  - 动作：删除三个 `_fetch_*` 及其解析归一逻辑，仅保留路由与"调用 `KlineDataSourceManager.get_kline()`"；固定入参（code/period/fqt/limit/before_date）与出参（`KLinePoint[]`），签名不变 → **前端零改**。
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A2. 新建 `data_provider/kline/base.py`**
+  - 当前：无统一契约与选源管理，降级写死在端点层。`[D3][D4]`
+  - 动作：定义 `KlineDataSource(ABC)`（`get_kline(code,period,fqt,limit,before_date)→KLinePoint[]` + `_normalize_kline()` 映射）、`KLinePoint` 契约（与 `STANDARD_COLUMNS` 同处）、`KlineDataSourceManager`（**配置驱动选源/回退**：按 `KLINE_DATA_SOURCE` 定主源、`KLINE_SOURCE_PRIORITY` 定回退链主次，四源同级无硬编码先后；每源自带 TTL）。`[ADR-001 §4.4]`
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A3. 新建 `data_provider/kline/local_stockdb_source.py`**
+  - 当前：StockDB（127.0.0.1:7899）未接入 data_provider。`[D2][D3]`
+  - 动作：实现 `LocalStockDBDataSource`，对接 StockDB 行情接口，输出归一为 `KLinePoint`；原生仅 `日k/分钟k`，120m/周/月/年缺失由 `transform.py` 聚合补齐。
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A4. 新建 `data_provider/kline/{eastmoney_source,sina_source,tencent_source}.py`**
+  - 当前：kline.py **重写**了东财/腾讯/新浪取数，而 `data_provider/` 已有 `tencent_fetcher.py`/`efinance_fetcher.py`/`akshare_fetcher.py` → **同一数据源两套实现**。`[D2][D3]`
+  - 动作：把 kline.py 现有三源取数**平移**进对应 `<source>_source.py`，各自 `_normalize_kline()` 映射到 `KLinePoint`；**禁止**在新文件外保留副本，消除重复实现。
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A5. 新建 `data_provider/kline/transform.py`**
+  - 当前：各源自管周期聚合，无共享聚合器。`[D4]`
+  - 动作：实现共享时间桶聚合（5m/15m/30m/60m/120m/5d/周/月/年），本地源缺失周期与回退场景统一复用；`pct_chg` 在层内统一计算（派生字段，非各源重复）。
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A6. 新建/确认 `data_provider/stockdb_fetcher.py`（共享 StockDB 客户端）**
+  - 当前：StockDB 客户端无统一落点，易被各能力重复封装。`[D2][3.5.1]`
+  - 动作：沉淀独立的 StockDB 客户端（连接/鉴权/TTL/异常），供 `kline` 与后续 `stockinfo`/`codesearch` 复用，不进端点层。
+  - 档位：A｜前端：❌ 零改
+
+- [ ] **A7. `src/config.py` + `.env.example` + `system_config` 白名单**
+  - 当前：无 `KLINE_DATA_SOURCE` 等切换键，回退无法配置。`[D4][D5]`
+  - 动作：在 `@dataclass Config` 与 `.env.example` 新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ 预留 `STOCKINFO_*` / `CODESEARCH_*`），并将这些键注册进 `system_config` 运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）。
+  - 档位：A｜前端：⚠️ 需 A8 配套
+
+- [ ] **A8. 前端 `apps/hrs-web/` 新增「数据源配置」Tab（挂 `/settings` 下）**
+  - 当前：无运行时切换 UI，配置仅启动期 env。`[D5]`
+  - 动作：复用 `POST /api/v1/config` 运行时写 `.env`，把 A7 的 `KLINE_*` 纳入可写白名单；选项来自枚举（local/eastmoney/sina/tencent/auto + 回退链排序 UI）。
+  - 档位：A｜前端：✅ 需新增页面
+
+- [ ] **A9. `data_provider/stockinfo/`、`data_provider/codesearch/` 同模式占位**
+- [ ] **A10.** 迁移 `src/services/name_to_code_resolver.py` 的取数到 `data_provider/code_search/eastmoney_source.py`：③ 层不再直接 `import akshare` 取数，解析/缓存留薄壳；`stock_service.py` 的 `get_stock_name` 随矩阵迁至 `stock_info/eastmoney_source.py` `[D2][D3]`
+  - 当前：基础信息/代码搜索未统一，仍散落端点层与 data_provider 既有 `get_stock_name` 等。`[D3][3.5.1]`
+  - 动作：各建 `base.py`（`ABC` + `Manager`）+ 契约（`StockInfo` / `CodeSearchResult`）+ 至少 1 个 source 适配器；优先复用 data_provider 既有 `get_stock_name/get_stock_list` 加薄适配壳，本地 StockDB 接入走同一壳。
+  - 档位：A｜前端：❌ 零改（首期可仅 base + 接口契约占位）
+
+#### 3.7.2 Tier B — 超方案范围（记录待办，独立 follow-up）
+
+- [ ] **B1. `api/v1/endpoints/sector.py` 瘦化与取数下沉**
+  - 当前：内联 **17 个** `_fetch_*` 直连 `push2.eastmoney.com`，文件 **1819 行**，整文件即"东财接口搬运+解析"，与 kline.py 同一反模式，是最大单文件乱源。`[D2][D6]`
+  - 动作（建议独立 PR）：17 个取数搬入新建 `data_provider/sector/`（或先抽 `sector_fetcher.py`），端点瘦化为只路由+调 Manager；周期/板块聚合复用 `transform.py` 思路。
+  - 档位：B｜前端：❌ 零改（仅重构）｜**不在本方案 v0.3 范围，另行排期**
+
+#### 3.7.3 Tier C — 不纳入（仅记录，不改动）
+
+- [ ] **C1. `src/services/` 直连外部 SaaS**（alphasift / intelligence / social_sentiment / stock_index_remote）
+  - 当前：直接 `requests.get` 外部 SaaS/LLM。`[不同边界上下文]`
+  - 动作：**本期不纳入**。属 SaaS/通知/LLM 边界，与"行情数据源脏活层"不同上下文；其集成范式（settings + 熔断 + 原子缓存）可由 data_provider 后续统一借鉴，但不与本次改造耦合。
+  - 档位：C｜前端：❌｜**显式标注：不改动**
+
+#### 3.7.4 建议执行顺序与依赖
+
+1. **先建底座**：A2（base/Manager/契约）→ A3/A4/A5（四源 + 聚合）→ A6（共享客户端）。
+2. **再瘦端点**：A1（kline.py 改调 Manager，删内联脏活）；此时后端已达标，**前端零改**。
+3. **接配置闭环**：A7（config + 白名单）→ A8（前端切换 UI）。
+4. **横向扩展**：A9（stockinfo/codesearch 同模式）。
+5. **独立 follow-up**：B1（sector.py）单独排期，不与本方案耦合。
+6. **不触碰**：C1（service SaaS）。
+
+> **完成判据**：Tier A 全部 `[x]` 后，本方案后端即满足 ADR-001 D2/D3/D4/D5/D6；Tier B/C 状态明确（B 排期待办、C 显式不纳），不构成遗留隐患。
+
+### 3.8 数据接入层（data_provider）二维分层规划（功能 × 数据源）
+
+> 本节针对 §3.6 审计暴露的"数据源多、用途杂、分类乱"问题，给出数据接入层（第 ② 层）的**可持续分层方案**。设计理念：**先按"功能/用途"分维度，再按"数据源"分维度**，文件夹与文件据此显式区分，便于管理与维护。本节的"功能×源"二维矩阵是 ADR-001 **D3** 的正式落地细化。
+
+> 数据接入层（第 ② 层）的"功能 × 数据源"二维分层理念（先按功能分维度、再按源分维度，`data_provider/<功能>/<源>_source.py`）及其公共底座 `common/` 设计，**以 ADR-001 §4.3 / §4.4 为权威**；本节仅补充 StockDB 落地的能力清单（§3.8.3）与关键决策（§3.8.5）。"为什么现在乱、如何防再乱"的根因分析属分析过程产物，已并入 §3.7 与 ADR-001，此处不重复。
+
+#### 3.8.3 真实能力清单（与 ADR-001 §4.4 对齐，避免拍脑袋）
+
+| 能力（功能维度） | 当前实现位置（乱在哪） | 服务谁（业务） | 本期 v0.3 |
+|---|---|---|---|
+| **K 线 / 历史多周期**（kline / daily_data） | `kline.py`（重写）+ `akshare/tushare/efinance` 的 `get_daily_data` | K 线图、回测、选股、预警 | ✅ 本期建矩阵 |
+| **实时行情**（realtime_quote） | `akshare/tickflow/yfinance/alphavantage` 的 `get_realtime_quote`；已有 `RealtimeSource` 枚举 | 自选股、大盘、组合 | ⏭ 本期仅留接口，阶段 2 迁入 |
+| **基础信息**（stock_info：名称/列表/行业/板块） | 多 fetcher 的 `get_stock_name`/`get_stock_list`（分散） | 各页面表头、下拉、持仓 | ✅ 本期（base + local + 复用） |
+| **代码搜索**（code_search） | 无统一实现，散落 | 搜索框联想 | ✅ 本期（base + local + 复用） |
+| **板块/概念/涨跌停/热门**（sector） | `BaseFetcher.get_sector_rankings`…；`sector.py` 端点内联 17 个取数 | 板块页、热度 | ⏭ 阶段 3（独立 follow-up，含 §3.7 B1） |
+| **财务基本面**（fundamentals） | `fundamental_adapter` / `yfinance_fundamental_adapter` / `tushare` | 财报、估值 | ⏭ 阶段 3 |
+| **新闻 / 日历**（news / calendar） | `wallstreetcn_calendar` / `wallstreetcn_live_news` | 资讯 | ⏭ 阶段 3 |
+| **机构数据**（institutional） | `tw_institutional_fetcher` | 台股机构 | ⏭ 阶段 3 |
+
+> 结论：本期只需把**前 4 项**建成矩阵；后 4 项是既有散落实现的"归宿目标"，架构预留即可，不强行搬。
+
+> 数据接入层的完整目标目录结构（含 `common/` 与各功能包）见 **ADR-001 §4.4**；本方案本期（阶段 1）落地的逐项文件、职责与划分依据以 **ADR-001 §4.4 目录铺排总表** 为唯一权威基准，最终目录须与 ADR-001 §4.4 逐行匹配。
+
+#### 3.8.5 关键设计决策（防重复、防再乱）
+
+- **决策 1（逻辑源 ≠ 物理实现）**：用户配置的 `KLINE_DATA_SOURCE=eastmoney/sina/tencent` 是**逻辑源**；其**物理实现复用 `data_provider` 既有取数通道**（`akshare` 包东财+新浪、`efinance` 包东财、`tencent_fetcher` 包腾讯），**不再重写**（直接消除 §3.6 的"同一数据两套实现"）。只有 `local`（StockDB 7899）是新适配器。
+- **决策 2（源适配器只做格式映射）**：每个 `<源>_source.py` 仅负责"该源原始响应 → 该功能契约（如 `KLinePoint`）"，归一 / 缓存 / 限流 / 健康全部走 `common/`，避免 20 个源各写一遍。
+- **决策 3（四源同级、优先级纯配置）**：沿用已定原则——适配层内 `local/eastmoney/sina/tencent` 完全同级，主次先后 100% 由 `KLINE_DATA_SOURCE` / `KLINE_SOURCE_PRIORITY` 决定，代码不写死任何源的首选/兜底位。
+- **决策 4（巨类降级为"物理后端"）**：现有 `akshare_fetcher` / `tushare_fetcher` / `efinance_fetcher` 短期作为 `kline` / `realtime` / `stock_info` 的**物理取数后端被复用**，中期才逐步拆成 capability×source 矩阵（类比 §3.7 B1 的独立 follow-up）。**本期不重写它们**。
+- **决策 5（本地源无特权）**：StockDB 只是 `kline/local_stockdb_source.py` 又一个普通源适配器，不在端点层、不在 config 里开特殊分支。
+
+#### 3.8.6 分阶段落地建议
+
+- **阶段 1（本期 v0.3，必做）**：建 `common/` + `kline/`（local 新写 + 3 逻辑源复用既有通道）+ `stock_info/`、`code_search/`（base + local + 复用壳）；`kline.py` 瘦化（§3.7 A1–A6）。
+- **阶段 2（建议）**：`realtime/` 迁入矩阵，复用现有 `RealtimeSource` 枚举与 `UnifiedRealtimeQuote`。
+- **阶段 3（独立 follow-up）**：`sector/`（含 §3.7 B1 的 `sector.py` 17 取数）、`fundamentals/`、`news/`、`institutional/` 逐步迁入；旧 `akshare_fetcher` 巨类完成"物理后端 → 矩阵拆解"后退役。
+
+#### 3.8.7 与既有章节 / ADR 的关系
+
+- 本节"功能 × 源"二维矩阵 = **ADR-001 D3 的正式落地细化**：D3 原只给三能力包，本节补全维度原则、能力清单、`common/` 与分阶段。
+- §3.5 命名规范继续有效；§14.2 文件清单据此补 `data_provider/common/`。
+- 不推翻任何既有决策：只是把"三能力包"升级为"按功能分、按源拆"的可持续矩阵。
+
+#### 3.8.8 数据接入层目录铺排总表（代码拆分与最终落地的权威依据）
+
+> **本方案不再内联目录铺排总表——以 ADR-001 §4.4 为唯一真源。** 原 v0.2 在此全量内联的 `data_provider/` 目录铺排总表（含 `common/` 与各功能包、三级文件、划分依据、落地阶段、既有文件处置），现已内联进 **ADR-001 §4.4 目录铺排总表**，作为后续代码拆分、新建、挪动的**唯一对齐基准**：改造完成后 `data_provider/` 的实际目录与文件须与 **ADR-001 §4.4** 逐行一一匹配（路径、名称、职责一致）。
+>
+> **划分总则（怎么分）**、**`base.py` 三层关系**、**既有文件处置（不删不改、降级为"物理后端"）** 等说明均见 ADR-001 §4.1 / §4.2 / §4.3 / §4.4，本方案不重复，避免双真源漂移。
+>
+> 🔍 两类高频查询接口（输入编码查股票 / 查股票信息）的归类与落点见 **§3.8.9**（本节不重复总表，仅说明归类依据）。
+
+#### 3.8.9 两类既有查询接口的归类（输入编码查股票 / 查股票信息）
+
+日常使用中有两个高频接口，本质都是"从市场数据源取基础数据"，**归属 ② 数据源对接层，不应在 ③ 端点/服务层直接取数**：
+
+| 既有功能 | 语义 | 归入功能包 | 源适配器 | 当前实况（违规 / 待迁移） |
+|---|---|---|---|---|
+| 输入 6 位股票编码 / 名称，解析出这只股票（含联想） | 编码↔股票解析、候选列表 | `data_provider/code_search/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | 现有 `src/services/name_to_code_resolver.py` 在 **③ 服务层直接 `import akshare` 取数**，违反 D2（脏活层唯一）；取数须下沉到 `code_search/eastmoney_source.py`，解析/缓存留 ③ 做薄壳 |
+| 查该股票的信息（名称 / 行业 / 板块 / 列表） | 基础信息详情 | `data_provider/stock_info/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | `src/services/stock_service.py` 调 `manager.get_stock_name()` 已走 data_provider（合规），但 `get_stock_name` 仍躺在巨型 `BaseFetcher` 内，应随矩阵迁至 `stock_info/eastmoney_source.py` |
+
+**合并原则**：两者**不合并为一个包**——契约不同（`CodeSearchResult` vs `StockInfo`）。但底层"股票总表 / 名称↔编码"抓取可共享：两个包的 `eastmoney_source.py` 统一复用既有 `get_stock_name` / `get_stock_list` / `get_stock_membership_boards`（即 ADR 定义的"物理后端"），不在各源重写。本归类与 ADR-001 §4.4 目录表一一对应（`code_search/`、`stock_info/` 两包均已列出 `eastmoney_source.py` + `local_stockdb_source.py`，阶段 1）。
+
+**关于"现在用的是东财"**：实测解析引擎当前实走「本地静态表 `STOCK_NAME_MAP` + AkShare 兜底」，并非直接调东财；`get_stock_name` 走 `data_provider` 的 capability 路由（谁注册 `stock_name` 谁出）。无论具体源是东财还是 AkShare，**架构归属不变**——取数必须收口进 ② 层，建包时按"逻辑源 ≠ 物理实现"复用既有通道即可。
+
+
+## 3.9 功能接口层（③）设计
+
+> **权威依据：ADR-001 §5**（边界 5.1、目录结构 5.2、铺排总表 5.3、调用链路 5.4 均在 ADR，主方案不重复展开）。本章仅作对齐摘要。设计原则见 §3.1（四层）、§2（ADR 整体设计）。
+
+### 3.9.1 定位与边界（详见 ADR §5.1）
+
+- **③ 功能接口层 = 面向系统标准功能的 HTTP 接口层**，输入 / 输出契约稳定、**不随底层数据源变动**；只路由 + 编排，不内联任何取数（取数一律经 ② 层 Manager）。
+- **典型样例（K 线图）**：渲染与取数接口（`code/period/fqt/limit → KLinePoint[]`）标准，仅“数据从哪个源来”是个性、已下沉 ② 层；换源时 ③ 端点签名与返回结构完全不变 → 前端零改。
+
+### 3.9.2 端点目录结构（详见 ADR §5.2）
+
+- `api/v1/endpoints/`：③ 端点（路由 + 编排，不取数）；`api/v1/schemas/`：契约 Pydantic 模型；`src/services/`：③ 编排层（组合 ② 层取数 + 本地 DB）。两层同属 ③，均不直连第三方源。
+
+### 3.9.3 铺排总表（权威见 ADR §5.3）
+
+- **17 个标准功能接口文件**（全部位于 `api/v1/endpoints/` 下），契约固定、不随数据源变，底层取数由 ② 层透明供给。完整逐文件枚举（目录地址 / 文件名 / 做什么 / 作用 / 划分依据 / 随数据源变动）**见 ADR-001 §5.3**，此处不重复。归纳为：
+  - **核心行情 / 投资功能（11）**：`kline`（🌟典型样例）、`watchlist`、`portfolio`、`backtest`、`alerts`、`analysis`、`sector`、`stocks`、`history`、`decision_signals`、`alphasift`
+  - **系统级 / 横切（6）**：`agent`、`intelligence`、`auth`、`health`、`system_config`、`usage`
+
+### 3.9.4 与 ② 层关系（调用链路见 ADR §5.4）
+
+- 铁律：任何“换数据源”只发生在 ② 层内部，**③ 层契约与前端零改动**（链路图与说明见 ADR §5.4）。
 
 ## 4. 数据库说明和设计
 
@@ -311,121 +490,72 @@ boards:{category}:{keyword}:{withSymbols}
 
 ## 5. 后端接口规格
 
-统一前缀：**`/api/stockdb`**（不进 `/api/v1`）。
+> **路由前缀与零改基线（与 ADR-001 对齐）**：三类基础能力（K 线 / 基础信息 / 代码搜索）的既有端点统一由 `api/v1/endpoints/kline.py`（`/kline` 路由前缀）承载，签名为既有的 `stock_code / period / fqt / limit / before_date`，**本期零改、前端零改动**（ADR-001 §2.6）。下方 §5.2–§5.4 为这三条**真实既有端点**的契约镜像，是本期落地执行依据；§5.5 列出需前端配合的**可选增强 / 规划端点**，不属于零改基线。StockDB 仅作为 `kline` 端点背后的一个新 `local` 数据源接入（ADR-001 §4.4 / §4.5），不改变端点契约。
 
-统一错误响应（沿用 `api/v1/errors.py` 的 `error_body` 结构）：
+**端点归属（与 ADR-001 §5.2 / §5.3 对齐，均为真实既有路由）**
 
-```json
-{"error": "stockdb_unavailable", "message": "本地 StockDB 服务未启动或不可达（127.0.0.1:7899）", "detail": null}
-```
-
-| HTTP | error code | 触发条件 |
+| 能力子接口 | 归属端点（文件） | 路由（真实既有） |
 |---|---|---|
-| 400 | `invalid_parameter` | 代码非 6 位数字、日期非法、周期/复权非法 |
-| 404 | `stockdb_not_found` | 指定资源不存在（如板块代码） |
-| 502 | `stockdb_bad_response` | 服务端返回结构异常 / 非 JSON |
-| 503 | `stockdb_disabled` | `STOCKDB_ENABLED=false` |
-| 503 | `stockdb_unavailable` | 连接失败 / 超时 |
+| 健康检查 | `api/v1/endpoints/health.py` | `GET /api/v1/health` |
+| 代码搜索（查询接口①） | `kline.py`（`/search`） | `GET /api/v1/kline/search?q=` |
+| 基础信息（查询接口②） | `kline.py`（`/{stock_code}/info`） | `GET /api/v1/kline/{stock_code}/info` |
+| K 线 / 行情（核心） | `kline.py`（`/{stock_code}/kline`） | `GET /api/v1/kline/{stock_code}/kline?period&fqt&limit&before_date` |
 
-### 5.1 `GET /api/stockdb/health`
+> 说明：独立的 `/api/v1/stock-info`、`/api/v1/code-search` 端点为 ADR-001 §5.2 规划，随 `stockinfo/` `codesearch/` 能力包落成（§3.7 A9 / A10）；本期零改不新建独立端点，能力仍由 `kline.py` 承载。统一错误响应沿用 `api/v1/errors.py` 的 `error_body` 结构，错误码以该文件为准（本期零改不新增 / 不重命名错误码）。
 
-连通性与数据源概览，供页面头部状态条使用。
+### 5.1 健康检查
 
-```json
-{
-  "enabled": true,
-  "connected": true,
-  "baseUrl": "http://127.0.0.1:7899",
-  "latencyMs": 12,
-  "latestTradeDate": "20260924",
-  "codeCount": 5421,
-  "checkedAt": "2026-09-26T10:12:33+08:00"
-}
-```
+沿用既有 `GET /api/v1/health`（详见 `api/v1/endpoints/health.py` 的 `HealthResponse`），返回服务 / 数据源概览，供页面头部状态条使用；本期零改，契约不变。
 
-`connected=false` 时 `latestTradeDate`/`codeCount` 为 `null`，但 HTTP 仍返回 **200**（页面据此渲染空态，不用异常态打断）。
-
-### 5.2 `GET /api/stockdb/codes`
+### 5.2 代码搜索（查询接口①）
 
 | Query | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `market` | enum | `a-share` | `a-share`（0/3/6）/ `all`（0/1/3/5/6/9） |
-| `keyword` | string | — | 代码或名称模糊过滤（服务端内存过滤） |
-| `limit` | int | `0` | 0 = 不限制 |
+| `q` | string | **必填** | 搜索关键词（代码 / 名称 / 拼音 / 简拼），`min_length=1` |
 
 ```json
-{"items": [{"code": "600633", "name": "浙数文化"}], "total": 5421}
+{"results": [{"code": "600633", "name": "浙数文化", "market": "SH", "secid": "1.600633"}]}
 ```
 
-> 名称从最近交易日快照投影 `ap=get.code,name` 取（3~5 个前缀请求），避免逐股查询；取不到时 `name` 为 `""`，不得报错。
+> 既有端点 `GET /api/v1/kline/search`（见 `kline.py:search_stocks`）。独立的 `/api/v1/code-search` 端点为 ADR-001 §5.2 规划，随 `codesearch/` 能力包落成。
 
-### 5.3 `GET /api/stockdb/dates`
+### 5.3 基础信息（查询接口②）
 
-个股交易日列表（倒序），用于日期输入框联想。
+| 路径参数 | 类型 | 说明 |
+|---|---|---|
+| `stock_code` | string | 6 位代码（路径参数） |
+
+> 既有端点 `GET /api/v1/kline/{stock_code}/info`（见 `kline.py:get_stock_info`，返回 `StockInfoResponse`）；本期零改。原方案描述的「交易日列表 `/dates`」端点当前代码中不存在，不纳入本期零改基线；如需日期联想，后续在 `stockinfo/` 能力包内新增，属 §5.5 可选增强。
+
+### 5.4 K 线 / 行情（核心）
 
 | Query | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `code` | string | **必填** | 6 位数字 |
-| `limit` | int | `2000` | 上限 5000 |
+| `period` | enum | `daily` | `1m`/`5m`/`15m`/`30m`/`60m`/`120m`/`5d`/`daily`/`weekly`/`monthly`/`yearly`（与 `kline.py:get_kline` 的 `pattern` 一致；本地 StockDB 仅原生 日k/分钟k，其余由 `transform.py` 聚合补齐） |
+| `limit` | int | 周期默认值（见 `PERIOD_DEFAULT_LIMITS`，日k 默认 250） | `ge=1, le=10000` |
+| `fqt` | int | `1` | 复权：`0`=不复权，`1`=前复权，`2`=后复权 |
+| `before_date` | string | — | 分页加载：返回该日期之前的数据 |
 
-```json
-{"code":"600633","dates":["20260924","20260923"],"total":5444}
-```
+> **路径参数** `stock_code`（6 位代码）。返回 `KLineResponse{stock_code, stock_name, period, secid, prev_close, data: KLinePoint[]}`，`KLinePoint` 字段 `date/open/high/low/close/volume/amount/pct_chg`（与 `STANDARD_COLUMNS` 一致）；`volume` 已统一为"手"（÷100）。
 
-### 5.4 `GET /api/stockdb/bars`（核心）
+- 端点签名（`stock_code` / `period` / `fqt` / `limit` / `before_date`）为**既有契约**，**本期零改、前端零改动**（ADR-001 §2.6）。
+- 周期命名以 `kline.py` 实际接受的 token 为准：**`daily` / `weekly` / `monthly`**（**不是** `1d` / `1w` / `1M`）；`1d/1w/1M` 仅为人类可读别名，不作为线上取值。
 
-| Query | 类型 | 默认 | 说明 |
-|---|---|---|---|
-| `code` | string | **必填** | 单代码 `600633`、逗号分隔 `600633,000001` 或前缀 `6*` |
-| `start` | string | — | `YYYYMMDD` 或 14 位 `YYYYMMDDhhmmss` |
-| `end` | string | — | 同上，或 `N`（到最新） |
-| `frequency` | enum | `1d` | `1d`/`1m`/`5m`/`15m`/`30m`/`60m`/`1w`/`1M` |
-| `fq` | enum | `none` | `none`/`qfq`/`hfq` |
-| `fields` | string | — | 逗号分隔；不传返回全字段对象行 |
-| `limit` | int | `500` | 单代码最大条数，上限 `STOCKDB_MAX_ROWS` |
-| `desc` | bool | `true` | `true` 时间倒序 |
+### 5.5 可选增强与规划端点（需前端配合，超出零改范围）
 
-**单代码响应**
+以下能力**不在本期零改基线内**，落地需前端同步改造，列为独立 follow-up：
 
-```json
-{
-  "query": {"code":"600633","start":"20260720","end":"20260729","frequency":"1d","fq":"qfq","desc":true},
-  "columns": ["date","code","name","open","high","low","close","volume","amount","pct_chg"],
-  "rows": [{"date":20260729,"code":"600633","name":"浙数文化","open":10.23,"close":10.54}],
-  "total": 8,
-  "truncated": false,
-  "partial": false,
-  "elapsedMs": 34
-}
-```
-
-**多代码响应**：`rows` 变为 `{"600633":[...],"000001":[...]}`，`columns` 取并集。
-
-- `columns` 由后端按**字段存在性**动态生成，前端直接按 `columns` 渲染，避免硬编码列。
-- `truncated=true`：被 `limit` 截断，前端提示"结果已截断，请收窄区间"。
-- `partial=true`：多前缀查询中部分分片失败，仅返回已成功数据。
-
-### 5.5 `GET /api/stockdb/boards`
-
-| Query | 类型 | 默认 | 说明 |
-|---|---|---|---|
-| `category` | enum | — | `concept`/`sw1`/`sw2`/`sw3`（对应 0/1/2/3） |
-| `keyword` | string | — | 板块名称模糊匹配 |
-| `withSymbols` | bool | `false` | 是否返回成分股（体量大，默认否） |
-
-```json
-{"items":[{"code":"801760.SL","name":"传媒","source":"sw","type":"sw_1","group":"申万行业指数列表","category":"sw1"}],"total":28}
-```
-
-### 5.6 `GET /api/stockdb/export`
-
-参数同 `bars`，返回 `text/csv`（带 UTF-8 BOM）+ `Content-Disposition: attachment`。一期可选；前端亦可直接导出（§7.3）。
+- **区间查询 `start` / `end`**：在 `get_kline` 现有 `limit` + `before_date` 分页之上，新增按日期区间取数（需新增参数与前端改造）。
+- **字段投影 `fields`**：按需返回子集（需新增参数与前端改造）。
+- **周期 / 复权重命名**：`period`→`frequency`、`fqt`→`fq`（`none`/`qfq`/`hfq`）属破坏性重命名，**与前端零改冲突**，仅在独立大版本中评估。
+- **交易日列表 `/dates`**：原方案描述的 `GET /api/v1/kline/dates` 当前代码中不存在，如需日期联想在 `stockinfo/` 能力包新增。
+- **板块 `/boards`、导出 `/export`**：当前代码中不存在，分别属 `sector/` 能力包（阶段 3）与可选增强，不在本期。
 
 ---
 
 ## 6. 数据查询流程
 
-### 6.1 主流程（`GET /api/stockdb/bars`）
+### 6.1 主流程（统一经 `/api/v1/kline` 等端点）
 
 ```
 1. 开关校验   STOCKDB_ENABLED=false → 503 stockdb_disabled
@@ -467,9 +597,11 @@ boards:{category}:{keyword}:{withSymbols}
 
 | 目标周期 | 源周期 | 聚合规则 |
 |---|---|---|
-| `5m`/`15m`/`30m`/`60m` | `1m` | 按自然时间桶（09:30 起算，**跨日不合并**）：`open`=桶内首、`high`=max、`low`=min、`close`=桶内末、`volume`/`amount`=sum、`date`=桶内末条时间戳 |
+| `5m`/`15m`/`30m`/`60m`/`120m` | `1m` | 按自然时间桶（09:30 起算，**跨日不合并**）：`open`=桶内首、`high`=max、`low`=min、`close`=桶内末、`volume`/`amount`=sum、`date`=桶内末条时间戳 |
 | `1w` | `1d` | 按自然周（周一~周日）：同上，`date`=本周最后一根日K日期 |
 | `1M` | `1d` | 按自然月：同上，`date`=本月最后一根日K日期 |
+| `5d` | `1d` | 按 5 个交易日滚动桶：同上，`date`=桶内最后一根日K日期 |
+| `yearly` | `1d` | 按自然年：同上，`date`=本年最后一根日K日期 |
 
 - **顺序决定**：先复权、后聚合。复权系数按日生效，分钟级聚合跨日不合并，两者粒度一致；若先聚合再复权，`high/low` 极值会失真。
 - 聚合后 `name` 取桶内最后一条，`code` 恒定；非 OHLCV 字段（`pe_ttm`/`pb` 等）取桶内最后一条并标注"期末值"。
@@ -501,7 +633,7 @@ for p in prefixes:
 | 缓存 | TTL | 失效条件 |
 |---|---|---|
 | `/health` | 15 s | — |
-| `/codes` | 6 h | 手动 `POST /api/stockdb/cache/clear` |
+| 代码全集 | 6 h | 进程内长缓存（默认 TTL 6h）；无手动清除端点，重启即失效（见 §4.2） |
 | `/dates?code=` | 1 h，LRU 500 项 | 同上 |
 | `/bars` | 5 min（`1d`）/ 30 s（分钟级） | 同上 |
 | `/boards` | 12 h | 同上 |
@@ -516,12 +648,12 @@ for p in prefixes:
 
 | 项 | 值 |
 |---|---|
-| 页面 | `apps/hrs-web/src/pages/StockDataViewPage.tsx` |
-| 路由 | `/stock-data` |
-| 菜单 | `productModel` → `menuId: 'stockData'`，`menuIcon: 'Database'`，`menuVisible: true` |
-| i18n | `layout.nav.stockData.title` / `.description`（三个语言文件各 2 条） |
-| API | `apps/hrs-web/src/api/stockdb.ts` |
-| 请求 | `/api/stockdb/*`（vite 已把 `/api` 代理到 `127.0.0.1:8000`，**无需改 vite 配置**） |
+| K 线页面 | `apps/hrs-web/src/pages/StockDataViewPage.tsx`，路由 `/stock/kline`（原有页面，数据源可配） |
+| 数据源配置页 | `apps/hrs-web/src/pages/SettingsPage`（或子页），路由 `/settings` 下「数据源」Tab（新增） |
+| 菜单 | K 线：`productModel` → `menuId: 'stockData'`；配置：复用既有 `/settings` 菜单 |
+| i18n | `layout.nav.stockData.title` / `.description` + 新增「数据源设置」相关 key |
+| API | `apps/hrs-web/src/api/stockdb.ts`（或并入既有 kline API 模块） |
+| 请求 | `/api/v1/kline`、`/api/v1/stock-info`、`/api/v1/code-search`（vite 已把 `/api` 代理到 `127.0.0.1:8000`，**无需改 vite 配置**） |
 
 ### 7.2 布局
 
@@ -647,20 +779,20 @@ idle ──点击/Enter──▶ loading ──成功──▶ success(rows)
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `STOCKDB_ENABLED` | `false` | 总开关。`false` 时 `/api/stockdb/*` 全部 503 **且前端菜单隐藏** |
+| `STOCKDB_ENABLED` | `false` | 本地 StockDB 源总开关。`false` 时本地源不参与 K 线等能力；按 ADR-001 由 `KLINE_SOURCE_PRIORITY` 回退至其他源或返回空态 |
 | `STOCKDB_BASE_URL` | `http://127.0.0.1:7899` | StockDB 服务地址 |
 | `STOCKDB_TIMEOUT_MS` | `8000` | 单次请求超时（毫秒）。分钟级建议放宽到 15000 |
 | `STOCKDB_MAX_ROWS` | `5000` | 单请求最大返回行数 |
 | `STOCKDB_CACHE_TTL_SEC` | `300` | `bars` 结果缓存秒数（分钟级取 `min(30, TTL)`） |
 | `STOCKDB_COOLDOWN_SEC` | `30` | 连续失败后的短路冷却秒数 |
 | `STOCKDB_PASSWORD` | 空 | 可选。服务端 `auth` 开启时透传 |
-| `STOCKDB_REQUIRE_AUTH` | `false` | `true` 时在 `api/stockdb/router.py` 内自行挂载 JWT/管理员依赖（因为 `/api/stockdb` 不在 `auth` 中间件默认保护范围内） |
+| `STOCKDB_REQUIRE_AUTH` | `false` | 原 v0.2 为 `/api/stockdb` 独立前缀下的鉴权开关；ADR-001 复用 `/api/v1` 已继承 `ADMIN_AUTH`，本地行情默认即受保护，该开关可降级为可选项（见 §14.8） |
 
 `.env.example` 追加块：
 
 ```ini
 # ============ 本地 StockDB 行情数据源（可选）============
-# 关闭时 /api/stockdb/* 返回 503，前端不显示「本地行情」菜单。
+# 关闭时本地 StockDB 源不参与 K 线等能力；K 线等端点按 ADR-001 回退其他源或返回空态。
 STOCKDB_ENABLED=false
 # StockDB 本地服务地址（需先运行 stockdb.app，默认端口 7899）
 STOCKDB_BASE_URL=http://127.0.0.1:7899
@@ -676,7 +808,36 @@ STOCKDB_COOLDOWN_SEC=30
 # STOCKDB_PASSWORD=
 ```
 
-> **不进 `src/core/config_registry.py`**：一期不在 Web「设置」页暴露这些项（StockDB 是本机数据源，页面改地址无意义）。若后续需要，再按既有规则登记。
+### 9.1 数据源切换配置（多源可切换，UI 可管，详见 ADR-001）
+
+在 §9 的 StockDB 连接配置之外，新增「统一基础能力层」的数据源切换键。每组能力（K 线 / 基础信息 / 代码搜索）独立配置，复用既有 `POST /api/v1/config` 运行时写 `.env` + `reload_now` 基建，无需重启即切换。
+
+| 环境变量 | 默认值 | 说明 |
+|---|---|---|
+| `KLINE_DATA_SOURCE` | `local` | K 线主数据源（**优先级最高、先调用**）：`local` / `eastmoney` / `sina` / `tencent` / `auto`（auto = 按 `KLINE_SOURCE_PRIORITY` 取首个可用） |
+| `KLINE_FALLBACK_ENABLED` | `true` | 主源失败是否自动回退其余源 |
+| `KLINE_SOURCE_PRIORITY` | `local,eastmoney,sina,tencent` | 回退链的**主次先后**（可改，逗号分隔即优先级从高到低）。适配层内四源**完全同级、无内置权重**，此排列**仅由配置决定**，代码层对任何源一视同仁，不得把某源写死为"首选/兜底" |
+| `STOCKINFO_DATA_SOURCE` | `local` | 基础信息主源（同枚举） |
+| `STOCKINFO_FALLBACK_ENABLED` | `true` | 同上 |
+| `CODESEARCH_DATA_SOURCE` | `local` | 代码搜索主源（同枚举） |
+| `CODESEARCH_FALLBACK_ENABLED` | `true` | 同上 |
+
+> 注：以上键须登记进 `system_config` 的运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），方可在 Web「设置 → 数据源」Tab 中读写。
+
+`.env.example` 追加块：
+
+```ini
+# ============ 行情基础能力统一层（数据源切换，UI 可管）============
+KLINE_DATA_SOURCE=local
+KLINE_FALLBACK_ENABLED=true
+KLINE_SOURCE_PRIORITY=local,eastmoney,sina,tencent
+STOCKINFO_DATA_SOURCE=local
+STOCKINFO_FALLBACK_ENABLED=true
+CODESEARCH_DATA_SOURCE=local
+CODESEARCH_FALLBACK_ENABLED=true
+```
+
+> **在 Web「设置」页暴露**：相较原方案「一期不在设置页暴露」，本方案（ADR-001 D5）明确将以上数据源切换键登记进 `system_config` 运行时白名单，在 `/settings` 的「数据源」Tab 中提供主源下拉 + 回退链排序 + 开关 + 连接测试，持久化复用 `POST /api/v1/config`。改动即时生效、无需重启。
 
 ---
 
@@ -709,10 +870,10 @@ STOCKDB_COOLDOWN_SEC=30
 
 | 层级 | 回滚动作 |
 |---|---|
-| **L0 功能开关**（最快） | `.env` 设 `STOCKDB_ENABLED=false` 并重启后端 → 所有 `/api/stockdb/*` 返回 503，前端菜单隐藏。无需改代码、无需重启前端。 |
+| **L0 功能开关**（最快） | `.env` 设 `STOCKDB_ENABLED=false` 并重启后端 → K 线等端点按 ADR-001 回退其他源或返回空态（不再有 `/api/stockdb/*` 503 路径），前端菜单隐藏。无需改代码、无需重启前端。 |
 | **L1 前端隐藏** | `manifest.ts` 中 `menuVisible: false` → 菜单消失，路由仍可直达。 |
 | **L2 路由摘除** | 删除 `api/app.py` 中的一行 `include_router(...)` → 接口整体消失。 |
-| **L3 代码移除** | 删除 `src/integrations/stockdb/` + `api/stockdb/` 两个目录 + 前端 4 处新增。因无外部 import 指向它们，删除后无悬挂引用。 |
+| **L3 代码移除** | 删除 `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}` 中对应 source + 瘦端点改回直连单源 + 前端对应改回。因各 source 仅被 Manager 引用，移除对应源后无悬挂引用。 |
 | **L4 版本回滚** | `git revert` 对应提交。 |
 
 > 因本方案**不新增数据库表、不改既有文件语义**，L0~L3 均可在 5 分钟内完成且无数据残留。
@@ -725,9 +886,9 @@ STOCKDB_COOLDOWN_SEC=30
 
 | 对象 | 规范 | 示例 |
 |---|---|---|
-| 包 | 全小写下划线，置于 `src/integrations/stockdb/` | `src/integrations/stockdb/client.py` |
-| 路由包 | `api/stockdb/` | `api/stockdb/router.py` |
-| 路由前缀 | `/api/stockdb` | `/api/stockdb/bars` |
+| 包 | 全小写下划线，置于 `data_provider/<capability>/` | `data_provider/kline/local_stockdb_source.py` |
+| 路由包 | `api/v1/endpoints/` | `api/v1/endpoints/kline.py` |
+| 路由前缀 | `/api/v1`（K 线复用 `kline`，新增 `stock-info`/`code-search`） | `/api/v1/kline` |
 | 模块内类名 | PascalCase | `StockDbHttpClient`、`QuerySpec` |
 | 函数/变量 | snake_case | `build_key_expr`、`normalize_code` |
 | 常量 | 全大写 | `TABLE_DAILY = "日k"` |
@@ -740,7 +901,7 @@ STOCKDB_COOLDOWN_SEC=30
 | 对象 | 规范 | 示例 |
 |---|---|---|
 | 页面文件 | PascalCase + `Page` 后缀 | `StockDataViewPage.tsx` |
-| API 模块 | camelCase | `src/api/stockdb.ts` |
+| API 模块 | camelCase | `src/api/kline.ts`（或并入既有 kline API 模块） |
 | API 对象 | `xxxApi` | `stockdbApi` |
 | 类型 | PascalCase，禁止 `I` 前缀 | `StockDbBarsResponse` |
 | 类型定义后缀 | `*Def`（依 `.conventions/frontend/TYPE_NAMING.md`） | `StockDbColumnDef` |
@@ -758,7 +919,7 @@ STOCKDB_COOLDOWN_SEC=30
 ### 11.4 前端缓存注意
 
 `src/api/index.ts` 对 **GET** 请求有 L1 内存缓存，TTL 由 `constants/cacheConfig.ts` 的 `CACHE_TTL_MAP` 决定。
-`/api/stockdb/*` **不要**登记进 `CACHE_TTL_MAP`（避免与后端缓存双重失效导致调试困难）；如需强制刷新，调用 `clearApiCache('/api/stockdb')`。
+`/api/v1/kline` 等统一端点**不要**登记进 `CACHE_TTL_MAP`（避免与后端缓存双重失效导致调试困难）；如需强制刷新，调用 `clearApiCache('/api/v1/kline')`。
 
 ---
 
@@ -802,7 +963,7 @@ STOCKDB_COOLDOWN_SEC=30
 
 **手工冒烟清单**
 
-1. `STOCKDB_ENABLED=true` 启动后端 → `/api/stockdb/health` 返回 `connected=true`。
+1. `STOCKDB_ENABLED=true` + `KLINE_DATA_SOURCE=local` 启动后端 → K 线端点经 `LocalStockDBDataSource` 出数，`/api/v1/kline?code=xxx&period=1d` 返回 `KLinePoint[]`。
 2. 杀掉 `stockdb-server` → `/health` 返回 `connected=false`，页面显示启动引导，HermesX 其余页面正常。
 3. 页面查询 `600633` `1d` `qfq` → 与官方 `示范.html` 同参数结果逐行比对（AC-2/AC-3）。
 4. 切 `1m` + 单日区间 → 返回 240 行左右；切 `5m` → 48 行左右。
@@ -818,1479 +979,30 @@ STOCKDB_COOLDOWN_SEC=30
 
 ---
 
-## 13. 核心实现代码（前后端）
+## 13. 落地实现要点（取代原代码骨架，权威以 ADR-001 为准）
 
-> 以下为落地时的核心骨架，已按实测协议编写。文件名与 §11 命名规范一致。
+> **本章已精简**：原 v0.2 的逐文件代码骨架（位于 `src/integrations/stockdb/`、`api/stockdb/`，前缀 `/api/stockdb/*`）已被 **ADR-001** 取代，属于失真的过程产物，不再在此逐文件列出，以免干扰后续代码执行。具体编码以 **§3.7 改造代办清单（TODO）** + **ADR-001 §4.4 目录铺排总表** + **ADR-001** 为唯一权威。
 
-### 13.1 后端：`src/integrations/stockdb/config.py`
+### 13.1 实现要点与可复用逻辑
 
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 集成层配置。
+- **StockDB 对接（local source）**：原 `client.py` / `codec.py` 对 StockDB `127.0.0.1:7899` 的 HTTP 接线 / LevelDB K-V 解析 / 字段映射逻辑，**平移为** `data_provider/stockdb_fetcher.py`（共享客户端）+ `data_provider/kline/local_stockdb_source.py`（K 线源）的实现参考；协议细节以 **§2.2（已实测）** 与 **§4.1** 为准，不得另起协议。
+- **周期聚合与复权（transform）**：原 `transform.py` 的时间桶聚合（5m~年）+ `pct_chg` 计算，平移为 `data_provider/kline/transform.py` 的共享聚合器（见 ADR-001 §4.4）。
+- **统一契约**：所有源输出归一为 `KLinePoint` / `StockInfo` / `CodeSearchResult`（见 ADR-001 D4），各源只写 `_normalize_*()` 映射，互不污染。
+- **端点瘦身**：`api/v1/endpoints/kline.py` 仅路由 + 调 `KlineDataSourceManager.get_kline()`，签名不变（见 §3.7 A1）。
+- **复权对账（AC-3）**：复权公式对账为上线硬阻断，须先通过对账再合入（见 §6.2）。
 
-职责：
-1. 从环境变量读取 StockDB 连接与限流参数
-2. 提供不可变 Settings 与工厂函数（与 stock_index_remote_service 同形状）
-"""
+### 13.2 落地顺序（精简，对应 §3.7 代办）
 
-from __future__ import annotations
-
-import os
-from dataclasses import dataclass
-
-_FALSEY = {"0", "false", "no", "off"}
-
-
-def _as_bool(raw: str | None, default: bool) -> bool:
-    if raw is None:
-        return default
-    return raw.strip().lower() not in _FALSEY
-
-
-def _as_int(raw: str | None, default: int) -> int:
-    try:
-        return int(str(raw).strip())
-    except (TypeError, ValueError):
-        return default
-
-
-@dataclass(frozen=True)
-class StockDbSettings:
-    """StockDB 连接配置。"""
-
-    enabled: bool
-    base_url: str
-    timeout_ms: int
-    max_rows: int
-    cache_ttl_sec: int
-    cooldown_sec: int
-    password: str | None
-
-
-def settings_from_env() -> StockDbSettings:
-    """从环境变量构造配置；未启用时其余字段仍返回可用默认值。"""
-    return StockDbSettings(
-        enabled=_as_bool(os.getenv("STOCKDB_ENABLED"), False),
-        base_url=(os.getenv("STOCKDB_BASE_URL") or "http://127.0.0.1:7899").rstrip("/"),
-        timeout_ms=_as_int(os.getenv("STOCKDB_TIMEOUT_MS"), 8000),
-        max_rows=_as_int(os.getenv("STOCKDB_MAX_ROWS"), 5000),
-        cache_ttl_sec=_as_int(os.getenv("STOCKDB_CACHE_TTL_SEC"), 300),
-        cooldown_sec=_as_int(os.getenv("STOCKDB_COOLDOWN_SEC"), 30),
-        password=(os.getenv("STOCKDB_PASSWORD") or "").strip() or None,
-    )
-```
-
-### 13.2 后端：`src/integrations/stockdb/codec.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 协议编解码。
-
-职责：
-1. 定义表名常量与键表达式编码（key/qz/all/fwd/fwz）
-2. 规范化代码与日期，生成请求参数
-"""
-
-from __future__ import annotations
-
-import re
-from urllib.parse import urlencode
-
-TABLE_DAILY = "日k"
-TABLE_MINUTE = "分钟k"
-TABLE_ADJUST = "复权"
-TABLE_CODES = "股票代码"
-TABLE_BOARD = "板块*"
-TABLE_DELISTED = "退市*"
-
-MINUTE_FREQUENCIES = {"1m", "5m", "15m", "30m", "60m"}
-DAY_FREQUENCIES = {"1d", "1w", "1M"}
-
-_CODE_RE = re.compile(r"^\d{6}$")
-_DIGITS_RE = re.compile(r"\D")
-
-
-def normalize_code(raw: str) -> str:
-    """规范化股票代码：剥离 sh/sz 前缀与非数字，保留 6 位。"""
-    text = str(raw or "").strip().lower()
-    if text.startswith(("sh", "sz")):
-        text = text[2:]
-    return _DIGITS_RE.sub("", text)
-
-
-def is_valid_code(code: str) -> bool:
-    """判断是否为合法 6 位代码。"""
-    return bool(_CODE_RE.match(code or ""))
-
-
-def normalize_date(raw: str) -> str:
-    """规范化日期：返回 8 位或 14 位数字串；非法返回空串。"""
-    digits = _DIGITS_RE.sub("", str(raw or ""))
-    if len(digits) >= 14:
-        return digits[:14]
-    if len(digits) >= 8:
-        return digits[:8]
-    return ""
-
-
-def key_expr(value: str) -> str:
-    """精确键表达式。"""
-    return f"key:{value}"
-
-
-def prefix_expr(value: str) -> str:
-    """前缀表达式：'6*' / '60063*' -> 'qz:6' / 'qz:60063'。"""
-    return f"qz:{value.rstrip('*')}"
-
-
-def all_expr() -> str:
-    """整层匹配表达式。"""
-    return "all:"
-
-
-def range_expr(start: str, end: str, desc: bool = False) -> str:
-    """闭区间表达式；desc=True 使用 fwz，否则 fwd。
-
-    end 为 'N' 或空时表示开放区间。
-    """
-    lo = start or "N"
-    hi = end or "N"
-    tag = "fwz" if desc else "fwd"
-    return f"{tag}:{lo},{hi}"
-
-
-def date_key_expr(start: str, end: str, desc: bool = False) -> str:
-    """按起止日期生成 k2 表达式。
-
-    - 都不传 -> all:
-    - 只传 start -> 前缀 qz:（日K 传 8 位即整天，分钟K 传 8 位即整天）
-    - 都传 -> 范围 fwd/fwz
-    """
-    if not start and not end:
-        return all_expr()
-    if start and not end:
-        return prefix_expr(start)
-    return range_expr(start, end or "N", desc=desc)
-
-
-def build_query(
-    cmd: str,
-    table: str,
-    k1: str | None = None,
-    k2: str | None = None,
-    fields: str | None = None,
-    num: int | None = None,
-) -> str:
-    """构造 StockDB 查询串（不含 host）。
-
-    始终追加 json=1；字段投影走服务端 ap=get.<fields>。
-    """
-    params: list[tuple[str, str]] = [("cmd", cmd), ("t", table)]
-    if k1:
-        params.append(("k1", k1))
-    if k2:
-        params.append(("k2", k2))
-    if fields:
-        params.append(("ap", f"get.{fields}"))
-    if num:
-        params.append(("num", str(num)))
-    params.append(("json", "1"))
-    return "?" + urlencode(params)
-```
-
-### 13.3 后端：`src/integrations/stockdb/client.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB HTTP 客户端。
-
-职责：
-1. 发送只读命令（get/vals/keys/len）并解析 JSON
-2. 超时控制与连续失败冷却短路
-3. 把传输层异常翻译为统一的 StockDbError
-"""
-
-from __future__ import annotations
-
-import logging
-import time
-from typing import Any
-
-import requests
-
-from src.integrations.stockdb import codec
-from src.integrations.stockdb.config import StockDbSettings, settings_from_env
-
-logger = logging.getLogger(__name__)
-
-
-class StockDbError(Exception):
-    """StockDB 访问错误，携带面向 API 层的错误码与 HTTP 状态。"""
-
-    def __init__(self, code: str, message: str, status: int = 503) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
-        self.status = status
-
-
-class StockDbClient:
-    """StockDB 只读客户端（进程内惰性单例）。"""
-
-    def __init__(self, settings: StockDbSettings | None = None) -> None:
-        self._settings = settings or settings_from_env()
-        self._session = requests.Session()
-        self._fail_count = 0
-        self._cooldown_until = 0.0
-
-    @property
-    def settings(self) -> StockDbSettings:
-        return self._settings
-
-    def _guard(self) -> None:
-        """开关与冷却短路检查。"""
-        if not self._settings.enabled:
-            raise StockDbError("stockdb_disabled", "本地 StockDB 功能未启用", 503)
-        if time.monotonic() < self._cooldown_until:
-            raise StockDbError(
-                "stockdb_unavailable",
-                f"本地 StockDB 连续失败，已在冷却中（{self._settings.cooldown_sec}s）",
-                503,
-            )
-
-    def request(self, query: str) -> Any:
-        """执行查询串，返回已解析的 JSON；异常统一为 StockDbError。"""
-        self._guard()
-        url = f"{self._settings.base_url}/{query.lstrip('/')}"
-        try:
-            response = self._session.get(url, timeout=self._settings.timeout_ms / 1000)
-        except requests.exceptions.RequestException as exc:
-            self._mark_failure()
-            raise StockDbError(
-                "stockdb_unavailable",
-                f"本地 StockDB 服务未启动或不可达（{self._settings.base_url}）",
-                503,
-            ) from exc
-
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            self._mark_failure()
-            raise StockDbError("stockdb_bad_response", "StockDB 返回内容不是合法 JSON", 502) from exc
-
-        self._fail_count = 0
-        return payload
-
-    def _mark_failure(self) -> None:
-        """累计失败并在达到阈值后进入冷却。"""
-        self._fail_count += 1
-        if self._fail_count >= 3:
-            self._cooldown_until = time.monotonic() + self._settings.cooldown_sec
-            self._fail_count = 0
-            logger.warning("StockDB 连续失败，进入 %ss 冷却", self._settings.cooldown_sec)
-
-    def ping(self) -> tuple[bool, int]:
-        """连通性探测，返回 (是否连通, 耗时毫秒)。"""
-        started = time.monotonic()
-        try:
-            self.request(codec.build_query("get", codec.TABLE_CODES))
-        except StockDbError:
-            return False, int((time.monotonic() - started) * 1000)
-        return True, int((time.monotonic() - started) * 1000)
-
-
-_CLIENT: StockDbClient | None = None
-
-
-def get_client() -> StockDbClient:
-    """获取进程内单例客户端。"""
-    global _CLIENT
-    if _CLIENT is None:
-        _CLIENT = StockDbClient()
-    return _CLIENT
-```
-
-### 13.4 后端：`src/integrations/stockdb/transform.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 数据后处理。
-
-职责：
-1. 按 date 显式排序（服务端顺序不可信）
-2. 复权换算（qfq / hfq）
-3. 周期聚合（1m -> 5m/15m/30m/60m；1d -> 1w/1M）
-4. 字段投影、生成 columns、按上限截断
-"""
-
-from __future__ import annotations
-
-import bisect
-import datetime
-from typing import Any, Iterable
-
-PRICE_FIELDS = ("open", "high", "low", "close", "pre_close")
-SUM_FIELDS = ("volume", "amount")
-
-
-def sort_rows(rows: list[dict[str, Any]], desc: bool) -> list[dict[str, Any]]:
-    """按 date 排序；缺失或非数字 date 的行排到末尾。"""
-
-    def sort_key(row: dict[str, Any]) -> tuple[int, Any]:
-        raw = row.get("date")
-        try:
-            return (0, int(raw))
-        except (TypeError, ValueError):
-            return (1, str(raw))
-
-    return sorted(rows, key=sort_key, reverse=desc)
-
-
-def apply_adjust(
-    rows: list[dict[str, Any]],
-    events: list[dict[str, Any]],
-    fq: str,
-) -> list[dict[str, Any]]:
-    """按复权事件换算价格。
-
-    qfq: price *= cum_d / cum_last（最新价不变，历史价下移）
-    hfq: price *= cum_d          （最早价不变，后续价上移）
-    复权表为空或 fq=none 时原样返回。
-    """
-    if fq not in ("qfq", "hfq") or not events:
-        return rows
-
-    ordered = sorted(
-        (e for e in events if _to_int(e.get("date")) is not None),
-        key=lambda e: int(e["date"]),
-    )
-    if not ordered:
-        return rows
-
-    event_dates = [int(e["date"]) for e in ordered]
-    event_cums = [_to_float(e.get("cum")) or 1.0 for e in ordered]
-    cum_last = event_cums[-1] or 1.0
-
-    result: list[dict[str, Any]] = []
-    for row in rows:
-        date = _to_int(row.get("date"))
-        if date is None:
-            result.append(row)
-            continue
-        # 日K 是 8 位，分钟K 是 14 位，统一截取前 8 位比对事件日期
-        day = int(str(date)[:8])
-        idx = bisect.bisect_right(event_dates, day) - 1
-        cum_d = event_cums[idx] if idx >= 0 else 1.0
-        factor = cum_d / cum_last if fq == "qfq" else cum_d
-
-        new_row = dict(row)
-        for field in PRICE_FIELDS:
-            value = _to_float(new_row.get(field))
-            if value is None:
-                continue
-            new_row[field] = round(value * factor, 6)
-        close = _to_float(new_row.get("close"))
-        pre_close = _to_float(new_row.get("pre_close"))
-        if close is not None and pre_close:
-            new_row["pct_chg"] = round((close - pre_close) / pre_close * 100, 4)
-        result.append(new_row)
-    return result
-
-
-def _to_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _to_float(value: Any) -> float | None:
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return None
-    return result if result == result else None  # 过滤 NaN
-
-
-def resample(rows: list[dict[str, Any]], frequency: str) -> list[dict[str, Any]]:
-    """周期聚合。frequency 为 1d/1m 时原样返回。"""
-    if frequency in ("1d", "1m", None, ""):
-        return rows
-    if frequency in ("5m", "15m", "30m", "60m"):
-        return _resample_minute(rows, int(frequency[:-1]))
-    if frequency == "1w":
-        return _resample_day(rows, "week")
-    if frequency == "1M":
-        return _resample_day(rows, "month")
-    raise ValueError(f"不支持的周期: {frequency}")
-
-
-def _bucket_key(date_int: int, mode: str) -> str:
-    """按模式生成日粒度桶键，保证跨周/跨月不错误合并。"""
-    text = str(date_int)[:8]
-    if mode == "month":
-        return text[:6]
-    year, month, day = int(text[:4]), int(text[4:6]), int(text[6:8])
-    iso = datetime.date(year, month, day).isocalendar()
-    return f"{iso[0]}-W{iso[1]:02d}"
-
-
-def _merge_bucket(bucket: list[dict[str, Any]]) -> dict[str, Any]:
-    """把一个桶内的行合并为一行。"""
-    merged: dict[str, Any] = dict(bucket[-1])
-    for field in ("open",):
-        merged[field] = bucket[0].get(field)
-    for field in ("high",):
-        values = [_to_float(r.get(field)) for r in bucket]
-        merged[field] = max((v for v in values if v is not None), default=None)
-    for field in ("low",):
-        values = [_to_float(r.get(field)) for r in bucket]
-        merged[field] = min((v for v in values if v is not None), default=None)
-    for field in SUM_FIELDS:
-        total = sum(_to_float(r.get(field)) or 0.0 for r in bucket)
-        if any(r.get(field) is not None for r in bucket):
-            merged[field] = total
-    return merged
-
-
-def _resample_minute(rows: list[dict[str, Any]], step: int) -> list[dict[str, Any]]:
-    """分钟聚合：按交易日内的分钟序号分桶，跨日不合并。"""
-    buckets: dict[str, list[dict[str, Any]]] = {}
-    order: list[str] = []
-    for row in rows:
-        date = _to_int(row.get("date"))
-        if date is None or len(str(date)) < 12:
-            continue
-        minutes = int(str(date)[8:10]) * 60 + int(str(date)[10:12])
-        key = f"{str(date)[:8]}|{minutes // step}"
-        if key not in buckets:
-            buckets[key] = []
-            order.append(key)
-        buckets[key].append(row)
-    return [_merge_bucket(buckets[key]) for key in order]
-
-
-def _resample_day(rows: list[dict[str, Any]], mode: str) -> list[dict[str, Any]]:
-    """日K 聚合为周/月。"""
-    buckets: dict[str, list[dict[str, Any]]] = {}
-    order: list[str] = []
-    for row in rows:
-        date = _to_int(row.get("date"))
-        if date is None:
-            continue
-        key = _bucket_key(int(str(date)[:8]), mode)
-        if key not in buckets:
-            buckets[key] = []
-            order.append(key)
-        buckets[key].append(row)
-    return [_merge_bucket(buckets[key]) for key in order]
-
-
-def build_columns(rows: Iterable[dict[str, Any]], preferred: tuple[str, ...]) -> list[str]:
-    """按字段存在性生成列顺序：优先已知字段，其余追加。"""
-    seen: set[str] = set()
-    columns: list[str] = []
-    for row in rows:
-        for field in row.keys():
-            if field not in seen:
-                seen.add(field)
-    for field in preferred:
-        if field in seen and field not in columns:
-            columns.append(field)
-    for field in seen:
-        if field not in columns:
-            columns.append(field)
-    return columns
-
-
-def project(rows: list[dict[str, Any]], fields: list[str] | None) -> list[dict[str, Any]]:
-    """按字段投影；fields 为空时原样返回。"""
-    if not fields:
-        return rows
-    return [{f: row.get(f) for f in fields} for row in rows]
-
-
-def truncate(rows: list[dict[str, Any]], limit: int) -> tuple[list[dict[str, Any]], bool]:
-    """按上限截断，返回 (结果, 是否被截断)。"""
-    if limit and len(rows) > limit:
-        return rows[:limit], True
-    return rows, False
-```
-
-### 13.5 后端：`src/integrations/stockdb/service.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 业务编排。
-
-职责：
-1. 把 API 层请求翻译为 StockDB 查询
-2. 串联 取数 -> 排序 -> 复权 -> 聚合 -> 投影 -> 截断
-3. 查询缓存
-"""
-
-from __future__ import annotations
-
-import time
-from dataclasses import dataclass, field
-from typing import Any
-
-from src.integrations.stockdb import codec, transform
-from src.integrations.stockdb.cache import get_cache, _MISS
-from src.integrations.stockdb.client import StockDbClient, StockDbError, get_client
-from src.integrations.stockdb.errors import InvalidParameterError
-
-FIELD_ORDER = (
-    "date", "code", "name", "open", "high", "low", "close", "pre_close",
-    "volume", "amount", "turnover", "pct_chg", "amplitude",
-    "is_st", "vol_ratio", "total_share", "float_share",
-    "total_mv", "float_mv", "pe_ttm", "pb",
-)
-
-A_SHARE_PREFIXES = ("0", "3", "6")
-ALL_PREFIXES = ("0", "1", "3", "5", "6", "9")
-
-
-@dataclass
-class BarsResult:
-    """bars 查询结果。"""
-
-    columns: list[str]
-    rows: Any
-    total: int
-    truncated: bool
-    partial: bool
-    elapsed_ms: int
-    query: dict[str, Any] = field(default_factory=dict)
-```
-
-### 13.5.1 后端：`src/integrations/stockdb/errors.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 集成层参数校验错误。"""
-
-from __future__ import annotations
-
-
-class InvalidParameterError(Exception):
-    """入参非法；由路由层转换为 400 invalid_parameter。"""
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
-```
-
-### 13.6 后端：`src/integrations/stockdb/cache.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""进程内 TTL 缓存。
-
-职责：为查询结果提供按 key 的 TTL 缓存，避免重复访问 StockDB。
-"""
-
-from __future__ import annotations
-
-import threading
-import time
-from typing import Any
-
-_MISS = object()
-
-
-class TtlCache:
-    """线程安全的 TTL 缓存；过期项在读取时惰性清理。"""
-
-    def __init__(self, max_items: int = 512) -> None:
-        self._data: dict[str, tuple[float, Any]] = {}
-        self._max_items = max_items
-        self._lock = threading.Lock()
-
-    def get(self, key: str) -> Any:
-        with self._lock:
-            item = self._data.get(key)
-            if item is None:
-                return _MISS
-            expire_at, value = item
-            if expire_at < time.time():
-                self._data.pop(key, None)
-                return _MISS
-            return value
-
-    def set(self, key: str, value: Any, ttl_sec: int) -> None:
-        with self._lock:
-            if len(self._data) >= self._max_items:
-                oldest = min(self._data.items(), key=lambda kv: kv[1][0])[0]
-                self._data.pop(oldest, None)
-            self._data[key] = (time.time() + ttl_sec, value)
-
-    def clear(self, prefix: str = "") -> int:
-        with self._lock:
-            if not prefix:
-                count = len(self._data)
-                self._data.clear()
-                return count
-            keys = [k for k in self._data if k.startswith(prefix)]
-            for key in keys:
-                self._data.pop(key, None)
-            return len(keys)
-
-
-_CACHE: TtlCache | None = None
-
-
-def get_cache() -> TtlCache:
-    """获取进程内单例缓存。"""
-    global _CACHE
-    if _CACHE is None:
-        _CACHE = TtlCache()
-    return _CACHE
-```
-
-### 13.7 后端：service 核心取数（`src/integrations/stockdb/service.py` 续）
-
-```python
-def _source_table_frequency(frequency: str) -> tuple[str, str]:
-    """返回 (源表名, 源周期)：分钟级/周月季均先取最细粒度。"""
-    if frequency == "1d":
-        return codec.TABLE_DAILY, "1d"
-    if frequency == "1m":
-        return codec.TABLE_MINUTE, "1m"
-    if frequency in codec.MINUTE_FREQUENCIES:
-        return codec.TABLE_MINUTE, "1m"
-    if frequency in ("1w", "1M"):
-        return codec.TABLE_DAILY, "1d"
-    raise InvalidParameterError(f"不支持的周期: {frequency}")
-
-
-def _fetch_raw(
-    client: StockDbClient,
-    table: str,
-    code: str,
-    start: str,
-    end: str,
-    limit: int,
-) -> list[dict[str, Any]]:
-    """取单个代码或前缀的原始行（服务端不保证顺序，此处不排序）。"""
-    # 前缀查询必须给出日期约束，避免全量扫描
-    k1 = codec.prefix_expr(code) if code.endswith("*") else codec.key_expr(code)
-    k2 = codec.date_key_expr(start, end)
-    query = codec.build_query("vals", table, k1=k1, k2=k2, num=limit or None)
-    payload = client.request(query)
-    if not isinstance(payload, list):
-        return []
-    return [row for row in payload if isinstance(row, dict)]
-
-
-def _fetch_adjust_events(client: StockDbClient, code: str) -> list[dict[str, Any]]:
-    """读取复权事件表。"""
-    query = codec.build_query(
-        "vals", codec.TABLE_ADJUST, k1=codec.key_expr(code), k2=codec.all_expr()
-    )
-    payload = client.request(query)
-    if not isinstance(payload, list):
-        return []
-    return [row for row in payload if isinstance(row, dict)]
-
-
-def fetch_bars(
-    *,
-    code: str,
-    start: str = "",
-    end: str = "",
-    frequency: str = "1d",
-    fq: str = "none",
-    fields: str = "",
-    limit: int = 500,
-    desc: bool = True,
-    client: StockDbClient | None = None,
-) -> BarsResult:
-    """查询行情。code 支持单代码、逗号分隔多代码、'6*' 前缀。"""
-    client = client or get_client()
-    settings = client.settings
-    started = time.monotonic()
-
-    if fq not in ("none", "qfq", "hfq"):
-        raise InvalidParameterError("复权类型必须是 none / qfq / hfq")
-    limit = max(1, min(limit or 500, settings.max_rows))
-
-    codes = [c for c in (codec.normalize_code(c) for c in code.split(",")) if c]
-    if not codes:
-        raise InvalidParameterError("代码不能为空")
-    for single in codes:
-        if not single.endswith("*") and not codec.is_valid_code(single):
-            raise InvalidParameterError(f"代码必须是 6 位数字: {single}")
-        # 前缀查询必须带日期约束，避免无界全量扫描
-        if single.endswith("*") and not start and end != "N" and not end:
-            raise InvalidParameterError("前缀代码（如 6*）必须同时提供 start 或 end 日期约束")
-
-    start_norm = codec.normalize_date(start)
-    end_norm = codec.normalize_date(end)
-    if start and not start_norm:
-        raise InvalidParameterError(f"开始日期非法: {start}")
-    if end and end != "N" and not end_norm:
-        raise InvalidParameterError(f"结束日期非法: {end}")
-    if start_norm and end_norm and start_norm > end_norm:
-        start_norm, end_norm = end_norm, start_norm
-
-    table, _source_freq = _source_table_frequency(frequency)
-    # 聚合前需要更长的原始数据，按聚合倍率放大服务端取数上限
-    raw_limit = limit if frequency in ("1d", "1m") else limit * 240
-    raw_limit = min(max(raw_limit, limit), settings.max_rows)
-
-    # 缓存 TTL：分钟级数据变化快，TTL 收敛到 30s；日K 用配置值
-    cache_ttl = min(settings.cache_ttl_sec, 30) if frequency != "1d" else settings.cache_ttl_sec
-    cache_key = "|".join(["bars", code, start_norm, end_norm, frequency, fq, fields, str(limit), str(desc)])
-    cached = get_cache().get(cache_key)
-    if cached is not _MISS:
-        return cached
-
-    rows_by_code: dict[str, list[dict[str, Any]]] = {}
-    partial = False
-    for single in codes:
-        try:
-            rows = _fetch_raw(client, table, single, start_norm, end_norm, raw_limit)
-        except StockDbError:
-            if len(codes) == 1:
-                raise
-            partial = True
-            continue
-        if fq != "none" and not single.endswith("*"):
-            try:
-                events = _fetch_adjust_events(client, single)
-            except StockDbError:
-                events = []
-            rows = transform.apply_adjust(rows, events, fq)
-        rows = transform.sort_rows(rows, desc=False)
-        rows = transform.resample(rows, frequency)
-        rows_by_code[single] = rows
-
-    field_list = [f.strip() for f in fields.split(",") if f.strip()]
-    query_meta = {
-        "code": code,
-        "start": start_norm,
-        "end": end_norm,
-        "frequency": frequency,
-        "fq": fq,
-        "desc": desc,
-    }
-
-    if len(codes) == 1 and not codes[0].endswith("*"):
-        rows = rows_by_code.get(codes[0], [])
-        rows = transform.sort_rows(rows, desc=desc)
-        rows, truncated = transform.truncate(rows, limit)
-        rows = transform.project(rows, field_list)
-        columns = transform.build_columns(rows, FIELD_ORDER)
-        result = BarsResult(
-            columns=columns,
-            rows=rows,
-            total=len(rows),
-            truncated=truncated,
-            partial=partial,
-            elapsed_ms=int((time.monotonic() - started) * 1000),
-            query=query_meta,
-        )
-        get_cache().set(cache_key, result, cache_ttl)
-        return result
-
-    projected: dict[str, list[dict[str, Any]]] = {}
-    truncated = False
-    for single, rows in rows_by_code.items():
-        rows = transform.sort_rows(rows, desc=desc)
-        rows, cut = transform.truncate(rows, limit)
-        truncated = truncated or cut
-        projected[single] = transform.project(rows, field_list)
-
-    all_rows = [row for rows in projected.values() for row in rows]
-    columns = transform.build_columns(all_rows, FIELD_ORDER)
-    result = BarsResult(
-        columns=columns,
-        rows=projected,
-        total=sum(len(rows) for rows in projected.values()),
-        truncated=truncated,
-        partial=partial,
-        elapsed_ms=int((time.monotonic() - started) * 1000),
-        query=query_meta,
-    )
-    get_cache().set(cache_key, result, cache_ttl)
-    return result
-```
-
-### 13.8 后端：`api/stockdb/schemas.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 路由层 Schema。
-
-职责：定义 /api/stockdb/* 的出入参模型。
-"""
-
-from __future__ import annotations
-
-from typing import Any, Literal
-
-from pydantic import BaseModel, Field
-
-Frequency = Literal["1d", "1m", "5m", "15m", "30m", "60m", "1w", "1M"]
-FqType = Literal["none", "qfq", "hfq"]
-MarketType = Literal["a-share", "all"]
-BoardCategory = Literal["concept", "sw1", "sw2", "sw3"]
-
-
-class HealthResponse(BaseModel):
-    """数据源连通性与概览。"""
-
-    enabled: bool
-    connected: bool
-    base_url: str = Field(alias="baseUrl")
-    latency_ms: int | None = Field(default=None, alias="latencyMs")
-    latest_trade_date: str | None = Field(default=None, alias="latestTradeDate")
-    code_count: int | None = Field(default=None, alias="codeCount")
-    checked_at: str = Field(alias="checkedAt")
-
-    model_config = {"populate_by_name": True}
-
-
-class CodeItem(BaseModel):
-    """证券代码条目。"""
-
-    code: str
-    name: str = ""
-
-
-class CodesResponse(BaseModel):
-    """代码全集响应。"""
-
-    items: list[CodeItem]
-    total: int
-
-
-class DatesResponse(BaseModel):
-    """个股交易日列表响应。"""
-
-    code: str
-    dates: list[str]
-    total: int
-
-
-class BarsQuery(BaseModel):
-    """bars 查询回显。"""
-
-    code: str
-    start: str = ""
-    end: str = ""
-    frequency: str
-    fq: str
-    desc: bool
-
-
-class BarsResponse(BaseModel):
-    """行情响应。rows 为单代码列表或多代码映射。"""
-
-    query: BarsQuery
-    columns: list[str]
-    rows: Any
-    total: int
-    truncated: bool
-    partial: bool
-    elapsed_ms: int = Field(alias="elapsedMs")
-
-    model_config = {"populate_by_name": True}
-
-
-class BoardItem(BaseModel):
-    """板块条目。"""
-
-    code: str
-    name: str
-    source: str = ""
-    type: str = ""
-    group: str = ""
-    category: str = ""
-
-
-class BoardsResponse(BaseModel):
-    """板块列表响应。"""
-
-    items: list[BoardItem]
-    total: int
-```
-
-### 13.9 后端：`api/stockdb/router.py`
-
-```python
-# -*- coding: utf-8 -*-
-"""StockDB 行情浏览路由。
-
-职责：
-1. 暴露 /api/stockdb/* 只读接口
-2. 参数校验与错误码映射（不依赖 api/v1 任何业务模块）
-"""
-
-from __future__ import annotations
-
-from datetime import datetime
-from typing import Any
-
-from fastapi import APIRouter, Query
-
-from api.stockdb.schemas import (
-    BarsResponse,
-    BoardCategory,
-    BoardsResponse,
-    CodesResponse,
-    DatesResponse,
-    Frequency,
-    FqType,
-    HealthResponse,
-    MarketType,
-)
-from src.integrations.stockdb import service
-from src.integrations.stockdb.client import StockDbError, get_client
-from src.integrations.stockdb.errors import InvalidParameterError
-
-router = APIRouter()
-
-
-def _to_api_error(exc: StockDbError):
-    """把集成层错误转换为 HTTPException。"""
-    from fastapi import HTTPException
-
-    return HTTPException(
-        status_code=exc.status,
-        detail={"error": exc.code, "message": exc.message},
-    )
-
-
-@router.get("/health", response_model=HealthResponse, summary="StockDB 数据源连通性")
-def get_health() -> HealthResponse:
-    """探测 StockDB 是否可达，并回显最新交易日与代码数量。"""
-    client = get_client()
-    connected, latency = client.ping()
-    latest: str | None = None
-    code_count: int | None = None
-    if connected:
-        try:
-            latest, code_count = service.fetch_overview(client)
-        except StockDbError:
-            latest, code_count = None, None
-    return HealthResponse(
-        enabled=client.settings.enabled,
-        connected=connected,
-        base_url=client.settings.base_url,
-        latency_ms=latency,
-        latest_trade_date=latest,
-        code_count=code_count,
-        checked_at=datetime.now().astimezone().isoformat(timespec="seconds"),
-    )
-
-
-@router.get("/bars", response_model=BarsResponse, summary="查询行情")
-def get_bars(
-    code: str = Query(..., description="6 位代码、逗号分隔多代码或 '6*' 前缀"),
-    start: str = Query("", description="YYYYMMDD 或 14 位时间戳"),
-    end: str = Query("", description="YYYYMMDD、14 位时间戳或 N"),
-    frequency: Frequency = Query("1d"),
-    fq: FqType = Query("none"),
-    fields: str = Query("", description="逗号分隔字段，为空返回全字段"),
-    limit: int = Query(500, ge=1),
-    desc: bool = Query(True),
-) -> BarsResponse:
-    """查询日K/分钟K，支持周期聚合与复权。"""
-    try:
-        result = service.fetch_bars(
-            code=code,
-            start=start,
-            end=end,
-            frequency=frequency,
-            fq=fq,
-            fields=fields,
-            limit=limit,
-            desc=desc,
-        )
-    except InvalidParameterError as exc:
-        from fastapi import HTTPException
-
-        raise HTTPException(
-            status_code=400,
-            detail={"error": "invalid_parameter", "message": exc.message},
-        ) from exc
-    except StockDbError as exc:
-        raise _to_api_error(exc) from exc
-
-    return BarsResponse(
-        query=result.query,
-        columns=result.columns,
-        rows=result.rows,
-        total=result.total,
-        truncated=result.truncated,
-        partial=result.partial,
-        elapsed_ms=result.elapsed_ms,
-    )
-
-
-@router.get("/codes", response_model=CodesResponse, summary="证券代码全集")
-def get_codes(
-    market: MarketType = Query("a-share"),
-    keyword: str = Query("", description="代码或名称模糊过滤"),
-    limit: int = Query(0, ge=0, description="0 表示不限制"),
-) -> CodesResponse:
-    """返回代码全集（含名称），用于前端联想。"""
-    try:
-        items = service.fetch_codes(market=market, keyword=keyword, limit=limit)
-    except StockDbError as exc:
-        raise _to_api_error(exc) from exc
-    return CodesResponse(items=items, total=len(items))
-
-
-@router.get("/dates", response_model=DatesResponse, summary="个股交易日列表")
-def get_dates(
-    code: str = Query(..., description="6 位代码"),
-    limit: int = Query(2000, ge=1, le=5000),
-) -> DatesResponse:
-    """返回个股历史交易日（倒序），用于日期联想。"""
-    try:
-        dates = service.fetch_dates(code=code, limit=limit)
-    except InvalidParameterError as exc:
-        from fastapi import HTTPException
-
-        raise HTTPException(
-            status_code=400,
-            detail={"error": "invalid_parameter", "message": exc.message},
-        ) from exc
-    except StockDbError as exc:
-        raise _to_api_error(exc) from exc
-    return DatesResponse(code=code, dates=dates, total=len(dates))
-
-
-@router.get("/boards", response_model=BoardsResponse, summary="板块列表")
-def get_boards(
-    category: BoardCategory | None = Query(None),
-    keyword: str = Query(""),
-    limit: int = Query(500, ge=1),
-) -> BoardsResponse:
-    """返回板块（概念 / 申万一二级）列表。"""
-    try:
-        items = service.fetch_boards(category=category, keyword=keyword, limit=limit)
-    except StockDbError as exc:
-        raise _to_api_error(exc) from exc
-    return BoardsResponse(items=items, total=len(items))
-```
-
-### 13.10 后端：service 其余方法签名（概览 / 代码 / 日期 / 板块）
-
-```python
-def fetch_overview(client: StockDbClient) -> tuple[str | None, int | None]:
-    """返回 (最新交易日, 代码数量)。
-
-    最新交易日：取一只高流动性样本股最后一条日K的 date。
-    代码数量：按 market 前缀统计 股票代码 表条目数。
-    """
-    sample = "600633"
-    query = codec.build_query(
-        "vals", codec.TABLE_DAILY,
-        k1=codec.key_expr(sample), k2=codec.all_expr(),
-        fields="date", num=-1,
-    )
-    payload = client.request(query)
-    latest = None
-    if isinstance(payload, list) and payload and isinstance(payload[0], list):
-        latest = str(payload[0][0])
-
-    codes = client.request(codec.build_query("get", codec.TABLE_CODES))
-    count = None
-    if isinstance(codes, dict):
-        count = sum(len(v) for v in codes.values() if isinstance(v, list))
-    return latest, count
-
-
-def fetch_codes(
-    *, market: str = "a-share", keyword: str = "", limit: int = 0
-) -> list[dict[str, str]]:
-    """代码全集：先取 股票代码 索引，再用最近交易日快照补全名称。
-
-    返回 [{"code": "...", "name": "..."}]；由路由层的 Pydantic 模型校验。
-    集成层不依赖 api 层模型，保持单向依赖。
-    """
-    client = get_client()
-    prefixes = A_SHARE_PREFIXES if market == "a-share" else ALL_PREFIXES
-    index = client.request(codec.build_query("get", codec.TABLE_CODES))
-    if not isinstance(index, dict):
-        return []
-    codes: list[str] = []
-    for prefix in prefixes:
-        codes.extend(c for c in index.get(prefix, []) if isinstance(c, str))
-    codes = sorted(set(codes))
-
-    # 名称：最近交易日快照投影，按前缀分片（≤6 个请求）
-    names: dict[str, str] = {}
-    latest, _ = fetch_overview(client)
-    if latest:
-        for prefix in prefixes:
-            query = codec.build_query(
-                "vals", codec.TABLE_DAILY,
-                k1=codec.prefix_expr(prefix), k2=codec.key_expr(latest),
-                fields="code,name",
-            )
-            try:
-                payload = client.request(query)
-            except StockDbError:
-                continue
-            if isinstance(payload, list):
-                for row in payload:
-                    if isinstance(row, list) and len(row) >= 2:
-                        names[str(row[0])] = str(row[1] or "")
-
-    items = [{"code": c, "name": names.get(c, "")} for c in codes]
-    if keyword:
-        text = keyword.strip()
-        items = [
-            item for item in items
-            if text in item["code"] or text in item["name"]
-        ]
-    if limit:
-        items = items[:limit]
-    return items
-```
-
-> `fetch_dates` / `fetch_boards` 同理：`fetch_dates` 用 `t=日k&k1=key:{code}&k2=all:&ap=get.date&num=-{limit}` 后倒序去重；`fetch_boards` 用 `t=板块*` 全量后按 `category`/`keyword` 内存过滤。实现时务必复用 `codec.build_query`，不要手写查询串。
-
-### 13.11 后端：`api/app.py` 挂载（唯一改动点）
-
-```python
-# api/app.py —— 在 app.include_router(api_v1_router, prefix="/api/v1") 之后追加
-from api.stockdb.router import router as stockdb_router
-
-    app.include_router(stockdb_router, prefix="/api/stockdb", tags=["StockDB"])
-```
-
-> 注意：`api/middlewares/auth.py` 只拦截 `/api/v1/`，`/api/stockdb/*` 默认不受 `ADMIN_AUTH` 保护。若设置 `STOCKDB_REQUIRE_AUTH=true`，需在 `router.py` 内通过 `dependencies=[Depends(...)]` 自行挂载。
-
-### 13.12 前端：`apps/hrs-web/src/api/stockdb.ts`
-
-```ts
-/**
- * @fileoverview 本地 StockDB 行情数据 API。
- * 所有请求走 /api/stockdb/*，由 HermesX 后端代理到本地 StockDB 服务（127.0.0.1:7899）。
- * @module api
- */
-
-import apiClient from './index';
-
-/** 周期频率 */
-export type StockDbFrequency = '1d' | '1m' | '5m' | '15m' | '30m' | '60m' | '1w' | '1M';
-
-/** 复权类型 */
-export type StockDbFq = 'none' | 'qfq' | 'hfq';
-
-/** 市场范围 */
-export type StockDbMarket = 'a-share' | 'all';
-
-/** 数据源连通性与概览 */
-export type StockDbHealth = {
-  enabled: boolean;
-  connected: boolean;
-  baseUrl: string;
-  latencyMs: number | null;
-  latestTradeDate: string | null;
-  codeCount: number | null;
-  checkedAt: string;
-};
-
-/** 代码条目 */
-export type StockDbCodeItem = { code: string; name: string };
-
-/** bars 查询回显 */
-export type StockDbBarsQuery = {
-  code: string;
-  start: string;
-  end: string;
-  frequency: string;
-  fq: string;
-  desc: boolean;
-};
-
-/** 单行行情（字段由后端 columns 决定，此处按宽松类型处理） */
-export type StockDbBarRow = Record<string, string | number | boolean | null>;
-
-/** 行情响应 */
-export type StockDbBarsResponse = {
-  query: StockDbBarsQuery;
-  columns: string[];
-  /** 单代码为数组；多代码为 { code: rows } */
-  rows: StockDbBarRow[] | Record<string, StockDbBarRow[]>;
-  total: number;
-  truncated: boolean;
-  partial: boolean;
-  elapsedMs: number;
-};
-
-/** bars 查询参数 */
-export type StockDbBarsParams = {
-  code: string;
-  start?: string;
-  end?: string;
-  frequency?: StockDbFrequency;
-  fq?: StockDbFq;
-  fields?: string;
-  limit?: number;
-  desc?: boolean;
-};
-
-export const stockdbApi = {
-  /** 数据源连通性 */
-  getHealth: async (): Promise<StockDbHealth> => {
-    const response = await apiClient.get<StockDbHealth>('/api/stockdb/health');
-    return response.data;
-  },
-
-  /** 代码全集（含名称） */
-  getCodes: async (params: { market?: StockDbMarket; keyword?: string } = {}): Promise<StockDbCodeItem[]> => {
-    const response = await apiClient.get<{ items: StockDbCodeItem[]; total: number }>(
-      '/api/stockdb/codes',
-      { params: { market: params.market ?? 'a-share', keyword: params.keyword ?? '' } },
-    );
-    return response.data.items;
-  },
-
-  /** 个股交易日列表（倒序） */
-  getDates: async (code: string, limit = 2000): Promise<string[]> => {
-    const response = await apiClient.get<{ dates: string[] }>('/api/stockdb/dates', {
-      params: { code, limit },
-    });
-    return response.data.dates;
-  },
-
-  /** 行情查询 */
-  getBars: async (params: StockDbBarsParams): Promise<StockDbBarsResponse> => {
-    const response = await apiClient.get<StockDbBarsResponse>('/api/stockdb/bars', {
-      params: {
-        code: params.code,
-        start: params.start ?? '',
-        end: params.end ?? '',
-        frequency: params.frequency ?? '1d',
-        fq: params.fq ?? 'none',
-        fields: params.fields ?? '',
-        limit: params.limit ?? 500,
-        desc: params.desc ?? true,
-      },
-    });
-    return response.data;
-  },
-};
-```
-
-### 13.13 前端：`StockDataViewPage.tsx` 核心逻辑
-
-```tsx
-/**
- * @fileoverview 本地行情数据浏览页：对接本地 StockDB 数据源，
- * 支持按代码 + 日期区间 + 周期 + 复权查询并表格展示，支持导出 CSV。
- * @module pages
- */
-
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Database } from 'lucide-react';
-import { stockdbApi, type StockDbBarRow, type StockDbFq, type StockDbFrequency } from '../api/stockdb';
-import { Card, HrsButton, InlineAlert } from '@components';
-import { EmptyState, PageHeader } from '@components/page-layout';
-import { AppPage } from '@components/layout/AppPage';
-import { Table, type TableColumnDef } from '@components/basic/Table';
-
-/** 字段中文表头映射 */
-const FIELD_LABELS: Record<string, string> = {
-  date: '日期/时间', code: '代码', name: '名称',
-  open: '开盘价', high: '最高价', low: '最低价', close: '收盘价', pre_close: '前收盘价',
-  volume: '成交量', amount: '成交额', turnover: '换手率',
-  pct_chg: '涨幅%', amplitude: '振幅%', is_st: '是否ST', vol_ratio: '量比',
-  total_share: '总股本', float_share: '流通股本',
-  total_mv: '总市值', float_mv: '流通市值', pe_ttm: '市盈率', pb: '市净率',
-};
-
-/** 日期展示：8 位 -> YYYY-MM-DD；14 位 -> YYYY-MM-DD HH:mm:ss */
-function displayDate(value: unknown): string {
-  const text = String(value ?? '');
-  if (text.length === 8) {
-    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
-  }
-  if (text.length === 14) {
-    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)} `
-      + `${text.slice(8, 10)}:${text.slice(10, 12)}:${text.slice(12, 14)}`;
-  }
-  return text;
-}
-
-/** 单元格渲染：日期特殊处理，其余原样或空占位 */
-function renderCell(field: string, value: unknown): string {
-  if (value === null || value === undefined || value === '') return '-';
-  if (field === 'date') return displayDate(value);
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
-
-export default function StockDataViewPage() {
-  const [code, setCode] = useState('');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [frequency, setFrequency] = useState<StockDbFrequency>('1d');
-  const [fq, setFq] = useState<StockDbFq>('qfq');
-
-  const [rows, setRows] = useState<StockDbBarRow[]>([]);
-  const [columns, setColumns] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorText, setErrorText] = useState('');
-  const [noticeText, setNoticeText] = useState('');
-
-  // 竞态保护：过期响应直接丢弃
-  const serialRef = useRef(0);
-
-  const loadData = useCallback(async () => {
-    const normalized = code.replace(/\D/g, '');
-    if (!/^\d{6}$/.test(normalized)) return;
-
-    const serial = ++serialRef.current;
-    setIsLoading(true);
-    setErrorText('');
-    setNoticeText('');
-    try {
-      const result = await stockdbApi.getBars({
-        code: normalized,
-        start: start.replace(/\D/g, ''),
-        end: end.replace(/\D/g, ''),
-        frequency,
-        fq,
-        limit: 500,
-        desc: true,
-      });
-      if (serial !== serialRef.current) return;
-
-      const list = Array.isArray(result.rows) ? result.rows : [];
-      setRows(list);
-      setColumns(result.columns);
-      if (result.truncated) setNoticeText('结果已超过上限，仅展示部分数据，请收窄日期区间。');
-      if (result.partial) setNoticeText((prev) => `${prev} 部分数据读取失败，当前结果不完整。`);
-    } catch (error) {
-      if (serial !== serialRef.current) return;
-      setRows([]);
-      setColumns([]);
-      setErrorText(error instanceof Error ? error.message : '读取数据失败');
-    } finally {
-      if (serial === serialRef.current) setIsLoading(false);
-    }
-  }, [code, start, end, frequency, fq]);
-
-  /** 表格列定义：完全由后端返回的 columns 驱动 */
-  const tableColumns = useMemo<TableColumnDef<StockDbBarRow>[]>(
-    () =>
-      columns.map((field) => ({
-        key: field,
-        title: FIELD_LABELS[field] ?? field,
-        minWidth: field === 'date' ? 150 : 90,
-        defaultWidth: field === 'date' ? 160 : 110,
-        render: (row) => renderCell(field, row[field]),
-      })),
-    [columns],
-  );
-
-  /** 导出 CSV：BOM + CRLF，兼容 Excel */
-  const exportCsv = useCallback(() => {
-    if (!rows.length) return;
-    const escape = (value: unknown) => {
-      const text = String(value ?? '').replace(/"/g, '""');
-      return /[,\n"]/.test(text) ? `"${text}"` : text;
-    };
-    const header = columns.map((f) => FIELD_LABELS[f] ?? f).join(',');
-    const body = rows.map((row) => columns.map((f) => escape(row[f])).join(','));
-    const blob = new Blob([`\ufeff${[header, ...body].join('\r\n')}\r\n`], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${code}_${frequency}_${start || 'all'}_to_${end || start || 'all'}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [rows, columns, code, frequency, start, end]);
-
-  return (
-    <AppPage>
-      <PageHeader title="本地行情" icon={Database} />
-      <Card>
-        {/* 工具条：代码 / 开始日期 / 结束日期 / 周期 / 复权 + 读取 + 导出 */}
-        <HrsButton onPress={loadData} isDisabled={isLoading}>读取数据</HrsButton>
-        <HrsButton onPress={exportCsv} isDisabled={!rows.length}>导出 CSV</HrsButton>
-      </Card>
-
-      {errorText ? <InlineAlert tone="danger">{errorText}</InlineAlert> : null}
-      {noticeText ? <InlineAlert tone="warning">{noticeText}</InlineAlert> : null}
-
-      <Card>
-        <Table
-          columns={tableColumns}
-          rows={rows.map((row, index) => ({ id: index, ...row }))}
-          isLoading={isLoading}
-          renderEmptyState={() => (
-            <EmptyState
-              title="暂无数据"
-              description="请输入代码、时间并选择周期，然后点击读取。"
-            />
-          )}
-        />
-      </Card>
-    </AppPage>
-  );
-}
-```
-
-> 工具条中的代码/日期联想（虚拟滚动下拉）为 `StockDbCodeInput` 子组件，交互参照 `components/StockSearch/StockSearch.tsx`，数据源替换为 `stockdbApi.getCodes` / `getDates`。
-
-### 13.14 前端：`manifest.ts` 菜单节点
-
-```ts
-// apps/hrs-web/src/router/manifest.ts —— productModel.children 内追加
-{
-  menuId: 'stockData',
-  menuName: 'layout.nav.stockData.title',
-  routePath: '/stock-data',
-  menuIcon: 'Database',
-  menuPosition: 'content',
-  level: 0,
-  menuExpanded: false,
-  menuDescription: 'layout.nav.stockData.description',
-  menuType: 'page',
-  auth: 'protected',
-  menuVisible: true,
-  menuPagePath: 'pages/StockDataViewPage',
-},
-```
-
-### 13.15 前端：i18n（三个语言文件各 2 条）
-
-```ts
-// src/i18n/uiText-zh.ts
-'layout.nav.stockData.title': '本地行情', // 本地行情导航项
-'layout.nav.stockData.description': '对接本地 StockDB 的历史行情浏览', // 本地行情导航项描述
-
-// src/i18n/uiText-en.ts
-'layout.nav.stockData.title': 'Local Quotes',
-'layout.nav.stockData.description': 'Browse historical quotes from the local StockDB',
-
-// src/i18n/uiText-zh-Hant.ts
-'layout.nav.stockData.title': '本地行情', // 本地行情導航項
-'layout.nav.stockData.description': '對接本地 StockDB 的歷史行情瀏覽', // 本地行情導航項描述
-```
-
-### 13.16 落地顺序建议
-
-| 阶段 | 内容 | 产出 |
+| 阶段 | 内容 | 对应代办 |
 |---|---|---|
-| P1 | `config.py` / `codec.py` / `client.py` / `errors.py` + 单测 | 协议层可用，可用脚本直接 curl 对拍 |
-| P2 | `cache.py` / `transform.py` + 单测（排序、聚合、复权） | 纯函数层可用 |
-| P3 | `service.py` + `schemas.py` + `router.py` + `app.py` 挂载 | `/api/stockdb/*` 可访问 |
-| P4 | 复权对账（AC-3） | 修正复权公式，**未通过不得进入 P5** |
-| P5 | 前端 `stockdb.ts` + 页面 + manifest + i18n | 页面可用 |
-| P6 | 冒烟 + `npm run lint` + `npm run build` + `./scripts/ci_gate.sh` | 可提交 |
+| P1 | `stockdb_fetcher.py` + `kline/base.py` + 四源 `_normalize` | §3.7 A2 / A3 / A4 / A6 |
+| P2 | `kline/transform.py` 聚合 + `pct_chg` | §3.7 A5 |
+| P3 | `kline.py` 瘦端点（删内联 `_fetch_*`） | §3.7 A1 |
+| P4 | `config.py` + `.env` + 白名单 + 前端 `/settings` Tab | §3.7 A7 / A8 |
+| P5 | `stockinfo/` `codesearch/` 同模式 + 取数下沉 | §3.7 A9 / A10 |
+| P6 | 复权对账（AC-3）通过后提交 | — |
+
+> 完整文件级动作见 **§3.7**；完整目录落点见 **ADR-001 §4.4**；设计决策见 **ADR-001**。
 
 ---
 
@@ -2311,50 +1023,58 @@ export default function StockDataViewPage() {
 
 > 方案 §3.3 称"后端 3 处 / 前端 4 处改动"，其中"前端 4 处"统计的是 manifest / 页面 / API / i18n 四处**修改点**，未计入新建的页面与 API 文件（已被归为"新增"）。本章按"新增文件 vs 修改文件"两维拆解，避免混淆。
 
-### 14.2 新增文件清单（后端，共 9 个）
+### 14.2 新增文件清单（后端，data_provider 内）
 
 | 文件路径 | 对应章节 | 说明 |
 |---|---|---|
-| `src/integrations/stockdb/__init__.py` | §11.1 / §13 | 包初始化（方案正文未单列，但 `from src.integrations.stockdb import codec` 以及 `service.py` 内 `from ... import codec, transform` 都依赖此包存在，必须新建，可为空文件） |
-| `src/integrations/stockdb/config.py` | §13.1 | `StockDbSettings` + `settings_from_env`，8 个环境变量读取 |
-| `src/integrations/stockdb/codec.py` | §13.2 | 表名常量 + 键表达式编码（`key/qz/all/fwd/fwz`）+ 代码/日期规范化 + `build_query` |
-| `src/integrations/stockdb/client.py` | §13.3 | `StockDbClient`（惰性单例）、`StockDbError`、超时与冷却短路、`ping` |
-| `src/integrations/stockdb/transform.py` | §13.4 | `sort_rows` / `apply_adjust` / `resample` / `build_columns` / `project` / `truncate` |
-| `src/integrations/stockdb/cache.py` | §13.6 | 进程内线程安全 `TtlCache`（单例 `get_cache`） |
-| `src/integrations/stockdb/errors.py` | §13.5.1 | `InvalidParameterError` |
-| `src/integrations/stockdb/service.py` | §13.5 / §13.7 / §13.10 | 业务编排：`fetch_bars`、`fetch_overview`、`fetch_codes`、`fetch_dates`、`fetch_boards`、聚合放大取数等 |
-| `api/stockdb/__init__.py` | §11.1 / §13 | 路由包初始化（空文件，使 `api.stockdb.router` 可被 import） |
-| `api/stockdb/schemas.py` | §13.8 | Pydantic 出入参：`HealthResponse` / `CodesResponse` / `DatesResponse` / `BarsResponse` / `BoardsResponse` 等 |
-| `api/stockdb/router.py` | §13.9 | `APIRouter`，暴露 `/health` `/bars` `/codes` `/dates` `/boards` + 错误码映射 |
+| `data_provider/common/` | ADR-001 D3 / §4.4 | 跨功能公共底座：`base.py`(通用`DataSource(ABC)`+`DataSourceManager`配置选源/回退/健康/TTL)、`normalize.py`、`cache.py`、`rate_limit.py`、`health.py` |
+| `data_provider/stockdb_fetcher.py` | ADR-001 D2 | 直连本地 StockDB `127.0.0.1:7899`，作为三能力的 `local` source 底座 |
+| `data_provider/kline/__init__.py` | §11 / §13.1 | 包初始化（空文件，使 `data_provider.kline.*` 可 import） |
+| `data_provider/kline/base.py` | ADR-001 D3 | `KlineDataSource(ABC)` + `KlineDataSourceManager`（配置选源 / 自动回退 / 每源自带 TTL）+ 统一 `KLinePoint` 契约 + `pct_chg` 层内计算 |
+| `data_provider/kline/local_stockdb_source.py` | §13.1（平移自原 v0.2 实现） | 原 `src/integrations/stockdb/` 的 config/codec/client/transform/cache/service 平移至此，作为 `local` source |
+| `data_provider/kline/eastmoney_source.py` | §3.2（重构 kline.py） | 原 `kline.py` 的 `_fetch_kline_from_eastmoney` 迁移为 source，只做「东财格式 → KLinePoint」映射 |
+| `data_provider/kline/sina_source.py` | 同上 | 原 `_fetch_kline_from_sina` 迁移 |
+| `data_provider/kline/tencent_source.py` | 同上 | 原 `_fetch_kline_from_tencent` 迁移 |
+| `data_provider/kline/transform.py` | §13.1（聚合器） | 多周期时间桶聚合（5m/15m/30m/60m/**120m**/5d/周/月/年），本地源与回退场景复用 |
+| `data_provider/stockinfo/__init__.py` + `base.py` + `local_stockdb_source.py` + `eastmoney_source.py` | ADR-001 D3 | 基础信息能力（股票名/行业/板块）；`local` 复用 StockDB，`eastmoney` 复用 `data_provider` 既有 `get_stock_name` 等 + 薄适配壳 |
+| `data_provider/codesearch/__init__.py` + `base.py` + `local_stockdb_source.py` + `eastmoney_source.py` | ADR-001 D3 | 代码搜索能力（关键字联想）；同模式多源可切换 |
 
-> 注意：`service.py` 正文分 §13.5（类与常量）、§13.7（取数核心）、§13.10（概览/代码/日期/板块）三处给出，落地时合并为单个 `service.py`。
+> 注意：v0.2 §13 中拆散的 `service.py` / `config.py` / `codec.py` / `client.py` / `cache.py` / `errors.py` 在落地时统一收口到 `data_provider/kline/` 对应模块（以 ADR-001 目录为准，见 ADR-001 §4.4）；类 / 函数设计、复权与聚合逻辑、字段映射仍然有效，仅包根与文件名以 ADR-001 §4.4 为准。
 
-### 14.3 修改文件清单（后端，共 3 个）
+> 数据接入层（`data_provider/`）的**完整目录铺排、每项职责与划分依据**，以 **ADR-001 §4.4 目录铺排总表** 为唯一权威基准；本节仅列出本期（阶段 1）新增项，最终落地目录须与 ADR-001 §4.4 逐行匹配一致。
+
+### 14.3 修改文件清单（后端）
 
 | 文件路径 | 改动点 | 对应章节 | 风险 |
 |---|---|---|---|
-| `api/app.py` | 在 `include_router(api_v1_router, prefix="/api/v1")` 之后追加 `app.include_router(stockdb_router, prefix="/api/stockdb", tags=["StockDB"])` | §3.3-1 / §13.11 | 唯一后端挂载点；不影响 `/api/v1` 与 `ADMIN_AUTH` |
-| `src/config.py` | 新增 8 个 `os.getenv`（`STOCKDB_ENABLED`、`STOCKDB_BASE_URL`、`STOCKDB_TIMEOUT_MS`、`STOCKDB_MAX_ROWS`、`STOCKDB_CACHE_TTL_SEC`、`STOCKDB_COOLDOWN_SEC`、`STOCKDB_PASSWORD`、`STOCKDB_REQUIRE_AUTH`），沿用既有 `_FALSEY_ENV_VALUES` 约定 | §3.3-2 / §9 | §3.3 写"6 个"、§9 实际列出 8 个，落地以 8 个为准；`STOCKDB_REQUIRE_AUTH` 在 §13.1 的 `StockDbSettings` 中未建模，若需鉴权需补字段或仅由路由层读取 |
-| `.env.example` | 追加"本地 StockDB 行情数据源（可选）"配置块（8 个变量 + 注释） | §3.3-3 / §9 | 必须与 `src/config.py` 的键名保持一致 |
+| `api/v1/endpoints/kline.py` | 删除内联 `_fetch_kline_from_*`，改调 `KlineDataSourceManager.get_kline(...)`；端点签名（period/fqt/limit/before_date）不变 | §3.3 / ADR-001 D6 | 仅删取数细节、保留路由与契约，前端零改动 |
+| `api/app.py` | 若新增 `stock-info` / `code-search` 端点，各加 1 处 `include_router`（复用 `/api/v1`）；K 线无需改动 | §3.3 | 不影响既有 `/api/v1` 与 `ADMIN_AUTH` |
+| `src/config.py` | 新增 StockDB 连接配置（8 个 `os.getenv`，沿用 `_FALSEY_ENV_VALUES`）+ 数据源切换配置（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 见 §9.1） | §3.3 / §9 | §3.3 旧写"6 个"、§9 实际 8 个连接项，落地以 §9 为准；切换键须登记 `system_config` 白名单 |
+| `.env.example` | 追加"本地 StockDB 行情数据源"块（§9）+ "行情基础能力统一层（数据源切换）"块（§9.1） | §3.3 / §9 | 键名须与 `src/config.py` 一致 |
 
-### 14.4 新增文件清单（前端，共 3 个）
+> **执行台账**：上表后端改动项逐项对应 **§3.7《代码改造代办清单（TODO）》**（A1–A7 / A9）。落地时按 §3.7.4 顺序勾选执行，全部完成后端项即满足 ADR-001 D2/D3/D4/D5/D6。
+
+### 14.4 新增文件清单（前端）
 
 | 文件路径 | 对应章节 | 说明 |
 |---|---|---|
-| `apps/hrs-web/src/api/stockdb.ts` | §13.12 | `stockdbApi`（`getHealth` / `getCodes` / `getDates` / `getBars`）+ 全部 TS 类型 |
-| `apps/hrs-web/src/pages/StockDataViewPage.tsx` | §13.13 | 页面主体：工具条 + 表格 + 导出 CSV + 状态机 |
-| `apps/hrs-web/src/components/stockdb/StockDbCodeInput.tsx` | §7.5 / §13.13 注 | 代码 + 日期联想子组件（虚拟滚动下拉），交互参照 `StockSearch`，数据源替换为 `stockdbApi.getCodes` / `getDates`；方案正文只给了交互要求，未给完整代码，需实现 |
+| `apps/hrs-web/src/pages/Settings/DataSourceSetting.tsx`（或并入 `SettingsPage`） | §7.1 / §9.1 | 「数据源」配置页：每组能力主源下拉 + 回退链排序 + 开关 + 连接测试；持久化调 `POST /api/v1/config` |
+| `apps/hrs-web/src/components/stock/StockDbCodeInput.tsx`（沿用既有 `StockSearch` 交互） | §7.5 / §13.1 注 | 代码 + 日期联想子组件；数据源替换为统一能力端点 |
 
-### 14.5 修改文件清单（前端，共 4 个）
+> K 线页面 `StockDataViewPage.tsx` 与原 `api/stockdb.ts` 在 ADR-001 下归为**修改项**（复用既有 `/api/v1/kline`），不再作为全新页面新建。
+
+### 14.5 修改文件清单（前端）
 
 | 文件路径 | 改动点 | 对应章节 |
 |---|---|---|
-| `apps/hrs-web/src/router/manifest.ts` | `productModel.children` 内追加 `menuId: 'stockData'` 节点（`routePath` `/stock-data`、`menuIcon` `Database`、`menuPagePath` `pages/StockDataViewPage`） | §13.14 |
-| `apps/hrs-web/src/i18n/uiText-zh.ts` | 追加 `layout.nav.stockData.title` / `.description` 两条 | §13.15 |
-| `apps/hrs-web/src/i18n/uiText-en.ts` | 同上 | §13.15 |
-| `apps/hrs-web/src/i18n/uiText-zh-Hant.ts` | 同上 | §13.15 |
+| `apps/hrs-web/src/pages/StockDataViewPage.tsx` | 数据源改为经 `KlineDataSourceManager` 可配（local/东财/新浪/腾讯）；UI 不变 | §7 / ADR-001 |
+| `apps/hrs-web/src/api/stockdb.ts` | 改调 `/api/v1/kline` 等（或并入既有 kline API 模块） | §7.1 / §13.2 |
+| `apps/hrs-web/src/router/manifest.ts` | K 线菜单保留；`/settings` 下追加「数据源」Tab 节点 | §7.1 / §13.2 |
+| `apps/hrs-web/src/i18n/uiText-zh.ts` | 追加 `layout.nav.stockData.title` / `.description` + 数据源设置相关 key | §13.2 |
+| `apps/hrs-web/src/i18n/uiText-en.ts` | 同上 | §13.2 |
+| `apps/hrs-web/src/i18n/uiText-zh-Hant.ts` | 同上 | §13.2 |
 
-> 前端无需改 vite 配置（§7.1 已确认 `/api` 已代理到 `127.0.0.1:8000`）；无需把 `/api/stockdb/*` 登记进 `CACHE_TTL_MAP`（§11.4）。
+> 前端无需改 vite 配置（§7.1 已确认 `/api` 已代理到 `127.0.0.1:8000`）。
 
 ### 14.6 新增测试文件（共 4 个）
 
@@ -2371,24 +1091,25 @@ export default function StockDataViewPage() {
 
 | 文件路径 | 改动点 | 对应章节 |
 |---|---|---|
-| `docs/CHANGELOG.md` | 在 `[Unreleased]` 段追加一行扁平记录：`[新功能] 新增本地 StockDB 行情浏览页（/stock-data + /api/stockdb/*）` | A.3 |
+| `docs/CHANGELOG.md` | 在 `[Unreleased]` 段追加一行扁平记录：`[新功能] 新增本地 StockDB 行情浏览（复用 /api/v1/kline 等统一端点，数据源可切换）` | A.3 |
 
-### 14.8 落地前需澄清的契约漂移点
+### 14.8 落地前需澄清的契约漂移点（v0.2 → ADR-001 已消解）
 
-1. **配置项数量不一致**：§3.3 写"6 个 `os.getenv`"，§9 与 `.env.example` 实际列出 8 个。落地以 8 个为准。
-2. **`STOCKDB_REQUIRE_AUTH` 未建模**：§9 定义了该开关，但 §13.1 的 `StockDbSettings` 未含此字段，§13.9 路由层也未挂鉴权依赖。若一期就要支持鉴权，需补 `settings` 字段并在 `router.py` 加 `dependencies=[Depends(...)]`；否则可留待后续。
-3. **包初始化文件缺失说明**：`src/integrations/stockdb/__init__.py` 与 `api/stockdb/__init__.py` 在正文与 §13 代码块中均未出现，但 `from src.integrations.stockdb import codec` / `api.stockdb.router` 的导入方式必须有这两个空包文件，否则 `import` 失败。`L3 代码移除`（§10.3）也依赖这两个包目录整体可删除。
-4. **`StockDbCodeInput` 子组件无代码**：§13.13 仅在注释中说明该子组件的存在与交互参考，未提供实现骨架。前端 P5 阶段需要先补全该组件，否则页面工具条的联想能力无法实现。
-5. **`fetch_dates` / `fetch_boards` 未给完整实现**：§13.10 仅给了 `fetch_overview` 与 `fetch_codes` 的代码，另两个方法以文字描述（"同理"）带过，落地时须按 §13.10 末段要求复用 `codec.build_query` 实现，不得手写查询串。
-6. **`service.py` 拆分三处**：§13.5（类定义）、§13.7（取数）、§13.10（概览/代码/日期/板块）的代码需合并为单一 `service.py`，注意避免重复定义（如 `FIELD_ORDER`、`A_SHARE_PREFIXES` 已在 §13.5 给出）。
+> 以下漂移点为 v0.2 方案期间记录，现已由 ADR-001 + §3.7 + ADR-001 §4.4 统一消解，落地直接以新决策为准，无需再纠缠旧表述：
+
+1. **目录 / 路由前缀**：v0.2 的 `src/integrations/stockdb/` 与 `/api/stockdb/*` 已统一为 `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}` 与 `/api/v1/kline`（+ `/api/v1/stock-info`、`/api/v1/code-search`）；类 / 函数设计、复权与聚合逻辑仍然有效，仅包根与路由前缀以 ADR-001 为准。
+2. **配置项数量**：v0.2 §3.3 写"6 个 `os.getenv`"，§9 实际 8 个，落地以 8 个为准；另新增 §9.1 数据源切换键（须登记 `system_config` 白名单）。
+3. **`STOCKDB_REQUIRE_AUTH`**：ADR-001 复用 `/api/v1` 已继承 `ADMIN_AUTH`，本地行情默认即受保护，该开关可降级为可选项。
+4. **包初始化文件**：`data_provider/kline/__init__.py` 等子包初始化文件必须新建（可为空），import 依赖其存在。
+5. **前端子组件 / 取数实现**：`StockDbCodeInput` 子组件、`fetch_dates` / `fetch_boards` 等取数，落地时按统一能力端点（§3.7 A9 / A10）补齐，不复用 v0.2 的"同理带过"写法。
+6. **`service` 拆分**：v0.2 §13 的 service 拆三处，落地时统一收口到 `data_provider/kline/` 对应模块（以 ADR-001 目录为准）。
 
 ### 14.9 影响面与回归风险（供评估）
 
-- **对既有功能零侵入**：所有改动独立在 `src/integrations/stockdb/`、`api/stockdb/`、`apps/hrs-web/src/{api,pages,components/stockdb}/` 内；`api/app.py` 仅追加一行 `include_router`；`src/config.py` 仅追加只读环境变量；前端仅在 manifest 追加菜单节点与 i18n 追加两条 key。无既有文件语义被改、无主库新增表。
-- **可整体开关 / 摘除**：`STOCKDB_ENABLED=false` 时后端全 503、前端菜单隐藏（L0）；删 `include_router` 一行（L2）；删两个目录 + 前端新增（L3）。因无外部 import 指向它们，删除无悬挂引用。
-- **最高风险项**：复权公式与官方 `gp.js` 对账（AC-3，§6.2 / §12.3）尚未执行，是进入 P5 前的硬阻断，落地排期须把"对账 + 修正公式"单列里程碑。
+- **对既有功能零侵入**：所有新增代码在 `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/` 与可选 `api/v1/endpoints/{stock_info,code_search}.py` 内；`kline.py` 仅删取数细节、保留路由与契约；`src/config.py` 仅追加只读环境变量；前端仅在 manifest 追加「数据源」Tab 与 i18n 追加 key。无既有文件语义被改、无主库新增表。
+- **可整体开关 / 摘除**：`STOCKDB_ENABLED=false` 或本地源失败 → 按 `KLINE_SOURCE_PRIORITY` 回退其他源 / 返回空态（L0）；删 `data_provider/kline/` 等子包 + 前端新增（L3）。因各 source 经 `data_provider` 基类与 `config` 解耦，删除无悬挂引用。
+- **最高风险项**：复权公式与官方 `gp.js` 对账（AC-3，§6.2 / §12.3）尚未执行，是上线硬阻断，落地排期须把"对账 + 修正公式"单列里程碑。
 - **未验证环境**：Docker / 桌面端 `127.0.0.1:7899` 可达性、Windows 平台 StockDB 行为未验证；默认 `STOCKDB_ENABLED=false` 部署，不影响既有发布。
-
 ---
 
 ## 附录 A. 文档信息与变更日志
@@ -2399,11 +1120,11 @@ export default function StockDataViewPage() {
 |---|---|
 | 文档名 | 本地 StockDB 行情数据浏览页 · 建设方案 |
 | 文件 | `stock_data_view.md`（仓库根目录） |
-| 状态 | 方案（未实现），待评审后进入 §13.16 的 P1 |
+| 状态 | 方案（未实现），待评审后进入 §13.2 的 P1 |
 | 适用版本 | HermesX 当前 main；Python 3.11（`requests` 已在 `requirements.txt`） |
 | 依赖文档 | `AGENTS.md`、`docs/CHANGELOG.md`、StockDB `调用方式/python/AI策略python开发接口文档.md`、StockDB `调用方式/ai_自动开发文档/AI策略界面开发纯js接口文档.md` |
-| 关联模块 | `src/integrations/stockdb/`（新增）、`api/stockdb/`（新增）、`apps/hrs-web/src/pages/StockDataViewPage.tsx`（新增） |
-| 未决事项 | ① 复权公式对账（AC-3）未执行；② Docker/桌面端可达性未验证；③ 是否在设置页暴露配置项待定 |
+| 关联模块 | `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/`（新增，ADR-001 脏活层）、`api/v1/endpoints/{kline,stock_info,code_search}.py`（重构/新增）、`apps/hrs-web/src/pages/{StockDataViewPage,Settings/DataSourceSetting}.tsx`（修改/新增）；配套架构决策 `backend_architecture_adr.md`（ADR-001） |
+| 未决事项 | ① 复权公式对账（AC-3）未执行（上线硬阻断）；② Docker/桌面端可达性未验证；③ 数据字典是否独立建表待定（ADR-001 建议新增）；④ 方案范围已升级为「行情基础能力统一层」，详见配套 ADR-001 |
 
 ### A.2 契约事实来源（本方案中所有"实测"结论）
 
@@ -2424,5 +1145,6 @@ export default function StockDataViewPage() {
 |---|---|---|
 | v0.1 | 2026-09-26 | 初稿：完成背景、接口契约实测、架构解耦设计、数据库与缓存设计、接口规格、查询流程、前端设计、边界条件、配置项、风险回滚、命名规范、测试现状与核心实现代码骨架。 |
 | v0.2 | 2026-10-06 | 增补：表头增加「作者 / 更新时间」；新增「0. 浏览目录」；新增「14. 修改范围」，按"新增文件 / 修改文件 / 测试 / 文档"两维拆解落地所需改动，并列出 6 处契约漂移点与影响面评估。 |
+| v0.3 | 2026-10-07 | 架构升级（配套 ADR-001）：① 后端按四层分层（数据库层 / 数据源层 / 标准接口层 / 横切辅助层），`data_provider` 为唯一脏活层；② 原「独立 /api/stockdb 页」改为「统一基础能力层」——K 线 / 基础信息 / 代码搜索三类能力各自独立成包、同级、多源可切换（本地 StockDB / 东方财富 / 新浪 / 腾讯）；③ 新增 §9.1 数据源切换配置（UI 可管，复用 `POST /api/v1/config`）；④ §3/§7/§14 文件清单与路由前缀全部改为 `data_provider/` + `/api/v1/kline` 等；⑤ 周期全集扩展含 120m/5d/yearly；⑥ 标题/范围升级为「行情基础能力统一层」。 |
 
 > 实现启动后，本节追加实际变更记录；`docs/CHANGELOG.md` 的 `[Unreleased]` 段按仓库约定追加一行扁平记录（`[新功能] 新增本地 StockDB 行情浏览页...`）。
