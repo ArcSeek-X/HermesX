@@ -41,7 +41,7 @@ const BACKTEST_INPUT_CLASS =
 const BACKTEST_COMPACT_INPUT_CLASS =
   'input-surface input-focus-glow h-10 rounded-xl border bg-transparent px-3 py-2 text-xs transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
 /** 回测页面多语言文本类型别名 */
-type BacktestText = (typeof BACKTEST_TEXT)['zh' | 'en'];
+type BacktestText = (typeof BACKTEST_TEXT)[keyof typeof BACKTEST_TEXT];
 
 // ============ Helpers ============
 
@@ -71,7 +71,7 @@ function phaseLabel(row: BacktestResultItem, language: 'zh' | 'en'): string {
       .replace('市场阶段：', '')
       .replace('Market phase: ', '');
   }
-  return (row.marketPhase ? BACKTEST_PHASE_LABELS[toCnOrEn(language)][row.marketPhase] : undefined) || row.marketPhase || '--';
+  return (row.marketPhase ? BACKTEST_PHASE_LABELS[language][row.marketPhase] : undefined) || row.marketPhase || '--';
 }
 
 /**
@@ -122,7 +122,7 @@ function labelFromMap(value: string | null | undefined, labels: Record<string, s
  * @returns 对应颜色的 Badge 组件
  */
 function outcomeBadge(outcome: string | undefined, language: 'zh' | 'en') {
-  const labels = BACKTEST_OUTCOME_LABELS[toCnOrEn(language)];
+  const labels = BACKTEST_OUTCOME_LABELS[language];
   if (!outcome) return <Badge variant="default">--</Badge>;
   switch (outcome) {
     case 'win':
@@ -143,7 +143,7 @@ function outcomeBadge(outcome: string | undefined, language: 'zh' | 'en') {
  * @returns 对应颜色的 Badge 组件
  */
 function statusBadge(status: string, language: 'zh' | 'en') {
-  const labels = BACKTEST_STATUS_LABELS[toCnOrEn(language)];
+  const labels = BACKTEST_STATUS_LABELS[language];
   switch (status) {
     case 'completed':
       return <Badge variant="success">{labels.completed}</Badge>;
@@ -164,7 +164,7 @@ function statusBadge(status: string, language: 'zh' | 'en') {
  * @returns 对应颜色的 Badge 组件
  */
 function actualMovementBadge(movement: string | null | undefined, language: 'zh' | 'en') {
-  const labels = BACKTEST_MOVEMENT_LABELS[toCnOrEn(language)];
+  const labels = BACKTEST_MOVEMENT_LABELS[language];
   switch (movement) {
     case 'up':
       return <Badge variant="success">{labels.up}</Badge>;
@@ -245,7 +245,7 @@ function phaseBreakdownText(metrics: PerformanceMetrics, language: 'zh' | 'en'):
   const breakdown = metrics.diagnostics?.phaseBreakdown;
   if (!breakdown || typeof breakdown !== 'object') return null;
   const item = breakdown as Record<string, unknown>;
-  const phaseLabels = BACKTEST_PHASE_LABELS[toCnOrEn(language)];
+  const phaseLabels = BACKTEST_PHASE_LABELS[language];
   // 按盘前/盘中/盘后/未知顺序拼接各阶段数量
   const parts = [
     [phaseLabels.premarket, item.premarket],
@@ -267,7 +267,7 @@ function phaseBreakdownText(metrics: PerformanceMetrics, language: 'zh' | 'en'):
  * @param language - 当前 UI 语言
  */
 const PerformanceCard: React.FC<{ metrics: PerformanceMetrics; title: string; language: 'zh' | 'en' }> = ({ metrics, title, language }) => {
-  const text = BACKTEST_TEXT[toCnOrEn(language)];
+  const text = BACKTEST_TEXT[language];
   const phaseText = phaseBreakdownText(metrics, toCnOrEn(language));
   return (
     <Card variant="gradient" padding="md" className="animate-fade-in">
@@ -319,7 +319,7 @@ const PerformanceCard: React.FC<{ metrics: PerformanceMetrics; title: string; la
  * @param language - 当前 UI 语言
  */
 const RunSummary: React.FC<{ data: BacktestRunResponse; language: 'zh' | 'en' }> = ({ data, language }) => {
-  const text = BACKTEST_TEXT[toCnOrEn(language)];
+  const text = BACKTEST_TEXT[language];
   return (
   <div className="backtest-summary animate-fade-in">
     <span className="label">{text.processed} <span className="value">{data.processed}</span></span>
@@ -357,9 +357,9 @@ const BacktestPage: React.FC = () => {
   // 当前 UI 语言及通用翻译函数（来自全局语言上下文）
   const { language, t } = useUiLanguage();
   // 当前语言对应的回测页面多语言文本
-  const text = BACKTEST_TEXT[toCnOrEn(language)];
+  const text = BACKTEST_TEXT[language];
   // 市场阶段筛选下拉选项列表
-  const phaseFilterOptions = BACKTEST_PHASE_FILTER_OPTIONS[toCnOrEn(language)];
+  const phaseFilterOptions = BACKTEST_PHASE_FILTER_OPTIONS[language];
   // 决策操作建议标签映射（用于表格中展示 AI 预测的操作建议文案）
   const actionLabels = buildDecisionActionLabelMap(t);
 
@@ -853,7 +853,7 @@ const BacktestPage: React.FC = () => {
                             <span className="flex items-center gap-2">
                               {boolIcon(row.directionCorrect, text)}
                               <span className="text-muted-text">
-                                {row.directionExpected ? labelFromMap(row.directionExpected, BACKTEST_DIRECTION_EXPECTED_LABELS[toCnOrEn(language)]) : ''}
+                                {row.directionExpected ? labelFromMap(row.directionExpected, BACKTEST_DIRECTION_EXPECTED_LABELS[language]) : ''}
                               </span>
                             </span>
                           </td>

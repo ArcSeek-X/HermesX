@@ -41,9 +41,8 @@ import {
 } from '../../locales/featureText';
 import { validateStockCode } from '../../utils/validation';
 import { Button, Card, Checkbox, HrsInput, Select } from '@components';
-import { toCnOrEn } from '../../utils/uiLanguage';
 
-// 单标的（个股/指数）类告警类型，中文文案直接写死，英文由 featureText 提供
+// 单标的（个股/指数）类告警类型：简体用本地常量，繁体与英文由 featureText 提供
 const SYMBOL_ALERT_TYPE_OPTIONS = [
   { value: 'price_cross', label: '价格突破' },
   { value: 'price_change_percent', label: '涨跌幅' },
@@ -142,19 +141,19 @@ function defaultAlertTypeForScope(scope: AlertTargetScope): AlertType {
   return scope === 'portfolio_account' ? 'portfolio_stop_loss' : 'price_cross';
 }
 
-// 根据范围与语言返回告警类型下拉选项；中文用本地常量，英文/i18n 用 featureText
+// 根据范围与语言返回告警类型下拉选项；简体用本地常量，繁体与英文用 featureText（含真繁体）
 function optionsForScope(scope: AlertTargetScope, language: UiLanguage) {
-  if (language !== 'en') {
+  if (language === 'zh') {
     if (scope === 'market') return MARKET_ALERT_TYPE_OPTIONS;
     return scope === 'portfolio_account' ? PORTFOLIO_ALERT_TYPE_OPTIONS : SYMBOL_ALERT_TYPE_OPTIONS;
   }
-  if (scope === 'market') return ALERT_MARKET_TYPE_OPTIONS[toCnOrEn(language)];
-  return scope === 'portfolio_account' ? ALERT_PORTFOLIO_TYPE_OPTIONS[toCnOrEn(language)] : ALERT_SYMBOL_TYPE_OPTIONS[toCnOrEn(language)];
+  if (scope === 'market') return ALERT_MARKET_TYPE_OPTIONS[language];
+  return scope === 'portfolio_account' ? ALERT_PORTFOLIO_TYPE_OPTIONS[language] : ALERT_SYMBOL_TYPE_OPTIONS[language];
 }
 
 export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmitting = false }) => {
   const { language } = useUiLanguage();
-  const text = ALERT_FORM_TEXT[toCnOrEn(language)];
+  const text = ALERT_FORM_TEXT[language];
   const [name, setName] = useState('');
   const [targetScope, setTargetScope] = useState<AlertTargetScope>('single_symbol');
   const [target, setTarget] = useState('');
@@ -496,7 +495,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
         <Select
           label={text.marketRegion}
           value={marketRegion}
-          options={ALERT_MARKET_REGION_OPTIONS[toCnOrEn(language)]}
+          options={ALERT_MARKET_REGION_OPTIONS[language]}
           disabled={isSubmitting}
           onChange={(value) => setMarketRegion(value as MarketRegion)}
         />
@@ -533,7 +532,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
           <Select
             label={text.targetScope}
             value={targetScope}
-            options={language !== 'en' ? TARGET_SCOPE_OPTIONS : ALERT_TARGET_SCOPE_OPTIONS[toCnOrEn(language)]}
+            options={language === 'zh' ? TARGET_SCOPE_OPTIONS : ALERT_TARGET_SCOPE_OPTIONS[language]}
             disabled={isSubmitting}
             onChange={handleScopeChange}
           />
@@ -552,7 +551,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
           <Select
             label={text.severity}
             value={severity}
-            options={language !== 'en' ? SEVERITY_OPTIONS : ALERT_SEVERITY_OPTIONS[toCnOrEn(language)]}
+            options={language === 'zh' ? SEVERITY_OPTIONS : ALERT_SEVERITY_OPTIONS[language]}
             disabled={isSubmitting}
             onChange={(value) => setSeverity(value as AlertSeverity)}
           />
@@ -563,7 +562,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.direction}
               value={priceDirection}
-              options={language !== 'en' ? PRICE_DIRECTION_OPTIONS : ALERT_PRICE_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? PRICE_DIRECTION_OPTIONS : ALERT_PRICE_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setPriceDirection(value as 'above' | 'below')}
             />
@@ -587,7 +586,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.direction}
               value={changeDirection}
-              options={language !== 'en' ? CHANGE_DIRECTION_OPTIONS : ALERT_CHANGE_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? CHANGE_DIRECTION_OPTIONS : ALERT_CHANGE_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setChangeDirection(value as 'up' | 'down')}
             />
@@ -624,7 +623,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.maDirection}
               value={thresholdDirection}
-              options={language !== 'en' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
@@ -648,7 +647,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.thresholdDirection}
               value={thresholdDirection}
-              options={language !== 'en' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
@@ -684,7 +683,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.crossDirection}
               value={crossDirection}
-              options={language !== 'en' ? CROSS_DIRECTION_OPTIONS : ALERT_CROSS_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? CROSS_DIRECTION_OPTIONS : ALERT_CROSS_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setCrossDirection(value as 'bullish_cross' | 'bearish_cross')}
             />
@@ -732,7 +731,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.crossDirection}
               value={crossDirection}
-              options={language !== 'en' ? CROSS_DIRECTION_OPTIONS : ALERT_CROSS_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? CROSS_DIRECTION_OPTIONS : ALERT_CROSS_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setCrossDirection(value as 'bullish_cross' | 'bearish_cross')}
             />
@@ -780,7 +779,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
             <Select
               label={text.thresholdDirection}
               value={thresholdDirection}
-              options={language !== 'en' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[toCnOrEn(language)]}
+              options={language === 'zh' ? THRESHOLD_DIRECTION_OPTIONS : ALERT_THRESHOLD_DIRECTION_OPTIONS[language]}
               disabled={isSubmitting}
               onChange={(value) => setThresholdDirection(value as 'above' | 'below')}
             />
@@ -813,7 +812,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
           <Select
             label={text.stopLossMode}
             value={stopLossMode}
-            options={language !== 'en' ? STOP_LOSS_MODE_OPTIONS : ALERT_STOP_LOSS_MODE_OPTIONS[toCnOrEn(language)]}
+            options={language === 'zh' ? STOP_LOSS_MODE_OPTIONS : ALERT_STOP_LOSS_MODE_OPTIONS[language]}
             disabled={isSubmitting}
             onChange={(value) => setStopLossMode(value as PortfolioStopLossMode)}
           />
@@ -823,7 +822,7 @@ export const AlertRuleForm: React.FC<AlertRuleFormProps> = ({ onSubmit, isSubmit
           <div className="space-y-2">
             <div className="text-sm font-medium text-foreground">{text.triggerStatus}</div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {(language !== 'en' ? MARKET_LIGHT_STATUS_OPTIONS : ALERT_MARKET_LIGHT_STATUS_OPTIONS[toCnOrEn(language)]).map((option) => (
+              {(language === 'zh' ? MARKET_LIGHT_STATUS_OPTIONS : ALERT_MARKET_LIGHT_STATUS_OPTIONS[language]).map((option) => (
                 <Checkbox
                   key={option.value}
                   label={option.label}

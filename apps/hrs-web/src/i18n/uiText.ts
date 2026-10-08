@@ -20,8 +20,8 @@
  *
  * ## 责任边界
  * - 主字典只覆盖「全站通用 UI 文案」，且三语齐全（含真繁体）。
- * - 业务域本地字典（告警/回测/组合等，只有 zh/en）不在此文件，其繁体回退由消费方的 `toCnOrEn()` 负责。
- * - 新增文案：必须同时在 zh / zh-Hant / en 三份文件中补同一 key，否则 `UI_TEXT` 类型会报错。
+ * - 业务域本地字典（告警/回测/组合等）在 `locales/featureText.ts`，现已补齐 `zh-Hant` 真繁体；消费方直接用完整 `UiLanguage` 键取值，不再经 `toCnOrEn()` 回退简体。`toCnOrEn()` 仅用于日期/Intl 等仅支持 zh/en 的场景。
+ * - 新增文案：主字典必须同时在 zh / zh-Hant / en 三份文件中补同一 key，否则 `UI_TEXT` 类型会报错；featureText 各导出亦需同步三语。
  */
 
 import zh from './uiText-zh';

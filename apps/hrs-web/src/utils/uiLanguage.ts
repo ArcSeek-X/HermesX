@@ -9,8 +9,10 @@
 import type { UiLanguage } from '../i18n/uiText';
 
 /**
- * 将界面语言收敛为「简体中文 / 英文」二元，供仅支持中英双语的本地字典与
- * 格式化函数使用。繁體中文(zh-Hant)回退到简体中文(zh)，避免索引/参数类型报错。
+ * 将界面语言收敛为「简体中文 / 英文」二元，供仅支持 zh/en 的格式化函数与第三方库使用
+ * （如 Intl 日期/数字格式化、FullCalendar locale 等）。业务文案字典（featureText）已补齐
+ * zh-Hant 真繁体，消费方应直接用完整 UiLanguage 键取值，无需经此函数回退。
+ * 繁體中文(zh-Hant)在此折叠为简体中文(zh)，避免 Intl/locale 类型或运行时报错。
  *
  * @param language - 当前界面语言
  * @returns 'zh' | 'en'

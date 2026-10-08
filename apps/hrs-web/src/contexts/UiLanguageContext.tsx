@@ -20,11 +20,12 @@
  * - 下游（消费者）：
  *   - 任意后代组件通过 `useUiLanguage()` 拿到 `language / setLanguage / t`。
  *   - 主字典文案走 `t()`（真繁体，不经过toCnOrEn）。
- *   - 业务域本地字典（告警/回测/组合等）在消费方用 `toCnOrEn(language)` 做键，繁体模式下回退简体。
+ *   - 业务域本地字典（告警/回测/组合等）在 `locales/featureText.ts` 已补齐 `zh-Hant`，消费方直接用完整 `UiLanguage` 键取值，繁体模式不再回退简体。
  *
  * ## 繁体支持的责任边界
  * 本文件负责「语言状态的真相来源 + document.lang 同步」；
- * 繁体字典的真繁体翻译在 `uiText-zh-Hant.ts`，业务字典的繁体回退在消费方的 `toCnOrEn()`。
+ * 繁体字典的真繁体翻译在 `uiText-zh-Hant.ts`，业务字典的真繁体在 `locales/featureText.ts`（三语齐全）。
+ * `toCnOrEn()` 仅用于日期/Intl 等只支持 zh/en 的格式化工序，不参与业务文案的取值。
  * 三者分工，本文件不直接持有任何业务文案。
  */
 

@@ -261,7 +261,7 @@ async function loadPortfolioSignalLookup(lookup: PortfolioSignalLookup): Promise
  */
 const PortfolioPage: React.FC = () => {
   const { language, t } = useUiLanguage();
-  const text = PORTFOLIO_TEXT[toCnOrEn(language)];
+  const text = PORTFOLIO_TEXT[language];
   const decisionActionLabels = useMemo(() => buildDecisionActionLabelMap(t), [t]); // 决策动作标签映射表
 
   // 设置页面标题
