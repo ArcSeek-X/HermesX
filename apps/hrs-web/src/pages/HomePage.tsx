@@ -6,11 +6,6 @@
 import React, { useState } from 'react';
 import { AppPage } from '@components/layout/AppPage';
 import { StockSearch } from '@components/StockSearch/StockSearch';
-import LightBloom from '@components/vibeBack/LightBloom';
-import { useTheme } from 'next-themes';
-import { useThemeStore } from '../stores/themeStore';
-
-
 
 /**
  * 复盘页面组件
@@ -19,23 +14,12 @@ import { useThemeStore } from '../stores/themeStore';
  * 当前提供统一页面容器、标题区与占位内容，保证路由 /review 可访问且视觉与全站一致。
  */
 const ReviewPage: React.FC = () => {
-  // 取自系统主题主色（HEX），用户切换主色/主题时实时联动
-  const { themeColor } = useThemeStore();
-  // 仅在暗色主题下展示 LightBloom 背景光晕
-  const { resolvedTheme } = useTheme();
   // 首页股票搜索（受控）
   const [query, setQuery] = useState('');
   return (
 
-    <AppPage>
-      {resolvedTheme === 'dark' && (
-        <LightBloom
-          style={{ position: 'fixed', inset: 0, zIndex: 0 }}
-          background="transparent"
-          baseColor={themeColor}
-        />
-      )}
-      <div className="relative h-full z-10 flex min-h-screen items-center justify-center  px-4">
+    <AppPage className="flex flex-col">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-[640px]">
           <StockSearch
             className="mb-50"
