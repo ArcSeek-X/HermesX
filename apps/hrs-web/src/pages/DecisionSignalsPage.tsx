@@ -1414,8 +1414,6 @@ const DecisionSignalsPage: React.FC = () => {
                 value={stockDraft}
                 onChange={setStockDraft}
                 onSubmit={handleStockSubmit}
-                placeholder={t('decisionSignals.stockContextPlaceholder')}
-                ariaLabel={t('decisionSignals.stockContextInput')}
               />
             </div>
             <button

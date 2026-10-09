@@ -1599,7 +1599,6 @@ const HomePage: React.FC = () => {
                   onSubmit={(stockCode, stockName, selectionSource) => {
                     handleSubmitAnalysis(stockCode, stockName, selectionSource);
                   }}
-                  placeholder={t('review.placeholder')}
                   disabled={isAnalyzing}
                   className={inputError ? 'border-danger/50' : undefined}
                 />

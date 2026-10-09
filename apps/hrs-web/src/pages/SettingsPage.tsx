@@ -10,6 +10,7 @@ import { parseStockListValue } from '@utils/stockList';
 import { getCategoryDescription, getCategoryTitle } from '@utils/systemConfigI18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, CircleAlert, CircleDashed, Clock, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, useSystemConfig } from '../hooks';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { createParsedApiError, getParsedApiError, type ParsedApiError } from '../api/error';
@@ -231,6 +232,25 @@ function normalizeDesktopRuntimeNumber(value: unknown) {
   }
   const numberValue = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+/** 将字符串配置值归一化为布尔值。 */
+function parseBooleanConfigValue(value: string | undefined) {
+  return (value || '').trim().toLowerCase() === 'true';
+}
+
+/** 将统一数据源配置值格式化为设置页展示标签。 */
+function formatSourceValue(value: string | undefined) {
+  const normalized = (value || '').trim().toLowerCase() || 'auto';
+  const labelMap: Record<string, string> = {
+    auto: 'Auto',
+    local: 'Local',
+    sina: 'Sina',
+    eastmoney: 'EastMoney',
+    tencent: 'Tencent',
+    stocksdk: 'StockSDK',
+  };
+  return labelMap[normalized] || normalized;
 }
 
 /** 获取桌面端 Electron 注入的运行时 API 对象，非桌面环境返回 undefined */
@@ -1058,6 +1078,7 @@ const SchedulerSettingsCard: React.FC<SchedulerSettingsCardProps> = ({
  * @returns 设置页的 JSX 元素
  */
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   /** 认证状态：是否启用登录、是否可修改密码 */
   const { authEnabled, passwordChangeable } = useAuth();
   /** UI 语言和翻译函数 */
@@ -1311,6 +1332,22 @@ const SettingsPage: React.FC = () => {
   const rawActiveItems = itemsByCategory[activeCategory] || [];
   /** 当前分类配置项的键值 Map，用于快速查找 */
   const rawActiveItemMap = new Map(rawActiveItems.map((item) => [item.key, String(item.value ?? '')]));
+  /** StockDB 本地源是否启用 */
+  const stockDbEnabled = parseBooleanConfigValue(rawActiveItemMap.get('STOCKDB_ENABLED'));
+  /** StockDB 本地 HTTP 服务地址 */
+  const stockDbBaseUrl = (rawActiveItemMap.get('STOCKDB_BASE_URL') || 'http://127.0.0.1:7899').trim();
+  /** K 线主源显示值 */
+  const klinePrimarySource = formatSourceValue(rawActiveItemMap.get('KLINE_DATA_SOURCE'));
+  /** 基础信息主源显示值 */
+  const stockInfoPrimarySource = formatSourceValue(rawActiveItemMap.get('STOCKINFO_DATA_SOURCE'));
+  /** 代码搜索主源显示值 */
+  const codeSearchPrimarySource = formatSourceValue(rawActiveItemMap.get('CODESEARCH_DATA_SOURCE'));
+  /** K 线自动回退是否启用 */
+  const klineFallbackEnabled = parseBooleanConfigValue(rawActiveItemMap.get('KLINE_FALLBACK_ENABLED'));
+  /** 基础信息自动回退是否启用 */
+  const stockInfoFallbackEnabled = parseBooleanConfigValue(rawActiveItemMap.get('STOCKINFO_FALLBACK_ENABLED'));
+  /** 代码搜索自动回退是否启用 */
+  const codeSearchFallbackEnabled = parseBooleanConfigValue(rawActiveItemMap.get('CODESEARCH_FALLBACK_ENABLED'));
   /** 基础配置中第一只股票代码（用于冒烟测试） */
   const firstSetupStockCode = parseSetupStockList(getConfigItem(itemsByCategory.base || [], 'STOCK_LIST')?.value)[0] || '';
   /** AlphaSift 启用配置项 */
@@ -1939,6 +1976,61 @@ const SettingsPage: React.FC = () => {
                 listSeparator={uiLanguage === 'en' ? ', ' : '、'}
                 t={t}
               />
+            ) : null}
+            {/* ===== 统一数据源摘要卡片（仅数据源分类） ===== */}
+            {activeCategory === 'data_source' ? (
+              <SettingsSectionCard
+                title={t('settings.dataSourceSectionTitle')}
+                description={t('settings.dataSourceSectionDescription')}
+              >
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                  <div className="rounded-2xl border settings-border bg-background/40 px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-text">
+                      {t('settings.dataSourceStatusLabel')}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">
+                      {stockDbEnabled ? t('common.enabled') : t('common.disabled')}
+                    </p>
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-text">
+                      {t('settings.dataSourceBaseUrlLabel')}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-muted-text">
+                      {stockDbBaseUrl}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border settings-border bg-background/40 px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-text">
+                      {t('settings.dataSourcePrimarySourcesLabel')}
+                    </p>
+                    <div className="mt-2 space-y-2 text-sm text-foreground">
+                      <p>{t('settings.dataSourceKlineLabel')}: {klinePrimarySource}</p>
+                      <p>{t('settings.dataSourceStockInfoLabel')}: {stockInfoPrimarySource}</p>
+                      <p>{t('settings.dataSourceCodeSearchLabel')}: {codeSearchPrimarySource}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border settings-border bg-background/40 px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-text">
+                      {t('settings.dataSourceFallbackLabel')}
+                    </p>
+                    <div className="mt-2 space-y-2 text-sm text-foreground">
+                      <p>{t('settings.dataSourceKlineLabel')}: {klineFallbackEnabled ? t('common.enabled') : t('common.disabled')}</p>
+                      <p>{t('settings.dataSourceStockInfoLabel')}: {stockInfoFallbackEnabled ? t('common.enabled') : t('common.disabled')}</p>
+                      <p>{t('settings.dataSourceCodeSearchLabel')}: {codeSearchFallbackEnabled ? t('common.enabled') : t('common.disabled')}</p>
+                    </div>
+                    <div className="mt-4">
+                      <HrsButton
+                        type="button"
+                        variant="settings-secondary"
+                        onClick={() => navigate('/stock/kline')}
+                      >
+                        {t('settings.dataSourceOpenStockData')}
+                      </HrsButton>
+                    </div>
+                  </div>
+                </div>
+              </SettingsSectionCard>
             ) : null}
             {/* ===== AlphaSift 设置卡片（仅数据源分类） ===== */}
             {shouldShowAlphaSiftSettings ? (

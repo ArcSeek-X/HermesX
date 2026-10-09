@@ -59,7 +59,6 @@ const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'watchlist', labelKey: 'layout.nav.watchlist.title', to: '/watchlist', icon: Star },
   { key: 'live-calendar', labelKey: 'layout.nav.liveCalendar.title', to: '/live-calendar', icon: CalendarDays },
   { key: 'live-news', labelKey: 'layout.nav.liveNews.title', to: '/live-news', icon: Newspaper },
-  { key: 'kline', labelKey: 'layout.nav.kline.title', to: '/kline', icon: CandlestickChart },
   { key: 'chat', labelKey: 'layout.nav.chat.title', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
   { key: 'review', labelKey: 'layout.nav.review.title', to: '/review', icon: History },
   { key: 'portfolio', labelKey: 'layout.nav.portfolio.title', to: '/portfolio', icon: BriefcaseBusiness },
