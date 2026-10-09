@@ -23,7 +23,7 @@ export const MenuSwitcher = ({ onToggleSidebar }: MenuSwitcherProps) => {
     <button
       type="button"
       onClick={onToggleSidebar}
-      className="hidden h-10 w-6 items-center  border-r border-border/50 text-foreground-soft transition-colors hover:text-foreground lg:inline-flex cursor-pointer"
+      className="hidden h-10 w-7 items-center  border-r border-border/50 text-foreground-soft transition-colors hover:text-foreground lg:inline-flex cursor-pointer"
       aria-label={
         menuCollapsedState === 'fully' ? t('layout.expandSidebar') : t('layout.collapseSidebar')
       }
