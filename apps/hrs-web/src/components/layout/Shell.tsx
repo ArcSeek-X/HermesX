@@ -15,6 +15,7 @@ import { useLocation } from 'react-router-dom';
 import { RouteOutletBoundary } from '../../pages/ErrorPage/RouteBoundary';
 import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SideBar/SidebarNav';
+import { Main } from './Main';
 import { useLayoutStore } from '../../stores';
 import { useThemeStore } from '../../stores/themeStore';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -88,30 +89,17 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
         {/* 桌面端固定侧边栏（仅 >= lg 显示）：宽度与三态折叠动画由 SidebarNav 内部 motion.div 驱动，此处仅透传折叠态；onNavigate 在导航后关闭移动端抽屉 */}
         <SidebarNav className="" theme={sidebarTheme} menuCollapsedState={menuCollapsedState} onNavigate={() => setMobileOpen(false)} />
 
-        {/* 右侧列：flex-col 纵向排列，flex-1 占据侧边栏外的剩余宽度；lg:px-4 与侧边栏保留 16px 间距 */}
-        <div className="flex min-h-0 flex-1 flex-col pb-3 sm:pb-4 sm:px-4 lg:px-4">
+        {/* 右侧列：flex-col 纵向排列，flex-1 占据侧边栏外的剩余宽度；横向 px 保留 16px 间距。
+            竖向 padding 不放这里（已下移到 Main 内部），否则滚动容器盒子无法贴到视口底边，
+            导致被其 contain 裁剪的固定背景（LightBloom）底部露出留白。 */}
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* 顶部页头：固定在右侧列顶部，不随内容区滚动 */}
-          <ShellHeader
-            onToggleSidebar={toggleMenuCollapsedState}
-            onOpenMobileNav={() => setMobileOpen(true)}
-
-          />
-
-          {/* 主内容区域：唯一滚动容器 */}
-          {/* min-h-0：允许 flex 子元素收缩，使 overflow-y-auto 生效 */}
-          {/* bg-background：确保 padding 区域不透明，遮挡滚动内容 */}
-          {/* touch-pan-y：允许触摸设备垂直滚动，不拦截手势 */}
-          <main className="hrs-page-container
-            min-h-0 min-w-0 pt-4
-            flex-1 overflow-y-auto bg-background touch-pan-y
-            [contain:layout_paint] will-change-[width]"
-          >
+          <ShellHeader className="sm:px-4 lg:px-4" onToggleSidebar={toggleMenuCollapsedState} onOpenMobileNav={() => setMobileOpen(true)}/>
+          {/* 主内容区域（Main 内部即唯一滚动容器 + 暗色主题背景光晕） */}
+          <Main className="sm:px-4 lg:px-4">
             {/* 优先渲染 children（直接包裹模式），否则经 RouteOutletBoundary 渲染匹配的子路由（含 Suspense 与错误边界） */}
             {children ?? <RouteOutletBoundary />}
-
-
-                {/* <Outlet /> */}
-          </main>
+          </Main>
         </div>
       </div>
     </div>

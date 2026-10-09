@@ -440,7 +440,7 @@ export default function LightBloom(props: Props) {
                 // Floor BEFORE the spread so an explicit size on the instance wins.
                 // Canvas is absolute, so the root has no in-flow content and would
                 // collapse to a dot under Fit Content.
-                minWidth: 1200,
+                minWidth: 600,
                 minHeight: 800,
                 width: typeof width === "number" && width > 0 ? width : "100%",
                 height: typeof height === "number" && height > 0 ? height : "100%",

@@ -10,7 +10,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
-import { useMatches, useNavigate } from 'react-router-dom';
+import { useLocation, useMatches, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';
 import type { RouteHandle } from '../../types/router';
@@ -42,7 +42,10 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useUiLanguage();
+  const location = useLocation();
   const matches = useMatches();
+  // 个股 K 线页已有独立页内搜索框，顶部搜索框在该路由下隐藏（避免重复输入入口）
+  const isKLineRoute = location.pathname === '/stock/kline';
   // 当前页标题/描述：经 useMatches 读取路由 handle（数据路由原生能力），与侧栏/路由同源；按字段独立 i18n 兜底
   const handle = matches[matches.length - 1]?.handle as RouteHandle | undefined;
   const title = handle?.routerName
@@ -56,7 +59,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   const [stockQuery, setStockQuery] = useState('');
 
   return (
-    <header className={cn('hrs-header z-30 h-14 border-b border-border/60 bg-background backdrop-blur-xl', className)}>
+    <header className={cn('hrs-header z-30 h-14 border-b border-border/60 backdrop-blur-xl', className)}>
       <div className="flex h-full w-full items-center gap-3">
         {/* 移动端菜单按钮（< lg 断点显示） */}
         <button
@@ -85,22 +88,28 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 
         {/* 右侧操作区：股票搜索 / 主题设置 / 中英文切换 / 个人设置 */}
         <div className="flex items-center gap-2">
-          <StockSearch
-            value={stockQuery}
-            size="sm"
-            onChange={setStockQuery}
-            onSubmit={(code) => {
-              if (!code) return;
-              // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
-              setStorageItem('kline.stockCode', code, 'session');
-              setStockQuery('');
-              navigate('/kline');
-            }}
-            onClear={() => setStockQuery('')}
-            placeholder={t('kline.searchPlaceholder')}
-            ariaLabel={t('kline.searchPlaceholder')}
-            className="h-9 text-xs w-60"
-          />
+          {!isKLineRoute && (
+            <StockSearch
+              value={stockQuery}
+              size="sm"
+              onChange={setStockQuery}
+              onSubmit={(code, _name, _source, metadata) => {
+                if (!code) return;
+                // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
+                setStorageItem('kline.stockCode', code, 'session');
+                // 同步展示标签（"名称（规范代码）"），与页内一致的原始 sessionStorage 键，供 K 线页搜索框初始化显示
+                if (metadata?.displayLabel) {
+                  try {
+                    sessionStorage.setItem('hrs-state-kline.displayValue', JSON.stringify(metadata.displayLabel));
+                  } catch { /* ignore */ }
+                }
+                setStockQuery('');
+                navigate('/stock/kline');
+              }}
+              onClear={() => setStockQuery('')}
+              className="h-9 text-xs w-60"
+            />
+          )}
           <ModeSwitch />
 
           <ThemeSetting />
