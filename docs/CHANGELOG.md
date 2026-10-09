@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [修复] 修复股票基础信息（/api/v1/kline/{code}/info）在东财不可达时整页失败：新增腾讯实时行情兜底源 `TencentStockInfoSource`，默认 source 顺序追加 `tencent`，并复用 `code_to_sina_symbol` 统一剥离交易所前后缀。
+- [新功能] 按 ADR-001 新增 `data_provider/{stockdb_fetcher,kline,stock_info,code_search}` 分层能力：K 线端点改为瘦端点，StockDB 以 `local` source 形式接入现有 `/api/v1/kline`、股票信息与代码搜索链路。
+- [新功能] 补齐 ADR-001 约定的 `data_provider/{realtime,sector,fundamentals,news,institutional}` 功能包骨架，并将实时行情、板块排行、华尔街见闻资讯、台湾机构数据等既有通道收口到对应 source 文件。
+- [改进] Web 端现有个股 K 线页新增数据源标识与数据表视图，支持在图表视图之外直接查看统一后的原始 K 线数据，便于本地 StockDB 数据核对。
+- [改进] Web 设置页「数据源」分类新增统一数据源摘要卡片，集中展示 StockDB 状态、三类基础能力主源策略，并可直达本地行情页。
+- [改进] 按 ADR-001 将 `data_provider/common/market.py` 的市场代码辅助函数收敛回 `common/normalize.py`，减少公共层表外文件漂移。
+- [改进] 统一华尔街见闻底层抓取器命名为 `wallstreetcn_calendar_fetcher.py` / `wallstreetcn_live_news_fetcher.py`，并同步更新资讯能力层、测试与相关设计文档引用。
+- [改进] 继续按 ADR-001 收敛运行时入口：移除 `kline/stock_info/code_search` 的 `service.py` 过渡层，新增 `realtime/sector/fundamentals` 正式入口，并将热点服务、个股服务、事件监控等主链路切换到能力包入口。
+- [改进] 统一 `src/services/` 与 `tests/` 中 Repository 类导入到 `src/repositories` barrel，减少数据库层入口分散并补齐 ADR-001 的 D5 收口项。
+- [改进] 继续按 ADR-001 收敛 `api/v1/endpoints/sector.py`：将东财市场指数/市场概览/北向资金/大盘主力/板块列表/板块资金流历史的缓存与取数主链路下沉到 `data_provider/sector/eastmoney_source.py`，端点文件仅保留参数校验与响应编排。
+- [改进] 继续按 ADR-001 收敛 `api/v1/endpoints/sector.py`：将时到量化行业/个股/ETF/概念云图的直连取数、缓存与整形下沉到 `data_provider/sector/shidaotec_source.py`，补齐 `sector` 能力包的单源入口收口。
+- [文档] 同步更新 `backend_architecture_adr.md` 中 `sector` 能力铺排与 B1 状态，明确 `eastmoney + shidaotec` 的分工边界，消除 ADR 与当前代码实现的文档漂移。
+- [文档] 基于 StockSDK 官方文档补充 `backend_architecture_adr.md`：将 `StockSDK` 纳入数据源对接层规划，明确其作为 Node 18 桥接型物理后端的接入边界，并同步更新目录铺排、配置键、功能接口层约束、执行顺序与验证清单。
+- [新功能] 新增 `data_provider/stocksdk_bridge.py` 与 `scripts/stocksdk_bridge/bridge.mjs`，以 Node bridge 方式接入 `StockSDK`，并为 `kline`、`stock_info`、`code_search` 补齐 `stocksdk_source.py` 可选数据源。
+- [改进] 为 `market/index` 与 `market/sector-analysis` 补充 `data_provider/sector/stocksdk_source.py`：总览页优先使用 StockSDK 提供 A 股/港美指数、市场概览、北向资金与大盘主力；板块卡片与板块资金接口改为 StockSDK 优先、东财回退，云图仍保留时到量化专属源。
+- [改进] 扩展数据源配置与设置页显示，补充 `STOCKSDK_*` 运行时配置、`stocksdk` 选源项与前端数据源标签映射。
+- [文档] 为 `scripts/stocksdk_bridge/` 补充目录级说明，明确 `stock-sdk` 依赖应保留在独立 bridge 子目录，而非 `scripts/` 根目录或 `apps/hrs-web` 前端工程中。
 - [文档] 更新消息日历方案文档 `docs/Live-calendar.md`：补充 `LiveCalendar` 的 `onRangeRequest + dataReadyKey` 范围握手、月视图 staged mount、自绘 List 视图职责，以及前后端按月缓存 / single-flight / 相邻月预取 / 降级保留上一帧数据等交互与性能设计说明；同步更新作者、最近更新时间与手动验证重点。
 - [文档] 新增「侧边栏」组件文档 Demo 页（`/docs/component/sideBar`，仅开发调试模式可见）：同时演示应用主导航 SidebarNav（default/rail 形态与折叠态）与基于 HeroUI Pro Sidebar 的 SidebarNavV2（复用同一份菜单数据，随运行模式切换，点击走 SPA 路由跳转）。
 - [改进] 消息日历筛选区域去掉外围边框；国家/地区下拉按中文名拼音首字母 A-Z 分组（组内按全拼排序，无拼音者归入 `#` 组），选项显示「国旗 + 国家名称」，下拉弹层限高（弹层与 HeroUI 内部 list-box 一并限高，滚动条落在 list-box）；关键词输入框改为占满本行剩余宽度，右对齐到操作区。
