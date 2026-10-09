@@ -9,22 +9,16 @@ const zh = {
   // ---- 第 1 类 全局 common ----
   'common.cancel': '取消', // 通用取消按钮文案
   'common.clear': '清除', // 通用清除文案
-  'common.clearing': '清除中', // 清除中状态
   'common.close': '关闭', // 通用关闭按钮文案
   'common.closeDrawer': '关闭抽屉', // 关闭抽屉组件
   'common.confirm': '确定', // 通用确认按钮文案
   'common.copied': '已复制!', // 复制成功提示
   'common.copy': '复制', // 复制按钮文案
   'common.datetime.day': '日', // 日历视图粒度：日
-  'common.datetime.halfYear': '半年', // 日历视图粒度：半年
   'common.datetime.list': '列表', // 日历视图粒度：列表
   'common.datetime.month': '月', // 日历视图粒度：月
-  'common.datetime.quarter': '季', // 日历视图粒度：季度
   'common.datetime.today': '今天', // 日历回到今天按钮
-  'common.datetime.tomorrow': '明天', // 日历相邻日：明天
   'common.datetime.week': '周', // 日历视图粒度：周
-  'common.datetime.year': '年', // 日历视图粒度：年
-  'common.datetime.yesterday': '昨天', // 日历相邻日：昨天
   'common.delete': '删除', // 通用删除按钮文案
   'common.deleting': '删除中', // 删除进行中状态
   'common.details': '查看详情', // 查看详情入口
@@ -48,13 +42,11 @@ const zh = {
   // ---- 第 2 类 语言 language ----
   'language.chineseSimplified': '简体中文', // 简体中文语言选项
   'language.chineseTraditional': '繁体中文', // 繁体中文语言选项
-  'language.current': '中文', // 当前界面语言名称
   'language.english': 'English', // 英文语言选项
   'language.short.en': 'EN', // 英文语言简写
   'language.short.zh': '中', // 中文语言简写
   'language.short.zhHant': '繁', // 繁体中文语言简写
   'language.toggle': '切换界面语言', // 切换语言按钮提示
-  'language.uiLanguage': '界面语言', // 界面语言设置项标题
 
   // ---- 第 3 类 主题 theme ----
   'theme.themeMode.dark': '深色', // 深色主题名称
@@ -67,8 +59,6 @@ const zh = {
   'theme.sidebarTheme.settingTitle': '侧栏风格', // 侧栏视觉主题设置标题
   'theme.sidebarTheme.pill': '胶囊圆角', // 侧栏风格：大圆角胶囊感
   'theme.sidebarTheme.square': '方正', // 侧栏风格：方角
-  'theme.theme': '主题', // 主题通用标签
-  'theme.toggle': '切换主题', // 切换主题按钮提示
 
   // ---- 第 4 类 布局与菜单 layout ----
   // 布局直属 layout.*
@@ -82,7 +72,6 @@ const zh = {
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码登录。', // 退出确认提示文案
   'layout.logoutTitle': '退出登录', // 退出登录弹窗标题
   'layout.mainNav': '主导航', // 主导航区域标签
-  'layout.navMenu': '导航菜单', // 导航菜单标签
   'layout.newChatMessage': '问股有新消息', // 问股新消息提示
   'layout.openNav': '打开导航菜单', // 打开导航菜单提示
   // 头部操作区 layout.header.*
@@ -117,6 +106,8 @@ const zh = {
   'layout.nav.home.description': '股票分析与历史报告工作台', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线导航项
   'layout.nav.kline.description': '个股 K 线走势、技术指标与多周期分析', // K 线导航项描述
+  'layout.nav.stockDataView.title': '股票数据视图', // 股票数据视图导航项
+  'layout.nav.stockDataView.description': '查看个股行情、K 线与多周期数据视图', // 股票数据视图导航项描述
   'layout.nav.liveCalendar.title': '日历', // 消息日历导航项
   'layout.nav.liveCalendar.description': '宏观、财报、新股、活动等重要事件日历', // 日历导航项描述
   'layout.nav.liveNews.title': '快讯', // 实时快讯导航项
@@ -187,8 +178,6 @@ const zh = {
   'component.LiveCalendar.calendarType.FE': '大事件', // 事件分类：财经大事件
   'component.LiveCalendar.country': '国家', // List 视图列头：国家
   'component.LiveCalendar.drawer.actual': '公布', // 详情抽屉：公布值
-  'component.LiveCalendar.drawer.content': '内容', // 详情抽屉：内容区标题
-  'component.LiveCalendar.drawer.economicData': '经济数据', // 详情抽屉：经济数据区标题
   'component.LiveCalendar.drawer.forecast': '预期', // 详情抽屉：预期值
   'component.LiveCalendar.drawer.previous': '前值', // 详情抽屉：前值
   'component.LiveCalendar.drawer.source': '来源', // 详情抽屉：来源
@@ -363,9 +352,6 @@ const zh = {
   'auth.login.title': '登录页', // 管理员登录页标题（route handle）
   'auth.login.description': '管理员登录认证，进入量化决策工作台', // 管理员登录页路由描述（route handle）
   'auth.login.adminLogin': '管理员登录', // 管理员登录标题
-  'auth.login.adminPassword': '管理员密码', // 管理员密码标签
-  'auth.login.confirmPassword': '确认密码', // 确认密码标签
-  'auth.login.confirmPasswordPlaceholder': '再次确认管理员密码', // 确认密码占位符
   'auth.login.hidePassword': '隐藏密码', // 隐藏密码按钮提示
   'auth.login.loginDescription': '访问 HRS 量化决策引擎需要有效的身份凭证。', // 登录页描述
   'auth.login.loginFailed': '登录失败', // 登录失败提示
@@ -376,12 +362,6 @@ const zh = {
   'auth.login.pageTitle': '登录 - HRS', // 登录页标题
   'auth.login.passwordMismatch': '两次输入的密码不一致', // 密码不一致提示
   'auth.login.passwordRequired': '请输入密码', // 密码必填校验提示
-  'auth.login.setupDescription': '首次启用认证，请为系统工作台设置管理员密码。', // 初始密码设置描述
-  'auth.login.setupFailed': '配置失败', // 初始设置失败提示
-  'auth.login.setupPasswordPlaceholder': '请设置 6 位以上密码', // 初始密码占位符
-  'auth.login.setupSubmit': '完成设置并登录', // 初始设置提交按钮
-  'auth.login.setupSubmitting': '初始化中...', // 初始设置提交中状态
-  'auth.login.setupTitle': '设置初始密码', // 初始密码设置标题
   'auth.login.showPassword': '显示密码', // 显示密码按钮提示
   'auth.login.username': '账号', // 账号标签
   'auth.login.usernamePlaceholder': '请输入账号', // 账号占位符
@@ -468,10 +448,7 @@ const zh = {
   'decisionSignals.invalidateConfirm': '确认将这条信号标记为失效吗？失效后不会再作为当前 active 建议展示。', // 标记失效确认
   'decisionSignals.invalidated': '已失效', // 已失效状态
   'decisionSignals.invalidation': '失效条件', // 信号失效条件
-  'decisionSignals.latestButton': '查询最新', // 查询最新信号按钮
   'decisionSignals.latestDescription': '读取当前查看股票的最新 active 信号。', // 查询最新说明
-  'decisionSignals.latestInput': '最新股票代码', // 最新股票代码输入标签
-  'decisionSignals.latestPlaceholder': '例如 600519、HK00700、AAPL', // 最新股票代码占位符
   'decisionSignals.latestTitle': '按股票查询最新信号', // 按股票查询标题
   'decisionSignals.market': '市场', // 市场标签
   'decisionSignals.market.cn': 'A 股', // A 股市场
@@ -494,8 +471,6 @@ const zh = {
   'decisionSignals.noOutcomes': '暂无后验结果', // 无后验结果提示
   'decisionSignals.noReviewedStatsDescription': '当前已有 AI 建议时，也可能还没有形成可统计的后验复盘结果。', // 无复盘样本说明
   'decisionSignals.noReviewedStatsTitle': '暂无已复盘样本', // 无复盘样本标题
-  'decisionSignals.noStatsDescription': '触发一次信号后验计算后，这里会显示命中、未命中和无法评估统计。', // 无后验统计说明
-  'decisionSignals.noStatsTitle': '暂无后验统计', // 无后验统计标题
   'decisionSignals.outcome.hit': '命中', // 命中后验结果
   'decisionSignals.outcome.miss': '未命中', // 未命中后验结果
   'decisionSignals.outcome.neutral': '中性', // 中性后验结果
@@ -588,9 +563,7 @@ const zh = {
   'decisionSignals.stockContextEmpty': '尚未选择当前股票。', // 未选股票提示
   'decisionSignals.stockContextGuideDescription': '先在页面顶部选择当前股票，再查看最新信号和时间线。', // 股票上下文引导说明
   'decisionSignals.stockContextGuideTitle': '选择股票查看 AI 建议', // 股票上下文引导标题
-  'decisionSignals.stockContextInput': '当前股票', // 当前股票输入标签
   'decisionSignals.stockContextNoCandidates': '暂无可用候选，可直接输入股票代码或名称。', // 无候选股票提示
-  'decisionSignals.stockContextPlaceholder': '输入股票代码或名称，如 600519、贵州茅台、AAPL', // 股票上下文输入占位符
   'decisionSignals.stockContextPopular': '热门候选', // 热门候选股票
   'decisionSignals.stockContextRecent': '最近分析', // 最近分析股票
   'decisionSignals.stockContextTitle': '当前股票', // 当前股票标题
@@ -617,8 +590,6 @@ const zh = {
   'decisionSignals.timelineStatus': '时间线状态', // 时间线状态筛选
   'decisionSignals.timelineStatus.active': '仅有效', // 仅有效信号筛选
   'decisionSignals.timelineStatus.all': '全部历史', // 全部历史筛选
-  'decisionSignals.timelineStockCode': '时间线股票代码', // 时间线股票代码标签
-  'decisionSignals.timelineStockPlaceholder': '例如 600519、HK00700、AAPL', // 时间线股票占位符
   'decisionSignals.timelineTitle': '股票信号时间线', // 时间线标题
   'decisionSignals.timelineTruncatedDescription': '仅展示最近 100 条信号，请缩小时间范围。', // 时间线截断说明
   'decisionSignals.timelineTruncatedTitle': '时间线已截断', // 时间线截断标题
@@ -649,7 +620,10 @@ const zh = {
   'history.sentiment': '情绪', // 情绪标签
   // kline.*
   'kline.error': 'K 线数据加载失败', // K 线加载失败提示
+  'kline.empty': '暂无 K 线数据', // 空态
   'kline.fullData': '全量数据', // 全量数据选项
+  'kline.meta.rows': '数据行数', // 数据条数
+  'kline.meta.source': 'K 线源', // K线来源
   'kline.info.amount': '成交额', // 成交额
   'kline.info.amplitude': '振幅', // 振幅
   'kline.info.high': '最高', // 最高价
@@ -660,7 +634,6 @@ const zh = {
   'kline.info.totalMarketCap': '总市值', // 总市值
   'kline.info.turnoverRate': '换手率', // 换手率
   'kline.info.volume': '成交量', // 成交量
-  'kline.loading': '正在加载 K 线数据', // K 线加载中文案
   'kline.noStockSelected': '请搜索并选择一只股票查看 K 线', // 未选择股票提示
   'kline.period.120m': '120 分', // 120 分钟周期
   'kline.period.15m': '15 分', // 15 分钟周期
@@ -673,8 +646,17 @@ const zh = {
   'kline.period.monthly': '月 K', // 月 K 周期
   'kline.period.weekly': '周 K', // 周 K 周期
   'kline.period.yearly': '年 K', // 年 K 周期
-  'kline.searchPlaceholder': '输入股票代码、名称、拼音或简拼', // K 线搜索框占位符
-  'kline.title': '个股 K 线', // K 线页面标题
+  'kline.source.eastmoney': '东方财富', // 数据源文案
+  'kline.source.local': '本地 StockDB', // 数据源文案
+  'kline.source.sina': '新浪财经', // 数据源文案
+  'kline.source.stocksdk': 'StockSDK', // 数据源文案
+  'kline.source.tencent': '腾讯财经', // 数据源文案
+  'kline.source.unknown': '未标注', // 未知数据源
+  'stockData.title': '本地行情数据视图', // 本地行情页面标题
+  'stockData.adjustment.label': '复权方式', // 复权方式选择器标签
+  'stockData.adjustment.none': '不复权', // 不复权选项
+  'stockData.adjustment.qfq': '前复权', // 前复权选项
+  'stockData.adjustment.hfq': '后复权', // 后复权选项
   'kline.tooltip.amount': '成交额', // tooltip 成交额
   'kline.tooltip.change': '涨跌幅', // tooltip 涨跌幅
   'kline.tooltip.close': '收盘', // tooltip 收盘价
@@ -682,7 +664,6 @@ const zh = {
   'kline.tooltip.dea': 'DEA', // tooltip DEA 指标
   'kline.tooltip.dif': 'DIF', // tooltip DIF 指标
   'kline.tooltip.high': '最高', // tooltip 最高价
-  'kline.tooltip.kline': 'K 线', // K 线 tooltip 标签
   'kline.tooltip.low': '最低', // tooltip 最低价
   'kline.tooltip.ma10': 'MA10', // tooltip MA10 均线
   'kline.tooltip.ma30': 'MA30', // tooltip MA30 均线
@@ -768,9 +749,6 @@ const zh = {
   'review.marketReviewCompletedWithReport': '大盘复盘任务已完成，结果如下：', // 大盘复盘完成含结果
   'review.marketReviewCompletedWithoutReport': '大盘复盘任务已完成，结果已生成并按配置推送。', // 大盘复盘完成无结果展示
   'review.marketReviewFailed': '大盘复盘执行失败。', // 大盘复盘失败提示
-  'review.marketReviewHistoryEmptyDescription': '运行大盘复盘后，这里会集中展示历史记录。', // 大盘复盘历史空状态描述
-  'review.marketReviewHistoryEmptyTitle': '暂无大盘复盘', // 大盘复盘历史空状态标题
-  'review.marketReviewHistoryTitle': '大盘复盘历史', // 大盘复盘历史标题
   'review.marketReviewInProgress': '大盘复盘进行中', // 大盘复盘进行中状态
   'review.marketReviewSubmitted': '大盘复盘已提交', // 大盘复盘已提交提示
   'review.marketReviewSubmittedWithRegion': '{message}；实际市场：{region}', // 大盘复盘提交含市场
@@ -779,7 +757,6 @@ const zh = {
   'review.marketReviewUnknownStatus': '大盘复盘状态异常', // 大盘复盘状态异常提示
   'review.notify': '推送通知', // 推送通知选项
   'review.pageTitle': '每日选股分析 - HRS', // 首页文档标题
-  'review.placeholder': '输入股票代码或名称，如 600519、贵州茅台、AAPL', // 股票输入框占位符
   'review.progressActive': '进行中', // 任务进行中状态
   'review.reanalyze': '重新分析', // 重新分析按钮
   'review.rerunMarketReview': '重新复盘', // 重新复盘按钮
@@ -863,6 +840,16 @@ const zh = {
   'settings.authTitle': '认证与登录保护', // 认证设置标题
   'settings.categoryNavDescription': '按模块整理系统设置与认证能力。', // 分类导航说明
   'settings.categoryNavTitle': '配置分类', // 配置分类标题
+  'settings.dataSourceSectionTitle': '统一数据源配置', // 数据源摘要卡片标题
+  'settings.dataSourceSectionDescription': '集中查看 StockDB 本地源状态，以及 K 线、基础信息、代码搜索三类统一能力的主源与回退策略。', // 数据源摘要卡片说明
+  'settings.dataSourceStatusLabel': '本地源状态', // 本地源状态标签
+  'settings.dataSourceBaseUrlLabel': '服务地址', // 本地源地址标签
+  'settings.dataSourcePrimarySourcesLabel': '主源策略', // 主源策略标签
+  'settings.dataSourceFallbackLabel': '自动回退', // 自动回退标签
+  'settings.dataSourceKlineLabel': 'K 线', // K 线能力标签
+  'settings.dataSourceStockInfoLabel': '基础信息', // 基础信息能力标签
+  'settings.dataSourceCodeSearchLabel': '代码搜索', // 代码搜索能力标签
+  'settings.dataSourceOpenStockData': '打开本地行情页', // 打开本地行情页按钮
   'settings.changePasswordConfirm': '确认新密码', // 确认新密码标签
   'settings.changePasswordConfirmPlaceholder': '再次输入新密码', // 确认新密码占位符
   'settings.changePasswordCurrent': '当前密码', // 当前密码标签
@@ -907,7 +894,6 @@ const zh = {
   'settings.desktopUpdateInstallingMessage': '正在重启并安装更新。', // 安装更新消息
   'settings.desktopUpdateMessage': '当前 {current}，最新 {latest}。{message}', // 更新状态消息
   'settings.desktopUpdateReleaseMessage': '可前往 GitHub Releases 下载更新。', // 发布页下载消息
-  'settings.diagnosticHintDesktop': '请查看并提供桌面端日志 desktop.log，同时补充 release 版本、Windows 版本和触发入口。', // 桌面端诊断提示
   'settings.diagnosticHintWeb': '请查看浏览器开发者工具控制台与后端日志，并补充 release 版本、浏览器版本和触发入口。', // Web 端诊断提示
   'settings.disableAlphaSift': '关闭选股', // 关闭选股按钮
   'settings.disableAuth': '关闭认证', // 关闭认证按钮
@@ -959,7 +945,6 @@ const zh = {
   'settings.helpNotes': '注意事项', // 注意事项标签
   'settings.helpPurpose': '用途', // 用途标签
   'settings.helpRelatedDocs': '相关文档', // 相关文档标签
-  'settings.helpTitleFallback': '配置说明', // 配置说明默认标题
   'settings.helpTooltip': '查看配置说明', // 查看配置说明提示
   'settings.helpValueNotes': '取值说明', // 取值说明标签
   'settings.importConfirmContinue': '继续导入', // 继续导入按钮
@@ -1007,7 +992,6 @@ const zh = {
   'settings.notificationTestTitle': '标题', // 通知测试标题标签
   'settings.notificationTestTitleValue': 'HRS 通知测试', // 通知测试标题值
   'settings.notificationTesting': '测试中...', // 测试中状态
-  'settings.openConfigItems': '查看配置项', // 查看配置项按钮
   'settings.pageDescription': '统一管理模型、数据源、通知、安全认证与导入能力。', // 设置页描述
   'settings.pageTitle': '系统设置', // 系统设置标题
   'settings.eyebrow': 'Settings', // 系统设置页眉标签
@@ -1179,7 +1163,6 @@ const zh = {
   'watchlist.noPendingAnalyze': '今天没有待分析的自选股。', // 无待分析自选股提示
   'watchlist.noStocksAnalyze': '请先添加自选股。', // 无自选股提示
   'watchlist.notAnalyzedToday': '今日未分析', // 今日未分析状态
-  'watchlist.pendingStatusLoading': '正在确认自选股今日状态，请稍后再提交仅未分析。', // 待分析状态加载中提示
   'watchlist.pendingStatusUnavailable': '自选股今日状态仍有未知项，请刷新后再提交仅未分析。', // 待分析状态不可用提示
   'watchlist.pendingToday': '今日待分析', // 今日待分析状态
   'watchlist.refresh': '刷新自选股', // 刷新自选股按钮
@@ -1207,8 +1190,4 @@ const zh = {
 export type UiTextKey = keyof typeof zh;
 
 export default zh;
-
-
-
-
 

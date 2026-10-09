@@ -12,22 +12,16 @@ const en: Record<UiTextKey, string> = {
   // ---- 第 1 类 全局 common ----
   'common.cancel': 'Cancel',
   'common.clear': 'Clear',
-  'common.clearing': 'Clearing',
   'common.close': 'Close',
   'common.closeDrawer': 'Close drawer',
   'common.confirm': 'OK',
   'common.copied': 'Copied!',
   'common.copy': 'Copy',
   'common.datetime.day': 'Day', // Calendar view granularity: day
-  'common.datetime.halfYear': 'Half year', // Calendar view granularity: half year
   'common.datetime.list': 'List', // Calendar view granularity: list
   'common.datetime.month': 'Month', // Calendar view granularity: month
-  'common.datetime.quarter': 'Quarter', // Calendar view granularity: quarter
   'common.datetime.today': 'Today', // Calendar back-to-today button
-  'common.datetime.tomorrow': 'Tomorrow', // Calendar adjacent day: tomorrow
   'common.datetime.week': 'Week', // Calendar view granularity: week
-  'common.datetime.year': 'Year', // Calendar view granularity: year
-  'common.datetime.yesterday': 'Yesterday', // Calendar adjacent day: yesterday
   'common.delete': 'Delete',
   'common.deleting': 'Deleting',
   'common.details': 'View details',
@@ -51,13 +45,11 @@ const en: Record<UiTextKey, string> = {
   // ---- 第 2 类 语言 language ----
   'language.chineseSimplified': 'Simplified Chinese',
   'language.chineseTraditional': 'Traditional Chinese',
-  'language.current': 'English',
   'language.english': 'English',
   'language.short.en': 'EN',
   'language.short.zh': '中',
   'language.short.zhHant': '繁',
   'language.toggle': 'Switch UI language',
-  'language.uiLanguage': 'UI language',
 
   // ---- 第 3 类 主题 theme ----
   'theme.themeMode.dark': 'Dark',
@@ -70,8 +62,6 @@ const en: Record<UiTextKey, string> = {
   'theme.sidebarTheme.settingTitle': 'Sidebar style',
   'theme.sidebarTheme.pill': 'Rounded (pill)',
   'theme.sidebarTheme.square': 'Square',
-  'theme.theme': 'Theme',
-  'theme.toggle': 'Toggle theme',
 
   // ---- 第 4 类 布局与菜单 layout ----
   // 布局直属 layout.*
@@ -85,7 +75,6 @@ const en: Record<UiTextKey, string> = {
   'layout.logoutMessage': 'Confirm logging out of the current session? After logging out, you will need to re-enter your password to log in.',
   'layout.logoutTitle': 'Log out',
   'layout.mainNav': 'Main navigation',
-  'layout.navMenu': 'Navigation',
   'layout.newChatMessage': 'New Ask update',
   'layout.openNav': 'Open navigation',
   // 头部操作区 layout.header.*
@@ -119,6 +108,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.home.description': 'Stock analysis and report workspace',
   'layout.nav.kline.title': 'K-Line',
   'layout.nav.kline.description': 'Stock K-line trends, technical indicators, and multi-period analysis',
+  'layout.nav.stockDataView.title': 'Stock Data View',
+  'layout.nav.stockDataView.description': 'Inspect individual stock quotes, K-line, and multi-period data view',
   'layout.nav.liveCalendar.title': 'Calendar',
   'layout.nav.liveCalendar.description': 'Calendar of macro, earnings, IPO, and event items',
   'layout.nav.liveNews.title': 'Newsflash',
@@ -187,8 +178,6 @@ const en: Record<UiTextKey, string> = {
   'component.LiveCalendar.calendarType.FE': 'Event', // event type: financial event
   'component.LiveCalendar.country': 'Country', // List view column header: country
   'component.LiveCalendar.drawer.actual': 'Actual', // detail drawer: actual value
-  'component.LiveCalendar.drawer.content': 'Content', // detail drawer: content section title
-  'component.LiveCalendar.drawer.economicData': 'Economic Data', // detail drawer: economic data section title
   'component.LiveCalendar.drawer.forecast': 'Forecast', // detail drawer: forecast value
   'component.LiveCalendar.drawer.previous': 'Previous', // detail drawer: previous value
   'component.LiveCalendar.drawer.source': 'Source', // detail drawer: source
@@ -363,9 +352,6 @@ const en: Record<UiTextKey, string> = {
   'auth.login.title': 'Login page',
   'auth.login.description': 'Admin login to access the quantitative decision workspace',
   'auth.login.adminLogin': 'Admin login',
-  'auth.login.adminPassword': 'Admin password',
-  'auth.login.confirmPassword': 'Confirm password',
-  'auth.login.confirmPasswordPlaceholder': 'Confirm the admin password',
   'auth.login.hidePassword': 'Hide password',
   'auth.login.loginDescription': 'A valid credential is required to access the HRS decision workspace.',
   'auth.login.loginFailed': 'Login failed',
@@ -376,12 +362,6 @@ const en: Record<UiTextKey, string> = {
   'auth.login.pageTitle': 'Login - HRS',
   'auth.login.passwordMismatch': 'The two passwords do not match',
   'auth.login.passwordRequired': 'Please enter your password',
-  'auth.login.setupDescription': 'Authentication is being enabled for the first time. Set an admin password for the workspace.',
-  'auth.login.setupFailed': 'Setup failed',
-  'auth.login.setupPasswordPlaceholder': 'Set a password with at least 6 characters',
-  'auth.login.setupSubmit': 'Finish setup and sign in',
-  'auth.login.setupSubmitting': 'Initializing...',
-  'auth.login.setupTitle': 'Set initial password',
   'auth.login.showPassword': 'Show password',
   'auth.login.username': 'Account',
   'auth.login.usernamePlaceholder': 'Enter account',
@@ -468,10 +448,7 @@ const en: Record<UiTextKey, string> = {
   'decisionSignals.invalidateConfirm': 'Mark this signal invalid? Invalidated signals are no longer shown as current active recommendations.',
   'decisionSignals.invalidated': 'Invalidated',
   'decisionSignals.invalidation': 'Invalidation',
-  'decisionSignals.latestButton': 'Query latest',
   'decisionSignals.latestDescription': 'Read the latest active signals for the current stock context.',
-  'decisionSignals.latestInput': 'Latest stock code',
-  'decisionSignals.latestPlaceholder': 'e.g. 600519, HK00700, AAPL',
   'decisionSignals.latestTitle': 'Latest signals by stock',
   'decisionSignals.market': 'Market',
   'decisionSignals.market.cn': 'A-shares',
@@ -494,8 +471,6 @@ const en: Record<UiTextKey, string> = {
   'decisionSignals.noOutcomes': 'No outcome results yet',
   'decisionSignals.noReviewedStatsDescription': 'AI signals may already exist, but no statistically reviewable outcome has been produced yet.',
   'decisionSignals.noReviewedStatsTitle': 'No reviewed samples yet',
-  'decisionSignals.noStatsDescription': 'After signal outcome evaluation runs, hit, miss, neutral, and unable counts appear here.',
-  'decisionSignals.noStatsTitle': 'No outcome stats yet',
   'decisionSignals.outcome.hit': 'Hit',
   'decisionSignals.outcome.miss': 'Miss',
   'decisionSignals.outcome.neutral': 'Neutral',
@@ -588,9 +563,7 @@ const en: Record<UiTextKey, string> = {
   'decisionSignals.stockContextEmpty': 'No current stock selected.',
   'decisionSignals.stockContextGuideDescription': 'Choose the current stock at the top of the page before viewing latest signals and the timeline.',
   'decisionSignals.stockContextGuideTitle': 'Choose a stock to view AI signals',
-  'decisionSignals.stockContextInput': 'Current stock',
   'decisionSignals.stockContextNoCandidates': 'No candidates available. You can enter a stock code or name directly.',
-  'decisionSignals.stockContextPlaceholder': 'Enter a stock code or name, e.g. 600519, Kweichow Moutai, AAPL',
   'decisionSignals.stockContextPopular': 'Popular candidates',
   'decisionSignals.stockContextRecent': 'Recent analyses',
   'decisionSignals.stockContextTitle': 'Current stock',
@@ -617,8 +590,6 @@ const en: Record<UiTextKey, string> = {
   'decisionSignals.timelineStatus': 'Timeline status',
   'decisionSignals.timelineStatus.active': 'Active only',
   'decisionSignals.timelineStatus.all': 'All history',
-  'decisionSignals.timelineStockCode': 'Timeline stock code',
-  'decisionSignals.timelineStockPlaceholder': 'e.g. 600519, HK00700, AAPL',
   'decisionSignals.timelineTitle': 'Stock signal timeline',
   'decisionSignals.timelineTruncatedDescription': 'Only the latest 100 signals are shown. Narrow the time range.',
   'decisionSignals.timelineTruncatedTitle': 'Timeline truncated',
@@ -649,7 +620,10 @@ const en: Record<UiTextKey, string> = {
   'history.sentiment': 'Sentiment',
   // kline.*
   'kline.error': 'Failed to load K-line data',
+  'kline.empty': 'No K-line data',
   'kline.fullData': 'Full Data',
+  'kline.meta.rows': 'Rows',
+  'kline.meta.source': 'K-line Source',
   'kline.info.amount': 'Amount',
   'kline.info.amplitude': 'Amplitude',
   'kline.info.high': 'High',
@@ -660,7 +634,6 @@ const en: Record<UiTextKey, string> = {
   'kline.info.totalMarketCap': 'Market Cap',
   'kline.info.turnoverRate': 'Turnover',
   'kline.info.volume': 'Volume',
-  'kline.loading': 'Loading K-line data',
   'kline.noStockSelected': 'Please search and select a stock to view K-line',
   'kline.period.120m': '120m',
   'kline.period.15m': '15m',
@@ -673,8 +646,17 @@ const en: Record<UiTextKey, string> = {
   'kline.period.monthly': 'Monthly',
   'kline.period.weekly': 'Weekly',
   'kline.period.yearly': 'Yearly',
-  'kline.searchPlaceholder': 'code / name/ pinyin / abbreviation',
-  'kline.title': 'Stock K-Line',
+  'kline.source.eastmoney': 'EastMoney',
+  'kline.source.local': 'Local StockDB',
+  'kline.source.sina': 'Sina Finance',
+  'kline.source.stocksdk': 'StockSDK',
+  'kline.source.tencent': 'Tencent Finance',
+  'kline.source.unknown': 'Unknown',
+  'stockData.title': 'Local market data view',
+  'stockData.adjustment.label': 'Adjustment',
+  'stockData.adjustment.none': 'None',
+  'stockData.adjustment.qfq': 'Forward',
+  'stockData.adjustment.hfq': 'Backward',
   'kline.tooltip.amount': 'Amount',
   'kline.tooltip.change': 'Change',
   'kline.tooltip.close': 'Close',
@@ -682,7 +664,6 @@ const en: Record<UiTextKey, string> = {
   'kline.tooltip.dea': 'DEA',
   'kline.tooltip.dif': 'DIF',
   'kline.tooltip.high': 'High',
-  'kline.tooltip.kline': 'K-Line',
   'kline.tooltip.low': 'Low',
   'kline.tooltip.ma10': 'MA10',
   'kline.tooltip.ma30': 'MA30',
@@ -768,9 +749,6 @@ const en: Record<UiTextKey, string> = {
   'review.marketReviewCompletedWithReport': 'Market review completed. Result:',
   'review.marketReviewCompletedWithoutReport': 'Market review completed. The result was generated and sent according to your configuration.',
   'review.marketReviewFailed': 'Market review failed.',
-  'review.marketReviewHistoryEmptyDescription': 'Market review records will appear here after you run one.',
-  'review.marketReviewHistoryEmptyTitle': 'No market reviews',
-  'review.marketReviewHistoryTitle': 'Market review history',
   'review.marketReviewInProgress': 'Market review in progress',
   'review.marketReviewSubmitted': 'Market review submitted',
   'review.marketReviewSubmittedWithRegion': '{message}; effective region: {region}',
@@ -779,7 +757,6 @@ const en: Record<UiTextKey, string> = {
   'review.marketReviewUnknownStatus': 'Unexpected market review status',
   'review.notify': 'Send notification',
   'review.pageTitle': 'HermesX - HRS',
-  'review.placeholder': 'Enter a stock code or name, e.g. 600519, Kweichow Moutai, AAPL',
   'review.progressActive': 'In progress',
   'review.reanalyze': 'Reanalyze',
   'review.rerunMarketReview': 'Rerun market review',
@@ -863,6 +840,16 @@ const en: Record<UiTextKey, string> = {
   'settings.authTitle': 'Authentication and login protection',
   'settings.categoryNavDescription': 'System settings and authentication capabilities grouped by module.',
   'settings.categoryNavTitle': 'Categories',
+  'settings.dataSourceSectionTitle': 'Unified data source settings',
+  'settings.dataSourceSectionDescription': 'Review the local StockDB status plus the primary-source and fallback strategy for K-line, stock info, and code search.',
+  'settings.dataSourceStatusLabel': 'Local source status',
+  'settings.dataSourceBaseUrlLabel': 'Service URL',
+  'settings.dataSourcePrimarySourcesLabel': 'Primary sources',
+  'settings.dataSourceFallbackLabel': 'Auto fallback',
+  'settings.dataSourceKlineLabel': 'K-line',
+  'settings.dataSourceStockInfoLabel': 'Stock info',
+  'settings.dataSourceCodeSearchLabel': 'Code search',
+  'settings.dataSourceOpenStockData': 'Open local market view',
   'settings.changePasswordConfirm': 'Confirm new password',
   'settings.changePasswordConfirmPlaceholder': 'Enter the new password again',
   'settings.changePasswordCurrent': 'Current password',
@@ -907,7 +894,6 @@ const en: Record<UiTextKey, string> = {
   'settings.desktopUpdateInstallingMessage': 'Restarting and installing the update.',
   'settings.desktopUpdateMessage': 'Current {current}, latest {latest}. {message}',
   'settings.desktopUpdateReleaseMessage': 'Open GitHub Releases to download the update.',
-  'settings.diagnosticHintDesktop': 'Check and provide the desktop log desktop.log, plus the release version, Windows version, and trigger path.',
   'settings.diagnosticHintWeb': 'Check the browser developer console and backend logs, and provide the release version, browser version, and trigger path.',
   'settings.disableAlphaSift': 'Disable screening',
   'settings.disableAuth': 'Disable authentication',
@@ -959,7 +945,6 @@ const en: Record<UiTextKey, string> = {
   'settings.helpNotes': 'Notes',
   'settings.helpPurpose': 'Usage',
   'settings.helpRelatedDocs': 'Related docs',
-  'settings.helpTitleFallback': 'Configuration help',
   'settings.helpTooltip': 'View configuration help',
   'settings.helpValueNotes': 'Values',
   'settings.importConfirmContinue': 'Continue import',
@@ -1007,7 +992,6 @@ const en: Record<UiTextKey, string> = {
   'settings.notificationTestTitle': 'Title',
   'settings.notificationTestTitleValue': 'HRS notification test',
   'settings.notificationTesting': 'Testing...',
-  'settings.openConfigItems': 'View fields',
   'settings.pageDescription': 'Manage models, data sources, notifications, security authentication, and import capabilities.',
   'settings.pageTitle': 'System settings',
   'settings.eyebrow': 'Settings', // System settings header eyebrow
@@ -1179,7 +1163,6 @@ const en: Record<UiTextKey, string> = {
   'watchlist.noPendingAnalyze': 'No watchlist stocks are pending today.',
   'watchlist.noStocksAnalyze': 'Add watchlist stocks first.',
   'watchlist.notAnalyzedToday': 'Not analyzed today',
-  'watchlist.pendingStatusLoading': 'Checking watchlist status. Submit pending stocks after it finishes.',
   'watchlist.pendingStatusUnavailable': 'Some watchlist today statuses are unknown. Refresh before submitting pending stocks.',
   'watchlist.pendingToday': 'Pending today',
   'watchlist.refresh': 'Refresh watchlist',
@@ -1205,8 +1188,4 @@ const en: Record<UiTextKey, string> = {
 };
 
 export default en;
-
-
-
-
 
