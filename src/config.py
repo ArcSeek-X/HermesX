@@ -752,13 +752,13 @@ def setup_env(override: bool = False):
 class Config:
     """
     系统配置类 - 单例模式
-    
+
     设计说明：
     - 使用 dataclass 简化配置属性定义
     - 所有配置项从环境变量读取，支持默认值
     - 类方法 get_instance() 实现单例访问
     """
-    
+
     # === 自选股配置 ===
     stock_list: List[str] = field(default_factory=list)
 
@@ -774,6 +774,27 @@ class Config:
     tickflow_priority: int = 2
     tickflow_batch_daily_enabled: bool = True
     tickflow_batch_size: int = 100
+    stockdb_enabled: bool = False
+    stockdb_base_url: str = "http://127.0.0.1:7899"
+    stockdb_timeout_ms: int = 5000
+    stockdb_max_rows: int = 5000
+    stockdb_cache_ttl_sec: int = 60
+    stockdb_cooldown_sec: int = 10
+    stocksdk_enabled: bool = False
+    stocksdk_node_bin: str = "node"
+    stocksdk_bridge_entry: str = "scripts/stocksdk_bridge/bridge.mjs"
+    stocksdk_timeout_ms: int = 8000
+    stocksdk_rate_limit_rps: int = 3
+    stocksdk_kline_fallback: bool = True
+    kline_data_source: str = "auto"
+    kline_fallback_enabled: bool = True
+    kline_source_priority: str = "local,sina,eastmoney,tencent,stocksdk"
+    stockinfo_data_source: str = "auto"
+    stockinfo_fallback_enabled: bool = True
+    stockinfo_source_priority: str = "local,eastmoney,tencent,stocksdk"
+    codesearch_data_source: str = "auto"
+    codesearch_fallback_enabled: bool = True
+    codesearch_source_priority: str = "local,eastmoney,stocksdk"
     finnhub_api_key: Optional[str] = None
     alphavantage_api_key: Optional[str] = None
     longbridge_app_key: Optional[str] = None
@@ -942,10 +963,10 @@ class Config:
     agent_event_alert_rules_json: str = ""  # JSON array of serialized EventMonitor rules
 
     # === 通知配置（可同时配置多个，全部推送）===
-    
+
     # 企业微信 Webhook
     wechat_webhook_url: Optional[str] = None
-    
+
     # 飞书 Webhook
     feishu_webhook_url: Optional[str] = None
     feishu_webhook_secret: Optional[str] = None  # 自定义机器人签名密钥（可选）
@@ -957,12 +978,12 @@ class Config:
     feishu_chat_id: Optional[str] = None  # 目标群会话 chat_id（群聊模式），或用户 open_id（P2P 模式）
     feishu_receive_id_type: str = "chat_id"  # 接收者 ID 类型: "chat_id"(群聊) / "open_id"(私聊)
     feishu_domain: str = "feishu"  # 飞书域名: "feishu"(feishu.cn) / "lark"(larksuite.com)
-    
+
     # Telegram 配置（需要同时配置 Bot Token 和 Chat ID）
     telegram_bot_token: Optional[str] = None  # Bot Token（@BotFather 获取）
     telegram_chat_id: Optional[str] = None  # Chat ID
     telegram_message_thread_id: Optional[str] = None  # Topic ID (Message Thread ID) for groups
-    
+
     # 邮件配置（只需邮箱和授权码，SMTP 自动识别）
     email_sender: Optional[str] = None  # 发件人邮箱
     email_sender_name: str = "HermesX股票分析助手"  # 发件人显示名称
@@ -984,7 +1005,7 @@ class Config:
     # Gotify 配置（server base URL；sender 会拼接 /message）
     gotify_url: Optional[str] = None
     gotify_token: Optional[str] = None
-    
+
     # 自定义 Webhook（支持多个，逗号分隔）
     # 适用于：钉钉、Discord、Slack、自建服务等任意支持 POST JSON 的 Webhook
     custom_webhook_urls: List[str] = field(default_factory=list)
@@ -1082,17 +1103,17 @@ class Config:
     backtest_min_age_days: int = 14
     backtest_engine_version: str = "v1"
     backtest_neutral_band_pct: float = 2.0
-    
+
     # === 日志配置 ===
     log_dir: str = "./logs"  # 日志文件目录
     log_level: str = "INFO"  # 日志级别
-    
+
     # === 系统配置 ===
     max_workers: int = 3  # 低并发防封禁
     debug: bool = False
     http_proxy: Optional[str] = None  # HTTP 代理 (例如: http://127.0.0.1:10809)
     https_proxy: Optional[str] = None # HTTPS 代理
-    
+
     # === 定时任务配置 ===
     schedule_enabled: bool = False            # 是否启用定时任务
     schedule_time: str = "18:00"              # 每日推送时间（HH:MM 格式）
@@ -1157,43 +1178,43 @@ class Config:
     # Akshare 请求间隔范围（秒）
     akshare_sleep_min: float = 2.0
     akshare_sleep_max: float = 5.0
-    
+
     # Tushare 每分钟最大请求数（免费配额）
     tushare_rate_limit_per_minute: int = 80
-    
+
     # 重试配置
     max_retries: int = 3
     retry_base_delay: float = 1.0
     retry_max_delay: float = 30.0
-    
+
     # === WebUI 配置 ===
     webui_enabled: bool = False
     webui_host: str = "127.0.0.1"
     webui_port: int = 8000
-    
+
     # === 机器人配置 ===
     bot_enabled: bool = True              # 是否启用机器人功能
     bot_command_prefix: str = "/"         # 命令前缀
     bot_rate_limit_requests: int = 10     # 频率限制：窗口内最大请求数
     bot_rate_limit_window: int = 60       # 频率限制：窗口时间（秒）
     bot_admin_users: List[str] = field(default_factory=list)  # 管理员用户 ID 列表
-    
+
     # 飞书机器人（事件订阅）- 已有 feishu_app_id, feishu_app_secret
     feishu_verification_token: Optional[str] = None  # 事件订阅验证 Token
     feishu_encrypt_key: Optional[str] = None         # 消息加密密钥（可选）
     feishu_stream_enabled: bool = False              # 是否启用 Stream 长连接模式（无需公网IP）
-    
+
     # 钉钉机器人
     dingtalk_app_key: Optional[str] = None      # 应用 AppKey
     dingtalk_app_secret: Optional[str] = None   # 应用 AppSecret
     dingtalk_stream_enabled: bool = False       # 是否启用 Stream 模式（无需公网IP）
-    
+
     # 企业微信机器人（回调模式）
     wecom_corpid: Optional[str] = None              # 企业 ID
     wecom_token: Optional[str] = None               # 回调 Token
     wecom_encoding_aes_key: Optional[str] = None    # 消息加解密密钥
     wecom_agent_id: Optional[str] = None            # 应用 AgentId
-    
+
     # Telegram 机器人 - 已有 telegram_bot_token, telegram_chat_id
     telegram_webhook_secret: Optional[str] = None   # Webhook 密钥
 
@@ -1214,6 +1235,27 @@ class Config:
             "SCHEDULE_TIME",
             "SCHEDULE_TIMES",
             "SCHEDULE_RUN_IMMEDIATELY",
+            "STOCKDB_ENABLED",
+            "STOCKDB_BASE_URL",
+            "STOCKDB_TIMEOUT_MS",
+            "STOCKDB_MAX_ROWS",
+            "STOCKDB_CACHE_TTL_SEC",
+            "STOCKDB_COOLDOWN_SEC",
+            "STOCKSDK_ENABLED",
+            "STOCKSDK_NODE_BIN",
+            "STOCKSDK_BRIDGE_ENTRY",
+            "STOCKSDK_TIMEOUT_MS",
+            "STOCKSDK_RATE_LIMIT_RPS",
+            "STOCKSDK_KLINE_FALLBACK",
+            "KLINE_DATA_SOURCE",
+            "KLINE_FALLBACK_ENABLED",
+            "KLINE_SOURCE_PRIORITY",
+            "STOCKINFO_DATA_SOURCE",
+            "STOCKINFO_FALLBACK_ENABLED",
+            "STOCKINFO_SOURCE_PRIORITY",
+            "CODESEARCH_DATA_SOURCE",
+            "CODESEARCH_FALLBACK_ENABLED",
+            "CODESEARCH_SOURCE_PRIORITY",
         }
     )
     _BOOTSTRAP_RUNTIME_ENV_OVERRIDES_CAPTURED = False
@@ -1255,13 +1297,13 @@ class Config:
 
     # 单例实例存储
     _instance: Optional['Config'] = None
-    
+
     @classmethod
     # 单例访问：返回（或首次创建）全局唯一的 Config 实例
     def get_instance(cls) -> 'Config':
         """
         获取配置单例实例
-        
+
         单例模式确保：
         1. 全局只有一个配置实例
         2. 配置只从环境变量加载一次
@@ -1270,13 +1312,13 @@ class Config:
         if cls._instance is None:
             cls._instance = cls._load_from_env()
         return cls._instance
-    
+
     @classmethod
     # 类方法：从环境变量构建 Config 实例（内部统一解析入口，调用各 _parse_*）
     def _load_from_env(cls) -> 'Config':
         """
         从 .env 文件加载配置
-        
+
         加载优先级：
         1. 大多数配置保持系统环境变量优先
         2. WebUI 可写的运行期关键键优先复用持久化 `.env`，但保留启动时显式进程环境变量的 override
@@ -1329,7 +1371,7 @@ class Config:
                 os.environ['HTTPS_PROXY'] = https_proxy
                 os.environ['https_proxy'] = https_proxy
 
-        
+
         # 解析自选股列表（逗号分隔，统一为大写 Issue #355）
         stock_list_str = cls._resolve_env_value(
             'STOCK_LIST',
@@ -1341,7 +1383,7 @@ class Config:
             for c in split_stock_list(stock_list_str)
             if (c or "").strip()
         ]
-        
+
         # === LiteLLM multi-key parsing ===
         # GEMINI_API_KEYS (comma-separated) > GEMINI_API_KEY (single)
         _gemini_keys_raw = os.getenv('GEMINI_API_KEYS', '')
@@ -1596,10 +1638,10 @@ class Config:
 
         minimax_keys_str = os.getenv('MINIMAX_API_KEYS', '')
         minimax_api_keys = [k.strip() for k in minimax_keys_str.split(',') if k.strip()]
-        
+
         tavily_keys_str = os.getenv('TAVILY_API_KEYS', '')
         tavily_api_keys = [k.strip() for k in tavily_keys_str.split(',') if k.strip()]
-        
+
         serpapi_keys_str = os.getenv('SERPAPI_API_KEYS', '')
         serpapi_keys = [k.strip() for k in serpapi_keys_str.split(',') if k.strip()]
 
@@ -1702,6 +1744,80 @@ class Config:
             tickflow_priority=parse_env_int(os.getenv('TICKFLOW_PRIORITY'), 2, field_name='TICKFLOW_PRIORITY', minimum=0),
             tickflow_batch_daily_enabled=parse_env_bool(os.getenv('TICKFLOW_BATCH_DAILY_ENABLED'), default=True),
             tickflow_batch_size=parse_env_int(os.getenv('TICKFLOW_BATCH_SIZE'), 100, field_name='TICKFLOW_BATCH_SIZE', minimum=1),
+            stockdb_enabled=parse_env_bool(os.getenv('STOCKDB_ENABLED'), default=False),
+            stockdb_base_url=(os.getenv('STOCKDB_BASE_URL') or 'http://127.0.0.1:7899').strip(),
+            stockdb_timeout_ms=parse_env_int(
+                os.getenv('STOCKDB_TIMEOUT_MS'),
+                5000,
+                field_name='STOCKDB_TIMEOUT_MS',
+                minimum=100,
+                maximum=60000,
+            ),
+            stockdb_max_rows=parse_env_int(
+                os.getenv('STOCKDB_MAX_ROWS'),
+                5000,
+                field_name='STOCKDB_MAX_ROWS',
+                minimum=100,
+                maximum=20000,
+            ),
+            stockdb_cache_ttl_sec=parse_env_int(
+                os.getenv('STOCKDB_CACHE_TTL_SEC'),
+                60,
+                field_name='STOCKDB_CACHE_TTL_SEC',
+                minimum=1,
+                maximum=86400,
+            ),
+            stockdb_cooldown_sec=parse_env_int(
+                os.getenv('STOCKDB_COOLDOWN_SEC'),
+                10,
+                field_name='STOCKDB_COOLDOWN_SEC',
+                minimum=1,
+                maximum=3600,
+            ),
+            stocksdk_enabled=parse_env_bool(os.getenv('STOCKSDK_ENABLED'), default=False),
+            stocksdk_node_bin=(os.getenv('STOCKSDK_NODE_BIN') or 'node').strip() or 'node',
+            stocksdk_bridge_entry=(
+                os.getenv('STOCKSDK_BRIDGE_ENTRY') or 'scripts/stocksdk_bridge/bridge.mjs'
+            ).strip() or 'scripts/stocksdk_bridge/bridge.mjs',
+            stocksdk_timeout_ms=parse_env_int(
+                os.getenv('STOCKSDK_TIMEOUT_MS'),
+                8000,
+                field_name='STOCKSDK_TIMEOUT_MS',
+                minimum=1000,
+                maximum=60000,
+            ),
+            stocksdk_rate_limit_rps=parse_env_int(
+                os.getenv('STOCKSDK_RATE_LIMIT_RPS'),
+                3,
+                field_name='STOCKSDK_RATE_LIMIT_RPS',
+                minimum=1,
+                maximum=20,
+            ),
+            stocksdk_kline_fallback=parse_env_bool(
+                os.getenv('STOCKSDK_KLINE_FALLBACK'),
+                default=True,
+            ),
+            kline_data_source=(os.getenv('KLINE_DATA_SOURCE') or 'auto').strip().lower(),
+            kline_fallback_enabled=parse_env_bool(os.getenv('KLINE_FALLBACK_ENABLED'), default=True),
+            kline_source_priority=(
+                os.getenv('KLINE_SOURCE_PRIORITY') or 'local,sina,eastmoney,tencent,stocksdk'
+            ).strip().lower(),
+            stockinfo_data_source=(os.getenv('STOCKINFO_DATA_SOURCE') or 'auto').strip().lower(),
+            stockinfo_fallback_enabled=parse_env_bool(
+                os.getenv('STOCKINFO_FALLBACK_ENABLED'),
+                default=True,
+            ),
+            stockinfo_source_priority=(
+                os.getenv('STOCKINFO_SOURCE_PRIORITY') or 'local,eastmoney,tencent,stocksdk'
+            ).strip().lower(),
+            codesearch_data_source=(os.getenv('CODESEARCH_DATA_SOURCE') or 'auto').strip().lower(),
+            codesearch_fallback_enabled=parse_env_bool(
+                os.getenv('CODESEARCH_FALLBACK_ENABLED'),
+                default=True,
+            ),
+            codesearch_source_priority=(
+                os.getenv('CODESEARCH_SOURCE_PRIORITY') or 'local,eastmoney,stocksdk'
+            ).strip().lower(),
             finnhub_api_key=os.getenv('FINNHUB_API_KEY') or None,
             alphavantage_api_key=os.getenv('ALPHAVANTAGE_API_KEY') or None,
             longbridge_app_key=os.getenv('LONGBRIDGE_APP_KEY') or None,
@@ -1979,7 +2095,7 @@ class Config:
             feishu_webhook_keyword=os.getenv('FEISHU_WEBHOOK_KEYWORD'),
             dingtalk_webhook_url=os.getenv('DINGTALK_WEBHOOK_URL'),
             dingtalk_secret=os.getenv('DINGTALK_SECRET'),
-            
+
 
             feishu_chat_id=os.getenv('FEISHU_CHAT_ID'),
             feishu_receive_id_type=os.getenv('FEISHU_RECEIVE_ID_TYPE', 'chat_id'),
@@ -2243,7 +2359,7 @@ class Config:
                 else os.getenv('ALPHASIFT_INSTALL_SPEC', '').strip()
             ),
         )
-    
+
     @classmethod
     # 解析标准 litellm_config.yaml 文件，转换为 LiteLLM Router 的 model_list
     def _parse_litellm_yaml(cls, config_path: str) -> List[Dict[str, Any]]:
@@ -2899,7 +3015,7 @@ class Config:
     def refresh_stock_list(self) -> None:
         """
         热读取 STOCK_LIST 环境变量并更新配置中的自选股列表
-        
+
         支持两种配置方式：
         1. .env 文件（本地开发、定时任务模式） - 修改后下次执行自动生效
         2. 系统环境变量（GitHub Actions、Docker） - 启动时固定，运行中不变
@@ -2925,7 +3041,7 @@ class Config:
         ]
 
         self.stock_list = stock_list
-    
+
     # 结构化校验：返回 ConfigIssue 列表（error / warning / info 分级）
     def validate_structured(self) -> List[ConfigIssue]:
         """Return structured validation issues with severity levels.
@@ -3537,12 +3653,12 @@ class Config:
             List of message strings, one per ConfigIssue.
         """
         return [issue.message for issue in self.validate_structured()]
-    
+
     # 拼接数据库连接 URL（DB_* 配置组合，含异步驱动前缀）
     def get_db_url(self) -> str:
         """
         获取 SQLAlchemy 数据库连接 URL
-        
+
         自动创建数据库目录（如果不存在）
         """
         db_path = Path(self.database_path)
@@ -3609,7 +3725,7 @@ if __name__ == "__main__":
     print(f"数据库路径: {config.database_path}")
     print(f"最大并发数: {config.max_workers}")
     print(f"调试模式: {config.debug}")
-    
+
     # 验证配置
     warnings = config.validate()
     if warnings:

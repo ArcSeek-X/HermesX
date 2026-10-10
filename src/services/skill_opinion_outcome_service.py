@@ -12,12 +12,11 @@ from src.core.skill_opinion_outcome_evaluator import (
     SkillOpinionOutcomeEvaluation,
     SkillOpinionOutcomeEvaluator,
 )
-from src.repositories.backtest_repo import BacktestRepository
+from src.repositories import BacktestRepository, StockRepository
 from src.repositories.skill_opinion_outcome_repo import (
     SkillOpinionOutcomeCandidate,
     SkillOpinionOutcomeRepository,
 )
-from src.repositories.stock_repo import StockRepository
 from src.services.stock_daily_start_resolver import resolve_stock_daily_start
 from src.services.stock_daily_window_resolver import resolve_stock_daily_window
 from src.storage import (

@@ -48,24 +48,18 @@ const StockKLinePage: React.FC = () => {
   const { t } = useUiLanguage();
   const { state: pageState, setState: setPageState } = usePageState();
 
-  /**
-   * 从输入框文本提取纯股票代码：
-   * - "中科曙光（603019.SH）" → "603019.SH"（去掉名称与全角括号）
-   * - 其余情况原样返回（兼容带市场前缀如 SH.603019）
-   */
-  const extractStockCode = useCallback((raw: string): string => {
-    const trimmed = raw.trim();
-    const match = trimmed.match(/.*[（](.+?)[）]$/);
-    if (match) return match[1].trim();
-    return trimmed.split('.').pop() || trimmed;
-  }, []);
-
   // L2 + L3 缓存：股票代码（sessionStorage 持久化，刷新页面后恢复）
   const [stockCode, setStockCode] = useCachedState<string>(
     'kline.stockCode',
     '',
     { storage: 'session' }
   );
+
+  // 本地输入缓冲（与 ShellHeader 一致）：仅用于 StockSearch 受控显示，不驱动数据加载。
+  // 数据加载只在 onSubmit 解析出规范代码后通过共享 stockCode 触发；
+  // 若把原始输入直接写回 stockCode，useEffect([stockCode]) 会在每次键入时
+  // 以未解析文本（如 "66"）触发 /info 与 /kline 请求而 404。
+  const [query, setQuery] = useState(stockCode);
 
   // L4 缓存：默认周期（localStorage 永久保存用户偏好）
   // 默认值为 '1m'（分时），用户搜索时优先使用分时图
@@ -82,6 +76,10 @@ const StockKLinePage: React.FC = () => {
   // 用 ref 保存最新 stockCode，解决闭包捕获旧值的问题
   const stockCodeRef = useRef(stockCode);
   stockCodeRef.current = stockCode;
+
+  // 已加载数据的股票代码：用于在 stockCode 变化时判断是否需重新拉取，
+  // 避免「PageStateStore 残留上一只股票信息」导致换股后 K 线不刷新
+  const loadedCodeRef = useRef<string | null>(null);
 
   // L2 缓存：股票信息和 K 线数据（PageStateStore，切换路由不丢失）
   const stockInfo = pageState.kline.stockInfo;
@@ -107,8 +105,6 @@ const StockKLinePage: React.FC = () => {
   // 分钟线最大加载上限（避免 ECharts 卡顿）
   const MINUTE_KLINE_MAX_LIMIT = 5000;
 
-  // 防止自动加载时重复触发
-  const autoLoadedRef = useRef(false);
   // 用于取消过期的请求（避免快速切换周期时旧请求覆盖新状态）
   const loadRequestRef = useRef(0);
   // 分页加载同步锁：useState 更新是异步的，拖动滑块连续触发 dataZoom 事件时
@@ -124,6 +120,7 @@ const StockKLinePage: React.FC = () => {
   /** 加载股票数据 */
   const loadStockData = useCallback(async (code: string, p: KLinePeriod, limit?: number) => {
     if (!code) return;
+    loadedCodeRef.current = code; // 记录本次已加载代码，供 stockCode 监听判断是否需重载
     const requestId = ++loadRequestRef.current;
     // 整体数据即将被替换，作废所有进行中的分页加载请求
     loadMoreRequestRef.current++;
@@ -174,7 +171,6 @@ const StockKLinePage: React.FC = () => {
       metadata?: { market?: Market; displayCode?: string; displayLabel?: string },
     ) => {
       const pureCode = code.split('.')[0].trim();
-      autoLoadedRef.current = false; // 手动搜索时重置自动加载标记
 
       // 缓存组件统一产出的展示标签（"名称（规范代码）"），仅用于返回本页时初始化显示
       if (metadata?.displayLabel) {
@@ -296,13 +292,20 @@ const StockKLinePage: React.FC = () => {
     }
   }, [klineData, setPageState]);
 
-  /** 组件挂载时：如果有缓存的股票代码，自动加载数据 */
+  /**
+   * 监听 stockCode：当代码变化（含从顶栏 ShellHeader 经 sessionStorage 跳转进入本页）且
+   * 当前已加载数据不属于该代码时，重新拉取 /info 与 /kline。
+   * 以 loadedCodeRef 比对已加载代码，取代原「!stockInfo 才加载」的门控——
+   * 原逻辑在 PageStateStore 残留上一只股票信息时会跳过自动加载，导致换股后 K 线不刷新。
+   * loadedCodeRef 在 loadStockData 开头同步赋值，故页内手动搜索（已直接调用 loadStockData）
+   * 不会在此处重复请求。
+   */
   useEffect(() => {
-    if (stockCode && !autoLoadedRef.current && !stockInfo) {
-      autoLoadedRef.current = true;
-      void loadStockData(stockCode, periodRef.current);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!stockCode) return;
+    if (loadedCodeRef.current === stockCode) return; // 已为该代码加载，避免与手动搜索重复请求
+    void loadStockData(stockCode, periodRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockCode]);
 
   return (
     <AppPage>
@@ -310,16 +313,17 @@ const StockKLinePage: React.FC = () => {
         {/* ===== 搜索框区（页面标题已由顶部 header 展示）===== */}
         <div className="max-w-md">
           <StockSearch
-            value={stockCode}
+            value={query}
             // 仅用于初始化显示：传入组件统一格式的展示标签（页面不自行拼接）
             displayValue={cachedDisplayValue || undefined}
             size="xl"
-            onChange={(raw) => {
-              // 编辑时从输入文本提取纯代码并更新（兼容"名称（代码）"展示格式）
-              setStockCode(extractStockCode(raw));
-            }}
+            // 实时输入只写入本地输入缓冲 query，不写回共享 stockCode：
+            // 否则 useEffect([stockCode]) 会在每次键入时以未解析的原始文本（如 "66"）
+            // 直接触发 /info 与 /kline 请求并返回 404。解析后的规范代码只在 onSubmit 写回。
+            onChange={setQuery}
             onSubmit={handleSearchSubmit}
             onClear={() => {
+              setQuery('');
               setStockCode('');
               setCachedDisplayValue('');
               try { sessionStorage.removeItem('hrs-state-kline.displayValue'); } catch { /* ignore */ }

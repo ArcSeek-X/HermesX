@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy import inspect
 
 from src.config import Config
-from src.repositories.decision_signal_repo import DecisionSignalRepository
+from src.repositories import DecisionSignalRepository
 from src.schemas.decision_profile import normalize_decision_profile_filter
 from src.storage import Base, DatabaseManager, DecisionSignalRecord, utc_naive_now
 

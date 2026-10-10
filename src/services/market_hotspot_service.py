@@ -16,8 +16,6 @@ from datetime import date
 import time
 from typing import Any, Callable, Dict, Hashable, List, Optional, Set, Tuple
 
-from data_provider import DataFetcherManager
-
 from src.schemas.market_structure import (
     MarketStructureDataQuality,
     MarketStructureSource,
@@ -28,6 +26,7 @@ from src.schemas.market_structure import (
     ThemeRankSource,
     dump_market_structure_model,
 )
+from data_provider.sector import base as sector_base
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +36,20 @@ DEFAULT_RANKING_CACHE_FAILURE_TTL_SECONDS = 30.0
 DEFAULT_RANKING_CACHE_SUCCESS_TTL_SECONDS = 60.0
 RANKING_FETCH_MAX_WORKERS = 2
 RANKING_FETCH_TIMEOUT_RETRY_DELAY_SECONDS = 0.2
+
+
+class _SectorRankingGateway:
+    """把板块能力包适配成热点服务可注入的轻量网关。"""
+
+    @staticmethod
+    def get_sector_rankings(limit: int):
+        result = sector_base.get_sector_rankings(limit)
+        return result.top_sectors, result.bottom_sectors
+
+    @staticmethod
+    def get_concept_rankings(limit: int):
+        result = sector_base.get_concept_rankings(limit)
+        return result.top_sectors, result.bottom_sectors
 
 
 class MarketHotspotService:
@@ -50,12 +63,12 @@ class MarketHotspotService:
 
     def __init__(
         self,
-        fetcher_manager: Optional[DataFetcherManager] = None,
+        fetcher_manager: Optional[Any] = None,
         ranking_fetch_timeout_seconds: Optional[float] = None,
         failure_cache_ttl_seconds: Optional[float] = None,
         success_cache_ttl_seconds: Optional[float] = None,
     ) -> None:
-        self.fetcher_manager = fetcher_manager or DataFetcherManager()
+        self.fetcher_manager = fetcher_manager or _SectorRankingGateway()
         self._ranking_fetch_timeout_seconds = ranking_fetch_timeout_seconds
         self._failure_cache_ttl_seconds = self._coerce_cache_ttl(
             DEFAULT_RANKING_CACHE_FAILURE_TTL_SECONDS

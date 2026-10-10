@@ -15,7 +15,7 @@ from unittest.mock import patch
 from src.config import Config, get_config
 from src.core.pipeline import StockAnalysisPipeline
 from src.market_analyzer import MarketAnalyzer, MarketIndex, MarketOverview
-from src.repositories.intelligence_repo import IntelligenceRepository
+from src.repositories import IntelligenceRepository
 from src.storage import DatabaseManager
 
 

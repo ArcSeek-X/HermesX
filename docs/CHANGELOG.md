@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [文档] 基于 StockSDK 官方文档补充 `backend_architecture_adr.md`：将 `StockSDK` 纳入数据源对接层规划，明确其作为 Node 18 桥接型物理后端的接入边界，并同步更新目录铺排、配置键、功能接口层约束、执行顺序与验证清单。
 - [新功能] 新增 `data_provider/stocksdk_bridge.py` 与 `scripts/stocksdk_bridge/bridge.mjs`，以 Node bridge 方式接入 `StockSDK`，并为 `kline`、`stock_info`、`code_search` 补齐 `stocksdk_source.py` 可选数据源。
 - [改进] 为 `market/index` 与 `market/sector-analysis` 补充 `data_provider/sector/stocksdk_source.py`：总览页优先使用 StockSDK 提供 A 股/港美指数、市场概览、北向资金与大盘主力；板块卡片与板块资金接口改为 StockSDK 优先、东财回退，云图仍保留时到量化专属源。
+- [改进] 总览页新增统一聚合接口 `GET /api/v1/sector/market-cards?market=a|hk-us|jp-kr`：后端按 TAB key 直接返回标准化卡片列表，前端 `StockDashboardPage` 改为单接口驱动，收敛原先 7 个并发请求与页面侧拼装逻辑。
 - [改进] 扩展数据源配置与设置页显示，补充 `STOCKSDK_*` 运行时配置、`stocksdk` 选源项与前端数据源标签映射。
 - [文档] 为 `scripts/stocksdk_bridge/` 补充目录级说明，明确 `stock-sdk` 依赖应保留在独立 bridge 子目录，而非 `scripts/` 根目录或 `apps/hrs-web` 前端工程中。
 - [文档] 更新消息日历方案文档 `docs/Live-calendar.md`：补充 `LiveCalendar` 的 `onRangeRequest + dataReadyKey` 范围握手、月视图 staged mount、自绘 List 视图职责，以及前后端按月缓存 / single-flight / 相邻月预取 / 降级保留上一帧数据等交互与性能设计说明；同步更新作者、最近更新时间与手动验证重点。

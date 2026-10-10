@@ -25,7 +25,7 @@ from src.agent.runtime_facts import (
 from src.agent.skills.skill_agent import SkillAgent
 from src.config import Config
 from src.core.pipeline import StockAnalysisPipeline
-from src.repositories.skill_opinion_sample_repo import SkillOpinionSampleRepository
+from src.repositories import SkillOpinionSampleRepository
 from src.services.skill_opinion_sample_service import (
     SKILL_OPINION_SAMPLE_SCHEMA_VERSION,
     SkillOpinionSampleService,

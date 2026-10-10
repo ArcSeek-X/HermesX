@@ -16,7 +16,7 @@ from src.repositories.decision_signal_repo import (
     DecisionSignalCreateResult,
     DecisionSignalRepository,
 )
-from src.repositories.portfolio_repo import PortfolioRepository
+from src.repositories import PortfolioRepository
 from src.report_language import normalize_report_language
 from src.schemas.decision_action import (
     DecisionAction,

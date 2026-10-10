@@ -15,8 +15,7 @@ from src.repositories.decision_signal_outcome_repo import (
     DecisionSignalOutcomeRepository,
     OutcomeStatsRow,
 )
-from src.repositories.decision_signal_repo import DecisionSignalRepository
-from src.repositories.stock_repo import StockRepository
+from src.repositories import DecisionSignalRepository, StockRepository
 from src.schemas.decision_profile import VALID_DECISION_PROFILES
 from src.services.decision_signal_data_quality import normalize_decision_signal_data_quality
 from src.services.decision_signal_service import (

@@ -146,7 +146,7 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 | 8  | `bond-channel`        | 债券     | `bond`           | 债券、利率、国债                    |
 
 > **顺序即前端 Tab 展示顺序**，与华尔街见闻站点频道栏一致，单一真源为
-> ``data_provider/wallstreetcn_live_news.py`` 的 ``LIVE_NEWS_CHANNELS``。
+> ``data_provider/wallstreetcn_live_news_fetcher.py`` 的 ``LIVE_NEWS_CHANNELS``。
 > 前端不硬编码频道，完全由 ``GET /live-news/channels`` 驱动。
 
 > **入参/落库映射规则**：上游入参带 `-channel` 后缀，落库 `scope_value` 存**去后缀短码**（`global` / `a-stock` / …），转换由 Fetcher 层统一处理。
@@ -166,7 +166,7 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 | 层                | 文件                                           | 职责                                                      | 本期改动                                    |
 | ---------------- | -------------------------------------------- | ------------------------------------------------------- | --------------------------------------- |
 | **配置层**          | `src/config.py` + `.env.example`             | 开关、阈值、上游地址                                              | 新增 `wscn_live_news_*` 系列配置              |
-| **Fetcher 层**    | `data_provider/wallstreetcn_live_news.py` 🆕 | 纯 HTTP：8 频道拉取、`polling_cursor` 增量、`next_cursor` 翻页、超时重试 | **全部新增**                                |
+| **Fetcher 层**    | `data_provider/wallstreetcn_live_news_fetcher.py` 🆕 | 纯 HTTP：8 频道拉取、`polling_cursor` 增量、`next_cursor` 翻页、超时重试 | **全部新增**                                |
 | **Service 层**    | `src/services/intelligence_service.py`       | 编排：**官方源 → 失败降级 NewsNow**；字段标准化；`importance` 计算         | **扩展**，新增 3 个方法                         |
 | **Repository 层** | `src/repositories/intelligence_repo.py`      | 落库与查询                                                   | **扩展**，新增按 channel / importance / 日期 查询 |
 | **Schema 层**     | `api/v1/schemas/intelligence.py`             | Pydantic 出入参模型                                          | **扩展**，新增 7 个模型                         |
@@ -885,7 +885,7 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 | 阶段                  | 内容                                              | 涉及文件                                                          | 状态     |
 | ------------------- | ----------------------------------------------- | ------------------------------------------------------------- | ------ |
 | **① 配置**            | 新增 `WSCN_LIVE_NEWS_*` 配置项与解析                    | `src/config.py`、`.env.example`                                | ✅ 已完成  |
-| **② Fetcher**       | 8 频道抓取 + cursor 增量 + 翻页 + 超时重试                  | `data_provider/wallstreetcn_live_news.py` 🆕                  | ✅ 已完成  |
+| **② Fetcher**       | 8 频道抓取 + cursor 增量 + 翻页 + 超时重试                  | `data_provider/wallstreetcn_live_news_fetcher.py` 🆕                  | ✅ 已完成  |
 | **③ Schema**        | 7 个 Pydantic 模型                                 | `api/v1/schemas/intelligence.py`                              | ✅ 已完成  |
 | **④ Service**       | 编排、降级、字段标准化（`importance` / 频道短码 / 秒毫秒换算）       | `src/services/intelligence_service.py`                        | ✅ 已完成  |
 | **⑤ Repository**    | 新增 `importance` 列 + 索引 + 迁移；按频道/重要级/日期查询       | `src/repositories/intelligence_repo.py`、`src/storage.py`      | ✅ 已完成  |
@@ -979,4 +979,3 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 - `symbols` 字段实测 **100 条中 0 条有值**，免费接口不返回关联标的
 
 > ⚠️ **个股关联提醒**：`symbols` 无值，若后续要做「快讯命中我的自选股」，只能靠**文本匹配股票名 / 代码**（如「比亚迪」→ `002594`）。该能力列为**后续可选增强**，不混入本期范围。
-

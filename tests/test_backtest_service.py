@@ -18,7 +18,7 @@ import pandas as pd
 
 from src.config import Config
 from src.core.backtest_engine import OVERALL_SENTINEL_CODE
-from src.repositories.backtest_repo import BacktestRepository
+from src.repositories import BacktestRepository
 from src.services.backtest_service import BacktestService
 from src.storage import AnalysisHistory, BacktestResult, BacktestSummary, DatabaseManager, StockDaily
 

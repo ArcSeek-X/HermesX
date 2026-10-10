@@ -17,8 +17,7 @@ from src.market_phase_summary import (
     extract_market_phase_summary,
     normalize_analysis_phase_bucket,
 )
-from src.repositories.backtest_repo import BacktestRepository
-from src.repositories.stock_repo import StockRepository
+from src.repositories import BacktestRepository, StockRepository
 from src.schemas.decision_action import build_action_fields
 from src.services.stock_code_utils import (
     normalize_code as normalize_backtest_code,

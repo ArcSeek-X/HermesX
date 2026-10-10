@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.config import Config
 from src.core.skill_opinion_outcome_evaluator import SkillOpinionOutcomeEvaluator
-from src.repositories.skill_opinion_outcome_repo import SkillOpinionOutcomeRepository
+from src.repositories import SkillOpinionOutcomeRepository
 from src.services.skill_opinion_outcome_service import (
     SKILL_OPINION_OUTCOME_ENGINE_VERSION,
     SkillOpinionOutcomeService,

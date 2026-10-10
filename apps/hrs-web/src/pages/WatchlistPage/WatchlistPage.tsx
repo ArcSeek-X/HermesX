@@ -6,6 +6,7 @@
 
 import { sortByOrder, sortByFieldDesc } from '@utils/sortFilter';
 import { useMemo, useState, useCallback } from 'react';
+import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { useWatchlistManager } from '../../hooks/useWatchlistManager';
 import { Modal, InlineToast, HrsButton, HrsInput, TextArea, HrsSelect, AnimCard } from '@components';
@@ -184,15 +185,22 @@ const WatchlistPage: React.FC = () => {
             </div>
           ) : (
             <div className="flex-1 min-h-0">
-              <WatchlistStockTable
-                items={visibleTableList}
-                isLoading={itemsLoading}
-                groups={groups}
-                onEditDescription={editItemDescription}
-                onDelete={removeItem}
-                onMove={moveItem}
-                pagination={pagination}
-              />
+              <motion.div
+                key={`${String(activeGroupId)}:${pageNum}:${sortKey}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                <WatchlistStockTable
+                  items={visibleTableList}
+                  isLoading={itemsLoading}
+                  groups={groups}
+                  onEditDescription={editItemDescription}
+                  onDelete={removeItem}
+                  onMove={moveItem}
+                  pagination={pagination}
+                />
+              </motion.div>
             </div>
           )}
         </AnimCard>

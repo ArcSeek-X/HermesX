@@ -369,7 +369,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 | **代码搜索**（code_search） | 无统一实现，散落 | 搜索框联想 | ✅ 本期（base + local + 复用） |
 | **板块/概念/涨跌停/热门**（sector） | `BaseFetcher.get_sector_rankings`…；`sector.py` 端点内联 17 个取数 | 板块页、热度 | ⏭ 阶段 3（独立 follow-up，含 §3.7 B1） |
 | **财务基本面**（fundamentals） | `fundamental_adapter` / `yfinance_fundamental_adapter` / `tushare` | 财报、估值 | ⏭ 阶段 3 |
-| **新闻 / 日历**（news / calendar） | `wallstreetcn_calendar` / `wallstreetcn_live_news` | 资讯 | ⏭ 阶段 3 |
+| **新闻 / 日历**（news / calendar） | `wallstreetcn_calendar_fetcher` / `wallstreetcn_live_news_fetcher` | 资讯 | ⏭ 阶段 3 |
 | **机构数据**（institutional） | `tw_institutional_fetcher` | 台股机构 | ⏭ 阶段 3 |
 
 > 结论：本期只需把**前 4 项**建成矩阵；后 4 项是既有散落实现的"归宿目标"，架构预留即可，不强行搬。

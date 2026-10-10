@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 from unittest.mock import patch
 
-from data_provider.wallstreetcn_live_news import (
+from data_provider.wallstreetcn_live_news_fetcher import (
     LiveNewsFetchError,
     WallstreetcnLiveNewsFetcher,
 )
@@ -31,7 +31,7 @@ from api.v1.endpoints.intelligence import (
 )
 from api.v1.schemas.intelligence import LiveNewsRefreshRequest
 from src.config import Config
-from src.repositories.intelligence_repo import IntelligenceRepository
+from src.repositories import IntelligenceRepository
 from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.storage import DatabaseManager
 

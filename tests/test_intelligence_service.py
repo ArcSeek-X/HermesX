@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch
 import requests
 
 from src.config import Config
-from src.repositories.intelligence_repo import IntelligenceRepository
+from src.repositories import IntelligenceRepository
 from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.storage import DatabaseManager, IntelligenceItem, INTELLIGENCE_ITEM_NULL_SCOPE_VALUE
 

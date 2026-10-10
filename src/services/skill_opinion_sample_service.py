@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 
 from src.agent.protocols import normalize_strategy_signal
 from src.agent.runtime_facts import SkillOpinionFact
-from src.repositories.skill_opinion_sample_repo import SkillOpinionSampleRepository
+from src.repositories import SkillOpinionSampleRepository
 from src.storage import DatabaseManager
 
 

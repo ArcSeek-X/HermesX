@@ -47,6 +47,46 @@ function formatNumber(value: number | undefined | null, decimals = 2): string {
   return value.toFixed(decimals);
 }
 
+/** 加载态骨架屏：表头 + 脉冲占位行，列结构与真实表格对齐，替代「加载中…」文本 */
+function WatchlistSkeleton({
+  columns,
+  rowCount = 6,
+}: {
+  columns: TableColumnDef<WatchlistItemWithQuote>[];
+  rowCount?: number;
+}) {
+  const cellBasis = (c: TableColumnDef<WatchlistItemWithQuote>) =>
+    typeof c.defaultWidth === 'number' ? `${c.defaultWidth}px` : c.defaultWidth;
+  return (
+    <div className="w-full rounded-md border border-subtle bg-card">
+      <div className="flex items-center border-b border-subtle bg-muted/30">
+        {columns.map((c) => (
+          <div
+            key={c.key}
+            className="px-3 py-2 text-xs font-medium text-muted"
+            style={{ flex: `0 0 ${cellBasis(c)}`, minWidth: c.minWidth }}
+          >
+            {c.title}
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: rowCount }).map((_, r) => (
+        <div key={r} className="flex items-center border-b border-subtle last:border-b-0">
+          {columns.map((c) => (
+            <div
+              key={c.key}
+              className="px-3 py-3"
+              style={{ flex: `0 0 ${cellBasis(c)}`, minWidth: c.minWidth }}
+            >
+              <div className="h-4 w-3/4 rounded bg-muted/40 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function WatchlistStockTable({
   items,
   isLoading,
@@ -234,14 +274,18 @@ export default function WatchlistStockTable({
 
   return (
     <div className="w-full" onContextMenu={handleContextMenu}>
-      {/* 自选股表格：列定义 + 行数据 + 分页 + 空状态由通用 Table 统一渲染 */}
-      <Table
-        columns={columns}
-        rows={items}
-        isLoading={isLoading}
-        pagination={pagination}
-        maxHeight="calc(100vh - 260px)"
-      />
+      {/* 加载态：骨架屏替代「加载中…」，与表格同构，切换分类 / 首屏更丝滑 */}
+      {isLoading && items.length === 0 ? (
+        <WatchlistSkeleton columns={columns} rowCount={pagination?.pageSize ?? 6} />
+      ) : (
+        <Table
+          columns={columns}
+          rows={items}
+          isLoading={isLoading}
+          pagination={pagination}
+          maxHeight="calc(100vh - 260px)"
+        />
+      )}
 
       {/* 右键上下文菜单：通过 Portal 渲染到 body，避免被表格 overflow 裁切 */}
       {ctxMenu && typeof document !== 'undefined'

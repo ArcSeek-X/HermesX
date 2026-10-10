@@ -7,8 +7,6 @@ import logging
 from datetime import date
 from typing import Any, Dict, List, Optional
 
-from data_provider import DataFetcherManager
-
 from src.schemas.market_structure import (
     MARKET_STRUCTURE_SCHEMA_VERSION,
     MARKET_THEME_SCHEMA_VERSION,
@@ -40,10 +38,10 @@ class MarketStructureService:
 
     def __init__(
         self,
-        fetcher_manager: Optional[DataFetcherManager] = None,
+        fetcher_manager: Optional[Any] = None,
         hotspot_service: Optional[MarketHotspotService] = None,
     ) -> None:
-        self.fetcher_manager = fetcher_manager or DataFetcherManager()
+        self.fetcher_manager = fetcher_manager
         self.hotspot_service = hotspot_service or MarketHotspotService(
             fetcher_manager=self.fetcher_manager,
         )

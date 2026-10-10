@@ -21,7 +21,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import select
 
 from src.config import Config
-from src.repositories.portfolio_repo import PortfolioBusyError, PortfolioRepository
+from src.repositories import PortfolioRepository
+from src.repositories.portfolio_repo import PortfolioBusyError
 from src.services.portfolio_service import _AvgState, PortfolioConflictError, PortfolioOversellError, PortfolioService
 from src.storage import DatabaseManager, PortfolioDailySnapshot, PortfolioPosition, PortfolioPositionLot, PortfolioTrade
 

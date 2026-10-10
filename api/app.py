@@ -219,6 +219,29 @@ def _schedule_stock_index_background_refresh(app: FastAPI, reason: str) -> None:
     )
 
 
+async def _warm_market_cards_cache_in_background() -> None:
+    """Warm the /market/index card cache so the first page hit is not cold."""
+    try:
+        from data_provider.sector.market_cards_source import warm_market_cards_cache
+
+        await run_in_threadpool(warm_market_cards_cache)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - warmup must stay best-effort.
+        logger.warning("[market-cards] background warmup failed: %s", exc)
+
+
+def _schedule_market_cards_warmup(app: FastAPI) -> None:
+    """Schedule startup warmup of the aggregated market card cache."""
+    task = getattr(app.state, "market_cards_warmup_task", None)
+    if task is not None and not task.done():
+        return
+
+    app.state.market_cards_warmup_task = asyncio.create_task(
+        _warm_market_cards_cache_in_background()
+    )
+
+
 def _load_runtime_scheduler_args() -> dict:
     raw_value = os.getenv(RUNTIME_SCHEDULER_ARGS_ENV)
     if not raw_value:
@@ -289,6 +312,7 @@ async def app_lifespan(app: FastAPI):
         runtime_scheduler=app.state.runtime_scheduler_service,
     )
     _schedule_stock_index_background_refresh(app, "startup")
+    _schedule_market_cards_warmup(app)
     try:
         yield
     finally:
@@ -297,6 +321,11 @@ async def app_lifespan(app: FastAPI):
             refresh_task.cancel()
             with suppress(asyncio.CancelledError):
                 await refresh_task
+        warmup_task = getattr(app.state, "market_cards_warmup_task", None)
+        if warmup_task is not None and not warmup_task.done():
+            warmup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await warmup_task
         if hasattr(app.state, "system_config_service"):
             delattr(app.state, "system_config_service")
         runtime_scheduler = getattr(app.state, "runtime_scheduler_service", None)

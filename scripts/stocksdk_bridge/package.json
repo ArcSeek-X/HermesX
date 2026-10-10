@@ -1,0 +1,13 @@
+{
+  "name": "hermesx-stocksdk-bridge",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "HermesX local bridge for the stock-sdk Node runtime",
+  "scripts": {
+    "bridge": "node bridge.mjs"
+  },
+  "dependencies": {
+    "stock-sdk": "^2.0.0"
+  }
+}

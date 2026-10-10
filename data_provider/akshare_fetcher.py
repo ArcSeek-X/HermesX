@@ -403,16 +403,21 @@ class AkshareFetcher(BaseFetcher):
     name = "AkshareFetcher"
     priority = int(os.getenv("AKSHARE_PRIORITY", "1"))
     
-    def __init__(self, sleep_min: float = 2.0, sleep_max: float = 5.0):
+    def __init__(self, sleep_min: float = 2.0, sleep_max: float = 5.0,
+                 realtime_sleep_min: float = 0.0, realtime_sleep_max: float = 0.3):
         """
         初始化 AkshareFetcher
         
         Args:
-            sleep_min: 最小休眠时间（秒）
-            sleep_max: 最大休眠时间（秒）
+            sleep_min: 最小休眠时间（秒，用于 K 线等全量爬取防封）
+            sleep_max: 最大休眠时间（秒，用于 K 线等全量爬取防封）
+            realtime_sleep_min: 实时行情（单股直连）最小休眠时间（秒），默认近乎 0
+            realtime_sleep_max: 实时行情（单股直连）最大休眠时间（秒），默认 0.3
         """
         self.sleep_min = sleep_min
         self.sleep_max = sleep_max
+        self.realtime_sleep_min = realtime_sleep_min
+        self.realtime_sleep_max = realtime_sleep_max
         self._last_request_time: Optional[float] = None
         self._history_call_timeout = _AKSHARE_HISTORY_CALL_TIMEOUT
         # 东财补丁开启才执行打补丁操作
@@ -454,6 +459,22 @@ class AkshareFetcher(BaseFetcher):
         
         # 执行随机 jitter 休眠
         self.random_sleep(self.sleep_min, self.sleep_max)
+        self._last_request_time = time.time()
+
+    def _enforce_realtime_rate_limit(self) -> None:
+        """
+        实时行情（单股直连腾讯/新浪）专用轻量限速。
+
+        与 `_enforce_rate_limit` 的区别：实时行情是单股轻量 HTTP 请求，
+        不需要默认 2~5s 的随机休眠（那会直接拖垮单股 quote 接口到秒级）。
+        这里用独立的短休眠参数（默认 0~0.3s）在防封与低延迟间取平衡。
+        """
+        if self._last_request_time is not None:
+            elapsed = time.time() - self._last_request_time
+            min_interval = self.realtime_sleep_min
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+        self.random_sleep(self.realtime_sleep_min, self.realtime_sleep_max)
         self._last_request_time = time.time()
     
     @retry(
@@ -1092,7 +1113,7 @@ class AkshareFetcher(BaseFetcher):
                 f"[API调用] 新浪财经接口获取 {stock_code} 实时行情: endpoint={SINA_REALTIME_ENDPOINT}, symbol={symbol}"
             )
             
-            self._enforce_rate_limit()
+            self._enforce_realtime_rate_limit()
             response = requests.get(url, headers=headers, timeout=10)
             response.encoding = 'gbk'
             api_elapsed = time.time() - api_start
@@ -1243,7 +1264,7 @@ class AkshareFetcher(BaseFetcher):
                 f"[API调用] 腾讯财经接口获取 {stock_code} 实时行情: endpoint={TENCENT_REALTIME_ENDPOINT}, symbol={symbol}"
             )
             
-            self._enforce_rate_limit()
+            self._enforce_realtime_rate_limit()
             response = requests.get(url, headers=headers, timeout=10)
             response.encoding = 'gbk'
             api_elapsed = time.time() - api_start

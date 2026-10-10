@@ -261,9 +261,9 @@ class EventMonitor:
         return None
 
     def _fetch_realtime_quote(self, stock_code: str) -> Any:
-        from data_provider import DataFetcherManager
+        from data_provider.realtime.base import get_realtime_quote
 
-        return DataFetcherManager().get_realtime_quote(stock_code)
+        return get_realtime_quote(stock_code)
 
     async def _get_realtime_quote(self, stock_code: str) -> Any:
         return await asyncio.to_thread(self._fetch_realtime_quote, stock_code)
@@ -336,10 +336,9 @@ class EventMonitor:
         """Check volume spike against recent average."""
         try:
             def _fetch_daily_data():
-                from data_provider import DataFetcherManager
+                from src.services.history_loader import load_history_df
 
-                fm = DataFetcherManager()
-                return fm.get_daily_data(rule.stock_code, days=20)
+                return load_history_df(rule.stock_code, days=20)
 
             result = await asyncio.to_thread(_fetch_daily_data)
             # get_daily_data returns (df, source) tuple or None

@@ -83,7 +83,7 @@
 
 | 能力       | 位置                                       | 状态                          |
 | -------- | ---------------------------------------- | --------------------------- |
-| 日历抓取器    | `data_provider/wallstreetcn_calendar.py` | ✅ 已实现（HTTP + 解析，注入安全请求）       |
+| 日历抓取器    | `data_provider/wallstreetcn_calendar_fetcher.py` | ✅ 已实现（HTTP + 解析，注入安全请求）       |
 | 日历服务层    | `src/services/intelligence_service.py`    | ✅ 已实现（打标 / 落库 / 聚合 / 过滤 / 惰性拉取） |
 | 日历仓储层    | `src/repositories/intelligence_repo.py`  | ✅ 已实现（复用 `intelligence_items`）    |
 | 日历 API   | `api/v1/endpoints/intelligence.py`        | ✅ 已注册 `/api/v1/intelligence/live-calendar/*` |
@@ -223,7 +223,7 @@
 
 ### 3.1 各层职责边界
 
-- **`data_provider/wallstreetcn_calendar.py`**：仅做 HTTP 与解析，定义 `CalendarCountryEntry` / `CalendarEventEntry` 中间结构；不含分类、落库、降级、SSRF 校验。
+- **`data_provider/wallstreetcn_calendar_fetcher.py`**：仅做 HTTP 与解析，定义 `CalendarCountryEntry` / `CalendarEventEntry` 中间结构；不含分类、落库、降级、SSRF 校验。
 - **`src/services/intelligence_service.py`（日历段落）**：打标规则、落库行展开、聚合去重、过滤、惰性抓取、精简标题、国家字典进程内缓存 TTL。
 - **`src/repositories/intelligence_repo.py`**：`list_calendar_events` 按 `scope_type='calendar'` + 时间闭区间查询；写入复用 `upsert_items`。
 - **`api/v1/endpoints/intelligence.py`**：路由编排，错误统一收敛为 500 `ErrorResponse`。
@@ -242,7 +242,7 @@
 
 ```mermaid
 flowchart TD
-    WSCN["华尔街见闻日历 API\n(macrodatas / countries)"] -->|HTTP GET| F["wallstreetcn_calendar.py\n(Fetcher: 解析/校验)"]
+    WSCN["华尔街见闻日历 API\n(macrodatas / countries)"] -->|HTTP GET| F["wallstreetcn_calendar_fetcher.py\n(Fetcher: 解析/校验)"]
     F -->|CalendarEventEntry 列表| S["IntelligenceService\n(打标/落库行展开)"]
     S -->|upsert 去重| R["intelligence_repo.py\n(list_calendar_events / upsert_items)"]
     R -->|读写| DB[("intelligence_items 表\nscope_type='calendar'")]
@@ -794,7 +794,7 @@ type LiveCalendarRangeRequest = {
 ### 14.3 回滚
 
 - 配置层：将 `WALLSTREETCN_CALENDAR_ENABLED=false` 即可关闭日历能力，所有接口返回空且不抓取，无需代码回滚。
-- 代码层：日历逻辑集中在 `data_provider/wallstreetcn_calendar.py` 与 `intelligence_service.py` 日历段落，复用现有 `intelligence_items` 表，回滚不影响快讯 / 通用资讯。
+- 代码层：日历逻辑集中在 `data_provider/wallstreetcn_calendar_fetcher.py` 与 `intelligence_service.py` 日历段落，复用现有 `intelligence_items` 表，回滚不影响快讯 / 通用资讯。
 - 前端层：页面与组件独立，移除 `live-calendar` 菜单项即下线入口，不影响其它模块。
 
 ***
@@ -821,7 +821,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-> 本文档与 `data_provider/wallstreetcn_calendar.py`、`src/services/intelligence_service.py`（日历段落）、`src/repositories/intelligence_repo.py`、`api/v1/endpoints/intelligence.py`、`api/v1/schemas/intelligence.py` 及 `apps/hrs-web` 日历前端保持同步；任何契约变更须同步更新本章节。
+> 本文档与 `data_provider/wallstreetcn_calendar_fetcher.py`、`src/services/intelligence_service.py`（日历段落）、`src/repositories/intelligence_repo.py`、`api/v1/endpoints/intelligence.py`、`api/v1/schemas/intelligence.py` 及 `apps/hrs-web` 日历前端保持同步；任何契约变更须同步更新本章节。
 
 ***
 
@@ -846,7 +846,7 @@ type LiveCalendarRangeRequest = {
 
 > 以下为与 §2~§9 契约一一对应的**关键实现片段**（非整文件）。完整实现以源码为准。
 
-### 18.1 抓取器 `data_provider/wallstreetcn_calendar.py`
+### 18.1 抓取器 `data_provider/wallstreetcn_calendar_fetcher.py`
 
 仅负责 HTTP 与解析，定义 `CalendarEventEntry` 中间结构；不含分类 / 落库 / SSRF 校验。
 

@@ -38,6 +38,7 @@ class KLineResponse(BaseModel):
     period: str = Field(..., description="K 线周期")
     secid: str = Field(..., description="东方财富 secid")
     prev_close: Optional[float] = Field(None, description="昨收价（分时图用于计算涨跌幅百分比）")
+    source: Optional[str] = Field(None, description="实际命中的数据源标识")
     data: List[KLinePoint] = Field(..., description="K 线数据列表")
 
 
@@ -75,3 +76,4 @@ class StockInfoResponse(BaseModel):
     pe_ratio_ttm: Optional[float] = Field(None, description="市盈率（TTM）")
     total_market_cap: Optional[float] = Field(None, description="总市值（元）")
     update_time: Optional[str] = Field(None, description="更新时间")
+    source: Optional[str] = Field(None, description="实际命中的数据源标识")

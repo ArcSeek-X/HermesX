@@ -290,6 +290,73 @@ export async function fetchMarketFundFlow(): Promise<MarketFundFlowData> {
   return response.data;
 }
 
+/** 总览页市场 TAB key，与后端 market-cards 入参保持一致 */
+export type MarketTabKey = 'a' | 'hk-us' | 'jp-kr';
+
+export type IndexQuoteMarketCard = {
+  cardType: 'index_quote';
+  cardKey: string;
+  payload: MarketIndexItem;
+};
+
+export type MarketBreadthCardItem = {
+  cardType: 'market_breadth';
+  cardKey: string;
+  payload: Pick<MarketOverviewData, 'riseCount' | 'fallCount' | 'flatCount'>;
+};
+
+export type LimitUpDownCardItem = {
+  cardType: 'limit_up_down';
+  cardKey: string;
+  payload: Pick<MarketOverviewData, 'limitUpCount' | 'limitDownCount'>;
+};
+
+export type TotalAmountCardItem = {
+  cardType: 'total_amount';
+  cardKey: string;
+  payload: Pick<MarketOverviewData, 'totalAmount'>;
+};
+
+export type NorthboundFlowCardItem = {
+  cardType: 'northbound_flow';
+  cardKey: string;
+  payload: NorthboundFlowData | null;
+};
+
+export type MainFlowCardItem = {
+  cardType: 'main_flow';
+  cardKey: string;
+  payload: MarketFundFlowData | null;
+};
+
+export type StrongestBoardCardItem = {
+  cardType: 'strongest_board';
+  cardKey: string;
+  payload: BoardListItem | null;
+};
+
+export type MarketCardItem =
+  | IndexQuoteMarketCard
+  | MarketBreadthCardItem
+  | LimitUpDownCardItem
+  | TotalAmountCardItem
+  | NorthboundFlowCardItem
+  | MainFlowCardItem
+  | StrongestBoardCardItem;
+
+export type MarketCardsResponse = {
+  market: MarketTabKey;
+  cards: MarketCardItem[];
+};
+
+/** 获取总览页统一卡片列表（按 market TAB key） */
+export async function fetchMarketCards(market: MarketTabKey): Promise<MarketCardsResponse> {
+  const response = await apiClient.get('/api/v1/sector/market-cards', {
+    params: { market },
+  });
+  return response.data;
+}
+
 /** 板块资金流历史 - 单个板块序列 */
 export type SectorFundFlowSeries = {
   code: string;
@@ -344,4 +411,3 @@ export async function fetchSectorFundFlowSectorList(
   // 同上：多选下拉用 code 作 key，需保证唯一
   return dedupeByCode(response.data?.sectors);
 }
-

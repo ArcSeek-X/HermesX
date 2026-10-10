@@ -51,16 +51,14 @@ import requests
 from sqlalchemy.exc import IntegrityError
 
 from src.config import Config, get_config
-from src.repositories.intelligence_repo import IntelligenceRepository
+from src.repositories import IntelligenceRepository
 from src.storage import IntelligenceSource, INTELLIGENCE_ITEM_NULL_SCOPE_VALUE
 from src.services.run_diagnostics import sanitize_diagnostic_text
-from data_provider.wallstreetcn_live_news import (
-    LiveNewsFetchError,
-    WallstreetcnLiveNewsFetcher,
-)
-from data_provider.wallstreetcn_calendar import (
+from data_provider.news.base import NewsRequest
+from data_provider.news.wallstreetcn_source import (
     CalendarFetchError,
-    WallstreetcnCalendarFetcher,
+    LiveNewsFetchError,
+    WallstreetcnNewsSource,
 )
 
 logger = logging.getLogger(__name__)
@@ -1117,7 +1115,7 @@ class IntelligenceService:
         正常模式返回全部 8 个频道；降级模式只返回「要闻」，并置 ``degraded=True``，
         前端据此隐藏「只看重要的」开关（降级源无重要级）并展示降级提示。
         """
-        channels = WallstreetcnLiveNewsFetcher.list_channels()
+        channels = WallstreetcnNewsSource.list_live_news_channels()
         with type(self)._live_news_state_lock:
             degraded = bool(type(self)._live_news_degraded)
             source = str(type(self)._live_news_source)
@@ -1157,9 +1155,9 @@ class IntelligenceService:
         Raises:
             IntelligenceServiceError: 频道非法、游标格式错误或参数越界。
         """
-        if not WallstreetcnLiveNewsFetcher.is_known_channel(channel):
+        if not WallstreetcnNewsSource.is_known_live_news_channel(channel):
             raise IntelligenceServiceError(f"unsupported live news channel: {channel}")
-        scope_value = WallstreetcnLiveNewsFetcher.to_scope_value(channel)
+        scope_value = WallstreetcnNewsSource.live_news_scope_value(channel)
         # 阈值按统一业务量纲判定（3=重要）；与快讯 importance 归一化改造同步上调，
         # 保证「重要」判定结果与改造前完全一致（详见 docs/Live-calendar.md §5.7.5）
         threshold = max(1, self._config_int("wscn_live_news_important_score", self.IMPORTANT_THRESHOLD))
@@ -1212,7 +1210,7 @@ class IntelligenceService:
         if not getattr(self.config, "wscn_live_news_enabled", True):
             return {"fetched_count": 0, "degraded": False, "errors": [], "skipped": True, "reason": "disabled"}
 
-        all_channels = WallstreetcnLiveNewsFetcher.list_channels()
+        all_channels = WallstreetcnNewsSource.list_live_news_channels()
         if channels:
             selected = [item for item in all_channels if item["channel_id"] in set(channels)]
             if not selected:
@@ -1278,7 +1276,7 @@ class IntelligenceService:
         Args:
             channel: 频道 ID；非法频道直接跳过，不抛异常（不因刷新影响查询主流程）。
         """
-        if not WallstreetcnLiveNewsFetcher.is_known_channel(channel):
+        if not WallstreetcnNewsSource.is_known_live_news_channel(channel):
             return
         if not getattr(self.config, "wscn_live_news_enabled", True):
             return
@@ -1289,7 +1287,7 @@ class IntelligenceService:
             # 0 表示关闭自动抓取，仅保留手动刷新入口
             return
 
-        scope_value = WallstreetcnLiveNewsFetcher.to_scope_value(channel)
+        scope_value = WallstreetcnNewsSource.live_news_scope_value(channel)
         try:
             has_data = self.repo.count_live_news_items(scope_value=scope_value) > 0
         except Exception as exc:  # noqa: BLE001 - 探测失败按「无数据」处理，允许走抓取分支
@@ -1367,19 +1365,13 @@ class IntelligenceService:
         Raises:
             IntelligenceServiceError: URL 非法或抓取失败。
         """
-        fetcher = WallstreetcnLiveNewsFetcher(
-            base_url=getattr(self.config, "wscn_live_news_base_url", "https://api-one.wallstcn.com"),
-            timeout=getattr(self.config, "wscn_live_news_timeout_sec", 8.0),
-            # 复用服务层带 DNS 复检的安全请求实现，防止 SSRF / DNS rebinding
-            request_get=self._get_with_validated_dns,
-        )
-        url = fetcher.build_url(channel_id, limit=limit)
-        self._validate_url(url)
+        source = self._news_source()
+        self._validate_url(source.build_live_news_url(channel_id, limit=limit))
         try:
-            entries, _next_cursor, _polling_cursor = fetcher.fetch_channel(channel_id, limit=limit)
+            result = source.fetch(NewsRequest(mode="live", channel_id=channel_id, limit=limit))
         except LiveNewsFetchError as exc:
             raise IntelligenceServiceError(str(exc)) from exc
-        return entries
+        return list(result.items) if result else []
 
     def _fetch_live_news_from_newsnow(self, now: datetime) -> List[Dict[str, Any]]:
         """从 NewsNow 兜底源抓取快讯并转成待入库字段。
@@ -1642,12 +1634,12 @@ class IntelligenceService:
                 if (now - cached_at).total_seconds() < ttl:
                     return {"items": list(self._calendar_countries_cache), "degraded": False}
 
-        fetcher = self._calendar_fetcher()
         try:
-            countries = fetcher.fetch_countries()
+            result = self._news_source().fetch(NewsRequest(mode="calendar_countries"))
         except CalendarFetchError as exc:  # noqa: BLE001
             logger.warning("Calendar countries fetch failed: %s", exc)
             return {"items": [], "degraded": True}
+        countries = list(result.items) if result else []
 
         items = [
             {
@@ -1678,15 +1670,18 @@ class IntelligenceService:
             return {"fetched_count": 0, "degraded": True, "errors": ["calendar disabled"]}
 
         start_dt, end_dt = self._month_utc_range(year, month)
-        fetcher = self._calendar_fetcher()
         try:
-            entries = fetcher.fetch_range(
-                int(start_dt.replace(tzinfo=timezone.utc).timestamp()),
-                int(end_dt.replace(tzinfo=timezone.utc).timestamp()),
+            result = self._news_source().fetch(
+                NewsRequest(
+                    mode="calendar",
+                    start_ts=int(start_dt.replace(tzinfo=timezone.utc).timestamp()),
+                    end_ts=int(end_dt.replace(tzinfo=timezone.utc).timestamp()),
+                )
             )
         except CalendarFetchError as exc:  # noqa: BLE001
             logger.warning("Calendar fetch failed for %04d-%02d: %s", year, month, exc)
             return {"fetched_count": 0, "degraded": True, "errors": [str(exc)]}
+        entries = list(result.items) if result else []
 
         rows: List[Dict[str, Any]] = []
         for entry in entries:
@@ -1756,14 +1751,14 @@ class IntelligenceService:
         """日历能力总开关。"""
         return bool(getattr(self.config, "wallstreetcn_calendar_enabled", True))
 
-    def _calendar_fetcher(self) -> WallstreetcnCalendarFetcher:
-        """创建日历抓取器（注入带 DNS 复检的安全请求实现，防 SSRF）。"""
-        return WallstreetcnCalendarFetcher(
-            base_url=getattr(
-                self.config, "wallstreetcn_calendar_base_url", "https://api-one-wscn.awtmt.com"
-            ),
-            timeout=getattr(self.config, "wallstreetcn_calendar_timeout", 8.0),
+    def _news_source(self) -> WallstreetcnNewsSource:
+        """创建统一资讯 source（注入安全请求实现，收口到 data_provider/news）。"""
+        return WallstreetcnNewsSource(
             request_get=self._get_with_validated_dns,
+            live_base_url=getattr(self.config, "wscn_live_news_base_url", "https://api-one.wallstcn.com"),
+            live_timeout=getattr(self.config, "wscn_live_news_timeout_sec", 8.0),
+            calendar_base_url=getattr(self.config, "wallstreetcn_calendar_base_url", "https://api-one-wscn.awtmt.com"),
+            calendar_timeout=getattr(self.config, "wallstreetcn_calendar_timeout", 8.0),
         )
 
     @classmethod
@@ -1862,7 +1857,7 @@ class IntelligenceService:
             grouped.setdefault(row.url, []).append(row)
 
         events: List[Dict[str, Any]] = []
-        for url, group in grouped.items():
+        for _, group in grouped.items():
             row = group[0]
             raw = self._parse_raw_payload(row.raw_payload)
             scope_values = [str(g.scope_value) for g in group]

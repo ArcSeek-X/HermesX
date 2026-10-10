@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional, Sequence, Tuple
 
-from src.repositories.stock_repo import StockRepository
+from src.repositories import StockRepository
 from src.storage import StockDaily
 
 

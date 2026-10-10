@@ -38,6 +38,7 @@ export interface KLineResponse {
   stock_code?: string;
   stock_name?: string;
   prev_close: number | null;
+  source?: string | null;
   data: KLinePoint[];
   count?: number;
   has_more?: boolean;
@@ -62,6 +63,7 @@ export interface StockInfo {
   amplitude: number | null;
   pe_ratio_ttm: number | null;
   total_market_cap: number | null;
+  source?: string | null;
 }
 
 /** 搜索接口单条结果 */
@@ -85,15 +87,17 @@ export const klineApi = {
    * @param period K 线周期
    * @param limit 返回条数；全量模式由调用方传入 10000
    * @param beforeDate 分页游标（可选），传上一页第一条 K 线日期以向前翻页
+   * @param fqt 复权模式：0=不复权，1=前复权，2=后复权
    */
   async fetchKLine(
     code: string,
     period: KLinePeriod = 'daily',
     limit = 500,
     beforeDate: string | null = null,
+    fqt = 1,
   ): Promise<KLineResponse> {
     const resp = await apiClient.get<KLineResponse>(`/api/v1/kline/${code}/kline`, {
-      params: { period, fqt: 1, limit, before_date: beforeDate || undefined },
+      params: { period, fqt, limit, before_date: beforeDate || undefined },
     });
     return resp.data;
   },

@@ -24,7 +24,7 @@
   - [2.1 四层架构总览（职责划分）](#21-四层架构总览职责划分)
   - [2.2 data_provider 为唯一脏活层（数据源下沉）](#22-data_provider-为唯一脏活层数据源下沉)
   - [2.3 三类基础能力同构、多源可切换](#23-三类基础能力同构多源可切换)
-  - [2.4 统一数据契约 + 四源平等 + 自动回退 + 周期全集](#24-统一数据契约--四源平等--自动回退--周期全集)
+  - [2.4 统一数据契约 + 多源平等 + 自动回退 + 周期全集](#24-统一数据契约--多源平等--自动回退--周期全集)
   - [2.5 UI 配置页复用运行时改配置基建](#25-ui-配置页复用运行时改配置基建)
   - [2.6 kline.py 瘦身为瘦端点](#26-klinepy-瘦身为瘦端点)
   - [2.7 设计前提：未上线、无历史包袱、按正确做法](#27-设计前提未上线无历史包袱按正确做法)
@@ -69,7 +69,7 @@
 2. **数据源对接层已存在但不覆盖 K 线**：`data_provider/` 已有 15+ 个 fetcher（东方财富 `efinance`、新浪 `akshare`、腾讯 `tencent`、tushare、pytdx、baostock…）与 `DataFetcherManager`（能力过滤 + 优先级 + 健康度故障转移），但**只覆盖日线 + 技术指标**，无多周期 K 线（1m~yearly + fqt）与代码搜索能力。
 3. **本地 StockDB 未接入**：本地已建 StockDB 服务（`127.0.0.1:7899`，实测含 `日k` / `分钟k` 原生表），但尚未接入任何 HermesX 取数路径。
 4. **基础能力散落**：基础信息（股票名 / 行业 / 板块）与代码搜索在自选股、大盘、K 线页、搜索框多处被需要，但各自散落在 `kline.py` 等端点内，没有统一可切换的数据源对接层。
-5. **诉求**：K 线 / 基础信息 / 代码搜索三类基础能力都应可对接多个数据源（本地 StockDB / 东方财富 / 新浪 / 腾讯），通过配置动态切换、并可通过 UI 配置页管理。
+5. **诉求**：K 线 / 基础信息 / 代码搜索三类基础能力都应可对接多个数据源（本地 StockDB / 东方财富 / 新浪 / 腾讯 / StockSDK），通过配置动态切换、并可通过 UI 配置页管理。
 
 **决策驱动力**：消除重复、配置驱动、可扩展、职责清晰，且不惊动既有分析层（`stock_service` / 组合风险 / 预警 / 回测等消费 `data_provider` 日线层的服务）。
 
@@ -111,33 +111,35 @@
 
 - 所有与外部源 / 本地源打交道的对接代码都收口到 `data_provider/`。
 - StockDB 接入：`data_provider/stockdb_fetcher.py`（直连 `127.0.0.1:7899`）+ 作为 K 线 / 基础信息 / 代码搜索三能力的 `local` source。
+- StockSDK 接入：采用 **Python bridge + Node 18 sidecar** 方案，桥接入口统一收口到 `data_provider/stocksdk_bridge.py`；其上层再按能力拆分为 `kline/stock_info/code_search/realtime/sector` 下的 `stocksdk_source.py`。**禁止**在 `src/services/` 或 `api/v1/endpoints/` 直接调用 Node/CLI。
 - **不再新建** `src/integrations/stockdb/` 平级独立包，也**不新建** `market_data/` 平级目录。
 - 现有 `kline.py` 的内联取数函数（`_fetch_from_*`）迁移为 `data_provider/kline/<source>.py` 中的 source 实现。
 
 ### 2.3 三类基础能力同构、多源可切换〔D3〕
 
-K 线（kline）/ 基础信息（stockinfo）/ 代码搜索（codesearch）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座。目录结构、功能包划分、`base.py` 三层关系、两类高频查询接口归类、目录铺排总表等**落地细节**统一归入 §4 数据源对接层设计（本节的决策要点如下）：
+K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座。目录结构、功能包划分、`base.py` 三层关系、两类高频查询接口归类、目录铺排总表等**落地细节**统一归入 §4 数据源对接层设计（本节的决策要点如下）：
 
 - 三类能力 = 同级、同模式：每个能力 = **1 个统一端点**（`api/v1/endpoints/` 下对应文件）+ **base.py（ABC + Manager，继承 common）** + **N 个源适配器** + 按需 `transform`。选源 / 回退 / 每源自带 TTL 全在各自 `base.py` 的 Manager 内。
 - 跨功能的公共逻辑（代码归一 / 缓存 / 限流 / 健康探针）统一沉到 `data_provider/common/`，绝不在各源重复。
-- **能力间隔离（不影响其他功能）**：三类能力的"四源平等 / 自动回退 / 周期全集"实现**完全封装在各自功能包文件内**（`data_provider/kline/*`、`stockinfo/*`、`codesearch/*`），由各自 `base.py` 的 Manager 驱动；项目其他功能（实时行情 akshare / tickflow、板块 eastmoney、财务 tushare、资讯 wallstreetcn、机构 tw_institutional）仍按其既定专属源接入，**互不影响、互不耦合**——即"在哪能力里要四源平等，就在哪能力的文件里实现"，不影响项目中其他使用数据源的地方（详见 §4.5 / §4.4）。
+- **能力间隔离（不影响其他功能）**：三类能力的"多源平等 / 自动回退 / 周期全集"实现**完全封装在各自功能包文件内**（`data_provider/kline/*`、`stock_info/*`、`code_search/*`），由各自 `base.py` 的 Manager 驱动；项目其他功能仍按其既定专属源接入，若后续纳入 `StockSDK` 也只能以 `<capability>/stocksdk_source.py` 方式进入 ② 层，**互不影响、互不耦合**——即"在哪能力里要多源平等，就在哪能力的文件里实现"，不影响项目中其他使用数据源的地方（详见 §4.5 / §4.4）。
 
-### 2.4 统一数据契约 + 四源平等 + 自动回退 + 周期全集〔D4〕
+### 2.4 统一数据契约 + 多源平等 + 自动回退 + 周期全集〔D4〕
 
 - **统一输出契约**（K 线为例）：`KLinePoint{date, open, high, low, close, volume, amount, pct_chg}`；`pct_chg` **统一在层内计算**（决策方案 A，各源不重复算）。
-- **适配层同级、优先级全在配置（核心原则）**：`local / eastmoney / sina / tencent` 在 `data_provider/*/base.py` 的源适配器里**完全同级、无内置权重、无硬编码先后**。调用次序与"重要性 / 主次"**100% 由配置栏决定**——`KLINE_DATA_SOURCE` 指定主源（优先级最高，先调），`KLINE_SOURCE_PRIORITY` 指定回退链的主次先后（次优先级、再次优先级……）。配置改了次序即改，代码层对任何源一视同仁，不得把某源写死为"首选/兜底"。
+- **适配层同级、优先级全在配置（核心原则）**：`local / eastmoney / sina / tencent / stocksdk` 在 `data_provider/*/base.py` 的源适配器里**完全同级、无内置权重、无硬编码先后**。调用次序与"重要性 / 主次"**100% 由配置栏决定**——`KLINE_DATA_SOURCE` / `STOCKINFO_DATA_SOURCE` / `CODESEARCH_DATA_SOURCE` 指定主源，`*_SOURCE_PRIORITY` 指定回退链的主次先后。配置改了次序即改，代码层对任何源一视同仁，不得把某源写死为"首选/兜底"。
 - **自动回退（按配置的次序，而非按源身份）**：主源失败且 `KLINE_FALLBACK_ENABLED=true` 时，严格按 `KLINE_SOURCE_PRIORITY` 链从"次优先级"开始依次尝试其余源；`false` 时主源失败即硬失败。回退顺序的先后只取决于配置里的排列，与各源在适配器中的注册位置无关。
-- **周期全集**（取四源并集，直接 / 间接实现不区分）：
+- **周期全集**（取多源并集，直接 / 间接实现不区分）：
   `1m / 5m / 15m / 30m / 60m / 120m / 5d / daily / weekly / monthly / yearly`（日 / 周 / 月 K 的线上取值为 `daily` / `weekly` / `monthly`，与 `kline.py:get_kline` 的 `period` pattern 一致；`1d` / `1w` / `1M` 仅为人类可读别名，不作为线上取值）
-  本地 StockDB 原生仅 `日k` + `分钟k`，其余周期由聚合层补齐（见 §3 实测结论）。
+  本地 StockDB 原生仅 `日k` + `分钟k`，其余周期由聚合层补齐（见 §3 实测结论）；`StockSDK` 则作为**桥接型聚合源**参与统一契约，不改变上层接口。
 
-> **范围约束（重要）**：上述"四源平等 + 自动回退 + 周期全集"原则**仅适用于 `K 线 / 基础信息 / 代码搜索` 三类基础能力**。本项目的其他能力——实时行情（专享 akshare / tickflow）、板块（专享 eastmoney）、财务基本面（专享 tushare）、新闻资讯（专享 wallstreetcn）、机构持仓（专享 tw_institutional）——各有其既定专属数据源，按各自既有方式接入，**不参加**"四源平等 / 自动回退 / 周期全集"，亦无"周期全集 / 复权对账"要求。各源完整清单与归属见 §4.5；能力 × 数据源矩阵见 §4.4。
+> **范围约束（重要）**：上述"多源平等 + 自动回退 + 周期全集"原则**优先适用于 `K 线 / 基础信息 / 代码搜索` 三类基础能力**。本项目的其他能力——实时行情（akshare / tickflow，后续可补 `stocksdk_source`）、板块（按子场景分源：eastmoney 承接指数/概览/资金流/排行，shidaotec 承接行业/个股/ETF/概念云图，后续可补 `stocksdk_source` 承接标准板块/资金流接口）、财务基本面（专享 tushare）、新闻资讯（专享 wallstreetcn）、机构持仓（专享 tw_institutional）——按各自既有方式接入；其中 `StockSDK` 属于**桥接型扩展源**，只允许经 ② 层 provider 适配后暴露给上层。各源完整清单与归属见 §4.5；能力 × 数据源矩阵见 §4.4。
+
 
 ### 2.5 UI 配置页复用运行时改配置基建〔D5〕
 
 - `/settings` 下新增「数据源」Tab（不另起独立菜单），每组能力含：主源下拉 + 回退链排序 + 开关 + 连接测试。
 - 持久化调用既有 `POST /api/v1/config`（写 `.env` + `reload_now`）；选源逻辑每次请求读 `config.*_data_source`，无需重启即切换。
-- 新增配置键须登记进 `system_config` 运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）。
+- 新增配置键须登记进 `system_config` 运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；`StockSDK` 相关桥接配置（如 `STOCKSDK_ENABLED`、`STOCKSDK_NODE_BIN`、`STOCKSDK_BRIDGE_ENTRY`、`STOCKSDK_TIMEOUT_MS`、`STOCKSDK_RATE_LIMIT_RPS`、`STOCKSDK_KLINE_FALLBACK`）同样属于 ④ 层统一配置。
 
 ### 2.6 kline.py 瘦身为瘦端点〔D6〕
 
@@ -208,23 +210,24 @@ K 线（kline）/ 基础信息（stockinfo）/ 代码搜索（codesearch）各�
 
 ### 4.1 data_provider 目录结构与功能包划分
 
-K 线（kline）/ 基础信息（stockinfo）/ 代码搜索（codesearch）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座：
+K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座：
 
 ```
 data_provider/
 ├── common/        base.py(DataSource(ABC) + DataSourceManager 通用骨架)
 │                  + normalize.py + cache.py + rate_limit.py + health.py
+├── stocksdk_bridge.py（Python bridge → Node 18 sidecar → stock-sdk）
 ├── kline/         base.py(KlineDataSource + KlineDataSourceManager)
 │                  + local_stockdb_source.py + eastmoney_source.py
-│                  + sina_source.py + tencent_source.py
+│                  + sina_source.py + tencent_source.py + stocksdk_source.py
 │                  + transform.py（多周期时间桶聚合）
-├── stockinfo/     base.py + local_stockdb_source.py + eastmoney_source.py
-└── codesearch/    base.py + local_stockdb_source.py + eastmoney_source.py
+├── stock_info/    base.py + local_stockdb_source.py + eastmoney_source.py + stocksdk_source.py
+└── code_search/   base.py + local_stockdb_source.py + eastmoney_source.py + stocksdk_source.py
 ```
 
 > 各能力子包、源适配器、端点、契约的**具体目录结构与命名公约（PEP 8 + HermesX 既有 `*_service.py` / `*_repo.py` / `*_fetcher.py` / `base.py` 规律）以方案 `stock_data_view.md` §3.5 为代码落地模板**，本 ADR 不再重复，避免两处漂移。
 
-> **二维组织原则（功能 × 数据源）**：`data_provider/` 下的能力包按"功能/用途"先分维度，再按"数据源"分维度，目录形态为 `data_provider/<功能>/<源>_source.py`；跨功能的公共逻辑（代码归一/缓存/限流/健康探针）统一沉到 `data_provider/common/`。完整能力清单、目标目录树（含层级合并单元格表）、防重复决策与分阶段落地见 §4.4 目录铺排总表。
+> **二维组织原则（功能 × 数据源）**：`data_provider/` 下的能力包按"功能/用途"先分维度，再按"数据源"分维度，目录形态为 `data_provider/<功能>/<源>_source.py`；跨功能的公共逻辑（代码归一/缓存/限流/健康探针）统一沉到 `data_provider/common/`。对 **Node/TS 生态的 StockSDK**，额外引入共享桥接文件 `data_provider/stocksdk_bridge.py` 作为物理后端入口，但其上层仍必须落回各能力包下的 `stocksdk_source.py`。完整能力清单、目标目录树（含层级合并单元格表）、防重复决策与分阶段落地见 §4.4 目录铺排总表。
 
 ### 4.2 base.py 三层关系（common 底座 vs 功能包 base）
 
@@ -237,7 +240,7 @@ data_provider/
 - 🔍 **查询接口①（输入 6 位编码 / 名称 → 联想解析出这只股票）** → 落在 **`data_provider/code_search/base.py`**（`CodeSearchDataSource` + `CodeSearchDataSourceManager` + `CodeSearchResult` 契约）。**不在 `common/base.py`。**
 - 🔍 **查询接口②（输入 6 位编码查股票信息：名称 / 行业 / 板块 / 列表）** → 落在 **`data_provider/stock_info/base.py`**（`StockInfoDataSource` + `StockInfoDataSourceManager` + `StockInfo` 契约）。**不在 `common/base.py`。**
 - 两者**不合并为一个包**（契约 `CodeSearchResult` ≠ `StockInfo`）；底层"股票总表 / 名称↔编码"抓取共享，统一复用既有 `get_stock_name` / `get_stock_list`（即"物理后端"），不在各源重写。
-- 当前违规待迁移：`src/services/name_to_code_resolver.py` 在 ③ 功能接口层直接 `import akshare` 取数（违反 §2.2），其取数须下沉到 `code_search/eastmoney_source.py`；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py`（方案 §3.7 A10）。
+- 当前违规待迁移：`src/services/name_to_code_resolver.py` 在 ③ 功能接口层直接 `import akshare` 取数（违反 §2.2），其取数须下沉到 `code_search/eastmoney_source.py` / `code_search/stocksdk_source.py`；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`（方案 §3.7 A10 / A12）。
 
 ### 4.4 data_provider 目录铺排总表（落地基准）
 
@@ -255,28 +258,35 @@ data_provider/
 | | | `cache.py` | 统一 TTL 缓存 | 同上 | 公共基础设施 | 阶段1 |
 | | | `rate_limit.py` | 限流 / 并发护栏 | 同上 | 公共基础设施 | 阶段1 |
 | | | `health.py` | 数据源可用性探针 | 同上 | 公共基础设施 | 阶段1 |
+| | `（根文件）` | `stocksdk_bridge.py` | Python 侧共享 StockSDK bridge 客户端：负责 Node 18 进程/sidecar 调起、JSON 序列化、错误映射、超时与健康探针；供多个 `stocksdk_source.py` 复用 | K 线 / 搜索 / 基础信息 / 实时 / 板块的桥接型物理后端 | 跨功能共享物理后端桥 | 阶段1 |
 | | `kline/` | `__init__.py` | 包标识 | **K 线图 / 历史多周期行情** | 目录标识 | 阶段1 |
 | | | `base.py` | `KlineDataSource(ABC)` + `KlineDataSourceManager`；统一 `KLinePoint` 契约；`pct_chg` 层内计算 | K 线图 / 历史多周期行情 | 第一维=功能 K线（功能包核心） | 阶段1 |
 | | | `local_stockdb_source.py` | 源 = 本地 StockDB（127.0.0.1:7899），对接本地库、输出 `KLinePoint`【新写】 | 同上 | 第二维=源 local | 阶段1 |
 | | | `eastmoney_source.py` | 源 = 东财，仅做「东财格式 → `KLinePoint`」映射，**复用既有东财通道（efinance/akshare），不重写** | 同上 | 第二维=源 eastmoney | 阶段1 |
 | | | `sina_source.py` | 源 = 新浪，格式映射，复用既有新浪通道 | 同上 | 第二维=源 sina | 阶段1 |
 | | | `tencent_source.py` | 源 = 腾讯，格式映射，复用 `tencent_fetcher` | 同上 | 第二维=源 tencent | 阶段1 |
+| | | `stocksdk_source.py` | 源 = StockSDK，经 `stocksdk_bridge.py` 调用 Node 18 `stock-sdk` 命名空间 API；适合作为桥接型聚合源与备用源 | 同上 | 第二维=源 stocksdk | 阶段1 |
 | | | `transform.py` | 多周期时间桶聚合（5m~年）+ `pct_chg` 聚合计算 | 同上 | 功能包内共享能力 | 阶段1 |
 | | `realtime/` | `__init__.py` | 包标识 | **实时行情刷新（自选股 / 大盘 / 组合）** | 目录标识 | 阶段2 |
 | | | `base.py` | `RealtimeDataSource(ABC)` + `RealtimeDataSourceManager`；复用现有 `RealtimeSource` 枚举与 `UnifiedRealtimeQuote` | 实时行情刷新 | 第一维=功能 实时行情（功能包核心） | 阶段2 |
 | | | `akshare_source.py` | 源 = akshare，格式映射（复用既有 akshare 实时通道） | 同上 | 第二维=源 akshare | 阶段2 |
 | | | `tickflow_source.py` | 源 = tickflow，格式映射（复用既有 tickflow 实时通道） | 同上 | 第二维=源 tickflow | 阶段2 |
+| | | `stocksdk_source.py` | 源 = StockSDK，桥接 `sdk.quotes.*`；用于补充 A/HK/US/Fund 多市场实时行情与统一符号解析 | 同上 | 第二维=源 stocksdk | 阶段2 |
 | | `stock_info/` | `__init__.py` | 包标识 | **🔍 查询接口②：输入 6 位编码查股票信息（名称 / 行业 / 板块 / 列表）** | 目录标识 | 阶段1 |
 | | | `base.py` | `StockInfoDataSource(DataSource)` + `StockInfoDataSourceManager(DataSourceManager)`（**继承 `common/base.py`**）；`StockInfo` 契约 = **查询接口②落点** | 输入 6 位编码查股票信息 | 第一维=功能 基础信息（功能包核心） | 阶段1 |
 | | | `local_stockdb_source.py` | 源 = 本地 StockDB，复用 StockDB 基础信息 | 同上 | 第二维=源 local | 阶段1 |
 | | | `eastmoney_source.py` | 源 = 东财，**复用既有 `get_stock_name`/`get_stock_list` + 薄适配壳**；**承接 §3.7 A10：`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁此** | 同上 | 第二维=源 eastmoney | 阶段1 |
+| | | `stocksdk_source.py` | 源 = StockSDK，桥接 `search / code-lists / symbol normalize` 后输出统一 `StockInfo` 契约 | 同上 | 第二维=源 stocksdk | 阶段1 |
 | | `code_search/` | `__init__.py` | 包标识 | **🔍 查询接口①：输入 6 位编码 / 名称 → 联想解析出这只股票** | 目录标识 | 阶段1 |
 | | | `base.py` | `CodeSearchDataSource(DataSource)` + `CodeSearchDataSourceManager(DataSourceManager)`（**继承 `common/base.py`**）；`CodeSearchResult` 契约 = **查询接口①落点** | 输入 6 位编码 / 名称 → 联想解析出这只股票 | 第一维=功能 代码搜索（功能包核心） | 阶段1 |
 | | | `local_stockdb_source.py` | 源 = 本地 StockDB | 同上 | 第二维=源 local | 阶段1 |
 | | | `eastmoney_source.py` | 源 = 东财，复用既有搜索接口 + 薄适配壳；**承接 §3.7 A10：`name_to_code_resolver.py` 取数下沉此（③ 功能接口层不再直接 `import akshare` 取数，解析/缓存留薄壳）** | 同上 | 第二维=源 eastmoney | 阶段1 |
+| | | `stocksdk_source.py` | 源 = StockSDK，桥接 `sdk.search()` 与符号归一能力，输出 `CodeSearchResult` 契约 | 同上 | 第二维=源 stocksdk | 阶段1 |
 | | `sector/` | `__init__.py` | 包标识 | **板块 / 概念 / 涨跌停 / 热门榜单** | 目录标识 | 阶段3 |
 | | | `base.py` | `SectorDataSource(ABC)` + `SectorDataSourceManager`；板块/概念/涨跌停/热门契约 | 板块行情 | 第一维=功能 板块行情（功能包核心） | 阶段3 |
-| | | `eastmoney_source.py` | 源 = 东财，**承接 §3.6 B1 的 `sector.py` 17 个内联取数**（搬入此文件） | 同上 | 第二维=源 eastmoney | 阶段3 |
+| | | `eastmoney_source.py` | 源 = 东财，承接市场指数 / 市场概览 / 北向资金 / 大盘主力 / 板块列表 / 板块资金流历史等东财接口主链路；**完成 B1 中东财内联取数下沉** | 同上 | 第二维=源 eastmoney | 阶段3 |
+| | | `shidaotec_source.py` | 源 = 时到量化，承接行业 / 个股 / ETF / 概念云图的直连取数、缓存与整形 | 同上 | 第二维=源 shidaotec | 阶段3 |
+| | | `stocksdk_source.py` | 源 = StockSDK，桥接行业 / 概念板块 / 资金流 / 北向资金等标准板块接口；主要作为 eastmoney 的桥接型补充源，不承接时到量化云图专属接口 | 同上 | 第二维=源 stocksdk | 阶段3 |
 | | `fundamentals/` | `__init__.py` | 包标识 | **财务基本面（财报 / 估值）** | 目录标识 | 阶段3 |
 | | | `base.py` | `FundamentalsDataSource(ABC)` + `FundamentalsDataSourceManager` | 财务数据 | 第一维=功能 基本面（功能包核心） | 阶段3 |
 | | | `tushare_source.py` | 源 = tushare，复用 `tushare_fetcher` 财务通道 | 同上 | 第二维=源 tushare | 阶段3 |
@@ -287,31 +297,33 @@ data_provider/
 | | | `base.py` | `InstitutionalDataSource(ABC)` + `InstitutionalDataSourceManager` | 机构数据 | 第一维=功能 机构数据（功能包核心） | 阶段3 |
 | | | `tw_source.py` | 源 = 台湾机构，复用 `tw_institutional_fetcher` | 同上 | 第二维=源 tw | 阶段3 |
 
-> **既有文件处置（不删不改、降级为"物理后端"）**：现有 `data_provider/akshare_fetcher.py`、`tushare_fetcher.py`、`efinance_fetcher.py`、`tencent_fetcher.py`、`tickflow_fetcher.py`、`yfinance_fetcher.py`、`longbridge_fetcher.py`、`pytdx_fetcher.py`、`baostock_fetcher.py`、`alphavantage_fetcher.py`、`finnhub_fetcher.py` 等**保留**，作为上表中对应 `<源>_source.py` 的底层物理取数后端被复用（例如 `kline/eastmoney_source.py` 内部调用既有东财通道）；本期不重写、不删除。待各功能包矩阵（阶段 2/3）成熟、`BaseFetcher` 巨类完成"物理后端 → 矩阵拆解"后，这些顶层 fetcher 再逐步退役。
+> **既有文件处置（不删不改、降级为"物理后端"）**：现有 `data_provider/akshare_fetcher.py`、`tushare_fetcher.py`、`efinance_fetcher.py`、`tencent_fetcher.py`、`tickflow_fetcher.py`、`yfinance_fetcher.py`、`longbridge_fetcher.py`、`pytdx_fetcher.py`、`baostock_fetcher.py`、`alphavantage_fetcher.py`、`finnhub_fetcher.py` 等**保留**，作为上表中对应 `<源>_source.py` 的底层物理取数后端被复用（例如 `kline/eastmoney_source.py` 内部调用既有东财通道）；`StockSDK` 则以 `data_provider/stocksdk_bridge.py` + Node 18 sidecar 的形式作为另一类"桥接型物理后端"纳入。本期不重写、不删除。待各功能包矩阵（阶段 2/3）成熟、`BaseFetcher` 巨类完成"物理后端 → 矩阵拆解"后，这些顶层 fetcher 再逐步退役。
 
 ### 4.5 数据源介绍（本项目对接的数据源头清单）
 
 > 本节以清单形式**完整**介绍本项目在 **② 数据源对接层** 实际对接（含已用、规划内）的数据源头，便于理解"各源是什么、怎么接、与本项目是接口调用还是代码耦合、要不要 key/token"。
 >
 > **两个范围必须分清**：
-> 1. **"四源平等 + 自动回退 + 周期全集"是且仅是 `K 线 / 基础信息 / 代码搜索` 三类基础能力的设计原则**（见 §2.4 / §2.3）。这三类能力的源集合为 `local(StockDB) / eastmoney / sina / tencent` 四源，四者在该能力内完全同级、主次由配置决定。
-> 2. **其他能力（实时行情 / 板块 / 财务基本面 / 新闻资讯 / 机构持仓）各有其既定专属源**（akshare / tickflow / tushare / wallstreetcn / tw_institutional 等），它们**不参加**"四源平等 / 自动回退 / 周期全集"，仍按各自既有方式接入（见 §4.4 铺排总表）。
+> 1. **"多源平等 + 自动回退 + 周期全集"是优先作用于 `K 线 / 基础信息 / 代码搜索` 三类基础能力的设计原则**（见 §2.4 / §2.3）。这三类能力当前规划源集合为 `local(StockDB) / eastmoney / sina / tencent / stocksdk` 五源，五者在 HermesX 的能力层内完全同级、主次由配置决定；其中 `stocksdk` 是桥接型聚合源，而非 Python 侧直连库。
+> 2. **其他能力（实时行情 / 板块 / 财务基本面 / 新闻资讯 / 机构持仓）各有其既定专属源**（akshare / tickflow / eastmoney + shidaotec / tushare / wallstreetcn / tw_institutional 等）；若后续引入 `stocksdk_source.py`，也仅作为桥接型补充源纳入 ② 层，不改变 ③ 层契约（见 §4.4 铺排总表）。
 >
-> 下表按"是否在本 ADR 规划内"分两组：**规划内数据源（9 个，已用或阶段 2/3 规划）**逐行讲清；**未来可选数据源（6 个，连 §4.4 都未纳入）** 仅列于表末脚注。
+> 下表按"是否在本 ADR 规划内"分两组：**规划内数据源（11 个，已用或阶段 2/3 规划）**逐行讲清；**未来可选数据源（6 个，连 §4.4 都未纳入）** 仅列于表末脚注。
 
 | 数据源 | 数据源的作用（本项目用它提供什么能力） | 接入方式 | 与本项目的关系（接口调用 / 代码耦合） | 是否需要 key / token 等凭据 |
 |---|---|---|---|---|
 | **StockDB（local 本地源）** | 本地行情库（独立进程 `127.0.0.1:7899`），提供 K 线（日k / 分钟k 原生，其余周期由 `transform.py` 聚合补齐）、基础信息、代码搜索三能力的 `local` 源 | HTTP（REST，本地回环），由 `data_provider/stockdb_fetcher.py` 封装（阶段 1 新建） | **接口调用**：独立进程；HermesX 不 import 其代码、不直读文件，进程独占管理（见 §3 数据库层设计） | **否**（本地服务；可选 `STOCKDB_REQUIRE_AUTH` 默认关闭，复用 `/api/v1` 的 `ADMIN_AUTH` 即可，O2 可降级为可选项） |
-| **东方财富（EastMoney）** | **三类基础能力的主行情源之一**：K 线、基础信息、代码搜索（kline.py 用其 5 个公开接口）；亦为板块行情（sector）能力源；数据最全。属于"四源平等"四源之一 | HTTP 直连其公开行情接口（`push2his.eastmoney.com` / `push2.eastmoney.com` / `searchapi.eastmoney.com` 等）+ 经 `akshare` / `efinance` **Python 库**（库内封装反爬） | **代码耦合为主**：当前经 `akshare_fetcher` / `efinance_fetcher` 库依赖（库内发起 HTTP）；本质仍是对方公开 HTTP 接口 | **否**（免费公开，无需 Token；依赖随机 UA / 休眠 / 重试 / 熔断器防封禁） |
-| **腾讯（Tencent）** | **三类基础能力兜底源之一**（K 线 / 日线，`tencent_fetcher` 末位兜底）；亦经 akshare 取数。属于"四源平等"四源之一 | HTTP 直连 `web.ifzq.gtimg.cn/appstock/app/fqkline/get`（`tencent_fetcher` 直连）+ 经 `akshare` | **两种并存**：直连 HTTP（接口调用）+ 经 `akshare`（代码耦合） | **否**（免费公开，无需 Token） |
-| **新浪（Sina）** | **三类基础能力兜底源之一**（K 线，kline.py 2 个接口、新老互为降级）；亦经 akshare 取数。属于"四源平等"四源之一 | HTTP 直连 `quotes.sina.cn` / `money.finance.sina.com.cn`（kline.py 直连）+ 经 `akshare` | **两种并存**：直连 HTTP（接口调用）+ 经 `akshare`（代码耦合） | **否**（免费公开，无需 Token；但需 `Referer` 头，否则 403） |
+| **StockSDK** | **桥接型聚合源**：覆盖 K 线、实时行情、代码搜索、基础信息、板块与资金面等多个命名空间；在 HermesX 中优先作为 `kline / stock_info / code_search` 的新增源，并可扩展到 `realtime / sector` | Node.js 18+ 中安装 `stock-sdk`，由 `data_provider/stocksdk_bridge.py` 通过 sidecar / subprocess 调用 `StockSDK` 命名空间 API（`quotes` / `kline` / `search` / `board` / `fundFlow` / `northbound` 等） | **跨运行时代码耦合**：Python 不直接 import JS，而是通过桥接层做 JSON 协议调用；治理能力（超时 / 重试 / 限流 / 熔断 / host fallback / kline fallback）收口在 StockSDK 自身的 `RequestClient` | **否**（官方文档显示零运行时依赖、默认无需 key/token；但要求 **Node.js 18+**，且需要仓库内维护桥接脚本与运行时） |
+| **东方财富（EastMoney）** | **三类基础能力的主行情源之一**：K 线、基础信息、代码搜索（kline.py 用其 5 个公开接口）；亦为板块行情（sector）中的指数 / 概览 / 资金流 / 排行等能力源；数据最全。属于"多源平等"源之一 | HTTP 直连其公开行情接口（`push2his.eastmoney.com` / `push2.eastmoney.com` / `searchapi.eastmoney.com` 等）+ 经 `akshare` / `efinance` **Python 库**（库内封装反爬） | **代码耦合为主**：当前经 `akshare_fetcher` / `efinance_fetcher` 库依赖（库内发起 HTTP）；本质仍是对方公开 HTTP 接口 | **否**（免费公开，无需 Token；依赖随机 UA / 休眠 / 重试 / 熔断器防封禁） |
+| **时到量化（Shidaotec）** | 板块行情（sector）中的行业 / 个股 / ETF / 概念云图能力源，用于树图 / 热力图视图的结构与涨跌幅快照 | HTTP 直连其公开云图接口（`www.shidaotec.com/api/yuntu/*`），由 `data_provider/sector/shidaotec_source.py` 封装 | **接口调用为主**：HermesX 直接发起 HTTP 请求并在 provider 层完成缓存与整形 | **否**（免费公开，无需 Token） |
+| **腾讯（Tencent）** | **三类基础能力兜底源之一**（K 线 / 日线，`tencent_fetcher` 末位兜底）；亦经 akshare 取数。属于"多源平等"源之一 | HTTP 直连 `web.ifzq.gtimg.cn/appstock/app/fqkline/get`（`tencent_fetcher` 直连）+ 经 `akshare` | **两种并存**：直连 HTTP（接口调用）+ 经 `akshare`（代码耦合） | **否**（免费公开，无需 Token） |
+| **新浪（Sina）** | **三类基础能力兜底源之一**（K 线，kline.py 2 个接口、新老互为降级）；亦经 akshare 取数。属于"多源平等"源之一 | HTTP 直连 `quotes.sina.cn` / `money.finance.sina.com.cn`（kline.py 直连）+ 经 `akshare` | **两种并存**：直连 HTTP（接口调用）+ 经 `akshare`（代码耦合） | **否**（免费公开，无需 Token；但需 `Referer` 头，否则 403） |
 | **akshare（通用库 / 实时源）** | **双重角色**：① 实时行情源（`realtime/akshare_source.py`，阶段 2）；② 同时是东财 / 新浪 / 腾讯经其 SDK 取数的"库通道"（kline 三源均"经 akshare"取数）。数据全面，覆盖行情 / 基本面 / 资讯多类 | HTTP 直连其公开接口（`akshare` 库内封装反爬、随机 UA、熔断）+ 经 `akshare` **Python 库**代码耦合 | **代码耦合为主**（经 akshare SDK；库内发起 HTTP） | **否**（免费、无需 Token，`akshare_fetcher.py:12` 注明"免费、无需 Token"） |
 | **tickflow（实时源）** | 实时行情源（`realtime/tickflow_source.py`，阶段 2）；提供实时 / 批量日线，作为实时行情能力的补充源 | HTTP 直连其公开行情接口（`tickflow_fetcher.py` 封装，需 API key 鉴权） | **代码耦合**（经 tickflow SDK / HTTP 客户端，需鉴权） | **是，需 `TICKFLOW_API_KEY`**（未配置则不可用，`config.py:772` / `tickflow_fetcher.py:183`） |
 | **tushare（财务基本面源）** | 财务基本面源（`fundamentals/tushare_source.py`，阶段 3）；提供财报 / 估值等财务数据 | HTTP 直连 `api.tushare.pro`（`tushare_fetcher.py` 封装，需 token 鉴权） | **代码耦合**（经 tushare SDK，需 token） | **是，需 `TUSHARE_TOKEN`**（有配额限制；未配置则数据源不可用，`tushare_fetcher.py:8,185`） |
-| **wallstreetcn 华尔街见闻（新闻资讯源）** | 新闻 / 公告 / 财经日历源（`news/wallstreetcn_source.py`，阶段 3）；提供快讯 / 资讯 / 日历 | HTTP 直连其公开资讯接口（`wallstreetcn_calendar.py` / `wallstreetcn_live_news.py` 封装） | **代码耦合**（经 HTTP 客户端 / SDK） | **否**（公开接口，未检索到鉴权依赖） |
+| **wallstreetcn 华尔街见闻（新闻资讯源）** | 新闻 / 公告 / 财经日历源（`news/wallstreetcn_source.py`，阶段 3）；提供快讯 / 资讯 / 日历 | HTTP 直连其公开资讯接口（`wallstreetcn_calendar_fetcher.py` / `wallstreetcn_live_news_fetcher.py` 封装） | **代码耦合**（经 HTTP 客户端 / SDK） | **否**（公开接口，未检索到鉴权依赖） |
 | **tw_institutional 台湾机构（机构持仓源）** | 机构持仓数据（台股）源（`institutional/tw_source.py`，阶段 3）；提供 TWSE / TPEx 机构买卖数据 | HTTP 直连台湾政府开放资料接口（`tw_institutional_fetcher.py` 封装） | **代码耦合**（经 HTTP 客户端；政府开放资料） | **否**（政府开放资料，commercial-safe，no key，`tw_institutional_fetcher.py:10`） |
 
-> **关系栏要点**：StockDB 是最干净的"纯接口调用"（独立进程、零代码耦合）；东财当前以 SDK 代码耦合为主；腾讯 / 新浪为"直连 HTTP + SDK"并存。无论哪种，对上层（③ 功能接口层 / 前端）均通过统一契约（`KLinePoint` / `StockInfo` / `CodeSearchResult`）透明供给——换源 / 升级源都不影响上层（见 §5.1 铁律）。
+> **关系栏要点**：StockDB 是最干净的"纯接口调用"（独立进程、零代码耦合）；StockSDK 是新增的"跨运行时桥接型物理后端"；东财当前以 SDK 代码耦合为主；腾讯 / 新浪为"直连 HTTP + SDK"并存。无论哪种，对上层（③ 功能接口层 / 前端）均通过统一契约（`KLinePoint` / `StockInfo` / `CodeSearchResult` / `UnifiedRealtimeQuote`）透明供给——换源 / 升级源都不影响上层（见 §5.1 铁律）。
 >
 > **未来可选数据源（连 §4.4 铺排总表都未纳入，仅记录、不纳入本期任何阶段）**：`yfinance` / `longbridge`（需 `LONGBRIDGE_ACCESS_TOKEN`）/ `pytdx` / `baostock` / `alphavantage` / `finnhub`。这些物理后端存在于代码库（`*_fetcher.py`）但不在本 ADR 任何阶段规划内，可后续按同一 `<源>_source.py` 模式扩展（加源只写一份 `_normalize_*` 映射，见 §2.2 / §4.2）。
 
@@ -324,7 +336,7 @@ data_provider/
 ### 5.1 定位与边界（区别于 ② 数据源对接层）
 
 - **功能接口层 = 面向系统标准功能的 HTTP 接口层**。其**输入 / 输出契约是稳定的、标准的**，只随“系统功能”演进，**不随底层数据源变动**而改。
-- **典型样例（K 线图）**：K 线图的渲染方式、前端取数接口（`code / period / fqt / limit` → `KLinePoint[]`）是标准的；只有“数据从哪个源来（本地 StockDB / 东财 / 新浪 / 腾讯）”是个性，且已下沉到 ② 层（`data_provider/kline/` 多源可切换）。换成任意源，K 线端点签名与返回结构**完全不变** → 前端零改。
+- **典型样例（K 线图）**：K 线图的渲染方式、前端取数接口（`code / period / fqt / limit` → `KLinePoint[]`）是标准的；只有“数据从哪个源来（本地 StockDB / 东财 / 新浪 / 腾讯 / StockSDK）”是个性，且已下沉到 ② 层（`data_provider/kline/` 多源可切换）。换成任意源，K 线端点签名与返回结构**完全不变** → 前端零改。
 - **边界铁律**：③ 层**只做路由 + 编排**，不内联任何第三方 / 本地源对接代码（取数一律经 ② 层 `data_provider/*/base.py` 的 Manager）。详见 §2.6（A1 瘦端点、A10 取数下沉）、§4.3（两类查询接口必须归入 ② 层）。
 - **与 ② 层的唯一耦合点**：③ 层调用 ② 层的统一契约（`KLinePoint` / `StockInfo` / `CodeSearchResult` 及后续能力契约），源切换对 ③ 透明。
 
@@ -356,7 +368,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | `api/v1/` | `endpoints/` | `backtest.py` | 回测任务创建 / 查询 / 结果（`/backtest`） | 策略回测 | ③ 输入=策略+标的+区间，输出=回测报告（标准） | 否 |
 | `api/v1/` | `endpoints/` | `alerts.py` | 预警规则 CRUD + 触发推送（`/alerts`） | 价格 / 条件预警 | ③ 规则 CRUD，与源无关 | 否 |
 | `api/v1/` | `endpoints/` | `analysis.py` | 股票分析异步任务触发 / 状态 / 列表 + SSE 推送（`/analysis`） | 个股 / 市场分析 | ③ 分析编排标准，取数透明 | 否 |
-| `api/v1/` | `endpoints/` | `sector.py` | 行业树 / 指数 / 市场概览 / 资金流 / 北向 / 板块成分 / 概念 / ETF（`/sector`） | 板块与市场概览 | ③ 输出标准；当前源=时到量化（个性下沉 ②） | 否 |
+| `api/v1/` | `endpoints/` | `sector.py` | 行业树 / 指数 / 市场概览 / 资金流 / 北向 / 板块成分 / 概念 / ETF（`/sector`） | 板块与市场概览 | ③ 输出标准；当前按子场景分源：eastmoney + shidaotec（个性下沉 ②） | 否 |
 | `api/v1/` | `endpoints/` | `stocks.py` | 图片提取代码 / CSV 解析 / 实时行情 / 历史行情（`/stocks`） | 股票基础数据与导入 | ③ 接口标准，取数透明 | 否 |
 | `api/v1/` | `endpoints/` | `history.py` | 分析 / 对话 / 资讯历史查询与删除（`/history`） | 历史记录管理（系统产出物 CRUD） | ③ 系统产出物 CRUD | 否 |
 | `api/v1/` | `endpoints/` | `decision_signals.py` | 决策信号创建 / 反馈 / 复核 / 结果统计（`/decision-signals`，admin 鉴权） | 决策信号生命周期 | ③ 业务实体 CRUD + 编排 | 否 |
@@ -400,10 +412,10 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ### 负面 / 成本
 - 方案范围扩大：从「本地 StockDB 浏览页」升级为「行情基础能力统一层」。
-- 需改 `kline.py`（瘦端点）+ 新增 `data_provider/{stockdb_fetcher, kline, stockinfo, codesearch}`。
+- 需改 `kline.py`（瘦端点）+ 新增 `data_provider/{stockdb_fetcher, stocksdk_bridge, kline, stock_info, code_search}`。
 
 ### 风险 / 注意
-- `data_provider` 已有 `get_stock_name` / `get_stock_list` / `get_stock_membership_boards`（基础信息 / 列表能力），新的 `stockinfo` 能力须**复用**这些既有能力 + 加薄适配壳，避免重复东财 / 新浪 / 腾讯取数。
+- `data_provider` 已有 `get_stock_name` / `get_stock_list` / `get_stock_membership_boards`（基础信息 / 列表能力），新的 `stock_info` 能力须**复用**这些既有能力 + 加薄适配壳，避免重复东财 / 新浪 / 腾讯 / StockSDK 桥接取数。
 - 复权公式对账（AC-3，原方案 §6.2）仍锁在 K 线能力内，是上线硬阻断，未被本 ADR 改变。
 - 数据字典按 §2.7 设计立场应建为独立表（不再以 `config.py` 常量顶替），具体建模与落点见 O1；O1 由"可选"上调为"应建"，但**代码落地暂不行执行（见本节落地说明），后续再修改**。
 - 复用 `/api/v1/kline` 端点意味着 K 线接口继承 `ADMIN_AUTH`（属管理后台能力，合理）；这与原方案「独立 `/api/stockdb` 避开鉴权」的取舍不同，属有意反转。
@@ -418,14 +430,15 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | B. 新建 `market_data/` 平级目录 | **否决** | 用户认同 `data_provider` 为唯一脏活层，平级目录破坏单一职责 |
 | C. 各场景各自硬编码（现状） | **否决** | 正是要消除的重复与不可配置问题 |
 | D. 把全系统东财 / 新浪 / 腾讯收编为单一总开关 | **否决** | 会牵动 `stock_service` / 组合风险 / 预警 / 回测等大片，远超范围、风险高 |
+| E. 在 Python 服务层直接引入 `StockSDK` | **否决** | `StockSDK` 官方形态为 **Node.js 18+ / 浏览器** 的 TS SDK，HermesX 后端主运行时是 Python；直接在 ③ 层或 service 层调用会破坏分层与语言边界，正确做法应是 ② 层桥接为 `stocksdk_source.py` |
 
 ---
 
 ## 9. 落地指引（对 `stock_data_view.md` 的修订要求）
 
-1. **§3 架构**：改为四层 + `data_provider` 脏活层 + 三类能力子包；原「独立 `/api/stockdb` 页」表述改为「StockDB 作为统一基础能力层的一个 `local` source」。
-2. **§9 配置**：新增数据源切换键（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 及 `STOCKINFO_*` / `CODESEARCH_*` 或统一 `DATA_CAPABILITY` 块）。
-3. **§14 修改范围**：文件清单从 `src/integrations/stockdb/` 改为 `data_provider/{stockdb_fetcher, kline, stockinfo, codesearch}` + `kline.py` 瘦身；§13 代码骨架的 `src/integrations/stockdb/` 路径为占位，以本 ADR 目录决策为准。
+1. **§3 架构**：改为四层 + `data_provider` 脏活层 + 三类能力子包；原「独立 `/api/stockdb` 页」表述改为「StockDB 作为统一基础能力层的一个 `local` source」，并新增 `StockSDK` 作为桥接型 `stocksdk` source。
+2. **§9 配置**：新增数据源切换键（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 及 `STOCKINFO_*` / `CODESEARCH_*`），并补充 `STOCKSDK_*` 桥接配置块（Node 二进制、bridge 入口、超时、限流、fallback 开关）。
+3. **§14 修改范围**：文件清单从 `src/integrations/stockdb/` 改为 `data_provider/{stockdb_fetcher, stocksdk_bridge, kline, stock_info, code_search}` + `scripts/stocksdk_bridge/` + `kline.py` 瘦身；§13 代码骨架的 `src/integrations/stockdb/` 路径为占位，以本 ADR 目录决策为准。
 4. **范围取「完整 B」**：方案直接覆盖三类能力统一层规格（K 线含复权对账，基础信息 / 代码搜索同模式），而非仅 K 线。
 5. **§5 / §6 / §13 路由前缀**：原 `/api/stockdb/*` 统一改为 `/api/v1/kline`（+ 新增 `/api/v1/stock-info`、`/api/v1/code-search`）；请求 / 响应契约（§5 / §6）仍作为统一 `KLinePoint` / `StockInfo` / `CodeSearch` 契约有效。
 
@@ -441,15 +454,16 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 |---|---|---|---|
 | ① 数据库层 | `src/repositories/__init__.py`（barrel 收口：补 4 个 Repository 导出） | **修改（仅导出收口，零新增表）** | 2.1：零新增表；§3.1 导出约定；StockDB 由进程独占管理，HermesX 不直读文件 |
 | ② 数据源对接层 | `data_provider/common/`（base / normalize / cache / rate_limit / health） | **新建** | 2.3、§4.4 |
-| ② 数据源对接层 | `data_provider/kline/`（base / local_stockdb / eastmoney / sina / tencent / transform） | **新建** | 2.2/2.3/2.4、A2–A5 |
+| ② 数据源对接层 | `data_provider/stocksdk_bridge.py` + `scripts/stocksdk_bridge/`（Node 18 bridge 入口） | **新建** | 2.2、§4.4、A11 |
+| ② 数据源对接层 | `data_provider/kline/`（base / local_stockdb / eastmoney / sina / tencent / stocksdk / transform） | **新建** | 2.2/2.3/2.4、A2–A5、A12 |
 | ② 数据源对接层 | `data_provider/stockdb_fetcher.py`（共享 StockDB 客户端） | **新建 / 确认** | 2.2、A6 |
-| ② 数据源对接层 | `data_provider/stockinfo/`、`data_provider/codesearch/`（base + 源） | **新建占位** | 2.3、A9/A10 |
+| ② 数据源对接层 | `data_provider/stock_info/`、`data_provider/code_search/`（base + 源） | **新建占位** | 2.3、A9/A10、A12 |
 | ② 数据源对接层 | 既有顶层 `akshare_fetcher.py` / `tushare_fetcher.py` / `efinance_fetcher.py` / `tencent_fetcher.py` / `tickflow_fetcher.py` 等 | **不改**（降级为"物理后端"被 `<源>_source.py` 复用） | 2.3、§4.4 既有文件处置 |
 | ③ 功能接口层 | `api/v1/endpoints/kline.py` | **修改（瘦身）** | 2.6、A1 |
-| ③ 功能接口层 | 可选 `api/v1/stock-info`、`api/v1/code-search` | **新增**（随 stockinfo/codesearch） | 2.3 |
-| ③ 功能接口层 | `src/services/name_to_code_resolver.py` | **修改（取数下沉 code_search，留薄壳）** | 2.2、A10 |
-| ③ 功能接口层 | `src/services/stock_service.py`（`get_stock_name`） | **修改（迁 `stock_info/eastmoney_source.py`）** | 2.2、A10 |
-| ③ 功能接口层 | `api/v1/endpoints/sector.py` | **不改**（B1 独立 follow-up） | B1 |
+| ③ 功能接口层 | 可选 `api/v1/stock-info`、`api/v1/code-search` | **新增**（随 `stock_info/code_search`） | 2.3 |
+| ③ 功能接口层 | `src/services/name_to_code_resolver.py` | **修改（取数下沉 code_search，留薄壳）** | 2.2、A10 / A12 |
+| ③ 功能接口层 | `src/services/stock_service.py`（`get_stock_name`） | **修改（迁 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`）** | 2.2、A10 / A12 |
+| ③ 功能接口层 | `api/v1/endpoints/sector.py` | **修改（已瘦身）**：板块相关取数与缓存已下沉到 `data_provider/sector/{eastmoney_source,shidaotec_source,stocksdk_source,market_cards_source}.py`，其中 `stocksdk_source.py` 用于总览页标准市场接口与板块资金接口的优先桥接源，`market_cards_source.py` 用于 `/market/index` 的统一卡片列表聚合 | B1 |
 | ③ 功能接口层 | `src/services/` 其余 SaaS 外联（alphasift / intelligence / social_sentiment / stock_index_remote） | **不改** | C1 |
 | ④ 横切基础辅助层 | `src/config.py` + `.env.example` | **修改**（新增 `KLINE_*` 等切换键） | 2.4/2.5、A7 |
 | ④ 横切基础辅助层 | `system_config` 运行时白名单 | **修改**（注册新键） | 2.5、A7 |
@@ -462,19 +476,21 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 **Tier A — 本方案必须（逐项必做）**
 
 - [ ] **A1. `api/v1/endpoints/kline.py` 瘦身**：删内联 `_fetch_kline_from_{sina,eastmoney,tencent}`，仅留路由 + 调用 `KlineDataSourceManager.get_kline()`；端点签名（code/period/fqt/limit/before_date）不变 → 前端零改。`[2.2][2.6]`｜前端：❌
-- [ ] **A2. 新建 `data_provider/kline/base.py`**：`KlineDataSource(ABC)`（`get_kline` + `_normalize_kline`）+ `KLinePoint` 契约 + `KlineDataSourceManager`（配置选源/回退，四源同级、优先级纯配置、每源自带 TTL）。`[2.3][2.4]`｜前端：❌
+- [ ] **A2. 新建 `data_provider/kline/base.py`**：`KlineDataSource(ABC)`（`get_kline` + `_normalize_kline`）+ `KLinePoint` 契约 + `KlineDataSourceManager`（配置选源/回退，多源同级、优先级纯配置、每源自带 TTL）。`[2.3][2.4]`｜前端：❌
 - [ ] **A3. 新建 `data_provider/kline/local_stockdb_source.py`**：`LocalStockDBDataSource` 对接 7899，输出 `KLinePoint`；缺失周期（120m/周/月/年）由 `transform.py` 聚合补齐。`[2.2][2.3]`｜前端：❌
-- [ ] **A4. 新建 `data_provider/kline/{eastmoney,sina,tencent}_source.py`**：把 kline.py 现有三源取数**平移**进对应源文件，各自 `_normalize_kline()` 映射；禁止保留副本，消除重复实现。`[2.2][2.3]`｜前端：❌
+- [ ] **A4. 新建 `data_provider/kline/{eastmoney,sina,tencent,stocksdk}_source.py`**：把 kline.py 现有三源取数**平移**进对应源文件，并新增 `stocksdk_source.py` 经 bridge 调用 `stock-sdk`；各自完成 `_normalize_kline()` 映射；禁止保留副本，消除重复实现。`[2.2][2.3]`｜前端：❌
 - [ ] **A5. 新建 `data_provider/kline/transform.py`**：共享时间桶聚合（5m~年）+ `pct_chg` 层内统一计算（派生字段，非各源重复）。`[2.4]`｜前端：❌
-- [ ] **A6. 新建 / 确认 `data_provider/stockdb_fetcher.py`**：沉淀独立 StockDB 客户端（连接/鉴权/TTL/异常），供 kline / stockinfo / codesearch 复用，不进端点层。`[2.2]`｜前端：❌
-- [ ] **A7. `src/config.py` + `.env.example` + `system_config` 白名单**：新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ 预留 `STOCKINFO_*` / `CODESEARCH_*`）并注册进运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）。`[2.4][2.5]`｜前端：⚠️ 需 A8 配套
-- [ ] **A8. 前端新增「数据源配置」Tab（挂 `/settings`）**：复用 `POST /api/v1/config` 运行时写 `.env`，把 `KLINE_*` 纳入可写白名单；选项来自枚举（local/eastmoney/sina/tencent/auto + 回退链排序 UI）。`[2.5]`｜前端：✅ 需新增页面
-- [ ] **A9. `data_provider/stockinfo/`、`data_provider/codesearch/` 同模式占位**：各建 `base.py`（`ABC` + `Manager`）+ 契约（`StockInfo` / `CodeSearchResult`）+ 至少 1 个 source；优先复用 `get_stock_name` / `get_stock_list` 加薄适配壳，本地 StockDB 接入走同一壳。`[2.3]`｜前端：❌
-- [ ] **A10. 取数下沉**：`src/services/name_to_code_resolver.py` 取数迁至 `data_provider/code_search/eastmoney_source.py`（功能接口层不再直接 `import akshare` 取数，解析/缓存留薄壳）；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `data_provider/stock_info/eastmoney_source.py`。`[2.2][2.3]`｜前端：❌
+- [ ] **A6. 新建 / 确认 `data_provider/stockdb_fetcher.py`**：沉淀独立 StockDB 客户端（连接/鉴权/TTL/异常），供 kline / stock_info / code_search 复用，不进端点层。`[2.2]`｜前端：❌
+- [ ] **A7. `src/config.py` + `.env.example` + `system_config` 白名单**：新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ `STOCKINFO_*` / `CODESEARCH_*`）并注册进运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；若引入 `StockSDK`，同时补 `STOCKSDK_ENABLED` / `STOCKSDK_NODE_BIN` / `STOCKSDK_BRIDGE_ENTRY` / `STOCKSDK_TIMEOUT_MS` / `STOCKSDK_RATE_LIMIT_RPS` / `STOCKSDK_KLINE_FALLBACK`。`[2.4][2.5]`｜前端：⚠️ 需 A8 配套
+- [ ] **A8. 前端新增「数据源配置」Tab（挂 `/settings`）**：复用 `POST /api/v1/config` 运行时写 `.env`，把 `KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 与 `STOCKSDK_*` 纳入可写白名单；选项来自枚举（`local/eastmoney/sina/tencent/stocksdk/auto` + 回退链排序 UI）。`[2.5]`｜前端：✅ 需新增页面
+- [ ] **A9. `data_provider/stock_info/`、`data_provider/code_search/` 同模式占位**：各建 `base.py`（`ABC` + `Manager`）+ 契约（`StockInfo` / `CodeSearchResult`）+ 至少 1 个 source；优先复用 `get_stock_name` / `get_stock_list` 加薄适配壳，本地 StockDB 与 `stocksdk_source.py` 接入走同一壳。`[2.3]`｜前端：❌
+- [ ] **A10. 取数下沉**：`src/services/name_to_code_resolver.py` 取数迁至 `data_provider/code_search/eastmoney_source.py` / `data_provider/code_search/stocksdk_source.py`（功能接口层不再直接 `import akshare` 取数，解析/缓存留薄壳）；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `data_provider/stock_info/eastmoney_source.py` / `data_provider/stock_info/stocksdk_source.py`。`[2.2][2.3]`｜前端：❌
+- [ ] **A11. 新建 `data_provider/stocksdk_bridge.py` + `scripts/stocksdk_bridge/`**：落地 Node 18 `stock-sdk` bridge，统一承接 Python ↔ Node 的 JSON 调用、错误码映射、健康探针、超时与限流配置，不允许业务层直接 `subprocess` 调 CLI。`[2.2][2.3]`｜前端：❌
+- [ ] **A12. 为 `kline / stock_info / code_search` 增补 `stocksdk_source.py`**：将 `StockSDK` 作为桥接型聚合源纳入统一 Manager；优先覆盖 `sdk.kline.*` / `sdk.search()` / `sdk.quotes.*` / `stock-sdk/symbols` 的符号归一能力，必要时在阶段 2/3 再扩到 `realtime / sector`。`[2.3][2.4]`｜前端：❌
 
-**Tier B — 超方案范围（记录待办，独立 follow-up）**
+**Tier B — 超方案范围（记录状态，独立 follow-up）**
 
-- [ ] **B1. `api/v1/endpoints/sector.py` 瘦化与取数下沉**：内联 **17 个** `_fetch_*` 直连 `push2.eastmoney.com`，整文件 1819 行即"东财接口搬运+解析"，与 kline.py 同一反模式，是最大单文件乱源；按 §2.7（未上线、无历史包袱），**未上线期是清理它的最佳窗口**，应作为紧接本方案的独立 PR 搬入新建 `data_provider/sector/`，控制单 PR 风险但不永久挂账。`[2.2][2.6]`｜前端：❌｜**上调：纳入近期排期（独立 PR，非永久除外）**
+- [x] **B1. `api/v1/endpoints/sector.py` 瘦化与取数下沉**：原内联东财主链路已下沉到 `data_provider/sector/eastmoney_source.py`，行业 / 个股 / ETF / 概念云图已下沉到 `data_provider/sector/shidaotec_source.py`，总览页标准市场接口与板块资金接口新增 `data_provider/sector/stocksdk_source.py` 作为 StockSDK 优先桥接源，并通过 `data_provider/sector/market_cards_source.py` 统一组装 `/api/v1/sector/market-cards?market=<tab-key>` 卡片列表；`sector.py` 当前仅保留路由参数校验、异常映射与响应编排。`[2.2][2.6]`｜前端：❌｜**已完成（文档同步更新）**
 
 **Tier C — 不纳入（仅记录，不改动）**
 
@@ -482,11 +498,11 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ### 10.3 建议执行顺序与依赖
 
-1. **先建底座**：A2（base/Manager/契约）→ A3/A4/A5（四源 + 聚合）→ A6（共享客户端）。
+1. **先建底座**：A2（base/Manager/契约）→ A3/A4/A5（多源 + 聚合）→ A6（StockDB 客户端）→ A11（StockSDK bridge）。
 2. **再瘦端点**：A1（kline.py 改调 Manager，删内联脏活）；此时后端已达标，**前端零改**。
-3. **接配置闭环**：A7（config + 白名单）→ A8（前端切换 UI）。
-4. **横向扩展**：A9（stockinfo/codesearch 同模式）→ A10（取数下沉）。
-5. **独立 follow-up**：B1（sector.py）单独排期，不与本方案耦合。
+3. **接配置闭环**：A7（config + 白名单）→ A8（前端切换 UI）；此阶段把 `stocksdk` 作为可选源暴露给配置层，但默认关闭。
+4. **横向扩展**：A9（stock_info/code_search 同模式）→ A10（取数下沉）→ A12（将 `stocksdk_source.py` 接入三类基础能力）。
+5. **独立 follow-up**：B1 已完成，后续仅按能力扩展继续在 `data_provider/sector/` 内演进，不再回退到端点内联取数。
 6. **不触碰**：C1（service SaaS）。
 
 ### 10.4 完成判据
@@ -497,7 +513,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ### 10.5 编制期衍生改动（文档 + 代码收尾，已落地）
 
-> 本节记录编制本 ADR（§3 数据库层设计补全 + 总目录同步）及前序会话中已实际落地的代码/内容改动，与 ADR-001 主体（data_provider 重构，A1–A10）相互独立、互不阻塞；状态以 `[x]` 标注已落地项。这些改动不改变 ADR-001 的核心结论（零新增表、StockDB 由进程独占），仅做落表层导出收口、前端组件统一与文档补全。
+> 本节记录编制本 ADR（§3 数据库层设计补全 + 总目录同步）及前序会话中已实际落地的代码/内容改动，与 ADR-001 主体（data_provider 重构，A1–A12）相互独立、互不阻塞；状态以 `[x]` 标注已落地项。这些改动不改变 ADR-001 的核心结论（零新增表、StockDB 由进程独占），仅做落表层导出收口、前端组件统一与文档补全。
 
 | 层 / 域 | 模块 / 文件 | 动作 | 依据 / 说明 |
 |---|---|---|---|
@@ -520,14 +536,17 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 ## 11. 验证 / 落地检查表
 
 - [ ] `data_provider/stockdb_fetcher.py` 直连 7899 成功返回 `日k` / `分钟k`
-- [ ] `data_provider/kline/` 四源各自 `_normalize_kline` 输出与 `KLinePoint` 一致
-- [ ] `KLINE_DATA_SOURCE` 切换 local / eastmoney / sina / tencent 均出数
+- [ ] `data_provider/stocksdk_bridge.py` 能成功调起 Node 18 `stock-sdk`，并完成 JSON 请求 / 响应 / 错误码映射
+- [ ] `data_provider/kline/` 五源各自 `_normalize_kline` 输出与 `KLinePoint` 一致
+- [ ] `KLINE_DATA_SOURCE` 切换 local / eastmoney / sina / tencent / stocksdk 均出数
 - [ ] 主源失败时按 `KLINE_SOURCE_PRIORITY` 自动回退
+- [ ] `STOCKINFO_DATA_SOURCE` / `CODESEARCH_DATA_SOURCE` 切换到 `stocksdk` 后，`name_to_code_resolver.py` 与 `stock_service.get_stock_name` 仍保持原契约不变
+- [ ] `STOCKSDK_*` 运行时配置（Node 路径 / bridge 入口 / timeout / rate limit / kline fallback）已注册白名单并可通过 `/api/v1/config` 热更新
 - [ ] 120m / 5d / yearly 由聚合层补齐（本地源缺失周期不空洞）
 - [ ] `/settings` 数据源 Tab 改配置后无需重启即生效（复用 `POST /api/v1/config`）
 - [ ] `kline.py` 内联 `_fetch_from_*` 已删除，仅保留路由 + 调用 Manager
-- [ ] `data_provider/code_search/base.py` 定义 `CodeSearchDataSource`+Manager（继承 common），`name_to_code_resolver.py` 取数已下沉、`eastmoney_source.py` 承接，功能接口层（③）不再直接 `import akshare`
-- [ ] `data_provider/stock_info/base.py` 定义 `StockInfoDataSource`+Manager（继承 common），`get_stock_name` 已从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py`
+- [ ] `data_provider/code_search/base.py` 定义 `CodeSearchDataSource`+Manager（继承 common），`name_to_code_resolver.py` 取数已下沉，由 `eastmoney_source.py` / `stocksdk_source.py` 承接，功能接口层（③）不再直接 `import akshare`
+- [ ] `data_provider/stock_info/base.py` 定义 `StockInfoDataSource`+Manager（继承 common），`get_stock_name` 已从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`
 
 **衍生改动验证（编制期已落地项）**
 
@@ -553,6 +572,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | 修订 C（2026-10-07 晚） | 目录补全：背景与目标归类、先总后分结构、执行路径置末、新增本「备注项」章 |
 | 修订 D（2026-10-07 晚） | 第二章"决策"改名为"整体设计"；按"先总后分"拆分出 §3 数据库层设计 / §4 数据源对接层设计 / §5 功能接口层设计 / §6 横切基础辅助层设计（目录铺排总表等并入 §4）；全文统一四层命名为「数据库层 / 数据源对接层 / 功能接口层 / 横切基础辅助层」 |
 | 修订 E（2026-10-07 晚） | **确立"ADR 为主"的落盘顺序**：§5 功能接口层设计升级为该层**权威完整规范**（5.1 定位与边界 / 5.2 端点目录结构 / 5.3 17 个端点铺排总表 / 5.4 调用链路）；主方案 `stock_data_view.md` §3.9 相应**精简为对齐摘要**，权威表迁入 ADR §5.3（避免两处重复、维护漂移）；浏览目录补 5.1–5.4 可点击子项（锚点经 `github-slugger` 校验） |
+| 修订 F（2026-10-09） | 新增 `StockSDK` 可行性分析与分层接入方案：将其定义为 **Node 18 桥接型物理后端**，补充 `data_provider/stocksdk_bridge.py` 与各能力 `stocksdk_source.py` 的目录铺排、配置键、执行顺序、验证项与功能接口层边界说明 |
 
 ### 12.2 ADR ↔ 方案 章节映射
 
@@ -572,11 +592,12 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 - **O1 数据字典模块**：2.1/2.4 提及「【建议新增】数据字典模块」；按 §2.7 正确做法，设计立场应建为独立表 + 对应 Repository，不再以 `config.py` 常量顶替。具体表结构与落点待定；**代码落地暂不在本期执行（见 §6 落地说明），后续再修改**，不长期挂账为临时顶替。
 - **O2 StockDB `127.0.0.1:7899` 鉴权**：`STOCKDB_REQUIRE_AUTH` 因复用 `/api/v1` 已继承 `ADMIN_AUTH`，可降级为可选项（见方案 §14.8）。
 - **O3 复权对账公式（AC-3）**：复权 vs `gp.js` 对账为上线硬阻断，公式口径需在对账阶段定稿。
-- **O4 `sector.py` 内联取数（B1）**：17 个 `_fetch_*` 下沉为独立 follow-up，不与本期耦合。
+- **O6 StockSDK bridge 运行时治理**：`StockSDK` 自身已提供 timeout / retry / rate limit / circuit breaker / host fallback / kline fallback；HermesX 侧仍需决定最终采用 `subprocess` 还是本地 sidecar HTTP/stdio 常驻进程，以及对应的进程守护与日志采样策略。
+- **O4 `sector.py` 内联取数（B1）**：已完成下沉并关闭；后续若新增板块子能力，继续收口到 `data_provider/sector/`，不再在端点层追加直连取数。
 - **O5 `service` 层 SaaS 外联（C1）**：显式标注不改动，其集成范式后续可借鉴 `data_provider`。
 
 ### 12.4 编码公约引用
 
 - 命名 / 目录 / 文件结构以方案 **§3.5（Python 标准化结构）** 为代码落地模板（PEP 8 + HermesX 既有 `*_service.py` / `*_repo.py` / `*_fetcher.py` / `base.py` 规律）。
 - 统一契约类型：`KLinePoint` / `StockInfo` / `CodeSearchResult`（见 2.4）。
-- 配置键前缀：`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*`，须登记 `system_config` 白名单（见 §10.2 A7）。
+- 配置键前缀：`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `STOCKSDK_*`，须登记 `system_config` 白名单（见 §10.2 A7）。

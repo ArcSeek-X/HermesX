@@ -15,17 +15,23 @@
 """
 
 from typing import Any
+import importlib.util
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from api.v1.schemas.kline import (
-    KLinePoint,
-    KLineResponse,
-    StockInfoResponse,
-    StockSearchResponse,
-    StockSearchResult,
-)
+_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "api" / "v1" / "schemas" / "kline.py"
+_SCHEMA_SPEC = importlib.util.spec_from_file_location("kline_schema_under_test", _SCHEMA_PATH)
+assert _SCHEMA_SPEC and _SCHEMA_SPEC.loader
+_SCHEMA_MODULE = importlib.util.module_from_spec(_SCHEMA_SPEC)
+_SCHEMA_SPEC.loader.exec_module(_SCHEMA_MODULE)
+
+KLinePoint = _SCHEMA_MODULE.KLinePoint
+KLineResponse = _SCHEMA_MODULE.KLineResponse
+StockInfoResponse = _SCHEMA_MODULE.StockInfoResponse
+StockSearchResponse = _SCHEMA_MODULE.StockSearchResponse
+StockSearchResult = _SCHEMA_MODULE.StockSearchResult
 
 
 # ---------------------------------------------------------------------------

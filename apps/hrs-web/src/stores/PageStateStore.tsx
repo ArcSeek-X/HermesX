@@ -30,6 +30,7 @@ export interface KLinePageState {
   stockInfo: StockInfo | null;
   klineData: KLinePoint[];
   prevClose: number | null;
+  klineSource: string | null;
 }
 
 /** 板块分析页面状态 */
@@ -107,6 +108,7 @@ const DEFAULT_STATE: PageStateStore = {
     stockInfo: null,
     klineData: [],
     prevClose: null,
+    klineSource: null,
   },
   sector: {
     activeTab: 'concept',
