@@ -26,7 +26,8 @@
  * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 // 前端拼音工具：用于把板块中文名动态转换为全拼 / 首字母缩写，
 // 从而支撑「板块名称 / 全拼 / 拼音缩写」的综合搜索（后端 BoardListItem 仅含 name，无预存拼音字段）。
 import { pinyin } from 'pinyin-pro';
@@ -85,7 +86,12 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
   }, []);
 
   /** 受控类型 / 刷新序号变化时触发数据加载（类型与刷新由父页面二级 TAB 驱动） */
+  const prevBoardRef = useRef(boardType);
   useEffect(() => {
+    const switched = prevBoardRef.current !== boardType;
+    prevBoardRef.current = boardType;
+    // 切换板块类型时清空旧列表，显示骨架屏；刷新（refreshKey）时原地更新，不闪烁
+    if (switched) setBoards([]);
     loadBoards(boardType);
   }, [boardType, refreshKey, loadBoards]);
 
@@ -150,8 +156,14 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
     <div className="space-y-3">
       {/* ===== 卡片网格（搜索框与类型切换器由父页面统一渲染在二级 TAB 与其右侧插槽）===== */}
       {loading && boards.length === 0 ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={`skeleton:${i}`}
+              className="rounded-lg border border-subtle bg-card/40 min-h-[132px] animate-pulse"
+              aria-hidden
+            />
+          ))}
         </div>
       ) : error ? (
         <div className="py-12 text-center text-sm" style={{ color: STOCK_UP_COLOR }}>
@@ -163,42 +175,49 @@ export const SectorBoardCards: React.FC<SectorBoardCardsProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filteredBoards.map((item) => (
-            <Card key={item.code} variant="bordered" padding="sm" className="hover:border-cyan/30 transition-colors">
-              {/* 卡片头部：排名 + 板块名称 */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className="inline-flex items-center justify-center h-5 w-5 rounded text-[10px] font-medium bg-muted/20 text-muted-text">
-                  {item.rank}
-                </span>
-                <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
-              </div>
-
-              {/* 涨跌幅（大号显示，红涨绿跌） */}
-              <div
-                className="text-xl font-bold font-mono mb-3"
-                style={{ color: getChangeColor(item.changePercent) }}
-              >
-                {formatPercent(item.changePercent)}
-              </div>
-
-              {/* 总市值 + 换手率 */}
-              <div className="flex items-center gap-6 mb-2">
-                <div>
-                  <div className="text-[10px] text-muted-text">总市值</div>
-                  <div className="text-xs font-medium text-foreground">{formatMarketCap(item.totalMarketCap)}</div>
+          {filteredBoards.map((item, index) => (
+            <motion.div
+              key={`${boardType}:${item.code}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut', delay: Math.min(index * 0.02, 0.4) }}
+            >
+              <Card variant="bordered" padding="sm" className="hover:border-cyan/30 transition-colors w-full">
+                {/* 卡片头部：排名 + 板块名称 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded text-[10px] font-medium bg-muted/20 text-muted-text">
+                    {item.rank}
+                  </span>
+                  <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
                 </div>
-                <div>
-                  <div className="text-[10px] text-muted-text">换手率</div>
-                  <div className="text-xs font-medium text-foreground">{item.turnoverRate.toFixed(2)}%</div>
-                </div>
-              </div>
 
-              {/* 涨跌家数 */}
-              <div className="flex items-center gap-3 text-xs">
-                <span style={{ color: STOCK_UP_COLOR }}>{item.riseCount} 涨</span>
-                <span style={{ color: STOCK_DOWN_COLOR }}>{item.fallCount} 跌</span>
-              </div>
-            </Card>
+                {/* 涨跌幅（大号显示，红涨绿跌） */}
+                <div
+                  className="text-xl font-bold font-mono mb-3"
+                  style={{ color: getChangeColor(item.changePercent) }}
+                >
+                  {formatPercent(item.changePercent)}
+                </div>
+
+                {/* 总市值 + 换手率 */}
+                <div className="flex items-center gap-6 mb-2">
+                  <div>
+                    <div className="text-[10px] text-muted-text">总市值</div>
+                    <div className="text-xs font-medium text-foreground">{formatMarketCap(item.totalMarketCap)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-text">换手率</div>
+                    <div className="text-xs font-medium text-foreground">{item.turnoverRate.toFixed(2)}%</div>
+                  </div>
+                </div>
+
+                {/* 涨跌家数 */}
+                <div className="flex items-center gap-3 text-xs">
+                  <span style={{ color: STOCK_UP_COLOR }}>{item.riseCount} 涨</span>
+                  <span style={{ color: STOCK_DOWN_COLOR }}>{item.fallCount} 跌</span>
+                </div>
+              </Card>
+            </motion.div>
           ))}
         </div>
       )}
