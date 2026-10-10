@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+- [新功能] 新增「尾盘选股法（EOD Picker）」：路由 `/eodPicker`，照搬参考项目 chengzuopeng/stock-dashboard 的界面与功能（开始屏 + 可编辑筛选 + 进度遮罩 + 结果卡片网格含分时图）。后端 `src/services/eod_picker_service.py` 实现两阶段筛选（全市场快照基础过滤 + 分时强度过滤），分时强度 = 价格站在均价线（VWAP）之上的采样点占比；`api/v1/endpoints/eod_picker.py` 提供 `GET /defaults`、`POST /tasks`（异步任务）、`GET /tasks/{id}`（轮询）、`GET /stocks/{code}/timeline`（分时懒加载），已注册进 `api/v1/router.py`。前端 `EodPickerPage` 复用 `AnimCard/HrsInput/Switch/Modal/TabNav/KLineChart` 等现成组件，筛选条件与方案/最近使用持久化于 localStorage。
 - [修复] 修复股票基础信息（/api/v1/kline/{code}/info）在东财不可达时整页失败：新增腾讯实时行情兜底源 `TencentStockInfoSource`，默认 source 顺序追加 `tencent`，并复用 `code_to_sina_symbol` 统一剥离交易所前后缀。
 - [新功能] 按 ADR-001 新增 `data_provider/{stockdb_fetcher,kline,stock_info,code_search}` 分层能力：K 线端点改为瘦端点，StockDB 以 `local` source 形式接入现有 `/api/v1/kline`、股票信息与代码搜索链路。
 - [新功能] 补齐 ADR-001 约定的 `data_provider/{realtime,sector,fundamentals,news,institutional}` 功能包骨架，并将实时行情、板块排行、华尔街见闻资讯、台湾机构数据等既有通道收口到对应 source 文件。
