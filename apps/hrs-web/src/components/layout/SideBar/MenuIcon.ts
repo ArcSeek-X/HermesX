@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   CandlestickChart,
+  Compass,
   Component,
   Database,
   FlaskConical,
@@ -27,7 +28,7 @@ import {
 
 /**
  * 菜单图标白名单：图标名 → lucide 组件。菜单数据仅存图标名字符串（可序列化、可持久化），
- * 渲染层据此解析回组件。集中在此文件以保持 tree-shaking（仅这 23 个图标进入产物）。
+ * 渲染层据此解析回组件。集中在此文件以保持 tree-shaking（仅这 24 个图标进入产物）。
  */
 export const menuIconRegistry: Record<string, ComponentType<{ className?: string }>> = {
   Activity,
@@ -36,6 +37,7 @@ export const menuIconRegistry: Record<string, ComponentType<{ className?: string
   BriefcaseBusiness,
   CalendarDays,
   CandlestickChart,
+  Compass,
   Component,
   Database,
   FlaskConical,
