@@ -8,7 +8,7 @@ import React from "react";
 import { Fragment, useState } from 'react';
 import { InlineToast, HrsInput, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant, HrsCheckbox, type HrsCheckboxSize, showToast, type ToastPlacement, type ToastVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
-import { type ParsedApiError } from '../api/error';
+import { type ParsedApiError } from '../../api/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 
@@ -200,11 +200,6 @@ const CodeTestPage: React.FC = () => {
         setIsOpen(true)
         console.log('打开模态框')
     }
-
-    // throw 的位置决定了效果：
-    // 放在在组件外面：它会在 lazy 动态 import() 加载该模块、模块求值阶段就执行——这发生渲染它之前，所以被路由”*“捕获
-    // 放在组件里面：发生在 RouteOutletBoundary 包裹的 <Outlet/> 子树之内，继而显示<RouteOutletBoundary />
-    if (import.meta.env.DEV) throw new Error('component inside debug :RouteOutletBoundary');
 
     return (
         <AppPage>

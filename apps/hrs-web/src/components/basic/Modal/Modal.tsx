@@ -115,7 +115,7 @@ const HrsModal: React.FC<HrsModalProps> = ({
   size = 'md',
   placement = 'center',
   scroll = 'inside',
-  variant = 'opaque',
+  variant = 'blur',
   isDismissable = true,
   hideCloseButton = false,
   dialogClassName,
