@@ -19,7 +19,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3 } from 'lucide-react';
+import logoImg from '../../../assets/hermesX-logo.png';
 import MenuNode, { type SidebarMenuMode } from './MenuNode';
 import { ScrollShadow } from '../../index';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
@@ -213,12 +213,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       <aside className={cn('flex h-full w-full flex-col ', asideClass)} aria-label={t('layout.desktopSidebar')} >
         {/* 品牌区：图标栏态仅显示 logo */}
         <div className={cn('flex items-center gap-3 px-6 pt-3 pb-3', isCollapsedRail && 'justify-center px-0')}>
-          <div
+          {/* <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
             style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.96), hsl(var(--primary) / 0.78))' }}
           >
             <BarChart3 className="h-5 w-5" />
-          </div>
+          </div> */}
+          <img
+            src={logoImg}
+            alt="HermesX logo"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain"
+          />
           {/* 品牌文字常驻挂载：折叠态用 hidden 完全移出布局，避免 gap 把 logo 挤偏；与展开态结构一致，避免切换瞬间 DOM 增删 */}
           <span
             className={cn(
