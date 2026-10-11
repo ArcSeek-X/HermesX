@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] 修复日历资讯页 `/live-calendar` 及快讯抓取接口 500（`'dict' object has no attribute 'title'`）：统一数据源重构后 `WallstreetcnNewsSource.fetch` 的 `calendar`/`live` 模式误将类型对象转成原始 dict，而服务层 `_calendar_entry_to_rows`/`_live_news_entry_to_item_fields` 按属性访问（含 `scope_values` 这类 `@property`），改为返回 `CalendarEventEntry`/`LiveNewsEntry` 对象（与 `calendar_countries` 模式一致），并补充 `tests/test_live_calendar.py` 覆盖该回归链路。
 - [新功能] 新增「尾盘选股法（EOD Picker）」：路由 `/eodPicker`，照搬参考项目 chengzuopeng/stock-dashboard 的界面与功能（开始屏 + 可编辑筛选 + 进度遮罩 + 结果卡片网格含分时图）。后端 `src/services/eod_picker_service.py` 实现两阶段筛选（全市场快照基础过滤 + 分时强度过滤），分时强度 = 价格站在均价线（VWAP）之上的采样点占比；`api/v1/endpoints/eod_picker.py` 提供 `GET /defaults`、`POST /tasks`（异步任务）、`GET /tasks/{id}`（轮询）、`GET /stocks/{code}/timeline`（分时懒加载），已注册进 `api/v1/router.py`。前端 `EodPickerPage` 复用 `AnimCard/HrsInput/Switch/Modal/TabNav/KLineChart` 等现成组件，筛选条件与方案/最近使用持久化于 localStorage。
 - [修复] 尾盘选股：修复流通市值单位不一致（东财快照为「元」、腾讯回退为「亿元」）导致基础过滤把绝大多数股票误杀、结果数量与展示偏差的问题，统一归一化到亿元后再过滤。
-- [改进] 尾盘选股：快照数据源改为优先腾讯批量行情（并发批量、无随机限速，秒级返回），东财 ak.stock_zh_a_spot_em 作为高覆盖回退；阶段 2 分时强度计算并发上限 8→12，整体提速。
-- [修复] 尾盘选股：修复「正在选股」进度弹窗布局错乱（AnimCard 默认横向 flex 导致内容横排挤压），改为竖向布局并加加载 spinner；页面标准按钮统一替换为 HrsButton。
+- [改进] 尾盘选股：快照数据源改为优先腾讯批量行情（并发批量、无随机限速，实测全市场 1~2s），东财 ak.stock_zh_a_spot_em 作为高覆盖回退。
+- [改进] 尾盘选股：阶段 2 分时强度改为直连东财 trends2 分时接口（与参考项目 stock-sdk quotes.timeline 同源同语义，均价线为数据源真实 VWAP），替代 1 分钟 K 线多源回退（sina 源成交额为推导值、且限流会导致候选被静默丢弃）；并发上限校准为 4（东财 push2his 对高并发限流严格，实测 16 并发会触发 IP 临时封禁），单票失败自动重试。
+- [改进] 尾盘选股：结果卡片点击直接跳转个股 K 线页 /stock/kline（sessionStorage 传递代码与「名称（规范代码）」展示标签，K 线页自动加载并在搜索框回显），移除分时大图弹窗；筛选行增加淡灰色背景对齐参考项目视觉。
 - [修复] 修复股票基础信息（/api/v1/kline/{code}/info）在东财不可达时整页失败：新增腾讯实时行情兜底源 `TencentStockInfoSource`，默认 source 顺序追加 `tencent`，并复用 `code_to_sina_symbol` 统一剥离交易所前后缀。
 - [新功能] 按 ADR-001 新增 `data_provider/{stockdb_fetcher,kline,stock_info,code_search}` 分层能力：K 线端点改为瘦端点，StockDB 以 `local` source 形式接入现有 `/api/v1/kline`、股票信息与代码搜索链路。
 - [新功能] 补齐 ADR-001 约定的 `data_provider/{realtime,sector,fundamentals,news,institutional}` 功能包骨架，并将实时行情、板块排行、华尔街见闻资讯、台湾机构数据等既有通道收口到对应 source 文件。
