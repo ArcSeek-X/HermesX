@@ -36,3 +36,6 @@ export type { HrsDrawerProps, HrsDrawerPlacement, HrsDrawerVariant, HrsDrawerSiz
 
 export { HrsCheckbox } from './HrsCheckbox';
 export type { HrsCheckboxProps, HrsCheckboxOptionDef, HrsCheckboxSize, HrsCheckboxOrientation } from './HrsCheckbox';
+
+export { HrsNumberField } from './NumberField';
+export type { HrsNumberFieldProps } from './NumberField';
