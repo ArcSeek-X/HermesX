@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [chore] 消息日历 `LiveCalendar` 组件的容器层样式独立成文件：新增 `apps/hrs-web/src/components/common/LiveCalendar/csscover.ts`（导出 `LIVE_CALENDAR_CSS_COVER`，含 167 条 `[&_.fc-*]` 覆盖类名与 `--fc-*` 主题变量），组件文件由 1062 行降至 714 行，只保留 `cn(LIVE_CALENDAR_CSS_COVER, className)` 一次引用；纯代码组织重构，经 twMerge 比对确认最终 `className` 字符串与重构前逐字相等（Vite 产物 CSS 已验证可正常扫描到）。详见 `docs/Live-calendar.md` §9.4 / §9.6。
 - [文档] 新增 11 个组件文档 Demo 页（`/docs/component/*`：抽屉/按钮/下拉选择/分割线/表格/轻提示/模态框/动画卡片/快讯卡片/列表卡片/标签页），覆盖 HrsDrawer/HrsButton/HrsSelect/Separator/Table/Toast/Modal/AnimCard/NewsCard/ListCard/TabNav 的基础用法与常见变体示例。
 - [文档] 新增 Input / TextArea / Chip 三个组件文档 Demo 页（`/docs/component/input`、`/docs/component/textArea`、`/docs/component/chip`），覆盖尺寸档位、受控用法、type/variant 变体、只读与禁用态及表单组合场景。
+- [改进] 尾盘选股结果卡片的分时图由 eCharts 版 `KLineChart` 切换为 lightweight-charts 封装的 `KLineView`（`apps/hrs-web/src/components/kline/KLineView.tsx`）：仅渲染价格趋势线（面积填充）+ 均价线 + 昨收基准虚线，去掉左右 Y 轴 / X 轴 / 网格 / 十字光标 / 高低点标注并锁定交互，降低卡片网格场景的渲染开销；无有效分时数据时组件内渲染占位块，`KLineChart` 本体保持不变。
+- [改进] 尾盘选股结果卡片视觉重构（对齐参考项目 EndOfDayPicker）：涨跌幅胶囊徽章、现价大字号 + 涨跌额 + 分时强度徽章、浅灰底缩略走势区（走势线改为红涨绿跌并新增末端圆点与「价格 / 均价」图例）、左标签右数值的 2x2 指标网格，并新增「加自选」按钮（写入排序第一个自选分组，后端 409 按已存在处理，无分组时隐藏）；排序栏同步由 TabNav 改为 HrsButton 按钮组并前置「排序」文案。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 
