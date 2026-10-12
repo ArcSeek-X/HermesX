@@ -3,11 +3,12 @@
  * @description 带动画入场效果的通用卡片组件（基于 motion/react）：
  *   - 入场动画：淡入 + 上移，按网格序号 ordinal 错位延迟（0.05s/位）；
  *   - 视觉变体：default 单层卡片 / gradient 渐变边框（外层衬底 + 内层盖板双层结构）；
- *   - gradientBackground：左上角主题色渐变背景（::before 伪元素实现，随 --primary 换肤）。
+ *   - gradientBackground：左上角主题色渐变背景（::before 伪元素实现，随 --primary 换肤）；
+ *   - onClick / tooltip：整卡可点击场景直接传给根元素（自动附带手型光标 + 悬停提示），无需再套一层 div。
  * 使用场景：列表页 / 仪表盘等卡片网格的批量入场展示，经 Card/index.ts 聚合导出。
  * @author Lensgcx (GaoCangxiong)
  */
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../../../utils/cn';
 
@@ -29,6 +30,10 @@ export type AnimCardProps = {
   id?: string;
   /** 附加到卡片根元素的内联样式 */
   style?: CSSProperties;
+  /** 卡片点击回调；传入后根元素可点击并自动附带 cursor-pointer（整卡可点的场景，无需再套一层 div） */
+  onClick?: MouseEventHandler<HTMLDivElement>;
+  /** 卡片悬停提示文案（映射到根元素原生 title，鼠标悬停时展示） */
+  tooltip?: string;
 };
 
 const baseStyle = 'relative flex overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]';
@@ -52,6 +57,8 @@ export default function AnimCard({
   gradientBackground = false,
   id,
   style,
+  onClick,
+  tooltip,
   children,
 }: AnimCardProps) {
 
@@ -59,9 +66,11 @@ export default function AnimCard({
   if (variant === 'gradient') {
     return (
       <motion.div
-        className={cn('hrs-animCard', variantStyles.gradient, className)}
+        className={cn('hrs-animCard', variantStyles.gradient, onClick && 'cursor-pointer', className)}
         style={{ '--gradient-angle': `${gradBorderAngle}deg`, ...style } as CSSProperties}
         id={id}
+        onClick={onClick}
+        title={tooltip}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
@@ -79,10 +88,13 @@ export default function AnimCard({
         baseStyle,
         variantStyles.default,
         gradientBackground && gradientBackgroundStyle,
+        onClick && 'cursor-pointer',
         className,
       )}
       id={id}
       style={style}
+      onClick={onClick}
+      title={tooltip}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
