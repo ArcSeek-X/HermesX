@@ -8,7 +8,6 @@
  *   - 中层 24%：成交量柱状图（红涨绿跌）
  *   - 下层  7%：时间轴（仅显示标签，不参与联动）
  *   - 双 Y 轴：左侧绝对价格（正红负绿），右侧涨跌幅百分比
- *   - 四角标注：左上最高价、左下最低价、右上最大涨幅、右下最大跌幅
  *
  * 【非分时模式（日K/周K/月K/年K/5m~120m）】四层网格：
  *   - 上层 42%：K 线蜡烛图 + MA5/MA10/MA30/MA60 均线
@@ -21,16 +20,12 @@
  * - 颜色适配主题（红涨绿跌），使用全局颜色常量（STOCK_UP_COLOR / STOCK_DOWN_COLOR）
  * - 所有 tooltip 文字支持中英文切换
  * - 分钟线自动添加 11:30 / 13:00 交易时段分割线
- * - 时间轴标签自适应密度（预计算 + 缓存策略，避免 interval 重复计算）
- *   - 非分时模式下（初始状态 + 在滑块左右滑动的过程中）
- *     - 等距定位算法，首尾对齐，确保标签均匀分布
- *     - 一般情况下，时间轴时间标签的个数不能太少，具体你根据情况可以调整
- *     - 屏幕-大屏（≥1000px），目标标签数：LABEL_TARGET_LARGE 个，屏幕-小屏（<1000px），目标标签数：LABEL_TARGET_SMALL 个
- *     - 当K线图可见柱子数 ≤ LABEL_SHOW_ALL_THRESHOLD，那么每个柱子下面都要有对应的时间轴时间标签  
- *     - 时间轴时间标签的字体大小要合理，时间轴时间标签绝对不能出现重叠，逃逸出图形的情况
+ * - 时间轴标签密度自适应：预计算标签索引并缓存，避免 axisLabel.interval 每次重算；
+ *   可见柱子数 ≤ LABEL_SHOW_ALL_THRESHOLD 时每根都标，否则按屏幕宽度等距取标
+ *   （大屏 LABEL_TARGET_LARGE / 小屏 LABEL_TARGET_SMALL），保证不重叠、不出界
  * - 支持全量数据模式（showAllData），开启后加载从上市至今所有数据
  * - 支持分页加载（onDataZoomBoundary），拖动到左边界时触发
- * - Tooltip 显示顺序：日期、涨跌幅、开盘、收盘、最高、最低、成交量、成交额、换手率、MA、MACD、DIF、DEA
+ * - Tooltip 字段顺序：日期、涨跌幅、开盘、收盘、最高、最低、成交量、成交额、换手率、MA、MACD、DIF、DEA
  *
  * @author Lensgcx (GaoCangxiong)
  */
@@ -105,6 +100,45 @@ function getDailyLimit(stockCode: string): number {
   if (code.startsWith('30') || code.startsWith('68')) return 20;
   if (code.startsWith('8') || code.startsWith('4')) return 30;
   return 10; // 主板默认 10%
+}
+
+/**
+ * 生成分钟线的午休时段分割线（11:30 / 13:00）。
+ * @param midday1130Index 11:30 对应的数据索引，-1 表示数据中无该时点
+ * @param midday1300Index 13:00 对应的数据索引，-1 表示数据中无该时点
+ * @param showLabel 是否渲染时间文字（主图显示，副图隐藏）
+ * @param labelColor 标签文字颜色（跟随主题）
+ */
+function buildMiddaySplitLines(
+  midday1130Index: number,
+  midday1300Index: number,
+  showLabel: boolean,
+  labelColor: string,
+) {
+  const lines: Array<{
+    xAxis: number;
+    lineStyle: { color: string; type: string; width: number };
+    label: { show: boolean; position?: 'end' | 'start'; formatter?: string; color?: string; fontSize?: number };
+  }> = [];
+  if (midday1130Index !== -1) {
+    lines.push({
+      xAxis: midday1130Index,
+      lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
+      label: showLabel
+        ? { show: true, position: 'end', formatter: '11:30', color: labelColor, fontSize: 10 }
+        : { show: false },
+    });
+  }
+  if (midday1300Index !== -1) {
+    lines.push({
+      xAxis: midday1300Index,
+      lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
+      label: showLabel
+        ? { show: true, position: 'start', formatter: '13:00', color: labelColor, fontSize: 10 }
+        : { show: false },
+    });
+  }
+  return lines;
 }
 
 /** K 线图组件 Props */
@@ -226,7 +260,6 @@ function getUpDownColor(change: number | null): string {
  * @returns { formatter: (value: string) => string }
  */
 function computeTimeAxisLabels(
-  _data: KLinePoint[],
   period: KLinePeriod,
   isSmallScreen: boolean,
 ): { formatter: (value: string) => string } {
@@ -307,23 +340,9 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   const labelIndicesRef = useRef<Set<number>>(new Set());
 
 /**
- * 预计算当前可见范围内应显示标签的索引集合
- *
- * 算法策略：
- * 1. 使用 useRef 缓存标签索引集合（labelIndicesRef），避免 interval 每次重复计算
- * 2. 在数据/周期/缩放变化时一次性计算，interval 函数仅做 Set.has() 查找
- * 3. 等距定位算法：step = (visCount-1)/(n-1)，确保首尾对齐
- *
- * 遵循原则：
- * - 均匀分布：等距选取标签位置
- * - 左右对齐：首尾柱子必有标签
- * - 少量全显：可见柱子数 ≤ LABEL_SHOW_ALL_THRESHOLD 时每个都显示
- * - 密度控制：根据屏幕宽度和标签文本长度动态限制最大标签数
- * - 防止重叠：maxLabelsByWidth 确保标签不超出可用宽度
- *
- * 触发时机：
- * - 数据加载/周期切换时（useEffect 中）
- * - 用户拖动滑块时（handleDataZoom 中）
+ * 预计算可见范围内应显示时间标签的索引集合（写入 labelIndicesRef）。
+ * 用 Set 缓存，axisLabel.interval 回调仅做 has() 查找，避免每次重算；
+ * 少量全显（≤ LABEL_SHOW_ALL_THRESHOLD），否则按屏幕宽度等距取标并首尾对齐。
  */
   const recomputeLabelIndices = useCallback(() => {
     const total = data.length;
@@ -363,11 +382,6 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     labelIndicesRef.current = s;
   }, [data.length, period, windowWidth, isSmallScreen]);
 
-  // 获取主题颜色（使用全局颜色常量）
-  const getThemeColorsLocal = useCallback(() => {
-    return getThemeColors();
-  }, []);
-
   /**
    * 核心渲染逻辑：根据 data / period / 主题 / 屏幕宽度 重新计算并绘制图表
    *
@@ -395,9 +409,9 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     const chart = chartInstance.current;
 
     // ===== 构建完整 option 配置 =====
-    const colors = getThemeColorsLocal();
+    const colors = getThemeColors();
     const isIntraday = period === '1m';
-    const isMinuteLine = ['1m', '5m', '15m', '30m', '60m', '120m'].includes(period);
+    const isMinuteKLine = ['5m', '15m', '30m', '60m', '120m'].includes(period);
 
     // 国际化标签
     const labels = {
@@ -431,7 +445,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
 
     // 按周期自适应计算时间轴标签格式化函数
     const { formatter: timeAxisFormatter } =
-      computeTimeAxisLabels(data, period, isSmallScreen);
+      computeTimeAxisLabels(period, isSmallScreen);
 
     // 计算 MA 均线（MA5/MA10/MA30/MA60）
     const ma5 = computeMA(closes, 5);
@@ -807,12 +821,6 @@ export const KLineChart: React.FC<KLineChartProps> = ({
           { gridIndex: 2, show: false },
         ],
         dataZoom: [],  // 分时模式无缩放
-        // 四角标注：用 graphic 组件在图表四角放置文字，不随缩放变化
-        // 左上：最高价（红）  左下：最低价（绿）
-        // 右上：最大涨幅（红）  右下：最大跌幅（绿）
-        graphic: [
-        
-        ],
         // Series：3 个系列
         // [0] 分时折线面积图：蓝色渐变填充，connectNulls 连接午休空缺
         // [1] 均价线：橙色，累计成交额/累计成交量
@@ -1071,34 +1079,13 @@ export const KLineChart: React.FC<KLineChartProps> = ({
             data: klineData,
             itemStyle: { color: colors.upColor, color0: colors.downColor, borderColor: colors.upColor, borderColor0: colors.downColor },
             xAxisIndex: 0, yAxisIndex: 0,
-            // 分钟线添加交易时段分割线
-            markLine: isMinuteLine
+            // 分钟线添加交易时段分割线（主图显示 11:30 / 13:00 文字标签）
+            markLine: isMinuteKLine
               ? {
                   silent: true,
                   symbol: 'none',
                   lineStyle: { type: 'dashed', width: 1, color: '#ccc' },
-                  data: [
-                    // 11:30 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1130Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1130Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: true, position: 'end', formatter: '11:30', color: colors.textColor, fontSize: 10 },
-                          },
-                        ]
-                      : []),
-                    // 13:00 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1300Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1300Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: true, position: 'start', formatter: '13:00', color: colors.textColor, fontSize: 10 },
-                          },
-                        ]
-                      : []),
-                  ],
+                  data: buildMiddaySplitLines(midday1130Index, midday1300Index, true, colors.textColor),
                 }
               : undefined,
           },
@@ -1110,34 +1097,13 @@ export const KLineChart: React.FC<KLineChartProps> = ({
             name: labels.volume, type: 'bar',
             data: volumes.map((v, i) => ({ value: v, itemStyle: { color: volumeColors[i] } })),
             xAxisIndex: 2, yAxisIndex: 2,
-            // 分钟线添加交易时段分割线
-            markLine: isMinuteLine
+            // 分钟线添加交易时段分割线（副图隐藏文字标签）
+            markLine: isMinuteKLine
               ? {
                   silent: true,
                   symbol: 'none',
                   lineStyle: { type: 'dashed', width: 1, color: '#ccc' },
-                  data: [
-                    // 11:30 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1130Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1130Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: false },
-                          },
-                        ]
-                      : []),
-                    // 13:00 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1300Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1300Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: false },
-                          },
-                        ]
-                      : []),
-                  ],
+                  data: buildMiddaySplitLines(midday1130Index, midday1300Index, false, colors.textColor),
                 }
               : undefined,
           },
@@ -1147,34 +1113,13 @@ export const KLineChart: React.FC<KLineChartProps> = ({
             name: labels.macd, type: 'bar',
             data: macd.map((v, i) => ({ value: v, itemStyle: { color: macdColors[i] } })),
             xAxisIndex: 3, yAxisIndex: 3,
-            // 分钟线添加交易时段分割线
-            markLine: isMinuteLine
+            // 分钟线添加交易时段分割线（副图隐藏文字标签）
+            markLine: isMinuteKLine
               ? {
                   silent: true,
                   symbol: 'none',
                   lineStyle: { type: 'dashed', width: 1, color: '#ccc' },
-                  data: [
-                    // 11:30 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1130Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1130Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: false },
-                          },
-                        ]
-                      : []),
-                    // 13:00 午休分界线（仅在找到有效索引时添加）
-                    ...(midday1300Index !== -1
-                      ? [
-                          {
-                            xAxis: midday1300Index,
-                            lineStyle: { color: '#ccc', type: 'dashed', width: 1 },
-                            label: { show: false },
-                          },
-                        ]
-                      : []),
-                  ],
+                  data: buildMiddaySplitLines(midday1130Index, midday1300Index, false, colors.textColor),
                 }
               : undefined,
           },
@@ -1238,7 +1183,6 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   }, [
     data,
     period,
-    getThemeColorsLocal,
     t,
     language,
     windowWidth,
