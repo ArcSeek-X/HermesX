@@ -17,14 +17,16 @@
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-14
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../../../assets/hermesX-logo.png';
 import MenuNode, { type SidebarMenuMode } from './MenuNode';
+import { matchPath } from './menuPath';
 import { ScrollShadow } from '../../index';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
+import styles from './SidebarNav.module.scss';
 
 import { useMenuStore } from '../../../stores';
 import type { NavMenuNode } from '../../../types/moduleMenu';
@@ -96,8 +98,21 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   // 菜单数据统一从 MenuStore 的 currentMenuData 获取（已按当前模块筛选、含 menuPosition）
   const currentMenuData = useMenuStore((s) => s.currentMenuData);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   // collapsed 为 64px 图标栏：菜单只显示图标、品牌区只显示 logo
   const isCollapsedRail = menuCollapsedState === 'collapsed';
+
+  // —— 滑行玻璃（.navThumb）相关 ref 与状态 ——
+  // menuArea：菜单区定位父级（含主菜单 nav + footer），玻璃绝对定位于此
+  const menuAreaRef = useRef<HTMLDivElement>(null);
+  // thumb：唯一玻璃块
+  const thumbRef = useRef<HTMLDivElement>(null);
+  // navScroll：主菜单滚动容器，监听 scroll 让玻璃贴合当前项
+  const navScrollRef = useRef<HTMLElement>(null);
+  // 减弱动效偏好（只读 ref，避免每次 render 重新计算 matchMedia）；syncThumb 读取
+  const reduceMotionRef = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
 
   // AlphaSift 是否启用，控制「选股」入口显隐
   const [showAlphaSiftNav, setShowAlphaSiftNav] = useState(false);
@@ -153,10 +168,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const toggle = useCallback((menuId: string) => {
     setUserExpanded((prev) => ({ ...prev, [menuId]: !prev[menuId] }));
   }, []);
-  // 展开判定：用户显式切换过则用其值，否则回退数据里的 menuExpanded
+  // 展开判定：用户显式切换过则用其值，否则回退数据里的 menuExpanded；
+  // 若某子项命中当前路由（深链 / 刷新直达子页），父级自动展开，保证激活叶子在 DOM 中、滑行玻璃能落到它。
   const isExpanded = useCallback(
-    (node: NavMenuNode) => userExpanded[node.menuId] ?? node.menuExpanded,
-    [userExpanded],
+    (node: NavMenuNode) => {
+      if (userExpanded[node.menuId] !== undefined) return userExpanded[node.menuId];
+      if (node.children?.some((child) => matchPath(child.routePath, child.exact, pathname))) return true;
+      return node.menuExpanded;
+    },
+    [userExpanded, pathname],
   );
 
   // 当前模块的菜单数据（currentMenuData）切换后，自动跳转到菜单栏第一个可跳转菜单：
@@ -173,9 +193,72 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     if (target?.routePath) navigate(target.routePath);
   }, [currentMenuData, contentItems, navigate]);
 
+  // —— 滑行玻璃定位与同步 ——
+  // 思路（对应 scaffold 的 slideThumb）：菜单区只有「一块」玻璃(.navThumb)，靠 transform 在菜单项之间滑行；
+  // 激活项用 [data-active="true"] 标记（由 MenuNode 落在真正高亮的叶子项上）。
+  // animate=true 播滑行（仅真实路由切换），false 瞬时贴合（挂载 / 折叠 / 滚动 / resize，避免无意义位移）。
+  const syncThumb = useCallback((animate: boolean) => {
+    const area = menuAreaRef.current;
+    const thumb = thumbRef.current;
+    if (!area || !thumb) return;
+    const isOffcanvas = menuCollapsedState === 'offcanvas';
+    const target = isOffcanvas ? area.querySelector<HTMLElement>('[data-active="true"]') : null;
+    if (!target) {
+      thumb.style.opacity = '0';
+      return;
+    }
+    const ar = area.getBoundingClientRect();
+    const tr = target.getBoundingClientRect();
+    const y = tr.top - ar.top;
+    thumb.style.opacity = '1';
+    // 瞬时态直接关 transition（贴合/滚动）；动画态回落模块 CSS 的 .navThumb 过渡；减弱动效也走瞬时
+    thumb.style.transition = animate && !reduceMotionRef.current ? '' : 'none';
+    thumb.style.transform = `translateY(${y}px)`;
+  }, [menuCollapsedState]);
+
+  // 路由切换→滑行；挂载/菜单数据变化/折叠态变化→瞬时对齐。用 ref 区分，避免环境变化也播动画。
+  const prevPathRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const changedRoute = prevPathRef.current !== null && prevPathRef.current !== pathname;
+    prevPathRef.current = pathname;
+    syncThumb(changedRoute);
+    // 深链/刷新时父级刚自动展开，子菜单高度动画未结束，稍后补一次同步修正落点
+    if (!changedRoute) return;
+    const id = window.setTimeout(() => syncThumb(false), 300);
+    return () => window.clearTimeout(id);
+  }, [pathname, contentItems, footerItems, menuCollapsedState, syncThumb]);
+
+  // 主菜单滚动时让玻璃贴合当前项（rAF 节流，瞬时态避免滑行拖影）
+  useEffect(() => {
+    const nav = navScrollRef.current;
+    if (!nav) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        syncThumb(false);
+      });
+    };
+    nav.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      nav.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [syncThumb]);
+
+  // 折叠动画 / 字号加载导致尺寸变化→瞬时对齐
+  useEffect(() => {
+    const area = menuAreaRef.current;
+    if (!area) return;
+    const ro = new ResizeObserver(() => syncThumb(false));
+    ro.observe(area);
+    return () => ro.disconnect();
+  }, [syncThumb]);
+
   // 列表渲染：ul > MenuNode，二级由 MenuNode 内部再嵌一层 ul
   const renderList = (nodes: NavMenuNode[]) => (
-    <ul className="flex flex-col gap-1.5">
+    <ul className={cn('nav-list flex flex-col gap-1.5', styles.navList)}>
       {nodes.map((node) => (
         <MenuNode
           key={node.menuId}
@@ -235,22 +318,29 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           </span>
         </div>
 
-        {/* 主菜单区：占满剩余空间并在自身内部滚动；上下边缘随滚动位置渐隐（封装于 ScrollShadow） */}
-        <ScrollShadow
-          as="nav"
-          className="hrs-sidebar-content min-h-0 flex-1 overflow-y-auto px-2 pt-2 scrollbar-none"
-          aria-label={t('layout.mainNav')}
-        >
-          {renderList(contentItems)}
-        </ScrollShadow>
+        {/* 菜单区（定位父级）：包裹主菜单 nav + footer，首子节点为唯一滑行玻璃块 */}
+        <div ref={menuAreaRef} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* 滑行玻璃块：绝对定位，选中项变化时靠 transform 滑到该项；pointer-events:none 不挡点击 */}
+          <div ref={thumbRef} className={styles.navThumb} aria-hidden="true" />
 
-        {/* 底部菜单区：固定在底部，不随主菜单滚动 */}
-        {footerItems.length > 0 ? (
-          <div className="shrink-0 px-2 pb-2">
-            <div className="mx-1.5 h-px bg-[var(--nav-divider)]" />
-            <div className="pt-3">{renderList(footerItems)}</div>
-          </div>
-        ) : null}
+          {/* 主菜单区：占满剩余空间并在自身内部滚动；上下边缘随滚动位置渐隐（封装于 ScrollShadow） */}
+          <ScrollShadow
+            ref={navScrollRef}
+            as="nav"
+            className="hrs-sidebar-content min-h-0 flex-1 overflow-y-auto px-2 pt-2 scrollbar-none"
+            aria-label={t('layout.mainNav')}
+          >
+            {renderList(contentItems)}
+          </ScrollShadow>
+
+          {/* 底部菜单区：固定在底部，不随主菜单滚动 */}
+          {footerItems.length > 0 ? (
+            <div className="shrink-0 px-2 pb-2">
+              <div className="mx-1.5 h-px bg-[var(--nav-divider)]" />
+              <div className="pt-3">{renderList(footerItems)}</div>
+            </div>
+          ) : null}
+        </div>
       </aside>
 
     </div>

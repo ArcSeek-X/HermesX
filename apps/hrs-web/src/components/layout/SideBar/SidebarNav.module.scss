@@ -1,0 +1,44 @@
+/* SidebarNav.module.scss
+ * 侧栏专属样式（不泄露到全局）：滑动高亮玻璃块 + 兄弟让位。
+ * 由 SidebarNav 与 MenuNode 共享 import；类名经 CSS Module 哈希。
+ * 参考 scaffold-vue 的 .nav-thumb / :has() 交互，平移到 React + CSS Module。
+ *
+ * 约定：
+ * - .navThumb 的 transform / opacity 由 JS 在运行时写入（路由切换滑行 / 滚动贴合），
+ *   故此处不写 transform 的 CSS transition 冲突；仅在 reduced-motion 时整体关掉过渡。
+ * - .menuItem / .navList 仅作为 :has() 作用域钩子，过渡由 Tailwind 的 transition 工具类承担。 */
+
+/* 1. 唯一一块毛玻璃：绝对定位于菜单区，靠 transform 在菜单项之间滑行 */
+.navThumb {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  height: var(--nav-item-height);
+  border-radius: calc(var(--radius) - 4px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.22);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow:
+    0 1px 2px hsl(var(--primary) / 0.14),
+    inset 0 1px 0 hsl(0 0% 100% / 0.28);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navThumb {
+    transition: none;
+  }
+}
+
+/* 2. 兄弟让位：hover 某项时，其它非选中项淡出让位（纯 CSS :has） */
+@media (hover: hover) {
+  .navList:has(.menuItem:hover) .menuItem:not(:hover):not([data-active="true"]) {
+    opacity: 0.62;
+  }
+}

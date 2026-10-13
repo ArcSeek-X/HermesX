@@ -9,7 +9,7 @@
  * @date 2026-09-14
  */
 import React from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, type Transition } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { menuIconRegistry } from './MenuIcon';
@@ -17,16 +17,20 @@ import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../i18n/uiText';
 import { cn } from '../../../utils/cn';
 import type { NavMenuNode } from '../../../types/moduleMenu';
+import { matchPath } from './menuPath';
+import styles from './SidebarNav.module.scss';
 
 /** 一级菜单展示模式：group=一级作为分区标题（不可折叠）；collapse=一级为可折叠项 */
 export type SidebarMenuMode = 'group' | 'collapse';
 
 // ===== 样式常量（模块级常量，避免每次渲染重复构造字符串）=====
 
-/** 行基础样式：44px 行高 + 圆角 + 占位透明边框（激活换主色边框不抖动） */
+/** 行基础样式：44px 行高 + 圆角 + 占位透明边框（激活换主色边框不抖动）
+ *  加 relative z-[1]：菜单项压在滑行玻璃（.navThumb, z-index:0）之上；
+ *  transition 含 opacity：供 :has() 兄弟让位过渡。 */
 const MENU_ITEM_BASE =
-  'flex w-full h-[var(--nav-item-height)] items-center gap-3 rounded-[calc(var(--radius)-4px)] border border-transparent px-4 leading-none transition-colors cursor-pointer';
-/** 激活态：主色背景 + 主色边框 */
+  'relative z-[1] flex w-full h-[var(--nav-item-height)] items-center gap-3 rounded-[calc(var(--radius)-4px)] border border-transparent px-4 leading-none transition-[color,background-color,border-color,opacity] duration-200 cursor-pointer';
+/** 激活态：主色背景 + 主色边框（仅折叠图标栏 / 完全收起态使用，offcanvas 态改由滑行玻璃承担） */
 const MENU_ITEM_ACTIVE = 'border-[var(--nav-active-border)] bg-[var(--nav-active-bg)]';
 /** 交互态：hover 背景 */
 const MENU_ITEM_HOVER = 'hover:bg-[var(--nav-hover-bg)]';
@@ -34,6 +38,9 @@ const MENU_ITEM_HOVER = 'hover:bg-[var(--nav-hover-bg)]';
 const MENU_ITEM_TEXT = 'font-medium !text-foreground';
 /** 文字激活态 */
 const MENU_ITEM_TEXT_ACTIVE = '!font-bold !text-primary';
+/** 按压反馈：点下去轻微下陷（对应参考实现 scale:0.955），松手弹簧回弹 */
+const MENU_ITEM_PRESS = { scale: 0.965 } as const;
+const MENU_ITEM_PRESS_SPRING: Transition = { type: 'spring', stiffness: 520, damping: 28 };
 /** 菜单层级 → 字号：一级 text-sm，二级 text-xs */
 const MENU_ITEM_FONT_SIZE: Record<number, string> = {
   0: '!text-sm',
@@ -47,19 +54,6 @@ const SUBMENU_MOTION = {
   exit: { height: 0, opacity: 0 },
   transition: { duration: 0.22, ease: 'easeOut' },
 } as const;
-
-/**
- * 判断菜单配置的路由是否命中当前路径。
- *
- * @param routePath 菜单配置的路由；为空表示该项不可跳转，直接判为未命中
- * @param exact     true 要求与当前路径完全相等；false 时当前路径为其子路径也算命中
- * @param pathname  当前浏览器路径
- * @returns 命中返回 true，否则 false
- */
-const matchPath = (routePath: string | undefined, exact: boolean | undefined, pathname: string): boolean => {
-  if (!routePath) return false;
-  return exact ? pathname === routePath : pathname === routePath || pathname.startsWith(`${routePath}/`);
-};
 
 // ===== 主组件 =====
 
@@ -151,23 +145,27 @@ const MenuNode: React.FC<MenuNodeProps> = ({
     const navigable = !!routePath && !isGroup;
     return (
       <li className={`menu-node-collapsed-${level}`}>
-        <a
+        <motion.a
           href={navigable ? routePath : undefined}
           onClick={navigable ? handleClick : undefined}
           title={label}
           aria-label={label}
+          whileTap={MENU_ITEM_PRESS}
+          transition={MENU_ITEM_PRESS_SPRING}
           className={cn(
             MENU_ITEM_BASE,
             'justify-center px-0',
+            styles.menuItem,
             MENU_ITEM_HOVER,
             active && MENU_ITEM_ACTIVE,
             !navigable && 'cursor-default',
           )}
+          data-active={active ? 'true' : undefined}
         >
           {menuIcon}
           {/* 文字常驻挂载（折叠态用 hidden 完全移出布局，避免 gap 把图标挤偏），与展开态结构一致，避免切换瞬间 DOM 增删 */}
           <span className="hidden">{label}</span>
-        </a>
+        </motion.a>
       </li>
     );
   }
@@ -192,8 +190,8 @@ const MenuNode: React.FC<MenuNodeProps> = ({
     if (menuMode === 'group') {
       return (
         <li className={`menu-node-group-${level}`}>
-          <div className="px-4 pb-1 pt-2 text-xs font-medium text-secondary-text/70">{label}</div>
-          <ul className="flex flex-col gap-1">{childList}</ul>
+          <div className="relative z-[1] px-4 pb-1 pt-2 text-xs font-medium text-secondary-text/70">{label}</div>
+          <ul className={cn(styles.navList, 'flex flex-col gap-1')}>{childList}</ul>
         </li>
       );
     }
@@ -201,9 +199,10 @@ const MenuNode: React.FC<MenuNodeProps> = ({
     // collapse 模式：可折叠行（主区点击跳转并切换展开）+ 子菜单高度动画
     return (
       <li className={`menu-node-collapse-${level}`}>
-        <div
+        <motion.div
           className={cn(
             MENU_ITEM_BASE,
+            styles.menuItem,
             MENU_ITEM_TEXT,
             MENU_ITEM_HOVER,
             active && MENU_ITEM_TEXT_ACTIVE,
@@ -211,6 +210,8 @@ const MenuNode: React.FC<MenuNodeProps> = ({
             'pr-1.5',
           )}
           onClick={handleParentClick}
+          whileTap={MENU_ITEM_PRESS}
+          transition={MENU_ITEM_PRESS_SPRING}
         >
           <span className="flex min-w-0 flex-1 items-center gap-3">
             {menuIcon}
@@ -220,11 +221,11 @@ const MenuNode: React.FC<MenuNodeProps> = ({
           <ChevronRight
             className={cn('flex h-4 w-4 transition-transform text-foreground-soft text-xs', expanded && 'rotate-90')}
           />
-        </div>
+        </motion.div>
         <AnimatePresence initial={false}>
           {expanded ? (
             <motion.div key="submenu" {...SUBMENU_MOTION} className="overflow-hidden">
-              <ul id={`menu-submenu-${menuId}`} className="mt-1 flex flex-col gap-1">
+              <ul id={`menu-submenu-${menuId}`} className={cn(styles.navList, 'mt-1 flex flex-col gap-1')}>
                 {childList}
               </ul>
             </motion.div>
@@ -235,25 +236,30 @@ const MenuNode: React.FC<MenuNodeProps> = ({
   }
 
   // —— 叶子节点：统一用 <a> 渲染；有 routePath 才跳转，无 routePath 时仅展示 ——
+  // 注意：offcanvas 态下激活高亮由 SidebarNav 的滑行玻璃（.navThumb）承担，
+  // 此处不再绘制自带背景（避免双重高亮）；仅保留文字激活色。折叠图标栏态仍用自带背景。
   return (
     <li className={`menu-node-collapse-${level}`}>
-      <a
+      <motion.a
         href={routePath}
         onClick={handleClick}
         aria-current={active ? 'page' : undefined}
+        whileTap={MENU_ITEM_PRESS}
+        transition={MENU_ITEM_PRESS_SPRING}
         className={cn(
           MENU_ITEM_BASE,
+          styles.menuItem,
           MENU_ITEM_TEXT,
           MENU_ITEM_HOVER,
-          active && MENU_ITEM_ACTIVE,
           active && MENU_ITEM_TEXT_ACTIVE,
           !routePath && 'cursor-default',
           MENU_ITEM_FONT_SIZE[level],
         )}
+        data-active={active ? 'true' : undefined}
       >
         {menuIcon}
         <span className="truncate">{label}</span>
-      </a>
+      </motion.a>
     </li>
   );
 };
