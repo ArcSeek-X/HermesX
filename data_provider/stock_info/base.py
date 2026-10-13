@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Optional
 
@@ -81,22 +82,40 @@ def _build_sources() -> Dict[str, StockInfoSource]:
     }
 
 
-_MANAGER = StockInfoDataSourceManager(
-    sources=_build_sources(),
-    default_source_order=DEFAULT_SOURCE_ORDER,
-    data_source_key="stockinfo_data_source",
-    source_priority_key="stockinfo_source_priority",
-    fallback_enabled_key="stockinfo_fallback_enabled",
-    cache_ttl_seconds=30,
-    health_cooldown_seconds=10,
-)
+_MANAGER: Optional[StockInfoDataSourceManager] = None
+_MANAGER_LOCK = threading.Lock()
+
+
+def _get_manager() -> StockInfoDataSourceManager:
+    """
+    惰性构建 manager（避免模块级构建触发循环导入）。
+
+    eastmoney_source 需要从本模块导入 StockInfoResult / StockInfoSource，
+    而 _build_sources() 又要回过头导入 eastmoney_source。若 manager 在模块级
+    构建，则「先导入 eastmoney_source」时它仍处于半初始化状态，
+    `_build_sources()` 取 EastMoneyStockInfoSource 会抛 ImportError。
+    """
+    global _MANAGER
+    if _MANAGER is None:
+        with _MANAGER_LOCK:
+            if _MANAGER is None:
+                _MANAGER = StockInfoDataSourceManager(
+                    sources=_build_sources(),
+                    default_source_order=DEFAULT_SOURCE_ORDER,
+                    data_source_key="stockinfo_data_source",
+                    source_priority_key="stockinfo_source_priority",
+                    fallback_enabled_key="stockinfo_fallback_enabled",
+                    cache_ttl_seconds=30,
+                    health_cooldown_seconds=10,
+                )
+    return _MANAGER
 
 
 def get_stock_info(stock_code: str) -> StockInfoResult:
     """按配置顺序获取股票基础信息。"""
-    return _MANAGER.get_stock_info(stock_code)
+    return _get_manager().get_stock_info(stock_code)
 
 
 def resolve_stock_info_source_order() -> Iterable[str]:
     """返回当前配置生效的基础信息 source 顺序。"""
-    return _MANAGER.resolve_source_order()
+    return _get_manager().resolve_source_order()
