@@ -20,8 +20,8 @@ import { toDateKey } from '@utils/format';
 import { useMemo, useState } from 'react';
 import { Checkbox, HrsButton, HrsSelect, HrsInput, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
 import { PageHeader } from '@components/page-layout';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { useLiveNews, useLiveNewsChannels } from '../hooks/useLiveNews';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useLiveNews, useLiveNewsChannels } from '../../../hooks/useLiveNews';
 // 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
 
 const LiveNewsPage: React.FC = () => {

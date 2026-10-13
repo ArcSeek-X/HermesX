@@ -112,7 +112,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/StockKLinePage',
+            menuPagePath: 'pages/Stock/StockKLinePage/StockKLinePage',
           },
           {
             menuId: 'stockDataView',
@@ -125,7 +125,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/StockDataViewPage',
+            menuPagePath: 'pages/Stock/StockDataViewPage/StockDataViewPage',
           },
         ]
       },
@@ -153,7 +153,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/StockDashboardPage',
+            menuPagePath: 'pages/Market/StockDashboardPage/StockDashboardPage',
           },
           {
             menuId: 'sector-analysis',
@@ -166,7 +166,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/SectorAnalysisPage',
+            menuPagePath: 'pages/Market/SectorAnalysisPage/SectorAnalysisPage',
           },
         ]
       },
@@ -194,7 +194,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/LiveNewsPage',
+            menuPagePath: 'pages/News/LiveNewsPage/LiveNewsPage',
           },
           {
             menuId: 'live-calendar',
@@ -207,7 +207,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/LiveCalendarPage',
+            menuPagePath: 'pages/News/LiveCalendarPage/LiveCalendarPage',
           },
         ]
       },

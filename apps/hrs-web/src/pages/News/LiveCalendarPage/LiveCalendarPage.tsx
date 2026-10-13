@@ -1,5 +1,5 @@
 /**
- * @file LiveCalendarPage.tsx
+ * @file News/LiveCalendarPage/LiveCalendarPage.tsx
  * @description 消息日历页面：承接分类 Tab、筛选、手动刷新，
  * 并把覆盖月份的数据结果传给 `LiveCalendar` 渲染四视图。
  * @author Lensgcx (GaoCangxiong)
@@ -21,9 +21,9 @@
 import { cn } from '@utils/cn';
 import { startTransition, useCallback, useMemo, useState } from 'react';
 import { ChevronDown, Filter } from 'lucide-react';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import type { UiTextKey } from '../i18n/uiText';
-import type { CalendarTabValue } from '../types/liveCalendar';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import type { UiTextKey } from '../../../i18n/uiText';
+import type { CalendarTabValue } from '../../../types/liveCalendar';
 import {
   HrsButton,
   InlineToast,
@@ -47,7 +47,7 @@ import {
   useLiveCalendarCountries,
   useLiveCalendarMonths,
   useLiveCalendarTabs,
-} from '../hooks/useLiveCalendar';
+} from '../../../hooks/useLiveCalendar';
 
 /** 序列化月份集合为稳定 key（供范围变化时比较，避免相等范围重复触发拉取） */
 function monthsKeyOf(range: LiveCalendarRange): string {

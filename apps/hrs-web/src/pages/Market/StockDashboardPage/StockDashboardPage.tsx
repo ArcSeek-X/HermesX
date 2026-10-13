@@ -25,10 +25,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { PageHeader } from '@components/page-layout';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';
 import IndexCard from '@components/indexCard/IndexCard';
-import { useCachedState } from '../hooks/useCachedState';
+import { useCachedState } from '../../../hooks/useCachedState';
 
 
 
@@ -37,7 +37,7 @@ import {
   type MarketCardItem,
   type MarketIndexItem,
   type MarketTabKey,
-} from '../api/sectorData';
+} from '../../../api/sectorData';
 
 /** 数据自动刷新间隔：30 秒（与原板块分析页仪表盘行为保持一致） */
 const REFRESH_INTERVAL_MS = 30_000;

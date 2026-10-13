@@ -1,0 +1,7 @@
+{
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "nodeVersion": "20.18.0",
+  "rewrites": [{ "source": "/*", "destination": "/index.html" }]
+}

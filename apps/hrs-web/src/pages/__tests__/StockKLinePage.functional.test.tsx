@@ -66,7 +66,7 @@ vi.mock('../../api/kline', () => ({
   },
 }));
 
-import StockKLinePage from '../StockKLinePage';
+import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 
 /** 包裹页面必需的 Provider 后渲染（功能走查不联网、不依赖真实后端） */
 function renderPage() {

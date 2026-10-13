@@ -1,0 +1,329 @@
+/* ============================================
+   A股看板 - 全局样式
+   扁平化设计 / 暗色主题
+   ============================================ */
+
+:root {
+  /* 基础色板 - 深色主题 (纯色极简 Zinc 风格) */
+  --bg-primary: #09090b;      /* Zinc 950 - 极致深灰/近黑 */
+  --bg-secondary: #18181b;    /* Zinc 900 - 卡片背景 */
+  --bg-tertiary: #09090b;     /* 嵌套容器背景 */
+  --bg-elevated: #27272a;     /* Zinc 800 */
+  --bg-overlay: #09090b;
+  --bg-glass: #18181b;
+  --page-gradient: var(--bg-primary); /* 取消背景渐变 */
+  
+  /* 边框 */
+  --border-primary: #27272a;  /* Zinc 800 - 非常细致的暗灰线 */
+  --border-secondary: #18181b;/* Zinc 900 */
+  --border-strong: #3f3f46;   /* Zinc 700 */
+  --border-focus: #e4e4e7;    /* Zinc 200 */
+  
+  /* 文字 */
+  --text-primary: #fafafa;    /* Zinc 50 - 纯白 */
+  --text-secondary: #d4d4d8;  /* Zinc 300 - 浅灰 */
+  --text-tertiary: #a1a1aa;   /* Zinc 400 - 灰 */
+  --text-muted: #71717a;      /* Zinc 500 - 暗灰 */
+  
+  /* 涨跌色 - 选用极简扁平的高纯度红色/绿色 */
+  --color-rise: #ef4444;      /* Red 500 */
+  --color-rise-bg: rgba(239, 68, 68, 0.08);
+  --color-fall: #10b981;      /* Emerald 500 */
+  --color-fall-bg: rgba(16, 185, 129, 0.08);
+  --color-flat: #71717a;
+  
+  /* 强调色 - 采用经典的极简蓝 */
+  --color-accent: #3b82f6;    /* Premium Blue */
+  --color-accent-hover: #2563eb;
+  --color-accent-bg: rgba(59, 130, 246, 0.08);
+  
+  /* 功能色 */
+  --color-warning: #f59e0b;   /* Amber 500 */
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-error: #ef4444;
+  --color-success: #10b981;
+  
+  /* 图表色板 */
+  --chart-ma5: #f59e0b;
+  --chart-ma10: #3b82f6;
+  --chart-ma20: #ec4899;
+  --chart-ma60: #8b5cf6;
+  --chart-volume: #6366f1;
+  --chart-amount: #14b8a6;
+  
+  /* 布局 */
+  --sidebar-width: 220px;
+  --header-height: 56px;
+  --content-max-width: 1840px;
+  
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  
+  /* 过渡 */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.2s ease;
+  
+  /* 字体 */
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+}
+
+/* 浅色主题 */
+[data-theme="light"] {
+  /* 基础色板 - 浅色主题 (纯色极简 Zinc 风格) */
+  --bg-primary: #fafafa;      /* Zinc 50 - 极致清爽淡白 */
+  --bg-secondary: #ffffff;    /* 纯白 */
+  --bg-tertiary: #f4f4f5;     /* Zinc 100 */
+  --bg-elevated: #e4e4e7;     /* Zinc 200 */
+  --bg-overlay: #fafafa;
+  --bg-glass: #ffffff;
+  --page-gradient: var(--bg-primary);
+  
+  /* 边框 */
+  --border-primary: #e4e4e7;  /* Zinc 200 */
+  --border-secondary: #f4f4f5;/* Zinc 100 */
+  --border-strong: #d4d4d8;   /* Zinc 300 */
+  --border-focus: #18181b;    /* Zinc 900 */
+  
+  /* 文字 */
+  --text-primary: #09090b;    /* Zinc 950 */
+  --text-secondary: #27272a;  /* Zinc 800 */
+  --text-tertiary: #71717a;   /* Zinc 500 */
+  --text-muted: #a1a1aa;      /* Zinc 400 */
+  
+  /* 强调色 */
+  --color-accent: #2563eb;    /* Premium Blue Light */
+  --color-accent-hover: #1d4ed8;
+  --color-accent-bg: rgba(37, 99, 235, 0.08);
+  
+  /* 功能色 */
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* 绿涨红跌模式 */
+[data-color-mode="green-rise"] {
+  --color-rise: #10b981;
+  --color-fall: #ef4444;
+  --color-rise-bg: rgba(16, 185, 129, 0.08);
+  --color-fall-bg: rgba(239, 68, 68, 0.08);
+}
+
+/* 重置样式 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.55;
+  color: var(--text-primary);
+  background: var(--page-gradient);
+  overflow-x: hidden;
+}
+
+/* 移除背景光晕元素 */
+body::before,
+body::after {
+  display: none !important;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(105, 178, 255, 0.48);
+  outline-offset: 2px;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 167, 205, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 167, 205, 0.34);
+  background-clip: padding-box;
+}
+
+/* 选中文本 */
+::selection {
+  background: var(--color-accent);
+  color: var(--bg-primary);
+}
+
+/* 工具类 */
+.text-rise {
+  color: var(--color-rise);
+}
+
+.text-fall {
+  color: var(--color-fall);
+}
+
+.text-flat {
+  color: var(--color-flat);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* 数字等宽 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 动画关键帧 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 骨架屏 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+    --header-height: 48px;
+  }
+}

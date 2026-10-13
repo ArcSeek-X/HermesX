@@ -43,8 +43,8 @@ import { SectorTreemap } from '@components/sector/SectorTreemap';
 import { SectorStockTable } from '@components/sector/SectorStockTable';
 import { SectorFundFlowChart } from '@components/sector/SectorFundFlowChart';
 import { SectorBoardCards, type BoardType } from '@components/sector/SectorBoardCards';
-import { useCachedState } from '../hooks/useCachedState';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { useCachedState } from '../../../hooks/useCachedState';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import {
   fetchIndustryTree,
   fetchStockCloudMap,
@@ -59,7 +59,7 @@ import {
   type ETFPeriod,
   type SectorFundFlowResponse,
   type SectorFundFlowSectorItem,
-} from '../api/sectorData';
+} from '../../../api/sectorData';
 
 /**
  * 交易时段快照时间点（9:30 ~ 15:00，每 30 分钟一个）

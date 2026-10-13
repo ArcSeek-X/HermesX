@@ -1,5 +1,5 @@
 /**
- * @file StockKLinePage.tsx
+ * @file Stock/StockKLinePage/StockKLinePage.tsx
  * @description 个股 K 线页面，提供股票搜索、基本信息展示和多周期 K 线图浏览功能
  * @module pages
  *
@@ -24,11 +24,11 @@ import { KLineChart } from '@components/kline/KLineChart';
 import { StockInfoHeader } from '@components/kline/StockInfoHeader';
 import { PeriodSelector } from '@components/kline/PeriodSelector';
 
-import { klineApi, type KLinePeriod } from '../api/kline';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { useCachedState } from '../hooks/useCachedState';
-import { usePageState } from '../stores/PageStateStore';
-import type { Market } from '../types/market';
+import { klineApi, type KLinePeriod } from '../../../api/kline';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useCachedState } from '../../../hooks/useCachedState';
+import { usePageState } from '../../../stores/PageStateStore';
+import type { Market } from '../../../types/market';
 
 
 /**

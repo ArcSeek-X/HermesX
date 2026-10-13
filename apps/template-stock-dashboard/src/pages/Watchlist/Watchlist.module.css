@@ -1,0 +1,634 @@
+/* 自选管理页样式 */
+
+.watchlist {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--spacing-xl);
+  min-height: calc(100vh - var(--header-height) - var(--spacing-xl) * 2);
+}
+
+/* 侧边栏 */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 26%),
+    linear-gradient(180deg, var(--bg-glass), var(--bg-secondary));
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px);
+}
+
+.sidebarHeader {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebarHeader h3 {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.groupList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.groupItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(2px);
+}
+
+.groupItem.active {
+  background:
+    linear-gradient(135deg, rgba(105, 178, 255, 0.18), rgba(105, 178, 255, 0.08));
+  border: 1px solid rgba(105, 178, 255, 0.16);
+}
+
+.groupName {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.groupActions {
+  display: none;
+  gap: var(--spacing-xs);
+}
+
+.groupItem:hover .groupActions {
+  display: flex;
+}
+
+.groupItem:hover .groupCount {
+  display: none;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.actionBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.groupInput {
+  flex: 1;
+  padding: 2px var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+}
+
+.addGroup {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border-primary);
+}
+
+.addGroupInput {
+  flex: 1;
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+}
+
+.addGroupInput:focus {
+  border-color: var(--border-focus);
+}
+
+/* 主区域 */
+.main {
+  min-width: 0;
+}
+
+.mainActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.stockCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.columnPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0 var(--spacing-md);
+}
+
+.columnOption {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+}
+
+.columnOption input {
+  accent-color: var(--color-accent);
+}
+
+.alertPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-md);
+}
+
+.alertRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-secondary);
+  border-radius: 14px;
+}
+
+.alertInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alertName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.alertDesc,
+.alertEmpty {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.alertRemoveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.alertRemoveBtn:hover {
+  color: var(--color-error);
+  background: var(--color-fall-bg);
+}
+
+/* 表格 */
+.stockTable {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.tableBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.tableRow:hover {
+  background: var(--bg-tertiary);
+  margin: 0 calc(-1 * var(--spacing-lg));
+  padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+.colName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 2;
+}
+
+.stockName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stockCode {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.colPrice {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  width: 80px;
+}
+
+.colChange {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  width: 70px;
+}
+
+.colAmount {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  width: 80px;
+}
+
+.colTurnover {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  width: 60px;
+}
+
+.colAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+}
+
+.removeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.tableRow:hover .removeBtn {
+  opacity: 1;
+}
+
+.removeBtn:hover {
+  color: var(--color-error);
+  background: var(--color-fall-bg);
+}
+
+/* 工具按钮 */
+.toolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.toolBtn:hover {
+  color: var(--text-primary);
+  background: var(--border-primary);
+}
+
+.toolBtn.active {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+/* 排序栏 */
+.sortBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.sortSection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-tertiary);
+}
+
+.sortLabel {
+  font-size: var(--font-size-xs);
+}
+
+.sortOption {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.sortOption:hover {
+  color: var(--text-primary);
+  background: var(--border-primary);
+}
+
+.sortOption.active {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+/* 批量操作区 */
+.batchSection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.selectAllBtn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.selectAllBtn:hover {
+  color: var(--text-primary);
+  background: var(--border-primary);
+}
+
+.batchDeleteBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: white;
+  background: var(--color-error);
+  transition: all var(--transition-fast);
+}
+
+.batchDeleteBtn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.batchDeleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 选择列 */
+.colSelect {
+  display: flex;
+  align-items: center;
+  width: 32px;
+}
+
+.selectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+
+.selectBtn:hover {
+  color: var(--color-accent);
+}
+
+.tableRow.selected {
+  background: var(--color-accent-bg);
+}
+
+.tableRow.selected .selectBtn {
+  color: var(--color-accent);
+}
+
+/* 拖拽列 */
+.colDrag {
+  display: flex;
+  align-items: center;
+  width: 24px;
+}
+
+.dragHandle {
+  color: var(--text-tertiary);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.tableRow:hover .dragHandle {
+  opacity: 1;
+}
+
+.tableRow.dragging {
+  opacity: 0.5;
+  background: var(--bg-tertiary);
+}
+
+/* 导入弹窗 */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  margin: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.modalHeader h3 {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.modalClose:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.modalBody {
+  padding: var(--spacing-lg);
+}
+
+.modalHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+.importTextarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+
+.importTextarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border-primary);
+}
+
+/* 响应式 */
+@media (max-width: 1024px) {
+  .watchlist {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .tableHeader {
+    display: none;
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr auto auto;
+    gap: var(--spacing-sm);
+  }
+
+  .colAmount,
+  .colTurnover,
+  .colDrag {
+    display: none;
+  }
+
+  .sortBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sortSection {
+    flex-wrap: wrap;
+  }
+}

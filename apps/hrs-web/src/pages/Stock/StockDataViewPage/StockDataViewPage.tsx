@@ -1,5 +1,5 @@
 /**
- * @file StockDataViewPage.tsx
+ * @file Stock/StockDataViewPage/StockDataViewPage.tsx
  * @description 股票数据视图页面：搜索个股并查看其行情 K 线与基础数据。
  * 作为「K 线」之外的独立数据视图入口，复用既有 kline 组件与 API，拥有独立的状态键。
  * @module pages
@@ -13,11 +13,11 @@ import { StockSearch } from '@components/StockSearch/StockSearch';
 import { KLineChart } from '@components/kline/KLineChart';
 import { StockInfoHeader } from '@components/kline/StockInfoHeader';
 import { PeriodSelector } from '@components/kline/PeriodSelector';
-import { klineApi, type KLineAdjustment, type KLinePeriod } from '../api/kline';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { useCachedState } from '../hooks/useCachedState';
-import type { UiTextKey } from '../i18n/uiText';
-import { usePageState } from '../stores/PageStateStore';
+import { klineApi, type KLineAdjustment, type KLinePeriod } from '../../../api/kline';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useCachedState } from '../../../hooks/useCachedState';
+import type { UiTextKey } from '../../../i18n/uiText';
+import { usePageState } from '../../../stores/PageStateStore';
 
 /** 默认周期：日 K */
 const DEFAULT_PERIOD: KLinePeriod = 'daily';
