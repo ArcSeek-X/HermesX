@@ -56,8 +56,12 @@ class WallstreetcnNewsSource(NewsDataSource):
             if not self.calendar_enabled or request.start_ts is None or request.end_ts is None:
                 return None
             events = self.calendar_fetcher.fetch_range(request.start_ts, request.end_ts)
+            # 返回 CalendarEventEntry 对象（与 calendar_countries 一致）：
+            # 服务层 _calendar_entry_to_rows 按属性访问（entry.title / entry.foresight /
+            # entry.calendar_type ...），不可转成 dict，否则触发
+            # 'dict' object has no attribute 'title'。原始字典已在 entry.raw 中保留。
             return NewsResult(
-                items=[event.raw or event.__dict__ for event in events],
+                items=list(events),
                 source=self.source_id,
                 metadata={"mode": request.mode},
             )
@@ -68,7 +72,9 @@ class WallstreetcnNewsSource(NewsDataSource):
             cursor=request.cursor,
         )
         return NewsResult(
-            items=[entry.raw or entry.__dict__ for entry in entries],
+            # 返回 LiveNewsEntry 对象：服务层 _live_news_entry_to_item_fields 按属性访问
+            # （entry.scope_values 为 @property，转 dict 会丢失），与日历 / 国家模式保持一致。
+            items=list(entries),
             source=self.source_id,
             next_cursor=next_cursor,
             polling_cursor=polling_cursor,
