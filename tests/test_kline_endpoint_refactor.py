@@ -69,9 +69,11 @@ def test_get_stock_info_uses_first_available_source() -> None:
         source="local",
     )
 
-    stock_info_base._MANAGER.cache.clear()
-    with patch.object(stock_info_base._MANAGER, "resolve_source_order", return_value=["local", "eastmoney"]):
-        with patch.dict(stock_info_base._MANAGER.sources, {
+    # stock_info 的 manager 为惰性构建（避免 eastmoney_source 先行导入触发循环导入）
+    stock_info_manager = stock_info_base._get_manager()
+    stock_info_manager.cache.clear()
+    with patch.object(stock_info_manager, "resolve_source_order", return_value=["local", "eastmoney"]):
+        with patch.dict(stock_info_manager.sources, {
             "local": type("LocalSource", (), {
                 "is_available": lambda self: True,
                 "fetch": lambda self, code: expected,

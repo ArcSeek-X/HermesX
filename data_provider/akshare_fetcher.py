@@ -1086,7 +1086,29 @@ class AkshareFetcher(BaseFetcher):
             logger.info(f"[API错误] 获取 {stock_code} 实时行情(东财)失败: {e}")
             circuit_breaker.record_failure(source_key, str(e))
             return None
-    
+
+    def get_realtime_quote_snapshot(self) -> Optional["pd.DataFrame"]:
+        """
+        返回全市场 A 股实时快照 DataFrame（东方财富 ak.stock_zh_a_spot_em()）。
+
+        列含：代码、名称、最新价、涨跌幅、涨跌额、成交量、成交额、量比、换手率、
+        振幅、今开、最高、最低、市盈率-动态、市净率、总市值、流通市值等。
+        复用模块级 _realtime_cache 缓存（TTL 1200s），避免重复全量拉取。
+        返回 None 表示数据源异常或为空（可能为非交易日 / 数据源限流）。
+
+        用途：尾盘选股（EOD Picker）第一阶段全市场基础过滤。
+        """
+        try:
+            # 借助内部全量拉取逻辑填充 / 复用模块级缓存，再直接读取缓存整表
+            self._get_stock_realtime_quote_em("__eod_snapshot__")
+            df = _realtime_cache.get("data")
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty):
+                return None
+            return df
+        except Exception as e:  # pragma: no cover - 防御性兜底
+            logger.info(f"[实时行情] 获取全市场快照失败: {e}")
+            return None
+
     def _get_stock_realtime_quote_sina(self, stock_code: str) -> Optional[UnifiedRealtimeQuote]:
         """
         获取普通 A 股实时行情数据（新浪财经数据源）
