@@ -21,7 +21,8 @@ export type RouteLoader = () => Promise<{ default: ComponentType }>;
 /**
  * 真源页面模块的懒加载导入映射（Vite 构建期静态收集）。
  * 键为相对本文件的 '../pages/<相对路径>.tsx'，与 manifest 中的 menuPagePath 字符串
- * （如 'pages/StockDashboardPage'）经前缀 '../' 与后缀 '.tsx' 补全后一一对应。
+ * （如 'pages/StockDashboardPage' 或嵌套路径 'pages/CodeTest/CodeTestPage'）经前缀 '../' 与后缀 '.tsx' 补全后一一对应。
+ * 支持 pages 下的多级子目录（** 递归匹配）。
  */
 const pageModules = import.meta.glob('../pages/**/*.tsx');
 
