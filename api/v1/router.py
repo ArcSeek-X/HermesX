@@ -19,6 +19,7 @@ from api.v1.endpoints import (
     auth,
     backtest,
     decision_signals,
+    eod_picker,
     health,
     history,
     intelligence,
@@ -105,6 +106,12 @@ router.include_router(
     alphasift.router,
     prefix="/alphasift",
     tags=["AlphaSift"]
+)
+
+router.include_router(
+    eod_picker.router,
+    prefix="/eod-picker",
+    tags=["EodPicker"]
 )
 
 router.include_router(
