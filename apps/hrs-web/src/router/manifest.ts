@@ -199,7 +199,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
           {
             menuId: 'live-calendar',
             menuName: 'layout.nav.liveCalendar.title',
-            routePath: '/live-calendar',
+            routePath: '/news/live-calendar',
             menuPosition: 'content',
             level: 1,
             menuExpanded: false,
@@ -382,7 +382,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
           {
             menuId: 'eodPicker',
             menuName: 'layout.nav.eodPicker.title',
-            routePath: 'eodPicker',
+            routePath: '/discover/eodPicker',
             menuPosition: 'content',
             level: 0,
             menuExpanded: false,
@@ -395,7 +395,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
           {
             menuId: 'scanner',
             menuName: 'layout.nav.scanner.title',
-            routePath: 'scanner',
+            routePath: '/discover/scanner',
             menuPosition: 'content',
             level: 0,
             menuExpanded: false,
