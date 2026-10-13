@@ -133,6 +133,54 @@ const zhHant = {
   'layout.nav.usage.description': 'LLM Token 消耗與模型呼叫明細', // 用量导航项描述
   'layout.nav.watchlist.title': '自選', // 自選導航項
   'layout.nav.watchlist.description': '自選股列表與行情追蹤', // 自选导航项描述
+  'layout.nav.discover.title': '發現', // 發現者導航項
+  'layout.nav.discover.description': '發現者模組：選股與掃描', // 發現者導航項描述
+  'layout.nav.eodPicker.title': '尾盤選股', // 尾盤選股導航項
+  'layout.nav.eodPicker.description': '一日持股法分析工具 · 篩選分時強勢股票', // 尾盤選股導航項描述
+
+  // —— 尾盤選股法（EOD Picker）——
+  'eodPicker.start.button': '開始分析',
+  'eodPicker.start.editFilters': '點擊編輯',
+  'eodPicker.start.resetFilters': '預設',
+  'eodPicker.filters.circMv': '流通市值',
+  'eodPicker.filters.volumeRatio': '量比',
+  'eodPicker.filters.changePct': '當日漲幅',
+  'eodPicker.filters.turnoverRate': '換手率',
+  'eodPicker.filters.excludeSt': '過濾ST股票',
+  'eodPicker.filters.strength': '分時強度',
+  'eodPicker.filters.title': '篩選條件',
+  'eodPicker.filters.done': '完成',
+  'eodPicker.filters.on': '開啟',
+  'eodPicker.filters.off': '關閉',
+  'eodPicker.filters.unlimited': '不限',
+  'eodPicker.filters.cancel': '取消',
+  'eodPicker.running.title': '正在選股',
+  'eodPicker.running.cancel': '取消',
+  'eodPicker.result.title': '選股結果',
+  'eodPicker.result.basis': '基準交易日',
+  'eodPicker.result.reanalyze': '重新分析',
+  'eodPicker.result.empty': '未選出符合條件的股票，試著重新調整篩選條件。',
+  'eodPicker.result.emptyDesc': '可嘗試降低強度閾值，或放寬漲跌幅、換手率等條件後重新分析。',
+  'eodPicker.result.sortBy': '排序',
+  'eodPicker.result.sort.strength': '分時強度',
+  'eodPicker.result.strength': '強度',
+  'eodPicker.card.circMv': '流通市值',
+  'eodPicker.card.volumeRatio': '量比',
+  'eodPicker.card.turnoverRate': '換手率',
+  'eodPicker.card.amount': '成交額',
+  'eodPicker.card.currentPrice': '現價',
+  'eodPicker.card.priceLegend': '價格',
+  'eodPicker.card.avgPriceLegend': '均價',
+  'eodPicker.card.addWatchlist': '加自選',
+  'eodPicker.card.inWatchlist': '已自選',
+  'eodPicker.card.openKline': '點擊查看個股 K 線',
+  'eodPicker.card.prevClose': '昨收',
+  'eodPicker.error.snapshot': '無法取得行情快照，可能為非交易日或資料源異常。',
+  'eodPicker.error.failed': '選股任務失敗',
+  'eodPicker.error.generic': '操作失敗，請稍後重試。',
+  'eodPicker.error.addWatchlist': '加入自選失敗，請稍後重試。',
+  'layout.nav.scanner.title': '掃描', // 掃描導航項
+  'layout.nav.scanner.description': '掃描', // 掃描導航項描述
   'layout.nav.development.docsCheckbox.title': '複選框', // 複選框組件文檔導航項
   'layout.nav.development.docsCheckbox.description': 'HrsCheckbox 勾選框組件演示與用法', // 复选框导航项描述
   'layout.nav.development.docsDrawer.title': '抽屜', // 抽屜組件文檔導航項
@@ -165,6 +213,8 @@ const zhHant = {
   'layout.nav.development.docsInput.description': 'Input 通用表單輸入組件演示與用法', // 輸入框導航項描述
   'layout.nav.development.docsTextArea.title': '文本域', // 文本域組件文檔導航項
   'layout.nav.development.docsTextArea.description': 'TextArea 多行文本輸入組件演示與用法', // 文本域導航項描述
+  'layout.nav.development.docsNumberField.title': '數字輸入框', // 數字輸入框組件文檔導航項
+  'layout.nav.development.docsNumberField.description': 'NumberField 數字輸入組件演示與用法', // 數字輸入框導航項描述
   'layout.nav.development.docsChip.title': '標籤芯片', // 標籤芯片組件文檔導航項
   'layout.nav.development.docsChip.description': 'Chip 圓角膠囊標籤組件演示與用法', // 標籤芯片導航項描述
 

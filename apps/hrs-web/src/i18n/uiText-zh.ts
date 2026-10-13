@@ -134,6 +134,54 @@ const zh = {
   'layout.nav.usage.description': 'LLM Token 消耗与模型调用明细', // 用量导航项描述
   'layout.nav.watchlist.title': '自选', // 自选导航项
   'layout.nav.watchlist.description': '自选股列表与行情跟踪', // 自选导航项描述
+  'layout.nav.discover.title': '发现', // 发现导航项
+  'layout.nav.discover.description': '发现者模块：选股与扫描', // 发现者导航项描述
+  'layout.nav.eodPicker.title': '尾盘选股', // 尾盘选股导航项
+  'layout.nav.eodPicker.description': '一日持股法分析工具 · 筛选分时强势股票', // 尾盘选股导航项描述
+
+  // —— 尾盘选股法（EOD Picker）——
+  'eodPicker.start.button': '开始分析',
+  'eodPicker.start.editFilters': '点击编辑',
+  'eodPicker.start.resetFilters': '默认',
+  'eodPicker.filters.circMv': '流通市值',
+  'eodPicker.filters.volumeRatio': '量比',
+  'eodPicker.filters.changePct': '当日涨幅',
+  'eodPicker.filters.turnoverRate': '换手率',
+  'eodPicker.filters.excludeSt': '过滤ST股票',
+  'eodPicker.filters.strength': '分时强度',
+  'eodPicker.filters.title': '筛选条件',
+  'eodPicker.filters.done': '完成',
+  'eodPicker.filters.on': '开启',
+  'eodPicker.filters.off': '关闭',
+  'eodPicker.filters.unlimited': '不限',
+  'eodPicker.filters.cancel': '取消',
+  'eodPicker.running.title': '正在选股',
+  'eodPicker.running.cancel': '取消',
+  'eodPicker.result.title': '选股结果',
+  'eodPicker.result.basis': '基准交易日',
+  'eodPicker.result.reanalyze': '重新分析',
+  'eodPicker.result.empty': '未选出符合条件的股票，试试重新调整筛选条件。',
+  'eodPicker.result.emptyDesc': '可尝试降低强度阈值，或放宽涨跌幅、换手率等条件后重新分析。',
+  'eodPicker.result.sortBy': '排序',
+  'eodPicker.result.sort.strength': '分时强度',
+  'eodPicker.result.strength': '强度',
+  'eodPicker.card.circMv': '流通市值',
+  'eodPicker.card.volumeRatio': '量比',
+  'eodPicker.card.turnoverRate': '换手率',
+  'eodPicker.card.amount': '成交额',
+  'eodPicker.card.currentPrice': '现价',
+  'eodPicker.card.priceLegend': '价格',
+  'eodPicker.card.avgPriceLegend': '均价',
+  'eodPicker.card.addWatchlist': '加自选',
+  'eodPicker.card.inWatchlist': '已自选',
+  'eodPicker.card.openKline': '点击查看个股 K 线',
+  'eodPicker.card.prevClose': '昨收',
+  'eodPicker.error.snapshot': '无法获取行情快照，可能为非交易日或数据源异常。',
+  'eodPicker.error.failed': '选股任务失败',
+  'eodPicker.error.generic': '操作失败，请稍后重试。',
+  'eodPicker.error.addWatchlist': '加入自选失败，请稍后重试。',
+  'layout.nav.scanner.title': '扫描', // 扫描导航项
+  'layout.nav.scanner.description': '扫描', // 扫描导航项描述
 
   // 导航菜单（调试开发模式） layout.nav.development.*
   'layout.nav.development.docsCheckbox.title': '复选框', // 复选框组件文档导航项
@@ -168,6 +216,8 @@ const zh = {
   'layout.nav.development.docsInput.description': 'Input 通用表单输入组件演示与用法', // 输入框导航项描述
   'layout.nav.development.docsTextArea.title': '文本域', // 文本域组件文档导航项
   'layout.nav.development.docsTextArea.description': 'TextArea 多行文本输入组件演示与用法', // 文本域导航项描述
+  'layout.nav.development.docsNumberField.title': '数字输入框', // 数字输入框组件文档导航项
+  'layout.nav.development.docsNumberField.description': 'NumberField 数字输入组件演示与用法', // 数字输入框导航项描述
   'layout.nav.development.docsChip.title': '标签芯片', // 标签芯片组件文档导航项
   'layout.nav.development.docsChip.description': 'Chip 圆角胶囊标签组件演示与用法', // 标签芯片导航项描述
 
