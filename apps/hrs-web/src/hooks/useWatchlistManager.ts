@@ -10,7 +10,7 @@
  * 排序与搜索由页面层基于 items + quote 用 useMemo 完成（零后端开销）。
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { stocksApi } from '../api/stocks';
 import { useStockIndex } from './useStockIndex';
 import {
@@ -59,7 +59,7 @@ function quoteFromStockQuote(q: Awaited<ReturnType<typeof stocksApi.getQuote>> |
 }
 
 /** 默认每页数量（分页拉取自选股列表时使用） */
-const DEFAULT_PAGE_SIZE = 2;
+const DEFAULT_PAGE_SIZE = 10;
 
 /** hook 对外暴露的状态与操作集合 */
 export interface UseWatchlistManagerResult {
@@ -117,6 +117,10 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
   // 本地股票索引（全量 A/港/美股基础信息，含中文名与拼音），用于拼音/简拼搜索匹配
   const { index } = useStockIndex(true);
 
+  // 请求序号自增引用：每次加载递增，过期（被后续请求覆盖）的响应直接丢弃，
+  // 避免快速切换分类 / 翻页时的竞态导致列表错乱。
+  const latestReqRef = useRef(0);
+
   /**
    * 把本地股票索引按代码建立映射，供页面层搜索时根据输入（中文/拼音/简拼）匹配股票。
    * 同时登记 canonicalCode（规范化代码）与 displayCode（展示代码）两个键，
@@ -166,10 +170,13 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
    * - 行情缺失的条目保留 EMPTY_QUOTE 占位，UI 显示「—」。
    */
   const loadItems = useCallback(async (groupId: number, page: number = 1) => {
+    const reqId = ++latestReqRef.current;
     setItemsLoading(true);
-    setItems([]); // 清空，加载期间表格展示「加载中…」
+    // 切换分类不再清空旧列表：保留当前行，仅由 WatchlistStockTable 顶部加载条提示，
+    // 新数据到达后原地替换行，表头与表格结构保持稳定（不重挂载），避免分组切换时整表闪烁。
     try {
       const result = await getWatchlistItems(groupId, page, pageSize);
+      if (reqId !== latestReqRef.current) return; // 过期请求丢弃，避免竞态错乱
       setTotal(result.total); // 记录总数用于分页
       setPages(result.pages); // 记录总页数
 
@@ -185,6 +192,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
               stocksApi.getQuote(it.stockCode).catch(() => null),
             ),
           );
+          if (reqId !== latestReqRef.current) return; // 过期请求丢弃
           // 按索引把行情合并回对应条目，最后一次性渲染
           const merged = withQuote.map((it, i) => {
             const q = quotes[i];
@@ -200,7 +208,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
         setItems(withQuote);
       }
     } finally {
-      setItemsLoading(false);
+      if (reqId === latestReqRef.current) setItemsLoading(false);
     }
   }, [pageSize]);
 

@@ -113,6 +113,28 @@ export async function getWatchlistItems(
   return toCamelCase<WatchlistItemsPaginatedResponse>(data);
 }
 
+/** 单页最大数量：与后端 schema（pageSize le=100）保持一致，分页拉取时据此翻页 */
+const WATCHLIST_PAGE_SIZE = 100;
+/** 单分类极端情况下的最大翻页次数，避免异常时无限请求 */
+const WATCHLIST_MAX_PAGES = 50;
+
+/**
+ * 拉取某分类下的全部自选股（自动分页）。
+ * 后端单页 pageSize 上限为 100，本函数以 WATCHLIST_PAGE_SIZE 翻页直到取尽，
+ * 供「已自选」状态比对等需要全量代码的场景使用。
+ */
+export async function getAllWatchlistItems(groupId: number): Promise<WatchlistItem[]> {
+  const all: WatchlistItem[] = [];
+  let pageNum = 1;
+  while (pageNum <= WATCHLIST_MAX_PAGES) {
+    const page = await getWatchlistItems(groupId, pageNum, WATCHLIST_PAGE_SIZE);
+    all.push(...page.list);
+    if (page.list.length < WATCHLIST_PAGE_SIZE) break;
+    pageNum += 1;
+  }
+  return all;
+}
+
 /** 新增自选股到分类 */
 export async function createWatchlistItem(
   groupId: number,

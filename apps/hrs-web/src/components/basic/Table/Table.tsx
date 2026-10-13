@@ -128,8 +128,10 @@ export interface TableProps<T extends { id: string | number }> {
    * - 'secondary': 次要样式
    */
   variant?: 'primary' | 'secondary';
-  /** 表格根容器的自定义类名 */
+  /** 表格根容器的自定义类名（透传给 HeroTable） */
   className?: string;
+  /** 外层包裹容器的自定义类名 */
+  wrapperClassName?: string;
   /**
    * 行选择模式：
    * - 'none': 不支持选择（默认）
@@ -153,8 +155,8 @@ export interface TableProps<T extends { id: string | number }> {
   renderEmptyState?: () => React.ReactNode;
   /** 表格加载状态，为 true 时显示加载指示器 */
   isLoading?: boolean;
-  /** 表格最大高度，超出后表格内部滚动 */
-  maxHeight?: string | number;
+  /** 表格整体高度，超出后表格内部滚动；默认 320px */
+  height?: string | number;
   /**
    * 分页配置。
    * 传入对象后启用分页功能，显示分页控件和统计信息。
@@ -183,9 +185,10 @@ export function Table<T extends { id: string | number }>({
   sortDescriptor,
   renderEmptyState,
   isLoading = false,
-  maxHeight,
+  height = 320,
   pagination,
   rowClassName = '',
+  wrapperClassName = '',
 }: TableProps<T>) {
   /**
    * 处理选择变化。
@@ -256,21 +259,24 @@ export function Table<T extends { id: string | number }>({
   const displayRows = rows;
 
   /**
-   * 滚动容器样式。
-   * 当指定 maxHeight 时，在 HeroTable.ScrollContainer 上设置最大高度并启用滚动。
+   * 外层容器样式。
+   * height 决定表格整体占用高度，滚动由内部 ScrollContainer 处理。
    */
-  const containerStyle = maxHeight
-    ? {
-      maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-      overflow: 'auto' as const,
-    }
-    : undefined;
+  const wrapperStyle = useMemo(() => ({
+    height: typeof height === 'number' ? `${height}px` : height,
+  }), [height]);
+
+  /** 滚动容器占满 HeroTable 剩余空间。 */
+  const scrollContainerStyle = useMemo(() => ({
+    height: '100%',
+    overflow: 'auto' as const,
+  }), []);
 
   return (
-    <div className={cn('hrs-table flex flex-col w-full')}>
-      {/* HeroUI Table 主体（写法 A：Table → Table.ScrollContainer → Table.Content 三层递进） */}
-      <HeroTable variant={variant} className={cn('hrs-table__root rounded-md bg-secondary', styles.root,className)}>
-        <HeroTable.ScrollContainer style={containerStyle}>
+    <div className={cn('hrs-table flex flex-col w-full', wrapperClassName)} style={wrapperStyle}>
+      {/* HeroUI Table 主体：flex-1 占满 wrapper 高度，ScrollContainer 再占满 HeroTable */}
+      <HeroTable variant={variant} className={cn('hrs-table__root flex-1 min-h-0 rounded-md bg-secondary', styles.root, className)}>
+        <HeroTable.ScrollContainer style={scrollContainerStyle}>
           <HeroTable.ResizableContainer>
             <HeroTable.Content
               className="hrs-table__content rounded-md"
