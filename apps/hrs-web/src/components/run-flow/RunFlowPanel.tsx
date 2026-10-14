@@ -124,7 +124,7 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
 
   if (!snapshot) {
     return (
-      <EmptyState
+      <EmptyState type="card"
         title={t('component.runFlow.emptyTitle')}
         description={t('component.runFlow.emptyDescription')}
         icon={<Workflow className="h-6 w-6" aria-hidden="true" />}
@@ -160,7 +160,7 @@ export const RunFlowPanel: React.FC<RunFlowPanelProps> = ({ source, title }) => 
       <RunFlowSummaryBar snapshot={snapshot} />
 
       {!hasDetails ? (
-        <EmptyState
+        <EmptyState type="card"
           title={t('component.runFlow.emptySnapshotTitle')}
           description={t('component.runFlow.emptySnapshotDescription')}
           icon={<AlertCircle className="h-6 w-6" aria-hidden="true" />}

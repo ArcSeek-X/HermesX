@@ -1872,7 +1872,7 @@ const SettingsPage: React.FC = () => {
       ) : null}
     </SettingsSectionCard>
   ) : (
-    <EmptyState
+    <EmptyState type="card"
       title={t('settings.currentCategoryEmptyTitle')}
       description={t('settings.currentCategoryEmptyDescription')}
       className="settings-surface-panel settings-border-strong border-none bg-transparent shadow-none"

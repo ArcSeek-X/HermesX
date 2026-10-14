@@ -249,7 +249,7 @@ export const DecisionSignalTimeline: React.FC<DecisionSignalTimelineProps> = ({
   // 空数据态：展示空状态占位。
   if (items.length === 0) {
     return (
-      <EmptyState
+      <EmptyState type="card"
         className="border-none bg-transparent py-6 shadow-none"
         title={t('decisionSignals.timelineEmptyTitle')}
         description={t('decisionSignals.timelineEmptyDescription')}

@@ -186,7 +186,7 @@ export const AlertRuleList: React.FC<AlertRuleListProps> = ({
       {/* 无数据：加载中展示 loading 文案，否则展示空状态 */}
       {rules.length === 0 ? (
         <div className="flex min-h-[220px] flex-1 items-center justify-center">
-          <EmptyState
+          <EmptyState type="card"
             icon={<Bell className="h-6 w-6" />}
             title={isLoading ? text.loadingRules : text.emptyTitle}
             description={text.emptyDescription}

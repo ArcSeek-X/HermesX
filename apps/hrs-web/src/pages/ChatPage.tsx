@@ -1434,7 +1434,7 @@ const ChatPage: React.FC = () => {
           >
             {messages.length === 0 && !loading ? (
               <div className="flex h-full items-center justify-center">
-                <EmptyState
+                <EmptyState type="card"
                   title="开始问股"
                   description={t(
                     agentStatus?.backend === 'codex_app_server'

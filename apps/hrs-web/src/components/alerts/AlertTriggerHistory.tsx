@@ -71,7 +71,7 @@ export const AlertTriggerHistory: React.FC<AlertTriggerHistoryProps> = ({ trigge
       {isLoading ? <Loading label="正在加载触发历史" /> : null}
       {/* 空状态：说明只有被后台评估过的记录才会写入历史 */}
       {!isLoading && triggers.length === 0 ? (
-        <EmptyState
+        <EmptyState type="card"
           icon={<Activity className="h-6 w-6" />}
           title="暂无触发历史"
           description="后台评估会记录 triggered、skipped、degraded 和 failed 状态；正常未触发不会写入历史。"

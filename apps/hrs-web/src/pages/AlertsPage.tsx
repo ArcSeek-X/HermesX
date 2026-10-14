@@ -404,7 +404,7 @@ const AlertsPage: React.FC = () => {
       <Card title="通知尝试记录" subtitle="通知结果" variant="bordered" padding="md">
         {notificationsLoading ? <Loading label="正在加载通知尝试记录" /> : null}
         {!notificationsLoading && notifications.length === 0 ? (
-          <EmptyState
+          <EmptyState type="card"
             icon={<BellRing className="h-6 w-6" />}
             title="暂无通知尝试记录"
             description="当前没有可展示的通知尝试明细；告警触发仍会按已配置通知渠道发送。"

@@ -1595,7 +1595,7 @@ const DecisionSignalsPage: React.FC = () => {
               ) : null}
             </div>
           ) : (
-            <EmptyState
+            <EmptyState type="card"
               className="border-none bg-transparent py-6 shadow-none"
               title={t('decisionSignals.noReviewedStatsTitle')}
               description={t('decisionSignals.noReviewedStatsDescription')}
@@ -1606,7 +1606,7 @@ const DecisionSignalsPage: React.FC = () => {
 
         <Card title={t('decisionSignals.latestTitle')} subtitle={t('decisionSignals.latestDescription')} padding="md">
           {!activeStockContext ? (
-            <EmptyState
+            <EmptyState type="card"
               className="border-none bg-transparent py-6 shadow-none"
               title={t('decisionSignals.stockContextGuideTitle')}
               description={t('decisionSignals.stockContextGuideDescription')}
@@ -1615,7 +1615,7 @@ const DecisionSignalsPage: React.FC = () => {
           ) : null}
           {latestError ? <InlineToast variant="danger" className="mt-3" content={latestError} /> : null}
           {latestSearched && !latestLoading && !latestError && latestItems.length === 0 ? (
-            <EmptyState
+            <EmptyState type="card"
               className="mt-4 border-none bg-transparent py-6 shadow-none"
               title={t('decisionSignals.noLatestTitle')}
               description={t('decisionSignals.noLatestDescription')}
@@ -1701,7 +1701,7 @@ const DecisionSignalsPage: React.FC = () => {
           </form>
           <div className="mt-4">
             {!timelineSearched ? (
-              <EmptyState
+              <EmptyState type="card"
                 className="border-none bg-transparent py-6 shadow-none"
                 title={activeStockContext ? t('decisionSignals.timelineGuideTitle') : t('decisionSignals.stockContextGuideTitle')}
                 description={activeStockContext ? t('decisionSignals.timelineGuideDescription') : t('decisionSignals.stockContextGuideDescription')}
@@ -1735,7 +1735,7 @@ const DecisionSignalsPage: React.FC = () => {
         </div>
 
         {!loading && items.length === 0 ? (
-          <EmptyState
+          <EmptyState type="card"
             title={t('decisionSignals.emptyTitle')}
             description={t('decisionSignals.emptyDescription')}
             icon={<Activity className="h-7 w-7" />}

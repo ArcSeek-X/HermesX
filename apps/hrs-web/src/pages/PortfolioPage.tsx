@@ -1387,7 +1387,7 @@ const PortfolioPage: React.FC = () => {
             />
           ) : null}
           {positionRows.length === 0 ? (
-            <EmptyState
+            <EmptyState type="card"
               title={text.noPositionsTitle}
               description={text.noPositionsDescription}
               className="border-none bg-transparent px-4 py-8 shadow-none"
@@ -1490,7 +1490,7 @@ const PortfolioPage: React.FC = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <EmptyState
+            <EmptyState type="card"
               title={text.noConcentrationTitle}
               description={text.noConcentrationDescription}
               className="border-none bg-transparent px-4 py-10 shadow-none"
@@ -1818,7 +1818,7 @@ const PortfolioPage: React.FC = () => {
                 && ((eventType === 'trade' && tradeEvents.length === 0)
                   || (eventType === 'cash' && cashEvents.length === 0)
                   || (eventType === 'corporate' && corporateEvents.length === 0)) ? (
-                    <EmptyState
+                    <EmptyState type="card"
                       title="暂无流水"
                       description="调整筛选条件或先录入一笔交易、资金流水或公司行为。"
                       className="border-none bg-transparent px-3 py-6 shadow-none"

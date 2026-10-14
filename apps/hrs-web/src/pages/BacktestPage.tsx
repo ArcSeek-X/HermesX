@@ -726,7 +726,7 @@ const BacktestPage: React.FC = () => {
           ) : overallPerf ? (
             <PerformanceCard metrics={overallPerf} title={text.overallPerformance} language={toCnOrEn(language)} />
           ) : (
-            <EmptyState
+            <EmptyState type="card"
               title={text.noMetricsTitle}
               description={text.noMetricsDescription}
               className="h-full min-h-[12rem] border-dashed bg-card/45 shadow-none"
@@ -751,7 +751,7 @@ const BacktestPage: React.FC = () => {
               <p className="mt-3 text-secondary-text text-sm">{text.loadingResults}</p>
             </div>
           ) : /* 空结果状态 */ results.length === 0 ? (
-            <EmptyState
+            <EmptyState type="card"
               title={text.noResultsTitle}
               description={text.noResultsDescription}
               className="backtest-empty-state border-dashed"
