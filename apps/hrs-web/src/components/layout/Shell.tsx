@@ -1,10 +1,8 @@
 /**
  * @file Shell.tsx
  * @description 应用外壳布局：桌面端固定侧栏 + 顶部页头 + 主内容区（Web 端已登录页路由根）。
- *
- * 骨架：外层 min-h-screen 不滚动，滚动只发生在内部 hrs-page-container；
- * 子路由经 <Outlet /> 渲染（包在 RouteOutletBoundary 内），也可直接包裹 children。桌面侧栏用自研 SidebarNav，
- * 移动端汉堡由 ShellHeader 触发（onOpenMobileNav → mobileOpen；抽屉当前未挂载）。
+ *   外层不滚动，滚动只发生在内部 hrs-page-container；子路由经 <KeepAliveOutlet /> 渲染
+ *   （含错误边界 + 路由缓存），也可直接包裹 children。
  *
  * @author Lensgcx (GaoCangxiong)
  * @date 2026-09-14
@@ -12,21 +10,16 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { RouteOutletBoundary } from '../../pages/ErrorPage/RouteBoundary';
 import { ShellHeader } from './ShellHeader';
 import { SidebarNav } from './SideBar/SidebarNav';
 import { Main } from './Main';
+import { KeepAliveOutlet } from './KeepAliveOutlet';
 import { useLayoutStore } from '../../stores';
 import { useThemeStore } from '../../stores/themeStore';
 import { useAgentChatStore } from '../../stores/agentChatStore';
 
-/**
- * 常驻副作用组件：把当前路径同步给 agentChatStore，供 agentChatStore 感知所在页
- * （如离开 /chat 时决定是否弹出 completionBadge）。
- * 原先定义在 routeElements.AppRoot 内，但业务路由实际挂在 Shell 之下、AppRoot 从未覆盖，
- * 故迁移到此处以保证 currentRoute 能真实反映业务页位置。
- */
-const RouteSync: React.FC = () => {
+/** 常驻副作用：把当前 pathname 同步给 agentChatStore，供其感知所在页（如离开 /chat 时决定是否弹 completionBadge） */
+const AgentChatRouteSync: React.FC = () => {
   const location = useLocation();
   useEffect(() => {
     useAgentChatStore.getState().setCurrentRoute(location.pathname);
@@ -35,70 +28,60 @@ const RouteSync: React.FC = () => {
 };
 
 type ShellProps = {
-  /** 可选子内容（React 节点），不传时改由 <Outlet /> 渲染子路由，默认不传 */
+  /** 可选子内容；不传时经 <KeepAliveOutlet /> 渲染子路由 */
   children?: React.ReactNode;
 };
 
 /**
  * 应用外壳布局。
- * @param props.children 可选子内容，优先于 <Outlet /> 渲染（直接包裹模式）
- * @returns 完整的应用布局骨架（侧边栏 + 页头 + 内容区）
+ * @param props.children 可选子内容，优先于子路由渲染（直接包裹模式）
  */
 export const Shell: React.FC<ShellProps> = ({ children }) => {
   /** 移动端抽屉导航展开态，默认收起 */
-  const [mobileOpen, setMobileOpen] = useState(false);
-  /**
-   * 桌面端侧边栏折叠状态（三态）：offcanvas=正常 / collapsed=半折叠 / fully=完全折叠。
-   * 由 Zustand 全局 store（stores/LayoutStore）承载，供跨子树组件读写；
-   * 持久化在 store 的 action 内写回 localStorage。
-   */
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  /** 桌面端侧栏三态折叠：offcanvas / collapsed / fully，由 Zustand store 承载并持久化 */
   const menuCollapsedState = useLayoutStore((state) => state.menuCollapsedState);
   const toggleMenuCollapsedState = useLayoutStore((state) => state.toggleMenuCollapsedState);
-  /** 侧栏视觉主题：订阅 themeStore，作为 prop 透传给 SidebarNav（与折叠态透传同模式） */
+  /** 侧栏视觉主题：订阅 themeStore，透传给 SidebarNav */
   const sidebarTheme = useThemeStore((state) => state.sidebarTheme);
 
-  /**
-   * 监听窗口尺寸变化：
-   * 当抽屉打开且窗口宽度放大到桌面端（>= 1024px）时，自动关闭抽屉，
-   * 避免桌面端同时出现固定侧边栏和抽屉。
-   */
+  /** 抽屉打开且窗口放大到桌面端（>= 1024px）时自动收起，避免固定侧栏与抽屉同现 */
   useEffect(() => {
-    if (!mobileOpen) {
+    if (!mobileNavOpen) {
       return undefined;
     }
-
-    const handleResize = () => {
+    const closeOnDesktop = () => {
       if (window.innerWidth >= 1024) {
-        setMobileOpen(false);
+        setMobileNavOpen(false);
       }
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [mobileOpen]);
+    window.addEventListener('resize', closeOnDesktop);
+    return () => window.removeEventListener('resize', closeOnDesktop);
+  }, [mobileNavOpen]);
 
   return (
-    // 最外层容器：撑满视口，应用全局背景色与文字色
     <div className="hrs-layout min-h-screen bg-background text-foreground">
-      {/* 常驻副作用：同步当前路径到 agentChatStore（离开 /chat 时驱动 completionBadge） */}
-      <RouteSync />
-      {/* 主体容器：max-w-[1680px] 居中限制最大宽度；flex 行布局；h-[calc(100vh)] 固定高度不滚动，滚动发生在内部 hrs-page-container */}
+      <AgentChatRouteSync />
       <div className="hrs-container mx-auto flex h-[calc(100vh)] w-full max-w-[1680px]">
-        {/* 桌面端固定侧边栏（仅 >= lg 显示）：宽度与三态折叠动画由 SidebarNav 内部 motion.div 驱动，此处仅透传折叠态；onNavigate 在导航后关闭移动端抽屉 */}
-        <SidebarNav className="" theme={sidebarTheme} menuCollapsedState={menuCollapsedState} onNavigate={() => setMobileOpen(false)} />
+        {/* 桌面端固定侧栏（仅 >= lg 显示）：折叠态透传，导航后关闭移动端抽屉 */}
+        <SidebarNav
+          className=""
+          theme={sidebarTheme}
+          menuCollapsedState={menuCollapsedState}
+          onNavigate={() => setMobileNavOpen(false)}
+        />
 
-        {/* 右侧列：flex-col 纵向排列，flex-1 占据侧边栏外的剩余宽度；横向 px 保留 16px 间距。
-            竖向 padding 不放这里（已下移到 Main 内部），否则滚动容器盒子无法贴到视口底边，
-            导致被其 contain 裁剪的固定背景（LightBloom）底部露出留白。 */}
+        {/* 右侧列：flex-col 占剩余宽度。竖向 padding 不放这里（已下移到 Main 内部），
+            否则滚动容器无法贴到视口底边、固定背景（LightBloom）底部露白 */}
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* 顶部页头：固定在右侧列顶部，不随内容区滚动 */}
-          <ShellHeader className="sm:px-4 lg:px-4" onToggleSidebar={toggleMenuCollapsedState} onOpenMobileNav={() => setMobileOpen(true)}/>
-          {/* 主内容区域（Main 内部即唯一滚动容器 + 暗色主题背景光晕） */}
+          <ShellHeader
+            className="sm:px-4 lg:px-4"
+            onToggleSidebar={toggleMenuCollapsedState}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
+          />
           <Main className="sm:px-4 lg:px-4">
-            {/* 优先渲染 children（直接包裹模式），否则经 RouteOutletBoundary 渲染匹配的子路由（含 Suspense 与错误边界） */}
-            {children ?? <RouteOutletBoundary />}
+            {/* 优先 children（直接包裹模式），否则经 KeepAliveOutlet 渲染子路由 */}
+            {children ?? <KeepAliveOutlet />}
           </Main>
         </div>
       </div>

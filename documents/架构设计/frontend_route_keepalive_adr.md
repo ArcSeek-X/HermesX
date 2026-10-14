@@ -50,6 +50,16 @@
 >
 > **指导方针**：任何前端方案 / 代码改动若与本 ADR 冲突，均以本 ADR 为准；本 ADR 不被任何单一功能方案"拥有"或"限定"。
 
+> ⚠️ **2026-10-14 修订（v3）：实现由自研改为基于第三方库 `keepalive-for-react`。** 经用户决策，`KeepAliveOutlet` 改为封装 `keepalive-for-react@6` + `keepalive-for-react-router@6`（适配 React 19.2 / React Router v7，两个包均为 MIT、6KB、零传递依赖）。
+>
+> **仍然有效的设计立场**：黑名单单一配置真源（`src/router/keepAliveConfig.ts`，匹配键 pathname，`/docs/*` 前缀规则）、`maxCacheSize=8` LRU 硬上限、query/hash 变化重挂载、滚动位置保存/恢复（`ScrollContainerContext`，方案 A）、新页面接入检查清单（§4.7）、缓存随 Shell 卸载销毁。
+>
+> **已被库能力取代、不再适用的章节**：§4.2 缓存状态机（槽位/扁平 keyed 数组/LRU 细节移交库内部）、§4.3 冻结 `LocationContext`（库不冻结，见下方已知差异）、§4.6 `usePageActive`（改为 `useKeepAliveContext().active`）、§8 改动清单中的自研文件部分（`keepAliveCache.ts`、`PageActivityContext.tsx`、原 `KeepAliveOutlet.tsx` 已删除）。
+>
+> **新增硬约束**：库官方要求**开发模式下不能使用 `<React.StrictMode />`**（双倍挂载导致缓存行为不可预期），`main.tsx` 已移除 StrictMode 包裹（详见该文件头注释；生产模式下 StrictMode 本是 no-op，影响仅限开发期自检能力）。
+>
+> **已知语义差异**：库不冻结失活页的 `LocationContext`。失活页不发生自重渲染（库保存的元素引用不变，React 跳过协调），仅当其自身状态变化触发重渲染时才会读到实时 location；轮询 / SSE 已按 `active` 暂停，残余触发窗口很小（评估记录见 `.claude/reviews/frontend-route-keepalive-design.md` 附录）。
+
 ---
 
 ## <a id="浏览目录"></a>浏览目录
@@ -128,8 +138,9 @@
 | --- | --- | --- |
 | A. 第三方 `react-activation` | ❌ | React 19 兼容性无官方确认（StrictMode/并发下有已知问题报告）；面向 RR v5/v6 的 Switch 模式，与 data router + `Outlet` 集成需额外适配；引入依赖即引入一套平行的路由缓存实现 |
 | B. 扩展 `PageStateStore` 做全量状态提升 | ❌ | 保留不了实例/DOM/滚动/图表，需逐页面手工改造，改造成本高于本方案且易漏 |
-| C. 自研 `KeepAliveOutlet`（`useOutlet` 捕获元素 + 冻结 `LocationContext` + LRU） | ✅ **采纳** | 复用 RR 自身渲染管线，缓存页与在线页走同一条契约；无新依赖；可控、可测、可回滚 |
+| C. 自研 `KeepAliveOutlet`（`useOutlet` 捕获元素 + 冻结 `LocationContext` + LRU） | ⛔ 已被 E 取代（v3 起废弃） |  v1/v2 期的实现路径；可控可测，但需自行维护槽位协调、LRU、上下文冻结等全部机制，长期维护成本高于成熟库 |
 | D. 自建平行路由渲染层（自行解析页面组件、逐层渲染） | ❌ | 绕开 RR 路由渲染即"平行实现"，丢失 `params`/`loaderData`/`matches` 语义，违背仓库"不新增平行实现"约束 |
+| E. 第三方 `keepalive-for-react@6` + `keepalive-for-react-router@6` | ✅ **采纳（v3 起）** | 340 star / 144 commits / 2026 年活跃发版 / MIT / 6KB；官方支持 React Router v6/v7/v8 与 React 19.2；提供 `max`（LRU）、`exclude`/`include`、`useKeepAliveContext().active`（后台暂停）、`errorElement`、`useEffectOnActive` 等能力，与本 ADR 的黑名单 / 上限 / 暂停诉求一一对应；失活页 DOM 节点被移出文档（实例保留、零绘制）。**代价**：① 官方要求开发模式不用 StrictMode；② 不冻结失活页 LocationContext（见文首修订说明） |
 
 ---
 
@@ -374,3 +385,4 @@ blacklist 意味着新页面默认进缓存，新增页面时确认：
 | --- | --- | --- |
 | 2026-10-14 | v1 | 初稿：按评审结论定稿——blacklist 默认、pathname 匹配、ScrollContainerContext（方案 A）、query/hash 重挂载、登录页入黑名单、无 routerKey 透传改动 |
 | 2026-10-14 | v2 | 实现完成并回写两条实现期修正：① `UNSAFE_LocationContext` value 为 `{ location, navigationType }` 包装结构而非裸 Location（§4.3）；② 槽位 children 必须为扁平 keyed 数组，嵌套数组会被按位置协调导致每次导航重挂载（§4.2）。验证：新增 17 测试全过；A/B 全量对比失败数 235 vs 235 一致、通过 +17，零回归 |
+| 2026-10-14 | v3 | **实现改为第三方库 `keepalive-for-react@6` + `keepalive-for-react-router@6`**（用户决策）：选型表新增方案 E 并标记 C 被取代；§4.2/§4.3/§4.6/§8 中自研机制相关内容移交库内部；新增硬约束——`main.tsx` 移除 StrictMode（库开发模式不兼容）；新增已知差异——库不冻结失活页 LocationContext。保留立场不变：黑名单单一配置真源、`maxCacheSize=8`、query/hash 重挂载、ScrollContainerContext 滚动恢复、§4.7 检查清单。验证：新增配置测试 6 + 集成测试 3 全过（实例/状态保留、黑名单离开即销毁、hash 重挂载）；layout 目录 5 个存量失败经 HEAD worktree 对照确认与本次无关；`eslint` 对本次改动文件零 error；`vite build` 的 22 个 TS 错误均为存量（位于未触及文件）；dev 服务器模块编译与依赖预打包验证通过 |

@@ -4,12 +4,16 @@
  * 职责：
  * 1. 引入全局样式 index.css 与根组件 App。
  * 2. 用 createRoot 把 React 应用挂载到 index.html 中的 #root 节点。
- * 3. 在最外层包裹 <StrictMode> 与 <ThemeProvider>：
- *    - StrictMode：开发期启用双重渲染等额外检查，帮助发现副作用问题。
- *    - ThemeProvider：提供主题（深色/浅色）上下文，控制全局配色。
+ * 3. 在最外层包裹 <ThemeProvider>：提供主题（深色/浅色）上下文，控制全局配色。
+ *
+ * 注意：此处**有意不包裹 <StrictMode>**。路由缓存（keepalive-for-react /
+ * keepalive-for-react-router，见 components/layout/KeepAliveOutlet.tsx）官方明确要求
+ * 开发模式下不能使用 StrictMode——双倍挂载会导致其缓存行为不可预期。
+ * 代价是失去开发期双倍渲染自检；副作用清理改由缓存失活语义
+ * （useKeepAliveContext().active）与单测覆盖兜底。
+ * 如将来弃用该库或其官方支持 StrictMode，可恢复包裹。
  */
 import { initScrollLockCompensation } from '@utils/scrollLockCompensation';
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from '@components/theme/ThemeProvider';
 import { useAuthStore } from './stores/AuthStore';
@@ -38,12 +42,10 @@ const bootstrap = async () => {
 
   // 找到 DOM 中的 #root 容器并创建根，非 null 断言由 index.html 保证
   createRoot(document.getElementById('root')!).render(
-    // React 18 StrictMode 在开发模式下的「双倍 effect 执行（挂载 → 卸载 → 再挂载）」，用于暴露副作用清理问题
-    <StrictMode>
-      <ThemeProvider>
-        <App/>
-      </ThemeProvider>
-    </StrictMode>,
+    // 有意不包裹 StrictMode：路由缓存库（keepalive-for-react）在开发模式下与其不兼容，详见文件头注释
+    <ThemeProvider>
+      <App/>
+    </ThemeProvider>,
   )
 }
 
