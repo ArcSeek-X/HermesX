@@ -141,49 +141,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.eodPicker.title': 'EOD Picker',
   'layout.nav.eodPicker.description': 'One-day holding analysis tool · screen intraday strong stocks',
 
-  // —— EOD Picker ——
-  'eodPicker.start.button': 'Start Analysis',
-  'eodPicker.start.editFilters': 'Click to edit',
-  'eodPicker.start.resetFilters': 'Default',
-  'eodPicker.filters.circMv': 'Circ. Market Cap',
-  'eodPicker.filters.volumeRatio': 'Volume Ratio',
-  'eodPicker.filters.changePct': 'Day Change',
-  'eodPicker.filters.turnoverRate': 'Turnover Rate',
-  'eodPicker.filters.excludeSt': 'Exclude ST',
-  'eodPicker.filters.strength': 'Intraday Strength',
-  'eodPicker.filters.title': 'Filters',
-  'eodPicker.filters.done': 'Done',
-  'eodPicker.filters.on': 'On',
-  'eodPicker.filters.off': 'Off',
-  'eodPicker.filters.unlimited': 'No limit',
-  'eodPicker.filters.cancel': 'Cancel',
-  'eodPicker.running.title': 'Picking…',
-  'eodPicker.running.cancel': 'Cancel',
-  'eodPicker.result.title': 'Picking Results',
-  'eodPicker.result.basis': 'Basis date',
-  'eodPicker.result.reanalyze': 'Re-run',
-  'eodPicker.result.empty': 'No stocks matched the criteria. Try re-adjusting the filters.',
-  'eodPicker.result.emptyDesc': 'Try lowering the strength threshold, or relaxing the price-change / turnover-ratio conditions, then re-run.',
-  'eodPicker.result.sortBy': 'Sort by',
-  'eodPicker.result.sort.strength': 'Intraday Strength',
-  'eodPicker.result.strength': 'Strength',
-  'eodPicker.card.circMv': 'Circ. Cap',
-  'eodPicker.card.volumeRatio': 'Vol. Ratio',
-  'eodPicker.card.turnoverRate': 'Turnover',
-  'eodPicker.card.amount': 'Amount',
-  'eodPicker.card.currentPrice': 'Price',
-  'eodPicker.card.priceLegend': 'Price',
-  'eodPicker.card.avgPriceLegend': 'Avg',
-  'eodPicker.card.addWatchlist': 'Add to Watchlist',
-  'eodPicker.card.inWatchlist': 'In Watchlist',
-  'eodPicker.card.openKline': 'Click to open stock K-line',
-  'eodPicker.card.prevClose': 'Prev Close',
-  'eodPicker.error.snapshot': 'Failed to fetch market snapshot; possibly a non-trading day or data source error.',
-  'eodPicker.error.failed': 'Screening task failed',
-  'eodPicker.error.generic': 'Operation failed, please retry later.',
-  'eodPicker.error.addWatchlist': 'Failed to add to watchlist, please retry later.',
   'layout.nav.scanner.title': 'Scanner',
-  'layout.nav.scanner.description': 'Scan',
+  'layout.nav.scanner.description': 'Technical signal scanner with unified concurrency control and cancellation',
   'layout.nav.development.docsCheckbox.title': 'Checkbox',
   'layout.nav.development.docsCheckbox.description': 'HrsCheckbox component demo and usage',
   'layout.nav.development.docsDrawer.title': 'Drawer',
@@ -220,6 +179,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.development.docsNumberField.description': 'NumberField numeric input component demo and usage',
   'layout.nav.development.docsChip.title': 'Chip',
   'layout.nav.development.docsChip.description': 'Chip rounded capsule tag component demo and usage',
+  'layout.nav.development.docsEmptyState.title': 'Empty State',
+  'layout.nav.development.docsEmptyState.description': 'EmptyState empty-state component demo and usage',
 
   // ---- 第 5 类 组件 component ----
   // component.LiveCalendar.*
@@ -420,820 +381,911 @@ const en: Record<UiTextKey, string> = {
 
   // ---- 第 8 类 页面 ----
   // alerts.*
-  'alerts.pageTitle': 'Alerts - HRS', // Alert page document title
-  'alerts.headerEyebrow': 'Alert Center', // Alert center header eyebrow
-  'alerts.title': 'Alert Center', // Alert center page title
-  'alerts.subtitle': 'Manage event alerts, daily technical indicators, watchlists, position/account linkage, and market traffic-light rules; run one-off tests, and review the trigger history recorded by background evaluation tasks.', // Alert center page subtitle
+  'alerts.pageTitle': 'Alerts - HRS', // 【页面】告警-Alert page document title
+  'alerts.headerEyebrow': 'Alert Center', // 【页面】告警-Alert center header eyebrow
+  'alerts.title': 'Alert Center', // 【页面】告警-Alert center page title
+  'alerts.subtitle': 'Manage event alerts, daily technical indicators, watchlists, position/account linkage, and market traffic-light rules; run one-off tests, and review the trigger history recorded by background evaluation tasks.', // 【页面】告警-Alert center page subtitle
   // chat.*
-  'chat.agentBackendUnavailableTitle': 'The selected ask-stock method is unavailable',
-  'chat.agentModeDisabled': 'Agent Mode is disabled. Open Agent settings, enable it, and save before trying again.',
-  'chat.agentPlatformUnsupported': 'Codex local Agent does not currently support native Windows. Use the default model, or run the HRS backend on a supported system.',
-  'chat.analysisStopped': 'This analysis has stopped and its background task has ended.',
-  'chat.analysisTimedOut': 'This analysis timed out and ended. Try again with a narrower question.',
-  'chat.codexBackendBadge': 'Codex Agent · Experimental',
-  'chat.codexChangeBackend': 'Change ask-stock method',
-  'chat.codexLimitedMessage': 'Codex can read saved analysis context and backtest summaries. Use Default model for live quotes, news, market hotspots, technical-indicator recalculation, per-stock backtest details, or portfolio queries.',
-  'chat.codexLimitedTitle': 'What Codex can use now',
-  'chat.codexUnavailableMessage': 'This device does not currently meet the basic Codex ask-stock requirements. Open Agent settings to check installation and Single Agent mode.',
-  'chat.defaultBackendBadge': 'Default model',
-  'chat.defaultUnavailableMessage': 'Default-model ask-stock is unavailable. Open Agent settings and review the model configuration.',
-  'chat.emptyDescriptionCodex': 'Enter “Analyze AAPL” or “How have past analyses performed overall?” and Codex will answer from saved analysis context and backtest summaries.',
-  'chat.emptyDescriptionDefault': 'Enter “Analyze AAPL” or “Is Apple a buy now?” and AI will use live data tools to build a decision report.',
-  'chat.introCodex': 'Ask Codex about a stock using saved analysis context and backtest summaries.',
-  'chat.introDefault': 'Ask AI about a stock for skill-guided trading suggestions and a live decision report.',
-  'chat.openAgentSettings': 'Open Agent settings',
-  'chat.recheckAgentStatus': 'Check again',
-  'chat.statusCheckingMessage': 'This checks only whether the environment allows an attempt; it does not call a model or read stock data.',
-  'chat.statusCheckingTitle': 'Checking the ask-stock runtime',
-  'chat.statusUnavailableMessage': 'The ask-stock runtime cannot be confirmed, so sending is paused. You can check again manually; your question will be preserved.',
-  'chat.statusUnavailableTitle': 'Ask-stock status is temporarily unavailable',
-  'chat.stopAnalysis': 'Stop analysis',
-  'chat.stopRequestFailed': 'The stop request was not delivered, so analysis is still running. Try stopping again.',
-  'chat.stoppingAnalysis': 'Stopping…',
+  'chat.agentBackendUnavailableTitle': 'The selected ask-stock method is unavailable', // 【页面】问股-
+  'chat.agentModeDisabled': 'Agent Mode is disabled. Open Agent settings, enable it, and save before trying again.', // 【页面】问股-
+  'chat.agentPlatformUnsupported': 'Codex local Agent does not currently support native Windows. Use the default model, or run the HRS backend on a supported system.', // 【页面】问股-
+  'chat.analysisStopped': 'This analysis has stopped and its background task has ended.', // 【页面】问股-
+  'chat.analysisTimedOut': 'This analysis timed out and ended. Try again with a narrower question.', // 【页面】问股-
+  'chat.codexBackendBadge': 'Codex Agent · Experimental', // 【页面】问股-
+  'chat.codexChangeBackend': 'Change ask-stock method', // 【页面】问股-
+  'chat.codexLimitedMessage': 'Codex can read saved analysis context and backtest summaries. Use Default model for live quotes, news, market hotspots, technical-indicator recalculation, per-stock backtest details, or portfolio queries.', // 【页面】问股-
+  'chat.codexLimitedTitle': 'What Codex can use now', // 【页面】问股-
+  'chat.codexUnavailableMessage': 'This device does not currently meet the basic Codex ask-stock requirements. Open Agent settings to check installation and Single Agent mode.', // 【页面】问股-
+  'chat.defaultBackendBadge': 'Default model', // 【页面】问股-
+  'chat.defaultUnavailableMessage': 'Default-model ask-stock is unavailable. Open Agent settings and review the model configuration.', // 【页面】问股-
+  'chat.emptyDescriptionCodex': 'Enter “Analyze AAPL” or “How have past analyses performed overall?” and Codex will answer from saved analysis context and backtest summaries.', // 【页面】问股-
+  'chat.emptyDescriptionDefault': 'Enter “Analyze AAPL” or “Is Apple a buy now?” and AI will use live data tools to build a decision report.', // 【页面】问股-
+  'chat.introCodex': 'Ask Codex about a stock using saved analysis context and backtest summaries.', // 【页面】问股-
+  'chat.introDefault': 'Ask AI about a stock for skill-guided trading suggestions and a live decision report.', // 【页面】问股-
+  'chat.openAgentSettings': 'Open Agent settings', // 【页面】问股-
+  'chat.recheckAgentStatus': 'Check again', // 【页面】问股-
+  'chat.statusCheckingMessage': 'This checks only whether the environment allows an attempt; it does not call a model or read stock data.', // 【页面】问股-
+  'chat.statusCheckingTitle': 'Checking the ask-stock runtime', // 【页面】问股-
+  'chat.statusUnavailableMessage': 'The ask-stock runtime cannot be confirmed, so sending is paused. You can check again manually; your question will be preserved.', // 【页面】问股-
+  'chat.statusUnavailableTitle': 'Ask-stock status is temporarily unavailable', // 【页面】问股-
+  'chat.stopAnalysis': 'Stop analysis', // 【页面】问股-
+  'chat.stopRequestFailed': 'The stop request was not delivered, so analysis is still running. Try stopping again.', // 【页面】问股-
+  'chat.stoppingAnalysis': 'Stopping…', // 【页面】问股-
   // decisionSignals.*
-  'decisionSignals.action': 'Action',
-  'decisionSignals.active': 'Active',
-  'decisionSignals.activeOnly': 'Active signals are shown by default',
-  'decisionSignals.allActions': 'All actions',
-  'decisionSignals.allMarkets': 'All markets',
-  'decisionSignals.allPhases': 'All phases',
-  'decisionSignals.allProfiles': 'All profiles',
-  'decisionSignals.allSources': 'All sources',
-  'decisionSignals.allStatuses': 'All statuses',
-  'decisionSignals.archive': 'Archive',
-  'decisionSignals.archiveConfirm': 'Archive this signal? Archived signals are no longer shown as current active recommendations.',
-  'decisionSignals.archived': 'Archived',
-  'decisionSignals.catalystSummary': 'Catalyst',
-  'decisionSignals.close': 'Close signal',
-  'decisionSignals.closeConfirm': 'Close this signal? Closed signals are no longer tracked as current recommendations.',
-  'decisionSignals.closed': 'Closed',
-  'decisionSignals.confidence': 'Confidence',
-  'decisionSignals.confirmStatusTitle': 'Update signal status',
-  'decisionSignals.createdAt': 'Created',
-  'decisionSignals.dataQuality': 'Data quality',
-  'decisionSignals.description': 'Query structured AI recommendations by stock, phase, source, and status while keeping risk and data-quality context visible.',
-  'decisionSignals.detailTitle': 'Signal details',
-  'decisionSignals.directionExpected': 'Expected direction',
-  'decisionSignals.emptyDescription': 'After a regular stock analysis completes, extracted structured recommendations appear here.',
-  'decisionSignals.emptyTitle': 'No decision signals',
-  'decisionSignals.entryRange': 'Entry range',
-  'decisionSignals.errorTitle': 'Failed to load decision signals',
-  'decisionSignals.evidence': 'Evidence',
-  'decisionSignals.expired': 'Expired',
-  'decisionSignals.expiresAt': 'Expires',
-  'decisionSignals.feedback.not_useful': 'Not useful',
-  'decisionSignals.feedback.useful': 'Useful',
-  'decisionSignals.feedbackNone': 'No feedback yet',
-  'decisionSignals.feedbackTitle': 'User feedback',
-  'decisionSignals.filter': 'Filter',
-  'decisionSignals.horizon': 'Horizon',
-  'decisionSignals.horizon.10d': '10 days',
-  'decisionSignals.horizon.1d': '1 day',
-  'decisionSignals.horizon.3d': '3 days',
-  'decisionSignals.horizon.5d': '5 days',
-  'decisionSignals.horizon.intraday': 'Intraday',
-  'decisionSignals.horizon.long': 'Long term',
-  'decisionSignals.horizon.swing': 'Swing',
-  'decisionSignals.invalidate': 'Mark invalid',
-  'decisionSignals.invalidateConfirm': 'Mark this signal invalid? Invalidated signals are no longer shown as current active recommendations.',
-  'decisionSignals.invalidated': 'Invalidated',
-  'decisionSignals.invalidation': 'Invalidation',
-  'decisionSignals.latestDescription': 'Read the latest active signals for the current stock context.',
-  'decisionSignals.latestTitle': 'Latest signals by stock',
-  'decisionSignals.market': 'Market',
-  'decisionSignals.market.cn': 'A-shares',
-  'decisionSignals.market.hk': 'Hong Kong',
-  'decisionSignals.market.jp': 'Japan',
-  'decisionSignals.market.kr': 'Korea',
-  'decisionSignals.market.tw': 'Taiwan',
-  'decisionSignals.market.us': 'US',
-  'decisionSignals.marketPhase': 'Phase',
-  'decisionSignals.marketPhase.closing_auction': 'Closing auction',
-  'decisionSignals.marketPhase.intraday': 'Intraday',
-  'decisionSignals.marketPhase.lunch_break': 'Lunch break',
-  'decisionSignals.marketPhase.non_trading': 'Non-trading',
-  'decisionSignals.marketPhase.postmarket': 'Post-market',
-  'decisionSignals.marketPhase.premarket': 'Pre-market',
-  'decisionSignals.marketPhase.unknown': 'Unknown phase',
-  'decisionSignals.metadata': 'Metadata',
-  'decisionSignals.noLatestDescription': 'This stock has no current active signal, or existing signals have expired.',
-  'decisionSignals.noLatestTitle': 'No latest active signals',
-  'decisionSignals.noOutcomes': 'No outcome results yet',
-  'decisionSignals.noReviewedStatsDescription': 'AI signals may already exist, but no statistically reviewable outcome has been produced yet.',
-  'decisionSignals.noReviewedStatsTitle': 'No reviewed samples yet',
-  'decisionSignals.outcome.hit': 'Hit',
-  'decisionSignals.outcome.miss': 'Miss',
-  'decisionSignals.outcome.neutral': 'Neutral',
-  'decisionSignals.outcome.unable': 'Unable',
-  'decisionSignals.outcomes': 'Outcome results',
-  'decisionSignals.pageTitle': 'AI signals - HRS',
-  'decisionSignals.planQuality': 'Plan quality',
-  'decisionSignals.planQuality.complete': 'Complete',
-  'decisionSignals.planQuality.minimal': 'Minimal',
-  'decisionSignals.planQuality.partial': 'Partial',
-  'decisionSignals.planQuality.unknown': 'Unknown',
-  'decisionSignals.portfolioColumn': 'AI signals',
-  'decisionSignals.portfolioEmpty': '-',
-  'decisionSignals.portfolioLoading': 'Loading',
-  'decisionSignals.portfolioPartialWarning': 'AI signals loaded only partially: {message}',
-  'decisionSignals.portfolioWarningTitle': 'AI signals degraded',
-  'decisionSignals.pricePlan': 'Price plan',
-  'decisionSignals.profile': 'Profile',
-  'decisionSignals.profile.aggressive': 'Aggressive',
-  'decisionSignals.profile.balanced': 'Balanced',
-  'decisionSignals.profile.conservative': 'Conservative',
-  'decisionSignals.profile.unknown': 'Unknown',
-  'decisionSignals.profileCalibrationAverageReturn': 'Average stock window return',
-  'decisionSignals.profileCalibrationBreakdownLabel': 'Breakdown view',
-  'decisionSignals.profileCalibrationByAction': 'By suggested action',
-  'decisionSignals.profileCalibrationByHorizon': 'By review horizon',
-  'decisionSignals.profileCalibrationCompletedShort': '{count} completed',
-  'decisionSignals.profileCalibrationDescription': 'These historical outcome reviews are descriptive only. They do not prove one profile is better and are not investment advice.',
-  'decisionSignals.profileCalibrationHitRate': 'Hit rate',
-  'decisionSignals.profileCalibrationInsufficient': 'Insufficient sample size; for observation only.',
-  'decisionSignals.profileCalibrationMae': 'Maximum adverse move',
-  'decisionSignals.profileCalibrationMaeDescription': 'Maximum adverse move is the worst move from the starting price during the review window. It is not a limit on future risk.',
-  'decisionSignals.profileCalibrationMissRate': 'Miss rate',
-  'decisionSignals.profileCalibrationNoBreakdownSamples': 'No breakdown samples are available to observe yet.',
-  'decisionSignals.profileCalibrationSampleCounts': '{completed} completed / {total} total',
-  'decisionSignals.profileCalibrationThreshold': 'Each group needs at least {count} completed samples before performance metrics are shown.',
-  'decisionSignals.profileCalibrationTitle': 'Decision profile history',
-  'decisionSignals.profileCalibrationUnableRate': 'Unable-to-evaluate rate',
-  'decisionSignals.profileCalibrationUnavailable': 'No calculable result',
-  'decisionSignals.profileCalibrationUnknownDimension': 'Unknown',
-  'decisionSignals.profileCalibrationUnknownNotice': '{count} historical samples have no decision profile label and are not included in the three profiles.',
-  'decisionSignals.reason': 'Reason',
-  'decisionSignals.reassessBlockedNote': 'This preview is constrained to a non-aggressive display action.',
-  'decisionSignals.reassessBlockedTitle': 'Preview blocked by guardrail',
-  'decisionSignals.reassessPersist': 'Confirm and save',
-  'decisionSignals.reassessPersistBlockedTitle': 'Save blocked by guardrail',
-  'decisionSignals.reassessPersistConfirmMessage': 'The server will recompute from the same persisted report snapshot and save only a guardrail-approved result.',
-  'decisionSignals.reassessPersistConfirmTitle': 'Save reassessed signal',
-  'decisionSignals.reassessPersistedCreated': 'Saved as a new DecisionSignal #{id}.',
-  'decisionSignals.reassessPersistedCreatedTitle': 'Reassessed signal saved',
-  'decisionSignals.reassessPersistedExisting': 'DecisionSignal #{id} already exists for the same report, profile, and signal identity. No duplicate was created; the original server record is shown.',
-  'decisionSignals.reassessPersistedExistingTitle': 'Existing signal reused',
-  'decisionSignals.reassessPersistedRefreshed': 'DecisionSignal #{id} was refreshed under the storage contract by renewing an expired record or filling missing identity dimensions. Original creation provenance is preserved; use the returned server record as authoritative.',
-  'decisionSignals.reassessPersistedRefreshedTitle': 'Reassessed signal refreshed',
-  'decisionSignals.reassessPersistedTerminalExisting': 'DecisionSignal #{id} is already {status}. No signal was created or reactivated.',
-  'decisionSignals.reassessPersistedTerminalTitle': 'Existing signal remains terminal',
-  'decisionSignals.reassessPersisting': 'Saving',
-  'decisionSignals.reassessPreview': 'Generate preview',
-  'decisionSignals.reassessProfile': 'Reassess profile',
-  'decisionSignals.reassessRawFinal': 'Raw / final',
-  'decisionSignals.reassessSource': 'Source report #{id}',
-  'decisionSignals.reassessTitle': 'Decision profile reassess preview',
-  'decisionSignals.reassessUnsupported': 'This signal does not support reassess',
-  'decisionSignals.reassessUnsupportedTitle': 'Missing source report',
-  'decisionSignals.reassessWarnings': 'Guardrail warnings',
-  'decisionSignals.refresh': 'Refresh',
-  'decisionSignals.returnPct': 'Window return',
-  'decisionSignals.riskSummary': 'Risk',
-  'decisionSignals.score': 'Score',
-  'decisionSignals.source': 'Source',
-  'decisionSignals.sourceReport': 'Source report',
-  'decisionSignals.sourceReportId': 'Source report ID',
-  'decisionSignals.sourceType.agent': 'Agent',
-  'decisionSignals.sourceType.alert': 'Alert',
-  'decisionSignals.sourceType.analysis': 'Analysis report',
-  'decisionSignals.sourceType.manual': 'Manual',
-  'decisionSignals.sourceType.market_review': 'Market review',
-  'decisionSignals.statsDescription': 'Signal performance from the current outcome engine version, excluding archived signals by default.',
-  'decisionSignals.statsErrorTitle': 'Failed to load outcome stats',
-  'decisionSignals.statsGlobalScope': 'These are global reviewed outcome stats. They are not the current visible signal count and do not follow the current stock filter.',
-  'decisionSignals.statsHitRate': 'Hit rate',
-  'decisionSignals.statsTitle': 'Signal performance',
-  'decisionSignals.statsTotal': 'Evaluations',
-  'decisionSignals.status': 'Status',
-  'decisionSignals.stockCode': 'Stock code',
-  'decisionSignals.stockContextApply': 'View stock',
-  'decisionSignals.stockContextClear': 'Clear current stock',
-  'decisionSignals.stockContextCurrent': 'Current stock: {stock}',
-  'decisionSignals.stockContextDescription': 'Choose one stock once; latest signals and the timeline will share that context.',
-  'decisionSignals.stockContextEmpty': 'No current stock selected.',
-  'decisionSignals.stockContextGuideDescription': 'Choose the current stock at the top of the page before viewing latest signals and the timeline.',
-  'decisionSignals.stockContextGuideTitle': 'Choose a stock to view AI signals',
-  'decisionSignals.stockContextNoCandidates': 'No candidates available. You can enter a stock code or name directly.',
-  'decisionSignals.stockContextPopular': 'Popular candidates',
-  'decisionSignals.stockContextRecent': 'Recent analyses',
-  'decisionSignals.stockContextTitle': 'Current stock',
-  'decisionSignals.stopLoss': 'Stop loss',
-  'decisionSignals.targetPrice': 'Target price',
-  'decisionSignals.timelineAlertShape': 'Diamond points indicate alert',
-  'decisionSignals.timelineDescription': 'Track how one stock signal changes over time.',
-  'decisionSignals.timelineEmptyDescription': 'No signals for this stock in the selected range.',
-  'decisionSignals.timelineEmptyTitle': 'No timeline signals',
-  'decisionSignals.timelineErrorTitle': 'Failed to load timeline',
-  'decisionSignals.timelineFamilyBullish': 'Bullish',
-  'decisionSignals.timelineFamilyDefensive': 'Defensive',
-  'decisionSignals.timelineFamilyNeutral': 'Neutral',
-  'decisionSignals.timelineGuideDescription': 'Adjust range, status, or market, then search the timeline to apply the filters.',
-  'decisionSignals.timelineGuideTitle': 'Search the current stock timeline',
-  'decisionSignals.timelineMarket': 'Timeline market',
-  'decisionSignals.timelineProfile': 'Timeline profile',
-  'decisionSignals.timelineRange': 'Range',
-  'decisionSignals.timelineRange.180d': '180 days',
-  'decisionSignals.timelineRange.30d': '30 days',
-  'decisionSignals.timelineRange.90d': '90 days',
-  'decisionSignals.timelineSearch': 'Search timeline',
-  'decisionSignals.timelineSelected': 'Selected point {index}',
-  'decisionSignals.timelineStatus': 'Timeline status',
-  'decisionSignals.timelineStatus.active': 'Active only',
-  'decisionSignals.timelineStatus.all': 'All history',
-  'decisionSignals.timelineTitle': 'Stock signal timeline',
-  'decisionSignals.timelineTruncatedDescription': 'Only the latest 100 signals are shown. Narrow the time range.',
-  'decisionSignals.timelineTruncatedTitle': 'Timeline truncated',
-  'decisionSignals.title': 'AI signals',
-  'decisionSignals.total': '{total} signals',
-  'decisionSignals.unableReason': 'Unable reason',
-  'decisionSignals.viewDetailsFor': 'View AI signal details for {stock}',
-  'decisionSignals.watchConditions': 'Watch conditions',
+  'decisionSignals.action': 'Action', // 【页面】AI建议-
+  'decisionSignals.active': 'Active', // 【页面】AI建议-
+  'decisionSignals.activeOnly': 'Active signals are shown by default', // 【页面】AI建议-
+  'decisionSignals.allActions': 'All actions', // 【页面】AI建议-
+  'decisionSignals.allMarkets': 'All markets', // 【页面】AI建议-
+  'decisionSignals.allPhases': 'All phases', // 【页面】AI建议-
+  'decisionSignals.allProfiles': 'All profiles', // 【页面】AI建议-
+  'decisionSignals.allSources': 'All sources', // 【页面】AI建议-
+  'decisionSignals.allStatuses': 'All statuses', // 【页面】AI建议-
+  'decisionSignals.archive': 'Archive', // 【页面】AI建议-
+  'decisionSignals.archiveConfirm': 'Archive this signal? Archived signals are no longer shown as current active recommendations.', // 【页面】AI建议-
+  'decisionSignals.archived': 'Archived', // 【页面】AI建议-
+  'decisionSignals.catalystSummary': 'Catalyst', // 【页面】AI建议-
+  'decisionSignals.close': 'Close signal', // 【页面】AI建议-
+  'decisionSignals.closeConfirm': 'Close this signal? Closed signals are no longer tracked as current recommendations.', // 【页面】AI建议-
+  'decisionSignals.closed': 'Closed', // 【页面】AI建议-
+  'decisionSignals.confidence': 'Confidence', // 【页面】AI建议-
+  'decisionSignals.confirmStatusTitle': 'Update signal status', // 【页面】AI建议-
+  'decisionSignals.createdAt': 'Created', // 【页面】AI建议-
+  'decisionSignals.dataQuality': 'Data quality', // 【页面】AI建议-
+  'decisionSignals.description': 'Query structured AI recommendations by stock, phase, source, and status while keeping risk and data-quality context visible.', // 【页面】AI建议-
+  'decisionSignals.detailTitle': 'Signal details', // 【页面】AI建议-
+  'decisionSignals.directionExpected': 'Expected direction', // 【页面】AI建议-
+  'decisionSignals.emptyDescription': 'After a regular stock analysis completes, extracted structured recommendations appear here.', // 【页面】AI建议-
+  'decisionSignals.emptyTitle': 'No decision signals', // 【页面】AI建议-
+  'decisionSignals.entryRange': 'Entry range', // 【页面】AI建议-
+  'decisionSignals.errorTitle': 'Failed to load decision signals', // 【页面】AI建议-
+  'decisionSignals.evidence': 'Evidence', // 【页面】AI建议-
+  'decisionSignals.expired': 'Expired', // 【页面】AI建议-
+  'decisionSignals.expiresAt': 'Expires', // 【页面】AI建议-
+  'decisionSignals.feedback.not_useful': 'Not useful', // 【页面】AI建议-
+  'decisionSignals.feedback.useful': 'Useful', // 【页面】AI建议-
+  'decisionSignals.feedbackNone': 'No feedback yet', // 【页面】AI建议-
+  'decisionSignals.feedbackTitle': 'User feedback', // 【页面】AI建议-
+  'decisionSignals.filter': 'Filter', // 【页面】AI建议-
+  'decisionSignals.horizon': 'Horizon', // 【页面】AI建议-
+  'decisionSignals.horizon.10d': '10 days', // 【页面】AI建议-
+  'decisionSignals.horizon.1d': '1 day', // 【页面】AI建议-
+  'decisionSignals.horizon.3d': '3 days', // 【页面】AI建议-
+  'decisionSignals.horizon.5d': '5 days', // 【页面】AI建议-
+  'decisionSignals.horizon.intraday': 'Intraday', // 【页面】AI建议-
+  'decisionSignals.horizon.long': 'Long term', // 【页面】AI建议-
+  'decisionSignals.horizon.swing': 'Swing', // 【页面】AI建议-
+  'decisionSignals.invalidate': 'Mark invalid', // 【页面】AI建议-
+  'decisionSignals.invalidateConfirm': 'Mark this signal invalid? Invalidated signals are no longer shown as current active recommendations.', // 【页面】AI建议-
+  'decisionSignals.invalidated': 'Invalidated', // 【页面】AI建议-
+  'decisionSignals.invalidation': 'Invalidation', // 【页面】AI建议-
+  'decisionSignals.latestDescription': 'Read the latest active signals for the current stock context.', // 【页面】AI建议-
+  'decisionSignals.latestTitle': 'Latest signals by stock', // 【页面】AI建议-
+  'decisionSignals.market': 'Market', // 【页面】AI建议-
+  'decisionSignals.market.cn': 'A-shares', // 【页面】AI建议-
+  'decisionSignals.market.hk': 'Hong Kong', // 【页面】AI建议-
+  'decisionSignals.market.jp': 'Japan', // 【页面】AI建议-
+  'decisionSignals.market.kr': 'Korea', // 【页面】AI建议-
+  'decisionSignals.market.tw': 'Taiwan', // 【页面】AI建议-
+  'decisionSignals.market.us': 'US', // 【页面】AI建议-
+  'decisionSignals.marketPhase': 'Phase', // 【页面】AI建议-
+  'decisionSignals.marketPhase.closing_auction': 'Closing auction', // 【页面】AI建议-
+  'decisionSignals.marketPhase.intraday': 'Intraday', // 【页面】AI建议-
+  'decisionSignals.marketPhase.lunch_break': 'Lunch break', // 【页面】AI建议-
+  'decisionSignals.marketPhase.non_trading': 'Non-trading', // 【页面】AI建议-
+  'decisionSignals.marketPhase.postmarket': 'Post-market', // 【页面】AI建议-
+  'decisionSignals.marketPhase.premarket': 'Pre-market', // 【页面】AI建议-
+  'decisionSignals.marketPhase.unknown': 'Unknown phase', // 【页面】AI建议-
+  'decisionSignals.metadata': 'Metadata', // 【页面】AI建议-
+  'decisionSignals.noLatestDescription': 'This stock has no current active signal, or existing signals have expired.', // 【页面】AI建议-
+  'decisionSignals.noLatestTitle': 'No latest active signals', // 【页面】AI建议-
+  'decisionSignals.noOutcomes': 'No outcome results yet', // 【页面】AI建议-
+  'decisionSignals.noReviewedStatsDescription': 'AI signals may already exist, but no statistically reviewable outcome has been produced yet.', // 【页面】AI建议-
+  'decisionSignals.noReviewedStatsTitle': 'No reviewed samples yet', // 【页面】AI建议-
+  'decisionSignals.outcome.hit': 'Hit', // 【页面】AI建议-
+  'decisionSignals.outcome.miss': 'Miss', // 【页面】AI建议-
+  'decisionSignals.outcome.neutral': 'Neutral', // 【页面】AI建议-
+  'decisionSignals.outcome.unable': 'Unable', // 【页面】AI建议-
+  'decisionSignals.outcomes': 'Outcome results', // 【页面】AI建议-
+  'decisionSignals.pageTitle': 'AI signals - HRS', // 【页面】AI建议-
+  'decisionSignals.planQuality': 'Plan quality', // 【页面】AI建议-
+  'decisionSignals.planQuality.complete': 'Complete', // 【页面】AI建议-
+  'decisionSignals.planQuality.minimal': 'Minimal', // 【页面】AI建议-
+  'decisionSignals.planQuality.partial': 'Partial', // 【页面】AI建议-
+  'decisionSignals.planQuality.unknown': 'Unknown', // 【页面】AI建议-
+  'decisionSignals.portfolioColumn': 'AI signals', // 【页面】AI建议-
+  'decisionSignals.portfolioEmpty': '-', // 【页面】AI建议-
+  'decisionSignals.portfolioLoading': 'Loading', // 【页面】AI建议-
+  'decisionSignals.portfolioPartialWarning': 'AI signals loaded only partially: {message}', // 【页面】AI建议-
+  'decisionSignals.portfolioWarningTitle': 'AI signals degraded', // 【页面】AI建议-
+  'decisionSignals.pricePlan': 'Price plan', // 【页面】AI建议-
+  'decisionSignals.profile': 'Profile', // 【页面】AI建议-
+  'decisionSignals.profile.aggressive': 'Aggressive', // 【页面】AI建议-
+  'decisionSignals.profile.balanced': 'Balanced', // 【页面】AI建议-
+  'decisionSignals.profile.conservative': 'Conservative', // 【页面】AI建议-
+  'decisionSignals.profile.unknown': 'Unknown', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationAverageReturn': 'Average stock window return', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationBreakdownLabel': 'Breakdown view', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationByAction': 'By suggested action', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationByHorizon': 'By review horizon', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationCompletedShort': '{count} completed', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationDescription': 'These historical outcome reviews are descriptive only. They do not prove one profile is better and are not investment advice.', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationHitRate': 'Hit rate', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationInsufficient': 'Insufficient sample size; for observation only.', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationMae': 'Maximum adverse move', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationMaeDescription': 'Maximum adverse move is the worst move from the starting price during the review window. It is not a limit on future risk.', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationMissRate': 'Miss rate', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationNoBreakdownSamples': 'No breakdown samples are available to observe yet.', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationSampleCounts': '{completed} completed / {total} total', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationThreshold': 'Each group needs at least {count} completed samples before performance metrics are shown.', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationTitle': 'Decision profile history', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationUnableRate': 'Unable-to-evaluate rate', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationUnavailable': 'No calculable result', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationUnknownDimension': 'Unknown', // 【页面】AI建议-
+  'decisionSignals.profileCalibrationUnknownNotice': '{count} historical samples have no decision profile label and are not included in the three profiles.', // 【页面】AI建议-
+  'decisionSignals.reason': 'Reason', // 【页面】AI建议-
+  'decisionSignals.reassessBlockedNote': 'This preview is constrained to a non-aggressive display action.', // 【页面】AI建议-
+  'decisionSignals.reassessBlockedTitle': 'Preview blocked by guardrail', // 【页面】AI建议-
+  'decisionSignals.reassessPersist': 'Confirm and save', // 【页面】AI建议-
+  'decisionSignals.reassessPersistBlockedTitle': 'Save blocked by guardrail', // 【页面】AI建议-
+  'decisionSignals.reassessPersistConfirmMessage': 'The server will recompute from the same persisted report snapshot and save only a guardrail-approved result.', // 【页面】AI建议-
+  'decisionSignals.reassessPersistConfirmTitle': 'Save reassessed signal', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedCreated': 'Saved as a new DecisionSignal #{id}.', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedCreatedTitle': 'Reassessed signal saved', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedExisting': 'DecisionSignal #{id} already exists for the same report, profile, and signal identity. No duplicate was created; the original server record is shown.', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedExistingTitle': 'Existing signal reused', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedRefreshed': 'DecisionSignal #{id} was refreshed under the storage contract by renewing an expired record or filling missing identity dimensions. Original creation provenance is preserved; use the returned server record as authoritative.', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedRefreshedTitle': 'Reassessed signal refreshed', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedTerminalExisting': 'DecisionSignal #{id} is already {status}. No signal was created or reactivated.', // 【页面】AI建议-
+  'decisionSignals.reassessPersistedTerminalTitle': 'Existing signal remains terminal', // 【页面】AI建议-
+  'decisionSignals.reassessPersisting': 'Saving', // 【页面】AI建议-
+  'decisionSignals.reassessPreview': 'Generate preview', // 【页面】AI建议-
+  'decisionSignals.reassessProfile': 'Reassess profile', // 【页面】AI建议-
+  'decisionSignals.reassessRawFinal': 'Raw / final', // 【页面】AI建议-
+  'decisionSignals.reassessSource': 'Source report #{id}', // 【页面】AI建议-
+  'decisionSignals.reassessTitle': 'Decision profile reassess preview', // 【页面】AI建议-
+  'decisionSignals.reassessUnsupported': 'This signal does not support reassess', // 【页面】AI建议-
+  'decisionSignals.reassessUnsupportedTitle': 'Missing source report', // 【页面】AI建议-
+  'decisionSignals.reassessWarnings': 'Guardrail warnings', // 【页面】AI建议-
+  'decisionSignals.refresh': 'Refresh', // 【页面】AI建议-
+  'decisionSignals.returnPct': 'Window return', // 【页面】AI建议-
+  'decisionSignals.riskSummary': 'Risk', // 【页面】AI建议-
+  'decisionSignals.score': 'Score', // 【页面】AI建议-
+  'decisionSignals.source': 'Source', // 【页面】AI建议-
+  'decisionSignals.sourceReport': 'Source report', // 【页面】AI建议-
+  'decisionSignals.sourceReportId': 'Source report ID', // 【页面】AI建议-
+  'decisionSignals.sourceType.agent': 'Agent', // 【页面】AI建议-
+  'decisionSignals.sourceType.alert': 'Alert', // 【页面】AI建议-
+  'decisionSignals.sourceType.analysis': 'Analysis report', // 【页面】AI建议-
+  'decisionSignals.sourceType.manual': 'Manual', // 【页面】AI建议-
+  'decisionSignals.sourceType.market_review': 'Market review', // 【页面】AI建议-
+  'decisionSignals.statsDescription': 'Signal performance from the current outcome engine version, excluding archived signals by default.', // 【页面】AI建议-
+  'decisionSignals.statsErrorTitle': 'Failed to load outcome stats', // 【页面】AI建议-
+  'decisionSignals.statsGlobalScope': 'These are global reviewed outcome stats. They are not the current visible signal count and do not follow the current stock filter.', // 【页面】AI建议-
+  'decisionSignals.statsHitRate': 'Hit rate', // 【页面】AI建议-
+  'decisionSignals.statsTitle': 'Signal performance', // 【页面】AI建议-
+  'decisionSignals.statsTotal': 'Evaluations', // 【页面】AI建议-
+  'decisionSignals.status': 'Status', // 【页面】AI建议-
+  'decisionSignals.stockCode': 'Stock code', // 【页面】AI建议-
+  'decisionSignals.stockContextApply': 'View stock', // 【页面】AI建议-
+  'decisionSignals.stockContextClear': 'Clear current stock', // 【页面】AI建议-
+  'decisionSignals.stockContextCurrent': 'Current stock: {stock}', // 【页面】AI建议-
+  'decisionSignals.stockContextDescription': 'Choose one stock once; latest signals and the timeline will share that context.', // 【页面】AI建议-
+  'decisionSignals.stockContextEmpty': 'No current stock selected.', // 【页面】AI建议-
+  'decisionSignals.stockContextGuideDescription': 'Choose the current stock at the top of the page before viewing latest signals and the timeline.', // 【页面】AI建议-
+  'decisionSignals.stockContextGuideTitle': 'Choose a stock to view AI signals', // 【页面】AI建议-
+  'decisionSignals.stockContextNoCandidates': 'No candidates available. You can enter a stock code or name directly.', // 【页面】AI建议-
+  'decisionSignals.stockContextPopular': 'Popular candidates', // 【页面】AI建议-
+  'decisionSignals.stockContextRecent': 'Recent analyses', // 【页面】AI建议-
+  'decisionSignals.stockContextTitle': 'Current stock', // 【页面】AI建议-
+  'decisionSignals.stopLoss': 'Stop loss', // 【页面】AI建议-
+  'decisionSignals.targetPrice': 'Target price', // 【页面】AI建议-
+  'decisionSignals.timelineAlertShape': 'Diamond points indicate alert', // 【页面】AI建议-
+  'decisionSignals.timelineDescription': 'Track how one stock signal changes over time.', // 【页面】AI建议-
+  'decisionSignals.timelineEmptyDescription': 'No signals for this stock in the selected range.', // 【页面】AI建议-
+  'decisionSignals.timelineEmptyTitle': 'No timeline signals', // 【页面】AI建议-
+  'decisionSignals.timelineErrorTitle': 'Failed to load timeline', // 【页面】AI建议-
+  'decisionSignals.timelineFamilyBullish': 'Bullish', // 【页面】AI建议-
+  'decisionSignals.timelineFamilyDefensive': 'Defensive', // 【页面】AI建议-
+  'decisionSignals.timelineFamilyNeutral': 'Neutral', // 【页面】AI建议-
+  'decisionSignals.timelineGuideDescription': 'Adjust range, status, or market, then search the timeline to apply the filters.', // 【页面】AI建议-
+  'decisionSignals.timelineGuideTitle': 'Search the current stock timeline', // 【页面】AI建议-
+  'decisionSignals.timelineMarket': 'Timeline market', // 【页面】AI建议-
+  'decisionSignals.timelineProfile': 'Timeline profile', // 【页面】AI建议-
+  'decisionSignals.timelineRange': 'Range', // 【页面】AI建议-
+  'decisionSignals.timelineRange.180d': '180 days', // 【页面】AI建议-
+  'decisionSignals.timelineRange.30d': '30 days', // 【页面】AI建议-
+  'decisionSignals.timelineRange.90d': '90 days', // 【页面】AI建议-
+  'decisionSignals.timelineSearch': 'Search timeline', // 【页面】AI建议-
+  'decisionSignals.timelineSelected': 'Selected point {index}', // 【页面】AI建议-
+  'decisionSignals.timelineStatus': 'Timeline status', // 【页面】AI建议-
+  'decisionSignals.timelineStatus.active': 'Active only', // 【页面】AI建议-
+  'decisionSignals.timelineStatus.all': 'All history', // 【页面】AI建议-
+  'decisionSignals.timelineTitle': 'Stock signal timeline', // 【页面】AI建议-
+  'decisionSignals.timelineTruncatedDescription': 'Only the latest 100 signals are shown. Narrow the time range.', // 【页面】AI建议-
+  'decisionSignals.timelineTruncatedTitle': 'Timeline truncated', // 【页面】AI建议-
+  'decisionSignals.title': 'AI signals', // 【页面】AI建议-
+  'decisionSignals.total': '{total} signals', // 【页面】AI建议-
+  'decisionSignals.unableReason': 'Unable reason', // 【页面】AI建议-
+  'decisionSignals.viewDetailsFor': 'View AI signal details for {stock}', // 【页面】AI建议-
+  'decisionSignals.watchConditions': 'Watch conditions', // 【页面】AI建议-
+  // eodPicker.*
+  'eodPicker.start.button': 'Start Analysis', // 【页面】尾盘选股-开始分析按钮
+  'eodPicker.start.editFilters': 'Click to edit', // 【页面】尾盘选股-点击编辑筛选条件提示
+  'eodPicker.start.resetFilters': 'Default', // 【页面】尾盘选股-重置为默认筛选
+  'eodPicker.filters.circMv': 'Circ. Market Cap', // 【页面】尾盘选股-筛选-流通市值
+  'eodPicker.filters.volumeRatio': 'Volume Ratio', // 【页面】尾盘选股-筛选-量比
+  'eodPicker.filters.changePct': 'Day Change', // 【页面】尾盘选股-筛选-当日涨幅
+  'eodPicker.filters.turnoverRate': 'Turnover Rate', // 【页面】尾盘选股-筛选-换手率
+  'eodPicker.filters.excludeSt': 'Exclude ST', // 【页面】尾盘选股-筛选-过滤ST开关
+  'eodPicker.filters.strength': 'Intraday Strength', // 【页面】尾盘选股-筛选-分时强度
+  'eodPicker.filters.title': 'Filters', // 【页面】尾盘选股-筛选条件面板标题
+  'eodPicker.filters.done': 'Done', // 【页面】尾盘选股-筛选完成按钮
+  'eodPicker.filters.on': 'On', // 【页面】尾盘选股-开关-开启
+  'eodPicker.filters.off': 'Off', // 【页面】尾盘选股-开关-关闭
+  'eodPicker.filters.unlimited': 'No limit', // 【页面】尾盘选股-筛选-不限
+  'eodPicker.filters.cancel': 'Cancel', // 【页面】尾盘选股-筛选取消按钮
+  'eodPicker.running.title': 'Picking…', // 【页面】尾盘选股-选股进行中标题
+  'eodPicker.running.cancel': 'Cancel', // 【页面】尾盘选股-取消选股按钮
+  'eodPicker.result.title': 'Picking Results', // 【页面】尾盘选股-选股结果标题
+  'eodPicker.result.basis': 'Basis date', // 【页面】尾盘选股-基准交易日标签
+  'eodPicker.result.reanalyze': 'Re-run', // 【页面】尾盘选股-重新分析按钮
+  'eodPicker.result.empty': 'No stocks matched the criteria. Try re-adjusting the filters.', // 【页面】尾盘选股-结果为空提示
+  'eodPicker.result.emptyDesc': 'Try lowering the strength threshold, or relaxing the price-change / turnover-ratio conditions, then re-run.', // 【页面】尾盘选股-结果为空补充说明
+  'eodPicker.result.sortBy': 'Sort by', // 【页面】尾盘选股-排序标签
+  'eodPicker.result.sort.strength': 'Intraday Strength', // 【页面】尾盘选股-按分时强度排序选项
+  'eodPicker.EodStockCard.strength': 'Strength', // 【页面组件】EodStockCard，卡片展示的分时强度指标数值
+  'eodPicker.EodStockCard.circMv': 'Circ. Cap', // 【页面组件】EodStockCard，卡片指标-流通市值
+  'eodPicker.EodStockCard.volumeRatio': 'Vol. Ratio', // 【页面组件】EodStockCard，卡片指标-量比
+  'eodPicker.EodStockCard.turnoverRate': 'Turnover', // 【页面组件】EodStockCard，卡片指标-换手率
+  'eodPicker.EodStockCard.amount': 'Amount', // 【页面组件】EodStockCard，卡片指标-成交额
+  'eodPicker.EodStockCard.currentPrice': 'Price', // 【页面组件】EodStockCard，卡片指标-现价
+  'eodPicker.EodStockCard.priceLegend': 'Price', // 【页面组件】EodStockCard，分时价格线图例文字
+  'eodPicker.EodStockCard.avgPriceLegend': 'Avg', // 【页面组件】EodStockCard，分时均价线图例文字
+  'eodPicker.EodStockCard.addWatchlist': 'Add to Watchlist', // 【页面组件】EodStockCard，加自选按钮文案
+  'eodPicker.EodStockCard.inWatchlist': 'In Watchlist', // 【页面组件】EodStockCard，已加入自选的状态文案
+  'eodPicker.EodStockCard.openKline': 'Click to open stock K-line', // 【页面组件】EodStockCard，点击卡片跳转 K 线的提示
+  'eodPicker.EodStockCard.prevClose': 'Prev Close', // 【页面组件】EodStockCard，卡片指标-昨收
+  'eodPicker.error.snapshot': 'Failed to fetch market snapshot; possibly a non-trading day or data source error.', // 【页面】尾盘选股-行情快照获取失败提示
+  'eodPicker.error.failed': 'Screening task failed', // 【页面】尾盘选股-选股任务失败提示
+  'eodPicker.error.generic': 'Operation failed, please retry later.', // 【页面】尾盘选股-通用操作失败提示
+  'eodPicker.error.addWatchlist': 'Failed to add to watchlist, please retry later.', // 【页面】尾盘选股-加入自选失败提示
+  // scanner.*
+  'scanner.pool.title': 'Stock pool source', // 【页面】信号扫描-股票池来源卡片标题
+  'scanner.pool.watchlist': 'Watchlist', // 【页面】信号扫描-股票池-自选股
+  'scanner.pool.ranking': 'Ranking TopN', // 【页面】信号扫描-股票池-榜单 TopN
+  'scanner.pool.limitUp': 'Limit-up pool', // 【页面】信号扫描-股票池-涨停池
+  'scanner.pool.watchlistHint': 'Deduplicated pool from all watchlist groups', // 【页面】信号扫描-自选池说明
+  'scanner.pool.rankingHint': 'Ranking comes from the full A-share realtime snapshot', // 【页面】信号扫描-榜单池说明
+  'scanner.pool.limitUpHint': 'From the limit-up pool, sorted by consecutive boards and seal time', // 【页面】信号扫描-涨停池说明
+  'scanner.pool.emptyWatchlist': 'Watchlist groups are empty, please add stocks first', // 【页面】信号扫描-自选池为空提示
+  'scanner.pool.count': '{n} stocks in pool', // 【页面】信号扫描-股票池数量
+  'scanner.rankingField.label': 'Sort by', // 【页面】信号扫描-榜单排序字段标签
+  'scanner.rankingField.amount': 'Turnover', // 【页面】信号扫描-榜单排序-成交额
+  'scanner.rankingField.changePercent': 'Change %', // 【页面】信号扫描-榜单排序-涨幅
+  'scanner.rankingField.turnoverRate': 'Turnover rate', // 【页面】信号扫描-榜单排序-换手率
+  'scanner.topN': 'Top {n}', // 【页面】信号扫描-TopN 选项
+  'scanner.signals.title': 'Signal templates', // 【页面】信号扫描-信号模板卡片标题
+  'scanner.signals.empty': 'Please select at least one signal template', // 【页面】信号扫描-未选信号提示
+  'scanner.signal.ma_golden': 'MA golden cross', // 【页面】信号扫描-信号-MA金叉
+  'scanner.signal.ma_golden_desc': 'Short MA crosses above long MA', // 【页面】信号扫描-信号-MA金叉说明
+  'scanner.signal.ma_death': 'MA death cross', // 【页面】信号扫描-信号-MA死叉
+  'scanner.signal.ma_death_desc': 'Short MA crosses below long MA', // 【页面】信号扫描-信号-MA死叉说明
+  'scanner.signal.macd_golden': 'MACD golden cross', // 【页面】信号扫描-信号-MACD金叉
+  'scanner.signal.macd_golden_desc': 'DIF crosses above DEA', // 【页面】信号扫描-信号-MACD金叉说明
+  'scanner.signal.macd_death': 'MACD death cross', // 【页面】信号扫描-信号-MACD死叉
+  'scanner.signal.macd_death_desc': 'DIF crosses below DEA', // 【页面】信号扫描-信号-MACD死叉说明
+  'scanner.signal.rsi_oversold': 'RSI oversold', // 【页面】信号扫描-信号-RSI超卖
+  'scanner.signal.rsi_oversold_desc': 'RSI below 30', // 【页面】信号扫描-信号-RSI超卖说明
+  'scanner.signal.rsi_overbought': 'RSI overbought', // 【页面】信号扫描-信号-RSI超买
+  'scanner.signal.rsi_overbought_desc': 'RSI above 70', // 【页面】信号扫描-信号-RSI超买说明
+  'scanner.signal.boll_upper': 'BOLL upper', // 【页面】信号扫描-信号-BOLL突破上轨
+  'scanner.signal.boll_upper_desc': 'Close breaks above the upper band', // 【页面】信号扫描-信号-BOLL突破上轨说明
+  'scanner.signal.boll_lower': 'BOLL lower', // 【页面】信号扫描-信号-BOLL跌破下轨
+  'scanner.signal.boll_lower_desc': 'Close breaks below the lower band', // 【页面】信号扫描-信号-BOLL跌破下轨说明
+  'scanner.start': 'Start scan', // 【页面】信号扫描-开始扫描按钮
+  'scanner.cancel': 'Cancel scan', // 【页面】信号扫描-取消扫描按钮
+  'scanner.restart': 'Scan again', // 【页面】信号扫描-重新扫描按钮
+  'scanner.progress.preparing': 'Preparing', // 【页面】信号扫描-进度未就绪占位
+  'scanner.cancelled': 'Scan cancelled', // 【页面】信号扫描-取消完成提示
+  'scanner.result.title': 'Scan results', // 【页面】信号扫描-扫描结果标题
+  'scanner.result.count': '{n} triggered', // 【页面】信号扫描-结果计数
+  'scanner.result.empty': 'No scan results yet', // 【页面】信号扫描-结果为空提示
+  'scanner.result.emptyDesc': 'Pick a stock pool and signal templates, then start scanning', // 【页面】信号扫描-结果为空补充说明
+  'scanner.result.openKline': 'Click to open the stock K-line', // 【页面】信号扫描-点击结果跳 K 线的提示
+  'scanner.result.addWatchlist': 'Add', // 【页面】信号扫描-加自选按钮文案
+  'scanner.result.inWatchlist': 'Added', // 【页面】信号扫描-已加入自选的状态文案
+  'scanner.error.start': 'Failed to submit the scan task, please retry later.', // 【页面】信号扫描-提交任务失败提示
+  'scanner.error.cancel': 'Failed to cancel the scan, please retry later.', // 【页面】信号扫描-取消失败提示
+  'scanner.error.failed': 'Scan task failed', // 【页面】信号扫描-扫描任务失败提示
+  'scanner.error.generic': 'Operation failed, please retry later.', // 【页面】信号扫描-通用操作失败提示
+  'scanner.error.addWatchlist': 'Failed to add to watchlist, please retry later.', // 【页面】信号扫描-加入自选失败提示
   // history.*
-  'history.actionAdd': 'Add',
-  'history.actionAlert': 'Alert',
-  'history.actionAvoid': 'Avoid',
-  'history.actionBuy': 'Buy',
-  'history.actionHold': 'Hold',
-  'history.actionReduce': 'Reduce',
-  'history.actionSell': 'Sell',
-  'history.actionWatch': 'Watch',
-  'history.analysisCount': '{count} runs',
-  'history.bottomReached': 'End',
-  'history.defaultEmptyDescription': 'Recent results will be saved here after the first analysis.',
-  'history.defaultEmptyTitle': 'No analysis history',
-  'history.defaultTitle': 'Analysis history',
-  'history.deleteRecord': 'Delete {name} history record',
-  'history.itemAria': '{name} {code} history record',
-  'history.loading': 'Loading history...',
-  'history.selectAllHistoryAria': 'Select all loaded history records',
-  'history.selectAllStockAria': 'Select all current stocks',
-  'history.sentiment': 'Sentiment',
+  'history.actionAdd': 'Add', // 【页面】分析历史-
+  'history.actionAlert': 'Alert', // 【页面】分析历史-
+  'history.actionAvoid': 'Avoid', // 【页面】分析历史-
+  'history.actionBuy': 'Buy', // 【页面】分析历史-
+  'history.actionHold': 'Hold', // 【页面】分析历史-
+  'history.actionReduce': 'Reduce', // 【页面】分析历史-
+  'history.actionSell': 'Sell', // 【页面】分析历史-
+  'history.actionWatch': 'Watch', // 【页面】分析历史-
+  'history.analysisCount': '{count} runs', // 【页面】分析历史-
+  'history.bottomReached': 'End', // 【页面】分析历史-
+  'history.defaultEmptyDescription': 'Recent results will be saved here after the first analysis.', // 【页面】分析历史-
+  'history.defaultEmptyTitle': 'No analysis history', // 【页面】分析历史-
+  'history.defaultTitle': 'Analysis history', // 【页面】分析历史-
+  'history.deleteRecord': 'Delete {name} history record', // 【页面】分析历史-
+  'history.itemAria': '{name} {code} history record', // 【页面】分析历史-
+  'history.loading': 'Loading history...', // 【页面】分析历史-
+  'history.selectAllHistoryAria': 'Select all loaded history records', // 【页面】分析历史-
+  'history.selectAllStockAria': 'Select all current stocks', // 【页面】分析历史-
+  'history.sentiment': 'Sentiment', // 【页面】分析历史-
   // kline.*
-  'kline.error': 'Failed to load K-line data',
-  'kline.empty': 'No K-line data',
-  'kline.fullData': 'Full Data',
-  'kline.meta.rows': 'Rows',
-  'kline.meta.source': 'K-line Source',
-  'kline.info.amount': 'Amount',
-  'kline.info.amplitude': 'Amplitude',
-  'kline.info.high': 'High',
-  'kline.info.low': 'Low',
-  'kline.info.open': 'Open',
-  'kline.info.peRatioTTM': 'P/E (TTM)',
-  'kline.info.prevClose': 'Prev Close',
-  'kline.info.totalMarketCap': 'Market Cap',
-  'kline.info.turnoverRate': 'Turnover',
-  'kline.info.volume': 'Volume',
-  'kline.noStockSelected': 'Please search and select a stock to view K-line',
-  'kline.period.120m': '120m',
-  'kline.period.15m': '15m',
-  'kline.period.1m': 'Intraday',
-  'kline.period.30m': '30m',
-  'kline.period.5d': '5-Day',
-  'kline.period.5m': '5m',
-  'kline.period.60m': '60m',
-  'kline.period.daily': 'Daily',
-  'kline.period.monthly': 'Monthly',
-  'kline.period.weekly': 'Weekly',
-  'kline.period.yearly': 'Yearly',
-  'kline.source.eastmoney': 'EastMoney',
-  'kline.source.local': 'Local StockDB',
-  'kline.source.sina': 'Sina Finance',
-  'kline.source.stocksdk': 'StockSDK',
-  'kline.source.tencent': 'Tencent Finance',
-  'kline.source.unknown': 'Unknown',
-  'stockData.title': 'Local market data view',
-  'stockData.adjustment.label': 'Adjustment',
-  'stockData.adjustment.none': 'None',
-  'stockData.adjustment.qfq': 'Forward',
-  'stockData.adjustment.hfq': 'Backward',
-  'kline.tooltip.amount': 'Amount',
-  'kline.tooltip.change': 'Change',
-  'kline.tooltip.close': 'Close',
-  'kline.tooltip.date': 'Date',
-  'kline.tooltip.dea': 'DEA',
-  'kline.tooltip.dif': 'DIF',
-  'kline.tooltip.high': 'High',
-  'kline.tooltip.low': 'Low',
-  'kline.tooltip.ma10': 'MA10',
-  'kline.tooltip.ma30': 'MA30',
-  'kline.tooltip.ma5': 'MA5',
-  'kline.tooltip.ma60': 'MA60',
-  'kline.tooltip.macd': 'MACD',
-  'kline.tooltip.open': 'Open',
-  'kline.tooltip.volume': 'Volume',
+  'kline.error': 'Failed to load K-line data', // 【页面】个股K线-
+  'kline.empty': 'No K-line data', // 【页面】个股K线-
+  'kline.fullData': 'Full Data', // 【页面】个股K线-
+  'kline.meta.rows': 'Rows', // 【页面】个股K线-
+  'kline.meta.source': 'K-line Source', // 【页面】个股K线-
+  'kline.info.amount': 'Amount', // 【页面】个股K线-
+  'kline.info.amplitude': 'Amplitude', // 【页面】个股K线-
+  'kline.info.high': 'High', // 【页面】个股K线-
+  'kline.info.low': 'Low', // 【页面】个股K线-
+  'kline.info.open': 'Open', // 【页面】个股K线-
+  'kline.info.peRatioTTM': 'P/E (TTM)', // 【页面】个股K线-
+  'kline.info.prevClose': 'Prev Close', // 【页面】个股K线-
+  'kline.info.totalMarketCap': 'Market Cap', // 【页面】个股K线-
+  'kline.info.turnoverRate': 'Turnover', // 【页面】个股K线-
+  'kline.info.volume': 'Volume', // 【页面】个股K线-
+  'kline.noStockSelected': 'Please search and select a stock to view K-line', // 【页面】个股K线-
+  'kline.period.120m': '120m', // 【页面】个股K线-
+  'kline.period.15m': '15m', // 【页面】个股K线-
+  'kline.period.1m': 'Intraday', // 【页面】个股K线-
+  'kline.period.30m': '30m', // 【页面】个股K线-
+  'kline.period.5d': '5-Day', // 【页面】个股K线-
+  'kline.period.5m': '5m', // 【页面】个股K线-
+  'kline.period.60m': '60m', // 【页面】个股K线-
+  'kline.period.daily': 'Daily', // 【页面】个股K线-
+  'kline.period.monthly': 'Monthly', // 【页面】个股K线-
+  'kline.period.weekly': 'Weekly', // 【页面】个股K线-
+  'kline.period.yearly': 'Yearly', // 【页面】个股K线-
+  'kline.source.eastmoney': 'EastMoney', // 【页面】个股K线-
+  'kline.source.local': 'Local StockDB', // 【页面】个股K线-
+  'kline.source.sina': 'Sina Finance', // 【页面】个股K线-
+  'kline.source.stocksdk': 'StockSDK', // 【页面】个股K线-
+  'kline.source.tencent': 'Tencent Finance', // 【页面】个股K线-
+  'kline.source.unknown': 'Unknown', // 【页面】个股K线-
+  'stockData.title': 'Local market data view', // 【页面】个股数据-
+  'stockData.adjustment.label': 'Adjustment', // 【页面】个股数据-
+  'stockData.adjustment.none': 'None', // 【页面】个股数据-
+  'stockData.adjustment.qfq': 'Forward', // 【页面】个股数据-
+  'stockData.adjustment.hfq': 'Backward', // 【页面】个股数据-
+  'kline.tooltip.amount': 'Amount', // 【页面】个股K线-
+  'kline.tooltip.change': 'Change', // 【页面】个股K线-
+  'kline.tooltip.close': 'Close', // 【页面】个股K线-
+  'kline.tooltip.date': 'Date', // 【页面】个股K线-
+  'kline.tooltip.dea': 'DEA', // 【页面】个股K线-
+  'kline.tooltip.dif': 'DIF', // 【页面】个股K线-
+  'kline.tooltip.high': 'High', // 【页面】个股K线-
+  'kline.tooltip.low': 'Low', // 【页面】个股K线-
+  'kline.tooltip.ma10': 'MA10', // 【页面】个股K线-
+  'kline.tooltip.ma30': 'MA30', // 【页面】个股K线-
+  'kline.tooltip.ma5': 'MA5', // 【页面】个股K线-
+  'kline.tooltip.ma60': 'MA60', // 【页面】个股K线-
+  'kline.tooltip.macd': 'MACD', // 【页面】个股K线-
+  'kline.tooltip.open': 'Open', // 【页面】个股K线-
+  'kline.tooltip.volume': 'Volume', // 【页面】个股K线-
   // liveCalendar.*
-  'liveCalendar.degradedTip.title': 'Data source temporarily unavailable',
-  'liveCalendar.degradedTip.message': 'Displaying locally cached data. Please check the data source query status.',
-  'liveCalendar.loading': 'Loading calendar…',
-  'liveCalendar.refresh': 'Refresh calendar',
-  'liveCalendar.refreshing': 'Refreshing…',
-  'liveCalendar.subtitle': 'Financial calendar for macro, earnings, IPO, and event items',
-  'liveCalendar.tabs.activity': 'Events',
-  'liveCalendar.tabs.all': 'All',
-  'liveCalendar.tabs.earnings': 'Earnings',
-  'liveCalendar.tabs.ipo': 'IPO',
-  'liveCalendar.tabs.macro': 'Macro',
-  'liveCalendar.title': 'Live Calendar',
+  'liveCalendar.degradedTip.title': 'Data source temporarily unavailable', // 【页面】财经日历-
+  'liveCalendar.degradedTip.message': 'Displaying locally cached data. Please check the data source query status.', // 【页面】财经日历-
+  'liveCalendar.loading': 'Loading calendar…', // 【页面】财经日历-
+  'liveCalendar.refresh': 'Refresh calendar', // 【页面】财经日历-
+  'liveCalendar.refreshing': 'Refreshing…', // 【页面】财经日历-
+  'liveCalendar.subtitle': 'Financial calendar for macro, earnings, IPO, and event items', // 【页面】财经日历-
+  'liveCalendar.tabs.activity': 'Events', // 【页面】财经日历-
+  'liveCalendar.tabs.all': 'All', // 【页面】财经日历-
+  'liveCalendar.tabs.earnings': 'Earnings', // 【页面】财经日历-
+  'liveCalendar.tabs.ipo': 'IPO', // 【页面】财经日历-
+  'liveCalendar.tabs.macro': 'Macro', // 【页面】财经日历-
+  'liveCalendar.title': 'Live Calendar', // 【页面】财经日历-
   // liveNews.*
-  'liveNews.channelTabs': 'Newsflash channels',
-  'liveNews.dateAll': 'All dates',
-  'liveNews.dateToday': 'Today',
-  'liveNews.dateYesterday': 'Yesterday',
-  'liveNews.degradedTip': 'Live source unavailable — showing aggregated fallback data (no channel filter or importance level)',
-  'liveNews.empty': 'No newsflash yet',
-  'liveNews.emptyDate': 'No newsflash on the selected date',
-  'liveNews.emptyImportant': 'No important newsflash in this channel',
-  'liveNews.emptyKeyword': 'No matching newsflash found',
-  'liveNews.expand': 'Expand',
-  'liveNews.collapse': 'Collapse',
-  'liveNews.importantOnly': 'Important only',
-  'liveNews.importantTag': 'Important',
-  'liveNews.normalTag': 'Normal',
-  'liveNews.loadMore': 'Load more',
-  'liveNews.loading': 'Fetching latest newsflash…',
-  'liveNews.refresh': 'Refresh news',
-  'liveNews.refreshing': 'Refreshing news',
-  'liveNews.searchPlaceholder': 'Search newsflash…',
-  'liveNews.subtitle': '24/7 financial newsflash across headlines, A-shares, US, HK, FX, commodities, bonds and tech',
-  'liveNews.title': 'Newsflash',
+  'liveNews.channelTabs': 'Newsflash channels', // 【页面】实时财经-
+  'liveNews.dateAll': 'All dates', // 【页面】实时财经-
+  'liveNews.dateToday': 'Today', // 【页面】实时财经-
+  'liveNews.dateYesterday': 'Yesterday', // 【页面】实时财经-
+  'liveNews.degradedTip': 'Live source unavailable — showing aggregated fallback data (no channel filter or importance level)', // 【页面】实时财经-
+  'liveNews.empty': 'No newsflash yet', // 【页面】实时财经-
+  'liveNews.emptyDate': 'No newsflash on the selected date', // 【页面】实时财经-
+  'liveNews.emptyImportant': 'No important newsflash in this channel', // 【页面】实时财经-
+  'liveNews.emptyKeyword': 'No matching newsflash found', // 【页面】实时财经-
+  'liveNews.expand': 'Expand', // 【页面】实时财经-
+  'liveNews.collapse': 'Collapse', // 【页面】实时财经-
+  'liveNews.importantOnly': 'Important only', // 【页面】实时财经-
+  'liveNews.importantTag': 'Important', // 【页面】实时财经-
+  'liveNews.normalTag': 'Normal', // 【页面】实时财经-
+  'liveNews.loadMore': 'Load more', // 【页面】实时财经-
+  'liveNews.loading': 'Fetching latest newsflash…', // 【页面】实时财经-
+  'liveNews.refresh': 'Refresh news', // 【页面】实时财经-
+  'liveNews.refreshing': 'Refreshing news', // 【页面】实时财经-
+  'liveNews.searchPlaceholder': 'Search newsflash…', // 【页面】实时财经-
+  'liveNews.subtitle': '24/7 financial newsflash across headlines, A-shares, US, HK, FX, commodities, bonds and tech', // 【页面】实时财经-
+  'liveNews.title': 'Newsflash', // 【页面】实时财经-
   // notFound.*
-  'notFound.backHome': 'Back Home',
-  'notFound.relogin': 'Re-login',
-  'notFound.description': 'The page you requested does not exist or has moved.',
-  'notFound.documentTitle': 'Page not found - HermesX',
-  'notFound.title': 'Page not found',
+  'notFound.backHome': 'Back Home', // 【页面】404-
+  'notFound.relogin': 'Re-login', // 【页面】404-
+  'notFound.description': 'The page you requested does not exist or has moved.', // 【页面】404-
+  'notFound.documentTitle': 'Page not found - HermesX', // 【页面】404-
+  'notFound.title': 'Page not found', // 【页面】404-
   // report.*
-  'report.addToWatchlist': 'Add to watchlist',
-  'report.removeFromWatchlist': 'Remove from watchlist',
-  'report.watchlist': 'Watchlist',
+  'report.addToWatchlist': 'Add to watchlist', // 【页面】报告-
+  'report.removeFromWatchlist': 'Remove from watchlist', // 【页面】报告-
+  'report.watchlist': 'Watchlist', // 【页面】报告-
   // review.*
-  'review.analyze': 'Analyze',
-  'review.analyzing': 'Analyzing',
-  'review.askAi': 'Ask AI',
-  'review.defaultStrategyDescription': 'Use the system default analysis framework',
-  'review.defaultStrategyName': 'Default strategy',
-  'review.duplicateTask': 'Task already exists',
-  'review.fullReport': 'Full analysis report',
-  'review.goSettings': 'Configure',
-  'review.historyButton': 'History',
-  'review.historyTrend': 'History trend',
-  'review.inputInvalid': 'Invalid input',
-  'review.loadingReport': 'Loading report...',
-  'review.marketRegionAll': 'All markets',
-  'review.marketRegionCn': 'A-shares',
-  'review.marketRegionDefaultUnavailable': 'Resolved by the server when submitted',
-  'review.marketRegionDescription': 'Choose one or more markets for this review run.',
-  'review.marketRegionHk': 'Hong Kong',
-  'review.marketRegionJp': 'Japan',
-  'review.marketRegionKr': 'Korea',
-  'review.marketRegionOneTimeHint': 'Applies only to this run and does not change global settings.',
-  'review.marketRegionSelector': 'Select market review regions',
-  'review.marketRegionServerDefault': 'Server default',
-  'review.title': 'Market Review', // Market Review page title
-  'review.subtitle': 'Integrated stock analysis, market review, and task panels—auto-generating scheduled analysis review reports from closing, industry, and sentiment data', // Home page subtitle
-  'review.marketRegionTitle': 'Markets for this review',
-  'review.marketRegionUs': 'US',
-  'review.marketReview': 'Market review',
-  'review.marketReviewCompleted': 'Market review completed',
-  'review.marketReviewCompletedWithReport': 'Market review completed. Result:',
-  'review.marketReviewCompletedWithoutReport': 'Market review completed. The result was generated and sent according to your configuration.',
-  'review.marketReviewFailed': 'Market review failed.',
-  'review.marketReviewInProgress': 'Market review in progress',
-  'review.marketReviewSubmitted': 'Market review submitted',
-  'review.marketReviewSubmittedWithRegion': '{message}; effective region: {region}',
-  'review.marketReviewTimeout': 'Market review timed out',
-  'review.marketReviewTimeoutMessage': 'The task did not return a final result in time. Check the task list or history.',
-  'review.marketReviewUnknownStatus': 'Unexpected market review status',
-  'review.notify': 'Send notification',
-  'review.pageTitle': 'HermesX - HRS',
-  'review.progressActive': 'In progress',
-  'review.reanalyze': 'Reanalyze',
-  'review.rerunMarketReview': 'Rerun market review',
-  'review.setupIncomplete': 'Base configuration incomplete',
-  'review.setupMissingGeneric': 'Base configuration is still incomplete. Complete it before running the minimal analysis flow.',
-  'review.setupMissingWithLabels': 'Missing {labels}. Complete them before running the minimal analysis flow.',
-  'review.startAnalysisDescription': 'Enter a stock code to analyze, or pick a historical report from the left.',
-  'review.startAnalysisTitle': 'Start analysis',
-  'review.strategy': 'Strategy',
-  'review.submitMarketReview': 'Submitting',
-  'review.taskStatus': 'Task status: {status} ({progress})',
-  'review.taskStatusWithRegion': 'Task status: {status} ({progress}); effective region: {region}',
-  'review.unknownTaskStatus': 'Received unknown task status: {status}',
+  'review.analyze': 'Analyze', // 【页面】复盘-
+  'review.analyzing': 'Analyzing', // 【页面】复盘-
+  'review.askAi': 'Ask AI', // 【页面】复盘-
+  'review.defaultStrategyDescription': 'Use the system default analysis framework', // 【页面】复盘-
+  'review.defaultStrategyName': 'Default strategy', // 【页面】复盘-
+  'review.duplicateTask': 'Task already exists', // 【页面】复盘-
+  'review.fullReport': 'Full analysis report', // 【页面】复盘-
+  'review.goSettings': 'Configure', // 【页面】复盘-
+  'review.historyButton': 'History', // 【页面】复盘-
+  'review.historyTrend': 'History trend', // 【页面】复盘-
+  'review.inputInvalid': 'Invalid input', // 【页面】复盘-
+  'review.loadingReport': 'Loading report...', // 【页面】复盘-
+  'review.marketRegionAll': 'All markets', // 【页面】复盘-
+  'review.marketRegionCn': 'A-shares', // 【页面】复盘-
+  'review.marketRegionDefaultUnavailable': 'Resolved by the server when submitted', // 【页面】复盘-
+  'review.marketRegionDescription': 'Choose one or more markets for this review run.', // 【页面】复盘-
+  'review.marketRegionHk': 'Hong Kong', // 【页面】复盘-
+  'review.marketRegionJp': 'Japan', // 【页面】复盘-
+  'review.marketRegionKr': 'Korea', // 【页面】复盘-
+  'review.marketRegionOneTimeHint': 'Applies only to this run and does not change global settings.', // 【页面】复盘-
+  'review.marketRegionSelector': 'Select market review regions', // 【页面】复盘-
+  'review.marketRegionServerDefault': 'Server default', // 【页面】复盘-
+  'review.title': 'Market Review', // 【页面】复盘-Market Review page title
+  'review.subtitle': 'Integrated stock analysis, market review, and task panels—auto-generating scheduled analysis review reports from closing, industry, and sentiment data', // 【页面】复盘-Home page subtitle
+  'review.marketRegionTitle': 'Markets for this review', // 【页面】复盘-
+  'review.marketRegionUs': 'US', // 【页面】复盘-
+  'review.marketReview': 'Market review', // 【页面】复盘-
+  'review.marketReviewCompleted': 'Market review completed', // 【页面】复盘-
+  'review.marketReviewCompletedWithReport': 'Market review completed. Result:', // 【页面】复盘-
+  'review.marketReviewCompletedWithoutReport': 'Market review completed. The result was generated and sent according to your configuration.', // 【页面】复盘-
+  'review.marketReviewFailed': 'Market review failed.', // 【页面】复盘-
+  'review.marketReviewInProgress': 'Market review in progress', // 【页面】复盘-
+  'review.marketReviewSubmitted': 'Market review submitted', // 【页面】复盘-
+  'review.marketReviewSubmittedWithRegion': '{message}; effective region: {region}', // 【页面】复盘-
+  'review.marketReviewTimeout': 'Market review timed out', // 【页面】复盘-
+  'review.marketReviewTimeoutMessage': 'The task did not return a final result in time. Check the task list or history.', // 【页面】复盘-
+  'review.marketReviewUnknownStatus': 'Unexpected market review status', // 【页面】复盘-
+  'review.notify': 'Send notification', // 【页面】复盘-
+  'review.pageTitle': 'HermesX - HRS', // 【页面】复盘-
+  'review.progressActive': 'In progress', // 【页面】复盘-
+  'review.reanalyze': 'Reanalyze', // 【页面】复盘-
+  'review.rerunMarketReview': 'Rerun market review', // 【页面】复盘-
+  'review.setupIncomplete': 'Base configuration incomplete', // 【页面】复盘-
+  'review.setupMissingGeneric': 'Base configuration is still incomplete. Complete it before running the minimal analysis flow.', // 【页面】复盘-
+  'review.setupMissingWithLabels': 'Missing {labels}. Complete them before running the minimal analysis flow.', // 【页面】复盘-
+  'review.startAnalysisDescription': 'Enter a stock code to analyze, or pick a historical report from the left.', // 【页面】复盘-
+  'review.startAnalysisTitle': 'Start analysis', // 【页面】复盘-
+  'review.strategy': 'Strategy', // 【页面】复盘-
+  'review.submitMarketReview': 'Submitting', // 【页面】复盘-
+  'review.taskStatus': 'Task status: {status} ({progress})', // 【页面】复盘-
+  'review.taskStatusWithRegion': 'Task status: {status} ({progress}); effective region: {region}', // 【页面】复盘-
+  'review.unknownTaskStatus': 'Received unknown task status: {status}', // 【页面】复盘-
   // sector.*
-  'sector.tab.board': 'Sector', // Primary tab: Sector
-  'sector.tab.boardConcept': 'Concept', // "Sector" secondary tab: Concept
-  'sector.tab.boardIndustry': 'Industry', // "Sector" secondary tab: Industry
-  'sector.tab.cloudConcept': 'Concept Cloud', // "Cloud Map" secondary tab: Concept Cloud
-  'sector.tab.cloudEtf': 'ETF Cloud', // "Cloud Map" secondary tab: ETF Cloud
-  'sector.tab.cloudMap': 'Cloud Map', // Primary tab: Cloud Map
-  'sector.tab.cloudSector': 'Sector Cloud', // "Cloud Map" secondary tab: Sector Cloud
-  'sector.tab.cloudStock': 'Stock Cloud', // "Cloud Map" secondary tab: Stock Cloud
-  'sector.tab.fund': 'Fund', // Primary tab: Fund
+  'sector.tab.board': 'Sector', // 【页面】板块-Primary tab: Sector
+  'sector.tab.boardConcept': 'Concept', // 【页面】板块-"Sector" secondary tab: Concept
+  'sector.tab.boardIndustry': 'Industry', // 【页面】板块-"Sector" secondary tab: Industry
+  'sector.tab.cloudConcept': 'Concept Cloud', // 【页面】板块-"Cloud Map" secondary tab: Concept Cloud
+  'sector.tab.cloudEtf': 'ETF Cloud', // 【页面】板块-"Cloud Map" secondary tab: ETF Cloud
+  'sector.tab.cloudMap': 'Cloud Map', // 【页面】板块-Primary tab: Cloud Map
+  'sector.tab.cloudSector': 'Sector Cloud', // 【页面】板块-"Cloud Map" secondary tab: Sector Cloud
+  'sector.tab.cloudStock': 'Stock Cloud', // 【页面】板块-"Cloud Map" secondary tab: Stock Cloud
+  'sector.tab.fund': 'Fund', // 【页面】板块-Primary tab: Fund
   // settings.*
-  'settings.actionSuccess': 'Success',
-  'settings.activePanelDescription': 'Use unified field cards to maintain this configuration category.',
-  'settings.activePanelTitle': 'Current category fields',
-  'settings.agentBackendCanTry': 'Can try',
-  'settings.agentBackendCanTryDescription': 'The basic environment check passed. You can return to Chat and ask directly; the first question performs the real execution.',
-  'settings.agentBackendCodexLabel': 'Codex Agent',
-  'settings.agentBackendCodexNotice': 'Codex can currently read only saved analysis context and backtest summaries. Live quotes, news, market hotspots, technical-indicator recalculation, per-stock backtest details, and portfolio tools are not available; choose Default model when you need them. Stop ends both the Codex turn and its tool task. This choice only affects ask-stock Chat; Multi Agent, Deep Research, regular reports, and scheduled tasks keep their existing routes. Codex is not an offline model, and services configured in Codex may process questions and tool results.',
-  'settings.agentBackendCodexNoticeTitle': 'Codex local Agent (experimental)',
-  'settings.agentBackendCommandNotFound': 'Codex was not found on the device running HRS. Install it there and ensure the HRS backend process can find it on PATH.',
-  'settings.agentBackendDefaultLabel': 'Default model',
-  'settings.agentBackendEnableMode': 'Enable Agent Mode',
-  'settings.agentBackendErrorCode': 'Error code',
-  'settings.agentBackendExperimental': 'Experimental',
-  'settings.agentBackendInvalidTimeout': 'Codex requires an Agent timeout greater than 0 so success, failure, timeout, and stop all reach a bounded end.',
-  'settings.agentBackendModeDisabled': 'Agent Mode is disabled. Update the draft below, then save the settings before using ask-stock Chat.',
-  'settings.agentBackendModeDisabledTitle': 'Enable Agent Mode',
-  'settings.agentBackendNeedsAction': 'Needs action',
-  'settings.agentBackendPlatformUnsupported': 'Codex local Agent does not currently support native Windows. Use macOS, Linux, or run the complete HRS backend inside WSL.',
-  'settings.agentBackendRefresh': 'Refresh status',
-  'settings.agentBackendRefreshing': 'Checking',
-  'settings.agentBackendSectionDescription': 'Choose the default model configuration or Codex on this device for the same ask-stock page, and preview the unsaved draft before saving.',
-  'settings.agentBackendSectionTitle': 'Ask-stock method',
-  'settings.agentBackendSingleOnly': 'Codex local Agent currently supports single-agent Chat only. This action changes the page draft; click Save to apply it.',
-  'settings.agentBackendSingleOnlyTitle': 'Switch to Single Agent',
-  'settings.agentBackendStatus': 'Ask-stock runtime status',
-  'settings.agentBackendStatusDescription': 'This check only confirms that the current settings, local Codex command, and required ask-stock protocol allow an attempt. It does not sign in, call a model, or read stock data. Actual execution is confirmed when you send a question.',
-  'settings.agentBackendTechnicalDetails': 'Technical details',
-  'settings.agentBackendUnavailableDescription': 'The selected ask-stock method is currently unavailable. Review the settings and try again.',
-  'settings.agentBackendUseSingle': 'Switch to Single Agent',
-  'settings.agentBackendVersion': 'Version',
-  'settings.agentSettings': 'Agent settings',
-  'settings.alphaSift': 'AlphaSift screening',
-  'settings.alphaSiftDescription': 'Enable the built-in experimental AlphaSift screening capability.',
-  'settings.alphaSiftDisabled': 'Screening disabled',
-  'settings.alphaSiftEnabled': 'Screening enabled',
-  'settings.alphaSiftRisk': 'Experimental risk notice: screening results are for research and decision support only and are not investment advice. Markets involve risk; trading decisions and results are your responsibility.',
-  'settings.alphaSiftSummary': 'When enabled, the left navigation shows Screening. Strategies and candidates come from AlphaSift; HRS adds quotes, fundamentals, and news context.',
-  'settings.authCurrentPassword': 'Current admin password',
-  'settings.authDescription': 'Manage admin password authentication to protect system settings.',
-  'settings.authDisabled': 'Disabled',
-  'settings.authEnabled': 'Enabled',
-  'settings.authFailure': 'Authentication settings failed',
-  'settings.authHelperDefault': 'Admin authentication protects Web settings and API endpoints from unauthorized access.',
-  'settings.authHelperEnabled': 'Admin authentication is enabled. Use Change password below to update it.',
-  'settings.authHelperNoPassword': 'No password has been set yet. Set an initial admin password before enabling authentication.',
-  'settings.authHelperPasswordRetained': 'The previous admin password was retained. Enter it to re-enable authentication quickly.',
-  'settings.authHelperTurnOff': 'If the current session is still valid, you can disable authentication directly. Otherwise, enter the current admin password.',
-  'settings.authPasswordHintOff': 'Identity verification may be required before disabling authentication',
-  'settings.authPasswordHintRetained': 'Enter the old password to reactivate authentication',
-  'settings.authPasswordPlaceholder': 'Enter current password',
-  'settings.authRequiredPassword': 'A new password is required',
-  'settings.authSetPassword': 'Set admin password',
-  'settings.authSetPasswordPlaceholder': 'Enter a new password (at least 6 characters)',
-  'settings.authStatus': 'Admin authentication',
-  'settings.authSuccessDisabled': 'Authentication disabled',
-  'settings.authSuccessUpdated': 'Authentication settings updated',
-  'settings.authTitle': 'Authentication and login protection',
-  'settings.categoryNavDescription': 'System settings and authentication capabilities grouped by module.',
-  'settings.categoryNavTitle': 'Categories',
-  'settings.dataSourceSectionTitle': 'Unified data source settings',
-  'settings.dataSourceSectionDescription': 'Review the local StockDB status plus the primary-source and fallback strategy for K-line, stock info, and code search.',
-  'settings.dataSourceStatusLabel': 'Local source status',
-  'settings.dataSourceBaseUrlLabel': 'Service URL',
-  'settings.dataSourcePrimarySourcesLabel': 'Primary sources',
-  'settings.dataSourceFallbackLabel': 'Auto fallback',
-  'settings.dataSourceKlineLabel': 'K-line',
-  'settings.dataSourceStockInfoLabel': 'Stock info',
-  'settings.dataSourceCodeSearchLabel': 'Code search',
-  'settings.dataSourceOpenStockData': 'Open local market view',
-  'settings.changePasswordConfirm': 'Confirm new password',
-  'settings.changePasswordConfirmPlaceholder': 'Enter the new password again',
-  'settings.changePasswordCurrent': 'Current password',
-  'settings.changePasswordCurrentPlaceholder': 'Enter current password',
-  'settings.changePasswordDescription': 'Update the current admin login password. Use the new password for future logins.',
-  'settings.changePasswordFailure': 'Password change failed',
-  'settings.changePasswordNew': 'New password',
-  'settings.changePasswordNewHint': 'At least 6 characters.',
-  'settings.changePasswordNewPlaceholder': 'Enter new password',
-  'settings.changePasswordRequiredCurrent': 'Enter the current password',
-  'settings.changePasswordRequiredNew': 'Enter a new password',
-  'settings.changePasswordSave': 'Save new password',
-  'settings.changePasswordShort': 'New password must be at least 6 characters',
-  'settings.changePasswordSuccess': 'Password changed',
-  'settings.changePasswordSuccessMessage': 'The admin password was updated.',
-  'settings.changePasswordTitle': 'Change password',
-  'settings.checkDesktopUpdate': 'Check for updates',
-  'settings.checkingDesktopUpdate': 'Checking...',
-  'settings.configBackup': 'Configuration backup',
-  'settings.configBackupDescription': 'Export the saved .env backup or restore configuration from a backup file. Importing overwrites keys present in the backup and reloads immediately.',
-  'settings.currentCategoryEmptyDescription': 'This category has no editable fields. Switch categories on the left to view other system settings.',
-  'settings.currentCategoryEmptyTitle': 'No fields in this category',
-  'settings.desktopCheckError': 'Update check failed',
-  'settings.desktopChecking': 'Checking for updates',
-  'settings.desktopCurrentNoStatus': 'No update status yet. The app checks in the background after startup.',
-  'settings.desktopDownload': 'Open release',
-  'settings.desktopDownloaded': 'Update downloaded',
-  'settings.desktopDownloading': 'Downloading update',
-  'settings.desktopInstall': 'Restart to install',
-  'settings.desktopInstalling': 'Installing update',
-  'settings.desktopLatest': 'latest version',
-  'settings.desktopManualUnsupported': 'This desktop runtime does not support automatic update installation. Open the release page to update manually.',
-  'settings.desktopUpToDate': 'Up to date',
-  'settings.desktopUpToDateMessage': 'The desktop app is already up to date.',
-  'settings.desktopUpdate': 'Desktop update',
-  'settings.desktopUpdateAvailable': 'New version available',
-  'settings.desktopUpdateCheckingMessage': 'Checking GitHub Releases for available versions.',
-  'settings.desktopUpdateDescription': 'After startup, the app checks GitHub Releases for the latest stable version. The Windows installer build downloads updates in the background and silently restarts to install after confirmation.',
-  'settings.desktopUpdateDownloadedMessage': 'The new version has been downloaded. Restart the app to finish installation.',
-  'settings.desktopUpdateDownloadingMessage': 'Downloading the desktop update in the background{percent}.',
-  'settings.desktopUpdateErrorMessage': 'Unable to complete the update check. Try again later.',
-  'settings.desktopUpdateInstallingMessage': 'Restarting and installing the update.',
-  'settings.desktopUpdateMessage': 'Current {current}, latest {latest}. {message}',
-  'settings.desktopUpdateReleaseMessage': 'Open GitHub Releases to download the update.',
-  'settings.diagnosticHintWeb': 'Check the browser developer console and backend logs, and provide the release version, browser version, and trigger path.',
-  'settings.disableAlphaSift': 'Disable screening',
-  'settings.disableAuth': 'Disable authentication',
-  'settings.disabledAlphaSiftSuccess': 'AlphaSift screening disabled.',
-  'settings.disabledAuthBackupWarning': 'The Web app is not protected by admin authentication, so .env export/import is disabled. Set ADMIN_AUTH_ENABLED=true and sign in as admin before using it.',
-  'settings.disablingAlphaSift': 'Disabling...',
-  'settings.enableAlphaSift': 'Enable screening',
-  'settings.enableAuth': 'Enable authentication',
-  'settings.enabledAlphaSiftSuccess': 'AlphaSift screening enabled.',
-  'settings.enablingAlphaSift': 'Enabling...',
-  'settings.envDockerNote': 'In Docker deployments, --env-file and Compose env_file inject environment variables only at startup. This export/import area uses the backend active .env file. To keep WebUI-saved values across container rebuilds, point ENV_FILE to a writable data-volume file such as /app/data/runtime.env and avoid keeping same-name old values in the startup environment.',
-  'settings.envExportNote': 'Exports include only currently saved configuration, not unsaved local drafts on the page.',
-  'settings.envExported': 'Saved .env backup exported.',
-  'settings.envImported': '.env backup imported and configuration reloaded.',
-  'settings.envImportedRefreshFailedMessage': 'The backup was imported, but configuration reload failed. Reload the page manually.',
-  'settings.envImportedRefreshFailedRaw': 'Env import succeeded but config refresh failed',
-  'settings.envImportedRefreshFailedTitle': 'Config imported but refresh failed',
-  'settings.exportEnv': 'Export .env',
-  'settings.exportingEnv': 'Exporting...',
-  'settings.fallbackVersionWarning': 'This build has no release version and is shown as development. Use the revision and build time to verify whether the static assets are current.',
-  'settings.fieldAddKey': 'Add key',
-  'settings.fieldDelete': 'Delete',
-  'settings.fieldSensitiveHint': 'Sensitive content is hidden by default. Click the eye icon to reveal plaintext.',
-  'settings.fieldSensitiveMultiHint': ' Multiple inputs can be added or removed.',
-  'settings.generationBackendConcurrency': 'Concurrency {count}',
-  'settings.generationBackendFallback': 'Fallback backend',
-  'settings.generationBackendGenerationOnly': 'Generation only',
-  'settings.generationBackendHealthFailed': 'Check failed',
-  'settings.generationBackendHealthPassed': 'Check passed',
-  'settings.generationBackendHealthSkipped': 'Skipped',
-  'settings.generationBackendLiteLLMDescription': 'This backend is used for report generation. Ask-stock tool calls still use the LiteLLM Agent path.',
-  'settings.generationBackendLocalCliDescription': 'Local CLI is only used for reports and text generation. It does not support ask-stock tool calls.',
-  'settings.generationBackendNeedsAction': 'Needs action',
-  'settings.generationBackendPrimary': 'Primary backend',
-  'settings.generationBackendRefresh': 'Refresh',
-  'settings.generationBackendRefreshing': 'Refreshing',
-  'settings.generationBackendRunnable': 'Ready to try',
-  'settings.generationBackendSmokeFailed': 'Smoke test failed',
-  'settings.generationBackendSmokePassed': 'Smoke test passed',
-  'settings.generationBackendSmokePassedMessage': 'Generation backend smoke test passed.',
-  'settings.generationBackendSmokeTest': 'JSON smoke test',
-  'settings.generationBackendSmokeTesting': 'Testing',
-  'settings.generationBackendStatus': 'Generation backend status',
-  'settings.generationBackendStatusDescription': 'The quick check only reads configuration and checks whether the local CLI executable is visible. Run the JSON smoke test to verify a real request.',
-  'settings.generationBackendToolsSupported': 'Tool calls',
-  'settings.helpClose': 'Close configuration help',
-  'settings.helpExamples': 'Examples',
-  'settings.helpImpact': 'Impact',
-  'settings.helpNotes': 'Notes',
-  'settings.helpPurpose': 'Usage',
-  'settings.helpRelatedDocs': 'Related docs',
-  'settings.helpTooltip': 'View configuration help',
-  'settings.helpValueNotes': 'Values',
-  'settings.importConfirmContinue': 'Continue import',
-  'settings.importConfirmMessage': 'This page has unsaved local edits. Continuing will discard those drafts and immediately update saved configuration with keys from the backup.',
-  'settings.importConfirmTitle': 'Import overwrites current drafts',
-  'settings.importEnv': 'Import .env',
-  'settings.importingEnv': 'Importing...',
-  'settings.intelligentImport': 'Smart import',
-  'settings.intelligentImportChooseFile': 'Choose file',
-  'settings.intelligentImportChooseImage': 'Choose image',
-  'settings.intelligentImportClear': 'Clear',
-  'settings.intelligentImportConfigUpdated': 'Configuration changed. Click "Merge into watchlist" again.',
-  'settings.intelligentImportDescription': 'Extract stock codes from images, files, or clipboard text and merge them into the watchlist.',
-  'settings.intelligentImportFileSizeError': 'Files must be 2MB or smaller',
-  'settings.intelligentImportHint': 'Image recognition requires a configured Vision model. Review parsed results before merging them into the watchlist.',
-  'settings.intelligentImportImageSizeError': 'Images must be 5MB or smaller',
-  'settings.intelligentImportImageTypeError': 'Images must be JPG, PNG, WebP, or GIF',
-  'settings.intelligentImportLoadConfigFirst': 'Load configuration before merging',
-  'settings.intelligentImportMergeFailed': 'Merge save failed',
-  'settings.intelligentImportMergeToWatchlist': 'Merge into watchlist',
-  'settings.intelligentImportParse': 'Parse',
-  'settings.intelligentImportParseFailed': 'Parse failed',
-  'settings.intelligentImportPastePlaceholder': 'Or paste text copied from CSV/Excel...',
-  'settings.intelligentImportRateLimited': 'Too many requests. Try again later.',
-  'settings.intelligentImportRecognitionFailed': 'Recognition failed. Try again.',
-  'settings.intelligentImportReviewWarning': 'Review each item before merging. High-confidence items are selected by default; medium/low confidence items need manual confirmation.',
-  'settings.intelligentImportSelectionSummary': '{valid} mergeable, {checked} selected',
-  'settings.intelligentImportSupportedInputs': 'Images, CSV/Excel files, and clipboard text',
-  'settings.intelligentImportTextSizeError': 'Pasted text must be 100KB or smaller',
-  'settings.intelligentImportTimeout': 'Request timed out. Check the network and retry.',
-  'settings.keepAuthDisabled': 'Keep disabled',
-  'settings.keepAuthEnabled': 'Keep enabled',
-  'settings.llmAccess': 'AI model access',
-  'settings.llmAccessDescription': 'Manage model channels, base URLs, API keys, primary models, and fallbacks.',
-  'settings.notificationSettings': 'Notification settings',
-  'settings.notificationTest': 'Notification test',
-  'settings.notificationTestBody': 'Body',
-  'settings.notificationTestChannel': 'Channel',
-  'settings.notificationTestContent': 'This is a test notification from the HRS Web settings page.',
-  'settings.notificationTestDescription': 'Send a real test notification using the current page draft. This test does not save configuration.',
-  'settings.notificationTestFailure': 'Test failed',
-  'settings.notificationTestSend': 'Send test',
-  'settings.notificationTestSuccess': 'Test succeeded',
-  'settings.notificationTestTimeout': 'Timeout seconds',
-  'settings.notificationTestTitle': 'Title',
-  'settings.notificationTestTitleValue': 'HRS notification test',
-  'settings.notificationTesting': 'Testing...',
-  'settings.pageDescription': 'Manage models, data sources, notifications, security authentication, and import capabilities.',
-  'settings.pageTitle': 'System settings',
-  'settings.eyebrow': 'Settings', // System settings header eyebrow
-  'settings.pageTitleDocument': 'System settings - HRS',
-  'settings.promptCacheAdvancedDescription': 'Maintain provider prompt-cache telemetry, active hints, and sanitized diagnostics. Defaults are suitable for normal use.',
-  'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache advanced settings',
-  'settings.reload': 'Reload',
-  'settings.reset': 'Reset',
-  'settings.revert': 'Revert',
-  'settings.saveConfig': 'Save configuration',
-  'settings.saveConfigWithCount': 'Save configuration ({count})',
-  'settings.saveRetry': 'Retry save',
-  'settings.saving': 'Saving...',
-  'settings.schedulerAddTime': 'Add time',
-  'settings.schedulerDescription': 'Configure the daily automatic analysis times. After saving, long-running Web/API/Desktop processes apply the new schedule.',
-  'settings.schedulerDisabled': 'Disabled',
-  'settings.schedulerEffectiveTimes': 'Active times',
-  'settings.schedulerEnable': 'Enable scheduled task',
-  'settings.schedulerEnableDescription': 'When enabled, analysis runs automatically at the times below.',
-  'settings.schedulerEnabled': 'Enabled',
-  'settings.schedulerLastError': 'Last error',
-  'settings.schedulerLastSuccess': 'Last success',
-  'settings.schedulerNextRun': 'Next run',
-  'settings.schedulerRefresh': 'Refresh status',
-  'settings.schedulerRefreshing': 'Refreshing...',
-  'settings.schedulerRemoveTime': 'Remove time',
-  'settings.schedulerRunAccepted': 'Run request submitted.',
-  'settings.schedulerRunNow': 'Run once now',
-  'settings.schedulerRunning': 'Running',
-  'settings.schedulerRunningNow': 'Running...',
-  'settings.schedulerStatus': 'Current status',
-  'settings.schedulerTimeInputAria': 'Scheduled time {index}',
-  'settings.schedulerTimes': 'Scheduled times',
-  'settings.schedulerTitle': 'Scheduled task',
-  'settings.setupGuideAddStocks': 'Manage watchlist',
-  'settings.setupGuideCheckingSummary': 'Reading configuration status. Missing items and the smoke-run entry appear after the check completes.',
-  'settings.setupGuideCheckingTitle': 'Checking first-run setup',
-  'settings.setupGuideCompleteTitle': 'Base setup is ready for minimal analysis',
-  'settings.setupGuideConfigureLlm': 'Configure models',
-  'settings.setupGuideConfigureNotification': 'Configure notifications',
-  'settings.setupGuideDescription': 'Check the watchlist, model channels, and notification setup for a minimal analysis flow, then submit a brief smoke run.',
-  'settings.setupGuideHiddenDescription': 'Reopen it when you want to recheck base settings, models, and notification setup.',
-  'settings.setupGuideHiddenTitle': 'First-run setup check is hidden',
-  'settings.setupGuideHide': 'Hide for now',
-  'settings.setupGuideIncompleteTitle': 'Some base setup still needs attention',
-  'settings.setupGuideMissingSummary': '{count} item(s) still need action: {labels}',
-  'settings.setupGuideOpen': 'Open check',
-  'settings.setupGuideReadySummary': 'All required items are ready. Run a brief analysis to verify the flow.',
-  'settings.setupGuideRefresh': 'Refresh check',
-  'settings.setupGuideRefreshing': 'Refreshing...',
-  'settings.setupGuideRunSmoke': 'Brief smoke run',
-  'settings.setupGuideSmokeAccepted': 'Submitted a brief analysis for {stock}.',
-  'settings.setupGuideSmokeAcceptedWithTask': 'Submitted a brief analysis for {stock}: {taskId}',
-  'settings.setupGuideSmokeNeedsStock': 'Add at least one watchlist stock before running the smoke check.',
-  'settings.setupGuideSmokeNotReady': 'Complete the required setup before running the smoke check.',
-  'settings.setupGuideSmokeRunning': 'Submitting...',
-  'settings.setupGuideSmokeUnavailableTitle': 'Smoke check unavailable',
-  'settings.setupGuideTitle': 'First-run setup check',
-  'settings.setupGuideUnknownSummary': 'The setup status check failed. You can still review settings and refresh the check later.',
-  'settings.setupGuideUnknownTitle': 'Setup status is unavailable',
-  'settings.setupStatusConfigured': 'Configured',
-  'settings.setupStatusInherited': 'Inherited',
-  'settings.setupStatusNeedsAction': 'Needs action',
-  'settings.setupStatusOptional': 'Optional',
-  'settings.updateBuildDescription': 'After rebuilding the frontend or Docker image, the revision and build time here update. Use them to confirm the current page assets are active.',
-  'settings.versionBuildTime': 'Build time',
-  'settings.versionDesktop': 'Desktop version',
-  'settings.versionInfo': 'Version info',
-  'settings.versionInfoDescription': 'Use this to confirm the current WebUI static assets are on the latest build.',
-  'settings.versionRevision': 'Revision',
-  'settings.versionWebui': 'WebUI version',
-  'settings.viewConfigItems': 'View fields',
+  'settings.actionSuccess': 'Success', // 【页面】设置-
+  'settings.activePanelDescription': 'Use unified field cards to maintain this configuration category.', // 【页面】设置-
+  'settings.activePanelTitle': 'Current category fields', // 【页面】设置-
+  'settings.agentBackendCanTry': 'Can try', // 【页面】设置-
+  'settings.agentBackendCanTryDescription': 'The basic environment check passed. You can return to Chat and ask directly; the first question performs the real execution.', // 【页面】设置-
+  'settings.agentBackendCodexLabel': 'Codex Agent', // 【页面】设置-
+  'settings.agentBackendCodexNotice': 'Codex can currently read only saved analysis context and backtest summaries. Live quotes, news, market hotspots, technical-indicator recalculation, per-stock backtest details, and portfolio tools are not available; choose Default model when you need them. Stop ends both the Codex turn and its tool task. This choice only affects ask-stock Chat; Multi Agent, Deep Research, regular reports, and scheduled tasks keep their existing routes. Codex is not an offline model, and services configured in Codex may process questions and tool results.', // 【页面】设置-
+  'settings.agentBackendCodexNoticeTitle': 'Codex local Agent (experimental)', // 【页面】设置-
+  'settings.agentBackendCommandNotFound': 'Codex was not found on the device running HRS. Install it there and ensure the HRS backend process can find it on PATH.', // 【页面】设置-
+  'settings.agentBackendDefaultLabel': 'Default model', // 【页面】设置-
+  'settings.agentBackendEnableMode': 'Enable Agent Mode', // 【页面】设置-
+  'settings.agentBackendErrorCode': 'Error code', // 【页面】设置-
+  'settings.agentBackendExperimental': 'Experimental', // 【页面】设置-
+  'settings.agentBackendInvalidTimeout': 'Codex requires an Agent timeout greater than 0 so success, failure, timeout, and stop all reach a bounded end.', // 【页面】设置-
+  'settings.agentBackendModeDisabled': 'Agent Mode is disabled. Update the draft below, then save the settings before using ask-stock Chat.', // 【页面】设置-
+  'settings.agentBackendModeDisabledTitle': 'Enable Agent Mode', // 【页面】设置-
+  'settings.agentBackendNeedsAction': 'Needs action', // 【页面】设置-
+  'settings.agentBackendPlatformUnsupported': 'Codex local Agent does not currently support native Windows. Use macOS, Linux, or run the complete HRS backend inside WSL.', // 【页面】设置-
+  'settings.agentBackendRefresh': 'Refresh status', // 【页面】设置-
+  'settings.agentBackendRefreshing': 'Checking', // 【页面】设置-
+  'settings.agentBackendSectionDescription': 'Choose the default model configuration or Codex on this device for the same ask-stock page, and preview the unsaved draft before saving.', // 【页面】设置-
+  'settings.agentBackendSectionTitle': 'Ask-stock method', // 【页面】设置-
+  'settings.agentBackendSingleOnly': 'Codex local Agent currently supports single-agent Chat only. This action changes the page draft; click Save to apply it.', // 【页面】设置-
+  'settings.agentBackendSingleOnlyTitle': 'Switch to Single Agent', // 【页面】设置-
+  'settings.agentBackendStatus': 'Ask-stock runtime status', // 【页面】设置-
+  'settings.agentBackendStatusDescription': 'This check only confirms that the current settings, local Codex command, and required ask-stock protocol allow an attempt. It does not sign in, call a model, or read stock data. Actual execution is confirmed when you send a question.', // 【页面】设置-
+  'settings.agentBackendTechnicalDetails': 'Technical details', // 【页面】设置-
+  'settings.agentBackendUnavailableDescription': 'The selected ask-stock method is currently unavailable. Review the settings and try again.', // 【页面】设置-
+  'settings.agentBackendUseSingle': 'Switch to Single Agent', // 【页面】设置-
+  'settings.agentBackendVersion': 'Version', // 【页面】设置-
+  'settings.agentSettings': 'Agent settings', // 【页面】设置-
+  'settings.alphaSift': 'AlphaSift screening', // 【页面】设置-
+  'settings.alphaSiftDescription': 'Enable the built-in experimental AlphaSift screening capability.', // 【页面】设置-
+  'settings.alphaSiftDisabled': 'Screening disabled', // 【页面】设置-
+  'settings.alphaSiftEnabled': 'Screening enabled', // 【页面】设置-
+  'settings.alphaSiftRisk': 'Experimental risk notice: screening results are for research and decision support only and are not investment advice. Markets involve risk; trading decisions and results are your responsibility.', // 【页面】设置-
+  'settings.alphaSiftSummary': 'When enabled, the left navigation shows Screening. Strategies and candidates come from AlphaSift; HRS adds quotes, fundamentals, and news context.', // 【页面】设置-
+  'settings.authCurrentPassword': 'Current admin password', // 【页面】设置-
+  'settings.authDescription': 'Manage admin password authentication to protect system settings.', // 【页面】设置-
+  'settings.authDisabled': 'Disabled', // 【页面】设置-
+  'settings.authEnabled': 'Enabled', // 【页面】设置-
+  'settings.authFailure': 'Authentication settings failed', // 【页面】设置-
+  'settings.authHelperDefault': 'Admin authentication protects Web settings and API endpoints from unauthorized access.', // 【页面】设置-
+  'settings.authHelperEnabled': 'Admin authentication is enabled. Use Change password below to update it.', // 【页面】设置-
+  'settings.authHelperNoPassword': 'No password has been set yet. Set an initial admin password before enabling authentication.', // 【页面】设置-
+  'settings.authHelperPasswordRetained': 'The previous admin password was retained. Enter it to re-enable authentication quickly.', // 【页面】设置-
+  'settings.authHelperTurnOff': 'If the current session is still valid, you can disable authentication directly. Otherwise, enter the current admin password.', // 【页面】设置-
+  'settings.authPasswordHintOff': 'Identity verification may be required before disabling authentication', // 【页面】设置-
+  'settings.authPasswordHintRetained': 'Enter the old password to reactivate authentication', // 【页面】设置-
+  'settings.authPasswordPlaceholder': 'Enter current password', // 【页面】设置-
+  'settings.authRequiredPassword': 'A new password is required', // 【页面】设置-
+  'settings.authSetPassword': 'Set admin password', // 【页面】设置-
+  'settings.authSetPasswordPlaceholder': 'Enter a new password (at least 6 characters)', // 【页面】设置-
+  'settings.authStatus': 'Admin authentication', // 【页面】设置-
+  'settings.authSuccessDisabled': 'Authentication disabled', // 【页面】设置-
+  'settings.authSuccessUpdated': 'Authentication settings updated', // 【页面】设置-
+  'settings.authTitle': 'Authentication and login protection', // 【页面】设置-
+  'settings.categoryNavDescription': 'System settings and authentication capabilities grouped by module.', // 【页面】设置-
+  'settings.categoryNavTitle': 'Categories', // 【页面】设置-
+  'settings.dataSourceSectionTitle': 'Unified data source settings', // 【页面】设置-
+  'settings.dataSourceSectionDescription': 'Review the local StockDB status plus the primary-source and fallback strategy for K-line, stock info, and code search.', // 【页面】设置-
+  'settings.dataSourceStatusLabel': 'Local source status', // 【页面】设置-
+  'settings.dataSourceBaseUrlLabel': 'Service URL', // 【页面】设置-
+  'settings.dataSourcePrimarySourcesLabel': 'Primary sources', // 【页面】设置-
+  'settings.dataSourceFallbackLabel': 'Auto fallback', // 【页面】设置-
+  'settings.dataSourceKlineLabel': 'K-line', // 【页面】设置-
+  'settings.dataSourceStockInfoLabel': 'Stock info', // 【页面】设置-
+  'settings.dataSourceCodeSearchLabel': 'Code search', // 【页面】设置-
+  'settings.dataSourceOpenStockData': 'Open local market view', // 【页面】设置-
+  'settings.changePasswordConfirm': 'Confirm new password', // 【页面】设置-
+  'settings.changePasswordConfirmPlaceholder': 'Enter the new password again', // 【页面】设置-
+  'settings.changePasswordCurrent': 'Current password', // 【页面】设置-
+  'settings.changePasswordCurrentPlaceholder': 'Enter current password', // 【页面】设置-
+  'settings.changePasswordDescription': 'Update the current admin login password. Use the new password for future logins.', // 【页面】设置-
+  'settings.changePasswordFailure': 'Password change failed', // 【页面】设置-
+  'settings.changePasswordNew': 'New password', // 【页面】设置-
+  'settings.changePasswordNewHint': 'At least 6 characters.', // 【页面】设置-
+  'settings.changePasswordNewPlaceholder': 'Enter new password', // 【页面】设置-
+  'settings.changePasswordRequiredCurrent': 'Enter the current password', // 【页面】设置-
+  'settings.changePasswordRequiredNew': 'Enter a new password', // 【页面】设置-
+  'settings.changePasswordSave': 'Save new password', // 【页面】设置-
+  'settings.changePasswordShort': 'New password must be at least 6 characters', // 【页面】设置-
+  'settings.changePasswordSuccess': 'Password changed', // 【页面】设置-
+  'settings.changePasswordSuccessMessage': 'The admin password was updated.', // 【页面】设置-
+  'settings.changePasswordTitle': 'Change password', // 【页面】设置-
+  'settings.checkDesktopUpdate': 'Check for updates', // 【页面】设置-
+  'settings.checkingDesktopUpdate': 'Checking...', // 【页面】设置-
+  'settings.configBackup': 'Configuration backup', // 【页面】设置-
+  'settings.configBackupDescription': 'Export the saved .env backup or restore configuration from a backup file. Importing overwrites keys present in the backup and reloads immediately.', // 【页面】设置-
+  'settings.currentCategoryEmptyDescription': 'This category has no editable fields. Switch categories on the left to view other system settings.', // 【页面】设置-
+  'settings.currentCategoryEmptyTitle': 'No fields in this category', // 【页面】设置-
+  'settings.desktopCheckError': 'Update check failed', // 【页面】设置-
+  'settings.desktopChecking': 'Checking for updates', // 【页面】设置-
+  'settings.desktopCurrentNoStatus': 'No update status yet. The app checks in the background after startup.', // 【页面】设置-
+  'settings.desktopDownload': 'Open release', // 【页面】设置-
+  'settings.desktopDownloaded': 'Update downloaded', // 【页面】设置-
+  'settings.desktopDownloading': 'Downloading update', // 【页面】设置-
+  'settings.desktopInstall': 'Restart to install', // 【页面】设置-
+  'settings.desktopInstalling': 'Installing update', // 【页面】设置-
+  'settings.desktopLatest': 'latest version', // 【页面】设置-
+  'settings.desktopManualUnsupported': 'This desktop runtime does not support automatic update installation. Open the release page to update manually.', // 【页面】设置-
+  'settings.desktopUpToDate': 'Up to date', // 【页面】设置-
+  'settings.desktopUpToDateMessage': 'The desktop app is already up to date.', // 【页面】设置-
+  'settings.desktopUpdate': 'Desktop update', // 【页面】设置-
+  'settings.desktopUpdateAvailable': 'New version available', // 【页面】设置-
+  'settings.desktopUpdateCheckingMessage': 'Checking GitHub Releases for available versions.', // 【页面】设置-
+  'settings.desktopUpdateDescription': 'After startup, the app checks GitHub Releases for the latest stable version. The Windows installer build downloads updates in the background and silently restarts to install after confirmation.', // 【页面】设置-
+  'settings.desktopUpdateDownloadedMessage': 'The new version has been downloaded. Restart the app to finish installation.', // 【页面】设置-
+  'settings.desktopUpdateDownloadingMessage': 'Downloading the desktop update in the background{percent}.', // 【页面】设置-
+  'settings.desktopUpdateErrorMessage': 'Unable to complete the update check. Try again later.', // 【页面】设置-
+  'settings.desktopUpdateInstallingMessage': 'Restarting and installing the update.', // 【页面】设置-
+  'settings.desktopUpdateMessage': 'Current {current}, latest {latest}. {message}', // 【页面】设置-
+  'settings.desktopUpdateReleaseMessage': 'Open GitHub Releases to download the update.', // 【页面】设置-
+  'settings.diagnosticHintWeb': 'Check the browser developer console and backend logs, and provide the release version, browser version, and trigger path.', // 【页面】设置-
+  'settings.disableAlphaSift': 'Disable screening', // 【页面】设置-
+  'settings.disableAuth': 'Disable authentication', // 【页面】设置-
+  'settings.disabledAlphaSiftSuccess': 'AlphaSift screening disabled.', // 【页面】设置-
+  'settings.disabledAuthBackupWarning': 'The Web app is not protected by admin authentication, so .env export/import is disabled. Set ADMIN_AUTH_ENABLED=true and sign in as admin before using it.', // 【页面】设置-
+  'settings.disablingAlphaSift': 'Disabling...', // 【页面】设置-
+  'settings.enableAlphaSift': 'Enable screening', // 【页面】设置-
+  'settings.enableAuth': 'Enable authentication', // 【页面】设置-
+  'settings.enabledAlphaSiftSuccess': 'AlphaSift screening enabled.', // 【页面】设置-
+  'settings.enablingAlphaSift': 'Enabling...', // 【页面】设置-
+  'settings.envDockerNote': 'In Docker deployments, --env-file and Compose env_file inject environment variables only at startup. This export/import area uses the backend active .env file. To keep WebUI-saved values across container rebuilds, point ENV_FILE to a writable data-volume file such as /app/data/runtime.env and avoid keeping same-name old values in the startup environment.', // 【页面】设置-
+  'settings.envExportNote': 'Exports include only currently saved configuration, not unsaved local drafts on the page.', // 【页面】设置-
+  'settings.envExported': 'Saved .env backup exported.', // 【页面】设置-
+  'settings.envImported': '.env backup imported and configuration reloaded.', // 【页面】设置-
+  'settings.envImportedRefreshFailedMessage': 'The backup was imported, but configuration reload failed. Reload the page manually.', // 【页面】设置-
+  'settings.envImportedRefreshFailedRaw': 'Env import succeeded but config refresh failed', // 【页面】设置-
+  'settings.envImportedRefreshFailedTitle': 'Config imported but refresh failed', // 【页面】设置-
+  'settings.exportEnv': 'Export .env', // 【页面】设置-
+  'settings.exportingEnv': 'Exporting...', // 【页面】设置-
+  'settings.fallbackVersionWarning': 'This build has no release version and is shown as development. Use the revision and build time to verify whether the static assets are current.', // 【页面】设置-
+  'settings.fieldAddKey': 'Add key', // 【页面】设置-
+  'settings.fieldDelete': 'Delete', // 【页面】设置-
+  'settings.fieldSensitiveHint': 'Sensitive content is hidden by default. Click the eye icon to reveal plaintext.', // 【页面】设置-
+  'settings.fieldSensitiveMultiHint': ' Multiple inputs can be added or removed.', // 【页面】设置-
+  'settings.generationBackendConcurrency': 'Concurrency {count}', // 【页面】设置-
+  'settings.generationBackendFallback': 'Fallback backend', // 【页面】设置-
+  'settings.generationBackendGenerationOnly': 'Generation only', // 【页面】设置-
+  'settings.generationBackendHealthFailed': 'Check failed', // 【页面】设置-
+  'settings.generationBackendHealthPassed': 'Check passed', // 【页面】设置-
+  'settings.generationBackendHealthSkipped': 'Skipped', // 【页面】设置-
+  'settings.generationBackendLiteLLMDescription': 'This backend is used for report generation. Ask-stock tool calls still use the LiteLLM Agent path.', // 【页面】设置-
+  'settings.generationBackendLocalCliDescription': 'Local CLI is only used for reports and text generation. It does not support ask-stock tool calls.', // 【页面】设置-
+  'settings.generationBackendNeedsAction': 'Needs action', // 【页面】设置-
+  'settings.generationBackendPrimary': 'Primary backend', // 【页面】设置-
+  'settings.generationBackendRefresh': 'Refresh', // 【页面】设置-
+  'settings.generationBackendRefreshing': 'Refreshing', // 【页面】设置-
+  'settings.generationBackendRunnable': 'Ready to try', // 【页面】设置-
+  'settings.generationBackendSmokeFailed': 'Smoke test failed', // 【页面】设置-
+  'settings.generationBackendSmokePassed': 'Smoke test passed', // 【页面】设置-
+  'settings.generationBackendSmokePassedMessage': 'Generation backend smoke test passed.', // 【页面】设置-
+  'settings.generationBackendSmokeTest': 'JSON smoke test', // 【页面】设置-
+  'settings.generationBackendSmokeTesting': 'Testing', // 【页面】设置-
+  'settings.generationBackendStatus': 'Generation backend status', // 【页面】设置-
+  'settings.generationBackendStatusDescription': 'The quick check only reads configuration and checks whether the local CLI executable is visible. Run the JSON smoke test to verify a real request.', // 【页面】设置-
+  'settings.generationBackendToolsSupported': 'Tool calls', // 【页面】设置-
+  'settings.helpClose': 'Close configuration help', // 【页面】设置-
+  'settings.helpExamples': 'Examples', // 【页面】设置-
+  'settings.helpImpact': 'Impact', // 【页面】设置-
+  'settings.helpNotes': 'Notes', // 【页面】设置-
+  'settings.helpPurpose': 'Usage', // 【页面】设置-
+  'settings.helpRelatedDocs': 'Related docs', // 【页面】设置-
+  'settings.helpTooltip': 'View configuration help', // 【页面】设置-
+  'settings.helpValueNotes': 'Values', // 【页面】设置-
+  'settings.importConfirmContinue': 'Continue import', // 【页面】设置-
+  'settings.importConfirmMessage': 'This page has unsaved local edits. Continuing will discard those drafts and immediately update saved configuration with keys from the backup.', // 【页面】设置-
+  'settings.importConfirmTitle': 'Import overwrites current drafts', // 【页面】设置-
+  'settings.importEnv': 'Import .env', // 【页面】设置-
+  'settings.importingEnv': 'Importing...', // 【页面】设置-
+  'settings.intelligentImport': 'Smart import', // 【页面】设置-
+  'settings.intelligentImportChooseFile': 'Choose file', // 【页面】设置-
+  'settings.intelligentImportChooseImage': 'Choose image', // 【页面】设置-
+  'settings.intelligentImportClear': 'Clear', // 【页面】设置-
+  'settings.intelligentImportConfigUpdated': 'Configuration changed. Click "Merge into watchlist" again.', // 【页面】设置-
+  'settings.intelligentImportDescription': 'Extract stock codes from images, files, or clipboard text and merge them into the watchlist.', // 【页面】设置-
+  'settings.intelligentImportFileSizeError': 'Files must be 2MB or smaller', // 【页面】设置-
+  'settings.intelligentImportHint': 'Image recognition requires a configured Vision model. Review parsed results before merging them into the watchlist.', // 【页面】设置-
+  'settings.intelligentImportImageSizeError': 'Images must be 5MB or smaller', // 【页面】设置-
+  'settings.intelligentImportImageTypeError': 'Images must be JPG, PNG, WebP, or GIF', // 【页面】设置-
+  'settings.intelligentImportLoadConfigFirst': 'Load configuration before merging', // 【页面】设置-
+  'settings.intelligentImportMergeFailed': 'Merge save failed', // 【页面】设置-
+  'settings.intelligentImportMergeToWatchlist': 'Merge into watchlist', // 【页面】设置-
+  'settings.intelligentImportParse': 'Parse', // 【页面】设置-
+  'settings.intelligentImportParseFailed': 'Parse failed', // 【页面】设置-
+  'settings.intelligentImportPastePlaceholder': 'Or paste text copied from CSV/Excel...', // 【页面】设置-
+  'settings.intelligentImportRateLimited': 'Too many requests. Try again later.', // 【页面】设置-
+  'settings.intelligentImportRecognitionFailed': 'Recognition failed. Try again.', // 【页面】设置-
+  'settings.intelligentImportReviewWarning': 'Review each item before merging. High-confidence items are selected by default; medium/low confidence items need manual confirmation.', // 【页面】设置-
+  'settings.intelligentImportSelectionSummary': '{valid} mergeable, {checked} selected', // 【页面】设置-
+  'settings.intelligentImportSupportedInputs': 'Images, CSV/Excel files, and clipboard text', // 【页面】设置-
+  'settings.intelligentImportTextSizeError': 'Pasted text must be 100KB or smaller', // 【页面】设置-
+  'settings.intelligentImportTimeout': 'Request timed out. Check the network and retry.', // 【页面】设置-
+  'settings.keepAuthDisabled': 'Keep disabled', // 【页面】设置-
+  'settings.keepAuthEnabled': 'Keep enabled', // 【页面】设置-
+  'settings.llmAccess': 'AI model access', // 【页面】设置-
+  'settings.llmAccessDescription': 'Manage model channels, base URLs, API keys, primary models, and fallbacks.', // 【页面】设置-
+  'settings.notificationSettings': 'Notification settings', // 【页面】设置-
+  'settings.notificationTest': 'Notification test', // 【页面】设置-
+  'settings.notificationTestBody': 'Body', // 【页面】设置-
+  'settings.notificationTestChannel': 'Channel', // 【页面】设置-
+  'settings.notificationTestContent': 'This is a test notification from the HRS Web settings page.', // 【页面】设置-
+  'settings.notificationTestDescription': 'Send a real test notification using the current page draft. This test does not save configuration.', // 【页面】设置-
+  'settings.notificationTestFailure': 'Test failed', // 【页面】设置-
+  'settings.notificationTestSend': 'Send test', // 【页面】设置-
+  'settings.notificationTestSuccess': 'Test succeeded', // 【页面】设置-
+  'settings.notificationTestTimeout': 'Timeout seconds', // 【页面】设置-
+  'settings.notificationTestTitle': 'Title', // 【页面】设置-
+  'settings.notificationTestTitleValue': 'HRS notification test', // 【页面】设置-
+  'settings.notificationTesting': 'Testing...', // 【页面】设置-
+  'settings.pageDescription': 'Manage models, data sources, notifications, security authentication, and import capabilities.', // 【页面】设置-
+  'settings.pageTitle': 'System settings', // 【页面】设置-
+  'settings.eyebrow': 'Settings', // 【页面】设置-System settings header eyebrow
+  'settings.pageTitleDocument': 'System settings - HRS', // 【页面】设置-
+  'settings.promptCacheAdvancedDescription': 'Maintain provider prompt-cache telemetry, active hints, and sanitized diagnostics. Defaults are suitable for normal use.', // 【页面】设置-
+  'settings.promptCacheAdvancedTitle': 'Provider Prompt Cache advanced settings', // 【页面】设置-
+  'settings.reload': 'Reload', // 【页面】设置-
+  'settings.reset': 'Reset', // 【页面】设置-
+  'settings.revert': 'Revert', // 【页面】设置-
+  'settings.saveConfig': 'Save configuration', // 【页面】设置-
+  'settings.saveConfigWithCount': 'Save configuration ({count})', // 【页面】设置-
+  'settings.saveRetry': 'Retry save', // 【页面】设置-
+  'settings.saving': 'Saving...', // 【页面】设置-
+  'settings.schedulerAddTime': 'Add time', // 【页面】设置-
+  'settings.schedulerDescription': 'Configure the daily automatic analysis times. After saving, long-running Web/API/Desktop processes apply the new schedule.', // 【页面】设置-
+  'settings.schedulerDisabled': 'Disabled', // 【页面】设置-
+  'settings.schedulerEffectiveTimes': 'Active times', // 【页面】设置-
+  'settings.schedulerEnable': 'Enable scheduled task', // 【页面】设置-
+  'settings.schedulerEnableDescription': 'When enabled, analysis runs automatically at the times below.', // 【页面】设置-
+  'settings.schedulerEnabled': 'Enabled', // 【页面】设置-
+  'settings.schedulerLastError': 'Last error', // 【页面】设置-
+  'settings.schedulerLastSuccess': 'Last success', // 【页面】设置-
+  'settings.schedulerNextRun': 'Next run', // 【页面】设置-
+  'settings.schedulerRefresh': 'Refresh status', // 【页面】设置-
+  'settings.schedulerRefreshing': 'Refreshing...', // 【页面】设置-
+  'settings.schedulerRemoveTime': 'Remove time', // 【页面】设置-
+  'settings.schedulerRunAccepted': 'Run request submitted.', // 【页面】设置-
+  'settings.schedulerRunNow': 'Run once now', // 【页面】设置-
+  'settings.schedulerRunning': 'Running', // 【页面】设置-
+  'settings.schedulerRunningNow': 'Running...', // 【页面】设置-
+  'settings.schedulerStatus': 'Current status', // 【页面】设置-
+  'settings.schedulerTimeInputAria': 'Scheduled time {index}', // 【页面】设置-
+  'settings.schedulerTimes': 'Scheduled times', // 【页面】设置-
+  'settings.schedulerTitle': 'Scheduled task', // 【页面】设置-
+  'settings.setupGuideAddStocks': 'Manage watchlist', // 【页面】设置-
+  'settings.setupGuideCheckingSummary': 'Reading configuration status. Missing items and the smoke-run entry appear after the check completes.', // 【页面】设置-
+  'settings.setupGuideCheckingTitle': 'Checking first-run setup', // 【页面】设置-
+  'settings.setupGuideCompleteTitle': 'Base setup is ready for minimal analysis', // 【页面】设置-
+  'settings.setupGuideConfigureLlm': 'Configure models', // 【页面】设置-
+  'settings.setupGuideConfigureNotification': 'Configure notifications', // 【页面】设置-
+  'settings.setupGuideDescription': 'Check the watchlist, model channels, and notification setup for a minimal analysis flow, then submit a brief smoke run.', // 【页面】设置-
+  'settings.setupGuideHiddenDescription': 'Reopen it when you want to recheck base settings, models, and notification setup.', // 【页面】设置-
+  'settings.setupGuideHiddenTitle': 'First-run setup check is hidden', // 【页面】设置-
+  'settings.setupGuideHide': 'Hide for now', // 【页面】设置-
+  'settings.setupGuideIncompleteTitle': 'Some base setup still needs attention', // 【页面】设置-
+  'settings.setupGuideMissingSummary': '{count} item(s) still need action: {labels}', // 【页面】设置-
+  'settings.setupGuideOpen': 'Open check', // 【页面】设置-
+  'settings.setupGuideReadySummary': 'All required items are ready. Run a brief analysis to verify the flow.', // 【页面】设置-
+  'settings.setupGuideRefresh': 'Refresh check', // 【页面】设置-
+  'settings.setupGuideRefreshing': 'Refreshing...', // 【页面】设置-
+  'settings.setupGuideRunSmoke': 'Brief smoke run', // 【页面】设置-
+  'settings.setupGuideSmokeAccepted': 'Submitted a brief analysis for {stock}.', // 【页面】设置-
+  'settings.setupGuideSmokeAcceptedWithTask': 'Submitted a brief analysis for {stock}: {taskId}', // 【页面】设置-
+  'settings.setupGuideSmokeNeedsStock': 'Add at least one watchlist stock before running the smoke check.', // 【页面】设置-
+  'settings.setupGuideSmokeNotReady': 'Complete the required setup before running the smoke check.', // 【页面】设置-
+  'settings.setupGuideSmokeRunning': 'Submitting...', // 【页面】设置-
+  'settings.setupGuideSmokeUnavailableTitle': 'Smoke check unavailable', // 【页面】设置-
+  'settings.setupGuideTitle': 'First-run setup check', // 【页面】设置-
+  'settings.setupGuideUnknownSummary': 'The setup status check failed. You can still review settings and refresh the check later.', // 【页面】设置-
+  'settings.setupGuideUnknownTitle': 'Setup status is unavailable', // 【页面】设置-
+  'settings.setupStatusConfigured': 'Configured', // 【页面】设置-
+  'settings.setupStatusInherited': 'Inherited', // 【页面】设置-
+  'settings.setupStatusNeedsAction': 'Needs action', // 【页面】设置-
+  'settings.setupStatusOptional': 'Optional', // 【页面】设置-
+  'settings.updateBuildDescription': 'After rebuilding the frontend or Docker image, the revision and build time here update. Use them to confirm the current page assets are active.', // 【页面】设置-
+  'settings.versionBuildTime': 'Build time', // 【页面】设置-
+  'settings.versionDesktop': 'Desktop version', // 【页面】设置-
+  'settings.versionInfo': 'Version info', // 【页面】设置-
+  'settings.versionInfoDescription': 'Use this to confirm the current WebUI static assets are on the latest build.', // 【页面】设置-
+  'settings.versionRevision': 'Revision', // 【页面】设置-
+  'settings.versionWebui': 'WebUI version', // 【页面】设置-
+  'settings.viewConfigItems': 'View fields', // 【页面】设置-
   // stockBar.*
-  'stockBar.emptyDescription': 'Latest analysis results will be grouped by stock here after the first analysis.',
-  'stockBar.emptyTitle': 'No stock records',
-  'stockBar.loading': 'Loading stocks...',
-  'stockBar.market': 'Market',
-  'stockBar.title': 'Stocks',
+  'stockBar.emptyDescription': 'Latest analysis results will be grouped by stock here after the first analysis.', // 【页面】个股工具条-
+  'stockBar.emptyTitle': 'No stock records', // 【页面】个股工具条-
+  'stockBar.loading': 'Loading stocks...', // 【页面】个股工具条-
+  'stockBar.market': 'Market', // 【页面】个股工具条-
+  'stockBar.title': 'Stocks', // 【页面】个股工具条-
   // stockTrend.*
-  'stockTrend.allHistory': 'All history',
-  'stockTrend.averageScore': 'Average {score}',
-  'stockTrend.backToCurrentReport': 'Back to current report',
-  'stockTrend.changePct': 'Change',
-  'stockTrend.currentAdvice': 'Current view',
-  'stockTrend.currentScore': 'Current score',
-  'stockTrend.historyModelCount': '{count} historical models',
-  'stockTrend.latestTime': 'Latest {time}',
-  'stockTrend.loadFailed': 'Failed to load history trend',
-  'stockTrend.loadMore': 'Load more',
-  'stockTrend.loadedSummary': 'Loaded {loaded} / {total} · Newest first · Model: all',
-  'stockTrend.loading': 'Loading same-stock history...',
-  'stockTrend.loadingMore': 'Loading...',
-  'stockTrend.model': 'Model',
-  'stockTrend.modelCountSuffix': '{count} runs',
-  'stockTrend.moreEmptyDescription': 'After multiple analyses, this view shows changes in opinions, score trends, and model records.',
-  'stockTrend.moreEmptyTitle': 'No more same-stock history',
-  'stockTrend.neverRecorded': 'Not recorded',
-  'stockTrend.noModelTitle': 'No recorded model',
-  'stockTrend.records': 'Historical analysis records',
-  'stockTrend.reload': 'Reload',
-  'stockTrend.report': 'View report',
-  'stockTrend.result': 'Result',
-  'stockTrend.score': 'Score',
-  'stockTrend.stockPrice': 'Price',
-  'stockTrend.table.action': 'Action',
-  'stockTrend.time': 'Time',
-  'stockTrend.title': 'History trend',
-  'stockTrend.turnoverRate': 'Turnover',
-  'stockTrend.volumeRatio': 'Volume ratio',
-  'stockTrend.window30': 'Last 30 days',
-  'stockTrend.window90': 'Last 90 days',
+  'stockTrend.allHistory': 'All history', // 【页面】个股趋势-
+  'stockTrend.averageScore': 'Average {score}', // 【页面】个股趋势-
+  'stockTrend.backToCurrentReport': 'Back to current report', // 【页面】个股趋势-
+  'stockTrend.changePct': 'Change', // 【页面】个股趋势-
+  'stockTrend.currentAdvice': 'Current view', // 【页面】个股趋势-
+  'stockTrend.currentScore': 'Current score', // 【页面】个股趋势-
+  'stockTrend.historyModelCount': '{count} historical models', // 【页面】个股趋势-
+  'stockTrend.latestTime': 'Latest {time}', // 【页面】个股趋势-
+  'stockTrend.loadFailed': 'Failed to load history trend', // 【页面】个股趋势-
+  'stockTrend.loadMore': 'Load more', // 【页面】个股趋势-
+  'stockTrend.loadedSummary': 'Loaded {loaded} / {total} · Newest first · Model: all', // 【页面】个股趋势-
+  'stockTrend.loading': 'Loading same-stock history...', // 【页面】个股趋势-
+  'stockTrend.loadingMore': 'Loading...', // 【页面】个股趋势-
+  'stockTrend.model': 'Model', // 【页面】个股趋势-
+  'stockTrend.modelCountSuffix': '{count} runs', // 【页面】个股趋势-
+  'stockTrend.moreEmptyDescription': 'After multiple analyses, this view shows changes in opinions, score trends, and model records.', // 【页面】个股趋势-
+  'stockTrend.moreEmptyTitle': 'No more same-stock history', // 【页面】个股趋势-
+  'stockTrend.neverRecorded': 'Not recorded', // 【页面】个股趋势-
+  'stockTrend.noModelTitle': 'No recorded model', // 【页面】个股趋势-
+  'stockTrend.records': 'Historical analysis records', // 【页面】个股趋势-
+  'stockTrend.reload': 'Reload', // 【页面】个股趋势-
+  'stockTrend.report': 'View report', // 【页面】个股趋势-
+  'stockTrend.result': 'Result', // 【页面】个股趋势-
+  'stockTrend.score': 'Score', // 【页面】个股趋势-
+  'stockTrend.stockPrice': 'Price', // 【页面】个股趋势-
+  'stockTrend.table.action': 'Action', // 【页面】个股趋势-
+  'stockTrend.time': 'Time', // 【页面】个股趋势-
+  'stockTrend.title': 'History trend', // 【页面】个股趋势-
+  'stockTrend.turnoverRate': 'Turnover', // 【页面】个股趋势-
+  'stockTrend.volumeRatio': 'Volume ratio', // 【页面】个股趋势-
+  'stockTrend.window30': 'Last 30 days', // 【页面】个股趋势-
+  'stockTrend.window90': 'Last 90 days', // 【页面】个股趋势-
   // stockUnit.*
-  'stockUnit.amountWanYi': 'T',
-  'stockUnit.amountYi': 'B',
-  'stockUnit.volumeHundredMillionLots': 'B',
-  'stockUnit.volumeTenThousandLots': 'M',
+  'stockUnit.amountWanYi': 'T', // 【页面】个股单位-
+  'stockUnit.amountYi': 'B', // 【页面】个股单位-
+  'stockUnit.volumeHundredMillionLots': 'B', // 【页面】个股单位-
+  'stockUnit.volumeTenThousandLots': 'M', // 【页面】个股单位-
   // usage.*
-  'usage.breakdown': 'Breakdown',
-  'usage.callType.agent': 'Ask Agent',
-  'usage.callType.analysis': 'Stock analysis',
-  'usage.callType.marketReview': 'Market review',
-  'usage.callType.unknown': '{type}',
-  'usage.callTypeDetail': '{calls} calls · Prompt {prompt} · Completion {completion}',
-  'usage.callTypeTitle': 'Call type',
-  'usage.calls': '{count} calls',
-  'usage.completionTokens': 'Completion tokens',
-  'usage.completionTokensHint': 'Model output consumption',
-  'usage.dateRange': '{from} to {to}',
-  'usage.description': 'Inspect LLM call count, Prompt/Completion token consumption, model usage, and recent call details.',
-  'usage.emptyDescription': 'After an analysis, market review, or Ask call completes, model usage will appear here.',
-  'usage.emptyTitle': 'No token usage records',
-  'usage.error.message': 'Failed to load token usage data',
-  'usage.error.title': 'Failed to load token usage',
-  'usage.eyebrow': 'Usage',
-  'usage.maxSingleCall': 'Single-call peak',
-  'usage.modelUsage': 'Model usage',
-  'usage.modelUsageDescription': 'Token consumption, call count, and single-call peaks grouped by model.',
-  'usage.noRecentCalls': 'No recent call records',
-  'usage.period.all': 'All',
-  'usage.period.month': 'This month',
-  'usage.period.today': 'Today',
-  'usage.period.label': 'Time range',
-  'usage.promptTokens': 'Prompt tokens',
-  'usage.promptTokensHint': 'Input context consumption',
-  'usage.recentCalls': 'Recent calls',
-  'usage.recentCallsDescription': 'Latest 50 LLM token audit records.',
-  'usage.refresh': 'Refresh',
-  'usage.table.model': 'Model',
-  'usage.table.time': 'Time',
-  'usage.table.type': 'Type',
-  'usage.title': 'Token usage',
-  'usage.totalCalls': 'Calls',
-  'usage.totalCallsHint': 'Recorded LLM calls',
-  'usage.totalTokens': 'Total tokens',
+  'usage.breakdown': 'Breakdown', // 【页面】用量-
+  'usage.callType.agent': 'Ask Agent', // 【页面】用量-
+  'usage.callType.analysis': 'Stock analysis', // 【页面】用量-
+  'usage.callType.marketReview': 'Market review', // 【页面】用量-
+  'usage.callType.unknown': '{type}', // 【页面】用量-
+  'usage.callTypeDetail': '{calls} calls · Prompt {prompt} · Completion {completion}', // 【页面】用量-
+  'usage.callTypeTitle': 'Call type', // 【页面】用量-
+  'usage.calls': '{count} calls', // 【页面】用量-
+  'usage.completionTokens': 'Completion tokens', // 【页面】用量-
+  'usage.completionTokensHint': 'Model output consumption', // 【页面】用量-
+  'usage.dateRange': '{from} to {to}', // 【页面】用量-
+  'usage.description': 'Inspect LLM call count, Prompt/Completion token consumption, model usage, and recent call details.', // 【页面】用量-
+  'usage.emptyDescription': 'After an analysis, market review, or Ask call completes, model usage will appear here.', // 【页面】用量-
+  'usage.emptyTitle': 'No token usage records', // 【页面】用量-
+  'usage.error.message': 'Failed to load token usage data', // 【页面】用量-
+  'usage.error.title': 'Failed to load token usage', // 【页面】用量-
+  'usage.eyebrow': 'Usage', // 【页面】用量-
+  'usage.maxSingleCall': 'Single-call peak', // 【页面】用量-
+  'usage.modelUsage': 'Model usage', // 【页面】用量-
+  'usage.modelUsageDescription': 'Token consumption, call count, and single-call peaks grouped by model.', // 【页面】用量-
+  'usage.noRecentCalls': 'No recent call records', // 【页面】用量-
+  'usage.period.all': 'All', // 【页面】用量-
+  'usage.period.month': 'This month', // 【页面】用量-
+  'usage.period.today': 'Today', // 【页面】用量-
+  'usage.period.label': 'Time range', // 【页面】用量-
+  'usage.promptTokens': 'Prompt tokens', // 【页面】用量-
+  'usage.promptTokensHint': 'Input context consumption', // 【页面】用量-
+  'usage.recentCalls': 'Recent calls', // 【页面】用量-
+  'usage.recentCallsDescription': 'Latest 50 LLM token audit records.', // 【页面】用量-
+  'usage.refresh': 'Refresh', // 【页面】用量-
+  'usage.table.model': 'Model', // 【页面】用量-
+  'usage.table.time': 'Time', // 【页面】用量-
+  'usage.table.type': 'Type', // 【页面】用量-
+  'usage.title': 'Token usage', // 【页面】用量-
+  'usage.totalCalls': 'Calls', // 【页面】用量-
+  'usage.totalCallsHint': 'Recorded LLM calls', // 【页面】用量-
+  'usage.totalTokens': 'Total tokens', // 【页面】用量-
   // watchlist.*
-  'watchlist.add': 'Add watchlist stock',
-  'watchlist.addPlaceholder': 'Add code, e.g. 600519',
-  'watchlist.analyzeAll': 'Analyze all',
-  'watchlist.analyzePending': 'Pending only',
-  'watchlist.analyzedToday': 'Analyzed today',
-  'watchlist.batchFailed': 'Watchlist batch submit failed',
-  'watchlist.batchIncompleteResponse': 'The batch API received {requested} stock(s) in this chunk but confirmed only {confirmed}; the response is incomplete',
-  'watchlist.batchPartiallySubmitted': 'Confirmed {accepted} submitted task(s) and {duplicates} already running; {unconfirmed} stock(s) remain unconfirmed. Further submission stopped and the task list was refreshed. Reason: {error}',
-  'watchlist.batchSubmitted': 'Submitted {accepted} task(s), {duplicates} already running',
-  'watchlist.emptyDescription': 'Add stocks here or from a report, then run the whole watchlist from one place.',
-  'watchlist.emptyTitle': 'No watchlist stocks',
-  'watchlist.listHint': 'Shown in watchlist order with today status',
-  'watchlist.loading': 'Loading watchlist...',
-  'watchlist.noPendingAnalyze': 'No watchlist stocks are pending today.',
-  'watchlist.noStocksAnalyze': 'Add watchlist stocks first.',
-  'watchlist.notAnalyzedToday': 'Not analyzed today',
-  'watchlist.pendingStatusUnavailable': 'Some watchlist today statuses are unknown. Refresh before submitting pending stocks.',
-  'watchlist.pendingToday': 'Pending today',
-  'watchlist.refresh': 'Refresh watchlist',
-  'watchlist.removeAria': 'Remove {code} from watchlist',
-  'watchlist.submitting': 'Submitting',
-  'watchlist.tabHistory': 'History',
-  'watchlist.tabToday': 'Today',
-  'watchlist.tabWatchlist': 'Watchlist',
-  'watchlist.taskRunning': 'Task {status}',
-  'watchlist.title': 'Watchlist',
-  'watchlist.todayCoverage': 'Today coverage',
-  'watchlist.todayEmptyDescription': 'After analyses finish today, stocks will appear here ranked by score.',
-  'watchlist.todayEmptyTitle': 'No analysis results today',
-  'watchlist.todayLoadErrorDescription': 'The full paginated history request failed. Refresh before viewing the ranking.',
-  'watchlist.todayLoadErrorTitle': 'Failed to load today ranking',
-  'watchlist.todaySortHint': 'Sorted by sentiment score first',
-  'watchlist.todayStatusLoading': 'Checking today status',
-  'watchlist.todayStatusUnavailable': 'Today status unknown',
-  'watchlist.todayTitle': 'Today',
-  'watchlist.topScore': 'Top score',
-  'watchlist.watchlistCoverage': 'Watchlist coverage'
+  'watchlist.add': 'Add watchlist stock', // 【页面】自选-
+  'watchlist.addPlaceholder': 'Add code, e.g. 600519', // 【页面】自选-
+  'watchlist.analyzeAll': 'Analyze all', // 【页面】自选-
+  'watchlist.analyzePending': 'Pending only', // 【页面】自选-
+  'watchlist.analyzedToday': 'Analyzed today', // 【页面】自选-
+  'watchlist.batchFailed': 'Watchlist batch submit failed', // 【页面】自选-
+  'watchlist.batchIncompleteResponse': 'The batch API received {requested} stock(s) in this chunk but confirmed only {confirmed}; the response is incomplete', // 【页面】自选-
+  'watchlist.batchPartiallySubmitted': 'Confirmed {accepted} submitted task(s) and {duplicates} already running; {unconfirmed} stock(s) remain unconfirmed. Further submission stopped and the task list was refreshed. Reason: {error}', // 【页面】自选-
+  'watchlist.batchSubmitted': 'Submitted {accepted} task(s), {duplicates} already running', // 【页面】自选-
+  'watchlist.emptyDescription': 'Add stocks here or from a report, then run the whole watchlist from one place.', // 【页面】自选-
+  'watchlist.emptyTitle': 'No watchlist stocks', // 【页面】自选-
+  'watchlist.listHint': 'Shown in watchlist order with today status', // 【页面】自选-
+  'watchlist.loading': 'Loading watchlist...', // 【页面】自选-
+  'watchlist.noPendingAnalyze': 'No watchlist stocks are pending today.', // 【页面】自选-
+  'watchlist.noStocksAnalyze': 'Add watchlist stocks first.', // 【页面】自选-
+  'watchlist.notAnalyzedToday': 'Not analyzed today', // 【页面】自选-
+  'watchlist.pendingStatusUnavailable': 'Some watchlist today statuses are unknown. Refresh before submitting pending stocks.', // 【页面】自选-
+  'watchlist.pendingToday': 'Pending today', // 【页面】自选-
+  'watchlist.refresh': 'Refresh watchlist', // 【页面】自选-
+  'watchlist.removeAria': 'Remove {code} from watchlist', // 【页面】自选-
+  'watchlist.submitting': 'Submitting', // 【页面】自选-
+  'watchlist.tabHistory': 'History', // 【页面】自选-
+  'watchlist.tabToday': 'Today', // 【页面】自选-
+  'watchlist.tabWatchlist': 'Watchlist', // 【页面】自选-
+  'watchlist.taskRunning': 'Task {status}', // 【页面】自选-
+  'watchlist.title': 'Watchlist', // 【页面】自选-
+  'watchlist.todayCoverage': 'Today coverage', // 【页面】自选-
+  'watchlist.todayEmptyDescription': 'After analyses finish today, stocks will appear here ranked by score.', // 【页面】自选-
+  'watchlist.todayEmptyTitle': 'No analysis results today', // 【页面】自选-
+  'watchlist.todayLoadErrorDescription': 'The full paginated history request failed. Refresh before viewing the ranking.', // 【页面】自选-
+  'watchlist.todayLoadErrorTitle': 'Failed to load today ranking', // 【页面】自选-
+  'watchlist.todaySortHint': 'Sorted by sentiment score first', // 【页面】自选-
+  'watchlist.todayStatusLoading': 'Checking today status', // 【页面】自选-
+  'watchlist.todayStatusUnavailable': 'Today status unknown', // 【页面】自选-
+  'watchlist.todayTitle': 'Today', // 【页面】自选-
+  'watchlist.topScore': 'Top score', // 【页面】自选-
+  'watchlist.watchlistCoverage': 'Watchlist coverage' // 【页面】自选-
 
 };
 
