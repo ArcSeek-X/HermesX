@@ -12,12 +12,17 @@
  * - [contain:layout_paint] 让本组件成为其 fixed 后代的「包含块 + 裁剪边界」，
  *   使背景相对本容器固定且不随内容滚动，同时不会越界盖到侧边栏/页头。
  *
+ * 路由缓存联动：本组件经 ScrollContainerContext 暴露 `<main>` 元素引用，供
+ * KeepAliveOutlet 在切页时保存 / 恢复各页滚动偏移（ADR-002）。
+ *
  * @author Lensgcx (GaoCangxiong)
  */
 import type React from 'react';
+import { useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useThemeStore } from '../../stores/themeStore';
+import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import { cn } from '../../utils/cn';
 import LightBloom from '../vibeBack/LightBloom';
 
@@ -53,30 +58,34 @@ export const Main: React.FC<MainProps> = ({ children, className }) => {
   const { resolvedTheme } = useTheme();
   // 取自系统主题主色（HEX），用户切换主色/主题时实时联动
   const { themeColor } = useThemeStore();
+  // 滚动容器自身引用：经 ScrollContainerContext 提供给 KeepAliveOutlet 做滚动偏移保存/恢复
+  const scrollRef = useRef<HTMLElement>(null);
 
   // 仅当处于白名单路由且为暗色主题时，展示页面级固定背景光晕
   const showBackground =
     resolvedTheme === 'dark' && BACKGROUND_ROUTES.some((route) => pathname === route);
 
   return (
-    <main className={cn(
-      `hrs-page-container
-      min-h-0 min-w-0 pt-4 pb-3 sm:pb-4
-      flex-1 overflow-y-auto touch-pan-y
-      [contain:layout_paint] will-change-[width]`,
-      className,
-    )}
-    >
-      {/* 页面级固定背景：仅暗色主题 + 白名单路由展示；zIndex 为负，稳定沉在内容之下
-          （LightBloom 自身 position:fixed + 本组件 contain 使其成为相对本容器的固定背景） */}
-      {showBackground && (
-        <LightBloom
-          style={{ position: 'fixed', inset: 0, zIndex: -1 }}
-          background="transparent"
-          baseColor={themeColor}
-        />
+    <ScrollContainerProvider value={scrollRef}>
+      <main ref={scrollRef} className={cn(
+        `hrs-page-container
+        min-h-0 min-w-0 pt-4 pb-3 sm:pb-4
+        flex-1 overflow-y-auto touch-pan-y
+        [contain:layout_paint] will-change-[width]`,
+        className,
       )}
-      {children}
-    </main>
+      >
+        {/* 页面级固定背景：仅暗色主题 + 白名单路由展示；zIndex 为负，稳定沉在内容之下
+            （LightBloom 自身 position:fixed + 本组件 contain 使其成为相对本容器的固定背景） */}
+        {showBackground && (
+          <LightBloom
+            style={{ position: 'fixed', inset: 0, zIndex: -1 }}
+            background="transparent"
+            baseColor={themeColor}
+          />
+        )}
+        {children}
+      </main>
+    </ScrollContainerProvider>
   );
 };
