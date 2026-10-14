@@ -23,7 +23,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import threading
 import time
@@ -159,9 +158,20 @@ def get_realtime_quote_snapshot() -> Optional[pd.DataFrame]:
     return None
 
 
-_TRENDS_URL = "https://push2his.eastmoney.com/api/qt/stock/trends2/sse"
+# 东财分时 trends2：必须走 JSON 端点 /get。SSE 端点 /sse 已被东财持续断连
+# （RemoteDisconnected，实测多次无一成功），若用它作 stage-2 数据源，每只候选都会
+# 取不到分时、被静默淘汰，最终 0 结果（这正是尾盘选股「参照对象有结果、本项没有」
+# 的根因）。改用与 stock-sdk getTodayTimeline 同源的 /get，并做多组 CDN 主机轮换 +
+# 指数退避，避免单主机被限流即整体失败。
+_TRENDS_URL = "https://push2his.eastmoney.com/api/qt/stock/trends2/get"
+_TRENDS_URLS = (
+    _TRENDS_URL,
+    "https://33.push2his.eastmoney.com/api/qt/stock/trends2/get",
+    "https://63.push2his.eastmoney.com/api/qt/stock/trends2/get",
+    "https://7.push2his.eastmoney.com/api/qt/stock/trends2/get",
+)
 _TRENDS_TIMEOUT = (5, 10)
-_TRENDS_RETRIES = 2
+_TRENDS_RETRIES = 4
 
 
 def _code_to_secid(code: str) -> str:
@@ -171,49 +181,38 @@ def _code_to_secid(code: str) -> str:
 
 
 def _fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
-    """拉取最近一个交易日分时（东财 trends2），返回 (分钟点列表, 昨收, 名称)。
+    """拉取最近一个交易日分时（东财 trends2 /get），返回 (分钟点列表, 昨收, 名称)。
 
-    与参考项目 stock-sdk quotes.timeline 同源同语义：每点含
+    与参考项目 stock-sdk getTodayTimeline 同源同实现：均走 JSON 端点
+    ``trends2/get``（SSE 端点 ``trends2/sse`` 已被东财断连、不可用）。每点含
     date/open/close/high/low/volume/amount/avg_price，均价线直接采用数据源返回
     的真实 VWAP（f58），不再用 volume*close 推导（sina 1m 源无真实成交额，会污染
     强度口径），也不经 K 线 Manager 多源回退（避免 StockDB/新浪缺数据或限流导致
-    候选被静默丢弃）。休市日自动返回最近一个已收盘交易日的全天分时。
+    候选被静默丢弃）。多组 CDN 主机轮换 + 指数退避抵御 push2his 对单主机/高频的
+    限流。休市日自动返回最近一个已收盘交易日的全天分时。
     """
-    # SSE 响应形如 'data: {...}'：流式读取，取到首个 data 行即关闭连接，
-    # 不依赖服务端关流（SSE 可能保持长连接导致 read 挂死）
+    params = {
+        "secid": _code_to_secid(code),
+        "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
+        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+        "ndays": "1",
+        "iscr": "0",
+    }
+    headers = {"Referer": "https://quote.eastmoney.com/"}
     inner: Dict[str, Any] = {}
     last_exc: Optional[Exception] = None
     for attempt in range(_TRENDS_RETRIES):
+        url = _TRENDS_URLS[attempt % len(_TRENDS_URLS)]
         try:
-            with _SESSION.get(
-                _TRENDS_URL,
-                params={
-                    "secid": _code_to_secid(code),
-                    "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
-                    "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
-                    "ndays": "1",
-                    "iscr": "0",
-                },
-                timeout=_TRENDS_TIMEOUT,
-                headers={"Referer": "https://quote.eastmoney.com/"},
-                stream=True,
-            ) as resp:
-                resp.raise_for_status()
-                for raw in resp.iter_lines(decode_unicode=True):
-                    line = (raw or "").strip()
-                    if not line.startswith("data:"):
-                        continue
-                    try:
-                        payload = json.loads(line[5:].strip())
-                    except ValueError:
-                        continue
-                    inner = payload.get("data") or {}
-                    break
-            break
-        except Exception as e:  # pragma: no cover - 防御性兜底
+            resp = _SESSION.get(url, params=params, timeout=_TRENDS_TIMEOUT, headers=headers)
+            resp.raise_for_status()
+            inner = resp.json().get("data") or {}
+            if inner:
+                break
+        except Exception as e:  # pragma: no cover - 网络 / 限流兜底
             last_exc = e
             if attempt < _TRENDS_RETRIES - 1:
-                time.sleep(0.5)
+                time.sleep(0.5 * (attempt + 1))
     if not inner:
         if last_exc is not None:
             logger.debug("[EOD] 分时获取失败 %s: %s", code, last_exc)
