@@ -82,7 +82,7 @@ const LiveCalendarPage: React.FC = () => {
       tab: activeTab,
       importance: filterValue.importance,
       calendarType: filterValue.calendarType === 'all' ? undefined : filterValue.calendarType,
-      countryId: filterValue.countryId || undefined,
+      countryIds: filterValue.countryIds.length ? filterValue.countryIds : undefined,
       keyword: filterValue.keyword,
     }),
     [activeTab, filterValue]
