@@ -212,8 +212,15 @@ export const RouteBoundary: React.FC<{ children: React.ReactNode; fullPage?: boo
 
 /**
  * 嵌套路由边界：包裹 <Outlet />，非全屏。
- * 使用处：布局组件 Shell（src/components/layout/Shell.tsx）在渲染匹配子路由时使用 —— {children ?? <RouteOutletBoundary />}；
- * 单测见 components/layout/__tests__/RouteBoundary.test.tsx。
+ *
+ * 重要约束（勿删）：路由缓存（Keep-Alive）场景下禁止使用本组件。
+ * `<Outlet />` 永远渲染「当前实时匹配」的子路由，无法把已捕获的页面元素固化下来，
+ * 若在缓存槽位内使用，所有槽位都会渲染同一个当前页面，缓存即失效。
+ * Shell 已改用 <KeepAliveOutlet />（经 useOutlet() 捕获元素 + 自管槽位渲染）。
+ * 本组件仅保留给「不启用路由缓存」的布局或单测使用。
+ *
+ * 使用处：components/layout/__tests__/RouteBoundary.test.tsx（单测）；
+ * 线上 Shell 布局已不再使用（见 Shell.tsx 的 {children ?? <KeepAliveOutlet />}）。
  */
 export const RouteOutletBoundary: React.FC = () => (
   <RouteBoundary fullPage={false}>
