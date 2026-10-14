@@ -1,4 +1,34 @@
-# 前端文件与目录命名规范（行业通用基准）
+# <a id="前端文件与目录命名规范行业通用基准"></a>前端文件与目录命名规范（行业通用基准）
+
+> 📝 **方案简述**：本规范面向 React + TypeScript + Vite 前端工程的 src 目录，依据 React 官方风格、Airbnb ESLint 规则、Vite 与 Next.js 社区目录惯例及 TypeScript 社区约定，统一新建文件与文件夹的命名方式。内容包含 src 各子目录总览表、components 与 pages 与 hooks 与 utils 与 api 与 stores 等目录的创建规范详解、文件夹推荐原则与通用子目录规则、跨平台大小写合规红线，以及基于仓库现状的整改清单，目的是消除命名的随意性。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [一、核心规则（一句话）](#一核心规则一句话)
+- [二、src 目录总览表（在各目录下创建内容的规范）](#二src-目录总览表在各目录下创建内容的规范)
+- [三、各目录创建规范详解（新建文件 / 新建子文件夹）](#三各目录创建规范详解新建文件-新建子文件夹)
+  - [3.1 `components/`（UI 组件）](#31-componentsui-组件)
+  - [3.2 `pages/`（页面 / 路由组件）](#32-pages页面-路由组件)
+  - [3.3 `hooks/`（自定义 Hook）](#33-hooks自定义-hook)
+  - [3.4 `utils/`（工具 / 函数）](#34-utils工具-函数)
+  - [3.5 `api/`（API / 服务封装）](#35-apiapi-服务封装)
+  - [3.6 `stores/`（状态管理，如 Zustand）](#36-stores状态管理如-zustand)
+  - [3.7 `contexts/`（React Context）](#37-contextsreact-context)
+  - [3.8 `types/`（类型声明）](#38-types类型声明)
+  - [3.9 `constants/`（常量）](#39-constants常量)
+  - [3.10 `router/`（路由配置）](#310-router路由配置)
+  - [3.11 `style/`（样式）](#311-style样式)
+  - [3.12 `assets/`（静态资源）](#312-assets静态资源)
+  - [3.13 `i18n/` 与 `locales/`（多语言文案）](#313-i18n-与-locales多语言文案)
+- [四、文件夹推荐原则与通用子目录规则](#四文件夹推荐原则与通用子目录规则)
+- [五、跨平台合规红线（必须执行）](#五跨平台合规红线必须执行)
+- [六、长期固化（可选但建议）](#六长期固化可选但建议)
+- [七、本仓库整改清单（基于上表“仓库现状”）](#七本仓库整改清单基于上表仓库现状)
+
 
 > 适用范围：React + TypeScript + Vite 前端工程（`src` 目录）。
 > 制定依据：**行业 / 社区通行做法**，不依赖任何项目内部约定。主要参考：
@@ -12,7 +42,7 @@
 
 ---
 
-## 一、核心规则（一句话）
+## <a id="一核心规则一句话"></a>一、核心规则（一句话）
 
 - **组件（会被 JSX 渲染的值：UI 组件、Context）= PascalCase**；
 - **`pages/` 目录例外**：其下文件与子文件夹统一 **camelCase（首字母小写驼峰）且以 `Page` 结尾**，用于与路由注册对应（如 `reviewPage.tsx`、`loginPage/`）**；
@@ -24,7 +54,7 @@
 
 ---
 
-## 二、src 目录总览表（在各目录下创建内容的规范）
+## <a id="二src-目录总览表在各目录下创建内容的规范"></a>二、src 目录总览表（在各目录下创建内容的规范）
 
 > 图例：✓ 现状已符合 ｜ ⚠️ 现状存在违规，需整改。
 > “强制”= 必须遵照，建议纳入 ESLint 长期约束；“推荐”= 社区主流、可微调。
@@ -49,18 +79,18 @@
 
 ---
 
-## 三、各目录创建规范详解（新建文件 / 新建子文件夹）
+## <a id="三各目录创建规范详解新建文件-新建子文件夹"></a>三、各目录创建规范详解（新建文件 / 新建子文件夹）
 
 下文对 `src` 下每个主要目录，分别说明**「在里面新建一个文件」**和**「在里面新建一个子文件夹」**的命名要求与示例。
 
-### 3.1 `components/`（UI 组件）
+### <a id="31-componentsui-组件"></a>3.1 `components/`（UI 组件）
 - **新建文件（单个组件）**：组件文件 = `PascalCase.tsx`（首字母大写驼峰），强制。例：`components/Modal.tsx`、`components/HrsButton.tsx`、`components/Chip.tsx`。
 - **新建子文件夹**，分两种情况：
   - **情况一：仅分组 / 分类**（文件夹内放多个相关组件）：用 **kebab-case（首字母小写 + 横杠）**；内部组件文件仍是 `PascalCase.tsx`。例：`components/decision-signals/SignalCard.tsx`、`components/market-review/ReviewCard.tsx`。
   - **情况二：组件协同目录**（文件夹内只放「一个组件」及其私有子组件 / 样式）：用 **PascalCase（首字母大写驼峰）**，文件夹名等于组件名，内部同名 `PascalCase.tsx`。例：组件 `Chip` → 文件夹 `components/Chip/`，内部文件 `components/Chip/Chip.tsx`、`components/Chip/Chip.module.css`。
 - ⚠️ 现状：`components/StockSearch/`（PascalCase 分组，应为 kebab）、`components/indexCard/`（camelCase 分组，应为 kebab）违规，应改为 kebab-case。
 
-### 3.2 `pages/`（页面 / 路由组件）
+### <a id="32-pages页面-路由组件"></a>3.2 `pages/`（页面 / 路由组件）
 
 > **特殊规则（覆盖通用组件规则）**：`pages/` 下的文件与子文件夹一律 **camelCase（首字母小写驼峰）且以 `Page` 结尾**，**不采用 PascalCase**。原因：页面需与路由注册对应，统一 camelCase + `Page` 后缀便于识别与路由匹配。
 
@@ -68,53 +98,53 @@
 - **新建子文件夹**：页面协同目录（页面需私有子组件 / 样式）同样 **camelCase + Page**，内部页面文件仍 `xxxPage.tsx`；其私有子组件按组件规则用 PascalCase。例：文件夹 `pages/loginPage/`，内部 `pages/loginPage/loginPage.tsx` + 私有组件 `pages/loginPage/components/LoginForm.tsx`。
 - 路由页一律**命名导出**，禁止 default export。
 
-### 3.3 `hooks/`（自定义 Hook）
+### <a id="33-hooks自定义-hook"></a>3.3 `hooks/`（自定义 Hook）
 - **新建文件**：`camelCase.ts` 且**必须以 `use` 开头**，强制。例：`hooks/useCachedState.ts`、`hooks/useStockSearch.ts`。
 - **新建子文件夹**：仅当要分组多个相关 hook 时，用 **kebab-case**，内部文件仍 `useXxx.ts`。例：`hooks/use-field-demo/useField.ts`。
 
-### 3.4 `utils/`（工具 / 函数）
+### <a id="34-utils工具-函数"></a>3.4 `utils/`（工具 / 函数）
 - **新建文件**：`camelCase.ts`，强制。例：`utils/stockCode.ts`、`utils/format.ts`。
 - **新建子文件夹**：分组用 **kebab-case**，内部文件仍 `camelCase.ts`。例：`utils/date/parseDate.ts`、`utils/number/formatPercent.ts`。
 
-### 3.5 `api/`（API / 服务封装）
+### <a id="35-apiapi-服务封装"></a>3.5 `api/`（API / 服务封装）
 - **新建文件**：`camelCase.ts`，强制。例：`api/sectorData.ts`、`api/index.ts`。
 - **新建子文件夹**：分组用 **kebab-case**，内部文件 `camelCase.ts`。例：`api/market/quote.ts`。
 
-### 3.6 `stores/`（状态管理，如 Zustand）
+### <a id="36-stores状态管理如-zustand"></a>3.6 `stores/`（状态管理，如 Zustand）
 - **新建文件**：`camelCase.ts`（推荐 `xxxStore.ts` 或 `useXxxStore.ts`），强制。例：`stores/themeStore.ts`、`stores/authStore.ts`。
 - **新建子文件夹**：分组用 **kebab-case**。例：`stores/user/profileStore.ts`。
 - ⚠️ 现状：5 个文件用 PascalCase（`AuthStore`/`LayoutStore`/`MenuStore`/`PageStateStore`/`RouterStore`），按「其余 camelCase」原则应改为 `authStore` 等。
 
-### 3.7 `contexts/`（React Context）
+### <a id="37-contextsreact-context"></a>3.7 `contexts/`（React Context）
 - **新建文件**：`PascalCase.tsx`，强制。例：`contexts/UiLanguageContext.tsx`。
 - **新建子文件夹**：单一 Context 协同 → **PascalCase**；多个相关 Context 分组 → **kebab-case**。
 
-### 3.8 `types/`（类型声明）
+### <a id="38-types类型声明"></a>3.8 `types/`（类型声明）
 - **新建文件**：`camelCase.ts`，强制（仅类型 / 接口，无运行时代码）。例：`types/analysis.ts`。
 - **新建子文件夹**：分组用 **kebab-case**。例：`types/stock/quote.ts`。
 
-### 3.9 `constants/`（常量）
+### <a id="39-constants常量"></a>3.9 `constants/`（常量）
 - **新建文件**：`camelCase.ts`；文件内的常量值用 **UPPER_SNAKE_CASE**。例：`constants/index.ts` 中 `export const API_BASE_URL = '...'`。
 - **新建子文件夹**：分组用 **kebab-case**。
 
-### 3.10 `router/`（路由配置）
+### <a id="310-router路由配置"></a>3.10 `router/`（路由配置）
 - **新建文件**：`camelCase.ts` / `.tsx`，强制。例：`router/appRouter.ts`、`router/asyncRouteFactory.ts`。
 - **新建子文件夹**：分组用 **kebab-case**。
 
-### 3.11 `style/`（样式）
+### <a id="311-style样式"></a>3.11 `style/`（样式）
 - **新建文件**：**kebab / lowercase**；CSS Module 必须用 `Component.module.css`（组件名 PascalCase + `.module.css`）。例：`style/global.scss`、`style/Button.module.css`。
 - **新建子文件夹**：按功能分组用 **kebab-case**。
 
-### 3.12 `assets/`（静态资源）
+### <a id="312-assets静态资源"></a>3.12 `assets/`（静态资源）
 - **新建文件**：跟随资源类型，**lowercase / kebab**。例：`assets/logo.svg`、`assets/icon-arrow.png`。
 - **新建子文件夹**：分组用 **kebab-case**（`assets/icons/`）。
 
-### 3.13 `i18n/` 与 `locales/`（多语言文案）
+### <a id="313-i18n-与-locales多语言文案"></a>3.13 `i18n/` 与 `locales/`（多语言文案）
 - 特殊目录，**不适用上面的组件 / 模块规则**：文案文件按语言代码命名（如 `uiText-zh.ts`、`uiText-zh-Hant.ts`、`uiText-en.ts`），遵循所用 i18n 库的约定，保持现有模式即可。
 
 ---
 
-## 四、文件夹推荐原则与通用子目录规则
+## <a id="四文件夹推荐原则与通用子目录规则"></a>四、文件夹推荐原则与通用子目录规则
 
 **文件夹推荐原则（总纲）**：
 - **存放单个组件的组件根目录（协同目录）**：`PascalCase`，如 `Button/`、`Chip/`。
@@ -133,7 +163,7 @@
 
 ---
 
-## 五、跨平台合规红线（必须执行）
+## <a id="五跨平台合规红线必须执行"></a>五、跨平台合规红线（必须执行）
 
 - **禁止仅用大小写差异命名文件 / 目录**（如 `StockSearch/` 与 `stocksearch/`、`ReviewPage.tsx` 与 `reviewpage.tsx`）。
   - 原因：macOS 默认 APFS **大小写不敏感**，本地能跑，Linux CI（大小写敏感）上 `git clone/checkout` 会冲突或漏文件，导致构建失败。
@@ -141,7 +171,7 @@
 
 ---
 
-## 六、长期固化（可选但建议）
+## <a id="六长期固化可选但建议"></a>六、长期固化（可选但建议）
 
 在 `eslint.config.js` 增加 `unicorn/filename-case`，按扩展名分流：
 - `.tsx`（组件 / Context，不含 `pages/`）→ `pascal-case`
@@ -152,7 +182,7 @@
 
 ---
 
-## 七、本仓库整改清单（基于上表“仓库现状”）
+## <a id="七本仓库整改清单基于上表仓库现状"></a>七、本仓库整改清单（基于上表“仓库现状”）
 
 | # | 整改项 | 目标 | 影响面 | 建议 |
 |---|---|---|---|---|
