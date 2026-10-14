@@ -14,7 +14,7 @@ import { Check, Minus, X } from 'lucide-react';
 import { backtestApi } from '../api/backtest';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { InlineToast, Card, Badge, Pagination, StatusDot, Tooltip } from '@components';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
 import { usePreference } from '../hooks/usePreference';

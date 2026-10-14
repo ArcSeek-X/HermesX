@@ -16,7 +16,7 @@ import { decisionSignalsApi } from '../api/decisionSignals';
 import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { InlineToast, Card, Badge, ConfirmDialog, InlineAlert } from '@components';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { PortfolioSignalSummary } from '@components/decision-signals/DecisionSignalDisplay';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';

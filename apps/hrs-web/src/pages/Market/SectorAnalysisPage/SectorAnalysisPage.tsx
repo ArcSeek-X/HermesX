@@ -41,7 +41,7 @@ import { ChevronUp, Check, LayoutGrid, Boxes, TrendingUp, Search } from 'lucide-
 import { Card, DataRefreshBar, Select, TabNav, type TabNavItem } from '@components';
 import { HrsInput } from '@components/basic/HrsInput';
 import { AppPage } from '@components/layout/AppPage';
-import { PageHeader } from '@components/page-layout';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { SectorTreemap } from '@components/sector/SectorTreemap';
 import { SectorStockTable } from '@components/sector/SectorStockTable';
 import { SectorFundFlowChart } from '@components/sector/SectorFundFlowChart';

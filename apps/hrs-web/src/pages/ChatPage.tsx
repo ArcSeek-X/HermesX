@@ -36,7 +36,7 @@ import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { agentApi, type AgentStatusResponse, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
 import { InlineToast, Badge, Button, ConfirmDialog, InlineAlert, ScrollArea, Tooltip } from '@components';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
 import { createParsedApiError, getParsedApiError } from '../api/error';
 

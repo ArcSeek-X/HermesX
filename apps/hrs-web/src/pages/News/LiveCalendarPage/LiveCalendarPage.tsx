@@ -40,7 +40,7 @@ import {
   type LiveCalendarRange,
   type TabNavItem,
 } from '@components';
-import { PageHeader } from '@components/page-layout';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import {
   monthGridRange,
   monthsInRange,

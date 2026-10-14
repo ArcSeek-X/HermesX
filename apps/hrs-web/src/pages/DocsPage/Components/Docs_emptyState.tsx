@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Inbox } from 'lucide-react';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { AppPage } from '@components/layout/AppPage';
 import { HrsButton } from '@components';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';

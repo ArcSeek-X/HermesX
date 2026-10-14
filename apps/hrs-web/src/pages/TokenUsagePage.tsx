@@ -10,7 +10,8 @@ import { Activity, Clock3, Cpu, Database, Gauge, RefreshCw } from 'lucide-react'
 import { usageApi, type UsageDashboard, type UsageModelBreakdown, type UsagePeriod } from '../api/usage';
 import type { ParsedApiError } from '../api/error';
 import { InlineToast, Card, StatCard, HrsButton, TabNav } from '@components';
-import { EmptyState, PageHeader } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type { UiLanguage, UiTextKey, UiTextParams } from '../i18n/uiText';

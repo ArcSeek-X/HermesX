@@ -27,7 +27,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
-import { PageHeader } from '@components/page-layout';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useKeepAliveContext } from 'keepalive-for-react';
 import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';

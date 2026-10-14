@@ -19,7 +19,7 @@
 import { toDateKey } from '@utils/format';
 import { useMemo, useState } from 'react';
 import { Checkbox, HrsButton, HrsSelect, HrsInput, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
-import { PageHeader } from '@components/page-layout';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useKeepAliveContext } from 'keepalive-for-react';
 import { useLiveNews, useLiveNewsChannels } from '../../../hooks/useLiveNews';

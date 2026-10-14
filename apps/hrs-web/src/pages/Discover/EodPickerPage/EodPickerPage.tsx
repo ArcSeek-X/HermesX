@@ -26,7 +26,8 @@ import {
   ToggleRight,
 } from 'lucide-react';
 import { HrsButton, HrsNumberField, Modal } from '@components';
-import { PageHeader, EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import EodStockCard, { fmtNum } from './components/EodStockCard';
 import {
@@ -481,7 +482,7 @@ const EodPickerPage: React.FC = () => {
   return (
     // 页面根容器：全宽 + 垂直间距统一 12px（space-y-3）
     <div className="mx-auto w-full space-y-3">
-      {/* 页头：标题 + 描述（复用 page-layout 的 PageHeader） */}
+      {/* 页头：标题 + 描述（复用 PageLayout 的 PageHeader） */}
       <PageHeader
         title={t('layout.nav.eodPicker.title')}
         description={t('layout.nav.eodPicker.description')}

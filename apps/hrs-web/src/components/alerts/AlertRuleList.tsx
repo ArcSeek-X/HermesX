@@ -11,7 +11,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, Pagination, Select } from '../';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { formatUiText, type UiLanguage } from '../../i18n/uiText';
 import {

@@ -9,7 +9,7 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { AlertCircle, RefreshCw, Workflow } from 'lucide-react';
 import { Button, InlineAlert } from '../';
-import { EmptyState } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
 import { useRunFlowSnapshot } from '../../hooks/useRunFlowSnapshot';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { RunFlowNode, RunFlowSnapshotSource } from '../../types/runFlow';

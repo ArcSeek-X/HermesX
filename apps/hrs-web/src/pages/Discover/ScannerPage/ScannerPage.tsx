@@ -12,7 +12,8 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Play, ScanLine, SquareX } from 'lucide-react';
 import { AnimCard, HrsButton, TabNav } from '@components';
-import { EmptyState, PageHeader } from '@components/page-layout';
+import { EmptyState } from '@components/basic/EmptyState';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../i18n/uiText';
 import {
