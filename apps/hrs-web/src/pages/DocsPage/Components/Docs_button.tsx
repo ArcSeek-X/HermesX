@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/button，菜单名「按钮」。
  * 用于演示 HrsButton 的视觉变体、尺寸档位、加载态、禁用态、发光效果与 onClick 事件桥接。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { HrsButton } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import type { HrsButtonVariant } from '@components';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 主操作类变体（示例一展示） */
 const PRIMARY_VARIANTS: HrsButtonVariant[] = ['primary', 'primary-soft', 'gradient', 'secondary', 'outline', 'ghost'];
@@ -29,14 +32,14 @@ export const DocsButtonPage: React.FC = () => {
   const { t } = useUiLanguage();
 
   // 示例四：加载态（点击后模拟 2s 请求，期间按钮自动禁用）
-  const [saving, setSaving] = useState(false);
+  const [isAsyncLoading, setIsAsyncLoading] = useState(false);
   // 示例六：onClick 事件桥接（点击计数）
   const [clickCount, setClickCount] = useState(0);
 
-  /** 模拟异步保存：进入加载态 2 秒后恢复 */
-  const handleSave = () => {
-    setSaving(true);
-    window.setTimeout(() => setSaving(false), 2000);
+  /** 模拟异步提交：进入加载态 2 秒后自动恢复（示例四的「保存设置」与「删除」共用） */
+  const simulateAsyncSubmit = () => {
+    setIsAsyncLoading(true);
+    window.setTimeout(() => setIsAsyncLoading(false), 2000);
   };
 
   return (
@@ -51,83 +54,59 @@ export const DocsButtonPage: React.FC = () => {
         </header>
 
         {/* 1. 主操作类变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：主操作类变体</h2>
-          <p className="text-xs text-muted">
-            primary（主色渐变）/ primary-soft（淡主色）/ gradient（青紫渐变）/ secondary / outline / ghost。
-          </p>
+        <DocsSection title="示例一：主操作类变体" description="primary（主色渐变）/ primary-soft（淡主色）/ gradient（青紫渐变）/ secondary / outline / ghost。">
           <div className="flex flex-wrap items-center gap-3">
-            {PRIMARY_VARIANTS.map((v) => (
-              <HrsButton key={v} variant={v}>{v}</HrsButton>
+            {PRIMARY_VARIANTS.map((variant) => (
+              <HrsButton key={variant} variant={variant}>{variant}</HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 语义类变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：语义类变体</h2>
-          <p className="text-xs text-muted">
-            danger / success / warning 三组语义色，每组含实心与 -soft 淡色两种。
-          </p>
+        <DocsSection title="示例二：语义类变体" description="danger / success / warning 三组语义色，每组含实心与 -soft 淡色两种。">
           <div className="flex flex-wrap items-center gap-3">
-            {SEMANTIC_VARIANTS.map((v) => (
-              <HrsButton key={v} variant={v}>{v}</HrsButton>
+            {SEMANTIC_VARIANTS.map((variant) => (
+              <HrsButton key={variant} variant={variant}>{variant}</HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：尺寸对比（size）</h2>
-          <p className="text-xs text-muted">
-            size 支持 xs / sm / md / lg / xl（默认 sm），字重随档位递增：md 及以下 font-medium、lg 为 font-semibold、xl 为 font-bold。
-          </p>
+        <DocsSection title="示例三：尺寸对比（size）" description="size 支持 xs / sm / md / lg / xl（默认 sm），字重随档位递增：md 及以下 font-medium、lg 为 font-semibold、xl 为 font-bold。">
           <div className="flex flex-wrap items-center gap-3">
-            {SIZES.map((s) => (
-              <HrsButton key={s} size={s}>size={s}</HrsButton>
+            {SIZES.map((size) => (
+              <HrsButton key={size} size={size}>size={size}</HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 加载态 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：加载态（isLoading）</h2>
-          <p className="text-xs text-muted">
-            isLoading 为 true 时展示旋转图标 + 文案（loadingText 自定义，缺省回退 i18n 的「处理中...」），期间按钮自动禁用。
-          </p>
+        <DocsSection title="示例四：加载态（isLoading）" description="isLoading 为 true 时展示旋转图标 + 文案（loadingText 自定义，缺省回退 i18n 的「处理中...」），期间按钮自动禁用。">
           <div className="flex flex-wrap items-center gap-3">
-            <HrsButton variant="primary" isLoading={saving} onClick={handleSave}>保存设置</HrsButton>
+            <HrsButton variant="primary" isLoading={isAsyncLoading} onClick={simulateAsyncSubmit}>保存设置</HrsButton>
             <HrsButton variant="secondary" isLoading loadingText="加载中...">模拟加载</HrsButton>
-            <HrsButton variant="danger" isLoading={saving} onClick={handleSave}>删除</HrsButton>
+            <HrsButton variant="danger" isLoading={isAsyncLoading} onClick={simulateAsyncSubmit}>删除</HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 禁用态与发光 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：禁用态（isDisabled）与发光（glow）</h2>
-          <p className="text-xs text-muted">
-            isDisabled 禁用按钮（降透明度 + 禁止交互）；glow 为按钮叠加青色发光效果（shadow-glow-cyan）。
-          </p>
+        <DocsSection title="示例五：禁用态（isDisabled）与发光（glow）" description="isDisabled 禁用按钮（降透明度 + 禁止交互）；glow 为按钮叠加青色发光效果（shadow-glow-cyan）。">
           <div className="flex flex-wrap items-center gap-3">
             <HrsButton isDisabled>禁用按钮</HrsButton>
             <HrsButton variant="gradient" isDisabled>渐变禁用</HrsButton>
             <HrsButton variant="primary" glow>发光按钮</HrsButton>
             <HrsButton variant="gradient" glow>渐变发光</HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 6. onClick 事件桥接 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：onClick 事件桥接</h2>
-          <p className="text-xs text-muted">
-            HrsButton 内部将 onClick 桥接为 HeroUI 的 onPress，调用方按原生 onClick 使用即可；下方计数验证桥接生效。
-          </p>
+        <DocsSection title="示例六：onClick 事件桥接" description="HrsButton 内部将 onClick 桥接为 HeroUI 的 onPress，调用方按原生 onClick 使用即可；下方计数验证桥接生效。">
           <span className="text-xs text-secondary-text">已点击 {clickCount} 次</span>
           <div className="flex flex-wrap items-center gap-3">
-            <HrsButton onClick={() => setClickCount((c) => c + 1)}>点击 +1</HrsButton>
+            <HrsButton onClick={() => setClickCount((count) => count + 1)}>点击 +1</HrsButton>
             <HrsButton variant="secondary" onClick={() => setClickCount(0)}>清零</HrsButton>
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

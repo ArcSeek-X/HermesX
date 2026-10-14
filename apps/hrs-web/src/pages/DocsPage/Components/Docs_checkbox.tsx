@@ -3,12 +3,15 @@
  * 路由地址 /docs/component/checkbox，菜单名「复选框」。
  * 用于演示 HrsCheckbox 在「多选组」与「单选框」两种模式下的常见用法与状态字段。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsCheckbox, type HrsCheckboxSize } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /**
  * 复选框组件文档演示页。
@@ -39,11 +42,7 @@ export const DocsCheckboxPage: React.FC = () => {
         </header>
 
         {/* 1. 多选组（受控）：value 为 string[]，onChange 回传选中项 value 集合 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：多选组（受控）</h2>
-          <p className="text-xs text-muted">
-            value 为 string[]，onChange 回传选中项的 value 集合（顺序与 options 一致）。
-          </p>
+        <DocsSection title="示例一：多选组（受控）" description="value 为 string[]，onChange 回传选中项的 value 集合（顺序与 options 一致）。">
           <span className="text-xs text-secondary-text">
             当前选中：{notifyValues.length > 0 ? notifyValues.join(' / ') : '无'}
           </span>
@@ -58,14 +57,10 @@ export const DocsCheckboxPage: React.FC = () => {
               { value: 'sms', label: '短信推送（disabled）', disabled: true },
             ]}
           />
-        </section>
+        </DocsSection>
 
         {/* 2. 多选组（非受控）：defaultValue 或 option.defaultSelected 决定初始选中 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：多选组（非受控）</h2>
-          <p className="text-xs text-muted">
-            不传 value 即非受控，初始选中由 defaultValue 或各 option.defaultSelected 决定，onChange 仍回传最新集合。
-          </p>
+        <DocsSection title="示例二：多选组（非受控）" description="不传 value 即非受控，初始选中由 defaultValue 或各 option.defaultSelected 决定，onChange 仍回传最新集合。">
           <span className="text-xs text-secondary-text">
             当前选中：{groupBValues.length > 0 ? groupBValues.join(' / ') : '无'}
           </span>
@@ -79,14 +74,10 @@ export const DocsCheckboxPage: React.FC = () => {
               { value: 'c', label: '选项 C（defaultSelected）', defaultSelected: true },
             ]}
           />
-        </section>
+        </DocsSection>
 
         {/* 3. 单选框（原生用法）：isSelected + onChange(boolean) */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：单选框（原生 Checkbox 用法）</h2>
-          <p className="text-xs text-muted">
-            不传 options 时退化为单个勾选框，isSelected 控制选中态，onChange 回传 boolean（与 HeroUI 原生签名一致）。
-          </p>
+        <DocsSection title="示例三：单选框（原生 Checkbox 用法）" description="不传 options 时退化为单个勾选框，isSelected 控制选中态，onChange 回传 boolean（与 HeroUI 原生签名一致）。">
           <HrsCheckbox
             name="terms"
             label="我已阅读并接受《用户协议》"
@@ -94,11 +85,10 @@ export const DocsCheckboxPage: React.FC = () => {
             isSelected={acceptTerms}
             onChange={(value) => setAcceptTerms(value as boolean)}
           />
-        </section>
+        </DocsSection>
 
         {/* 4. size 对比：sm / md / lg */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：尺寸对比（size）</h2>
+        <DocsSection title="示例四：尺寸对比（size）">
           <p className="text-xs text-muted">size 支持 sm / md / lg，默认 md，会同时缩放勾选框、图标与文案。</p>
           <div className="flex flex-wrap items-start gap-6">
             {(['sm', 'md', 'lg'] as HrsCheckboxSize[]).map((size) => (
@@ -111,15 +101,10 @@ export const DocsCheckboxPage: React.FC = () => {
               />
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 状态字段：disabled / indeterminate / description / required / invalid */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：状态字段</h2>
-          <p className="text-xs text-muted">
-            disabled / indeterminate（半选）/ description（说明）/ required（必填星标）/ invalid + errorMessage（校验报错）。
-          </p>
-
+        <DocsSection title="示例五：状态字段" description="disabled / indeterminate（半选）/ description（说明）/ required（必填星标）/ invalid + errorMessage（校验报错）。">
           <HrsCheckbox
             name="states"
             options={[
@@ -133,7 +118,6 @@ export const DocsCheckboxPage: React.FC = () => {
               },
             ]}
           />
-
           <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
             <span className="text-[11px] text-muted">required（isRequired，渲染必填星标）</span>
             <HrsCheckbox
@@ -144,7 +128,6 @@ export const DocsCheckboxPage: React.FC = () => {
               defaultSelected
             />
           </div>
-
           <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
             <span className="text-[11px] text-muted">
               invalid + errorMessage（多选组必填，取消到 0 项时联动报错；当前选中 {reqGroupValues.length} 项）
@@ -157,22 +140,21 @@ export const DocsCheckboxPage: React.FC = () => {
                 { value: 'email', label: '邮件通知' },
                 { value: 'sms', label: '短信通知' },
                 { value: 'push', label: '推送通知' },
-              ].map((o, i) =>
+              ].map((option, index) =>
                 reqGroupValues.length === 0
                   ? {
-                      ...o,
+                      ...option,
                       invalid: true,
-                      ...(i === 0 ? { errorMessage: '此项为必填，请至少选择一项' } : {}),
+                      ...(index === 0 ? { errorMessage: '此项为必填，请至少选择一项' } : {}),
                     }
-                  : o,
+                  : option,
               )}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 6. 排列方向：horizontal / vertical */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：排列方向（orientation）</h2>
+        <DocsSection title="示例六：排列方向（orientation）">
           <p className="text-xs text-muted">orientation 支持 horizontal（默认）与 vertical，控制多选组的排列方向。</p>
           <div className="flex flex-wrap gap-10">
             <div className="flex flex-col gap-2">
@@ -198,14 +180,10 @@ export const DocsCheckboxPage: React.FC = () => {
               />
             </div>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 7. 数量限制：min / max */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例七：数量限制（min / max）</h2>
-          <p className="text-xs text-muted">
-            min / max 限制多选组可选中的最小 / 最大数量：触达下限后已选项不可取消，触达上限后未选项不可再勾选。
-          </p>
+        <DocsSection title="示例七：数量限制（min / max）" description="min / max 限制多选组可选中的最小 / 最大数量：触达下限后已选项不可取消，触达上限后未选项不可再勾选。">
           <span className="text-xs text-secondary-text">最多选 2 项（max=2）</span>
           <HrsCheckbox
             name="limit-demo"
@@ -217,7 +195,7 @@ export const DocsCheckboxPage: React.FC = () => {
               { value: 'c', label: '选项 C（达到上限后锁定）' },
             ]}
           />
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

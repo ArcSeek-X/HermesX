@@ -1,14 +1,17 @@
 /**
  * @fileoverview 组件文档页：Input（通用表单输入框）
  * 路由地址 /docs/component/input，菜单名「输入框」。
- * 用于演示 Input 的尺寸档位、受控用法、type 变体、只读展示与禁用、placeholder/maxLength 及搜索表单组合。
+ * 用于演示 Input 的尺寸档位、受控用法、type 变体、只读展示与禁用、placeholder/maxLength、清除按钮（clearable，默认开启）及搜索表单组合。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsButton, HrsInput, showToast } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 尺寸档位数据（示例一） */
 const SIZE_ITEMS = [
@@ -18,13 +21,6 @@ const SIZE_ITEMS = [
   { size: 'lg', label: 'lg' },
 ] as const;
 
-/**
- * 通用表单输入组件文档演示页。
- *
- * Input 基于 HeroUI Input 封装：继承原生 input 属性全透传（含受控 value / type / onChange）；
- * size 四档控制高度 / 字号 / 圆角；组件不渲染 label / hint 包裹层，提示文案由调用方在外层渲染；
- * 传 value 但未传 onChange 时自动补 readOnly，语义为「只读展示」。
- */
 export const DocsInputPage: React.FC = () => {
   const { t } = useUiLanguage();
 
@@ -38,6 +34,9 @@ export const DocsInputPage: React.FC = () => {
   const [limited, setLimited] = useState('');
   // 示例六：搜索表单
   const [keyword, setKeyword] = useState('');
+  // 示例七：清除按钮（clearable，默认开启）
+  const [clearableText, setClearableText] = useState('带清除按钮的示例文本');
+  const [noClearText, setNoClearText] = useState('关闭清除按钮');
 
   /** 示例六：触发搜索（按钮或 Enter 键），Toast 回显关键词 */
   const handleSearch = () => {
@@ -56,11 +55,7 @@ export const DocsInputPage: React.FC = () => {
         </header>
 
         {/* 1. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：尺寸对比</h2>
-          <p className="text-xs text-muted">
-            size 四档控制高度 / 字号 / 圆角：xs（h-7）、sm（h-8，默认）、md（h-9）、lg（h-10）。
-          </p>
+        <DocsSection title="示例一：尺寸对比" description="size 四档控制高度 / 字号 / 圆角：xs（h-7）、sm（h-8，默认）、md（h-9）、lg（h-10）。">
           <div className="flex flex-wrap items-end gap-4">
             {SIZE_ITEMS.map((item) => (
               <div key={item.size} className="flex flex-col gap-1">
@@ -69,27 +64,19 @@ export const DocsInputPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 受控输入 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：受控输入（value / onChange）</h2>
-          <p className="text-xs text-muted">
-            原生受控写法：value + onChange，值变化实时回显；点击「清空」重置状态。
-          </p>
+        <DocsSection title="示例二：受控输入（value / onChange）" description="原生受控写法：value + onChange，值变化实时回显；点击「清空」重置状态。">
           <div className="flex items-center gap-3">
             <HrsInput value={controlled} onChange={(e) => setControlled(e.target.value)} placeholder="输入任意内容" />
             <HrsButton size="sm" variant="ghost" onClick={() => setControlled('')}>清空</HrsButton>
           </div>
           <p className="text-xs text-secondary-text">当前值：{controlled || '（空）'}</p>
-        </section>
+        </DocsSection>
 
         {/* 3. type 变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：type 变体（email / number / search）</h2>
-          <p className="text-xs text-muted">
-            type 为原生属性透传，浏览器行为（如 number 步进、search 清除按钮）与原生一致。
-          </p>
+        <DocsSection title="示例三：type 变体（email / number / search）" description="type 为原生属性透传，浏览器行为（如 number 步进、search 清除按钮）与原生一致。">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">type=email（受控）</span>
@@ -104,15 +91,10 @@ export const DocsInputPage: React.FC = () => {
               <HrsInput type="search" value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="搜索框" />
             </div>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 只读展示与禁用 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：只读展示与禁用</h2>
-          <p className="text-xs text-muted">
-            传 value 但未传 onChange 时组件自动补 readOnly（只读展示语义，消除受控告警）；
-            disabled 为显式禁用态（半透明 + 禁光标）。
-          </p>
+        <DocsSection title="示例四：只读展示与禁用" description="传 value 但未传 onChange 时组件自动补 readOnly（只读展示语义，消除受控告警）； disabled 为显式禁用态（半透明 + 禁光标）。">
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-secondary-text">只读展示（value 无 onChange）</span>
@@ -123,14 +105,10 @@ export const DocsInputPage: React.FC = () => {
               <HrsInput value="禁用输入框" disabled />
             </div>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. placeholder + maxLength */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：placeholder + maxLength</h2>
-          <p className="text-xs text-muted">
-            placeholder 颜色经组件内联 CSS 变量调淡；maxLength 为原生限制，配合实时字数回显。
-          </p>
+        <DocsSection title="示例五：placeholder + maxLength" description="placeholder 颜色经组件内联 CSS 变量调淡；maxLength 为原生限制，配合实时字数回显。">
           <HrsInput
             value={limited}
             onChange={(e) => setLimited(e.target.value)}
@@ -138,14 +116,10 @@ export const DocsInputPage: React.FC = () => {
             maxLength={20}
           />
           <p className="text-xs text-secondary-text">已输入 {limited.length} / 20 字</p>
-        </section>
+        </DocsSection>
 
         {/* 6. 表单组合 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：搜索表单组合（Input + HrsButton）</h2>
-          <p className="text-xs text-muted">
-            Input 与 HrsButton 组合模拟搜索场景；输入框内按 Enter 或点击「搜索」按钮均触发，结果经 Toast 回显。
-          </p>
+        <DocsSection title="示例六：搜索表单组合（Input + HrsButton）" description="Input 与 HrsButton 组合模拟搜索场景；输入框内按 Enter 或点击「搜索」按钮均触发，结果经 Toast 回显。">
           <div className="flex items-center gap-3">
             <HrsInput
               value={keyword}
@@ -157,7 +131,39 @@ export const DocsInputPage: React.FC = () => {
             />
             <HrsButton variant="primary" size="sm" onClick={handleSearch}>搜索</HrsButton>
           </div>
-        </section>
+        </DocsSection>
+
+        {/* 7. 清除按钮 clearable（默认开启） */}
+        <DocsSection
+          title="示例七：清除按钮（clearable，默认开启）"
+          description="clearable 默认 true：输入框有内容时，右侧出现 × 关闭按钮，点击清空（触发 onChange 上抛空串）；无内容 / 只读 / 禁用时不显示。受控与非受控用法均支持。传 clearable={false} 可显式关闭该按钮。"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-secondary-text">受控（value + onChange）</span>
+              <HrsInput
+                value={clearableText}
+                onChange={(e) => setClearableText(e.target.value)}
+                placeholder="输入内容后，右侧出现清除按钮"
+              />
+              <p className="text-xs text-secondary-text">当前值：{clearableText || '（空）'}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-secondary-text">非受控（仅 defaultValue，无 value / onChange）</span>
+              <HrsInput defaultValue="非受控初始值" placeholder="输入内容后，右侧同样出现清除按钮" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-secondary-text">显式 clearable=&#123;false&#125;（始终无清除按钮）</span>
+              <HrsInput
+                value={noClearText}
+                onChange={(e) => setNoClearText(e.target.value)}
+                clearable={false}
+                placeholder="该输入框不显示清除按钮"
+              />
+              <p className="text-xs text-secondary-text">当前值：{noClearText || '（空）'}</p>
+            </div>
+          </div>
+        </DocsSection>
       </div>
     </AppPage>
   );

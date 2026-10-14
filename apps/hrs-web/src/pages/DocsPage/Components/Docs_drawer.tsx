@@ -3,12 +3,15 @@
  * 路由地址 /docs/component/drawer，菜单名「抽屉」。
  * 用于演示 HrsDrawer 声明式用法：滑出方向、尺寸档位、遮罩变体与快捷插槽（title / footer / showHandle）。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsButton, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /**
  * 抽屉组件文档演示页。
@@ -43,73 +46,51 @@ export const DocsDrawerPage: React.FC = () => {
         </header>
 
         {/* 1. 声明式基础用法：title + Body + Footer */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：声明式基础用法</h2>
-          <p className="text-xs text-muted">
-            title 快捷标题 + HrsDrawer.Body / HrsDrawer.Footer 组织内容，默认从右侧滑出（placement=right、size=md、variant=opaque），
-            点击遮罩、按 Esc 或右上角关闭按钮均可关闭。
-          </p>
+        <DocsSection title="示例一：声明式基础用法" description="title 快捷标题 + HrsDrawer.Body / HrsDrawer.Footer 组织内容，默认从右侧滑出（placement=right、size=md、variant=opaque）， 点击遮罩、按 Esc 或右上角关闭按钮均可关闭。">
           <div className="flex flex-wrap gap-3">
             <HrsButton onClick={() => setBasicOpen(true)}>打开基础抽屉</HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 四个滑出方向 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：四个滑出方向（placement）</h2>
-          <p className="text-xs text-muted">
-            placement 支持 top / bottom / left / right；左右方向由 size 控制宽度，上下方向由 size 控制最大高度。
-          </p>
+        <DocsSection title="示例二：四个滑出方向（placement）" description="placement 支持 top / bottom / left / right；左右方向由 size 控制宽度，上下方向由 size 控制最大高度。">
           <div className="flex flex-wrap gap-3">
-            {(['top', 'right', 'bottom', 'left'] as HrsDrawerPlacement[]).map((p) => (
-              <HrsButton key={p} variant="secondary" onClick={() => setDirection(p)}>
-                {p}
+            {(['top', 'right', 'bottom', 'left'] as HrsDrawerPlacement[]).map((placement) => (
+              <HrsButton key={placement} variant="secondary" onClick={() => setDirection(placement)}>
+                {placement}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：尺寸对比（size）</h2>
-          <p className="text-xs text-muted">
-            size 支持 xs / sm / md / lg / xl / xxl / full 七档；窄视口自动铺满可用宽度，避免档位失去区分度。
-          </p>
+        <DocsSection title="示例三：尺寸对比（size）" description="size 支持 xs / sm / md / lg / xl / xxl / full 七档；窄视口自动铺满可用宽度，避免档位失去区分度。">
           <div className="flex flex-wrap gap-3">
-            {(['xs', 'sm', 'md', 'lg', 'xl'] as HrsDrawerSize[]).map((s) => (
-              <HrsButton key={s} variant="secondary" onClick={() => setSizeDemo(s)}>
-                size={s}
+            {(['xs', 'sm', 'md', 'lg', 'xl'] as HrsDrawerSize[]).map((size) => (
+              <HrsButton key={size} variant="secondary" onClick={() => setSizeDemo(size)}>
+                size={size}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 遮罩变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：遮罩变体（variant）</h2>
-          <p className="text-xs text-muted">
-            variant 支持 opaque（默认渐变遮罩）/ blur（更深渐变）/ transparent（无遮罩，不阻挡背景交互）。
-          </p>
+        <DocsSection title="示例四：遮罩变体（variant）" description="variant 支持 opaque（默认渐变遮罩）/ blur（更深渐变）/ transparent（无遮罩，不阻挡背景交互）。">
           <div className="flex flex-wrap gap-3">
-            {(['opaque', 'blur', 'transparent'] as HrsDrawerVariant[]).map((v) => (
-              <HrsButton key={v} variant="secondary" onClick={() => setVariantDemo(v)}>
-                {v}
+            {(['opaque', 'blur', 'transparent'] as HrsDrawerVariant[]).map((variant) => (
+              <HrsButton key={variant} variant="secondary" onClick={() => setVariantDemo(variant)}>
+                {variant}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 手柄 + 隐藏关闭按钮 + footer 快捷插槽 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：手柄 / 隐藏关闭按钮 / footer 插槽</h2>
-          <p className="text-xs text-muted">
-            showHandle 显示顶部拖拽手柄（支持拖拽关闭）、hideCloseButton 隐藏右上角关闭按钮、
-            footer 快捷插槽与 children 中的 Footer 可共存。
-          </p>
+        <DocsSection title="示例五：手柄 / 隐藏关闭按钮 / footer 插槽" description="showHandle 显示顶部拖拽手柄（支持拖拽关闭）、hideCloseButton 隐藏右上角关闭按钮、 footer 快捷插槽与 children 中的 Footer 可共存。">
           <div className="flex flex-wrap gap-3">
             <HrsButton onClick={() => setHandleOpen(true)}>打开底部抽屉</HrsButton>
           </div>
-        </section>
+        </DocsSection>
       </div>
 
       {/* 示例一抽屉：默认配置（right / md / opaque） */}

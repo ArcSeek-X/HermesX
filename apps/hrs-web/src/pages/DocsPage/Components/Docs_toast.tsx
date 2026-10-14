@@ -3,12 +3,15 @@
  * 路由地址 /docs/component/toast，菜单名「轻提示」。
  * 用于演示 showToast 命令式触发：视觉变体、浮层方位、自动关闭时长、查看详情与手动关闭。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsButton, dismissAllToasts, dismissToast, showToast, type ToastPlacement, type ToastVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 6 个浮层方位（示例二展示） */
 const PLACEMENTS: ToastPlacement[] = ['top start', 'top', 'top end', 'bottom start', 'bottom', 'bottom end'];
@@ -37,54 +40,42 @@ export const DocsToastPage: React.FC = () => {
         </header>
 
         {/* 1. 五种视觉变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：五种视觉变体（variant）</h2>
-          <p className="text-xs text-muted">
-            default / primary / success / warning / danger；便捷方法 showToast.info / success / warning / danger 预置对应变体。
-          </p>
+        <DocsSection title="示例一：五种视觉变体（variant）" description="default / primary / success / warning / danger；便捷方法 showToast.info / success / warning / danger 预置对应变体。">
           <div className="flex flex-wrap gap-3">
-            {(['default', 'primary', 'success', 'warning', 'danger'] as ToastVariant[]).map((v) => (
+            {(['default', 'primary', 'success', 'warning', 'danger'] as ToastVariant[]).map((variant) => (
               <HrsButton
-                key={v}
-                variant="secondary"
+                key={variant}
+                variant={variant}
                 onClick={() => showToast({
-                  title: `variant = ${v}`,
-                  description: `这是一条 ${v} 风格的轻提示，3 秒后自动关闭。`,
-                  variant: v,
+                  title: `variant = ${variant}`,
+                  description: `这是一条 ${variant} 风格的轻提示，3 秒后自动关闭。`,
+                  variant,
                 })}
               >
-                {v}
+                {variant}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 六个浮层方位 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：六个浮层方位（placement）</h2>
-          <p className="text-xs text-muted">
-            placement 支持上 / 下 × 左 / 中 / 右六方位；同一方位多条 toast 自动纵向堆叠。
-          </p>
+        <DocsSection title="示例二：六个浮层方位（placement）" description="placement 支持上 / 下 × 左 / 中 / 右六方位；同一方位多条 toast 自动纵向堆叠。">
           <div className="grid max-w-xl grid-cols-3 gap-3">
-            {PLACEMENTS.map((p) => (
+            {PLACEMENTS.map((placement) => (
               <HrsButton
-                key={p}
+                key={placement}
                 size="xs"
                 variant="outline"
-                onClick={() => showToast.info({ title: p, description: `方位：${p}`, placement: p })}
+                onClick={() => showToast.info({ title: placement, description: `方位：${placement}`, placement })}
               >
-                {p}
+                {placement}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 自动关闭时长 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：自动关闭时长（duration）</h2>
-          <p className="text-xs text-muted">
-            duration 默认 3000ms；传 0 表示不自动关闭，需手动点 × 或调用 dismissToast 关闭。
-          </p>
+        <DocsSection title="示例三：自动关闭时长（duration）" description="duration 默认 3000ms；传 0 表示不自动关闭，需手动点 × 或调用 dismissToast 关闭。">
           <div className="flex flex-wrap gap-3">
             <HrsButton variant="secondary" onClick={() => showToast.success({ title: '默认 3 秒关闭', description: 'duration 缺省为 3000ms' })}>
               默认 3 秒
@@ -96,14 +87,10 @@ export const DocsToastPage: React.FC = () => {
               不自动关闭
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 查看详情与操作插槽 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：查看详情（rawMessage）与操作插槽（action）</h2>
-          <p className="text-xs text-muted">
-            rawMessage 与 description 不同时出现「查看详情」展开完整原文；action 在内容区右侧渲染操作按钮插槽。
-          </p>
+        <DocsSection title="示例四：查看详情（rawMessage）与操作插槽（action）" description="rawMessage 与 description 不同时出现「查看详情」展开完整原文；action 在内容区右侧渲染操作按钮插槽。">
           <div className="flex flex-wrap gap-3">
             <HrsButton
               variant="secondary"
@@ -128,14 +115,10 @@ export const DocsToastPage: React.FC = () => {
               带操作按钮
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 手动关闭 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：手动关闭（dismissToast / dismissAllToasts）</h2>
-          <p className="text-xs text-muted">
-            showToast 返回 toast id；dismissToast(id) 关闭指定一条，dismissAllToasts() 关闭全部。
-          </p>
+        <DocsSection title="示例五：手动关闭（dismissToast / dismissAllToasts）" description="showToast 返回 toast id；dismissToast(id) 关闭指定一条，dismissAllToasts() 关闭全部。">
           <div className="flex flex-wrap gap-3">
             <HrsButton
               variant="secondary"
@@ -153,7 +136,7 @@ export const DocsToastPage: React.FC = () => {
               关闭全部
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

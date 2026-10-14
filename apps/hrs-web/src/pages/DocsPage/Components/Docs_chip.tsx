@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/chip，菜单名「标签芯片」。
  * 用于演示 Chip 的 variant / color / size / radius 组合、onClose 可关闭标签与禁用态、图标文字组合场景。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { Star, TrendingUp, TrendingDown, Bell, Folder } from 'lucide-react';
 import { Chip, showToast } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 视觉风格变体（示例一） */
 const VARIANT_ITEMS = [
@@ -76,63 +79,43 @@ export const DocsChipPage: React.FC = () => {
         </header>
 
         {/* 1. variant 变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：variant 变体（同用 accent 色对比）</h2>
-          <p className="text-xs text-muted">
-            primary 半透明主题色底 + 边框；secondary 更淡的底色；tertiary 浅灰边框 + 更浅底色；soft 无边框纯底色。
-          </p>
+        <DocsSection title="示例一：variant 变体（同用 accent 色对比）" description="primary 半透明主题色底 + 边框；secondary 更淡的底色；tertiary 浅灰边框 + 更浅底色；soft 无边框纯底色。">
           <div className="flex flex-wrap items-center gap-2">
             {VARIANT_ITEMS.map((item) => (
               <Chip key={item.variant} variant={item.variant} color="accent">{item.label}</Chip>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 语义色 color */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：语义色 color（8 色，primary 变体）</h2>
-          <p className="text-xs text-muted">
-            default / accent 走项目主题色，success / warning / danger 走语义色，blue / purple / indigo 为固定色。
-          </p>
+        <DocsSection title="示例二：语义色 color（8 色，primary 变体）" description="default / accent 走项目主题色，success / warning / danger 走语义色，blue / purple / indigo 为固定色。">
           <div className="flex flex-wrap items-center gap-2">
             {COLOR_ITEMS.map((item) => (
               <Chip key={item.color} variant="primary" color={item.color}>{item.label}</Chip>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：尺寸对比（size 五档）</h2>
-          <p className="text-xs text-muted">
-            xs（h-5）→ xl（h-9）五档控制高度 / 内边距 / 字号，默认 md（h-7）。
-          </p>
+        <DocsSection title="示例三：尺寸对比（size 五档）" description="xs（h-5）→ xl（h-9）五档控制高度 / 内边距 / 字号，默认 md（h-7）。">
           <div className="flex flex-wrap items-center gap-2">
             {SIZE_ITEMS.map((item) => (
               <Chip key={item.size} size={item.size} variant="secondary" color="accent">{item.label}</Chip>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. radius 圆角 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：radius 圆角</h2>
-          <p className="text-xs text-muted">
-            full 为默认胶囊；sm / md / lg 对应三档圆角矩形。
-          </p>
+        <DocsSection title="示例四：radius 圆角" description="full 为默认胶囊；sm / md / lg 对应三档圆角矩形。">
           <div className="flex flex-wrap items-center gap-2">
             {RADIUS_ITEMS.map((item) => (
               <Chip key={item.radius} radius={item.radius} variant="primary" color="accent">{item.label}</Chip>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. onClose 可关闭标签 + 禁用 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：onClose 可关闭标签 + isDisabled</h2>
-          <p className="text-xs text-muted">
-            传入 onClose 渲染内置 × 按钮（点击删除该项，不影响容器点击）；受控列表删除后实时回显；isDisabled 禁用关闭且半透明。
-          </p>
+        <DocsSection title="示例五：onClose 可关闭标签 + isDisabled" description="传入 onClose 渲染内置 × 按钮（点击删除该项，不影响容器点击）；受控列表删除后实时回显；isDisabled 禁用关闭且半透明。">
           <div className="flex flex-wrap items-center gap-2">
             {tags.map((tag) => (
               <Chip
@@ -149,14 +132,10 @@ export const DocsChipPage: React.FC = () => {
             </Chip>
           </div>
           <p className="text-xs text-secondary-text">剩余标签：{tags.length > 0 ? tags.join(' / ') : '（已全部删除）'}</p>
-        </section>
+        </DocsSection>
 
         {/* 6. 组合场景 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：组合场景（图标 + 文字、筛选器已选条目）</h2>
-          <p className="text-xs text-muted">
-            children 由调用方组合：左侧为图标 + 文字标签；右侧模拟筛选器已选条目（「标签 + × 取消」）。
-          </p>
+        <DocsSection title="示例六：组合场景（图标 + 文字、筛选器已选条目）" description="children 由调用方组合：左侧为图标 + 文字标签；右侧模拟筛选器已选条目（「标签 + × 取消」）。">
           <div className="flex flex-wrap items-center gap-2">
             <Chip variant="primary" color="success"><TrendingUp className="h-3.5 w-3.5" />上涨</Chip>
             <Chip variant="primary" color="danger"><TrendingDown className="h-3.5 w-3.5" />下跌</Chip>
@@ -167,23 +146,23 @@ export const DocsChipPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             <span className="text-xs text-secondary-text">筛选器已选：</span>
             {filters.length > 0 ? (
-              filters.map((item) => (
+              filters.map((filterTag) => (
                 <Chip
-                  key={item}
+                  key={filterTag}
                   size="sm"
                   radius="sm"
                   variant="secondary"
                   color="accent"
-                  onClose={() => setFilters(filters.filter((f) => f !== item))}
+                  onClose={() => setFilters(filters.filter((existingTag) => existingTag !== filterTag))}
                 >
-                  {item}
+                  {filterTag}
                 </Chip>
               ))
             ) : (
               <span className="text-xs text-muted">（无）</span>
             )}
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

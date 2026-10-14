@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/table，菜单名「表格」。
  * 用于演示 Table 的数据驱动渲染、列排序、行选择、操作列插槽、空态与分页。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useMemo, useState } from 'react';
@@ -11,6 +13,7 @@ import { HrsButton } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { Table, type TableColumnDef, type PaginationDef } from '@components/basic/Table/Table';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 行数据类型：泛型 T 必须包含 id 字段作为唯一标识 */
 interface StockRow {
@@ -103,7 +106,7 @@ export const DocsTablePage: React.FC = () => {
   /** 示例三：选择变化（Selection 为 'all' 或 Set<Key>，统一转换为 id 数组） */
   const handleSelectionChange = (keys: Selection) => {
     if (keys === 'all') {
-      setSelectedIds(STOCK_ROWS.map((r) => r.id));
+      setSelectedIds(STOCK_ROWS.map((row) => row.id));
       return;
     }
     setSelectedIds(Array.from(keys).map(String));
@@ -137,34 +140,22 @@ export const DocsTablePage: React.FC = () => {
         </header>
 
         {/* 1. 基础数据驱动表格 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：基础数据驱动表格</h2>
-          <p className="text-xs text-muted">
-            columns + rows 数据驱动渲染；未定义 render 的列直接显示字段值，操作列通过 render 插槽渲染 HrsButton。
-          </p>
+        <DocsSection title="示例一：基础数据驱动表格" description="columns + rows 数据驱动渲染；未定义 render 的列直接显示字段值，操作列通过 render 插槽渲染 HrsButton。">
           <Table columns={columns} rows={STOCK_ROWS} />
-        </section>
+        </DocsSection>
 
         {/* 2. 列排序 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：列排序（allowsSorting）</h2>
-          <p className="text-xs text-muted">
-            column.allowsSorting 启用排序（表头出现排序按钮）；sortDescriptor / onSortChange 受控，点击「最新价 / 涨跌幅」表头切换排序。
-          </p>
+        <DocsSection title="示例二：列排序（allowsSorting）" description="column.allowsSorting 启用排序（表头出现排序按钮）；sortDescriptor / onSortChange 受控，点击「最新价 / 涨跌幅」表头切换排序。">
           <Table
             columns={columns}
             rows={sortedRows}
             sortDescriptor={sortDescriptor}
             onSortChange={(d) => setSortDescriptor(d)}
           />
-        </section>
+        </DocsSection>
 
         {/* 3. 行选择 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：行选择（selectionMode）</h2>
-          <p className="text-xs text-muted">
-            selectionMode 支持 single / multiple（含全选）；selectedKeys / onSelectionChange 受控。
-          </p>
+        <DocsSection title="示例三：行选择（selectionMode）" description="selectionMode 支持 single / multiple（含全选）；selectedKeys / onSelectionChange 受控。">
           <span className="text-xs text-secondary-text">已选中：{selectedIds.length > 0 ? selectedIds.join(' / ') : '无'}</span>
           <Table
             columns={columns}
@@ -173,24 +164,16 @@ export const DocsTablePage: React.FC = () => {
             selectedKeys={new Set(selectedIds)}
             onSelectionChange={handleSelectionChange}
           />
-        </section>
+        </DocsSection>
 
         {/* 4. 操作列 + 编辑回显 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：操作列 render 插槽</h2>
-          <p className="text-xs text-muted">
-            点击「编辑」按钮回显该行数据（render 插槽接收整行对象，可渲染任意 React 节点）。
-          </p>
+        <DocsSection title="示例四：操作列 render 插槽" description="点击「编辑」按钮回显该行数据（render 插槽接收整行对象，可渲染任意 React 节点）。">
           {editedName && <span className="text-xs text-secondary-text">上次点击「编辑」的行：{editedName}</span>}
           <Table columns={columns} rows={STOCK_ROWS} selectionMode="single" />
-        </section>
+        </DocsSection>
 
         {/* 5. 空态与加载态 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：空态（renderEmptyState）与加载态（isLoading）</h2>
-          <p className="text-xs text-muted">
-            rows 为空时展示空态（未传 renderEmptyState 时使用默认「暂无数据」）；isLoading 时展示加载提示。
-          </p>
+        <DocsSection title="示例五：空态（renderEmptyState）与加载态（isLoading）" description="rows 为空时展示空态（未传 renderEmptyState 时使用默认「暂无数据」）；isLoading 时展示加载提示。">
           <div className="flex flex-col gap-4">
             <Table
               columns={columns}
@@ -201,16 +184,12 @@ export const DocsTablePage: React.FC = () => {
             />
             <Table columns={columns} rows={[]} isLoading />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 6. 分页 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：分页（pagination）</h2>
-          <p className="text-xs text-muted">
-            传入 pagination 配置启用分页（受控模式）：调用方管理页码与数据切片，组件渲染分页控件与统计信息。
-          </p>
+        <DocsSection title="示例六：分页（pagination）" description="传入 pagination 配置启用分页（受控模式）：调用方管理页码与数据切片，组件渲染分页控件与统计信息。">
           <Table columns={columns} rows={pageRows} pagination={pagination} />
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

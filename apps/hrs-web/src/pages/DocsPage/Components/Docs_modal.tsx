@@ -3,12 +3,15 @@
  * 路由地址 /docs/component/modal，菜单名「模态框」。
  * 用于演示 Modal 的声明式用法：Header/Heading/Body/Footer 组织、尺寸档位、弹出位置、遮罩变体与长内容滚动。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsButton, Modal } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 尺寸档位（示例二展示） */
 const MODAL_SIZES = ['xs', 'sm', 'md', 'lg', 'full', 'cover'] as const;
@@ -54,54 +57,41 @@ export const DocsModalPage: React.FC = () => {
         </header>
 
         {/* 1. 声明式基础用法 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：声明式基础用法</h2>
-          <p className="text-xs text-muted">
-            Modal.Header + Modal.Heading 组织标题（自动带右上角关闭按钮），Header 与 Body 之间自动渲染渐变分割线。
-          </p>
+        <DocsSection title="示例一：声明式基础用法" description="Modal.Header + Modal.Heading 组织标题（自动带右上角关闭按钮），Header 与 Body 之间自动渲染渐变分割线。">
           <div className="flex flex-wrap gap-3">
             <HrsButton onClick={() => setBasicOpen(true)}>打开基础模态框</HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：尺寸对比（size）</h2>
-          <p className="text-xs text-muted">
-            size 支持 xs / sm / md / lg / full / cover 六档（full 全屏无圆角、cover 覆盖式大尺寸）。
-          </p>
+        <DocsSection title="示例二：尺寸对比（size）" description="size 支持 xs / sm / md / lg / full / cover 六档（full 全屏无圆角、cover 覆盖式大尺寸）。">
           <div className="flex flex-wrap gap-3">
-            {MODAL_SIZES.map((s) => (
-              <HrsButton key={s} variant="secondary" onClick={() => setSizeDemo(s)}>
-                size={s}
+            {MODAL_SIZES.map((size) => (
+              <HrsButton key={size} variant="secondary" onClick={() => setSizeDemo(size)}>
+                size={size}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 弹出位置 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：弹出位置（placement）</h2>
+        <DocsSection title="示例三：弹出位置（placement）">
           <p className="text-xs text-muted">placement 支持 top / center（默认）/ bottom，控制模态框在视口中的垂直对齐位置。</p>
           <div className="flex flex-wrap gap-3">
-            {MODAL_PLACEMENTS.map((p) => (
-              <HrsButton key={p} variant="secondary" onClick={() => setPlacementDemo(p)}>
-                {p}
+            {MODAL_PLACEMENTS.map((placement) => (
+              <HrsButton key={placement} variant="secondary" onClick={() => setPlacementDemo(placement)}>
+                {placement}
               </HrsButton>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 遮罩变体与关闭行为 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：遮罩变体（variant）与关闭行为</h2>
-          <p className="text-xs text-muted">
-            variant 支持 opaque（默认渐变）/ blur（更深渐变）/ transparent（无遮罩）；isDismissable 控制点击遮罩是否关闭，hideCloseButton 隐藏关闭按钮。
-          </p>
+        <DocsSection title="示例四：遮罩变体（variant）与关闭行为" description="variant 支持 opaque（默认渐变）/ blur（更深渐变）/ transparent（无遮罩）；isDismissable 控制点击遮罩是否关闭，hideCloseButton 隐藏关闭按钮。">
           <div className="flex flex-wrap gap-3">
-            {MODAL_VARIANTS.map((v) => (
-              <HrsButton key={v} variant="secondary" onClick={() => setVariantDemo(v)}>
-                {v}
+            {MODAL_VARIANTS.map((variant) => (
+              <HrsButton key={variant} variant="secondary" onClick={() => setVariantDemo(variant)}>
+                {variant}
               </HrsButton>
             ))}
             <HrsButton variant="secondary" onClick={() => setNoDismissOpen(true)}>
@@ -111,14 +101,10 @@ export const DocsModalPage: React.FC = () => {
               隐藏关闭按钮
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 长内容滚动 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：长内容滚动（scroll）</h2>
-          <p className="text-xs text-muted">
-            scroll=inside 时内容区内部滚动（Header / Footer 固定），outside 时整个 Dialog 随页面滚动。
-          </p>
+        <DocsSection title="示例五：长内容滚动（scroll）" description="scroll=inside 时内容区内部滚动（Header / Footer 固定），outside 时整个 Dialog 随页面滚动。">
           <div className="flex flex-wrap gap-3">
             <HrsButton variant="secondary" onClick={() => setScrollDemo('inside')}>
               inside
@@ -127,20 +113,16 @@ export const DocsModalPage: React.FC = () => {
               outside
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 6. Freedom 自由插槽 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：自由插槽（Modal.Freedom）</h2>
-          <p className="text-xs text-muted">
-            Modal.Freedom 可在 modal__backdrop 下的子层自由注入 DOM，适合放右上角语言切换、帮助入口或全局提示。
-          </p>
+        <DocsSection title="示例六：自由插槽（Modal.Freedom）" description="Modal.Freedom 可在 modal__backdrop 下的子层自由注入 DOM，适合放右上角语言切换、帮助入口或全局提示。">
           <div className="flex flex-wrap gap-3">
             <HrsButton variant="secondary" onClick={() => setFreedomOpen(true)}>
               打开 Freedom 示例
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
       </div>
 
       {/* 示例一模态框：默认配置（md / center / opaque） */}

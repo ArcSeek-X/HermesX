@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/tabNav，菜单名「标签页」。
  * 用于演示 TabNav 的受控切换、primary/secondary 变体、图标与禁用项、rightSlot 插槽、size 尺寸档位，以及 size × variant 交叉组合。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { LayoutDashboard, Cloud, Wallet } from 'lucide-react';
 import { HrsButton, TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 标签数据（示例一 / 二 / 四共用） */
 const TABS = [
@@ -70,11 +73,7 @@ export const DocsTabNavPage: React.FC = () => {
         </header>
 
         {/* 1. primary 变体基础用法 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：primary 变体基础用法</h2>
-          <p className="text-xs text-muted">
-            primary 变体容器圆角随 size 变化（默认 sm 为 !rounded-sm）；受控 value / onChange，下方内容区随选中 Tab 切换。
-          </p>
+        <DocsSection title="示例一：primary 变体基础用法" description="primary 变体容器圆角随 size 变化（默认 sm 为 !rounded-sm）；受控 value / onChange，下方内容区随选中 Tab 切换。">
           <TabNav
             items={TABS}
             value={primaryTab}
@@ -83,14 +82,10 @@ export const DocsTabNavPage: React.FC = () => {
             ariaLabel="primary 变体示例"
           />
           <p className="text-xs text-secondary-text">当前选中：{primaryTab} —— {TAB_CONTENT[primaryTab]}</p>
-        </section>
+        </DocsSection>
 
         {/* 2. secondary 变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：secondary 变体</h2>
-          <p className="text-xs text-muted">
-            secondary 变体容器无圆角（直角），选中指示条跟随项目主题色（--primary）而非 HeroUI 默认蓝色。
-          </p>
+        <DocsSection title="示例二：secondary 变体" description="secondary 变体容器无圆角（直角），选中指示条跟随项目主题色（--primary）而非 HeroUI 默认蓝色。">
           <TabNav
             items={TABS}
             value={secondaryTab}
@@ -99,14 +94,10 @@ export const DocsTabNavPage: React.FC = () => {
             ariaLabel="secondary 变体示例"
           />
           <p className="text-xs text-secondary-text">当前选中：{secondaryTab} —— {TAB_CONTENT[secondaryTab]}</p>
-        </section>
+        </DocsSection>
 
         {/* 3. 图标与禁用项 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：图标与禁用项</h2>
-          <p className="text-xs text-muted">
-            Tab 支持前置图标（icon）；disabled 为 true 的 Tab 自动收集为 disabledKeys，无法选中。
-          </p>
+        <DocsSection title="示例三：图标与禁用项" description="Tab 支持前置图标（icon）；disabled 为 true 的 Tab 自动收集为 disabledKeys，无法选中。">
           <TabNav
             items={ICON_TABS}
             value={iconTab}
@@ -115,14 +106,10 @@ export const DocsTabNavPage: React.FC = () => {
             ariaLabel="图标与禁用示例"
           />
           <p className="text-xs text-secondary-text">当前选中：{iconTab}（「资金」为禁用项）</p>
-        </section>
+        </DocsSection>
 
         {/* 4. rightSlot 插槽 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：rightSlot 右侧插槽</h2>
-          <p className="text-xs text-muted">
-            rightSlot 在标签栏右侧放置自定义内容（如操作按钮），标签与插槽左右两端对齐。
-          </p>
+        <DocsSection title="示例四：rightSlot 右侧插槽" description="rightSlot 在标签栏右侧放置自定义内容（如操作按钮），标签与插槽左右两端对齐。">
           <TabNav
             items={TABS}
             value={slotTab}
@@ -132,14 +119,10 @@ export const DocsTabNavPage: React.FC = () => {
             rightSlot={<HrsButton size="xs" variant="ghost" onClick={() => setSlotTab('overview')}>重置</HrsButton>}
           />
           <p className="text-xs text-secondary-text">当前选中：{slotTab}（点击右侧「重置」回到概览）</p>
-        </section>
+        </DocsSection>
 
         {/* 5. size 尺寸档位 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：size 尺寸档位</h2>
-          <p className="text-xs text-muted">
-            size 控制 Tab 项高度 / 内边距 / 字号 / 字重，并同步控制 Tab 项、指示条与 primary 容器的圆角；档位 xs / sm / md / lg / xl 与 HrsButton 对齐，默认 sm。
-          </p>
+        <DocsSection title="示例五：size 尺寸档位" description="size 控制 Tab 项高度 / 内边距 / 字号 / 字重，并同步控制 Tab 项、指示条与 primary 容器的圆角；档位 xs / sm / md / lg / xl 与 HrsButton 对齐，默认 sm。">
           <div className="flex flex-wrap items-center gap-2">
             {(['xs', 'sm', 'md', 'lg', 'xl'] as const).map((size) => (
               <HrsButton
@@ -161,15 +144,19 @@ export const DocsTabNavPage: React.FC = () => {
             ariaLabel="size 尺寸档位示例"
           />
           <p className="text-xs text-secondary-text">当前尺寸：{navSize}（上方按钮可切换档位）</p>
-        </section>
+        </DocsSection>
 
         {/* 6. size × variant 交叉组合 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：size × variant 交叉组合</h2>
-          <p className="text-xs text-muted">
-            同一组标签在 size（xs / sm / md / lg / xl）与 variant（primary / secondary）两个维度下的外观对比。
-            primary 容器圆角随 size 变化，secondary 容器保持直角；Tab 项与指示条圆角均随 size 同步。
-          </p>
+        <DocsSection
+          title="示例六：size × variant 交叉组合"
+          description={
+            <>
+              同一组标签在 size（xs / sm / md / lg / xl）与 variant（primary / secondary）
+              两个维度下的外观对比。 primary 容器圆角随 size 变化，secondary 容器保持直角；Tab 项与指示条圆角均随
+              size 同步。
+            </>
+          }
+        >
           <div className="flex flex-col gap-5">
             {(['primary', 'secondary'] as const).map((variant) => (
               <div key={variant} className="flex flex-col gap-2">
@@ -195,7 +182,7 @@ export const DocsTabNavPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

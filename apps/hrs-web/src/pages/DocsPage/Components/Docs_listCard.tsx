@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/listCard，菜单名「列表卡片」。
  * 用于演示 ListCard 的图标/标题/描述/计数徽标、选中态与 hover 编辑删除操作。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { Star, Folder, Bell } from 'lucide-react';
 import { HrsButton, showToast, ListCard } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 组合列表演示数据（示例四）：分类列表 */
 const CATEGORY_ITEMS = [
@@ -45,23 +48,15 @@ export const DocsListCardPage: React.FC = () => {
         </header>
 
         {/* 1. 基础用法 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：基础用法</h2>
-          <p className="text-xs text-muted">
-            icon（缺省用 Layers3）/ title 必填 / description 可选（渲染在标题下方并与标题左对齐）/ count 计数徽标（默认 0）。
-          </p>
+        <DocsSection title="示例一：基础用法" description="icon（缺省用 Layers3）/ title 必填 / description 可选（渲染在标题下方并与标题左对齐）/ count 计数徽标（默认 0）。">
           <div className="flex max-w-xs flex-col gap-2">
             <ListCard icon={Star} title="自选股" description="重点关注的自选股列表" count={12} ordinal={0} />
             <ListCard icon={Folder} title="板块分组" count={8} ordinal={1} />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 选中态 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：选中态（isActive）</h2>
-          <p className="text-xs text-muted">
-            isActive 为 true 时展示左侧主题色内阴影边框 + 图标/标题高亮 + 计数徽标切换主题色；onClick 实现单选切换。
-          </p>
+        <DocsSection title="示例二：选中态（isActive）" description="isActive 为 true 时展示左侧主题色内阴影边框 + 图标/标题高亮 + 计数徽标切换主题色；onClick 实现单选切换。">
           <span className="text-xs text-secondary-text">当前选中：{activeId ?? '无'}</span>
           <div className="flex max-w-xs flex-col gap-2">
             {CATEGORY_ITEMS.map((item, i) => (
@@ -77,14 +72,10 @@ export const DocsListCardPage: React.FC = () => {
               />
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. hover 编辑/删除操作 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：hover 编辑 / 删除操作</h2>
-          <p className="text-xs text-muted">
-            传入 onEdit / onDelete 后，鼠标移入卡片时计数徽标切换为编辑 / 删除按钮（与计数互斥）；点击操作会触发 Toast 回显。
-          </p>
+        <DocsSection title="示例三：hover 编辑 / 删除操作" description="传入 onEdit / onDelete 后，鼠标移入卡片时计数徽标切换为编辑 / 删除按钮（与计数互斥）；点击操作会触发 Toast 回显。">
           <div className="flex max-w-xs flex-col gap-2">
             <ListCard
               icon={Star}
@@ -95,14 +86,10 @@ export const DocsListCardPage: React.FC = () => {
               onDelete={() => showToast.warning({ title: '删除', description: '已触发 onDelete 回调' })}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 组合列表 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：组合列表（选中态 + 操作按钮）</h2>
-          <p className="text-xs text-muted">
-            结合 isActive 选中态与 onEdit / onDelete 操作，模拟「设置-分类导航」场景的完整列表。
-          </p>
+        <DocsSection title="示例四：组合列表（选中态 + 操作按钮）" description="结合 isActive 选中态与 onEdit / onDelete 操作，模拟「设置-分类导航」场景的完整列表。">
           <div className="flex max-w-xs flex-col gap-2">
             {CATEGORY_ITEMS.map((item, i) => (
               <ListCard
@@ -124,7 +111,7 @@ export const DocsListCardPage: React.FC = () => {
               保存当前选中
             </HrsButton>
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

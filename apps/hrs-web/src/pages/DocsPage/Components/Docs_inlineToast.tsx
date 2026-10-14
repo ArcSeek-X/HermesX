@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/inline-toast，菜单名「内联轻提示」。
  * 用于演示 InlineToast：视觉变体、标题与可展开详情、操作按钮、关闭按钮。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { HrsButton, InlineToast } from '@components';
 import type { ParsedApiError } from '../../../api/error';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** InlineToast 支持的视觉变体（示例一展示；注意是 accent 而非 primary） */
 type InlineToastVariant = 'default' | 'accent' | 'success' | 'warning' | 'danger';
@@ -76,24 +79,16 @@ export const DocsInlineToastPage: React.FC = () => {
         </header>
 
         {/* 1. 五种视觉变体 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：五种视觉变体（variant）</h2>
-          <p className="text-xs text-muted">
-            default / accent / success / warning / danger；外层语义色边带 + 内层 elevated 卡片；错误告警场景需显式传 variant="danger"。
-          </p>
+        <DocsSection title="示例一：五种视觉变体（variant）" description="default / accent / success / warning / danger；外层语义色边带 + 内层 elevated 卡片；错误告警场景需显式传 variant=&quot;danger&quot;。">
           <div className="flex flex-col gap-3">
-            {VARIANTS.map((v) => (
-              <InlineToast key={v} variant={v} content={variantContent[v]} />
+            {VARIANTS.map((variant) => (
+              <InlineToast key={variant} variant={variant} content={variantContent[variant]} />
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 标题与描述：仅标题 / 仅描述 / 标题 + 描述 三种对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：标题与描述（title / message）三种对比</h2>
-          <p className="text-xs text-muted">
-            title 与 message 均为 ParsedApiError 字段；组件会跳过空字段，支持仅标题 / 仅描述 / 标题+描述 三种组合，不出现空白行。
-          </p>
+        <DocsSection title="示例二：标题与描述（title / message）三种对比" description="title 与 message 均为 ParsedApiError 字段；组件会跳过空字段，支持仅标题 / 仅描述 / 标题+描述 三种组合，不出现空白行。">
           <div className="flex flex-col gap-3">
             <InlineToast
               variant="default"
@@ -118,14 +113,10 @@ export const DocsInlineToastPage: React.FC = () => {
               }}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 标题与可展开详情：rawMessage 与 message 不一致时展示「详情」 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：标题与可展开详情（rawMessage 不一致时）</h2>
-          <p className="text-xs text-muted">
-            rawMessage 与展示文案 message 不一致时，提供可展开的「详细信息」面板，便于开发/排障定位；两者相同则不展示详情按钮。
-          </p>
+        <DocsSection title="示例三：标题与可展开详情（rawMessage 不一致时）" description="rawMessage 与展示文案 message 不一致时，提供可展开的「详细信息」面板，便于开发/排障定位；两者相同则不展示详情按钮。">
           <div className="flex flex-col gap-3">
             <InlineToast
               variant="danger"
@@ -146,14 +137,10 @@ export const DocsInlineToastPage: React.FC = () => {
               }}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 操作按钮：actionLabel + onAction */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：操作按钮（actionLabel / onAction）</h2>
-          <p className="text-xs text-muted">
-            同时提供 actionLabel 与 onAction 时，底部右侧渲染操作按钮（如「重试」）；点击触发传入的回调。
-          </p>
+        <DocsSection title="示例四：操作按钮（actionLabel / onAction）" description="同时提供 actionLabel 与 onAction 时，底部右侧渲染操作按钮（如「重试」）；点击触发传入的回调。">
           <div className="flex flex-col gap-3">
             <InlineToast
               variant="warning"
@@ -182,14 +169,10 @@ export const DocsInlineToastPage: React.FC = () => {
               }}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 关闭按钮：onClose + 关闭事件 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：关闭按钮（onClose）/ 关闭事件</h2>
-          <p className="text-xs text-muted">
-            传入 onClose 时，右上角渲染关闭图标按钮；点击触发 onClose，由调用方决定是否移除提示（此处用状态控制显隐，并提供重置）。
-          </p>
+        <DocsSection title="示例五：关闭按钮（onClose）/ 关闭事件" description="传入 onClose 时，右上角渲染关闭图标按钮；点击触发 onClose，由调用方决定是否移除提示（此处用状态控制显隐，并提供重置）。">
           <div className="flex flex-col gap-3">
             {!dismissed ? (
               <InlineToast
@@ -211,7 +194,7 @@ export const DocsInlineToastPage: React.FC = () => {
               </HrsButton>
             </div>
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

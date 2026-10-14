@@ -5,6 +5,8 @@
  * 1) 应用自身主导航 SidebarNavOld（default / rail 形态 + collapsed 折叠态）
  * 2) SidebarNav：轻量自研侧栏（纯 React + Tailwind，接入真实菜单数据）
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -15,6 +17,7 @@ import { SidebarNav } from '@components/layout/SideBar/SidebarNav';
 import type { SidebarTheme } from '@components/layout/SideBar/SidebarNav';
 import type { MenuCollapsedState } from '../../../stores';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 预览区宽度：随 variant / collapsed 变化，模拟真实侧边栏占宽 */
 const PREVIEW_WIDTH: Record<'default' | 'rail', { collapsed: number; expanded: number }> = {
@@ -59,8 +62,7 @@ export const DocsSideBarPage: React.FC = () => {
         </header>
 
         {/* 控制区：形态 / 折叠态切换 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">① SidebarNavOld 控制项</h2>
+        <DocsSection title="① SidebarNavOld 控制项">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted">形态</span>
@@ -75,32 +77,33 @@ export const DocsSideBarPage: React.FC = () => {
             </div>
           </div>
           <p className="text-xs text-secondary-text">当前：variant={variant}，collapsed={String(collapsed)}，预览宽度 {previewWidth}px</p>
-        </section>
+        </DocsSection>
 
         {/* 预览区：固定宽度容器内渲染 SidebarNavOld */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">① SidebarNavOld 预览</h2>
-          <p className="text-xs text-muted">
-            下方为固定宽度的侧边栏预览（高度固定以模拟真实布局）。点击菜单项会触发路由跳转（演示页内可忽略）。
-          </p>
+        <DocsSection title="① SidebarNavOld 预览" description="下方为固定宽度的侧边栏预览（高度固定以模拟真实布局）。点击菜单项会触发路由跳转（演示页内可忽略）。">
           <div
             className="h-[600px] overflow-hidden"
             style={{ width: previewWidth }}
           >
             <SidebarNavOld variant={variant} collapsed={collapsed} />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 轻量自研侧栏 SidebarNav 演示 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">② SidebarNav（轻量自研侧栏）</h2>
-          <p className="text-xs text-muted">
-            纯 React + Tailwind 自研，零第三方 UI 依赖。菜单取自 MenuStore 的 currentMenuData（随运行模式切换，「选股」随 AlphaSift 开关显隐）。支持两级菜单：routePath 有值才可跳转、无值仅作展示；
-            名称取 menuName（i18n key 或直写文案）、图标取 menuIcon，缺省不显示但保留占位对齐。
-            宽度由组件自身根节点驱动：按 menuCollapsedState（三态：offcanvas / collapsed / fully）做 CSS 过渡动画（transition-[width]，并提升合成层），
-            不再依赖外部容器 / Shell 的 motion.div；折叠态由属性传入（Shell 取自 useLayoutStore），组件自身不订阅 store，只负责内容呈现与自有宽度动画；
-            theme 控制方角（square）或大圆角（pill）视觉。下方静态对比写死 menuCollapsedState，便于稳定对照各形态。
-          </p>
+        <DocsSection
+          title="② SidebarNav（轻量自研侧栏）"
+          description={
+            <>
+              纯 React + Tailwind 自研，零第三方 UI 依赖。菜单取自 MenuStore 的 currentMenuData（随运行模式切换，
+              「选股」随 AlphaSift 开关显隐）。支持两级菜单：routePath 有值才可跳转、无值仅作展示； 名称取 menuName（i18n
+              key 或直写文案）、图标取 menuIcon，缺省不显示但保留占位对齐。 宽度由组件自身根节点驱动：按 menuCollapsedState（三态：offcanvas
+              / collapsed / fully）做 CSS 过渡动画（transition-[width]，并提升合成层）， 不再依赖外部容器
+              / Shell 的 motion.div；折叠态由属性传入（Shell 取自 useLayoutStore），组件自身不订阅
+              store，只负责内容呈现与自有宽度动画； theme 控制方角（square）或大圆角（pill）视觉。下方静态对比写死
+              menuCollapsedState，便于稳定对照各形态。
+            </>
+          }
+        >
           <div className="flex flex-wrap gap-6">
             <div className="flex flex-col gap-2">
               <span className="text-xs text-secondary-text">offcanvas · menuMode="collapse"（默认，一级可折叠）</span>
@@ -127,20 +130,19 @@ export const DocsSideBarPage: React.FC = () => {
               </div>
             </div>
           </div>
-
           {/* 交互演示：实时切换三态折叠 + 主题，直观展示 CSS 过渡宽度动画的丝滑效果 */}
           <h3 className="mt-2 text-xs font-medium text-primary-text">交互演示（实时折叠 / 主题切换）</h3>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted">折叠态</span>
-              {(['offcanvas', 'collapsed', 'fully'] as const).map((s) => (
+              {(['offcanvas', 'collapsed', 'fully'] as const).map((sidebarState) => (
                 <HrsButton
-                  key={s}
+                  key={sidebarState}
                   size="sm"
-                  variant={liveState === s ? 'primary' : 'outline'}
-                  onClick={() => setLiveState(s)}
+                  variant={liveState === sidebarState ? 'primary' : 'outline'}
+                  onClick={() => setLiveState(sidebarState)}
                 >
-                  {s}
+                  {sidebarState}
                 </HrsButton>
               ))}
             </div>
@@ -171,7 +173,7 @@ export const DocsSideBarPage: React.FC = () => {
             点击左侧菜单会触发真实路由跳转（组件内部走 react-router 的 useNavigate），演示页内可忽略；
             上方「折叠态 / 主题」按钮实时驱动 menuCollapsedState 与 theme，可观察宽度 CSS 过渡动画与图标栏切换。
           </p>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

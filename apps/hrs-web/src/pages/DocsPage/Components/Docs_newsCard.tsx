@@ -3,6 +3,8 @@
  * 路由地址 /docs/component/newsCard，菜单名「快讯卡片」。
  * 用于演示 NewsCard 的时间轴布局、重要条目强调、正文两行截断与展开/收起。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
@@ -10,6 +12,7 @@ import { HrsButton, NewsCard } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import type { LiveNewsItem } from '../../../types/liveNews';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 当前时间（秒级时间戳），mock 数据以此推算发布时间 */
 const NOW = Math.floor(Date.now() / 1000);
@@ -88,11 +91,7 @@ export const DocsNewsCardPage: React.FC = () => {
         </header>
 
         {/* 1. 快讯列表（普通 + 重要混合） */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：快讯列表（普通 + 重要混合）</h2>
-          <p className="text-xs text-muted">
-            下方为页面内构造的 mock LiveNewsItem 数据；重要条目时间与标题变红并带「重要」标签，普通条目保持默认色。
-          </p>
+        <DocsSection title="示例一：快讯列表（普通 + 重要混合）" description="下方为页面内构造的 mock LiveNewsItem 数据；重要条目时间与标题变红并带「重要」标签，普通条目保持默认色。">
           <div className="flex flex-wrap gap-3">
             <HrsButton variant="secondary" onClick={() => setShowImportant((v) => !v)}>
               只看重要的：{showImportant ? '开' : '关'}
@@ -103,18 +102,14 @@ export const DocsNewsCardPage: React.FC = () => {
               <NewsCard key={item.id} item={item} showImportant={showImportant} ordinal={i} />
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 长正文展开/收起 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：长正文展开 / 收起</h2>
-          <p className="text-xs text-muted">
-            正文默认 2 行截断；超出时出现「展开」按钮，点击以网格动画平滑展开全文并切换为「收起」。
-          </p>
+        <DocsSection title="示例二：长正文展开 / 收起" description="正文默认 2 行截断；超出时出现「展开」按钮，点击以网格动画平滑展开全文并切换为「收起」。">
           <div className="flex max-w-3xl flex-col">
             <NewsCard item={MOCK_NEWS[3]} showImportant={false} />
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );
