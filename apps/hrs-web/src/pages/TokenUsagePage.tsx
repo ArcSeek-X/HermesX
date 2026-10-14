@@ -263,7 +263,7 @@ const TokenUsagePage: React.FC = () => {
             </div>
 
             {dashboard.totalCalls === 0 ? (
-              <EmptyState title={t('usage.emptyTitle')} description={t('usage.emptyDescription')} />
+              <EmptyState type="card" title={t('usage.emptyTitle')} description={t('usage.emptyDescription')} />
             ) : (
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
                 <section className="space-y-4">
