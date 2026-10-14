@@ -85,6 +85,8 @@ export interface UseLiveNewsOptions {
     autoRefresh?: boolean;
     /** 轮询间隔（毫秒），默认 30 秒 */
     pollIntervalMs?: number;
+    /** 是否启用（页面活动态）：路由缓存隐藏时为 false，暂停首屏拉取与轮询，切回即刷新 */
+    enabled?: boolean;
 }
 
 /** 快讯列表 Hook 的返回值 */
@@ -158,6 +160,7 @@ export function useLiveNews(
         date = null,
         autoRefresh = true,
         pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
+        enabled = true,
     } = options;
 
     // items 为 null 表示「尚未成功加载过一次」，用于推导首屏加载态；
@@ -242,14 +245,16 @@ export function useLiveNews(
         [channel, importantOnly, debouncedKeyword, date]
     );
 
-    // 主查询：频道/重要级/关键词/日期任一变化，都重新拉取第一页。
+    // 主查询：频道/重要级/关键词/日期任一变化（或页面由隐藏重新变为活动），都重新拉取第一页。
     //
     // 这里用一个 0ms 定时器把请求推出 effect 的同步执行路径：
     // `react-hooks/set-state-in-effect` 规则不允许在 effect 体内（含其同步调用的
     // 函数）触发 setState，而 fetchList 内部会更新列表数据。延后一个 tick 既能
     // 满足该约束、避免级联渲染，又保留了「依赖变化自动重新拉取」的语义。
+    //
+    // enabled=false（路由缓存隐藏）时不拉取，切回活动态时重跑本 effect 实现刷新。
     useEffect(() => {
-        if (!channel) return;
+        if (!enabled || !channel) return;
         let cancelled = false;
         const handle = window.setTimeout(() => {
             if (!cancelled) void fetchList(null, 'replace');
@@ -259,16 +264,16 @@ export function useLiveNews(
             window.clearTimeout(handle);
             abortRef.current?.abort();
         };
-    }, [channel, fetchList]);
+    }, [channel, fetchList, enabled]);
 
-    // 轮询：仅第一页、页面可见且开启自动刷新时生效
+    // 轮询：仅第一页、页面可见、开启自动刷新且页面处于活动态时生效
     useEffect(() => {
-        if (!autoRefresh || !visible || !channel) return;
+        if (!autoRefresh || !visible || !channel || !enabled) return;
         const timer = window.setInterval(() => {
             void fetchList(null, 'replace');
         }, pollIntervalMs);
         return () => window.clearInterval(timer);
-    }, [autoRefresh, visible, channel, pollIntervalMs, fetchList]);
+    }, [autoRefresh, visible, channel, pollIntervalMs, fetchList, enabled]);
 
     /** 加载下一页 */
     const loadMore = useCallback(() => {
