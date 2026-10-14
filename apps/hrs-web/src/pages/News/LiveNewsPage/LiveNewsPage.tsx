@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react';
 import { Checkbox, HrsButton, HrsSelect, HrsInput, Loading, TabNav, type HrsSelectOptionDef, NewsCard } from '@components';
 import { PageHeader } from '@components/page-layout';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useKeepAliveContext } from 'keepalive-for-react';
 import { useLiveNews, useLiveNewsChannels } from '../../../hooks/useLiveNews';
 // 组件统一从 components 桶文件引入，避免逐层深引用 basic/ 内部路径
 
@@ -52,6 +53,9 @@ const LiveNewsPage: React.FC = () => {
     // 防止停留在一个必然为空的筛选态。
     const effectiveImportantOnly = importantOnly && !degraded;
 
+    // 页面活动态（路由缓存）：隐藏时暂停快讯拉取与轮询，切回即刷新
+    const { active: isPageActive } = useKeepAliveContext();
+
     const {
         newsGroupedByDate,
         loading,
@@ -66,6 +70,7 @@ const LiveNewsPage: React.FC = () => {
         importantOnly: effectiveImportantOnly,
         keyword,
         date: dateValue || null,
+        enabled: isPageActive,
     });
 
     const channelTabItems = useMemo(
