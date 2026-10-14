@@ -19,8 +19,8 @@ export interface LiveCalendarFilterValue {
     importance: ImportanceLevel[];
     /** 事件类型三态 */
     calendarType: LiveCalendarTypeFilter;
-    /** 国家 ID；空串表示全部 */
-    countryId: string;
+    /** 国家 ID 多选；空数组表示全部 */
+    countryIds: string[];
     /** 标题关键词（匹配 title / shortTitle） */
     keyword: string;
 }
@@ -35,7 +35,7 @@ export function createDefaultLiveCalendarFilter(): LiveCalendarFilterValue {
     return {
         importance: [...ALL_IMPORTANCE_LEVELS],
         calendarType: 'all',
-        countryId: '',
+        countryIds: [],
         keyword: '',
     };
 }
@@ -52,7 +52,7 @@ export function countActiveFilters(value: LiveCalendarFilterValue): number {
     let count = 0;
     if (value.importance.length !== ALL_IMPORTANCE_LEVELS.length) count += 1;
     if (value.calendarType !== 'all') count += 1;
-    if (value.countryId) count += 1;
+    if (value.countryIds.length > 0) count += 1;
     if (value.keyword.trim()) count += 1;
     return count;
 }

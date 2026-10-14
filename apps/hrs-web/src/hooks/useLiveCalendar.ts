@@ -212,6 +212,9 @@ export function useLiveCalendarCountries(): {
 /** 月度日历 Hook 的过滤选项 */
 export interface UseLiveCalendarOptions {
   tab?: CalendarTabDef['value'];
+  /** 国家 ID 多选（客户端过滤）；空数组 / 不传 = 全部 */
+  countryIds?: string[];
+  /** @deprecated 单值形态已被 `countryIds` 取代，保留做向后兼容 */
   countryId?: string;
   importanceMin?: number;
   includeEconomicData?: boolean;
@@ -251,6 +254,7 @@ export function useLiveCalendarMonths(
 ): UseLiveCalendarReturn {
   const {
     tab,
+    countryIds,
     countryId,
     importanceMin,
     includeEconomicData = true,
@@ -258,6 +262,16 @@ export function useLiveCalendarMonths(
     calendarType,
     keyword,
   } = options;
+  // 兼容旧调用方：仍传单值 countryId 时并入多选集合
+  const resolvedCountryIds = useMemo<undefined | string[]>(
+    () =>
+      countryIds && countryIds.length > 0
+        ? countryIds
+        : countryId
+          ? [countryId]
+          : undefined,
+    [countryIds, countryId],
+  );
 
   /** `null` 表示首屏尚未拿到可显示数据；失败时保留上一帧避免空屏闪烁。 */
   const [visibleResults, setVisibleResults] = useState<CachedLiveCalendarMonthResult[] | null>(null);
@@ -426,7 +440,7 @@ export function useLiveCalendarMonths(
   );
   const hasClientFilters = Boolean(
     (tab && tab !== 'all') ||
-    countryId ||
+    (resolvedCountryIds && resolvedCountryIds.length > 0) ||
     importanceMin !== undefined ||
     importanceSet ||
     calendarType ||
@@ -444,8 +458,9 @@ export function useLiveCalendarMonths(
     if (tab && tab !== 'all') {
       result = result.filter((event) => event.tabKeys.includes(tab));
     }
-    if (countryId) {
-      result = result.filter((event) => event.countryId === countryId);
+    if (resolvedCountryIds && resolvedCountryIds.length > 0) {
+      const countrySet = new Set(resolvedCountryIds);
+      result = result.filter((event) => countrySet.has(event.countryId));
     }
     if (importanceMin !== undefined) {
       result = result.filter((event) => event.importance >= importanceMin);
@@ -464,7 +479,7 @@ export function useLiveCalendarMonths(
       );
     }
     return result;
-  }, [items, tab, countryId, importanceMin, importanceSet, calendarType, keywordMatcher]);
+  }, [items, tab, resolvedCountryIds, importanceMin, importanceSet, calendarType, keywordMatcher]);
 
   /** 按天归格（本地时区）；无筛选时直接复用缓存分桶结果，减少切月重算。 */
   const eventsByDay = useMemo(() => {

@@ -40,9 +40,6 @@ import {
     type LiveCalendarTypeFilter,
 } from './LiveCalendarFilterState';
 
-/** 国家下拉里「全部」对应的选项 key（真实 countryId 为空串，故用独立 key） */
-const ALL_COUNTRY_KEY = '__all__';
-
 /** 拼音首字母取不到（非中文名）的国家归入该分组，排在 A-Z 之后 */
 const OTHER_COUNTRY_GROUP = '#';
 
@@ -145,7 +142,6 @@ export const LiveCalendarFilterPanel = memo(
             }
 
             return [
-                { key: ALL_COUNTRY_KEY, label: t('component.LiveCalendar.filter.country.all') },
                 ...[...groups.entries()]
                     .sort(([a], [b]) =>
                         a === OTHER_COUNTRY_GROUP ? 1 : b === OTHER_COUNTRY_GROUP ? -1 : a.localeCompare(b),
@@ -156,10 +152,9 @@ export const LiveCalendarFilterPanel = memo(
                         options,
                     })),
             ];
-        }, [countries, t]);
+        }, [countries]);
 
-        // 无国旗的选项（含「全部国家/地区」）不渲染占位块，直接贴左显示国名，
-        // 避免触发器与下拉列表里出现一块空区域
+        // 无国旗的选项不渲染占位块，直接贴左显示国名，避免下拉列表里出现一块空区域
         const renderCountryOption = (option: HrsSelectOptionDef) => {
             const flagUri = flagUriByCountryId.get(String(option.key));
             return (
@@ -235,24 +230,27 @@ export const LiveCalendarFilterPanel = memo(
                             />
                         </FilterField>
 
-                        {/* 国家 / 地区 */}
+                        {/* 国家 / 地区：多选；空数组 = 全部（显示「全部国家/地区」标签） */}
                         <FilterField
                             label={t('component.LiveCalendar.filter.country')}
-                            className="min-w-[7rem] flex-[0_1_9rem]"
+                            className="min-w-[9rem] flex-[0_1_12rem]"
                         >
                             <HrsSelect
                                 size="sm"
+                                selectionMode="multiple"
                                 options={countryOptions}
-                                value={draft.countryId || ALL_COUNTRY_KEY}
-                                onChange={(next) =>
+                                placeholder={t('component.LiveCalendar.filter.country.all')}
+                                value={draft.countryIds}
+                                onChange={(next) => {
+                                    const nextArr = Array.isArray(next)
+                                        ? (next as Array<string | number>)
+                                        : [];
+                                    // 空数组 = 全部（不筛选）；多选直接映射为国家 ID 列表
                                     setDraft((prev) => ({
                                         ...prev,
-                                        countryId:
-                                            String(next) === ALL_COUNTRY_KEY
-                                                ? ''
-                                                : String(next),
-                                    }))
-                                }
+                                        countryIds: nextArr.map(String),
+                                    }));
+                                }}
                                 renderItem={renderCountryOption}
                                 className="w-full"
                                 // 滚动容器是弹层本身（.select__popover 自带 overflow-y-auto），
@@ -268,29 +266,29 @@ export const LiveCalendarFilterPanel = memo(
                             label={t('component.LiveCalendar.filter.keyword')}
                             className="min-w-[11rem] flex-[1_1_14rem]"
                         >
-                            <div className="relative w-full">
-                                <Search
-                                    aria-hidden
-                                    className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-text"
-                                />
-                                <HrsInput
-                                    className="w-full pl-7"
-                                    value={draft.keyword}
-                                    placeholder={t('component.LiveCalendar.filter.keywordPlaceholder')}
-                                    onChange={(e) =>
-                                        setDraft((prev) => ({
-                                            ...prev,
-                                            keyword: e.target.value,
-                                        }))
+                            <HrsInput
+                                className="w-full"
+                                prefixNode={
+                                    <Search
+                                        aria-hidden
+                                        className="h-3.5 w-3.5 text-muted-text"
+                                    />
+                                }
+                                value={draft.keyword}
+                                placeholder={t('component.LiveCalendar.filter.keywordPlaceholder')}
+                                onChange={(e) =>
+                                    setDraft((prev) => ({
+                                        ...prev,
+                                        keyword: e.target.value,
+                                    }))
+                                }
+                                onKeyDown={(e) => {
+                                    // 回车即确认，与点「确认」等价
+                                    if (e.key === 'Enter') {
+                                        onApply({ ...draft, keyword: draft.keyword.trim() });
                                     }
-                                    onKeyDown={(e) => {
-                                        // 回车即确认，与点「确认」等价
-                                        if (e.key === 'Enter') {
-                                            onApply({ ...draft, keyword: draft.keyword.trim() });
-                                        }
-                                    }}
-                                />
-                            </div>
+                                }}
+                            />
                         </FilterField>
 
                         {/* 操作区：靠右；行容器是 items-start，self-end 使按钮与输入框底部对齐 */}
