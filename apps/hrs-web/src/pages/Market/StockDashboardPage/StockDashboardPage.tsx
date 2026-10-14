@@ -1,4 +1,5 @@
 /**
+ * @file Market/StockDashboardPage/StockDashboardPage.tsx
  * StockDashboardPage —— 市场总览页面
  * =====================================================================
  * 【功能介绍】
@@ -19,6 +20,8 @@
  * - 三个 TAB 共用统一 `cards[]` 契约，前端仅维护按 market key 分桶的卡片缓存。
  * - 所有接口后端有 60 秒 TTL，前端 30 秒轮询当前 TAB，只触发一个请求。
  * =====================================================================
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -26,6 +29,7 @@ import { TabNav } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { PageHeader } from '@components/page-layout';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { useKeepAliveContext } from 'keepalive-for-react';
 import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';
 import IndexCard from '@components/indexCard/IndexCard';
 import { useCachedState } from '../../../hooks/useCachedState';
@@ -131,6 +135,8 @@ function renderMarketCard(card: MarketCardItem, ordinal: number) {
  */
 const StockDashboardPage: React.FC = () => {
   const { t } = useUiLanguage();
+  /** 页面活动态（路由缓存）：隐藏时暂停加载与 30 秒轮询，切回即刷新 */
+  const { active: isPageActive } = useKeepAliveContext();
   /** 当前页按 market key 缓存的统一卡片列表 */
   const [cardsByMarket, setCardsByMarket] = useState<Record<MarketTab, MarketCardItem[] | null>>({
     a: null,
@@ -158,8 +164,10 @@ const StockDashboardPage: React.FC = () => {
     }
   }, []);
 
-  // 挂载时加载当前 TAB，切换 TAB 时按需加载；之后每 30 秒刷新当前 TAB
+  // 挂载时加载当前 TAB，切换 TAB 时按需加载；之后每 30 秒刷新当前 TAB。
+  // 页面被路由缓存隐藏时（isPageActive=false）暂停加载与轮询，切回时重跑本 effect 即刷新。
   useEffect(() => {
+    if (!isPageActive) return undefined;
     async function init() {
       await load(marketTab);
     }
@@ -168,7 +176,7 @@ const StockDashboardPage: React.FC = () => {
       load(marketTab);
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [load, marketTab]);
+  }, [load, marketTab, isPageActive]);
 
   const currentCards = cardsByMarket[marketTab];
   const displayCards = currentCards && currentCards.length > 0 ? currentCards : buildPlaceholderCards(marketTab);

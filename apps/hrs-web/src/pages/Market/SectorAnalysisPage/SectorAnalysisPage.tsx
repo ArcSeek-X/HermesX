@@ -1,4 +1,5 @@
 /**
+ * @file Market/SectorAnalysisPage/SectorAnalysisPage.tsx
  * ===================================
  * 板块分析页面（SectorAnalysisPage）
  * ===================================
@@ -29,6 +30,8 @@
  * 状态管理：
  * - 一级/二级 TAB、快照时间、周期等用户偏好通过 useCachedState 持久化
  * - 云图数据、资金流数据通过 API 函数从后端获取
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import type React from 'react';
@@ -225,7 +228,6 @@ const SectorAnalysisPage: React.FC = () => {
 
   /** 加载板块云图数据（申万行业分类），time 为空表示实时 */
   const loadSectorCloudMap = useCallback(async (time?: string) => {
-    console.log('loadSectorCloudMap', cloudMapTab, time);
     setLoading(true);
     try {
       const result = await fetchIndustryTree(time);
@@ -246,7 +248,7 @@ const SectorAnalysisPage: React.FC = () => {
       const result = await fetchStockCloudMap(time);
       setTreemapData(result.sectors);
       setLastUpdate(new Date());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('加载个股云图失败:', err);
       // 数据源严谨性：该时间点若无快照，明确提示，不填充其他时间数据
       setStockError(
@@ -297,7 +299,6 @@ const SectorAnalysisPage: React.FC = () => {
    * - concept（概念云图）：使用周期选择器 conceptPeriod，忽略 time
    */
   const loadActiveCloudMap = useCallback((time?: string) => {
-    console.log('loadActiveCloudMap', cloudMapTab, time);
     switch (cloudMapTab) {
       case 'sector':
         loadSectorCloudMap(time);
