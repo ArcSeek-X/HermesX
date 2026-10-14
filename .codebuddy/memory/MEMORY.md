@@ -19,6 +19,14 @@
 - 隐藏滚动条：用 `.scrollbar-none`（`global.scss` `@layer utilities`），只视觉隐藏。
 - Tailwind v4.1 层顺序：`global.scss` 须在 `index.css` 的 `@import "tailwindcss"` 之后；自定义 utility 用 `@layer utilities`。
 
+## 消息日历筛选（LiveCalendar，2026-09~10 实施）
+- 四个条件（重要度多选 / 类型 FE·FD / 国家多选 / 关键词）一律**客户端过滤**（整月数据已在内存），在 `hooks/useLiveCalendar.ts` 的 `events` useMemo 内完成，不新增请求；与 `includeEconomicData`（后端开关、会触发重拉）是两套，勿混用。
+- 数据契约见 `components/common/LiveCalendar/LiveCalendarFilterState.ts`（`LiveCalendarFilterValue` / `countActiveFilters` / `createDefaultLiveCalendarFilter`，与组件分离是为规避 `react-refresh/only-export-components`）。
+- **国家筛选是 `countryIds: string[]` 多选**（空数组 = 全部；“全部国家/地区”选项 `ALL_COUNTRY_KEY='__all__'` 选中即清空数组）。hook 入参为 `countryIds`，旧 `countryId` 单值已保留为兼容桥接（`resolvedCountryIds`）。
+- 草稿 / 生效分离：面板内 `draft` state，点「确认」才上抛，输入不触发日历重算；草稿用**渲染期同步**对齐已生效值（非 effect，否则触发 `react-hooks/set-state-in-effect`）。
+- 国家下拉无国旗项不渲染占位块（`renderCountryOption` 里 `flagUri` 缺失直接不渲染 `<img>`，国名贴左），避免触发器 / 列表里空一块。
+- **`HrsInput` 新增 `clearable`（默认 true）**：输入内容后右侧显示 × 清除按钮（绝对定位覆盖，不切 InputGroup 结构，故打字不丢焦点）；清除触发 `onChange`/`onValueChange` 上抛空串。clearable=true 时整体包一层 `relative` 容器（用户 className 落该容器），输入框加 `pr-7`。注意：默认开启会让全站 `HrsInput` 获得该行为与 `pr-7` 右内边距。
+
 ## 前端路由架构（数据路由 / data router，2026-09-20 实施，2026-09-21 解耦异常路由）
 - React Router **数据路由**（`createBrowserRouter` + `RouterProvider`）；原声明式 `<Routes>`（`AppContent.tsx`）与 `AuthContext` 已删除。
 - 鉴权唯一真源：`src/stores/AuthStore.ts`（Zustand）；`bootstrap()/login/logout` 在此，`main.tsx` **阻塞式** await 后 `render`（首屏前鉴权态就绪）。
