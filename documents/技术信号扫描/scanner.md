@@ -152,7 +152,7 @@
 | 池来源 / 排序字段切换 | `TabNav` | `@components` |
 | 命中信号标签 | `Chip` | `@components` |
 | 开始 / 取消 / TopN | `HrsButton` | `@components` |
-| 页头 / 空态 | `PageHeader` / `EmptyState` | `@components/page-layout` |
+| 页头 / 空态 | `PageHeader` / `EmptyState` | `@components/layout/PageLayout/PageHeader` / `@components/basic/EmptyState` |
 
 组件使用与修改原则：
 
