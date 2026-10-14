@@ -13,6 +13,8 @@
  * - period: L4（localStorage），永久保存用户偏好
  * - stockInfo/klineData: L2（PageStateStore），切换路由不丢失
  * - API 请求: L1（apiCache），TTL 内自动去重
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import type React from 'react';
@@ -235,7 +237,6 @@ const StockKLinePage: React.FC = () => {
   /** 全量数据开关切换 */
   const handleFullDataToggle = useCallback((checked: boolean) => {
     setShowSwitch(checked);
-    console.log('[全量数据开关]', checked ? '开启 → limit=10000' : '关闭 → 使用后端默认值', 'stockCode:', stockCodeRef.current, 'period:', periodRef.current);
     if (stockCodeRef.current) {
       // 开启：传 limit=10000 拉全量；关闭：不传 limit，使用后端周期默认值
       const limit = checked ? 10000 : undefined;

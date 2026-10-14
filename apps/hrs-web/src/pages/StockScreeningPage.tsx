@@ -11,6 +11,8 @@
  * - 浏览热点题材云图，查看发酵时间线和概念股
  * - 展示候选股票列表，支持展开查看因子评分、LLM 判断、风险标签等详情
  * - 选股任务状态持久化到 sessionStorage，刷新页面后自动恢复轮询
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 import type React from 'react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';

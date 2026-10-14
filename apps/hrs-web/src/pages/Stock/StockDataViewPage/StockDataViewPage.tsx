@@ -3,6 +3,8 @@
  * @description 股票数据视图页面：搜索个股并查看其行情 K 线与基础数据。
  * 作为「K 线」之外的独立数据视图入口，复用既有 kline 组件与 API，拥有独立的状态键。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import type React from 'react';
