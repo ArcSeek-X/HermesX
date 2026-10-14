@@ -216,7 +216,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 <a id="sec-i"></a>
 ## <a id="i-前端组件复用策略现成优先"></a>I. 前端组件复用策略（现成优先）
 
-目标：页面功能照搬参考项目，但**组件一律优先采用 `apps/hrs-web/src/components/` 中的现成组件**，无则自行实现。已对 `components/basic`、`components/common`、`components/kline`、`components/page-layout` 盘点，可用资产如下：
+目标：页面功能照搬参考项目，但**组件一律优先采用 `apps/hrs-web/src/components/` 中的现成组件**，无则自行实现。已对 `components/basic`、`components/common`、`components/kline`、`components/layout/PageLayout` 盘点，可用资产如下：
 
 | 页面需求（参考项目组件） | 本项目现成组件 | 复用方式 |
 |---|---|---|
@@ -227,8 +227,8 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 | 弹层（方案管理 / 最近使用面板） | `Modal`(basic) / `HrsDrawer`(common) | 直接复用 |
 | 排序栏 Tab | `TabNav`(common) | 复用做排序切换，或纯按钮组 |
 | 加载 / 进度 | `Loading`(basic) | 复用（进度遮罩自组合） |
-| 空态 / 无结果 | `EmptyState`(page-layout) | 直接复用 |
-| 标题区 | `PageHeader`(page-layout) | 直接复用（占位骨架已用） |
+| 空态 / 无结果 | `EmptyState`(basic) | 直接复用 |
+| 标题区 | `PageHeader`(layout/PageLayout) | 直接复用（占位骨架已用） |
 | 提示 Toast | `Toast` / `InlineToast`(basic) | 直接复用（取消/无结果提示） |
 | 分页（结果较多时） | `Pagination`(common) | 直接复用 |
 | 滚动容器 | `ScrollArea`(common) | 直接复用 |
