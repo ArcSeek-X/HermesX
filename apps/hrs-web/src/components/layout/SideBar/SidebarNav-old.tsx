@@ -57,7 +57,7 @@ const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'stock-dashboard', labelKey: 'layout.nav.index.title', to: '/stock-dashboard', icon: LayoutDashboard },
   { key: 'sector-analysis', labelKey: 'layout.nav.sectorAnalysis.title', to: '/sector-analysis', icon: LayoutGrid },
   { key: 'watchlist', labelKey: 'layout.nav.watchlist.title', to: '/watchlist', icon: Star },
-  { key: 'live-calendar', labelKey: 'layout.nav.liveCalendar.title', to: '/live-calendar', icon: CalendarDays },
+  { key: 'live-calendar', labelKey: 'layout.nav.liveCalendar.title', to: '/news/live-calendar', icon: CalendarDays },
   { key: 'live-news', labelKey: 'layout.nav.liveNews.title', to: '/live-news', icon: Newspaper },
   { key: 'chat', labelKey: 'layout.nav.chat.title', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
   { key: 'review', labelKey: 'layout.nav.review.title', to: '/review', icon: History },
@@ -66,7 +66,7 @@ const PRODUCT_NAV_ITEMS: NavItem[] = [
   { key: 'backtest', labelKey: 'layout.nav.backtest.title', to: '/backtest', icon: BarChart3 },
   { key: 'alerts', labelKey: 'layout.nav.alerts.title', to: '/alerts', icon: Bell },
   { key: 'usage', labelKey: 'layout.nav.usage.title', to: '/usage', icon: Gauge },
-  { key: 'screening', labelKey: 'layout.nav.screening.title', to: '/screening', icon: Search },
+  { key: 'screening', labelKey: 'layout.nav.screening.title', to: '/discover/screening', icon: Search },
   { key: 'code-test', labelKey: 'layout.nav.codeTest.title', to: '/codeTest', icon: FlaskConical },
 ];
 

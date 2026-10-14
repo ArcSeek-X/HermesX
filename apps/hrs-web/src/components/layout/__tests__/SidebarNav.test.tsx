@@ -52,7 +52,7 @@ describe('SidebarNavOld', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
+    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/discover/screening');
   });
 
   it('places screening at the end of the nav list when AlphaSift is enabled', async () => {
@@ -67,7 +67,7 @@ describe('SidebarNavOld', () => {
     await screen.findByRole('link', { name: '选股' });
     const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
     // 选股项紧跟用量之后（末尾的 /settings 为独立入口）；其余项顺序由 NAV_ITEMS 决定，此处只验证相对位置
-    expect(hrefs.indexOf('/screening')).toBe(hrefs.indexOf('/usage') + 1);
+    expect(hrefs.indexOf('/discover/screening')).toBe(hrefs.indexOf('/usage') + 1);
   });
 
   it('refreshes the screening navigation item after any config save event', async () => {
@@ -84,7 +84,7 @@ describe('SidebarNavOld', () => {
     expect(screen.queryByRole('link', { name: '选股' })).not.toBeInTheDocument();
     window.dispatchEvent(new Event('hrs-system-config-changed'));
 
-    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
+    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/discover/screening');
     await waitFor(() => expect(mockGetAlphaSiftStatus.mock.calls.length).toBeGreaterThanOrEqual(2));
   });
 
