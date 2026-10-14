@@ -1,4 +1,92 @@
-# 消息日历（Live Calendar）设计方案
+# <a id="消息日历live-calendar设计方案"></a>消息日历（Live Calendar）设计方案
+
+> 📝 **方案简述**：本方案将华尔街见闻财经日历能力搬入 HermesX，落地于 /live-calendar 路由，提供宏观、财报、新股、活动四个分类 Tab 与月、周、日、列表四种视图，按天标注事件。文档给出数据源与接口契约，含分类 Tab 由服务端打标而非上游字段这一关键约束，以及重要度统一量纲、复用 intelligence_items 表的数据库设计、四个后端接口规格、抓取落库与查询聚合流程、前端组件树与性能优化、降级策略、边界条件与配置项，并附前后端核心实现代码。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [目录](#目录)
+- [附录 A. 文档信息与变更日志](#附录-a-文档信息与变更日志)
+  - [A.1 文档信息](#a1-文档信息)
+  - [A.2 变更日志](#a2-变更日志)
+- [1. 背景与目标](#1-背景与目标)
+  - [1.1 需求来源](#11-需求来源)
+  - [1.2 与 live-news 的关键差异](#12-与-live-news-的关键差异)
+  - [1.3 复用基础与当前实现状态](#13-复用基础与当前实现状态)
+- [2. 数据源与接口契约](#2-数据源与接口契约)
+  - [2.1 数据源](#21-数据源)
+  - [2.2 可用接口](#22-可用接口)
+  - [2.3 macrodatas 返回字段全集](#23-macrodatas-返回字段全集)
+  - [2.4 关键约束：分类 Tab 是服务端打标，不是上游字段](#24-关键约束分类-tab-是服务端打标不是上游字段)
+- [3. 系统架构与分层](#3-系统架构与分层)
+  - [3.1 各层职责边界](#31-各层职责边界)
+  - [3.2 复用 intelligence_items 表](#32-复用-intelligenceitems-表)
+  - [3.3 数据流向图](#33-数据流向图)
+  - [3.4 功能架构设计](#34-功能架构设计)
+- [4. 分类 Tab 与打标规则](#4-分类-tab-与打标规则)
+  - [4.1 分类 Tab 定义（单一真源）](#41-分类-tab-定义单一真源)
+  - [4.2 打标规则](#42-打标规则)
+  - [4.3 经济数据（FD）的处理](#43-经济数据fd的处理)
+- [5. 重要度统一量纲](#5-重要度统一量纲)
+  - [5.1 设计原则](#51-设计原则)
+  - [5.2 业务量纲映射（前后端共用）](#52-业务量纲映射前后端共用)
+  - [5.3 阈值](#53-阈值)
+- [6. 数据库设计](#6-数据库设计)
+  - [6.1 复用表与区分维度](#61-复用表与区分维度)
+  - [6.2 去重键](#62-去重键)
+  - [6.3 raw_payload 契约](#63-rawpayload-契约)
+  - [6.4 其他落库字段](#64-其他落库字段)
+- [7. 后端接口规格](#7-后端接口规格)
+  - [7.0 接口总览](#70-接口总览)
+  - [7.1 GET /live-calendar/tabs](#71-get-live-calendartabs)
+  - [7.2 GET /live-calendar/countries](#72-get-live-calendarcountries)
+  - [7.3 GET /live-calendar](#73-get-live-calendar)
+  - [7.4 POST /live-calendar/refresh](#74-post-live-calendarrefresh)
+- [8. 落库与查询流程](#8-落库与查询流程)
+  - [8.1 抓取落库（refresh_calendar）](#81-抓取落库refreshcalendar)
+  - [8.2 查询聚合（list_calendar）](#82-查询聚合listcalendar)
+  - [8.3 过滤优先级（服务端 + 客户端）](#83-过滤优先级服务端-客户端)
+- [9. 前端设计](#9-前端设计)
+  - [9.1 路由与页面](#91-路由与页面)
+  - [9.2 组件树](#92-组件树)
+  - [9.3 数据获取与归格](#93-数据获取与归格)
+  - [9.4 视图模式](#94-视图模式)
+  - [9.5 详情与筛选](#95-详情与筛选)
+  - [9.6 类型与 API 层](#96-类型与-api-层)
+  - [9.7 条件筛选功能](#97-条件筛选功能)
+  - [9.8 交互设计补充](#98-交互设计补充)
+    - [9.8.1 月视图翻月握手](#981-月视图翻月握手)
+    - [9.8.2 视图切换职责](#982-视图切换职责)
+    - [9.8.3 范围请求事件契约](#983-范围请求事件契约)
+  - [9.9 性能优化设计（前后端）](#99-性能优化设计前后端)
+    - [9.9.1 前端](#991-前端)
+    - [9.9.2 后端](#992-后端)
+- [10. 时间维度与精简标题规则](#10-时间维度与精简标题规则)
+  - [10.1 时间维度](#101-时间维度)
+  - [10.2 精简标题（short_title）](#102-精简标题shorttitle)
+- [11. 降级策略](#11-降级策略)
+- [12. 边界条件与空态](#12-边界条件与空态)
+- [13. 配置项](#13-配置项)
+- [14. 风险、合规与回滚](#14-风险合规与回滚)
+  - [14.1 风险](#141-风险)
+  - [14.2 合规](#142-合规)
+  - [14.3 回滚](#143-回滚)
+- [15. 命名规范](#15-命名规范)
+- [16. 测试与验证现状](#16-测试与验证现状)
+- [17. 接口设计要点（统一）](#17-接口设计要点统一)
+- [18. 核心实现代码（前后端）](#18-核心实现代码前后端)
+  - [18.1 抓取器 `data_provider/wallstreetcn_calendar_fetcher.py`](#181-抓取器-dataproviderwallstreetcncalendarfetcherpy)
+  - [18.2 服务层打标与落库 `src/services/intelligence_service.py`](#182-服务层打标与落库-srcservicesintelligenceservicepy)
+  - [18.3 聚合与过滤 `src/services/intelligence_service.py`](#183-聚合与过滤-srcservicesintelligenceservicepy)
+  - [18.4 仓储查询 `src/repositories/intelligence_repo.py`](#184-仓储查询-srcrepositoriesintelligencerepopy)
+  - [18.5 API 端点与 Schema `api/v1/endpoints/intelligence.py` + `schemas/intelligence.py`](#185-api-端点与-schema-apiv1endpointsintelligencepy-schemasintelligencepy)
+  - [18.6 前端类型与 API 层 `apps/hrs-web/src`](#186-前端类型与-api-层-appshrs-websrc)
+  - [18.7 Hook 核心 `hooks/useLiveCalendar.ts`](#187-hook-核心-hooksuselivecalendarts)
+  - [18.8 页面与视图 `pages/LiveCalendarPage.tsx` + `components/common/LiveCalendar/LiveCalendar.tsx`](#188-页面与视图-pageslivecalendarpagetsx-componentscommonlivecalendarlivecalendartsx)
+
 
 > 目标：将华尔街见闻 `https://wallstreetcn.com/calendar` 的财经日历能力搬入 HermesX，提供「宏观 / 财报 / 新股 / 活动 分类 Tab + 月 / 周 / 日 / 列表视图 + 按天标注事件」的日历板块。
 >
@@ -11,7 +99,7 @@
 
 ***
 
-## 目录
+## <a id="目录"></a>目录
 
 - [1. 背景与目标](#1-背景与目标)
 - [2. 数据源与接口契约](#2-数据源与接口契约)
@@ -37,20 +125,18 @@
 
 ***
 
-## 附录 A. 文档信息与变更日志
+## <a id="附录-a-文档信息与变更日志"></a>附录 A. 文档信息与变更日志
 
-### A.1 文档信息
+### <a id="a1-文档信息"></a>A.1 文档信息
 
 | 项 | 内容 |
 | -- | -- |
 | 文档名称 | 消息日历（Live Calendar）设计方案 |
-| 作者 | Lensgcx (GaoCangxiong) / HermesX 平台组 |
-| 最近更新 | 2026-10-06 |
 | 状态 | 已落地，与当前实现同步 |
 | 适用范围 | 后端 `data_provider` / `src/services` / `src/repositories` / `api`；前端 `apps/hrs-web` |
 | 维护约定 | 任何接口契约 / 分类规则 / 落库结构变更须同步更新本文对应章节 |
 
-### A.2 变更日志
+### <a id="a2-变更日志"></a>A.2 变更日志
 
 | 版本 | 日期 | 作者 | 变更摘要 |
 | -- | -- | -- | -- |
@@ -59,9 +145,9 @@
 
 ***
 
-## 1. 背景与目标
+## <a id="1-背景与目标"></a>1. 背景与目标
 
-### 1.1 需求来源
+### <a id="11-需求来源"></a>1.1 需求来源
 
 参考华尔街见闻财经日历页 `https://wallstreetcn.com/calendar`，该页面具备：
 
@@ -69,7 +155,7 @@
 - 内容区：**月历网格**，每个日期格内标注当天事件，事件带**重要级色阶**与**国旗标识**
 - 详情层：单条事件可展开看前瞻解读、经济数据四值（实际 / 预测 / 前值 / 修订）
 
-### 1.2 与 live-news 的关键差异
+### <a id="12-与-live-news-的关键差异"></a>1.2 与 live-news 的关键差异
 
 | 维度     | live-news（快讯）              | live-calendar（日历）               |
 | ------ | ------------------------- | ------------------------------ |
@@ -79,7 +165,7 @@
 | 上游接口   | `/apiv1/content/lives`     | `/apiv1/finance/macrodatas`    |
 | 上游分类   | `channels`（8 频道）            | `calendar_type`（`FE` / `FD`）+ 服务端关键字打标   |
 
-### 1.3 复用基础与当前实现状态
+### <a id="13-复用基础与当前实现状态"></a>1.3 复用基础与当前实现状态
 
 | 能力       | 位置                                       | 状态                          |
 | -------- | ---------------------------------------- | --------------------------- |
@@ -97,14 +183,14 @@
 
 ***
 
-## 2. 数据源与接口契约
+## <a id="2-数据源与接口契约"></a>2. 数据源与接口契约
 
-### 2.1 数据源
+### <a id="21-数据源"></a>2.1 数据源
 
 - 主数据源：华尔街见闻财经日历接口，**基址** `https://api-one-wscn.awtmt.com`（与快讯域名 `api-one.wallstcn.com` 不同）。
 - 抓取器：`WallstreetcnCalendarFetcher`，仅负责 HTTP 交互与原始响应解析，不含分类打标、落库、SSRF 校验（由服务层注入安全的 `request_get` 回调提供）。
 
-### 2.2 可用接口
+### <a id="22-可用接口"></a>2.2 可用接口
 
 | #   | 接口                                                                       | 用途     | 状态                   |
 | --- | ------------------------------------------------------------------------ | ------ | -------------------- |
@@ -122,7 +208,7 @@
 
 **时间窗口**：`start` / `end` 为**秒级 UTC 时间戳**，闭区间。`macrodatas` 一次返回区间内全部事件（无分页游标），单月约 500~900 条。
 
-### 2.3 macrodatas 返回字段全集
+### <a id="23-macrodatas-返回字段全集"></a>2.3 macrodatas 返回字段全集
 
 ```json
 {
@@ -178,14 +264,14 @@
 | `actual` / `forecast` / `previous` / `revised` | string  | 实际值 / 预测值 / 前值 / 修订值                | **仅 `FD` 有值**，经济数据四件套                          |
 | `uri`           | string  | 原文链接                                | `FE` 多为空                                        |
 
-### 2.4 关键约束：分类 Tab 是服务端打标，不是上游字段
+### <a id="24-关键约束分类-tab-是服务端打标不是上游字段"></a>2.4 关键约束：分类 Tab 是服务端打标，不是上游字段
 
 - 华尔街见闻的「宏观 / 财报 / 新股 / 活动」**不是上游返回的字段**，原页面由同一批数据 + 客户端过滤呈现。本项目由服务层对 `macrodatas` 的 `FE` 事件按标题 + 前瞻关键字打标（规则见 §4）。
 - `reports` / `ipodatas` 端点虽存在，但对未登录态恒返回空，本期**不作为数据源依赖**，仅保留国家字典与 `macrodatas` 两个契约。
 
 ***
 
-## 3. 系统架构与分层
+## <a id="3-系统架构与分层"></a>3. 系统架构与分层
 
 ```text
                   ┌─────────────────────────────────────────────┐
@@ -221,14 +307,14 @@
             └────────────────────┘         └─────────────────────────┘
 ```
 
-### 3.1 各层职责边界
+### <a id="31-各层职责边界"></a>3.1 各层职责边界
 
 - **`data_provider/wallstreetcn_calendar_fetcher.py`**：仅做 HTTP 与解析，定义 `CalendarCountryEntry` / `CalendarEventEntry` 中间结构；不含分类、落库、降级、SSRF 校验。
 - **`src/services/intelligence_service.py`（日历段落）**：打标规则、落库行展开、聚合去重、过滤、惰性抓取、精简标题、国家字典进程内缓存 TTL。
 - **`src/repositories/intelligence_repo.py`**：`list_calendar_events` 按 `scope_type='calendar'` + 时间闭区间查询；写入复用 `upsert_items`。
 - **`api/v1/endpoints/intelligence.py`**：路由编排，错误统一收敛为 500 `ErrorResponse`。
 
-### 3.2 复用 intelligence_items 表
+### <a id="32-复用-intelligenceitems-表"></a>3.2 复用 intelligence_items 表
 
 日历与快讯 / 通用资讯共用一张 `intelligence_items` 表，通过 `scope_type` 区分：
 
@@ -238,7 +324,7 @@
 
 不新增表、不改唯一约束，与快讯「多频道各存一行」思路一致。
 
-### 3.3 数据流向图
+### <a id="33-数据流向图"></a>3.3 数据流向图
 
 ```mermaid
 flowchart TD
@@ -256,7 +342,7 @@ flowchart TD
     API -->|触发惰性/手动抓取| S
 ```
 
-### 3.4 功能架构设计
+### <a id="34-功能架构设计"></a>3.4 功能架构设计
 
 按职责切分四个功能域，自上而下为「采集 → 处理 → 存储 → 服务」，前端独立消费：
 
@@ -299,9 +385,9 @@ flowchart LR
 
 ***
 
-## 4. 分类 Tab 与打标规则
+## <a id="4-分类-tab-与打标规则"></a>4. 分类 Tab 与打标规则
 
-### 4.1 分类 Tab 定义（单一真源）
+### <a id="41-分类-tab-定义单一真源"></a>4.1 分类 Tab 定义（单一真源）
 
 Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此为准：
 
@@ -313,7 +399,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | `ipo`      | 新股    | 4     | IPO / 上市 / 纳入指数      |
 | `activity` | 活动    | 5     | 大会 / 峰会 / 论坛 / 发布会    |
 
-### 4.2 打标规则
+### <a id="42-打标规则"></a>4.2 打标规则
 
 - 仅对 `FE` 事件打标；`FD` 事件不参与分类，单独归为 `economic_data`（见 §6）。
 - 逐条按 `title + foresight` 关键字正则匹配，**可多归属**（一事件命中多分类则拆多行）。
@@ -328,20 +414,20 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 - `FE` 事件未命中任何关键字：落库 `scope_value='all'`，仅在「全部」Tab 兜底展示（特定分类 Tab 下隐藏）。
 
-### 4.3 经济数据（FD）的处理
+### <a id="43-经济数据fd的处理"></a>4.3 经济数据（FD）的处理
 
 - `FD` 事件**不打标**，落库 `scope_value='economic_data'`，`tab_keys` 为空。
 - 默认**不随分类展示**；当查询参数 `include_economic_data=true` 时，与 `FE` 事件一并返回，归在「宏观」口径下（前端默认开启该开关）。
 
 ***
 
-## 5. 重要度统一量纲
+## <a id="5-重要度统一量纲"></a>5. 重要度统一量纲
 
-### 5.1 设计原则
+### <a id="51-设计原则"></a>5.1 设计原则
 
 数据源只是数据提供方，重要度的业务定义归本项目。上游量纲（快讯 `score` 1~3、日历 `importance` 1~4、NewsNow 无字段）只在「归一化入口」出现一次，落库列 / API 输出 / 前端渲染统一使用**业务量纲 0~4**。
 
-### 5.2 业务量纲映射（前后端共用）
+### <a id="52-业务量纲映射前后端共用"></a>5.2 业务量纲映射（前后端共用）
 
 | 业务量纲 | 含义    | 上游日历 `importance`                         |
 | ---- | ----- | ---------------------------------------- |
@@ -354,15 +440,15 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 - 服务层落库前将上游 `importance` **钳制到 0~4**；缺失 → `0`（NONE），**不可兜底为 1**。
 - 前端 `apps/hrs-web/src/constants/newsImportance.ts` 的 `ImportanceLevel` / `IMPORTANCE_LABELS` / `IMPORTANCE_COLORS` / `IMPORTANT_THRESHOLD` 与服务端常量一一对应，色阶随主题联动。
 
-### 5.3 阈值
+### <a id="53-阈值"></a>5.3 阈值
 
 - 「重要」判定阈值 `IMPORTANT_THRESHOLD = 3`，与快讯 `wscn_live_news_important_score` 默认值对齐。
 
 ***
 
-## 6. 数据库设计
+## <a id="6-数据库设计"></a>6. 数据库设计
 
-### 6.1 复用表与区分维度
+### <a id="61-复用表与区分维度"></a>6.1 复用表与区分维度
 
 - 表：`intelligence_items`（不做结构改造）。
 - 区分列：`scope_type = 'calendar'`。
@@ -373,7 +459,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | `FE`            | earnings / ipo / activity / macro | 各命中分类一行；未命中 → `all` 一行        |
 | `FD`            | —                     | `economic_data`（单行）              |
 
-### 6.2 去重键
+### <a id="62-去重键"></a>6.2 去重键
 
 复用 `upsert_items` 的去重键（对应表唯一约束）：
 
@@ -391,7 +477,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 > 同一事件命中多分类 → 多行，因 `scope_value` 不同天然去重，不会重复。
 
-### 6.3 raw_payload 契约
+### <a id="63-rawpayload-契约"></a>6.3 raw_payload 契约
 
 `raw_payload` 序列化保留溯源字段，供聚合层还原（不参与 API 输出）：
 
@@ -411,7 +497,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 }
 ```
 
-### 6.4 其他落库字段
+### <a id="64-其他落库字段"></a>6.4 其他落库字段
 
 | 列             | 取值 / 来源                              |
 | ------------- | ----------------------------------- |
@@ -424,11 +510,11 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 ***
 
-## 7. 后端接口规格
+## <a id="7-后端接口规格"></a>7. 后端接口规格
 
 基础前缀：`/api/v1/intelligence/live-calendar`。响应统一 snake_case；前端 `api/liveCalendar.ts` 归一化为 camelCase。所有端点共用项目统一鉴权与错误模型（见 §17）。
 
-### 7.0 接口总览
+### <a id="70-接口总览"></a>7.0 接口总览
 
 | # | 方法 | 路径 | 用途 | 触发抓取 | 响应模型 |
 | -- | -- | -- | -- | -- | -- |
@@ -437,7 +523,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | 3 | GET | `/live-calendar` | 按月查询事件（支持多维度过滤） | 惰性（缺失月） | `CalendarMonthResponse` |
 | 4 | POST | `/live-calendar/refresh` | 手动触发指定月份抓取落库 | 是（逐月） | `CalendarRefreshResponse` |
 
-### 7.1 GET /live-calendar/tabs
+### <a id="71-get-live-calendartabs"></a>7.1 GET /live-calendar/tabs
 
 返回分类 Tab 列表（服务端常量 `_CALENDAR_TABS`，不依赖上游）。
 
@@ -458,7 +544,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | `label` | `string` | 展示名（中文） |
 | `order` | `int` | 排序权重，前端按升序排列 |
 
-### 7.2 GET /live-calendar/countries
+### <a id="72-get-live-calendarcountries"></a>7.2 GET /live-calendar/countries
 
 返回国家字典；上游失败时降级为空列表并置 `degraded=true`。进程内缓存 TTL（默认 86400s）。
 
@@ -481,7 +567,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | `currency_name` | `string` | 货币中文名 |
 | `flag_uri` | `string` | 国旗图 URL |
 
-### 7.3 GET /live-calendar
+### <a id="73-get-live-calendar"></a>7.3 GET /live-calendar
 
 查询指定月份（UTC 口径）的日历事件，支持分类 / 国家 / 重要级 / 经济数据过滤。
 
@@ -528,7 +614,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 | `is_all_day` | `boolean` | 上游 `public_date` 为 `0` |
 | `source_uri` | `string` | 原文链接 |
 
-### 7.4 POST /live-calendar/refresh
+### <a id="74-post-live-calendarrefresh"></a>7.4 POST /live-calendar/refresh
 
 手动触发指定月份抓取并落库（逐月，单月失败不阻断其它月）。
 
@@ -551,9 +637,9 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 
 ***
 
-## 8. 落库与查询流程
+## <a id="8-落库与查询流程"></a>8. 落库与查询流程
 
-### 8.1 抓取落库（refresh_calendar）
+### <a id="81-抓取落库refreshcalendar"></a>8.1 抓取落库（refresh_calendar）
 
 1. 校验总开关 `_calendar_enabled()`。
 2. 计算月份 UTC 闭区间（`_month_utc_range`：月初 `00:00:00` ~ 月末 `23:59:59`）。
@@ -561,7 +647,7 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 4. 每条事件经 `_calendar_entry_to_rows` 转行：按分类拆多行（`FD` 单独 `economic_data`），统一 `url='wscn-calendar/<id>'`、`source_name/source_type`、`market` 映射、重要度钳制。
 5. `repo.upsert_items(rows)` 批量写入（去重键见 §6.2）。
 
-### 8.2 查询聚合（list_calendar）
+### <a id="82-查询聚合listcalendar"></a>8.2 查询聚合（list_calendar）
 
 1. 校验总开关；计算月份 UTC 闭区间。
 2. `repo.list_calendar_events(published_from, published_to)` 取该月全部 `calendar` 行（**不做分类去重**）。
@@ -570,22 +656,22 @@ Tab 定义集中在 `IntelligenceService._CALENDAR_TABS`，API / 前端均以此
 5. `_filter_calendar`：按 `tab` / `country_id` / `importance_min` / `include_economic_data` 过滤。
 6. 返回 `items` / `total` / `server_time` / `degraded` / `source`。
 
-### 8.3 过滤优先级（服务端 + 客户端）
+### <a id="83-过滤优先级服务端-客户端"></a>8.3 过滤优先级（服务端 + 客户端）
 
 - **服务端过滤能力**：接口支持按 `include_economic_data` / `tab` / `country_id` / `importance_min` 过滤。
 - **当前前端策略**：页面固定按覆盖月份请求并固定 `includeEconomicData=true`；`tab` / `country_id` / `importance`（多选）/ `calendar_type`（FE/FD）/ `keyword` 均在内存中过滤，不触发新请求（见 §9.3）。
 
 ***
 
-## 9. 前端设计
+## <a id="9-前端设计"></a>9. 前端设计
 
-### 9.1 路由与页面
+### <a id="91-路由与页面"></a>9.1 路由与页面
 
 - 路由 `/live-calendar`，归属一级菜单组 `news`（`router/manifest.ts`：`menuName=资讯`、`menuDescription=财经资讯与日历`、`menuType=group`、`menuVisible=true`），与 `live-news` 同属「资讯」分组。
 - 本页节点（`router/manifest.ts`）：`menuId=live-calendar`、`menuPagePath=pages/LiveCalendarPage`、`level=1`、`auth=protected`。
 - 页面 `pages/LiveCalendarPage.tsx` 布局：页头 + 降级提示条 + 抬升卡片（TabNav + 筛选面板 + 日历主体）+ 选中日详情面板（始终置于日历下方，多列网格）。
 
-### 9.2 组件树
+### <a id="92-组件树"></a>9.2 组件树
 
 ```text
 LiveCalendarPage
@@ -603,7 +689,7 @@ LiveCalendarPage
 └─ 选中日详情面板 (EventCard 列表)
 ```
 
-### 9.3 数据获取与归格
+### <a id="93-数据获取与归格"></a>9.3 数据获取与归格
 
 - `useLiveCalendarMonths(months, options)`：可见范围覆盖的月份**按月缓存 + 缺月拉取**后合并（视图可见范围可能跨月，如月视图含上/下月填充格、周视图跨月周次）。
 - 时区处理：按**本地时区** `YYYY-MM-DD` 归格（`toDateKeyFromSeconds`），避免 `toISOString()` 的 UTC 错位；覆盖月份两端各外扩 1 天以兼容任意时区下本地可见日与 UTC 日期的偏移。
@@ -615,7 +701,7 @@ LiveCalendarPage
 - 同格排序：按重要级降序、时间升序，重要事件优先露出。
 - `resolvedMonthsKey`：Hook 会返回“当前已应用到页面的数据覆盖了哪些月份”，供 `LiveCalendar` 判断月视图目标月份是否已经 ready。
 
-### 9.4 视图模式
+### <a id="94-视图模式"></a>9.4 视图模式
 
 基于 `FullCalendar` v6 封装，提供**月 / 周 / 日 / 列表**四视图：
 
@@ -624,18 +710,18 @@ LiveCalendarPage
 - **日视图**：时间轴逐条展示，同时间段事件纵向错开。
 - **列表视图**：不走 FullCalendar 的 list 插件（其仅两列），由 `LiveCalendarListView` 自绘四列真表头。
 
-### 9.5 详情与筛选
+### <a id="95-详情与筛选"></a>9.5 详情与筛选
 
 - 点单条事件 → `LiveCalendarEventDrawer` 展示标题、时间、重要度、国家（国旗 / 货币 / 国名）、前瞻解读、经济数据四值。
 - 筛选维度（见 `LiveCalendarFilterState`）：`importance`（多选，0~4）、`calendar_type`（all / FE / FD）、`countryId`、`keyword`（匹配 title / shortTitle）。
 - 空态优先级：分类无结果 > 筛选无结果 > 通用无事件。
 
-### 9.6 类型与 API 层
+### <a id="96-类型与-api-层"></a>9.6 类型与 API 层
 
 - `types/liveCalendar.ts`：`CalendarTabValue` / `CalendarTabDef` / `CalendarCountryDef` / `LiveCalendarEventDef` / `LiveCalendarQueryDef`。
 - `api/liveCalendar.ts`：`getLiveCalendarTabs` / `getLiveCalendarCountries` / `getLiveCalendarMonth` / `refreshLiveCalendar`，统一把后端 snake_case 归一化为 camelCase。
 
-### 9.7 条件筛选功能
+### <a id="97-条件筛选功能"></a>9.7 条件筛选功能
 
 日历提供多维条件筛选，覆盖「分类 / 重要度 / 类型 / 国家 / 关键词」五类维度。其过滤位置与请求触发策略如下表：
 
@@ -654,9 +740,9 @@ LiveCalendarPage
 - **空态优先级**：分类无结果 > 筛选无结果 > 通用无事件（见 §12）。
 - **UI 承载**：筛选面板 `LiveCalendarFilterPanel` 由 `LiveCalendarFilterState` 驱动，置于页头抬升卡片内（见 §9.2）；维度状态与分类 Tab 相互独立，可叠加生效。
 
-### 9.8 交互设计补充
+### <a id="98-交互设计补充"></a>9.8 交互设计补充
 
-#### 9.8.1 月视图翻月握手
+#### <a id="981-月视图翻月握手"></a>9.8.1 月视图翻月握手
 
 - `LiveCalendar` 为月视图维护内部 `pendingMonthRequest`；
 - 用户点击 `prev / next / today` 时，组件内部先计算目标月的可见范围并抛出 `onRangeRequest`；
@@ -665,14 +751,14 @@ LiveCalendarPage
 
 这样做的目的是把“月视图切换”尽量变回首屏路径：**先准备数据，再显示目标月份**，避免 FullCalendar 旧实例先内部切月、再做大规模 diff。
 
-#### 9.8.2 视图切换职责
+#### <a id="982-视图切换职责"></a>9.8.2 视图切换职责
 
 - **月 / 周 / 日**：由同一个 `LiveCalendar` 实例承载；
 - **List**：与 FullCalendar 平级渲染，切到 List 时隐藏 FC 实例但不销毁，切回后调用 `updateSize()` 恢复布局；
 - **详情抽屉**：事件点击优先打开 `LiveCalendarEventDrawer`，抽屉层级高于月格 `more popover`，避免两个浮层叠加时互相遮挡；
 - **选中日详情面板**：始终保留在页面下方，服务于“点日期看当天全部”的阅读路径，和 Drawer 的“点单条看详情”职责分离。
 
-#### 9.8.3 范围请求事件契约
+#### <a id="983-范围请求事件契约"></a>9.8.3 范围请求事件契约
 
 `LiveCalendar` 对外只暴露一条正式数据请求出口：
 
@@ -692,9 +778,9 @@ type LiveCalendarRangeRequest = {
 - `reason`：行为来源，便于调试与后续埋点；
 - `requestKey`：外层通过 `dataReadyKey` 回传给组件，作为“数据已准备好”的握手标识。
 
-### 9.9 性能优化设计（前后端）
+### <a id="99-性能优化设计前后端"></a>9.9 性能优化设计（前后端）
 
-#### 9.9.1 前端
+#### <a id="991-前端"></a>9.9.1 前端
 
 - **按月缓存**：`useLiveCalendarMonths` 以 `year-month-includeEconomicData` 为键缓存整月结果，命中后直接回填页面，减少重复请求与等待。
 - **single-flight**：同一月份若已有在途请求，后续调用直接复用 Promise，避免快速点击 `prev / next` 时对同月发起并发重复请求。
@@ -704,7 +790,7 @@ type LiveCalendarRangeRequest = {
 - **timeGrid 合帧重排**：周 / 日视图事件挂载后通过 `requestAnimationFrame` 合帧调度同时间段事件错位，避免每条事件 mount 都立即触发一次全量重排。
 - **保留上一帧数据**：请求失败时不清空当前可见数据，错误由 `error` 承载，避免空屏闪烁。
 
-#### 9.9.2 后端
+#### <a id="992-后端"></a>9.9.2 后端
 
 - **按月查询契约**：`GET /live-calendar` 以 `year + month` 为最小粒度，和前端月缓存天然对齐；跨月范围由前端拆成覆盖月份并行请求，不要求后端额外提供范围分页接口。
 - **惰性抓取**：`list_calendar` 在本月冷启动且库中无数据时会先 `refresh_calendar` 再查询，保证页面首次进入尽量拿到结果。
@@ -714,14 +800,14 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 10. 时间维度与精简标题规则
+## <a id="10-时间维度与精简标题规则"></a>10. 时间维度与精简标题规则
 
-### 10.1 时间维度
+### <a id="101-时间维度"></a>10.1 时间维度
 
 - 上游 `public_date` 为**秒级 UTC**；落库 `published_at` 按 UTC 解析，`0` / 缺失 → 全天事件，退化为入库时间。
 - 前端展示按**本地时区**归格与排版；`is_all_day=true` 时不显示具体时刻，仅显示「全天」。
 
-### 10.2 精简标题（short_title）
+### <a id="102-精简标题shorttitle"></a>10.2 精简标题（short_title）
 
 由 `_shorten_calendar_title` 生成，规则：
 
@@ -734,7 +820,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 11. 降级策略
+## <a id="11-降级策略"></a>11. 降级策略
 
 | 故障点                 | 行为                                       |
 | ------------------- | ---------------------------------------- |
@@ -749,7 +835,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 12. 边界条件与空态
+## <a id="12-边界条件与空态"></a>12. 边界条件与空态
 
 - **跨月可见范围**：月视图含上 / 下月填充格、周视图跨月周次；前端按覆盖月份并行拉取合并，避免跨月日无数据。
 - **全天事件**：`public_date=0` → `is_all_day=true`，归格退化为入库时间，展示「全天」。
@@ -760,7 +846,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 13. 配置项
+## <a id="13-配置项"></a>13. 配置项
 
 配置入口：`src/config.py` + 环境变量（`.env`）。
 
@@ -776,9 +862,9 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 14. 风险、合规与回滚
+## <a id="14-风险合规与回滚"></a>14. 风险、合规与回滚
 
-### 14.1 风险
+### <a id="141-风险"></a>14.1 风险
 
 - **上游接口稳定性**：华尔街见闻接口可能调整或限流；当前仅依赖 `countries` + `macrodatas` 两个契约，降级策略保证不崩溃。
 - **分类打标误判**：关键字正则可能漏标 / 错标（如「纳入指数」归入 IPO）；属已知精度边界，不影响主流程。
@@ -786,12 +872,12 @@ type LiveCalendarRangeRequest = {
 - **SSRF**：抓取器不内置 DNS 校验，由服务层注入 `_get_with_validated_dns` 安全请求实现防 SSRF。
 - **响应体积**：单月约 500~900 条，抓取器限制单响应体 ≤ 8MB，超出抛 `CalendarFetchError`。
 
-### 14.2 合规
+### <a id="142-合规"></a>14.2 合规
 
 - 数据来源为华尔街见闻公开财经日历，仅做聚合展示，保留 `source` 标识与原文 `source_uri`；不修改、不伪造事件内容。
 - 遵循项目 `AGENTS.md`：不写死密钥 / 账号 / 路径 / 端口；配置优先走环境变量。
 
-### 14.3 回滚
+### <a id="143-回滚"></a>14.3 回滚
 
 - 配置层：将 `WALLSTREETCN_CALENDAR_ENABLED=false` 即可关闭日历能力，所有接口返回空且不抓取，无需代码回滚。
 - 代码层：日历逻辑集中在 `data_provider/wallstreetcn_calendar_fetcher.py` 与 `intelligence_service.py` 日历段落，复用现有 `intelligence_items` 表，回滚不影响快讯 / 通用资讯。
@@ -799,7 +885,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 15. 命名规范
+## <a id="15-命名规范"></a>15. 命名规范
 
 - 后端常量 / 方法：`_CALENDAR_*` / `list_calendar*` / `refresh_calendar` / `calendar_enabled`，集中在 `IntelligenceService`，单一真源。
 - 落库 `scope_type='calendar'`，`scope_value` 取分类短码（`macro` / `earnings` / `ipo` / `activity` / `all` / `economic_data`）。
@@ -808,7 +894,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 16. 测试与验证现状
+## <a id="16-测试与验证现状"></a>16. 测试与验证现状
 
 - 后端：日历抓取 / 打标 / 聚合 / API 尚未有独立 pytest 用例覆盖（当前 CI 未强制）。维护时建议补充：`_tag_calendar_event` 多归属、`_shorten_calendar_title` 截断、`_aggregate_calendar_rows` 合并、`list_calendar` 过滤与降级路径。
 - 前端：`apps/hrs-web` 已具备 lint / build 校验；日历组件遵循 `.conventions/frontend` 命名与组件约定（React.ComponentProps 继承、cn 合并、业务属性解构）。
@@ -825,7 +911,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 17. 接口设计要点（统一）
+## <a id="17-接口设计要点统一"></a>17. 接口设计要点（统一）
 
 本节汇总四个日历接口的统一设计决策，作为 §7 契约的补充依据。
 
@@ -842,11 +928,11 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-## 18. 核心实现代码（前后端）
+## <a id="18-核心实现代码前后端"></a>18. 核心实现代码（前后端）
 
 > 以下为与 §2~§9 契约一一对应的**关键实现片段**（非整文件）。完整实现以源码为准。
 
-### 18.1 抓取器 `data_provider/wallstreetcn_calendar_fetcher.py`
+### <a id="181-抓取器-dataproviderwallstreetcncalendarfetcherpy"></a>18.1 抓取器 `data_provider/wallstreetcn_calendar_fetcher.py`
 
 仅负责 HTTP 与解析，定义 `CalendarEventEntry` 中间结构；不含分类 / 落库 / SSRF 校验。
 
@@ -907,7 +993,7 @@ class WallstreetcnCalendarFetcher:
         )
 ```
 
-### 18.2 服务层打标与落库 `src/services/intelligence_service.py`
+### <a id="182-服务层打标与落库-srcservicesintelligenceservicepy"></a>18.2 服务层打标与落库 `src/services/intelligence_service.py`
 
 分类 Tab 与打标规则（单一真源）：
 
@@ -1002,7 +1088,7 @@ def _shorten_calendar_title(title: str) -> str:
     return value
 ```
 
-### 18.3 聚合与过滤 `src/services/intelligence_service.py`
+### <a id="183-聚合与过滤-srcservicesintelligenceservicepy"></a>18.3 聚合与过滤 `src/services/intelligence_service.py`
 
 同一事件多行合并为一条，拼出 `tab_keys`（剔除 `economic_data`）：
 
@@ -1062,7 +1148,7 @@ def _filter_calendar(self, events, *, tab, country_id, importance_min, include_e
     return result
 ```
 
-### 18.4 仓储查询 `src/repositories/intelligence_repo.py`
+### <a id="184-仓储查询-srcrepositoriesintelligencerepopy"></a>18.4 仓储查询 `src/repositories/intelligence_repo.py`
 
 ```python
 def list_calendar_events(self, *, published_from: datetime, published_to: datetime) -> List[IntelligenceItem]:
@@ -1083,7 +1169,7 @@ def list_calendar_events(self, *, published_from: datetime, published_to: dateti
 
 写入复用 `upsert_items`，去重键为 `(source_name, url, source_type, scope_type, scope_value, market)`（见 §6.2）。
 
-### 18.5 API 端点与 Schema `api/v1/endpoints/intelligence.py` + `schemas/intelligence.py`
+### <a id="185-api-端点与-schema-apiv1endpointsintelligencepy-schemasintelligencepy"></a>18.5 API 端点与 Schema `api/v1/endpoints/intelligence.py` + `schemas/intelligence.py`
 
 ```python
 @router.get("/live-calendar/tabs", response_model=CalendarTabsResponse)
@@ -1141,7 +1227,7 @@ class CalendarMonthResponse(BaseModel):
     source: str = "wallstreetcn"
 ```
 
-### 18.6 前端类型与 API 层 `apps/hrs-web/src`
+### <a id="186-前端类型与-api-层-appshrs-websrc"></a>18.6 前端类型与 API 层 `apps/hrs-web/src`
 
 数据契约（`types/liveCalendar.ts`）：
 
@@ -1190,7 +1276,7 @@ export async function getLiveCalendarMonth(params: LiveCalendarQueryDef, signal?
 }
 ```
 
-### 18.7 Hook 核心 `hooks/useLiveCalendar.ts`
+### <a id="187-hook-核心-hooksuselivecalendarts"></a>18.7 Hook 核心 `hooks/useLiveCalendar.ts`
 
 覆盖月份推导（兼容跨月周次与任意时区偏移，两端外扩 1 天）：
 
@@ -1249,7 +1335,7 @@ export function useLiveCalendarMonths(months: MonthCursor[], options = {}) {
 }
 ```
 
-### 18.8 页面与视图 `pages/LiveCalendarPage.tsx` + `components/common/LiveCalendar/LiveCalendar.tsx`
+### <a id="188-页面与视图-pageslivecalendarpagetsx-componentscommonlivecalendarlivecalendartsx"></a>18.8 页面与视图 `pages/LiveCalendarPage.tsx` + `components/common/LiveCalendar/LiveCalendar.tsx`
 
 分类 Tab 由后端驱动、按 `order` 升序、label 经 i18n 映射：
 

@@ -1,8 +1,52 @@
-# 实时告警中心
+# <a id="实时告警中心"></a>实时告警中心
+
+> 📝 **方案简述**：本文档记录 HermesX 告警中心的运行基线、数据契约与分阶段实现范围。它给出 alert_rule、alert_trigger、alert_notification、alert_cooldown 四张表的数据契约与存储方案评估，并按 P1 到 P8 分期规划实施路径，依次覆盖 Alert API MVP、告警评估 Worker、Web 告警中心 MVP、通知结果与持久化冷却、技术指标规则、持仓与自选股联动、大盘红绿灯结构化告警、用户配置与部署边界，同时明确阶段边界、P0 不做项与回滚方式。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [当前基线](#当前基线)
+- [Legacy 配置兼容](#legacy-配置兼容)
+- [数据契约](#数据契约)
+  - [`alert_rule`](#alertrule)
+  - [`alert_trigger`](#alerttrigger)
+  - [`alert_notification`](#alertnotification)
+  - [`alert_cooldown`](#alertcooldown)
+- [存储方案评估](#存储方案评估)
+- [P1 Alert API MVP](#p1-alert-api-mvp)
+- [P2 告警评估 Worker](#p2-告警评估-worker)
+- [P3 Web 告警中心 MVP](#p3-web-告警中心-mvp)
+- [P4 通知结果与持久化冷却](#p4-通知结果与持久化冷却)
+- [P5 技术指标规则](#p5-技术指标规则)
+- [P6 持仓与自选股联动](#p6-持仓与自选股联动)
+  - [P6 scope/type 矩阵](#p6-scopetype-矩阵)
+  - [Target Identity Contract](#target-identity-contract)
+  - [Dry-run 聚合](#dry-run-聚合)
+  - [持仓风险规则](#持仓风险规则)
+  - [Web 与 cooldown 摘要](#web-与-cooldown-摘要)
+- [阶段感知与公开摘要联动（Refs #1386 P6）](#阶段感知与公开摘要联动refs-1386-p6)
+- [P7 大盘红绿灯结构化告警](#p7-大盘红绿灯结构化告警)
+  - [P7 scope/type 矩阵](#p7-scopetype-矩阵)
+  - [`MarketLightSnapshot` 契约](#marketlightsnapshot-契约)
+  - [基线、交易日与去重](#基线交易日与去重)
+  - [Web 与回滚边界](#web-与回滚边界)
+- [P8 用户配置与部署边界](#p8-用户配置与部署边界)
+  - [本地配置](#本地配置)
+  - [Docker](#docker)
+  - [GitHub Actions](#github-actions)
+  - [Web 与 Desktop](#web-与-desktop)
+  - [状态、通知与回滚](#状态通知与回滚)
+- [Phase 边界](#phase-边界)
+- [P0 不做](#p0-不做)
+- [回滚](#回滚)
+
 
 本文档记录 Issue #1202 告警中心的运行基线、数据契约、分阶段实现范围和兼容边界。
 
-## 当前基线
+## <a id="当前基线"></a>当前基线
 
 当前运行时告警由 `src/services/alert_worker.py` 中的后台 worker 统一调度，底层规则评估复用 `src/services/alert_service.py` 与 `src/agent/events.py` 中的 EventMonitor 规则模型。
 
@@ -21,7 +65,7 @@
 
 `sentiment_shift`、`risk_flag`、`custom` 等类型只作为未来扩展占位；当前运行时不接受这些类型作为可执行规则。
 
-## Legacy 配置兼容
+## <a id="legacy-配置兼容"></a>Legacy 配置兼容
 
 `AGENT_EVENT_ALERT_RULES_JSON` 作为 legacy 运行时规则来源继续保留，不自动迁移、删除、覆盖或改写用户已有 `.env` / Web 配置。
 
@@ -30,11 +74,11 @@
 - 运行时加载时允许跳过单条无效规则，剩余有效规则继续工作，避免单条配置破坏整个 schedule 进程。
 - 当前 worker 使用进程内 fingerprint 避免持续触发条件重复推送；这不是告警中心冷却模型，也不提供跨进程或重启后的冷却状态。
 
-## 数据契约
+## <a id="数据契约"></a>数据契约
 
 以下契约用于后续 P1+ API、worker、Web 和存储实现对齐。P0 只定义字段和语义边界，不代表当前已经存在这些持久化实体。
 
-### `alert_rule`
+### <a id="alertrule"></a>`alert_rule`
 
 可管理的告警规则。
 
@@ -53,7 +97,7 @@
 | `source` | 创建来源，例如 legacy_env、web、api、import |
 | `created_at` / `updated_at` | 创建和更新时间 |
 
-### `alert_trigger`
+### <a id="alerttrigger"></a>`alert_trigger`
 
 一次真实或可记录的规则触发。
 
@@ -71,7 +115,7 @@
 | `status` | 触发状态，例如 triggered、skipped、degraded、failed |
 | `diagnostics` | 脱敏后的诊断信息 |
 
-### `alert_notification`
+### <a id="alertnotification"></a>`alert_notification`
 
 一次触发对应的通知尝试。
 
@@ -88,7 +132,7 @@
 | `diagnostics` | 脱敏后的发送诊断，不得包含 token、完整 webhook URL、邮箱密码或 bot secret |
 | `created_at` | 尝试时间 |
 
-### `alert_cooldown`
+### <a id="alertcooldown"></a>`alert_cooldown`
 
 规则或目标维度的冷却状态。
 
@@ -103,7 +147,7 @@
 | `state` | 当前状态，例如 active、expired |
 | `updated_at` | 更新时间 |
 
-## 存储方案评估
+## <a id="存储方案评估"></a>存储方案评估
 
 当前仓库已有 SQLite 存储层和 repository/service 分层：
 
@@ -121,7 +165,7 @@ P1/P2 实现告警持久化时，推荐优先复用以上模式：在 storage �
 - 回滚说明：最小回滚方式至少包括 revert PR；若创建了新表或索引，需要说明是否保留数据、如何手动清理。
 - 数据迁移边界：不得自动迁移、删除或覆盖 `AGENT_EVENT_ALERT_RULES_JSON`，除非用户显式执行导入动作。
 
-## P1 Alert API MVP
+## <a id="p1-alert-api-mvp"></a>P1 Alert API MVP
 
 P1 新增后端 Alert API 与 schema，锁定告警中心最小 API 契约，不接入 Web 页面或后台 worker。
 
@@ -152,7 +196,7 @@ P1 不做：
 - 不实现 `alert_cooldown` 执行语义。
 - 不实现 MACD、KDJ、CCI、RSI、持仓风险或 Market Light 告警规则。
 
-## P2 告警评估 Worker
+## <a id="p2-告警评估-worker"></a>P2 告警评估 Worker
 
 P2 将 schedule 运行时从启动时一次性构建 legacy `EventMonitor`，切换为每轮后台 worker 评估持久化 active rules 与 legacy JSON 规则。
 
@@ -171,7 +215,7 @@ P2 不做：
 - 不实现 `alert_cooldown`、`cooldown_policy` 或 `notification_policy` 执行语义。
 - 不实现 MACD、KDJ、CCI、RSI、持仓风险或 Market Light 告警规则。
 
-## P3 Web 告警中心 MVP
+## <a id="p3-web-告警中心-mvp"></a>P3 Web 告警中心 MVP
 
 P3 在 WebUI 中新增 `/alerts` 告警中心入口，让用户不需要直接编辑 legacy JSON 即可管理当前三类运行时规则。
 
@@ -192,7 +236,7 @@ P3 不做：
 - 不实现规则编辑、target/source 高级筛选、watchlist/portfolio 目标、技术指标规则或 Market Light 联动。
 - 不执行 `cooldown_policy` / `notification_policy`，不写 `alert_notifications`。
 
-## P4 通知结果与持久化冷却
+## <a id="p4-通知结果与持久化冷却"></a>P4 通知结果与持久化冷却
 
 P4 让真实告警触发具备可排障的通知结果，并让通过 Alert API 创建的持久化规则具备可重启保持的业务冷却状态。
 
@@ -219,7 +263,7 @@ P4 不做：
 - 不重写通知渠道网关；`NotificationService.send()` 继续保持布尔返回兼容，结构化结果通过新增兼容接口提供。
 - 不自动迁移、删除或改写 legacy `AGENT_EVENT_ALERT_RULES_JSON`。
 
-## P5 技术指标规则
+## <a id="p5-技术指标规则"></a>P5 技术指标规则
 
 P5 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 评估链路中新增日线技术指标规则。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义。
 
@@ -265,11 +309,11 @@ P5 不做：
 - 不支持 legacy `AGENT_EVENT_ALERT_RULES_JSON` 技术指标规则。
 - 不引入 DSL、规则引擎、新数据库表或分析报告 pipeline 内的技术指标规则引擎。
 
-## P6 持仓与自选股联动
+## <a id="p6-持仓与自选股联动"></a>P6 持仓与自选股联动
 
 P6 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 评估链路中新增 `watchlist`、`portfolio_holdings`、`portfolio_account` 三类目标范围。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义，不新增表或迁移。
 
-### P6 scope/type 矩阵
+### <a id="p6-scopetype-矩阵"></a>P6 scope/type 矩阵
 
 | `target_scope` | `target` | 允许的 `alert_type` | 评估方式 |
 | --- | --- | --- | --- |
@@ -280,7 +324,7 @@ P6 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 评�
 
 创建/更新规则时，`watchlist` / `portfolio_holdings` 不把父级 `target` 当股票代码校验；`portfolio_account` 禁止 price/volume/技术指标类型；`portfolio_holdings` 和 `portfolio_account` 在 `target=<id>` 时会校验账户存在且 active，不存在返回 HTTP 400 + `validation_error`。legacy `AGENT_EVENT_ALERT_RULES_JSON` 不支持 watchlist、portfolio 或技术指标扩展，继续仅支持 `single_symbol` 的 `price_cross`、`price_change_percent`、`volume_spike`。
 
-### Target Identity Contract
+### <a id="target-identity-contract"></a>Target Identity Contract
 
 P6 将可展示目标与可持久化目标分离：
 
@@ -297,7 +341,7 @@ P6 将可展示目标与可持久化目标分离：
 - `display_target` 不写入 `alert_triggers.target`，仅用于通知标题、dry-run `target_results` 和 Web 展示。
 - P6 不做跨规则同标的通知合并；同一股票若同时命中 watchlist 子规则和独立 `single_symbol` 规则，会按每条规则独立记录和通知。
 
-### Dry-run 聚合
+### <a id="dry-run-聚合"></a>Dry-run 聚合
 
 - `POST /api/v1/alerts/rules/{rule_id}/test` 对批量规则返回聚合字段：`evaluated_count`、`triggered_count`、`degraded_count`、`skipped_count`、`target_results`。
 - 展开目标 soft cap 为 100；dry-run 中超过 soft cap 的目标记为 `degraded` 聚合结果并写日志。worker 运行时只评估前 100 个展开目标并写 warning，不为 overflow 本身写 `alert_triggers` 历史。
@@ -306,7 +350,7 @@ P6 将可展示目标与可持久化目标分离：
 - 空 watchlist / 空 holdings：dry-run 返回 `not_triggered` 并在 `target_results` 中给出 `record_status=skipped`；worker 会写 `skipped` 历史。
 - `degraded_count` 统计全部展开评估结果中 `record_status=degraded` 的条目；`target_results` 仅展示前 20 条，排序为 triggered 优先，其次 degraded/failed，再按 target 排序。
 
-### 持仓风险规则
+### <a id="持仓风险规则"></a>持仓风险规则
 
 | `alert_type` | 参数 | 观察值 | 触发语义 |
 | --- | --- | --- | --- |
@@ -317,7 +361,7 @@ P6 将可展示目标与可持久化目标分离：
 
 portfolio diagnostics 必含 `account_id`（或 `all`）、`currency`、`as_of`、`price_stale`、`fx_stale`、`data_available`、`top_affected_symbols`。`portfolio_stop_loss`、`portfolio_concentration`、`portfolio_drawdown` 复用 `PortfolioRiskService.get_risk_report()`；`portfolio_price_stale` 复用 `PortfolioService.get_portfolio_snapshot()` 的 position price metadata。
 
-### Web 与 cooldown 摘要
+### <a id="web-与-cooldown-摘要"></a>Web 与 cooldown 摘要
 
 - Web 创建表单新增目标范围选择；`watchlist` / `portfolio_holdings` 只显示 price/volume/P5 技术指标类型，`portfolio_account` 只显示四类 portfolio 风险类型。
 - `portfolio_holdings` / `portfolio_account` 加载账户列表失败时，表单保留 `all` 选项并展示错误。
@@ -331,7 +375,7 @@ P6 不做：
 - 不做 sector 级集中度告警；P6 集中度使用 symbol 维度 `top_weight_pct`。
 - 不做跨规则同标的通知合并、分钟线、多市场时区精确判定或 legacy JSON 扩展。
 
-## 阶段感知与公开摘要联动（Refs #1386 P6）
+## <a id="阶段感知与公开摘要联动refs-1386-p6"></a>阶段感知与公开摘要联动（Refs #1386 P6）
 
 本节描述 #1386 P6 的告警可见性联动，区别于上面的“P6 持仓与自选股联动”。本联动不新增告警表、不做 migration、不自动触发轻量 LLM 分析，只把触发当时可公开的 phase/pack 摘要写入既有触发历史。
 
@@ -350,11 +394,11 @@ DecisionSignal 字段、脱敏、迁移与回滚边界见 [DecisionSignal 决策
 
 回滚本联动只需要 revert 对 worker/API/Web 的改动；已有 `diagnostics.analysis_visibility` 会作为普通 JSON diagnostics 保留，旧代码不会读取该 sibling key。
 
-## P7 大盘红绿灯结构化告警
+## <a id="p7-大盘红绿灯结构化告警"></a>P7 大盘红绿灯结构化告警
 
 P7 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 中新增 `target_scope=market`，消费结构化 `MarketLightSnapshot`，不解析 Markdown，不扩展 legacy `AGENT_EVENT_ALERT_RULES_JSON`，不新增表。大盘复盘历史仍写一条 `analysis_history(code=MARKET, report_type=market_review)`；多市场复盘通过 `context_snapshot.market_light_snapshots` 按 region 保存本次实际复盘的快照 map。
 
-### P7 scope/type 矩阵
+### <a id="p7-scopetype-矩阵"></a>P7 scope/type 矩阵
 
 | `target_scope` | `target` | 允许的 `alert_type` | 参数 | 触发语义 |
 | --- | --- | --- | --- | --- |
@@ -363,7 +407,7 @@ P7 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 中�
 
 scope/type 校验是双向约束：`target_scope=market` 只能使用两类 Market Light 规则；`market_light_*` 规则也只能使用 `target_scope=market`。`target` 会 `strip().lower()` 后严格限定为 `cn|hk|us|jp|kr`，非法 target 返回 HTTP 400 + `validation_error`。
 
-### `MarketLightSnapshot` 契约
+### <a id="marketlightsnapshot-契约"></a>`MarketLightSnapshot` 契约
 
 结构化快照字段为：`region`、`trade_date`、`status`、`score`、`label`、`temperature_label`、`reasons`、`guidance`、`dimensions`、`data_quality`。`trade_date` 首版固定取 `MarketOverview.date`；P7 不解析 provider quote as-of。
 
@@ -377,7 +421,7 @@ scope/type 校验是双向约束：`target_scope=market` 只能使用两类 Mark
 
 `data_quality=unavailable` 表示 `index.available=false`，两类 market rule 都返回 `skipped` 且不触发通知；`partial` 表示至少一个维度 fallback，`ok` 表示三项均 available。`market_light_status` 在 `ok/partial` 下可触发；`partial` 触发时 diagnostics 必含 `missing_dimensions`。`market_light_score_drop` 直接比较 canonical aggregate score；任一侧 `partial` 仍允许比较，但 diagnostics 必含 `partial_comparison=true` 和 `missing_dimensions`。
 
-### 基线、交易日与去重
+### <a id="基线交易日与去重"></a>基线、交易日与去重
 
 - 大盘复盘持久化必须使用与报告生成共用的同一份 `MarketOverview` 生成 `MarketLightSnapshot`，禁止 persist 阶段二次拉行情。
 - `load_previous_snapshot(region, before_trade_date)` 扫描 `analysis_history(code=MARKET, report_type=market_review)`，跳过缺少 `context_snapshot.market_light_snapshots[region]` 的 legacy 记录，先选出小于 `before_trade_date` 的最大 `snapshot.trade_date`，再在同一 `trade_date` 内按 `created_at DESC, id DESC` 取最新 valid 快照；更晚插入的旧交易日 backfill 不会覆盖正确基线。
@@ -386,17 +430,17 @@ scope/type 校验是双向约束：`target_scope=market` 只能使用两类 Mark
 - worker 对 `target_scope=market` 做 region 交易日 gate，并尊重 `TRADING_DAY_CHECK_ENABLED` / `config.trading_day_check_enabled`；检查关闭时允许评估，检查开启且 region 非交易日时返回 `skipped`，不拉取当前快照。
 - 触发历史写 `target=<region>`、`observed_value=<score>`、`data_source=market_light`、`data_timestamp=<trade_date 00:00:00>`，继续复用 P4 的 `rule_id + target + data_source + data_timestamp` 去重。
 
-### Web 与回滚边界
+### <a id="web-与回滚边界"></a>Web 与回滚边界
 
 - Web 告警中心新增 `market` scope、region 选择、两类 market rule 参数控件、类型筛选、region 展示和参数展示；API snake_case 映射使用 `statuses` 与 `min_drop`。
 - legacy `AGENT_EVENT_ALERT_RULES_JSON` 不支持 market 规则；P7 不更新 `.env.example`，因为没有新增配置项。
 - P7 不做指数跌幅、板块异动、涨跌停结构恶化、分钟线、多市场时区精确 quote as-of 解析，也不新增 DSL/规则引擎。
 
-## P8 用户配置与部署边界
+## <a id="p8-用户配置与部署边界"></a>P8 用户配置与部署边界
 
 P8 不新增规则类型、API、表结构或 worker 行为；它把 P0-P7 已合并能力整理成面向用户和部署者的配置说明。告警 worker 只在 schedule 模式注册，核心开关仍是 `AGENT_EVENT_MONITOR_ENABLED`，轮询间隔仍是 `AGENT_EVENT_MONITOR_INTERVAL_MINUTES`。通知渠道继续走 alert 路由，详见 [通知配置](notifications.md) 中的 `NOTIFICATION_ALERT_CHANNELS` 与 `route_type=alert`。
 
-### 本地配置
+### <a id="本地配置"></a>本地配置
 
 本地运行 `python main.py --schedule`、`python main.py --serve --schedule` 或等价内置调度模式时，设置 `AGENT_EVENT_MONITOR_ENABLED=true` 后会启动后台告警 worker；`AGENT_EVENT_MONITOR_INTERVAL_MINUTES` 控制轮询间隔。
 
@@ -405,23 +449,23 @@ P8 不新增规则类型、API、表结构或 worker 行为；它把 P0-P7 已�
 - Alert API / Web 告警中心持久化规则：推荐入口，支持 `single_symbol`、`watchlist`、`portfolio_holdings`、`portfolio_account`、`market`，覆盖实时价、涨跌幅、成交量、日线技术指标、持仓风险与大盘红绿灯规则。
 - legacy `AGENT_EVENT_ALERT_RULES_JSON`：只兼容 `single_symbol` 的 `price_cross`、`price_change_percent`、`volume_spike` 三类基础规则；不支持 P5 技术指标、P6 watchlist/portfolio 或 P7 market light。系统不会自动迁移、删除或改写 legacy JSON。
 
-### Docker
+### <a id="docker"></a>Docker
 
 仓库 `docker/Dockerfile` 默认命令是 `python main.py --schedule`，因此容器内只要配置 `AGENT_EVENT_MONITOR_ENABLED=true` 就会在 schedule 模式中启用告警 worker。Web/API 持久化规则依赖应用数据库；Docker 部署时需要保留 `data/` 数据库卷，避免容器重建后丢失规则、触发历史、通知尝试和冷却状态。legacy JSON 仍通过环境变量注入，不是 Docker 专用配置体系。
 
-### GitHub Actions
+### <a id="github-actions"></a>GitHub Actions
 
 仓库自带 `.github/workflows/00-daily-analysis.yml` 是一次性分析 workflow，实际调用 `python main.py`、`python main.py --market-review` 或 `python main.py --no-market-review`，不运行 `--schedule` 后台 alert worker，也没有映射 `AGENT_EVENT_*` 变量。仅在 repository Secrets / Variables 中新增 `AGENT_EVENT_MONITOR_ENABLED` 或 `AGENT_EVENT_ALERT_RULES_JSON` 不会让默认 Actions 开始持续轮询告警。
 
 如需 GitHub Actions 里的告警轮询，需要后续单独 PR 明确 schedule 启动方式、env 映射、规则来源和持久化数据库策略；P8 不改变现有 workflow。
 
-### Web 与 Desktop
+### <a id="web-与-desktop"></a>Web 与 Desktop
 
 Web 告警中心 `/alerts` 是持久化规则的主要入口：可以创建、启停、删除规则，执行一次性 dry-run 测试，查看触发历史、通知尝试和只读冷却状态。批量规则的列表冷却状态是父规则摘要，子目标是否冷却以触发历史中的 `target` / `effective_target` 为准。
 
 Desktop 不新增原生告警管理界面；桌面用户复用内置或外部 WebUI 的 `/alerts` 页面。Desktop 回滚不需要清理额外状态。
 
-### 状态、通知与回滚
+### <a id="状态通知与回滚"></a>状态、通知与回滚
 
 worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_triggers` 作为评估历史；正常未触发不写历史。`skipped` 表示规则本轮没有可评估条件，例如 market 非交易日或缺少上一交易日基线；`degraded` 表示数据源、持仓快照、历史快照或解析过程出现异常，结果不可用于触发通知。
 
@@ -429,7 +473,7 @@ worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_trig
 
 回滚 P8 只需 revert 文档、配置说明和 Web 文案改动；没有数据库迁移或用户数据清理。回滚早期 Phase 时，已创建的持久化规则不会自动删除，按下方 Phase 回滚说明处理。
 
-## Phase 边界
+## <a id="phase-边界"></a>Phase 边界
 
 - P0：本文档、契约、存储评估和兼容测试。
 - P1：Alert API MVP，首版只覆盖现有三类 runtime 规则。
@@ -441,7 +485,7 @@ worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_trig
 - P7：大盘红绿灯与市场联动。
 - P8：文档、迁移与收口。
 
-## P0 不做
+## <a id="p0-不做"></a>P0 不做
 
 - P0 阶段不新增 `api/v1/schemas/alerts.py` 或 Alert API。
 - P0 阶段不新增 Web 告警中心页面、路由或侧边栏入口。
@@ -451,7 +495,7 @@ worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_trig
 - P0 阶段不实现 MACD、KDJ、CCI、RSI、持仓风险或 Market Light 告警规则。
 - P0 阶段不重写 `NotificationService` 或通知路由框架。
 
-## 回滚
+## <a id="回滚"></a>回滚
 
 - P0 是文档和测试收口。若只回滚 P0，revert 对应 PR 即可；没有数据库、配置或用户数据迁移需要额外处理。
 - P1 新增 Alert API 代码和 `alert_rules` / `alert_triggers` / `alert_notifications` SQLite 表。最小回滚方式是 revert P1 PR；revert 会移除 API、service、repository、schema 和 ORM 定义，但已经由 `Base.metadata.create_all()` 创建的 SQLite 表与数据不会自动删除。如需清理，需要维护者在确认不再需要历史数据后手动删除相关表。

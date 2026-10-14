@@ -1,16 +1,43 @@
-# 尾盘选股法（EOD Picker）移植方案
+# <a id="尾盘选股法eod-picker移植方案"></a>尾盘选股法（EOD Picker）移植方案
+
+> 📝 **方案简述**：本方案将参考项目 stock-dashboard 的尾盘选股法（又称一日持股法）移植到 HermesX，前端落地于 /eodPicker 路由页面。它确认了参考项目 analysis.ts 的核心选股逻辑，规定前端三屏结构、筛选卡片、股票卡片、排序栏与持久化照搬参考实现，后端按算法层面对齐提供数据，并给出移植对照表、关键决策、实施顺序、前端组件复用策略，以及与 ADR-001 后端架构的合规性对照。当前后端 service、endpoint 与前端页面均已落地。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+  - [改动日志](#改动日志)
+- [目录](#目录)
+- [参考项目核心逻辑（已从源码确认）](#参考项目核心逻辑已从源码确认)
+- [A. 命名与路由（已落地）](#a-命名与路由已落地)
+- [B. 前端：照搬参考项目 UI 与交互](#b-前端照搬参考项目-ui-与交互)
+  - [页面三屏结构（照搬）](#页面三屏结构照搬)
+  - [筛选卡片（照搬默认条件，可点击编辑）](#筛选卡片照搬默认条件可点击编辑)
+  - [股票卡片（照搬）](#股票卡片照搬)
+  - [排序栏（照搬）](#排序栏照搬)
+  - [持久化（照搬）](#持久化照搬)
+  - [适配点（非照搬，必须对接本仓库）](#适配点非照搬必须对接本仓库)
+- [C. 后端：为前端提供数据（算法层面对齐参考 analysis.ts）](#c-后端为前端提供数据算法层面对齐参考-analysists)
+- [D. 移植对照表](#d-移植对照表)
+- [E. 验证与文档](#e-验证与文档)
+- [F. 关键决策（已确认，开工基准）](#f-关键决策已确认开工基准)
+- [G. 实施顺序](#g-实施顺序)
+- [H. 与 ADR-001（后端架构）的合规性对照](#h-与-adr-001后端架构的合规性对照)
+- [I. 前端组件复用策略（现成优先）](#i-前端组件复用策略现成优先)
+  - [组件使用与修改原则（实现期必须遵守）](#组件使用与修改原则实现期必须遵守)
+
 
 > 参考项目：`https://github.com/chengzuopeng/stock-dashboard`（演示页 `https://chengzuopeng.github.io/stock-dashboard/eod-picker`）
 > 目标：将「尾盘选股法 / 一日持股法」功能移植到 HermesX，前端落在 `/eodPicker` 路由页面。
 
 | 项 | 内容 |
 |---|---|
-| 作者 | 高仓雄（gaocangxiong） |
-| 更新时间 | 2026-10-10 |
 | 关联架构 | `documents/架构设计/backend_architecture_adr.md`（ADR-001，已采纳） |
 | 状态 | 已实施（后端 service + endpoint + 前端页面均已落地，离线单测通过） |
 
-### 改动日志
+### <a id="改动日志"></a>改动日志
 
 | 时间 | 版本 | 变更摘要 |
 |---|---|---|
@@ -18,7 +45,7 @@
 
 ---
 
-## 目录
+## <a id="目录"></a>目录
 
 - [参考项目核心逻辑（已从源码确认）](#overview)
 - [A. 命名与路由（已落地）](#sec-a)
@@ -40,7 +67,7 @@
 ---
 
 <a id="overview"></a>
-## 参考项目核心逻辑（已从源码确认）
+## <a id="参考项目核心逻辑已从源码确认"></a>参考项目核心逻辑（已从源码确认）
 
 - **分时强度（Timeline Strength）** = 当日分时中「价格 ≥ 均价线」的采样点占比 × 100%，衡量股价站上均价线的时长，默认阈值 ≥80%。
   - 输入：`{ time, price, avgPrice }[]`
@@ -54,26 +81,26 @@
 - 涨跌色：红涨绿跌。
 
 <a id="sec-a"></a>
-## A. 命名与路由（已落地）
+## <a id="a-命名与路由已落地"></a>A. 命名与路由（已落地）
 
 - `apps/hrs-web/src/router/manifest.ts`：`menuId: 'eodPicker'` / `routePath: 'eodPicker'` / `menuPagePath: 'pages/Discover/EodPickerPage'`，level 0，protected。
 - 页面文件：`apps/hrs-web/src/pages/Discover/EodPickerPage.tsx`（当前为占位骨架，待实现）。
 - i18n：`apps/hrs-web/src/i18n/uiText-{zh,zh-Hant,en}.ts` 中 `layout.nav.eodPicker.title/description` 已更新（三语 key 集合由 `UiTextKey` 类型强制对齐）。
 
 <a id="sec-b"></a>
-## B. 前端：照搬参考项目 UI 与交互
+## <a id="b-前端照搬参考项目-ui-与交互"></a>B. 前端：照搬参考项目 UI 与交互
 
 直接参照参考项目 `src/pages/EndOfDayPicker/EndOfDayPicker.tsx`，按 HermesX 技术栈适配。
 
 <a id="sec-b-1"></a>
-### 页面三屏结构（照搬）
+### <a id="页面三屏结构照搬"></a>页面三屏结构（照搬）
 
 1. **开始屏**：发光「开始分析」按钮（Zap 图标 + glow）+ 筛选条件卡片。
 2. **进度遮罩**：阶段文案（获取行情数据 / 分时结构筛选）+ 百分比 + 进度条 + 取消（abort）。
 3. **结果屏**：数量统计、排序栏、股票卡片网格。
 
 <a id="sec-b-2"></a>
-### 筛选卡片（照搬默认条件，可点击编辑）
+### <a id="筛选卡片照搬默认条件可点击编辑"></a>筛选卡片（照搬默认条件，可点击编辑）
 
 | 筛选项 | 默认 | 编辑控件 |
 |---|---|---|
@@ -85,7 +112,7 @@
 | 分时强度 | ≥80% | NumberField 0-100 step 5 |
 
 <a id="sec-b-3"></a>
-### 股票卡片（照搬）
+### <a id="股票卡片照搬"></a>股票卡片（照搬）
 
 - 名称 + 代码；涨幅徽章（▲/▼ + 百分比）
 - 现价 + 涨跌额 + 「强度 x%」
@@ -94,17 +121,17 @@
 - 加自选按钮（已自选禁用）
 
 <a id="sec-b-4"></a>
-### 排序栏（照搬）
+### <a id="排序栏照搬"></a>排序栏（照搬）
 
 涨幅 / 分时强度 / 换手率 / 流通市值 / 量比，点击切换 asc/desc，`null` 用 `?? 0` 兜底。
 
 <a id="sec-b-5"></a>
-### 持久化（照搬）
+### <a id="持久化照搬"></a>持久化（照搬）
 
 localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`（最近使用，上限 5 去重，含 `healFilters` 兜底修复旧版 `0→null`）。
 
 <a id="sec-b-6"></a>
-### 适配点（非照搬，必须对接本仓库）
+### <a id="适配点非照搬必须对接本仓库"></a>适配点（非照搬，必须对接本仓库）
 
 - 数据来源：参考项目直连 stock-sdk；本仓库改为调 HermesX 后端 `/api/v1/eod-picker/*`（见 C），沿用 `apiClient` 与 `StockScreeningPage` 的轮询模式（2s 轮询 task）。
 - 组件：**优先复用本仓库 `components/` 现成组件**（详见 I 节映射表），不重复造轮子；仅在无现成组件时才自行实现（如筛选卡片组合、排序栏、本地持久化模块、API 封装）。
@@ -114,7 +141,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 - 离开页面必须中止轮询 / 请求，避免后台无效扫描（参考项目有 `AbortController` + 卸载清理）。
 
 <a id="sec-c"></a>
-## C. 后端：为前端提供数据（算法层面对齐参考 analysis.ts）
+## <a id="c-后端为前端提供数据算法层面对齐参考-analysists"></a>C. 后端：为前端提供数据（算法层面对齐参考 analysis.ts）
 
 - `src/services/eod_picker_service.py`：复刻参考 `calculateTimelineStrength` + `filterBasicQuotes` + 两阶段筛选 + 有界并发（默认并发 4，可配置）。
   - 阶段1 全市场快照：复用 `AkshareFetcher` 全市场缓存（`ak.stock_zh_a_spot_em`，含流通市值 / 量比 / 换手率 / 涨幅，见 `data_provider/akshare_fetcher.py`）。
@@ -131,7 +158,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 - 不新增必配配置项；并发与缓存 TTL 用常量默认值，如需暴露再加 env 并同步 `.env.example`。
 
 <a id="sec-d"></a>
-## D. 移植对照表
+## <a id="d-移植对照表"></a>D. 移植对照表
 
 | 参考项目 | HermesX 落点 |
 |---|---|
@@ -142,7 +169,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 | localStorage 逻辑 | 照搬，封装到 `eodPickerStorage.ts` 持久化模块 |
 
 <a id="sec-e"></a>
-## E. 验证与文档
+## <a id="e-验证与文档"></a>E. 验证与文档
 
 - 后端：`py_compile` + pytest（覆盖筛选 / 强度计算，离线用例）。
 - 前端：`npm run lint` + `npm run build`；PR 描述附页面截图（AGENTS.md 硬规则）。
@@ -150,7 +177,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 - 盘中实测全流程（非盘中仅验证降级提示与 UI）。
 
 <a id="sec-f"></a>
-## F. 关键决策（已确认，开工基准）
+## <a id="f-关键决策已确认开工基准"></a>F. 关键决策（已确认，开工基准）
 
 1. **分时强度计算放后端**：数据层已在后端，前端只照搬 UI 与展示；后端 `eod_picker_service.py` 用 `data_provider/kline` 1m 源计算 `price ≥ 均价线` 占比，前端不重算。
 2. **结果列表懒加载**：列表只返回指标 + `timelineAboveAvgRatio`；点卡片展开分时图时，**前端调现有 `GET /api/v1/kline/{code}?period=1m`** 懒加载分时明细（复用 `KLineChart` 分时模式），避免一次返回几十只 ×240 点的巨型 payload。
@@ -160,7 +187,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 > 上述四项已确认，方案其余章节均按此收敛，可据此开工。
 
 <a id="sec-g"></a>
-## G. 实施顺序
+## <a id="g-实施顺序"></a>G. 实施顺序
 
 1. 后端：数据快照入口（复用 AkshareFetcher 全市场 spot）+ `eod_picker_service.py`（两阶段筛选 + 分时强度计算，纯函数内聚）+ 三个 API（defaults / tasks / tasks/{id}，结果摘要不含分时明细）+ 测试。
 2. 前端：实现 `EodPickerPage.tsx`（开始屏 / 进度 / 结果屏 / 排序栏），组合现成组件；`eodPickerStorage.ts` 本地持久化（filters/schemes/recent）；`eodPicker.ts` API 封装；分时图复用 `KLineChart` + 现有 kline API **懒加载**；i18n 走字典。
@@ -169,7 +196,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 **Phase 3（本次不纳入）**：批量加自选联动（接现有 watchlist API）、尾盘定时（~14:30）自动跑 + 推送通知（接 `RuntimeSchedulerService` + 通知服务）。
 
 <a id="sec-h"></a>
-## H. 与 ADR-001（后端架构）的合规性对照
+## <a id="h-与-adr-001后端架构的合规性对照"></a>H. 与 ADR-001（后端架构）的合规性对照
 
 本方案严格遵循 `documents/架构设计/backend_architecture_adr.md`（ADR-001，已采纳）的四层架构与「`data_provider` 为唯一脏活层」铁律，逐项核对如下：
 
@@ -187,7 +214,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 **结论**：方案与 ADR-001 一致，无需为 eod-picker 新建数据源能力或突破分层；新增代码量为「一个 service 编排 + 一个端点 + 一个 schema + 一个前端页面（组合现成组件）」，影响面小、契约稳定。
 
 <a id="sec-i"></a>
-## I. 前端组件复用策略（现成优先）
+## <a id="i-前端组件复用策略现成优先"></a>I. 前端组件复用策略（现成优先）
 
 目标：页面功能照搬参考项目，但**组件一律优先采用 `apps/hrs-web/src/components/` 中的现成组件**，无则自行实现。已对 `components/basic`、`components/common`、`components/kline`、`components/page-layout` 盘点，可用资产如下：
 
@@ -207,7 +234,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 | 滚动容器 | `ScrollArea`(common) | 直接复用 |
 | **分时图（参考为纯 SVG）** | **`KLineChart`(kline, `period='1m'`)** | **复用现有 ECharts 分时模式**，消费 `KLinePoint`（价格线 + 均价线 + 昨收基准线 + 红涨绿跌），视觉等价且统一图表栈 |
 
-### 组件使用与修改原则（实现期必须遵守）
+### <a id="组件使用与修改原则实现期必须遵守"></a>组件使用与修改原则（实现期必须遵守）
 
 - **沿用优先**：页面一律复用 `src/components/` 现成组件，不平行造轮子；卡片网格统一用 `AnimCard`（`common/Card`），通过 `ordinal` 实现错位入场、`variant` / `gradientBackground` 控制观感。
 - **禁止擅自修改**：实现过程中**不允许修改 `src/components` 下的现有组件**（包括补 props、微调样式、修 bug 等）。若现有组件确实无法满足本功能需求，**必须先向你（用户）提出变更方案并评审通过**后方可修改；未经评审不得擅自改动任何现有组件。

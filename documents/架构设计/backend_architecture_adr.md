@@ -1,12 +1,65 @@
-# ADR-001：HermesX - 后端分层架构与统一数据源策略
+# <a id="adr-001hermesx-后端分层架构与统一数据源策略"></a>ADR-001：HermesX - 后端分层架构与统一数据源策略
+
+> 📝 **方案简述**：本 ADR 是 HermesX 后端的全局架构决策基准，面向整个后端工程而不隶属于任何单一功能方案。它确立四项全局设计立场：一是四层后端架构，即数据库层、数据源对接层、功能接口层与横切基础辅助层；二是 data_provider 为唯一脏活层，所有外部与本地源对接收口于此；三是 K 线、基础信息、代码搜索三类基础能力同构、多源可切换、配置驱动选源与回退并保持统一契约；四是统一入口与存储铁律，即 Repository barrel 收口、StockDB 进程独占、外部 API 仅 TTL 缓存不落表。任何后端改动与之冲突均以本 ADR 为准。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [浏览目录](#浏览目录)
+- [1. 背景 / 上下文（Context）](#1-背景-上下文context)
+  - [1.1 目标（Goals）](#11-目标goals)
+- [2. 整体设计](#2-整体设计)
+  - [2.1 四层架构总览（职责划分）〔D1〕](#21-四层架构总览职责划分d1)
+  - [2.2 data_provider 为唯一脏活层（数据源下沉）〔D2〕](#22-dataprovider-为唯一脏活层数据源下沉d2)
+  - [2.3 三类基础能力同构、多源可切换〔D3〕](#23-三类基础能力同构多源可切换d3)
+  - [2.4 统一数据契约 + 多源平等 + 自动回退 + 周期全集〔D4〕](#24-统一数据契约-多源平等-自动回退-周期全集d4)
+  - [2.5 UI 配置页复用运行时改配置基建〔D5〕](#25-ui-配置页复用运行时改配置基建d5)
+  - [2.6 kline.py 瘦身为瘦端点〔D6〕](#26-klinepy-瘦身为瘦端点d6)
+  - [2.7 设计前提：项目未上线，无历史包袱，按正确做法落地](#27-设计前提项目未上线无历史包袱按正确做法落地)
+- [3. 数据库层设计](#3-数据库层设计)
+  - [3.1 src/repositories/ 落表文件清单与职责](#31-srcrepositories-落表文件清单与职责)
+  - [3.2 storage.py —— 落表基座（连接 + 模型 + 原语）](#32-storagepy-落表基座连接-模型-原语)
+  - [3.3 数据库层在四层架构中的定位](#33-数据库层在四层架构中的定位)
+- [4. 数据源对接层设计](#4-数据源对接层设计)
+  - [4.1 data_provider 目录结构与功能包划分](#41-dataprovider-目录结构与功能包划分)
+  - [4.2 base.py 三层关系（common 底座 vs 功能包 base）](#42-basepy-三层关系common-底座-vs-功能包-base)
+  - [4.3 两类高频查询接口的归类](#43-两类高频查询接口的归类)
+  - [4.4 data_provider 目录铺排总表（落地基准）](#44-dataprovider-目录铺排总表落地基准)
+  - [4.5 数据源介绍（本项目对接的数据源头清单）](#45-数据源介绍本项目对接的数据源头清单)
+- [5. 功能接口层设计](#5-功能接口层设计)
+  - [5.1 定位与边界（区别于 ② 数据源对接层）](#51-定位与边界区别于-②-数据源对接层)
+  - [5.2 端点目录结构与两层划分](#52-端点目录结构与两层划分)
+  - [5.3 功能接口层铺排总表（枚举所有标准功能接口 · 权威基准）](#53-功能接口层铺排总表枚举所有标准功能接口-权威基准)
+  - [5.4 与 ② 数据源对接层的关系（调用链路）](#54-与-②-数据源对接层的关系调用链路)
+- [6. 横切基础辅助层设计](#6-横切基础辅助层设计)
+- [7. 后果（Consequences）](#7-后果consequences)
+  - [正面](#正面)
+  - [负面 / 成本](#负面-成本)
+  - [风险 / 注意](#风险-注意)
+- [8. 备选方案（Alternatives Considered）](#8-备选方案alternatives-considered)
+- [9. 落地指引（对 `stock_data_view.md` 的修订要求）](#9-落地指引对-stockdataviewmd-的修订要求)
+- [10. 修改范围与改造代办清单（代码执行指引）](#10-修改范围与改造代办清单代码执行指引)
+  - [10.1 修改范围总览（按层 + 动作分类）](#101-修改范围总览按层-动作分类)
+  - [10.2 改造代办清单（逐项勾选）](#102-改造代办清单逐项勾选)
+  - [10.3 建议执行顺序与依赖](#103-建议执行顺序与依赖)
+  - [10.4 完成判据](#104-完成判据)
+  - [10.5 编制期衍生改动（文档 + 代码收尾，已落地）](#105-编制期衍生改动文档-代码收尾已落地)
+- [11. 验证 / 落地检查表](#11-验证-落地检查表)
+- [12. 备注项](#12-备注项)
+  - [12.1 修订历史（迭代里程碑）](#121-修订历史迭代里程碑)
+  - [12.2 ADR ↔ 方案 章节映射](#122-adr-方案-章节映射)
+  - [12.3 开放项 / 待定（非阻塞，按需闭合）](#123-开放项-待定非阻塞按需闭合)
+  - [12.4 编码公约引用](#124-编码公约引用)
+
 
 | 项 | 内容 |
 |---|---|
 | 文档类型 | 架构决策记录（Architecture Decision Record） |
 | 编号 | ADR-001 |
 | 状态 | **已采纳（Accepted）** |
-| 日期 | 2026-10-07 |
-| 作者 | 高仓雄（gaocangxiong） |
 | 关联方案 | `stock_data_view.md`（本地 StockDB 行情数据浏览页 · 建设方案；本 ADR 的**首个遵守者 / 落地方案**） |
 | 适用范围 | HermesX 后端（**全域架构基准**；首个落地范围：行情 / 基础信息 / 代码搜索相关能力） |
 
@@ -16,7 +69,7 @@
 
 ---
 
-## 浏览目录
+## <a id="浏览目录"></a>浏览目录
 
 - [1. 背景](#1-背景--上下文context)
   - [1.1 目标（Goals）](#11-目标goals)
@@ -61,7 +114,7 @@
 
 ---
 
-## 1. 背景 / 上下文（Context）
+## <a id="1-背景-上下文context"></a>1. 背景 / 上下文（Context）
 
 基于对 HermesX 工程现状的实测（只读核查，未改代码），发现以下问题驱动本决策：
 
@@ -73,7 +126,7 @@
 
 **决策驱动力**：消除重复、配置驱动、可扩展、职责清晰，且不惊动既有分析层（`stock_service` / 组合风险 / 预警 / 回测等消费 `data_provider` 日线层的服务）。
 
-### 1.1 目标（Goals）
+### <a id="11-目标goals"></a>1.1 目标（Goals）
 
 本 ADR 旨在达成以下 4 项目标——
 - **G1 四层分层**：确立 HermesX 后端「数据库层 / 数据源对接层 / 功能接口层 / 横切基础辅助层」四层，消除端点直连外部源的反模式。
@@ -83,11 +136,11 @@
 
 ---
 
-## 2. 整体设计
+## <a id="2-整体设计"></a>2. 整体设计
 
 > 本章为「先总后分」中的**总**：给出四层架构总览与六项核心决策（D1–D6）。四层各自的落地设计详述见 §3–§6；后果、备选、落地指引、修改范围依次顺延。
 
-### 2.1 四层架构总览（职责划分）〔D1〕
+### <a id="21-四层架构总览职责划分d1"></a>2.1 四层架构总览（职责划分）〔D1〕
 
 | 层 | 职责 | 工程现状 / 落点 |
 |---|---|---|
@@ -107,7 +160,7 @@
 | **③ 功能接口层**（面向功能与 UI） | 面向功能与 UI 的 HTTP 端点（固定契约，不随源变）+ 功能编排 | 唯一对外、面向 UI 的接口边界；换源对 UI 透明，前端零改 | `api/v1/endpoints/`（+ `src/services/`） |
 | **④ 横切基础辅助层** | `config.py` + 运行时配置服务 + 数据字典，被各层读取 | 横切全局可读（配置 / 白名单 / 字典），不属竖向流程 | `src/config.py`（横切配置，全局读取） |
 
-### 2.2 data_provider 为唯一脏活层（数据源下沉）〔D2〕
+### <a id="22-dataprovider-为唯一脏活层数据源下沉d2"></a>2.2 data_provider 为唯一脏活层（数据源下沉）〔D2〕
 
 - 所有与外部源 / 本地源打交道的对接代码都收口到 `data_provider/`。
 - StockDB 接入：`data_provider/stockdb_fetcher.py`（直连 `127.0.0.1:7899`）+ 作为 K 线 / 基础信息 / 代码搜索三能力的 `local` source。
@@ -115,7 +168,7 @@
 - **不再新建** `src/integrations/stockdb/` 平级独立包，也**不新建** `market_data/` 平级目录。
 - 现有 `kline.py` 的内联取数函数（`_fetch_from_*`）迁移为 `data_provider/kline/<source>.py` 中的 source 实现。
 
-### 2.3 三类基础能力同构、多源可切换〔D3〕
+### <a id="23-三类基础能力同构多源可切换d3"></a>2.3 三类基础能力同构、多源可切换〔D3〕
 
 K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座。目录结构、功能包划分、`base.py` 三层关系、两类高频查询接口归类、目录铺排总表等**落地细节**统一归入 §4 数据源对接层设计（本节的决策要点如下）：
 
@@ -123,7 +176,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 - 跨功能的公共逻辑（代码归一 / 缓存 / 限流 / 健康探针）统一沉到 `data_provider/common/`，绝不在各源重复。
 - **能力间隔离（不影响其他功能）**：三类能力的"多源平等 / 自动回退 / 周期全集"实现**完全封装在各自功能包文件内**（`data_provider/kline/*`、`stock_info/*`、`code_search/*`），由各自 `base.py` 的 Manager 驱动；项目其他功能仍按其既定专属源接入，若后续纳入 `StockSDK` 也只能以 `<capability>/stocksdk_source.py` 方式进入 ② 层，**互不影响、互不耦合**——即"在哪能力里要多源平等，就在哪能力的文件里实现"，不影响项目中其他使用数据源的地方（详见 §4.5 / §4.4）。
 
-### 2.4 统一数据契约 + 多源平等 + 自动回退 + 周期全集〔D4〕
+### <a id="24-统一数据契约-多源平等-自动回退-周期全集d4"></a>2.4 统一数据契约 + 多源平等 + 自动回退 + 周期全集〔D4〕
 
 - **统一输出契约**（K 线为例）：`KLinePoint{date, open, high, low, close, volume, amount, pct_chg}`；`pct_chg` **统一在层内计算**（决策方案 A，各源不重复算）。
 - **适配层同级、优先级全在配置（核心原则）**：`local / eastmoney / sina / tencent / stocksdk` 在 `data_provider/*/base.py` 的源适配器里**完全同级、无内置权重、无硬编码先后**。调用次序与"重要性 / 主次"**100% 由配置栏决定**——`KLINE_DATA_SOURCE` / `STOCKINFO_DATA_SOURCE` / `CODESEARCH_DATA_SOURCE` 指定主源，`*_SOURCE_PRIORITY` 指定回退链的主次先后。配置改了次序即改，代码层对任何源一视同仁，不得把某源写死为"首选/兜底"。
@@ -135,19 +188,19 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 > **范围约束（重要）**：上述"多源平等 + 自动回退 + 周期全集"原则**优先适用于 `K 线 / 基础信息 / 代码搜索` 三类基础能力**。本项目的其他能力——实时行情（akshare / tickflow，后续可补 `stocksdk_source`）、板块（按子场景分源：eastmoney 承接指数/概览/资金流/排行，shidaotec 承接行业/个股/ETF/概念云图，后续可补 `stocksdk_source` 承接标准板块/资金流接口）、财务基本面（专享 tushare）、新闻资讯（专享 wallstreetcn）、机构持仓（专享 tw_institutional）——按各自既有方式接入；其中 `StockSDK` 属于**桥接型扩展源**，只允许经 ② 层 provider 适配后暴露给上层。各源完整清单与归属见 §4.5；能力 × 数据源矩阵见 §4.4。
 
 
-### 2.5 UI 配置页复用运行时改配置基建〔D5〕
+### <a id="25-ui-配置页复用运行时改配置基建d5"></a>2.5 UI 配置页复用运行时改配置基建〔D5〕
 
 - `/settings` 下新增「数据源」Tab（不另起独立菜单），每组能力含：主源下拉 + 回退链排序 + 开关 + 连接测试。
 - 持久化调用既有 `POST /api/v1/config`（写 `.env` + `reload_now`）；选源逻辑每次请求读 `config.*_data_source`，无需重启即切换。
 - 新增配置键须登记进 `system_config` 运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；`StockSDK` 相关桥接配置（如 `STOCKSDK_ENABLED`、`STOCKSDK_NODE_BIN`、`STOCKSDK_BRIDGE_ENTRY`、`STOCKSDK_TIMEOUT_MS`、`STOCKSDK_RATE_LIMIT_RPS`、`STOCKSDK_KLINE_FALLBACK`）同样属于 ④ 层统一配置。
 
-### 2.6 kline.py 瘦身为瘦端点〔D6〕
+### <a id="26-klinepy-瘦身为瘦端点d6"></a>2.6 kline.py 瘦身为瘦端点〔D6〕
 
 删除内联 `_fetch_kline_from_*`，改为调用 `KlineDataSourceManager.get_kline(...)`；端点签名（`period` / `fqt` / `limit` / `before_date`）不变 → `/stock/kline` 前端零改动。
 
 ---
 
-### 2.7 设计前提：项目未上线，无历史包袱，按正确做法落地
+### <a id="27-设计前提项目未上线无历史包袱按正确做法落地"></a>2.7 设计前提：项目未上线，无历史包袱，按正确做法落地
 
 > **核心前提**：HermesX **尚未上线**，不存在代码层与数据层的历史包袱（无存量线上数据需迁移、无已发布契约需兼容、无外部调用方依赖）。因此本 ADR 的所有设计取舍与改造动作，**以"正确的工程做法"为第一优先级**，而非"为兼容存量而妥协"。
 
@@ -158,7 +211,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 - **统一入口从一开始就建对**：分层边界（数据库层 barrel、数据源矩阵、端点契约）在落地时即收口为唯一一致入口，不在"先能跑、后统一"假设下留分叉。
 - **零新增表仍成立，但"正确结构"优先于"少建表"**：重构范围内不借机扩张无关表；但本属该层职责、此前因保守而"先用常量顶替"的结构（如数据字典），应建为正确形态，而非长期用 config 顶替。
 
-## 3. 数据库层设计
+## <a id="3-数据库层设计"></a>3. 数据库层设计
 
 > 本章对应「① 数据库层」：本地数据源、本地配置、数据字典落表；外部 API 拉取只做进程内 TTL 缓存、不落表。整体决策见 §2.1 四层架构总览；本 ADR 重构范围内**不借机扩张无关表**，其中数据字典（O1）按 §2.7「正确做法」建为独立表，属本层既有职责、不视为妥协性扩张。
 
@@ -167,7 +220,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 - **数据字典（应为独立表，不再用 config 顶替）**：承载跨能力字典，是 ① 数据库层本就属于的职责。因项目未上线（§2.7），**不应长期以 `config.py` 常量顶替**，应建为独立表 + 对应 Repository，作为正确结构落地；具体建模与落地排期见 §6 横切基础辅助层设计 / 开放项 O1（O1 由"可选"上调为"应建独立表"，执行排期见 §6 落地说明）。
 - **对应目录**：`src/repositories/`（+ 根 `storage.py`）；本期数据库层**落表导出已收口（§3.1 / §10.5 D1）、数据字典 O1 按 §2.7 上调为应建独立表（执行见 §6 落地说明）**，除上述外不改动既有模型契约、不新增无关表。
 
-### 3.1 src/repositories/ 落表文件清单与职责
+### <a id="31-srcrepositories-落表文件清单与职责"></a>3.1 src/repositories/ 落表文件清单与职责
 
 数据库层（①）的本地落表由根 `storage.py`（连接/会话单例 + 全部 ORM 模型/数据字典）与 `src/repositories/` 下的 10 个 Repository（薄 DAO）共同承载。各 Repository **统一只依赖 `storage` 的导出 `DatabaseManager` + 对应 ORM 模型**，封装某几张表的 CRUD/查询，**不含业务编排**，被 ③ 功能接口层（`api/v1/endpoints/` + `src/services/`）调用。
 
@@ -186,7 +239,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 
 > **导出约定**：`src/repositories/__init__.py` 作为该层唯一一致入口，barrel 导出全部 10 个 Repository 类（`AnalysisRepository` / `BacktestRepository` / `DecisionSignalRepository` / `DecisionSignalOutcomeRepository` / `StockRepository` / `SkillOpinionSampleRepository` / `AlertRepository` / `PortfolioRepository` / `IntelligenceRepository` / `SkillOpinionOutcomeRepository`）。
 
-### 3.2 storage.py —— 落表基座（连接 + 模型 + 原语）
+### <a id="32-storagepy-落表基座连接-模型-原语"></a>3.2 storage.py —— 落表基座（连接 + 模型 + 原语）
 
 - **`DatabaseManager`（进程内单例，metaclass 控制）**：管理 SQLite 连接、`get_session()` 会话、`_run_write_transaction()` 写事务、`BEGIN IMMEDIATE` 锁重试；是所有 Repository 的唯一连接/会话来源，是依赖终点，不依赖任何上层。
 - **34 个 ORM 模型（即"数据字典 / 落表 schema"）**：`StockDaily`、`IntelligenceSource` / `IntelligenceItem`、`NewsIntel`、`FundamentalSnapshot`、`AnalysisHistory`、`BacktestResult` / `BacktestSummary`、`Portfolio*`(9 张)、`ConversationMessage` / `ConversationSummary` / `AgentProviderTurn`、`LLMUsage`、`Alert*`(4 张)、`DecisionSignal*`(3 张)、`SkillOpinion*`(2 张)、`WatchlistGroup` / `WatchlistItem`、`DatabaseSchemaMigration`。
@@ -194,7 +247,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 - **存储铁律（文件 docstring 强制）**：时间统一 UTC-naive、金额统一元 / 涨跌幅为百分比数值、股票代码纯代码字符串、JSON 列以 `Text` 存字符串、流水表软删除 + 保留期清理；Schema 增量迁移经 `_ensure_*` 幂等补列/补索引。
 - **边界**：只做"连接管理 + ORM 模型 + 通用存取原语"，**不含业务编排**；业务在 `src/services/` 与 `src/repositories/`。
 
-### 3.3 数据库层在四层架构中的定位
+### <a id="33-数据库层在四层架构中的定位"></a>3.3 数据库层在四层架构中的定位
 
 - **① 数据库层 = 本地落表基座**：承载 HermesX **自身**的本地数据源 / 配置 / 字典落表。本层不依赖 ② 数据源对接层、③ 功能接口层、④ 横切层；是其余所有层的公共依赖终点。
 - **与 ② 数据源对接层的边界**：脏活（抓取、字段标准化、fallback、TTL、与 StockDB/外部源对接）全部在 `data_provider/`，经 HTTP 封装；本层 Repository 不写 `requests`、不直读 StockDB 文件。`intelligence_repo.py` 的 docstring 已明示"不负责抓取/标准化/编排（在 `services/intelligence_service` 与 `data_provider`）"——即本 ADR §2 边界的落地。
@@ -204,11 +257,11 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 
 ---
 
-## 4. 数据源对接层设计
+## <a id="4-数据源对接层设计"></a>4. 数据源对接层设计
 
 > 本章对应「② 数据源对接层（脏活层）」：唯一与外部 / 本地源对接的封装层，是 `data_provider/` 的落地设计详述。整体决策见 §2.2、§2.3；本节目录铺排总表以本 ADR §4.4 为唯一对齐基准（方案 §3.8.8 已改为引用本表，不再重复全量内联）。
 
-### 4.1 data_provider 目录结构与功能包划分
+### <a id="41-dataprovider-目录结构与功能包划分"></a>4.1 data_provider 目录结构与功能包划分
 
 K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各自独立成包，置于 `data_provider/` 下，结构同构；另设 `common/` 承载跨功能公共底座：
 
@@ -229,20 +282,20 @@ data_provider/
 
 > **二维组织原则（功能 × 数据源）**：`data_provider/` 下的能力包按"功能/用途"先分维度，再按"数据源"分维度，目录形态为 `data_provider/<功能>/<源>_source.py`；跨功能的公共逻辑（代码归一/缓存/限流/健康探针）统一沉到 `data_provider/common/`。对 **Node/TS 生态的 StockSDK**，额外引入共享桥接文件 `data_provider/stocksdk_bridge.py` 作为物理后端入口，但其上层仍必须落回各能力包下的 `stocksdk_source.py`。完整能力清单、目标目录树（含层级合并单元格表）、防重复决策与分阶段落地见 §4.4 目录铺排总表。
 
-### 4.2 base.py 三层关系（common 底座 vs 功能包 base）
+### <a id="42-basepy-三层关系common-底座-vs-功能包-base"></a>4.2 base.py 三层关系（common 底座 vs 功能包 base）
 
 - **`common/base.py`** = 公共泛型底座，定义最通用的 `DataSource(ABC)` + `DataSourceManager`（选源 / 回退 / 健康 / TTL 由配置驱动）。它**不对应任何具体业务接口**，只提供被继承的"骨架"。
 - **各功能包 `base.py`**（如 `code_search/base.py`、`stock_info/base.py`、`kline/base.py`）= 该能力的专属契约与编排层（`CodeSearchDataSource` / `StockInfoDataSource` / `KlineDataSource`），均**继承 `common/base.py`**。每个能力包有自己独立的契约（`CodeSearchResult` / `StockInfo` / `KLinePoint`）与适配器注册，**互不污染**。
 - 关系：`common/base.py` 被各功能包 `base.py` **继承**——选源 / 回退逻辑统一在公共层写一遍，功能契约各自独立。
 
-### 4.3 两类高频查询接口的归类
+### <a id="43-两类高频查询接口的归类"></a>4.3 两类高频查询接口的归类
 
 - 🔍 **查询接口①（输入 6 位编码 / 名称 → 联想解析出这只股票）** → 落在 **`data_provider/code_search/base.py`**（`CodeSearchDataSource` + `CodeSearchDataSourceManager` + `CodeSearchResult` 契约）。**不在 `common/base.py`。**
 - 🔍 **查询接口②（输入 6 位编码查股票信息：名称 / 行业 / 板块 / 列表）** → 落在 **`data_provider/stock_info/base.py`**（`StockInfoDataSource` + `StockInfoDataSourceManager` + `StockInfo` 契约）。**不在 `common/base.py`。**
 - 两者**不合并为一个包**（契约 `CodeSearchResult` ≠ `StockInfo`）；底层"股票总表 / 名称↔编码"抓取共享，统一复用既有 `get_stock_name` / `get_stock_list`（即"物理后端"），不在各源重写。
 - 当前违规待迁移：`src/services/name_to_code_resolver.py` 在 ③ 功能接口层直接 `import akshare` 取数（违反 §2.2），其取数须下沉到 `code_search/eastmoney_source.py` / `code_search/stocksdk_source.py`；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`（方案 §3.7 A10 / A12）。
 
-### 4.4 data_provider 目录铺排总表（落地基准）
+### <a id="44-dataprovider-目录铺排总表落地基准"></a>4.4 data_provider 目录铺排总表（落地基准）
 
 > **`data_provider` 目录铺排总表（代码拆分与最终落地的权威依据）**
 >
@@ -299,7 +352,7 @@ data_provider/
 
 > **既有文件处置（不删不改、降级为"物理后端"）**：现有 `data_provider/akshare_fetcher.py`、`tushare_fetcher.py`、`efinance_fetcher.py`、`tencent_fetcher.py`、`tickflow_fetcher.py`、`yfinance_fetcher.py`、`longbridge_fetcher.py`、`pytdx_fetcher.py`、`baostock_fetcher.py`、`alphavantage_fetcher.py`、`finnhub_fetcher.py` 等**保留**，作为上表中对应 `<源>_source.py` 的底层物理取数后端被复用（例如 `kline/eastmoney_source.py` 内部调用既有东财通道）；`StockSDK` 则以 `data_provider/stocksdk_bridge.py` + Node 18 sidecar 的形式作为另一类"桥接型物理后端"纳入。本期不重写、不删除。待各功能包矩阵（阶段 2/3）成熟、`BaseFetcher` 巨类完成"物理后端 → 矩阵拆解"后，这些顶层 fetcher 再逐步退役。
 
-### 4.5 数据源介绍（本项目对接的数据源头清单）
+### <a id="45-数据源介绍本项目对接的数据源头清单"></a>4.5 数据源介绍（本项目对接的数据源头清单）
 
 > 本节以清单形式**完整**介绍本项目在 **② 数据源对接层** 实际对接（含已用、规划内）的数据源头，便于理解"各源是什么、怎么接、与本项目是接口调用还是代码耦合、要不要 key/token"。
 >
@@ -329,18 +382,18 @@ data_provider/
 
 ---
 
-## 5. 功能接口层设计
+## <a id="5-功能接口层设计"></a>5. 功能接口层设计
 
 > 本章对应「③ 功能接口层」：面向功能 / UI 的 HTTP 端点（固定契约，不随数据源变）+ 功能编排（组合数据源与业务规则）。**本章为该层设计的权威依据**——边界、目录结构、铺排总表、调用链路均在此；主方案 `stock_data_view.md` §3.9 与之对齐、不重复展开。整体决策见 §2.6（kline.py 瘦身为瘦端点）；取数下沉规则见 §4.3。
 
-### 5.1 定位与边界（区别于 ② 数据源对接层）
+### <a id="51-定位与边界区别于-②-数据源对接层"></a>5.1 定位与边界（区别于 ② 数据源对接层）
 
 - **功能接口层 = 面向系统标准功能的 HTTP 接口层**。其**输入 / 输出契约是稳定的、标准的**，只随“系统功能”演进，**不随底层数据源变动**而改。
 - **典型样例（K 线图）**：K 线图的渲染方式、前端取数接口（`code / period / fqt / limit` → `KLinePoint[]`）是标准的；只有“数据从哪个源来（本地 StockDB / 东财 / 新浪 / 腾讯 / StockSDK）”是个性，且已下沉到 ② 层（`data_provider/kline/` 多源可切换）。换成任意源，K 线端点签名与返回结构**完全不变** → 前端零改。
 - **边界铁律**：③ 层**只做路由 + 编排**，不内联任何第三方 / 本地源对接代码（取数一律经 ② 层 `data_provider/*/base.py` 的 Manager）。详见 §2.6（A1 瘦端点、A10 取数下沉）、§4.3（两类查询接口必须归入 ② 层）。
 - **与 ② 层的唯一耦合点**：③ 层调用 ② 层的统一契约（`KLinePoint` / `StockInfo` / `CodeSearchResult` 及后续能力契约），源切换对 ③ 透明。
 
-### 5.2 端点目录结构与两层划分
+### <a id="52-端点目录结构与两层划分"></a>5.2 端点目录结构与两层划分
 
 ```
 api/v1/
@@ -356,7 +409,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 > 两层关系：端点（`endpoints/`）只路由 + 调 `services/*` 编排；`services/` 组合 ② 层取数与本地存储，承载业务规则。两者同属 ③ 功能接口层，均**不直连第三方源**。
 
-### 5.3 功能接口层铺排总表（枚举所有标准功能接口 · 权威基准）
+### <a id="53-功能接口层铺排总表枚举所有标准功能接口-权威基准"></a>5.3 功能接口层铺排总表（枚举所有标准功能接口 · 权威基准）
 
 > 下表逐文件枚举 `api/v1/endpoints/` 下全部 17 个端点文件。每个文件 = 一个标准功能域；其契约固定、不随数据源变，底层取数由 ② 层透明供给。🌟 = K 线图（边界铁律典型样例）。**本表为权威基准，主方案 §3.9 与之对齐、不重复列全表。**
 
@@ -380,7 +433,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | `api/v1/` | `endpoints/` | `system_config.py` | 配置读写、运行时改配置基建（`/config`，数据源 UI 后台） | 配置管理（横切，支撑 §2.5） | ③ 系统级横切功能接口 | 否 |
 | `api/v1/` | `endpoints/` | `usage.py` | 使用量统计查询（`/usage`） | 用量统计（横切） | ③ 系统级横切功能接口 | 否 |
 
-### 5.4 与 ② 数据源对接层的关系（调用链路）
+### <a id="54-与-②-数据源对接层的关系调用链路"></a>5.4 与 ② 数据源对接层的关系（调用链路）
 
 ```
 前端 → ③ 端点(endpoints/*.py, 契约固定) → ③ 编排(services/*.py) → ② Manager(data_provider/<能力>/base.py) → ② 源适配器(<源>_source.py) → 外部/本地源
@@ -389,7 +442,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 > 铁律：任何“换数据源”动作只发生在 ② 层内部（改配置 / 加源适配器），**③ 层契约与前端代码零改动**。
 
-## 6. 横切基础辅助层设计
+## <a id="6-横切基础辅助层设计"></a>6. 横切基础辅助层设计
 
 > 本章对应「④ 横切基础辅助层」：被以上各层读取的全局可读基础设施。整体决策见 §2.5（UI 配置页复用运行时改配置）；数据字典建议见开放项 O1。
 
@@ -402,19 +455,19 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 7. 后果（Consequences）
+## <a id="7-后果consequences"></a>7. 后果（Consequences）
 
-### 正面
+### <a id="正面"></a>正面
 - 消除 `kline.py` 硬编码三级降级与 `data_provider` 日线层的功能重叠。
 - 新增数据源只需写一份 `_normalize_kline` 映射，不碰渲染层。
 - 配置驱动切换，无需改代码 / 重启即可切源；UI 可管。
 - 与工程既有 `data_provider` / `system_config` 范式一致，无新概念。
 
-### 负面 / 成本
+### <a id="负面-成本"></a>负面 / 成本
 - 方案范围扩大：从「本地 StockDB 浏览页」升级为「行情基础能力统一层」。
 - 需改 `kline.py`（瘦端点）+ 新增 `data_provider/{stockdb_fetcher, stocksdk_bridge, kline, stock_info, code_search}`。
 
-### 风险 / 注意
+### <a id="风险-注意"></a>风险 / 注意
 - `data_provider` 已有 `get_stock_name` / `get_stock_list` / `get_stock_membership_boards`（基础信息 / 列表能力），新的 `stock_info` 能力须**复用**这些既有能力 + 加薄适配壳，避免重复东财 / 新浪 / 腾讯 / StockSDK 桥接取数。
 - 复权公式对账（AC-3，原方案 §6.2）仍锁在 K 线能力内，是上线硬阻断，未被本 ADR 改变。
 - 数据字典按 §2.7 设计立场应建为独立表（不再以 `config.py` 常量顶替），具体建模与落点见 O1；O1 由"可选"上调为"应建"，但**代码落地暂不行执行（见本节落地说明），后续再修改**。
@@ -422,7 +475,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 8. 备选方案（Alternatives Considered）
+## <a id="8-备选方案alternatives-considered"></a>8. 备选方案（Alternatives Considered）
 
 | 方案 | 结论 | 理由 |
 |---|---|---|
@@ -434,7 +487,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 9. 落地指引（对 `stock_data_view.md` 的修订要求）
+## <a id="9-落地指引对-stockdataviewmd-的修订要求"></a>9. 落地指引（对 `stock_data_view.md` 的修订要求）
 
 1. **§3 架构**：改为四层 + `data_provider` 脏活层 + 三类能力子包；原「独立 `/api/stockdb` 页」表述改为「StockDB 作为统一基础能力层的一个 `local` source」，并新增 `StockSDK` 作为桥接型 `stocksdk` source。
 2. **§9 配置**：新增数据源切换键（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 及 `STOCKINFO_*` / `CODESEARCH_*`），并补充 `STOCKSDK_*` 桥接配置块（Node 二进制、bridge 入口、超时、限流、fallback 开关）。
@@ -444,11 +497,11 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 10. 修改范围与改造代办清单（代码执行指引）
+## <a id="10-修改范围与改造代办清单代码执行指引"></a>10. 修改范围与改造代办清单（代码执行指引）
 
 > 本 ADR 给出设计决策，方案 `stock_data_view.md` §3.6（合规审计）+ §3.7（代码改造代办清单 TODO）给出可执行细节。本节把"**要改动的地方**"在 ADR 内浓缩为可直接勾选的**执行台账**，作为后续写代码的统一指引。所有项默认 `[ ] 未开始`；文件级动作细节以方案 §3.7 为准。
 
-### 10.1 修改范围总览（按层 + 动作分类）
+### <a id="101-修改范围总览按层-动作分类"></a>10.1 修改范围总览（按层 + 动作分类）
 
 | 层 | 模块 / 文件 | 动作 | 依据 |
 |---|---|---|---|
@@ -469,7 +522,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | ④ 横切基础辅助层 | `system_config` 运行时白名单 | **修改**（注册新键） | 2.5、A7 |
 | 前端 | `apps/hrs-web/` 新增「数据源配置」Tab（挂 `/settings` 下） | **新建** | 2.5、A8 |
 
-### 10.2 改造代办清单（逐项勾选）
+### <a id="102-改造代办清单逐项勾选"></a>10.2 改造代办清单（逐项勾选）
 
 > 图例：`档位` = A 必须 / B 建议（超方案）/ C 不纳入；`前端` = 是否需前端改动。
 
@@ -496,7 +549,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 - [ ] **C1. `src/services/` 直连外部 SaaS**（alphasift / intelligence / social_sentiment / stock_index_remote）：当前直接 `requests.get` 外部 SaaS/LLM；属 SaaS/通知/LLM 边界，与"行情数据源脏活层"不同上下文，**本期不耦合（边界清晰，非妥协）**；按 §2.7，未上线期亦不应在内部堆兼容/容错补丁，其集成范式（settings + 熔断 + 原子缓存）后续可由 `data_provider` 借鉴。`[不同边界]`｜**显式标注：不改动（边界使然）**
 
-### 10.3 建议执行顺序与依赖
+### <a id="103-建议执行顺序与依赖"></a>10.3 建议执行顺序与依赖
 
 1. **先建底座**：A2（base/Manager/契约）→ A3/A4/A5（多源 + 聚合）→ A6（StockDB 客户端）→ A11（StockSDK bridge）。
 2. **再瘦端点**：A1（kline.py 改调 Manager，删内联脏活）；此时后端已达标，**前端零改**。
@@ -505,13 +558,13 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 5. **独立 follow-up**：B1 已完成，后续仅按能力扩展继续在 `data_provider/sector/` 内演进，不再回退到端点内联取数。
 6. **不触碰**：C1（service SaaS）。
 
-### 10.4 完成判据
+### <a id="104-完成判据"></a>10.4 完成判据
 
 - Tier A 全部 `[x]` 后，本方案后端即满足 ADR-001 **2.2 / 2.3 / 2.4 / 2.5 / 2.6**；
 - Tier B / C 状态明确（B 排期待办、C 显式不纳），不构成遗留隐患；
 - 改造完成后 `data_provider/` 实际目录须与 **§4.4 目录铺排总表** 逐行匹配一致（本 ADR 为唯一真源，方案 §3.8.8 已改为引用本表）。
 
-### 10.5 编制期衍生改动（文档 + 代码收尾，已落地）
+### <a id="105-编制期衍生改动文档-代码收尾已落地"></a>10.5 编制期衍生改动（文档 + 代码收尾，已落地）
 
 > 本节记录编制本 ADR（§3 数据库层设计补全 + 总目录同步）及前序会话中已实际落地的代码/内容改动，与 ADR-001 主体（data_provider 重构，A1–A12）相互独立、互不阻塞；状态以 `[x]` 标注已落地项。这些改动不改变 ADR-001 的核心结论（零新增表、StockDB 由进程独占），仅做落表层导出收口、前端组件统一与文档补全。
 
@@ -533,7 +586,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 11. 验证 / 落地检查表
+## <a id="11-验证-落地检查表"></a>11. 验证 / 落地检查表
 
 - [ ] `data_provider/stockdb_fetcher.py` 直连 7899 成功返回 `日k` / `分钟k`
 - [ ] `data_provider/stocksdk_bridge.py` 能成功调起 Node 18 `stock-sdk`，并完成 JSON 请求 / 响应 / 错误码映射
@@ -558,11 +611,11 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ---
 
-## 12. 备注项
+## <a id="12-备注项"></a>12. 备注项
 
 > 本 ADR 的收尾章节：记录修订轨迹、与方案的对应关系、尚未闭合的开放项，以及编码公约引用，便于后续维护与审计。
 
-### 12.1 修订历史（迭代里程碑）
+### <a id="121-修订历史迭代里程碑"></a>12.1 修订历史（迭代里程碑）
 
 | 版本 / 时间 | 关键变更 |
 |---|---|
@@ -574,7 +627,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | 修订 E（2026-10-07 晚） | **确立"ADR 为主"的落盘顺序**：§5 功能接口层设计升级为该层**权威完整规范**（5.1 定位与边界 / 5.2 端点目录结构 / 5.3 17 个端点铺排总表 / 5.4 调用链路）；主方案 `stock_data_view.md` §3.9 相应**精简为对齐摘要**，权威表迁入 ADR §5.3（避免两处重复、维护漂移）；浏览目录补 5.1–5.4 可点击子项（锚点经 `github-slugger` 校验） |
 | 修订 F（2026-10-09） | 新增 `StockSDK` 可行性分析与分层接入方案：将其定义为 **Node 18 桥接型物理后端**，补充 `data_provider/stocksdk_bridge.py` 与各能力 `stocksdk_source.py` 的目录铺排、配置键、执行顺序、验证项与功能接口层边界说明 |
 
-### 12.2 ADR ↔ 方案 章节映射
+### <a id="122-adr-方案-章节映射"></a>12.2 ADR ↔ 方案 章节映射
 
 | ADR 章节 | 对应方案 `stock_data_view.md` | 关系 |
 |---|---|---|
@@ -587,7 +640,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | §10 修改范围 / 代办 | §3.7（改造 TODO） | 一一对应 |
 | §11 验证检查表 | §14.9（影响面与回归） | 互补 |
 
-### 12.3 开放项 / 待定（非阻塞，按需闭合）
+### <a id="123-开放项-待定非阻塞按需闭合"></a>12.3 开放项 / 待定（非阻塞，按需闭合）
 
 - **O1 数据字典模块**：2.1/2.4 提及「【建议新增】数据字典模块」；按 §2.7 正确做法，设计立场应建为独立表 + 对应 Repository，不再以 `config.py` 常量顶替。具体表结构与落点待定；**代码落地暂不在本期执行（见 §6 落地说明），后续再修改**，不长期挂账为临时顶替。
 - **O2 StockDB `127.0.0.1:7899` 鉴权**：`STOCKDB_REQUIRE_AUTH` 因复用 `/api/v1` 已继承 `ADMIN_AUTH`，可降级为可选项（见方案 §14.8）。
@@ -596,7 +649,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 - **O4 `sector.py` 内联取数（B1）**：已完成下沉并关闭；后续若新增板块子能力，继续收口到 `data_provider/sector/`，不再在端点层追加直连取数。
 - **O5 `service` 层 SaaS 外联（C1）**：显式标注不改动，其集成范式后续可借鉴 `data_provider`。
 
-### 12.4 编码公约引用
+### <a id="124-编码公约引用"></a>12.4 编码公约引用
 
 - 命名 / 目录 / 文件结构以方案 **§3.5（Python 标准化结构）** 为代码落地模板（PEP 8 + HermesX 既有 `*_service.py` / `*_repo.py` / `*_fetcher.py` / `base.py` 规律）。
 - 统一契约类型：`KLinePoint` / `StockInfo` / `CodeSearchResult`（见 2.4）。

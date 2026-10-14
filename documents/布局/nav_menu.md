@@ -1,15 +1,51 @@
-# 侧边导航菜单（SidebarNav）设计方案
+# <a id="侧边导航菜单sidebarnav设计方案"></a>侧边导航菜单（SidebarNav）设计方案
+
+> 📝 **方案简述**：本方案设计 HermesX 侧边导航菜单 SidebarNav。它定义 NavMenuNode 节点模型与从清单到 Store 再到侧栏的数据流、持久化边界以及 content 与 footer 区域拆分，说明菜单与路由的关系，包括 matchPath 高亮判定、激活的双触发、模块切换自动跳转首个菜单、父级自动展开，实现三态折叠、滑行毛玻璃、按压反馈与兄弟让位四种交互，并给出主题令牌、CSS Module 封装策略、性能设计、文件清单与后续风险。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [目录](#目录)
+- [1. 背景与目标](#1-背景与目标)
+- [2. 术语与缩略语](#2-术语与缩略语)
+- [3. 整体架构](#3-整体架构)
+  - [3.1 分层关系](#31-分层关系)
+  - [3.2 组件职责划分](#32-组件职责划分)
+- [4. 菜单数据结构与存储](#4-菜单数据结构与存储)
+  - [4.1 节点模型 `NavMenuNode`](#41-节点模型-navmenunode)
+  - [4.2 数据流：清单 → Store → 侧栏](#42-数据流清单-store-侧栏)
+  - [4.3 持久化边界](#43-持久化边界)
+  - [4.4 区域拆分（content / footer）](#44-区域拆分content-footer)
+- [5. 与路由的关系](#5-与路由的关系)
+  - [5.1 高亮判定 `matchPath`](#51-高亮判定-matchpath)
+  - [5.2 激活的双触发（自身 / 子项）](#52-激活的双触发自身-子项)
+  - [5.3 模块切换自动跳转首个菜单](#53-模块切换自动跳转首个菜单)
+  - [5.4 父级自动展开（深链 / 刷新）](#54-父级自动展开深链-刷新)
+- [6. 交互实现](#6-交互实现)
+  - [6.1 三态折叠](#61-三态折叠)
+  - [6.2 滑行毛玻璃（Sliding Thumb）](#62-滑行毛玻璃sliding-thumb)
+  - [6.3 按压反馈（Press Feedback）](#63-按压反馈press-feedback)
+  - [6.4 兄弟让位（Sibling Dim，`:has()`）](#64-兄弟让位sibling-dimhas)
+- [7. 样式与主题](#7-样式与主题)
+  - [7.1 主题令牌 `--nav-*`](#71-主题令牌-nav)
+  - [7.2 CSS Module 封装策略](#72-css-module-封装策略)
+  - [7.3 明暗主题](#73-明暗主题)
+- [8. 性能设计](#8-性能设计)
+- [9. 文件清单](#9-文件清单)
+- [10. 风险与后续](#10-风险与后续)
+
 
 | 项 | 内容 |
 | --- | --- |
-| **作者** | Lensgcx (GaoCangxiong) |
-| **更新时间** | 2026-10-13 |
 | **适用模块** | `apps/hrs-web/src/components/layout/SideBar/` |
 | **文档状态** | 现行实现说明（含滑行玻璃 / 按压反馈 / 兄弟让位交互） |
 
 ---
 
-## 目录
+## <a id="目录"></a>目录
 
 - [1. 背景与目标](#1-背景与目标)
 - [2. 术语与缩略语](#2-术语与缩略语)
@@ -41,7 +77,7 @@
 
 ---
 
-## 1. 背景与目标
+## <a id="1-背景与目标"></a>1. 背景与目标
 
 侧边导航（`SidebarNav`）是 HRS 桌面端布局的固定导航容器，承载「品牌区 + 主菜单（content）+ 底部菜单（footer）」。
 
@@ -55,7 +91,7 @@
 
 ---
 
-## 2. 术语与缩略语
+## <a id="2-术语与缩略语"></a>2. 术语与缩略语
 
 | 术语 | 含义 |
 | --- | --- |
@@ -70,9 +106,9 @@
 
 ---
 
-## 3. 整体架构
+## <a id="3-整体架构"></a>3. 整体架构
 
-### 3.1 分层关系
+### <a id="31-分层关系"></a>3.1 分层关系
 
 ```
 Shell 布局层（useLayoutStore 提供 menuCollapsedState）
@@ -101,7 +137,7 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 组件职责划分
+### <a id="32-组件职责划分"></a>3.2 组件职责划分
 
 | 文件 | 职责 |
 | --- | --- |
@@ -115,9 +151,9 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 
 ---
 
-## 4. 菜单数据结构与存储
+## <a id="4-菜单数据结构与存储"></a>4. 菜单数据结构与存储
 
-### 4.1 节点模型 `NavMenuNode`
+### <a id="41-节点模型-navmenunode"></a>4.1 节点模型 `NavMenuNode`
 
 定义于 `src/types/moduleMenu.ts`。同一套字段承载一级（分组）与二级（子项）：
 
@@ -138,7 +174,7 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 
 > 注：当前侧栏实际仅使用 `content` 与 `footer` 两个区域（`header` 由顶部导航消费）。
 
-### 4.2 数据流：清单 → Store → 侧栏
+### <a id="42-数据流清单-store-侧栏"></a>4.2 数据流：清单 → Store → 侧栏
 
 ```
 MENU_MANIFEST（router/manifest.ts，唯一真源）
@@ -160,7 +196,7 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 - `toNavMenuNode`：将 `AppRouteNode` 映射为 `NavMenuNode`（仅搬运展示字段）。
 - `buildModuleMenuNodes`：递归构建并过滤 `menuVisible === false` 的节点；`group` 类型不可见时仅透传其子节点。
 
-### 4.3 持久化边界
+### <a id="43-持久化边界"></a>4.3 持久化边界
 
 `MenuStore` 区分三类状态、各司其持久化职责：
 
@@ -175,7 +211,7 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 - **切换模块**：`setCurrentModuleId(id)` 复用已持久化 `menuData`，仅更新 `currentModuleId` 并重算派生视图。
 - **刷新浏览器**：store 初始化时从 localStorage 还原两者并派生 `currentMenuData`，无需手动调用。
 
-### 4.4 区域拆分（content / footer）
+### <a id="44-区域拆分content-footer"></a>4.4 区域拆分（content / footer）
 
 `SidebarNav` 从 `MenuStore` 取 `currentMenuData`，经 `useMemo` 做两件事后拆分：
 
@@ -188,9 +224,9 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 
 ---
 
-## 5. 与路由的关系
+## <a id="5-与路由的关系"></a>5. 与路由的关系
 
-### 5.1 高亮判定 `matchPath`
+### <a id="51-高亮判定-matchpath"></a>5.1 高亮判定 `matchPath`
 
 定义在 `menuPath.ts`（单一真源，被 `MenuNode` 与 `SidebarNav` 复用）：
 
@@ -206,7 +242,7 @@ export const matchPath = (routePath, exact, pathname): boolean => {
 - 非精确（`exact` 为假）：当前路径等于路由或为其子路径即命中（支持二级页高亮一级）。
 - 精确（`exact` 为真）：仅完全相等命中。
 
-### 5.2 激活的双触发（自身 / 子项）
+### <a id="52-激活的双触发自身-子项"></a>5.2 激活的双触发（自身 / 子项）
 
 `MenuNode` 中：
 
@@ -219,7 +255,7 @@ const active =
 - 父级在「自身命中」或「任一子项命中」时同步高亮（对齐参考实现 `selfCurrent` / `childCurrent`）。
 - 高亮视觉：父级仅文字加粗变主色（`MENU_ITEM_TEXT_ACTIVE`）；真正承载背景高亮的**是叶子项**（见 6.2）。
 
-### 5.3 模块切换自动跳转首个菜单
+### <a id="53-模块切换自动跳转首个菜单"></a>5.3 模块切换自动跳转首个菜单
 
 `SidebarNav` 监听 `currentMenuData` 变化（跳过首次挂载以免覆盖深链）：
 
@@ -231,7 +267,7 @@ if (target?.routePath) navigate(target.routePath);
 
 - 一级含二级 → 跳到其内部第一个二级；否则跳该一级本身。
 
-### 5.4 父级自动展开（深链 / 刷新）
+### <a id="54-父级自动展开深链-刷新"></a>5.4 父级自动展开（深链 / 刷新）
 
 为避免「深链直达子页、但父级未展开导致子项不在 DOM、滑行玻璃无落点」：
 
@@ -247,9 +283,9 @@ const isExpanded = (node) => {
 
 ---
 
-## 6. 交互实现
+## <a id="6-交互实现"></a>6. 交互实现
 
-### 6.1 三态折叠
+### <a id="61-三态折叠"></a>6.1 三态折叠
 
 折叠态由外部（`Shell` 的 `useLayoutStore`）传入 `menuCollapsedState`，组件不自行订阅，便于复用与测试。
 
@@ -257,7 +293,7 @@ const isExpanded = (node) => {
 - `THEME_CONFIG`：按 `theme` 与 `collapsedState` 查表得到三态宽度（如 `pill: 160/80/0`、`square: 160/64/0`）与容器 / `aside` 类名。
 - `collapsed`（图标栏）态：`MenuNode` 走独立分支，仅渲染图标 + `title`/`aria-label` 可访问性兜底，文字用 `hidden` 常驻挂载（避免切换瞬间 DOM 增删导致布局抖动）。
 
-### 6.2 滑行毛玻璃（Sliding Thumb）
+### <a id="62-滑行毛玻璃sliding-thumb"></a>6.2 滑行毛玻璃（Sliding Thumb）
 
 **核心思想**（对应参考的 `slideThumb`）：菜单区只有「一块」毛玻璃 `.navThumb`，靠 `transform: translateY` 在菜单项之间**滑行**；图标 / 文字不动，只有背景材质在移动。
 
@@ -276,7 +312,7 @@ const isExpanded = (node) => {
 
 > 设计取舍：参考项目用 GSAP 逐帧改 `transform`，本项目改用 CSS transition + 单块元素，更省、更贴合「简单高效」诉求；`[data-active]` 钩子落在真正高亮的**叶子项**而非父级。
 
-### 6.3 按压反馈（Press Feedback）
+### <a id="63-按压反馈press-feedback"></a>6.3 按压反馈（Press Feedback）
 
 对应参考的 `installPressFeedback`（`scale: 0.955` + `back.out` 回弹）。
 
@@ -284,7 +320,7 @@ const isExpanded = (node) => {
 - `whileTap={{ scale: 0.965 }}` + 弹簧回弹 `transition={{ type: 'spring', stiffness: 520, damping: 28 }}`：点下去轻微下陷，松手弹回。
 - 与滑行玻璃解耦：按压缩放作用于菜单项自身（`transform: scale`），玻璃独立绝对定位，互不干扰。
 
-### 6.4 兄弟让位（Sibling Dim，`:has()`）
+### <a id="64-兄弟让位sibling-dimhas"></a>6.4 兄弟让位（Sibling Dim，`:has()`）
 
 对应 `layout.css` 的 `:has()` 规则，纯 CSS、零 JS：
 
@@ -302,9 +338,9 @@ const isExpanded = (node) => {
 
 ---
 
-## 7. 样式与主题
+## <a id="7-样式与主题"></a>7. 样式与主题
 
-### 7.1 主题令牌 `--nav-*`
+### <a id="71-主题令牌-nav"></a>7.1 主题令牌 `--nav-*`
 
 位于 `src/style/palette.css`，明暗主题各一套（通过 `[data-theme]` 切换）。毛玻璃块与菜单项均引用其中变量，保证主题一致：
 
@@ -317,21 +353,21 @@ const isExpanded = (node) => {
 | `--nav-divider` | 分区分隔线 |
 | `--radius` | 圆角基准（玻璃块 `calc(var(--radius) - 4px)`） |
 
-### 7.2 CSS Module 封装策略
+### <a id="72-css-module-封装策略"></a>7.2 CSS Module 封装策略
 
 - 新增 `SidebarNav.module.scss`：承载 `.navThumb` 与 `:has()` 兄弟让位两类**侧栏专属**样式。
 - 类名经 CSS Module 哈希（如 `.navList` / `.menuItem` / `.navThumb`），**不泄露到全局**；`MenuNode` 与 `SidebarNav` 共享同一模块 import。
 - 全局性属性选择器 `[data-active="true"]` 在模块中保持全局语义，不哈希。
 - 通用布局 / 间距仍用 Tailwind 工具类（行内），令牌走 `palette.css`——与项目既有约定一致。
 
-### 7.3 明暗主题
+### <a id="73-明暗主题"></a>7.3 明暗主题
 
 - 明暗通过根节点 `data-theme` 切换 `--nav-*` / `--primary` 等变量；组件层无需条件判断。
 - `prefers-reduced-motion`：`.navThumb` 关掉过渡；根节点宽度过渡也用 `motion-reduce:transition-none` 降级。
 
 ---
 
-## 8. 性能设计
+## <a id="8-性能设计"></a>8. 性能设计
 
 | 手段 | 收益 |
 | --- | --- |
@@ -345,7 +381,7 @@ const isExpanded = (node) => {
 
 ---
 
-## 9. 文件清单
+## <a id="9-文件清单"></a>9. 文件清单
 
 | 文件 | 角色 |
 | --- | --- |
@@ -360,7 +396,7 @@ const isExpanded = (node) => {
 
 ---
 
-## 10. 风险与后续
+## <a id="10-风险与后续"></a>10. 风险与后续
 
 1. **行为变化**：父级自动展开（命中子项即展开）改变了「用户未展开则保持收起」的原交互，属正向改进但属行为变更，需在验收时确认。
 2. **实机视觉未验收**：滑行手感、毛玻璃模糊强度、兄弟让位观感、明暗对比度、深链落点、折叠切换闪烁需在浏览器实机确认；`prefers-reduced-motion` 仅降级了玻璃过渡，按压回弹未单独降级。

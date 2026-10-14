@@ -1,4 +1,39 @@
-# 主题与配色系统设计方案
+# <a id="主题与配色系统设计方案"></a>主题与配色系统设计方案
+
+> 📝 **方案简述**：本方案为 apps/hrs-web 前端设计主题与配色系统，提出主题模式（浅色、深色、跟随系统）、主色、侧栏视觉主题（胶囊或方角）三维主题模型与分层架构。它定义了各维度的数据链路与持久化分工，即 mode 不写盘且应用键为唯一真值，并说明 Provider 与 store 到 DOM 的桥接方式、主色 HEX 与 HSL 的转换与 DOM 应用、首屏防闪烁处理、设置弹层的草稿与保存交互，还给出扩展新主题维度的指引与涉及文件清单。
+>
+> 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
+>
+> 🕒 **更新时间**：2026-10-13
+
+## 方案目录
+
+- [目录](#目录)
+- [1. 背景与目标](#1-背景与目标)
+- [2. 整体设计规划](#2-整体设计规划)
+  - [2.1 三维主题模型](#21-三维主题模型)
+  - [2.2 分层架构](#22-分层架构)
+  - [2.3 持久化分工（关键设计）](#23-持久化分工关键设计)
+- [3. 功能说明](#3-功能说明)
+  - [3.1 主题模式（浅色 / 深色 / 跟随系统）](#31-主题模式浅色-深色-跟随系统)
+  - [3.2 主色配置](#32-主色配置)
+  - [3.3 侧栏视觉主题（胶囊 / 方角）](#33-侧栏视觉主题胶囊-方角)
+  - [3.4 设置交互（操作即预览，保存才提交）](#34-设置交互操作即预览保存才提交)
+- [4. 数据链路与作用路径](#4-数据链路与作用路径)
+  - [4.1 主题模式 themeMode](#41-主题模式-thememode)
+  - [4.2 主色 themeColor](#42-主色-themecolor)
+  - [4.3 侧栏视觉主题 sidebarTheme](#43-侧栏视觉主题-sidebartheme)
+- [5. 实现路径与关键代码](#5-实现路径与关键代码)
+  - [5.1 Provider：让应用键成为唯一真值](#51-provider让应用键成为唯一真值)
+  - [5.2 桥接：store ↔ DOM](#52-桥接store-dom)
+  - [5.3 Store：读取原始串、mode 不写盘](#53-store读取原始串mode-不写盘)
+  - [5.4 主色：HEX ↔ HSL 与 DOM 应用](#54-主色hex-hsl-与-dom-应用)
+  - [5.5 首屏防闪烁（FOUC）](#55-首屏防闪烁fouc)
+  - [5.6 设置弹层：草稿 + 保存 + 过渡抑制](#56-设置弹层草稿-保存-过渡抑制)
+  - [5.7 扩展指引（新增一个主题维度）](#57-扩展指引新增一个主题维度)
+- [6. 涉及文件清单](#6-涉及文件清单)
+- [7. 附录：存储键与格式约定](#7-附录存储键与格式约定)
+
 
 > 文档版本：v1.0
 > 创作者：Lensgcx（GaoCangxiong）
@@ -8,7 +43,7 @@
 
 ---
 
-## 目录
+## <a id="目录"></a>目录
 
 - [1. 背景与目标](#1-背景与目标)
 - [2. 整体设计规划](#2-整体设计规划)
@@ -23,7 +58,7 @@
 
 ---
 
-## 1. 背景与目标
+## <a id="1-背景与目标"></a>1. 背景与目标
 
 前端主题系统需要同时管理三件相互独立的事：**明暗模式**、**品牌主色**、**侧栏视觉风格**。它们都要满足「刷新/切换后保持」且「首屏不闪烁（FOUC）」。
 
@@ -37,9 +72,9 @@
 
 ---
 
-## 2. 整体设计规划
+## <a id="2-整体设计规划"></a>2. 整体设计规划
 
-### 2.1 三维主题模型
+### <a id="21-三维主题模型"></a>2.1 三维主题模型
 
 | 维度 | 类型 | 取值 | 落盘方 | 作用对象 |
 | --- | --- | --- | --- | --- |
@@ -49,7 +84,7 @@
 
 三者**正交**：明暗模式决定全局底色，主色决定强调色，侧栏风格决定导航容器形状，互不影响。
 
-### 2.2 分层架构
+### <a id="22-分层架构"></a>2.2 分层架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -73,7 +108,7 @@
   theme.themeMode）
 ```
 
-### 2.3 持久化分工（关键设计）
+### <a id="23-持久化分工关键设计"></a>2.3 持久化分工（关键设计）
 
 - `themeMode` → `hrs-pref-theme.themeMode`：**next-themes 以原始字符串写盘**，store 仅用 `readStoredMode()` 读取初始化；落盘发生在 `ThemeSync` 订阅到变化后调用 `next-themes.setTheme` 时（同时切 `<html>` class）。
 - `themeColor` → `hrs-pref-theme.themeColor`：**store 经 `utils/storage.setStorageItem` 写盘**（JSON）。
@@ -83,26 +118,26 @@
 
 ---
 
-## 3. 功能说明
+## <a id="3-功能说明"></a>3. 功能说明
 
-### 3.1 主题模式（浅色 / 深色 / 跟随系统）
+### <a id="31-主题模式浅色-深色-跟随系统"></a>3.1 主题模式（浅色 / 深色 / 跟随系统）
 
 - 提供 `light`、`dark`、`system` 三选项（`THEME_MODES`）。
 - `system` 不固定明暗，运行时按 `prefers-color-scheme` 动态解析为实际 `light`/`dark`，切换系统外观时自动联动。
 - 选择后通过 next-themes 切 `<html>` 的 class，全站明暗随 CSS 变量联动。
 
-### 3.2 主色配置
+### <a id="32-主色配置"></a>3.2 主色配置
 
 - 提供 10 个预设色板（`PRIMARY_PRESETS`，覆盖中性色、语义色与项目主青蓝系）+ 自定义取色（`ColorPicker`）。
 - 主色对外以 **HEX** 暴露（取色器使用 HEX），内部转 **HSL 三元组**（`"193 100% 43%"`）写入 CSS 变量 `--primary`，实现全站强调色联动。
 - 默认值 `DEFAULT_PRIMARY_COLOR = '#19B5C4'`（与 `index.css :root` 的 `--primary` 一致，保证首屏一致）。
 
-### 3.3 侧栏视觉主题（胶囊 / 方角）
+### <a id="33-侧栏视觉主题胶囊-方角"></a>3.3 侧栏视觉主题（胶囊 / 方角）
 
 - 提供 `pill`（大圆角胶囊感：容器带面板圆角 + 边框 + 阴影）与 `square`（方角：仅右侧分隔线 `border-r`，无圆角/阴影，默认）两选项（`SIDEBAR_THEMES`）。
 - 与明暗模式正交，仅改变导航容器外观，由 `SidebarNavNew` 通过 `theme` prop 消费。
 
-### 3.4 设置交互（操作即预览，保存才提交）
+### <a id="34-设置交互操作即预览保存才提交"></a>3.4 设置交互（操作即预览，保存才提交）
 
 - 入口：顶栏 `ShellHeader` 的调色板按钮 `ThemeSetting`。
 - 弹层通过 `createPortal` 渲染到 `document.body` + `fixed` 定位（`z-[130]`），脱离父级 stacking context 与 `overflow` 限制，始终置顶。
@@ -111,9 +146,9 @@
 
 ---
 
-## 4. 数据链路与作用路径
+## <a id="4-数据链路与作用路径"></a>4. 数据链路与作用路径
 
-### 4.1 主题模式 themeMode
+### <a id="41-主题模式-thememode"></a>4.1 主题模式 themeMode
 
 ```
 用户选模式
@@ -129,7 +164,7 @@
   themeStore.readStoredMode() 读同一键 → 初始化 themeMode（原始串，白名单校验）
 ```
 
-### 4.2 主色 themeColor
+### <a id="42-主色-themecolor"></a>4.2 主色 themeColor
 
 ```
 用户选色
@@ -143,7 +178,7 @@
   readStoredPrimaryColor() 读同一键 → 初始化
 ```
 
-### 4.3 侧栏视觉主题 sidebarTheme
+### <a id="43-侧栏视觉主题-sidebartheme"></a>4.3 侧栏视觉主题 sidebarTheme
 
 ```
 用户选侧栏风格
@@ -158,9 +193,9 @@
 
 ---
 
-## 5. 实现路径与关键代码
+## <a id="5-实现路径与关键代码"></a>5. 实现路径与关键代码
 
-### 5.1 Provider：让应用键成为唯一真值
+### <a id="51-provider让应用键成为唯一真值"></a>5.1 Provider：让应用键成为唯一真值
 
 `storageKey` 把 next-themes 的存储重定向到应用键，裸 `theme` 键退役：
 
@@ -178,7 +213,7 @@
 </NextThemesProvider>
 ```
 
-### 5.2 桥接：store ↔ DOM
+### <a id="52-桥接store-dom"></a>5.2 桥接：store ↔ DOM
 
 `ThemeSync` 把内存真值同步到实际渲染，是「store 只改内存、next-themes 负责落盘」闭环的关键：
 
@@ -192,7 +227,7 @@ useEffect(() => { setTheme(themeMode); }, [themeMode, setTheme]); // → 写 hrs
 useEffect(() => { applyPrimaryColor(themeColor); }, [themeColor]); // → 设 --primary
 ```
 
-### 5.3 Store：读取原始串、mode 不写盘
+### <a id="53-store读取原始串mode-不写盘"></a>5.3 Store：读取原始串、mode 不写盘
 
 ```ts
 // src/stores/themeStore.ts
@@ -214,7 +249,7 @@ setThemeColor: (hex) => {
 },
 ```
 
-### 5.4 主色：HEX ↔ HSL 与 DOM 应用
+### <a id="54-主色hex-hsl-与-dom-应用"></a>5.4 主色：HEX ↔ HSL 与 DOM 应用
 
 ```ts
 // src/utils/themeColor.ts
@@ -239,7 +274,7 @@ export function applyModePreview(mode: ThemeMode): void {
 }
 ```
 
-### 5.5 首屏防闪烁（FOUC）
+### <a id="55-首屏防闪烁fouc"></a>5.5 首屏防闪烁（FOUC）
 
 ```html
 <!-- index.html -->
@@ -259,7 +294,7 @@ export function applyModePreview(mode: ThemeMode): void {
 </script>
 ```
 
-### 5.6 设置弹层：草稿 + 保存 + 过渡抑制
+### <a id="56-设置弹层草稿-保存-过渡抑制"></a>5.6 设置弹层：草稿 + 保存 + 过渡抑制
 
 ```tsx
 // src/components/layout/HeaderComponents/ThemeSetting.tsx
@@ -280,7 +315,7 @@ const applyPreview = (m, c) => {
 };
 ```
 
-### 5.7 扩展指引（新增一个主题维度）
+### <a id="57-扩展指引新增一个主题维度"></a>5.7 扩展指引（新增一个主题维度）
 
 1. `types/theme.ts` 新增类型；`themeStore.ts` 新增 state 字段 + 读取函数（白名单校验）+ action（`setStorageItem` 落盘，除非是「mode 类」需走 next-themes）。
 2. 若是影响全局外观的：在 `ThemeSync` 增加对应 `useEffect` 应用 DOM；若是组件级外观（如侧栏）：在 `Shell` 订阅后透传 prop。
@@ -288,7 +323,7 @@ const applyPreview = (m, c) => {
 
 ---
 
-## 6. 涉及文件清单
+## <a id="6-涉及文件清单"></a>6. 涉及文件清单
 
 | 文件 | 职责 |
 | --- | --- |
@@ -308,7 +343,7 @@ const applyPreview = (m, c) => {
 
 ---
 
-## 7. 附录：存储键与格式约定
+## <a id="7-附录存储键与格式约定"></a>7. 附录：存储键与格式约定
 
 | 存储键（localStorage） | 写入方 | 格式 | 说明 |
 | --- | --- | --- | --- |
