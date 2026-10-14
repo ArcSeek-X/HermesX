@@ -31,6 +31,7 @@ import { HomeStockWorkspace, type HomeWatchlistRow, type HomeWorkspaceTab, type 
 import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
 import { useWatchlist } from '../hooks/useWatchlist';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
+import { useKeepAliveContext } from 'keepalive-for-react';
 import type { SetupStatusResponse } from '../types/systemConfig';
 import type { RunFlowSnapshotSource } from '../types/runFlow';
 
@@ -689,12 +690,24 @@ const HomePage: React.FC = () => {
   }, []);
 
   /**
+   * 页面活动态（路由缓存）：本页被缓存后切到其它路由时进入隐藏态，
+   * 据此暂停仪表盘轮询与 SSE；切回时 enabled 恢复，首载 effect 自动重跑实现刷新。
+   */
+  const { active: isPageActive } = useKeepAliveContext();
+  /** 活动态引用：供大盘回顾轮询定时器读取，隐藏期间跳过 tick，切回后继续（不累积请求） */
+  const isPageActiveRef = useRef(true);
+  useEffect(() => {
+    isPageActiveRef.current = isPageActive;
+  }, [isPageActive]);
+
+  /**
    * 仪表板生命周期 Hook：注册任务事件回调与数据刷新策略
    * - 任务创建/更新/失败/移除时同步活跃任务列表
    * - 初始加载历史记录、股票条目、大盘回顾历史
    * - 任务完成后按报告类型刷新对应数据（个股或大盘回顾）
    * - onDashboardDataRefresh：仪表板数据刷新时递增今日分析版本号
    * - onCompletedTaskDataRefreshed：任务完成数据刷新后的回调
+   * - enabled：页面隐藏（路由缓存）时暂停轮询与 SSE，切回即刷新
    */
   useDashboardLifecycle({
     loadInitialHistory,
@@ -711,6 +724,7 @@ const HomePage: React.FC = () => {
     removeTask,
     onDashboardDataRefresh: handleDashboardDataRefresh,
     onCompletedTaskDataRefreshed: handleCompletedTaskDataRefreshed,
+    enabled: isPageActive,
   });
 
   /**
@@ -1137,6 +1151,8 @@ const HomePage: React.FC = () => {
       // 首次轮询返回 true（需要继续）时，启动定时轮询
       if (await poll()) {
         marketReviewPollTimer.current = window.setInterval(() => {
+          // 页面被路由缓存隐藏时跳过本轮轮询，切回后继续，避免后台空转
+          if (!isPageActiveRef.current) return;
           void poll().then((shouldContinue) => {
             // 轮询返回 false（任务完成/失败/超时）时停止定时器
             if (!shouldContinue) {
@@ -1939,7 +1955,7 @@ const HomePage: React.FC = () => {
             ) : !marketReviewReport ? (
               /* ===== 空状态：引导用户开始分析 ===== */
               <div className="flex h-full items-center justify-center">
-                <EmptyState
+                <EmptyState type="card"
                   title={t('review.startAnalysisTitle')}
                   description={t('review.startAnalysisDescription')}
                   className="max-w-xl border-dashed"
