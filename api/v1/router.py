@@ -25,6 +25,7 @@ from api.v1.endpoints import (
     intelligence,
     kline,
     portfolio,
+    scanner,
     sector,
     stocks,
     system_config,
@@ -118,6 +119,12 @@ router.include_router(
     intelligence.router,
     prefix="/intelligence",
     tags=["Intelligence"]
+)
+
+router.include_router(
+    scanner.router,
+    prefix="/scanner",
+    tags=["Scanner"]
 )
 
 router.include_router(
