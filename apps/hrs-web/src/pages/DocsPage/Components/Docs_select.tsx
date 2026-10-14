@@ -3,12 +3,15 @@
  * 路由地址 /docs/component/select，菜单名「下拉选择」。
  * 用于演示 HrsSelect 的声明式用法：基础单选、分组选项、多选折叠标签、尺寸档位与校验态。
  * @module pages
+ * @author Lensgcx (GaoCangxiong)
+ * @date 2026-10-14
  */
 
 import React, { useState } from 'react';
 import { HrsSelect, type HrsSelectDataSourceDef, type HrsSelectSize } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { DocsSection } from '../DocsSection';
 
 /** 基础单选数据源（示例一 / 四 / 五 / 六共用） */
 const MARKET_OPTIONS: HrsSelectDataSourceDef = [
@@ -83,11 +86,7 @@ export const DocsSelectPage: React.FC = () => {
         </header>
 
         {/* 1. 基础单选 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例一：基础单选（受控）</h2>
-          <p className="text-xs text-muted">
-            value / onChange 遵循 HeroUI 规格（单选回传 Key），数据字段 disabled 的选项不可被选中（降透明度 + 禁光标）。
-          </p>
+        <DocsSection title="示例一：基础单选（受控）" description="value / onChange 遵循 HeroUI 规格（单选回传 Key），数据字段 disabled 的选项不可被选中（降透明度 + 禁光标）。">
           <span className="text-xs text-secondary-text">当前选中：{market ?? '无'}</span>
           <div className="flex max-w-64 flex-col gap-3">
             <HrsSelect
@@ -98,14 +97,10 @@ export const DocsSelectPage: React.FC = () => {
               onChange={(v) => setMarket(v as string)}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 2. 分组选项 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例二：分组选项</h2>
-          <p className="text-xs text-muted">
-            含 options 数组的项识别为分组（title 渲染分组标题），分组之间自动插入 Separator 分隔线；扁平项与分组可任意混排。
-          </p>
+        <DocsSection title="示例二：分组选项" description="含 options 数组的项识别为分组（title 渲染分组标题），分组之间自动插入 Separator 分隔线；扁平项与分组可任意混排。">
           <span className="text-xs text-secondary-text">当前选中：{country ?? '无'}</span>
           <div className="flex max-w-64 flex-col gap-3">
             <HrsSelect
@@ -116,15 +111,10 @@ export const DocsSelectPage: React.FC = () => {
               onChange={(v) => setCountry(v as string)}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 3. 多选模式 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例三：多选模式（selectionMode）</h2>
-          <p className="text-xs text-muted">
-            selectionMode=multiple 时 value 为 Key[]；collapseTags（默认 true）以「首个 Chip（带 ×）+ 其余 + N」折叠展示，
-            关闭后使用 HeroUI 默认 chip 多选标签（每个自带 ×）。
-          </p>
+        <DocsSection title="示例三：多选模式（selectionMode）" description="selectionMode=multiple 时 value 为 Key[]；collapseTags（默认 true）以「首个 Chip（带 ×）+ 其余 + N」折叠展示， 关闭后使用 HeroUI 默认 chip 多选标签（每个自带 ×）。">
           <div className="flex flex-wrap items-start gap-6">
             <div className="flex max-w-72 flex-col gap-3">
               <span className="text-[11px] text-muted">collapseTags=true（默认）</span>
@@ -152,20 +142,16 @@ export const DocsSelectPage: React.FC = () => {
               <span className="text-xs text-secondary-text">当前选中：{multiChips.join(' / ') || '无'}</span>
             </div>
           </div>
-        </section>
+        </DocsSection>
 
         {/* 4. 尺寸对比 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例四：尺寸对比（size）</h2>
-          <p className="text-xs text-muted">
-            size 支持 xs / sm / md / lg（默认 sm），控制触发器高度 / 内边距 / 字号与弹层圆角。
-          </p>
+        <DocsSection title="示例四：尺寸对比（size）" description="size 支持 xs / sm / md / lg（默认 sm），控制触发器高度 / 内边距 / 字号与弹层圆角。">
           <div className="flex flex-wrap items-end gap-6">
-            {SELECT_SIZES.map((s) => (
-              <div key={s} className="flex max-w-40 flex-col gap-2">
-                <span className="text-[11px] text-muted">size={s}</span>
+            {SELECT_SIZES.map((size) => (
+              <div key={size} className="flex max-w-40 flex-col gap-2">
+                <span className="text-[11px] text-muted">size={size}</span>
                 <HrsSelect
-                  size={s}
+                  size={size}
                   placeholder="请选择"
                   options={MARKET_OPTIONS}
                   value={sizeValue}
@@ -174,14 +160,10 @@ export const DocsSelectPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </section>
+        </DocsSection>
 
         {/* 5. 校验态 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例五：校验态（isInvalid + errorMessage）</h2>
-          <p className="text-xs text-muted">
-            isRequired 标记必填；未选择时 isInvalid + errorMessage 联动报错，选择后恢复；description 与 errorMessage 互斥展示（有错误优先）。
-          </p>
+        <DocsSection title="示例五：校验态（isInvalid + errorMessage）" description="isRequired 标记必填；未选择时 isInvalid + errorMessage 联动报错，选择后恢复；description 与 errorMessage 互斥展示（有错误优先）。">
           <div className="flex max-w-64 flex-col gap-3">
             <HrsSelect
               label="市场（必填）"
@@ -195,14 +177,10 @@ export const DocsSelectPage: React.FC = () => {
               onChange={(v) => setRequiredMarket(v as string)}
             />
           </div>
-        </section>
+        </DocsSection>
 
         {/* 6. 整组件禁用与自定义渲染 */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/75 p-6">
-          <h2 className="text-sm font-medium text-primary-text">示例六：整组件禁用与 renderItem 自定义渲染</h2>
-          <p className="text-xs text-muted">
-            isDisabled 禁用整个选择器；renderItem 自定义选项主内容渲染（入参为单个选项对象）。
-          </p>
+        <DocsSection title="示例六：整组件禁用与 renderItem 自定义渲染" description="isDisabled 禁用整个选择器；renderItem 自定义选项主内容渲染（入参为单个选项对象）。">
           <div className="flex flex-wrap items-start gap-6">
             <div className="flex max-w-64 flex-col gap-3">
               <span className="text-[11px] text-muted">isDisabled（整组件禁用）</span>
@@ -230,7 +208,7 @@ export const DocsSelectPage: React.FC = () => {
               />
             </div>
           </div>
-        </section>
+        </DocsSection>
       </div>
     </AppPage>
   );

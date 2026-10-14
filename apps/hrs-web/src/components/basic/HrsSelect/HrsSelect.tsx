@@ -101,6 +101,26 @@ const isSelectSection = (
     item: HrsSelectOptionDef | HrsSelectSectionDef,
 ): item is HrsSelectSectionDef => 'options' in item && Array.isArray(item.options);
 
+/**
+ * 按 selectionMode 归一化选中值，明确单一契约并消除告警：
+ * - multiple：value 必须是数组（单值包成数组；null/undefined 保持，用于非受控）；
+ * - single：value 为标量（boolean/string/number），误传数组则取首个（空数组→null）。
+ * 多选模式下若传入非数组 value，React 会对底层原生 <select multiple> 报
+ * “value must be an array if multiple is true” 告警，故此处统一兜底。
+ */
+const normalizeSelectValue = (
+    v: Key | Key[] | null | undefined,
+    selectionMode: 'single' | 'multiple',
+): Key | Key[] | null | undefined => {
+    if (selectionMode === 'multiple') {
+        return v == null ? v : Array.isArray(v) ? v : [v as Key];
+    }
+    if (Array.isArray(v)) {
+        return v.length > 0 ? (v[0] as Key) : null;
+    }
+    return v;
+};
+
 /** HrsSelect 组件属性 */
 export interface HrsSelectProps {
     // ============ 组件自有字段（内部消费 / 加工） ============
@@ -311,6 +331,10 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
     // 数据源为空时，弹层内展示占位提示
     const isEmpty = !options || options.length === 0;
 
+    // 按 selectionMode 归一化受控/非受控选中值：多选→数组，单选→标量。
+    const safeValue = normalizeSelectValue(value, selectionMode);
+    const safeDefaultValue = normalizeSelectValue(defaultValue, selectionMode);
+
     // 多选折叠标签：不走 Select.Value 函数子节点（其拿到的是 RAC 渲染状态对象而非条目数组），
     // 改为在 trigger 内直接渲染；空值显示 placeholder。
     /**
@@ -340,8 +364,8 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
      */
     const renderCollapsedValue = (): React.ReactNode => {
         const keys =
-            selectionMode === 'multiple' && Array.isArray(value)
-                ? (value as Key[])
+            selectionMode === 'multiple' && Array.isArray(safeValue)
+                ? (safeValue as Key[])
                 : [];
         // Chip 的 onClose 不带事件参数；内置关闭按钮已 stopPropagation(click)
         const removeFirst = () => {
@@ -349,7 +373,7 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
         };
         if (keys.length === 0) {
             return (
-                <span className="gcxgcxgcxg truncate text-base text-muted-text sm:text-sm">{placeholder}</span>
+                <span className="truncate text-base text-muted-text sm:text-sm">{placeholder}</span>
             );
         }
         const firstLabel = getLabelByKey(keys[0]);
@@ -378,8 +402,8 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
             // 避免 HeroUI 报「must specify aria-label / aria-labelledby」
             {...(!label ? { 'aria-label': placeholder } : {})}
             selectionMode={selectionMode}
-            value={value}
-            defaultValue={defaultValue}
+            value={safeValue}
+            defaultValue={safeDefaultValue}
             onChange={onChange}
             variant={variant}
             {...heroProps}
