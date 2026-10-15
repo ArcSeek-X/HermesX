@@ -164,6 +164,19 @@ class StockSdkBridgeClient:
         )
         return data if isinstance(data, dict) else None
 
+    def fetch_timeline(self, stock_code: str) -> Optional[Dict[str, Any]]:
+        """按股票代码获取当日分时（stock-sdk getTodayTimeline，东财 trends2 同源）。"""
+        symbol = resolve_stocksdk_symbol(stock_code)
+        data = self.invoke(
+            "timeline",
+            {
+                "stockCode": symbol.normalized_code,
+                "market": symbol.market,
+                "symbol": symbol.symbol,
+            },
+        )
+        return data if isinstance(data, dict) else None
+
     def fetch_kline(
         self,
         stock_code: str,

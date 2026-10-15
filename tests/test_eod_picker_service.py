@@ -141,6 +141,60 @@ def test_custom_filter_excludes_all(monkeypatch):
     assert result["match_count"] == 0
 
 
+def test_run_reports_step_snapshots(monkeypatch):
+    """回归：run_eod_picker 经 update_steps 下发「基础过滤 / 分时强度」两步快照。
+
+    快照为全量下发（整体替换），含 key / status / total / stocks[{code,name}]；
+    第一步候选为 A 与 D，第二步命中仅 A（D 强度 50% 被淘汰）。
+    """
+    monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
+    monkeypatch.setattr(
+        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+    )
+
+    snapshots: list[list[dict]] = []
+    result = svc.run_eod_picker(
+        {}, update_steps=lambda steps: snapshots.append(steps)
+    )
+    assert result["match_count"] == 1
+    assert len(snapshots) >= 3  # 第一步 running -> 第二步 running -> 第二步 done
+
+    final = snapshots[-1]
+    assert [s["key"] for s in final] == [svc.STEP_BASIC, svc.STEP_STRENGTH]
+    assert all(s["status"] == "done" for s in final)
+    # 第一步：基础过滤候选 A(600000) 与 D(600003)
+    assert final[0]["total"] == 2
+    assert final[0]["stocks"] == [
+        {"code": "600000", "name": "浦发银行"},
+        {"code": "600003", "name": "弱强度"},
+    ]
+    # 第二步：分时强度过滤后仅 A 命中
+    assert final[1]["total"] == 1
+    assert final[1]["stocks"] == [{"code": "600000", "name": "浦发银行"}]
+    # 中间快照：第一步 done 且第二步 running
+    middle = snapshots[1]
+    assert middle[0]["status"] == "done" and middle[1]["status"] == "running"
+    assert middle[1]["stocks"] == []
+
+
+def test_run_reports_empty_steps_when_no_candidates(monkeypatch):
+    """基础过滤 0 候选时也下发两步 done 快照（空列表），前端不残留旧步骤。"""
+    monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
+    monkeypatch.setattr(
+        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+    )
+
+    snapshots: list[list[dict]] = []
+    result = svc.run_eod_picker(
+        {"change_pct_max": 3.0},
+        update_steps=lambda steps: snapshots.append(steps),
+    )
+    assert result["candidate_count"] == 0
+    final = snapshots[-1]
+    assert [s["key"] for s in final] == [svc.STEP_BASIC, svc.STEP_STRENGTH]
+    assert all(s["status"] == "done" and s["stocks"] == [] for s in final)
+
+
 def test_null_upper_bound_means_unlimited(monkeypatch):
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
@@ -378,3 +432,37 @@ def test_fetch_intraday_trends_rotates_host_on_disconnect(monkeypatch):
     assert len(points) == 1
     assert tried[0] == svc._TRENDS_URLS[0]
     assert tried[1] == svc._TRENDS_URLS[1]   # 轮换到第二个主机
+
+
+def test_fetch_intraday_trends_falls_back_to_bridge(monkeypatch):
+    """直连全部失败时回退 stock-sdk 桥接（price/avgPrice 口径）。"""
+    from data_provider import stocksdk_bridge as bridge_mod
+
+    monkeypatch.setattr(svc.time, "sleep", lambda *_a, **_k: None)
+
+    def boom(*args, **kwargs):
+        raise ConnectionError("RemoteDisconnected")
+
+    monkeypatch.setattr(svc._SESSION, "get", boom)
+
+    class _Client:
+        def is_available(self):
+            return True
+
+        def fetch_timeline(self, code):
+            return {
+                "code": code,
+                "preClose": 9.6,
+                "points": [
+                    {"date": "2026-10-14 09:30", "open": 9.8, "close": 9.8, "high": 9.8,
+                     "low": 9.8, "volume": 1000, "amount": 9800, "avg_price": 9.75},
+                ],
+            }
+
+    monkeypatch.setattr(bridge_mod, "get_stocksdk_client", lambda: _Client())
+
+    points, prev_close, name = svc._fetch_intraday_trends("600000")
+    assert len(points) == 1
+    assert points[0]["close"] == 9.8
+    assert points[0]["avg_price"] == 9.75
+    assert prev_close == 9.6

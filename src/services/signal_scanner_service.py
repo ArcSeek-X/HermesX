@@ -52,6 +52,13 @@ DEFAULT_CONCURRENCY = 4
 # 进度区间：池解析占 0~POOL_STAGE_MAX，扫描占 POOL_STAGE_MAX~100
 POOL_STAGE_MAX = 10
 
+# 步骤快照标识（前端按 key 映射本地化标题，与语言解耦）
+STEP_POOL = "pool"          # 第一步：解析股票池（候选）
+STEP_SIGNAL = "signal"      # 第二步：技术信号扫描（命中）
+
+# 单个步骤快照返回的股票条目上限（防轮询 payload 膨胀；total 仍为真实数量）
+STEP_STOCK_LIMIT = 200
+
 # 榜单排序字段 -> 全市场快照中文列名（eod_picker_service.get_realtime_quote_snapshot 的列）
 _RANKING_FIELD_TO_COLUMN: Dict[str, str] = {
     "amount": "成交额",
@@ -68,7 +75,7 @@ class ScanCancelled(Exception):
 
 @dataclass
 class _RunState:
-    """单次扫描的运行态快照：取消信号 + 增量结果 + 进度。"""
+    """单次扫描的运行态快照：取消信号 + 增量结果 + 进度 + 分步快照。"""
 
     cancel_event: threading.Event
     lock: threading.Lock = field(default_factory=threading.Lock)
@@ -79,6 +86,7 @@ class _RunState:
     scanned: int = 0
     cancelled: bool = False
     finished: bool = False
+    steps: List[Dict[str, Any]] = field(default_factory=list)
 
 
 _RUNS: Dict[str, _RunState] = {}
@@ -114,7 +122,7 @@ def request_cancel(task_id: str) -> bool:
 
 
 def build_partial_payload(state: _RunState) -> Dict[str, Any]:
-    """构造轮询响应体：任务未完成也带上已命中的结果。"""
+    """构造轮询响应体：任务未完成也带上已命中的结果与分步快照。"""
     with state.lock:
         return {
             "progress": state.progress,
@@ -123,6 +131,7 @@ def build_partial_payload(state: _RunState) -> Dict[str, Any]:
             "scanned": state.scanned,
             "match_count": len(state.results),
             "results": list(state.results),
+            "steps": list(state.steps),
             "cancelled": state.cancelled,
             "finished": state.finished,
         }
@@ -303,6 +312,23 @@ def resolve_stock_pool(request: Mapping[str, Any]) -> List[Dict[str, str]]:
     return _resolve_watchlist_pool(request.get("watchlist") or [])
 
 
+def _step_snapshot(
+    key: str, status: str, entries: Sequence[Mapping[str, Any]]
+) -> Dict[str, Any]:
+    """构造单个步骤快照：{key, status, total(真实数量), stocks(截断后)}。
+
+    stocks 为 [{code, name}]，截断到 STEP_STOCK_LIMIT 以防轮询 payload 膨胀。
+    """
+    return {
+        "key": key,
+        "status": status,
+        "total": len(entries),
+        "stocks": [{"code": str(e.get("code") or ""), "name": str(e.get("name") or "")} for e in entries][
+            :STEP_STOCK_LIMIT
+        ],
+    }
+
+
 # ----------------------------- 扫描执行 -----------------------------
 
 def _scan_one(item: Mapping[str, str], signals: Sequence[str]) -> Optional[Dict[str, Any]]:
@@ -363,6 +389,11 @@ def run_signal_scan(
                 state.progress = progress
                 state.message = message
 
+    def report_steps(steps: Sequence[Mapping[str, Any]]) -> None:
+        if state is not None:
+            with state.lock:
+                state.steps = [dict(s) for s in steps]
+
     # 阶段 1：解析股票池
     report(2, "解析股票池")
     pool = resolve_stock_pool(payload)
@@ -370,17 +401,24 @@ def run_signal_scan(
         with state.lock:
             state.pool_count = len(pool)
 
+    pool_entries = [{"code": p["code"], "name": p.get("name", "")} for p in pool]
+
     if not pool:
         report(100, "股票池为空")
         if state is not None:
             state.finished = True
-        return _build_result(payload, pool_count=0, scanned=0, results=[], cancelled=False)
+        report_steps([_step_snapshot(STEP_POOL, "done", []), _step_snapshot(STEP_SIGNAL, "done", [])])
+        return _build_result(payload, pool_count=0, scanned=0, results=[], steps=[], cancelled=False)
 
     if state is not None and state.cancel_event.is_set():
         raise ScanCancelled()
 
     report(POOL_STAGE_MAX, f"股票池 {len(pool)} 只，开始技术信号扫描")
     logger.debug("[Scanner] 股票池 %d 只，信号 %s", len(pool), ",".join(payload["signals"]))
+    report_steps([
+        _step_snapshot(STEP_POOL, "done", pool_entries),
+        _step_snapshot(STEP_SIGNAL, "running", []),
+    ])
 
     # 阶段 2：有界并发扫描
     signals = payload["signals"]
@@ -438,6 +476,12 @@ def run_signal_scan(
     order = {item["code"]: index for index, item in enumerate(pool)}
     matched_results.sort(key=lambda row: order.get(str(row.get("code") or ""), len(order)))
 
+    matched_entries = [{"code": r["code"], "name": r["name"]} for r in matched_results]
+    report_steps([
+        _step_snapshot(STEP_POOL, "done", pool_entries),
+        _step_snapshot(STEP_SIGNAL, "done", matched_entries),
+    ])
+
     report(100, f"扫描完成，命中 {len(matched_results)} 只")
     if state is not None:
         with state.lock:
@@ -449,6 +493,10 @@ def run_signal_scan(
         pool_count=total,
         scanned=scanned,
         results=matched_results,
+        steps=[
+            _step_snapshot(STEP_POOL, "done", pool_entries),
+            _step_snapshot(STEP_SIGNAL, "done", matched_entries),
+        ],
         cancelled=False,
     )
 
@@ -460,6 +508,7 @@ def _build_result(
     scanned: int,
     results: List[Dict[str, Any]],
     cancelled: bool,
+    steps: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
     return {
         "request": dict(payload),
@@ -467,6 +516,7 @@ def _build_result(
         "scanned": scanned,
         "match_count": len(results),
         "results": results,
+        "steps": list(steps or []),
         "cancelled": cancelled,
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
     }

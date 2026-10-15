@@ -18,7 +18,10 @@
 - 分时点输出为 KLinePoint 形态（date/open/close/high/low/volume/amount），
   可直接喂给前端的 KLineChart（period='1m'）渲染价格线 + 均价线 + 昨收基准线。
 - 有界并发：阶段 2 用线程池并发拉取分时，受 DEFAULT_CONCURRENCY 限制。
-- 进度回调：通过 update_progress(progress:int, message:str) 上报阶段与各阶段百分比。
+- 进度回调：通过 update_progress(progress:int, message:str) 上报阶段与各阶段百分比；
+  另提供 update_steps(steps:list[dict]) 阶段性下发「步骤 + 该步过滤出的股票」快照
+  （{key, status, total, stocks:[{code, name}]}，全量下发、整体替换），供前端
+  进度模态框实时展示每一步的搜索结果。
 """
 from __future__ import annotations
 
@@ -31,6 +34,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 import requests
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +58,13 @@ DEFAULT_CONCURRENCY = 4
 
 # 结果分时图下采样点数（避免一次返回几十只 × 240 点的巨型 payload，详细数据走 /timeline 懒加载）
 TIMELINE_DOWNSAMPLE = 48
+
+# 进度步骤标识（前端按 key 映射本地化标题，与语言解耦）
+STEP_BASIC = "basic"          # 第一步：基础条件过滤
+STEP_STRENGTH = "strength"    # 第二步：分时强度过滤
+
+# 单个步骤快照返回的股票条目上限（防轮询 payload 膨胀；total 仍为真实数量）
+STEP_STOCK_LIMIT = 200
 
 
 # --------------------------------------------------------------------------- #
@@ -158,11 +169,11 @@ def get_realtime_quote_snapshot() -> Optional[pd.DataFrame]:
     return None
 
 
-# 东财分时 trends2：必须走 JSON 端点 /get。SSE 端点 /sse 已被东财持续断连
-# （RemoteDisconnected，实测多次无一成功），若用它作 stage-2 数据源，每只候选都会
-# 取不到分时、被静默淘汰，最终 0 结果（这正是尾盘选股「参照对象有结果、本项没有」
-# 的根因）。改用与 stock-sdk getTodayTimeline 同源的 /get，并做多组 CDN 主机轮换 +
-# 指数退避，避免单主机被限流即整体失败。
+# 东财分时 trends2：必须走 JSON 端点 /get（SSE 端点 /sse 已被东财持续断连、不可用），
+# 与 stock-sdk getTodayTimeline 同源。抓取策略「直连温和为主 + 桥接回退」：
+# - 直连：全局节流（≈3 req/s，对标 stock-sdk，避免阶段2 并发突发触发 push2his 限流
+#   而导致级联全失败）+ 多组 CDN 主机轮换 + 温和退避；
+# - 回退：直连失败时走 stock-sdk 桥接（同一东财数据，SDK 自带限速/主机轮换/重试）。
 _TRENDS_URL = "https://push2his.eastmoney.com/api/qt/stock/trends2/get"
 _TRENDS_URLS = (
     _TRENDS_URL,
@@ -172,6 +183,12 @@ _TRENDS_URLS = (
 )
 _TRENDS_TIMEOUT = (5, 10)
 _TRENDS_RETRIES = 4
+# 全局节流：相邻两次 trends2 请求的最小间隔（秒），≈3 req/s，与 stock-sdk 默认限速一致
+_TRENDS_MIN_INTERVAL = 0.35
+# 单次失败后的退避基数（秒）：第 n 次重试前睡 _TRENDS_BACKOFF * n，避免雪上加霜
+_TRENDS_BACKOFF = 1.0
+_TRENDS_GATE_LOCK = threading.Lock()
+_TRENDS_NEXT_TS = 0.0
 
 
 def _code_to_secid(code: str) -> str:
@@ -180,48 +197,54 @@ def _code_to_secid(code: str) -> str:
     return f"{'1' if pure.startswith('6') else '0'}.{pure}"
 
 
-def _fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
-    """拉取最近一个交易日分时（东财 trends2 /get），返回 (分钟点列表, 昨收, 名称)。
+def _trends_throttle() -> None:
+    """全局节流：跨线程保证 trends2 请求间隔不小于 _TRENDS_MIN_INTERVAL。
 
-    与参考项目 stock-sdk getTodayTimeline 同源同实现：均走 JSON 端点
-    ``trends2/get``（SSE 端点 ``trends2/sse`` 已被东财断连、不可用）。每点含
-    date/open/close/high/low/volume/amount/avg_price，均价线直接采用数据源返回
-    的真实 VWAP（f58），不再用 volume*close 推导（sina 1m 源无真实成交额，会污染
-    强度口径），也不经 K 线 Manager 多源回退（避免 StockDB/新浪缺数据或限流导致
-    候选被静默丢弃）。多组 CDN 主机轮换 + 指数退避抵御 push2his 对单主机/高频的
-    限流。休市日自动返回最近一个已收盘交易日的全天分时。
+    阶段2 以线程池并发拉分时，若无节流，突发并发会触发东财 push2his 限流，一旦被限流
+    所有候选一起取空 → 0 结果。用「预约下一时隙」放行：锁内只算时间、锁外睡，避免长时间
+    持锁串行化。
     """
-    params = {
-        "secid": _code_to_secid(code),
-        "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
-        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
-        "ndays": "1",
-        "iscr": "0",
-    }
-    headers = {"Referer": "https://quote.eastmoney.com/"}
-    inner: Dict[str, Any] = {}
-    last_exc: Optional[Exception] = None
-    for attempt in range(_TRENDS_RETRIES):
-        url = _TRENDS_URLS[attempt % len(_TRENDS_URLS)]
-        try:
-            resp = _SESSION.get(url, params=params, timeout=_TRENDS_TIMEOUT, headers=headers)
-            resp.raise_for_status()
-            inner = resp.json().get("data") or {}
-            if inner:
-                break
-        except Exception as e:  # pragma: no cover - 网络 / 限流兜底
-            last_exc = e
-            if attempt < _TRENDS_RETRIES - 1:
-                time.sleep(0.5 * (attempt + 1))
-    if not inner:
-        if last_exc is not None:
-            logger.debug("[EOD] 分时获取失败 %s: %s", code, last_exc)
-        return [], None, ""
+    global _TRENDS_NEXT_TS
+    with _TRENDS_GATE_LOCK:
+        now = time.monotonic()
+        start = now if now > _TRENDS_NEXT_TS else _TRENDS_NEXT_TS
+        _TRENDS_NEXT_TS = start + _TRENDS_MIN_INTERVAL
+    delay = start - time.monotonic()
+    if delay > 0:
+        time.sleep(delay)
 
+
+def _normalize_trend_date(date_str: str) -> str:
+    """东财 trends2 时间串标准化：'YYYYMMDD HH:mm' 或 'YYYY-MM-DD HH:mm(:ss)'
+
+    东财 trends2 返回的 f51 时间字段为 ``YYYYMMDD HH:mm``（无连字符），前端 KLineView
+    的 parseTimelineTime 期望 ``YYYY-MM-DD HH:mm:ss``；统一在本层补齐连字符与秒，避免
+    卡片分时图因时间格式不识别而被过滤为空。
+    """
+    s = str(date_str).strip()
+    # YYYYMMDD HH:mm(:ss) -> YYYY-MM-DD HH:mm:ss
+    m = re.match(r"^(\d{4})(\d{2})(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$", s)
+    if m:
+        y, mo, d, h, mi, sec = m.groups()
+        return f"{y}-{mo}-{d} {h}:{mi}:{sec or '00'}"
+    # YYYY-MM-DD HH:mm(:ss) -> 统一补齐秒
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$", s)
+    if m:
+        y, mo, d, h, mi, sec = m.groups()
+        return f"{y}-{mo}-{d} {h}:{mi}:{sec or '00'}"
+    return s
+
+
+def _parse_trends_payload(inner: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+    """trends2 data → (分钟点列表, 昨收, 名称)；无 trends 返回空列表。
+
+    每点含 date/open/close/high/low/volume/amount/avg_price；均价取数据源真实 VWAP(f58)，
+    不本地推导（sina 1m 源无真实成交额，会污染强度口径）。date 已标准化为
+    ``YYYY-MM-DD HH:mm:ss``，可直接给前端 KLineView 解析。
+    """
     trends = inner.get("trends") or []
     if not trends:
         return [], None, ""
-
     points: List[Dict[str, Any]] = []
     for line in trends:
         parts = str(line).split(",")
@@ -231,7 +254,7 @@ def _fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[fl
         vol_shou = _safe_float(parts[5])
         points.append(
             {
-                "date": parts[0],
+                "date": _normalize_trend_date(parts[0]),
                 "open": _safe_float(parts[1]),
                 "close": _safe_float(parts[2]),
                 "high": _safe_float(parts[3]),
@@ -243,6 +266,89 @@ def _fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[fl
             }
         )
     return points, _safe_float(inner.get("preClose")), str(inner.get("name") or "")
+
+
+def _fetch_trends_direct(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+    """直连东财 trends2 /get（温和节流 + 多 CDN 主机轮换 + 退避）拉分时。"""
+    params = {
+        "secid": _code_to_secid(code),
+        "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
+        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+        "ndays": "1",
+        "iscr": "0",
+    }
+    headers = {"Referer": "https://quote.eastmoney.com/"}
+    last_exc: Optional[Exception] = None
+    for attempt in range(_TRENDS_RETRIES):
+        url = _TRENDS_URLS[attempt % len(_TRENDS_URLS)]
+        _trends_throttle()
+        try:
+            resp = _SESSION.get(url, params=params, timeout=_TRENDS_TIMEOUT, headers=headers)
+            resp.raise_for_status()
+            points, pre_close, name = _parse_trends_payload(resp.json().get("data") or {})
+            if points:
+                return points, pre_close, name
+        except Exception as e:  # pragma: no cover - 网络 / 限流兜底
+            last_exc = e
+        if attempt < _TRENDS_RETRIES - 1:
+            time.sleep(_TRENDS_BACKOFF * (attempt + 1))
+    if last_exc is not None:
+        logger.debug("[EOD] 分时直连失败 %s: %s", code, last_exc)
+    return [], None, ""
+
+
+def _fetch_trends_via_bridge(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+    """直连失败时回退 stock-sdk 桥接（同一东财 trends2 数据，SDK 自带限速/主机轮换/重试）。
+
+    stock-sdk 分时为 tick 线（price/avgPrice，无 OHLC），故回退路径的 open/high/low 退化为
+    price、volume/amount 为累计值；强度口径（price vs avg_price）不受影响。
+    """
+    try:
+        from data_provider.stocksdk_bridge import get_stocksdk_client
+
+        client = get_stocksdk_client()
+        if not client.is_available():
+            return [], None, ""
+        data = client.fetch_timeline(code)
+    except Exception as exc:  # pragma: no cover - 桥接未启用 / Node 缺失等
+        logger.debug("[EOD] 分时桥接回退不可用 %s: %s", code, exc)
+        return [], None, ""
+    if not data:
+        return [], None, ""
+
+    points: List[Dict[str, Any]] = []
+    for t in data.get("points") or []:
+        price = _safe_float(t.get("close"))
+        if price is None:
+            continue
+        points.append(
+            {
+                "date": _normalize_trend_date(str(t.get("date") or "")),
+                "open": _safe_float(t.get("open")) if t.get("open") is not None else price,
+                "close": price,
+                "high": _safe_float(t.get("high")) if t.get("high") is not None else price,
+                "low": _safe_float(t.get("low")) if t.get("low") is not None else price,
+                "volume": _safe_float(t.get("volume")),
+                "amount": _safe_float(t.get("amount")),
+                "avg_price": _safe_float(t.get("avg_price")),
+            }
+        )
+    if not points:
+        return [], None, ""
+    return points, _safe_float(data.get("preClose")), str(data.get("name") or "")
+
+
+def _fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+    """拉取最近一个交易日分时，返回 (分钟点列表, 昨收, 名称)。
+
+    策略「直连温和为主 + 桥接回退」：先直连东财 trends2 /get（温和节流避免限流），
+    直连失败再回退 stock-sdk 桥接（同一东财数据）。休市日两者均返回最近一个已收盘
+    交易日的全天分时。
+    """
+    points, pre_close, name = _fetch_trends_direct(code)
+    if points:
+        return points, pre_close, name
+    return _fetch_trends_via_bridge(code)
 
 
 # --------------------------------------------------------------------------- #
@@ -405,10 +511,44 @@ def _build_result(
     }
 
 
+def _step_snapshot(
+    key: str,
+    status: str,
+    entries: List[Dict[str, str]],
+) -> Dict[str, Any]:
+    """构造单个进度步骤快照（全量下发，前端整体替换）。
+
+    Args:
+        key: 步骤标识（STEP_BASIC / STEP_STRENGTH）。
+        status: running 进行中 / done 已完成。
+        entries: [{code, name}] 股票条目（已限量）。
+    Returns:
+        {key, status, total, stocks}；total 为截断前的真实数量。
+    """
+    return {
+        "key": key,
+        "status": status,
+        "total": len(entries),
+        "stocks": entries[:STEP_STOCK_LIMIT],
+    }
+
+
+def _step_entries_from_rows(rows: List["pd.Series"]) -> List[Dict[str, str]]:
+    """候选 DataFrame 行 -> [{code, name}]（按代码排序，保证轮询间顺序稳定）。"""
+    entries = [
+        {"code": str(row.get("代码", "")).strip(), "name": str(row.get("名称", "")).strip()}
+        for row in rows
+    ]
+    entries = [e for e in entries if e["code"]]
+    entries.sort(key=lambda e: e["code"])
+    return entries
+
+
 def run_eod_picker(
     filters: Optional[Dict[str, Any]] = None,
     *,
     update_progress: Optional[Callable[[int, str], None]] = None,
+    update_steps: Optional[Callable[[List[Dict[str, Any]]], None]] = None,
 ) -> Dict[str, Any]:
     """
     执行尾盘选股全流程。
@@ -416,6 +556,9 @@ def run_eod_picker(
     Args:
         filters: 用户筛选条件（与 DEFAULT_FILTERS 同键集合，缺省用默认）。
         update_progress: 进度回调 (progress:int[0..100], message:str) -> None。
+        update_steps: 步骤快照回调 (steps:list[dict]) -> None；每个元素为
+            {key, status, total, stocks:[{code, name}]}，全量下发、整体替换，
+            供前端进度模态框展示各步骤过滤出的股票。
     Returns:
         结果字典（见 _build_result）。
     Raises:
@@ -425,12 +568,14 @@ def run_eod_picker(
     if filters:
         filt.update({k: v for k, v in filters.items() if k in DEFAULT_FILTERS})
     update = update_progress or (lambda p, m: None)
+    report_steps = update_steps or (lambda steps: None)
 
     # 阶段 0：确定基准交易日（休市时回退到上一个已收盘交易日）
     trade_date, _is_today = resolve_trade_date()
 
     # 阶段 1：全市场快照 + 基础过滤
     update(5, f"获取全市场行情快照（基准 {trade_date:%Y-%m-%d}）")
+    report_steps([_step_snapshot(STEP_BASIC, "running", [])])
     df = get_realtime_quote_snapshot()
     if df is None or (hasattr(df, "empty") and df.empty):
         raise RuntimeError(
@@ -441,13 +586,22 @@ def run_eod_picker(
     update(15, "按基础条件过滤全市场")
     candidates = _basic_filter(df, filt)
     stage2_total = len(candidates)
+    basic_entries = _step_entries_from_rows([row for _, row in candidates.iterrows()])
     if stage2_total == 0:
         update(100, "未匹配到符合基础条件的股票")
+        report_steps([
+            _step_snapshot(STEP_BASIC, "done", basic_entries),
+            _step_snapshot(STEP_STRENGTH, "done", []),
+        ])
         return _build_result(
             [], filt, total_scanned=len(df), stage2_total=0, trade_date=trade_date
         )
 
     update(30, f"基础过滤完成：{stage2_total} 只候选，开始计算分时强度")
+    report_steps([
+        _step_snapshot(STEP_BASIC, "done", basic_entries),
+        _step_snapshot(STEP_STRENGTH, "running", []),
+    ])
     logger.debug(
         "[EOD] 阶段1候选 %d 只: %s",
         stage2_total,
@@ -496,6 +650,14 @@ def run_eod_picker(
                 results.append(res)
 
     results.sort(key=lambda x: x["strength"], reverse=True)
+    report_steps([
+        _step_snapshot(STEP_BASIC, "done", basic_entries),
+        _step_snapshot(
+            STEP_STRENGTH,
+            "done",
+            [{"code": str(r["code"]), "name": str(r["name"])} for r in results],
+        ),
+    ])
     update(95, f"筛选完成，命中 {len(results)} 只")
     return _build_result(
         results,

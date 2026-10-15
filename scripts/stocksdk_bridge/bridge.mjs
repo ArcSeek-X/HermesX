@@ -379,6 +379,53 @@ async function runSectorFundFlowHistoryBatch(sdk, payload) {
   return Object.fromEntries(entries);
 }
 
+/** stock-sdk TodayTimeline(tick 线: price/avgPrice，无 OHLC) → 后端分时点契约(snake_case) */
+function normalizeTodayTimeline(resp) {
+  const date = String(resp?.date || '');
+  const rows = Array.isArray(resp?.data) ? resp.data : [];
+  const preClose = toFiniteNumber(resp?.preClose ?? resp?.preclose);
+  return {
+    code: String(resp?.code || ''),
+    ...(preClose === null ? {} : { preClose }),
+    // 累计成交量/额原样透传；open/high/low 退化为 price（tick 线无 OHLC），强度只依赖 price/avgPrice
+    points: rows.map((t) => ({
+      date: date && t?.time ? `${date} ${t.time}` : String(t?.time || ''),
+      open: toFiniteNumber(t?.price),
+      close: toFiniteNumber(t?.price),
+      high: toFiniteNumber(t?.price),
+      low: toFiniteNumber(t?.price),
+      volume: toFiniteNumber(t?.volume),
+      amount: toFiniteNumber(t?.amount),
+      avg_price: toFiniteNumber(t?.avgPrice),
+    })),
+  };
+}
+
+/** A 股代码 → stock-sdk 的 <市场><代码> 小写格式（sh/sz/bj），如 603861 -> sh603861 */
+function toSdkCnCode(symbol) {
+  const bare = String(symbol || '').split('.')[0].replace(/^(sh|sz|bj)/i, '');
+  let mkt = 'sz';
+  if (bare.startsWith('6')) {
+    mkt = 'sh';
+  } else if (bare.startsWith('8') || bare.startsWith('4') || bare.startsWith('920')) {
+    mkt = 'bj';
+  }
+  return `${mkt}${bare}`;
+}
+
+async function runTimeline(sdk, payload) {
+  const market = String(payload.market || 'cn').toLowerCase();
+  const symbol = String(payload.symbol || '').trim();
+  if (!symbol) {
+    throw new Error('timeline symbol is required');
+  }
+  if (!sdk.quotes || typeof sdk.quotes.timeline !== 'function') {
+    throw new Error('timeline not supported by bridge');
+  }
+  const code = market === 'cn' ? toSdkCnCode(symbol) : symbol;
+  return normalizeTodayTimeline(await sdk.quotes.timeline(code));
+}
+
 async function main() {
   const rawInput = (process.argv[2] || '').trim() || (await readStdin());
   if (!rawInput) {
@@ -424,6 +471,9 @@ async function main() {
       break;
     case 'sector_fund_flow_history_batch':
       data = await runSectorFundFlowHistoryBatch(sdk, payload);
+      break;
+    case 'timeline':
+      data = await runTimeline(sdk, payload);
       break;
     default:
       throw new Error(`unsupported bridge action: ${action}`);
