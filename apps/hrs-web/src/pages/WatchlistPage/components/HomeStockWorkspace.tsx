@@ -40,7 +40,7 @@ import type { StockBarItem, TaskInfo } from '../../../types/analysis';
 import { getSentimentColor } from '../../../types/analysis';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../../utils/decisionAction';
 import { formatDateTime } from '../../../utils/format';
-import { truncateStockName } from '../../../utils/stockName';
+import { truncateStockName } from '../../../utils/stock/stockNameDisplay';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey, UiTextParams } from '../../../i18n/uiText';
 

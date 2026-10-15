@@ -18,24 +18,23 @@ export * from './format';
 export * from './markdown';
 export * from './marketPhase';
 export * from './marketReviewRegion';
-export { normalizeQuery, isChineseChar, containsChinese, extractMarketSuffix, removeMarketSuffix, isStockCodeLike, isStockNameLike, isPinyinLike, normalizeStockCode as normalizeQueryStockCode } from './normalizeQuery';
+export { normalizeQuery, isChineseChar, containsChinese, extractMarketSuffix, removeMarketSuffix, isStockCodeLike, isStockNameLike, isPinyinLike, normalizeQueryStockCode } from './normalizeQuery';
 export * from './portfolioFormat';
 export * from './reportLanguage';
 export * from './scrollLockCompensation';
 export * from './searchStocks';
 export * from './sortFilter';
-export * from './stockCode';
+export * from './stock/stockCode';
 export * from './stockIndexLoader';
 export * from './stockIndexSchema';
 export * from './stockList';
-export * from './stockName';
+export * from './stock/stockNameDisplay';
 export * from './storage';
 export * from './systemConfigI18n';
 export * from './themeColor';
 export * from './uiLanguage';
 export * from './uuid';
 export * from './validation';
-// 撞名说明：normalizeQuery 与 stockCode 都导出 normalizeStockCode。
-// 此处对 normalizeQuery 做显式再导出并把其 normalizeStockCode 别名为 normalizeQueryStockCode，
-// stockCode 仍走 export *，故 @utils 的 normalizeStockCode 取 stockCode 的实现（规范版本）。
+// 名称区分：查询路径规范化保留后缀（normalizeQueryStockCode），与 stockCode.normalizeStockCode（剥离后缀）语义相反，
+// 二者用不同导出名，避免“同名不同义”。@utils 的 normalizeStockCode 即 stockCode 的规范版（剥离后缀）。
 // 注意：normalizeQuery 新增导出需在此处手动补充（已非 export * 自动发现）。

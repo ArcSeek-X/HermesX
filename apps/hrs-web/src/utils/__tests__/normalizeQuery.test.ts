@@ -10,7 +10,7 @@ import {
   containsChinese,
   extractMarketSuffix,
   removeMarketSuffix,
-  normalizeStockCode,
+  normalizeQueryStockCode,
   isStockCodeLike,
   isStockNameLike,
   isPinyinLike,
@@ -153,28 +153,28 @@ describe('normalizeQuery', () => {
     });
   });
 
-  describe('normalizeStockCode - Stock code normalization', () => {
+  describe('normalizeQueryStockCode - Stock code normalization', () => {
     test('converts to uppercase', () => {
-      expect(normalizeStockCode('aapl')).toBe('AAPL');
-      expect(normalizeStockCode('gzmt')).toBe('GZMT');
+      expect(normalizeQueryStockCode('aapl')).toBe('AAPL');
+      expect(normalizeQueryStockCode('gzmt')).toBe('GZMT');
     });
 
     test('removes spaces', () => {
-      expect(normalizeStockCode('600 519')).toBe('600519');
-      expect(normalizeStockCode('AAPL US')).toBe('AAPLUS');
+      expect(normalizeQueryStockCode('600 519')).toBe('600519');
+      expect(normalizeQueryStockCode('AAPL US')).toBe('AAPLUS');
     });
 
     test('preserves market suffix', () => {
-      expect(normalizeStockCode('600519.SH')).toBe('600519.SH');
-      expect(normalizeStockCode('AAPL.US')).toBe('AAPL.US');
+      expect(normalizeQueryStockCode('600519.SH')).toBe('600519.SH');
+      expect(normalizeQueryStockCode('AAPL.US')).toBe('AAPL.US');
     });
 
     test('removes leading and trailing spaces', () => {
-      expect(normalizeStockCode('  600519.SH  ')).toBe('600519.SH');
+      expect(normalizeQueryStockCode('  600519.SH  ')).toBe('600519.SH');
     });
 
     test('combines operations', () => {
-      expect(normalizeStockCode('  aapl.us  ')).toBe('AAPL.US');
+      expect(normalizeQueryStockCode('  aapl.us  ')).toBe('AAPL.US');
     });
   });
 

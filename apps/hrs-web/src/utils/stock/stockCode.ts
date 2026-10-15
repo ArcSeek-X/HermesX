@@ -105,6 +105,27 @@ export function normalizeStockCode(stockCode: string): string {
 }
 
 /**
+ * 把裸码转换为带市场后缀的展示代码（规范化逆操作，仅供 UI 展示）。
+ *
+ *   '603019'     → '603019.SH'
+ *   '000001'     → '000001.SZ'
+ *   '920748'     → '920748.BJ'（北交：8/4/9 开头）
+ *   '603019.SH'  → '603019.SH'（已带后缀则原样返回）
+ *
+ * 与 EodStockCard / EodProgressModal 的展示契约一致（均带市场后缀）；搜索建议的 displayCode 为裸码，不套用本函数。
+ *
+ * @param code - 裸码或已带后缀的代码
+ * @returns 展示用完整代码
+ */
+export function toFullStockSymbol(code: string): string {
+  const pure = code.split('.')[0].trim();
+  if (code.includes('.')) return code;
+  if (pure.startsWith('6')) return `${pure}.SH`;
+  if (/^[489]/.test(pure)) return `${pure}.BJ`;
+  return `${pure}.SZ`;
+}
+
+/**
  * 生成用于比较的匹配键：先规范化再转大写，使不同写法的同一只股票能被识别为相等。
  *
  * @param stockCode - 股票代码
@@ -149,3 +170,5 @@ export function findMatchingStockCode(codes: string[], stockCode: string): strin
 export function includesStockCode(codes: string[], stockCode: string): boolean {
   return findMatchingStockCode(codes, stockCode) !== undefined;
 }
+
+

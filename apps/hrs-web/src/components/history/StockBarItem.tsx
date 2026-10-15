@@ -11,7 +11,7 @@ import { getSentimentColor } from '../../types/analysis';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '../../utils/decisionAction';
 import { formatDateTime } from '../../utils/format';
 import { getMarketPhaseSummaryLabel } from '../../utils/marketPhase';
-import { truncateStockName } from '../../utils/stockName';
+import { truncateStockName } from '../../utils/stock/stockNameDisplay';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { toCnOrEn } from '../../utils/uiLanguage';
 

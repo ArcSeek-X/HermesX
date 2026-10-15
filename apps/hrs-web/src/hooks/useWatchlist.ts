@@ -1,4 +1,4 @@
-import { findMatchingStockCode, includesStockCode } from '@utils/stockCode';
+import { findMatchingStockCode, includesStockCode } from '@utils/stock/stockCode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { systemConfigApi } from '../api/systemConfig';
 

@@ -11,21 +11,36 @@ import { INDEX_FIELD } from './stockIndexSchema';
 
 /** 索引加载结果：包含解析后的数据、是否成功、错误信息以及是否进入降级模式 */
 export interface IndexLoadResult {
-  /** 索引数据 */
+  /** 索引数据（StockIndexItem[] 对象数组；压缩元组格式会在 loadStockIndex 内自动解压为对象数组） */
   data: StockIndexItem[];
-  /** 是否成功加载 */
+  /** 是否成功加载（网络请求与 JSON 解析均无异常） */
   loaded: boolean;
-  /** 错误信息 */
+  /** 错误信息：仅当 loaded=false 时存在 */
   error?: Error;
-  /** 是否使用了降级模式（加载失败时为 true） */
+  /** 是否进入降级模式（加载或解析失败时为 true，上层可据此回退到内置索引或旧模式） */
   fallback: boolean;
 }
 
 /**
- * 加载股票索引。
- * 通过追加小时级时间戳参数绕过浏览器缓存（防止后端未正确处理 ETag/Cache-Control 时读到旧文件）。
+ * 从后端静态资源加载股票自动补全索引（/stocks.index.json）。
  *
- * @returns 索引加载结果
+ * 行为说明：
+ * - 请求时追加按小时取整的 `_t` 时间戳参数，绕过浏览器/CDN 缓存，避免后端未正确处理
+ *   ETag / Cache-Control 时读到旧索引文件。
+ * - 自动识别两种数据格式：对象数组（StockIndexItem[]）与压缩元组数组（StockIndexTuple[]），
+ *   若为压缩格式会先解压成对象数组再返回。
+ * - 加载或解析失败时进入降级模式（fallback=true、data 为空数组），上层可据此回退到内置索引或旧模式。
+ *
+ * @returns 索引加载结果 {@link IndexLoadResult}：成功时 loaded=true、fallback=false；
+ *          失败时 loaded=false、fallback=true 且附带 error。
+ *
+ * @example
+ * const result = await loadStockIndex();
+ * if (result.loaded) {
+ *   console.log(result.data.length); // 股票条数
+ * } else {
+ *   console.warn('索引加载失败，降级处理', result.error);
+ * }
  */
 export async function loadStockIndex(): Promise<IndexLoadResult> {
   try {
@@ -60,8 +75,17 @@ export async function loadStockIndex(): Promise<IndexLoadResult> {
 }
 
 /**
- * 判断数据是否为压缩格式（元组数组）。
- * 依据：整体是数组、非空、首个元素本身也是数组且首列为字符串。
+ * 判断索引数据是否为“压缩元组数组”格式。
+ *
+ * 判定依据：整体是一个非空数组，且首个元素本身也是数组、其首列为字符串（规范代码）。
+ * 对象数组格式的首个元素是普通对象，因此可据此区分两种格式。
+ *
+ * @param data - 待判定的索引数据（可能是对象数组或元组数组）
+ * @returns 为压缩元组数组时返回 true，否则 false
+ *
+ * @example
+ * isCompressedFormat([['600519','600519','贵州茅台']]) // true（元组数组）
+ * isCompressedFormat([{ canonicalCode:'600519' }])     // false（对象数组）
  */
 function isCompressedFormat(data: StockIndexData): data is StockIndexTuple[] {
   if (!Array.isArray(data) || data.length === 0) return false;
@@ -70,7 +94,17 @@ function isCompressedFormat(data: StockIndexData): data is StockIndexTuple[] {
 }
 
 /**
- * 将压缩元组格式解压为可读的对象格式，字段顺序参考 INDEX_FIELD 常量。
+ * 将压缩元组数组解压为可读的对象数组。
+ *
+ * 字段顺序严格遵循 {@link INDEX_FIELD} 常量（CANONICAL_CODE / DISPLAY_CODE / NAME_ZH / ...），
+ * 与后端的索引生成脚本保持一致，新增字段时只需同步 INDEX_FIELD 即可。
+ *
+ * @param tuples - 压缩元组数组，每个元组的列顺序由 INDEX_FIELD 约定
+ * @returns 解压后的对象数组（StockIndexItem[]）
+ *
+ * @example
+ * // 输入：['600519', '600519', '贵州茅台', 'guizhoumaotai', 'gzm', [], 'CN', 'stock', true, 100]
+ * // 输出：{ canonicalCode:'600519', displayCode:'600519', nameZh:'贵州茅台', ... }
  */
 function unpackTuples(tuples: StockIndexTuple[]): StockIndexItem[] {
   return tuples.map(tuple => ({
@@ -88,10 +122,16 @@ function unpackTuples(tuples: StockIndexTuple[]): StockIndexItem[] {
 }
 
 /**
- * 将对象数组压缩为元组数组，用于减小索引文件体积（通常与后端的生成脚本对应）。
+ * 将对象数组压缩为元组数组，用于减小索引文件体积（与后端的索引生成脚本对应）。
  *
- * @param items - 对象格式的股票索引
- * @returns 元组格式的股票索引
+ * 与 {@link unpackTuples} 互逆：列顺序由 {@link INDEX_FIELD} 约定，aliases 为空时补 []。
+ *
+ * @param items - 对象格式的股票索引（StockIndexItem[]）
+ * @returns 压缩后的元组数组（StockIndexTuple[]），每个元组的列顺序见 INDEX_FIELD
+ *
+ * @example
+ * compressIndex([{ canonicalCode:'600519', displayCode:'600519', nameZh:'贵州茅台', ... }])
+ * // => [['600519','600519','贵州茅台',...]]
  */
 export function compressIndex(items: StockIndexItem[]): StockIndexTuple[] {
   return items.map(item => [
@@ -109,11 +149,15 @@ export function compressIndex(items: StockIndexItem[]): StockIndexTuple[] {
 }
 
 /**
- * 在索引中按 canonicalCode 查找某只股票。
+ * 在索引中按规范代码（canonicalCode）精确查找某只股票。
  *
- * @param canonicalCode - 规范化代码
- * @param index - 股票索引
- * @returns 命中的索引项，未找到返回 null
+ * @param canonicalCode - 规范代码，如 '600519.SH' / 'HK00700' / 'AAPL'（需与索引中的 canonicalCode 完全一致）
+ * @param index - 股票索引（StockIndexItem[]）
+ * @returns 命中的索引项；未找到时返回 null
+ *
+ * @example
+ * findStockInIndex('600519.SH', index) // => { canonicalCode:'600519.SH', nameZh:'贵州茅台', ... }
+ * findStockInIndex('000000.SH', index) // => null
  */
 export function findStockInIndex(
   canonicalCode: string,
@@ -123,11 +167,15 @@ export function findStockInIndex(
 }
 
 /**
- * 获取热门股票列表（按 popularity 降序，仅限在市股票）。
+ * 获取热门股票列表：仅包含在市（active=true）股票，按 popularity 降序排列后截取前 limit 条。
  *
- * @param index - 股票索引
- * @param limit - 返回数量上限，默认 20
- * @returns 热门股票列表
+ * @param index - 股票索引（StockIndexItem[]）
+ * @param limit - 返回数量上限，默认 20（传入 <=0 或非数字时仍按默认 20 处理）
+ * @returns 热门股票数组（StockIndexItem[]），已按热度从高到低排序
+ *
+ * @example
+ * getPopularStocks(index)      // 前 20 只
+ * getPopularStocks(index, 10)  // 前 10 只
  */
 export function getPopularStocks(
   index: StockIndexItem[],
@@ -140,10 +188,16 @@ export function getPopularStocks(
 }
 
 /**
- * 按市场（market）对股票进行分组。
+ * 按市场（market）对股票分组，仅包含在市（active=true）股票。
  *
- * @param index - 股票索引
- * @returns 市场名 -> 该市场股票数组 的 Map（仅含在市股票）
+ * @param index - 股票索引（StockIndexItem[]）
+ * @returns 市场标识（如 'CN' / 'HK' / 'US'） -> 该市场股票数组 的 Map；
+ *          退市股票（active=false）会被跳过
+ *
+ * @example
+ * const groups = groupStocksByMarket(index);
+ * groups.get('CN') // => StockIndexItem[]（A股）
+ * groups.get('HK') // => StockIndexItem[]（港股）
  */
 export function groupStocksByMarket(
   index: StockIndexItem[]

@@ -29,7 +29,7 @@ import { downloadSession, formatSessionAsMarkdown } from '@utils/chatExport';
 import { isNearBottom } from '@utils/chatScroll';
 import { getReportText } from '@utils/reportLanguage';
 import { extractStockCodesFromMessage } from '@utils/chatStockCode';
-import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '@utils/stockCode';
+import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '@utils/stock/stockCode';
 import type { ChatFollowUpContext } from '@utils/chatFollowUp';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';

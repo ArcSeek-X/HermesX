@@ -6,7 +6,7 @@
 import type React from 'react';
 import { normalizeReportLanguage } from '@utils/reportLanguage';
 import { getTodayInShanghai } from '@utils/format';
-import { normalizeStockCode } from '@utils/stockCode';
+import { normalizeStockCode } from '@utils/stock/stockCode';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, Check, SlidersHorizontal, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';

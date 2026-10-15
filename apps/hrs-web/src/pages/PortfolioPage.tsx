@@ -5,7 +5,7 @@
  */
 
 import type React from 'react';
-import { areStockCodesEquivalent, normalizeStockCode } from '@utils/stockCode';
+import { areStockCodesEquivalent, normalizeStockCode } from '@utils/stock/stockCode';
 import { parseDecisionSignalDate } from '@utils/decisionSignalTime';
 import { buildDecisionActionLabelMap, getDecisionActionLabel } from '@utils/decisionAction';
 import { toCnOrEn } from '@utils/uiLanguage';

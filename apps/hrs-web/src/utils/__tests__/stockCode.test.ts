@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { areStockCodesEquivalent, findMatchingStockCode, includesStockCode, normalizeStockCode } from '../stockCode';
+import { areStockCodesEquivalent, findMatchingStockCode, includesStockCode, normalizeStockCode } from '../stock/stockCode';
 
 describe('normalizeStockCode', () => {
   it('keeps clean A-share codes as-is', () => {

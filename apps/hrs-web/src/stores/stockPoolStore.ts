@@ -1,5 +1,5 @@
 import { getRecentStartDate, getTodayInShanghai } from '@utils/format';
-import { normalizeStockCode } from '@utils/stockCode';
+import { normalizeStockCode } from '@utils/stock/stockCode';
 import { isObviouslyInvalidStockQuery, looksLikeStockCode, validateStockCode } from '@utils/validation';
 import { create } from 'zustand';
 import { analysisApi, DuplicateTaskError } from '../api/analysis';
