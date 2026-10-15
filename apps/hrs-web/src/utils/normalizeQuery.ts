@@ -53,12 +53,10 @@ export function removeMarketSuffix(code: string): string {
 }
 
 /**
- * 规范化股票代码：
- * - 转大写
- * - 去除空白
- * - 保留交易所后缀
+ * 规范化【查询路径】的股票代码：转大写、去空白，但【保留交易所后缀】。
+ * 与 stockCode.normalizeStockCode（剥离后缀）语义相反——查询匹配需对齐索引 displayCode（带后缀），故独立命名避免“同名不同义”。
  */
-export function normalizeStockCode(code: string): string {
+export function normalizeQueryStockCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, '');
 }
 
