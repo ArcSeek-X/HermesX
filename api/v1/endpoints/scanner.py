@@ -58,6 +58,28 @@ class ScannerResultRow(BaseModel):
     scanned_at: str = ""
 
 
+class ScannerStepStock(BaseModel):
+    """步骤快照中的单只股票（仅展示用，含代码与名称）。"""
+
+    code: str
+    name: str = ""
+
+
+class ScannerStep(BaseModel):
+    """扫描分步快照：全量下发、前端整体替换。
+
+    - key: 步骤标识（pool=解析股票池 / signal=技术信号扫描），前端据此映射本地化标题
+    - status: running / done
+    - total: 该步真实股票数量（stocks 可能截断）
+    - stocks: 该步过滤出的股票（上限见服务层 STEP_STOCK_LIMIT）
+    """
+
+    key: str
+    status: str = "running"
+    total: int = 0
+    stocks: List[ScannerStepStock] = Field(default_factory=list)
+
+
 class ScannerTaskStatus(BaseModel):
     """任务状态：拍平结果字段，运行中也能拿到增量结果。"""
 
@@ -70,6 +92,7 @@ class ScannerTaskStatus(BaseModel):
     scanned: int = 0
     match_count: int = 0
     results: List[ScannerResultRow] = Field(default_factory=list)
+    steps: List[ScannerStep] = Field(default_factory=list)
     cancelled: bool = False
     finished: bool = False
 
@@ -141,6 +164,7 @@ def scanner_task_status(task_id: str) -> ScannerTaskStatus:
 
     if result:
         rows = result.get("results") or []
+        step_rows = result.get("steps") or []
         return ScannerTaskStatus(
             task_id=task_id,
             status=status,
@@ -151,6 +175,7 @@ def scanner_task_status(task_id: str) -> ScannerTaskStatus:
             scanned=int(result.get("scanned") or 0),
             match_count=int(result.get("match_count") or 0),
             results=[ScannerResultRow(**row) for row in rows],
+            steps=[ScannerStep(**row) for row in step_rows],
             cancelled=bool(result.get("cancelled")),
             finished=True,
         )
@@ -166,6 +191,7 @@ def scanner_task_status(task_id: str) -> ScannerTaskStatus:
             scanned=int(partial.get("scanned") or 0),
             match_count=int(partial.get("match_count") or 0),
             results=[ScannerResultRow(**row) for row in (partial.get("results") or [])],
+            steps=[ScannerStep(**row) for row in (partial.get("steps") or [])],
             cancelled=bool(partial.get("cancelled")),
             finished=bool(partial.get("finished")),
         )

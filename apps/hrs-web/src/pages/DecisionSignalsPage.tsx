@@ -70,7 +70,7 @@ import {
 } from '@utils/decisionSignalLabels'; // 决策信号标签工具
 import { getDecisionProfile } from '@utils/decisionSignalProfile'; // 决策策略解析
 import { parseDecisionSignalDate } from '@utils/decisionSignalTime'; // 信号时间解析
-import { areStockCodesEquivalent } from '@utils/stockCode'; // 股票代码等价判断
+import { areStockCodesEquivalent } from '@utils/stock/stockCode'; // 股票代码等价判断
 
 // 分页大小常量
 const PAGE_SIZE = 20; // 列表分页每页条数

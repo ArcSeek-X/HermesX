@@ -1,11 +1,10 @@
 /**
  * @file Discover/ScannerPage/ScannerPage.tsx
  * @title 信号扫描（Scanner）
- * @author AI 复刻自 stock-dashboard 的 Scanner 页面
  *
  * 技术信号扫描页：左栏配置（股票池来源 + 信号模板 + 开始/取消），右栏增量结果。
  * 后端为异步任务（/api/v1/scanner/*），轮询即返回已命中结果，离开页面自动取消。
- * 组件全部复用本仓库 @components，不新增组件；信号判定口径对齐参考项目。
+ * 结果行与扫描分步面板拆分到 ./components，基础件复用 @components。
  */
 
 import type React from 'react';
@@ -17,14 +16,15 @@ import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../i18n/uiText';
 import {
-  pureStockCode,
   scannerApi,
   type ScannerPoolSource,
   type ScannerRankingField,
   type ScannerResultRow as ScannerResultRowData,
   type ScannerSignalKey,
+  type ScannerStep,
   type ScannerWatchlistItem,
 } from '../../../api/scanner';
+import { normalizeStockCode } from '@utils/stock/stockCode';
 import { toApiErrorMessage } from '../../../api/error';
 import {
   createWatchlistItem,
@@ -32,6 +32,7 @@ import {
   getWatchlistGroups,
 } from '../../../api/watchlist';
 import ScannerResultRow from './components/ScannerResultRow';
+import ScannerProgressSteps from './components/ScannerProgressSteps';
 
 /** 页面阶段：idle 配置态 / running 任务轮询中 / finished 任务结束（结果保留） */
 type ScanPhase = 'idle' | 'running' | 'finished';
@@ -88,7 +89,7 @@ function TopNSelector({
           key={choice}
           size="xs"
           variant={value === choice ? 'primary-soft' : 'outline'}
-          className={value === choice ? undefined : 'bg-black/[0.04] dark:bg-white/[0.05]'}
+          className={value === choice ? undefined : 'bg-subtle'}
           onClick={() => onSelect(choice)}
         >
           {t('scanner.topN', { n: choice })}
@@ -118,11 +119,11 @@ function SignalTemplateGrid({
             onClick={() => onToggle(signal.key)}
             className={`flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors ${
               active
-                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)]'
-                : 'border-subtle bg-black/[0.03] hover:border-[hsl(var(--primary)/0.5)] dark:bg-white/[0.04]'
+                ? 'border-primary bg-primary/10'
+                : 'border-subtle bg-subtle hover:border-primary/50'
             }`}
           >
-            <span className={`text-xs font-medium ${active ? 'text-[hsl(var(--primary))]' : 'text-foreground'}`}>
+            <span className={`text-xs font-medium ${active ? 'text-primary' : 'text-foreground'}`}>
               {t(signal.labelKey)}
             </span>
             <span className="text-[11px] leading-tight text-muted-text">{t(signal.descKey)}</span>
@@ -136,13 +137,13 @@ function SignalTemplateGrid({
 const ScannerPage: React.FC = () => {
   const { t } = useUiLanguage();
 
-  // ----------------------------- 扫描配置 -----------------------------
+  // 扫描配置
   const [poolSource, setPoolSource] = useState<ScannerPoolSource>('watchlist');
   const [rankingField, setRankingField] = useState<ScannerRankingField>('amount');
   const [topN, setTopN] = useState<number>(20);
   const [selectedSignals, setSelectedSignals] = useState<ScannerSignalKey[]>(['ma_golden']);
 
-  // ----------------------------- 任务与结果 -----------------------------
+  // 任务与结果
   const [phase, setPhase] = useState<ScanPhase>('idle');
   const [taskId, setTaskId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -150,9 +151,10 @@ const ScannerPage: React.FC = () => {
   const [poolCount, setPoolCount] = useState(0);
   const [scanned, setScanned] = useState(0);
   const [results, setResults] = useState<ScannerResultRowData[]>([]);
+  const [steps, setSteps] = useState<ScannerStep[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // ----------------------------- 自选股 -----------------------------
+  // 自选股
   /** 参与扫描的个股：全部自选分组去重后的股票池（对齐参考项目的「全部自选分组」语义） */
   const [watchlistStocks, setWatchlistStocks] = useState<ScannerWatchlistItem[]>([]);
   /** 全部分组去重后的代码集合，用于结果行展示「已自选」 */
@@ -207,7 +209,7 @@ const ScannerPage: React.FC = () => {
         const byCode = new Map<string, ScannerWatchlistItem>();
         for (const items of perGroup) {
           for (const item of items) {
-            const code = pureStockCode(item.stockCode);
+            const code = normalizeStockCode(item.stockCode);
             if (!code || byCode.has(code)) continue;
             byCode.set(code, { code, name: item.stockName ?? '' });
           }
@@ -243,6 +245,7 @@ const ScannerPage: React.FC = () => {
         setPoolCount(task.poolCount ?? 0);
         setScanned(task.scanned ?? 0);
         setResults(task.results ?? []);
+        setSteps(task.steps ?? []);
         if (task.status === 'completed') {
           setPhase('finished');
         } else if (task.status === 'failed') {
@@ -301,6 +304,7 @@ const ScannerPage: React.FC = () => {
       });
       setTaskId(accepted.taskId);
       setResults([]);
+      setSteps([]);
       setProgress(0);
       setPoolCount(0);
       setScanned(0);
@@ -325,7 +329,7 @@ const ScannerPage: React.FC = () => {
   const addToWatchlist = useCallback(
     async (row: ScannerResultRowData) => {
       if (defaultWatchlistGroupId === null) return;
-      const code = pureStockCode(row.code);
+      const code = normalizeStockCode(row.code);
       try {
         await createWatchlistItem(defaultWatchlistGroupId, { stockCode: code, stockName: row.name });
         setWatchlistCodes((prev) => new Set(prev).add(code));
@@ -359,13 +363,13 @@ const ScannerPage: React.FC = () => {
       <PageHeader title={t('layout.nav.scanner.title')} description={t('layout.nav.scanner.description')} />
 
       {error && (
-        <div className="rounded-lg border border-[hsl(var(--danger)/0.4)] bg-[hsl(var(--danger)/0.08)] px-4 py-2 text-sm text-[hsl(var(--danger))]">
+        <div className="rounded-lg border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        {/* ----------------------------- 左栏：扫描配置 ----------------------------- */}
+        {/* 左栏：扫描配置 */}
         <div className="space-y-3">
           <AnimCard className="p-4">
             <div className="space-y-3">
@@ -456,7 +460,7 @@ const ScannerPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ----------------------------- 右栏：扫描结果 ----------------------------- */}
+        {/* 右栏：扫描结果 */}
         <AnimCard className="flex min-h-[320px] flex-col p-4">
           <div className="flex flex-1 flex-col space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -469,13 +473,26 @@ const ScannerPage: React.FC = () => {
             </div>
 
             {results.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center">
-                <EmptyState
-                  title={phase === 'running' ? runningStatusText : t('scanner.result.empty')}
-                  description={phase === 'running' ? undefined : t('scanner.result.emptyDesc')}
-                  icon={<ScanLine className="h-10 w-10" />}
-                />
-              </div>
+              phase === 'running' ? (
+                steps.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-text">{runningStatusText}</p>
+                    <ScannerProgressSteps scanSteps={steps} />
+                  </div>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center">
+                    <EmptyState title={runningStatusText} icon={<ScanLine className="h-10 w-10" />} />
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-1 items-center justify-center">
+                  <EmptyState
+                    title={t('scanner.result.empty')}
+                    description={t('scanner.result.emptyDesc')}
+                    icon={<ScanLine className="h-10 w-10" />}
+                  />
+                </div>
+              )
             ) : (
               <div className="space-y-2">
                 {results.map((row, index) => (
@@ -483,7 +500,7 @@ const ScannerPage: React.FC = () => {
                     key={`${row.code}-${row.signals.join('-')}`}
                     row={row}
                     ordinal={index}
-                    inWatchlist={watchlistCodes.has(pureStockCode(row.code))}
+                    inWatchlist={watchlistCodes.has(normalizeStockCode(row.code))}
                     canAddWatchlist={defaultWatchlistGroupId !== null}
                     onAddToWatchlist={addToWatchlist}
                   />

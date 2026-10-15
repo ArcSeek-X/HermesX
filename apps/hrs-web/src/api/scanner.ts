@@ -33,11 +33,6 @@ export type ScannerWatchlistItem = {
   name: string;
 };
 
-/** 提取裸码：'600519.SH' / 'HK00700' -> '600519' / 'HK00700'，用于分组去重与跳转。 */
-export function pureStockCode(code: string): string {
-  return code.split('.')[0].trim();
-}
-
 /** 扫描请求（前端驼峰形态） */
 export type ScannerStartPayload = {
   poolSource: ScannerPoolSource;
@@ -70,6 +65,24 @@ export type ScannerResultRow = {
   scannedAt: string;
 };
 
+/** 步骤快照中的单只股票（仅展示用） */
+export type ScannerStepStock = {
+  code: string;
+  name: string;
+};
+
+/** 扫描分步快照：后端全量下发、前端整体替换。
+ *  - key：步骤标识（pool=解析股票池 / signal=技术信号扫描），前端据此映射本地化标题
+ *  - status：running / done
+ *  - total：该步真实股票数量（stocks 可能截断）
+ *  - stocks：该步过滤出的股票列表 */
+export type ScannerStep = {
+  key: string;
+  status: string;
+  total: number;
+  stocks: ScannerStepStock[];
+};
+
 /** POST /tasks 受理响应 */
 export type ScannerAccepted = {
   taskId: string;
@@ -88,6 +101,7 @@ export type ScannerTaskStatus = {
   scanned: number;
   matchCount: number;
   results: ScannerResultRow[];
+  steps?: ScannerStep[];
   cancelled: boolean;
   finished: boolean;
 };
