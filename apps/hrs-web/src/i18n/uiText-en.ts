@@ -627,6 +627,11 @@ const en: Record<UiTextKey, string> = {
   'eodPicker.filters.cancel': 'Cancel', // 【页面】尾盘选股-筛选取消按钮
   'eodPicker.running.title': 'Picking…', // 【页面】尾盘选股-选股进行中标题
   'eodPicker.running.cancel': 'Cancel', // 【页面】尾盘选股-取消选股按钮
+  'eodPicker.running.stepBasic': 'Step 1 · Basic filters', // 【页面】尾盘选股-进度步骤-基础条件过滤标题
+  'eodPicker.running.stepStrength': 'Step 2 · Intraday strength', // 【页面】尾盘选股-进度步骤-分时强度过滤标题
+  'eodPicker.running.stepPending': 'Filtering…', // 【页面】尾盘选股-进度步骤-进行中占位
+  'eodPicker.running.stepEmpty': 'No results', // 【页面】尾盘选股-进度步骤-无股票提示
+  'eodPicker.running.stepCount': '{count} stocks', // 【页面】尾盘选股-进度步骤-股票数量
   'eodPicker.result.title': 'Picking Results', // 【页面】尾盘选股-选股结果标题
   'eodPicker.result.basis': 'Basis date', // 【页面】尾盘选股-基准交易日标签
   'eodPicker.result.reanalyze': 'Re-run', // 【页面】尾盘选股-重新分析按钮
@@ -687,6 +692,11 @@ const en: Record<UiTextKey, string> = {
   'scanner.cancel': 'Cancel scan', // 【页面】信号扫描-取消扫描按钮
   'scanner.restart': 'Scan again', // 【页面】信号扫描-重新扫描按钮
   'scanner.progress.preparing': 'Preparing', // 【页面】信号扫描-进度未就绪占位
+  'scanner.running.stepPool': 'Step 1 · Resolve pool', // 【页面】信号扫描-分步·解析股票池标题
+  'scanner.running.stepSignal': 'Step 2 · Signal scan', // 【页面】信号扫描-分步·技术信号扫描标题
+  'scanner.running.stepPending': 'Scanning…', // 【页面】信号扫描-分步·进行中占位
+  'scanner.running.stepEmpty': 'No results', // 【页面】信号扫描-分步·无结果占位
+  'scanner.running.stepCount': '{count} stocks', // 【页面】信号扫描-分步·命中数量
   'scanner.cancelled': 'Scan cancelled', // 【页面】信号扫描-取消完成提示
   'scanner.result.title': 'Scan results', // 【页面】信号扫描-扫描结果标题
   'scanner.result.count': '{n} triggered', // 【页面】信号扫描-结果计数

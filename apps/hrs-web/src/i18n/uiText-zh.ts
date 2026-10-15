@@ -627,6 +627,11 @@ const zh = {
   'eodPicker.filters.cancel': '取消', // 【页面】尾盘选股-筛选取消按钮
   'eodPicker.running.title': '正在选股', // 【页面】尾盘选股-选股进行中标题
   'eodPicker.running.cancel': '取消', // 【页面】尾盘选股-取消选股按钮
+  'eodPicker.running.stepBasic': '第一步 · 基础条件过滤', // 【页面】尾盘选股-进度步骤-基础条件过滤标题
+  'eodPicker.running.stepStrength': '第二步 · 分时强度过滤', // 【页面】尾盘选股-进度步骤-分时强度过滤标题
+  'eodPicker.running.stepPending': '筛选中…', // 【页面】尾盘选股-进度步骤-进行中占位
+  'eodPicker.running.stepEmpty': '暂无结果', // 【页面】尾盘选股-进度步骤-无股票提示
+  'eodPicker.running.stepCount': '{count} 只', // 【页面】尾盘选股-进度步骤-股票数量
   'eodPicker.result.title': '选股结果', // 【页面】尾盘选股-选股结果标题
   'eodPicker.result.basis': '基准交易日', // 【页面】尾盘选股-基准交易日标签
   'eodPicker.result.reanalyze': '重新分析', // 【页面】尾盘选股-重新分析按钮
@@ -687,6 +692,11 @@ const zh = {
   'scanner.cancel': '取消扫描', // 【页面】信号扫描-取消扫描按钮
   'scanner.restart': '重新扫描', // 【页面】信号扫描-重新扫描按钮
   'scanner.progress.preparing': '准备中', // 【页面】信号扫描-进度未就绪占位
+  'scanner.running.stepPool': '第一步·解析股票池', // 【页面】信号扫描-分步·解析股票池标题
+  'scanner.running.stepSignal': '第二步·技术信号扫描', // 【页面】信号扫描-分步·技术信号扫描标题
+  'scanner.running.stepPending': '扫描中…', // 【页面】信号扫描-分步·进行中占位
+  'scanner.running.stepEmpty': '暂无结果', // 【页面】信号扫描-分步·无结果占位
+  'scanner.running.stepCount': '{count} 只', // 【页面】信号扫描-分步·命中数量
   'scanner.cancelled': '已取消扫描', // 【页面】信号扫描-取消完成提示
   'scanner.result.title': '扫描结果', // 【页面】信号扫描-扫描结果标题
   'scanner.result.count': '{n} 个触发', // 【页面】信号扫描-结果计数
