@@ -14,6 +14,7 @@ import { AVG_PRICE_LINE_COLOR, KLineView } from '@components/kline/KLineView';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../../../constants/stockColor';
 import { setStorageItem } from '../../../../utils/storage';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
+import { toFullStockSymbol } from '@utils/stock/stockCode';
 import type { EodPickerStock } from '../../../../api/eodPicker';
 
 // ----------------------------- 格式化与展示工具 -----------------------------
@@ -36,15 +37,6 @@ function fmtAmount(v: number | null | undefined): string {
 function fmtPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '-';
   return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
-}
-
-/** 规范展示代码：'603019' -> '603019.SH' / '000001' -> '000001.SZ' / 北交 -> '.BJ'（与 StockSearch 契约一致）。 */
-function buildDisplayCode(code: string): string {
-  const pure = code.split('.')[0].trim();
-  if (code.includes('.')) return code;
-  if (pure.startsWith('6')) return `${pure}.SH`;
-  if (/^[489]/.test(pure)) return `${pure}.BJ`;
-  return `${pure}.SZ`;
 }
 
 /** 涨跌方向色：红涨绿跌（changePct 为 null 时按涨色处理，与 ▲ 徽章一致）。 */
@@ -102,7 +94,7 @@ function EodStockCard({ stock, ordinal, inWatchlist, canAddWatchlist, onAddToWat
     try {
       sessionStorage.setItem(
         'hrs-state-kline.displayValue',
-        JSON.stringify(`${stock.name}（${buildDisplayCode(stock.code)}）`),
+        JSON.stringify(`${stock.name}（${toFullStockSymbol(stock.code)}）`),
       );
     } catch { /* ignore */ }
     navigate('/stock/kline');

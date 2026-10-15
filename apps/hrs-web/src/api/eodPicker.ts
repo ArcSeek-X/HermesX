@@ -58,6 +58,23 @@ export type EodPickerAccepted = {
   message: string;
 };
 
+/** 进度步骤中的单只股票条目（名称 + 代码） */
+export type EodPickerStepStock = {
+  code: string;
+  name: string;
+};
+
+/** 进度模态框中的筛选步骤快照（后端阶段性全量下发，前端整体替换） */
+export type EodPickerStep = {
+  /** 步骤标识：basic 基础条件过滤 / strength 分时强度过滤 */
+  key: string;
+  /** 步骤状态：running 进行中 / done 已完成 */
+  status: 'running' | 'done';
+  /** 该步骤真实股票数（可能大于 stocks.length，后者受后端上限截断） */
+  total: number;
+  stocks: EodPickerStepStock[];
+};
+
 export type EodPickerTaskStatus = {
   taskId: string;
   traceId?: string | null;
@@ -66,6 +83,8 @@ export type EodPickerTaskStatus = {
   message?: string | null;
   error?: string | null;
   result?: EodPickerResult | null;
+  /** 各筛选步骤的股票快照（轮询期间逐阶段填充，完成后清空） */
+  steps?: EodPickerStep[];
 };
 
 export type EodPickerTimeline = {

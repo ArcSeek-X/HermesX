@@ -3,7 +3,7 @@
  * @description 尾盘选股页面（EOD Picker）
  *   照搬参考项目 chengzuopeng/stock-dashboard 的「尾盘选股法」界面与功能：
  *   - 开始屏：开始分析 + 可编辑筛选条件（流通市值 / 量比 / 涨幅 / 换手率 / 排除ST / 分时强度）
- *   - 进度遮罩：阶段文案 + 百分比（轮询后端任务）
+ *   - 进度遮罩：阶段文案 + 百分比（轮询后端任务）+ 分步股票结果列表（组件 EodProgressModal）
  *   - 结果屏：数量统计 + 排序按钮组 + 股票卡片网格（含 KLineView 缩略走势图与「加自选」，
  *     点击卡片携带代码跳转个股 K 线页 /stock/kline）
  *   数据来自后端 /api/v1/eod-picker/*（异步任务）。
@@ -25,17 +25,19 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
-import { HrsButton, HrsNumberField, Modal } from '@components';
+import { HrsButton, HrsNumberField } from '@components';
 import { EmptyState } from '@components/basic/EmptyState';
 import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import EodStockCard, { fmtNum } from './components/EodStockCard';
+import EodProgressModal from './components/EodProgressModal';
 import {
   eodPickerApi,
   DEFAULT_FILTERS,
   type EodPickerFilters,
   type EodPickerResult,
   type EodPickerStock,
+  type EodPickerStep,
 } from '../../../api/eodPicker';
 import {
   createWatchlistItem,
@@ -300,7 +302,7 @@ function FilterCard({
  *
  * 三阶段状态机（phase）：
  * - start：开始屏，展示「开始分析」大按钮 + FilterCard 筛选面板；
- * - running：进度遮罩，轮询后端任务（2s 间隔）刷新阶段文案与百分比；
+ * - running：进度遮罩，轮询后端任务（2s 间隔）刷新阶段文案、百分比与分步股票快照；
  * - result：结果屏，统计行 + 排序按钮组 + 股票卡片网格。
  *
  * 筛选条件经 eodPickerStorage 防抖持久化到 localStorage；选股任务为异步模式
@@ -323,6 +325,8 @@ const EodPickerPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   /** 选股结果；completed 时由轮询写入，重新分析时清空 */
   const [result, setResult] = useState<EodPickerResult | null>(null);
+  /** 各筛选步骤的股票快照（轮询期间逐阶段填充，供进度模态框展示每步搜索结果） */
+  const [steps, setSteps] = useState<EodPickerStep[]>([]);
 
   /** 排序字段：默认按分时强度 */
   const [sortKey, setSortKey] = useState<SortKey>('strength');
@@ -403,6 +407,7 @@ const EodPickerPage: React.FC = () => {
   const start = async () => {
     setError(null);
     setResult(null);
+    setSteps([]);
     try {
       const accepted = await eodPickerApi.start(filters);
       setTaskId(accepted.taskId);
@@ -418,6 +423,7 @@ const EodPickerPage: React.FC = () => {
   /** 取消任务：丢弃 taskId 回到开始屏（后端任务继续跑完，仅前端停止轮询） */
   const cancel = () => {
     setTaskId(null);
+    setSteps([]);
     setPhase('start');
   };
 
@@ -432,6 +438,7 @@ const EodPickerPage: React.FC = () => {
         if (!active) return;
         setProgress(task.progress ?? 0);
         setMessage(task.message || '');
+        setSteps(task.steps ?? []);
         if (task.status === 'completed') {
           if (task.result) {
             setResult(task.result);
@@ -544,7 +551,6 @@ const EodPickerPage: React.FC = () => {
               </span>
             </div>
             <HrsButton
-
               onClick={() => {
                 setResult(null);
                 setPhase('start');
@@ -606,39 +612,14 @@ const EodPickerPage: React.FC = () => {
         </div>
       )}
 
-      {/* 进度遮罩：任务轮询期间以 Modal 呈现（禁用遮罩点击关闭，避免误触中断轮询；关闭入口为内置标题 X 与底部取消） */}
-      <Modal
+      {/* 进度遮罩：任务轮询期间展示（组件见 components/EodProgressModal，禁用遮罩点击关闭） */}
+      <EodProgressModal
         isOpen={phase === 'running'}
-        onClose={cancel}
-        size="md"
-        variant="blur"
-        isDismissable={false}
-      >
-        <Modal.Header>
-          <Modal.Heading>{t('eodPicker.running.title')}</Modal.Heading>
-        </Modal.Header>
-        <Modal.Body>
-          {/* 进度区：旋转指示器 + 百分比进度条（宽度由 progress 驱动）+ 阶段文案 */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-[hsl(var(--primary)/0.3)] border-t-[hsl(var(--primary))]" />
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-[hsl(var(--primary))] transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex w-full items-center justify-between text-sm">
-              <span className="text-secondary-text">{message || '...'}</span>
-              <span className="font-medium">{progress}%</span>
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <HrsButton variant="secondary" size="md" className="w-full" onClick={cancel}>
-            {t('eodPicker.running.cancel')}
-          </HrsButton>
-        </Modal.Footer>
-      </Modal>
+        onCancel={cancel}
+        progressPercent={progress}
+        stageMessage={message}
+        filterSteps={steps}
+      />
     </div>
   );
 };

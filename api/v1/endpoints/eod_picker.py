@@ -8,7 +8,10 @@
 """
 from __future__ import annotations
 
+import copy
+import threading
 import uuid
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -21,6 +24,35 @@ from src.services.task_queue import TaskStatus as QueueTaskStatus
 from src.services.task_queue import get_task_queue
 
 router = APIRouter()
+
+# 任务级步骤快照存储：task_id -> 最近一次 update_steps 全量快照。
+# 仅服务于 eod-picker 轮询接口，不侵入通用 task_queue；按 LRU 限量并在
+# 任务到达终态时清理，避免长驻内存。
+_STEP_STORE_LOCK = threading.Lock()
+_STEP_STORE: "OrderedDict[str, List[Dict[str, Any]]]" = OrderedDict()
+_STEP_STORE_MAX_TASKS = 32
+
+
+def _store_steps(task_id: str, steps: List[Dict[str, Any]]) -> None:
+    """写入（替换）某任务的步骤快照；超出容量时淘汰最旧条目。"""
+    with _STEP_STORE_LOCK:
+        _STEP_STORE[task_id] = copy.deepcopy(steps)
+        _STEP_STORE.move_to_end(task_id)
+        while len(_STEP_STORE) > _STEP_STORE_MAX_TASKS:
+            _STEP_STORE.popitem(last=False)
+
+
+def _get_steps(task_id: str) -> List[Dict[str, Any]]:
+    """读取某任务的步骤快照（不存在时返回空列表）。"""
+    with _STEP_STORE_LOCK:
+        steps = _STEP_STORE.get(task_id)
+        return copy.deepcopy(steps) if steps else []
+
+
+def _clear_steps(task_id: str) -> None:
+    """清理某任务的步骤快照（任务终态时调用）。"""
+    with _STEP_STORE_LOCK:
+        _STEP_STORE.pop(task_id, None)
 
 
 class EodPickerStartRequest(BaseModel):
@@ -35,6 +67,20 @@ class EodPickerAccepted(BaseModel):
     message: str
 
 
+class EodPickerStepStock(BaseModel):
+    """进度步骤中的单只股票条目。"""
+    code: str
+    name: str
+
+
+class EodPickerStep(BaseModel):
+    """进度步骤快照：一步筛选的阶段状态与该步过滤出的股票。"""
+    key: str                                   # basic 基础过滤 / strength 分时强度过滤
+    status: str = "running"                    # running 进行中 / done 已完成
+    total: int = 0                             # 该步真实股票数（stocks 可能被截断）
+    stocks: List[EodPickerStepStock] = Field(default_factory=list)
+
+
 class EodPickerTaskStatus(BaseModel):
     task_id: str
     trace_id: Optional[str] = None
@@ -43,6 +89,7 @@ class EodPickerTaskStatus(BaseModel):
     message: Optional[str] = None
     error: Optional[str] = None
     result: Optional[Dict[str, Any]] = None
+    steps: List[EodPickerStep] = Field(default_factory=list)
 
 
 class EodPickerTimelinePoint(BaseModel):
@@ -84,6 +131,7 @@ def eod_picker_start(
         return eod_picker_service.run_eod_picker(
             filters,
             update_progress=lambda p, m: task_queue.update_task_progress(task_id, p, m),
+            update_steps=lambda steps: _store_steps(task_id, steps),
         )
 
     task_queue.submit_background_task(
@@ -105,7 +153,7 @@ def eod_picker_start(
 
 @router.get("/tasks/{task_id}", response_model=EodPickerTaskStatus)
 def eod_picker_task_status(task_id: str) -> EodPickerTaskStatus:
-    """轮询选股任务状态；completed 时 result 携带筛选结果。"""
+    """轮询选股任务状态；completed 时 result 携带筛选结果，steps 携带各步骤股票快照。"""
     task = get_task_queue().get_task(task_id)
     if task is None or task.report_type != "eod_picker":
         raise HTTPException(status_code=404, detail="任务不存在或已过期")
@@ -114,6 +162,14 @@ def eod_picker_task_status(task_id: str) -> EodPickerTaskStatus:
         if task.status == QueueTaskStatus.COMPLETED and isinstance(task.result, dict)
         else None
     )
+    steps = _get_steps(task.task_id)
+    if task.status in (
+        QueueTaskStatus.COMPLETED,
+        QueueTaskStatus.FAILED,
+        QueueTaskStatus.CANCELLED,
+    ):
+        # 终态后前端不再轮询，读一次即清理，避免快照长驻内存
+        _clear_steps(task.task_id)
     return EodPickerTaskStatus(
         task_id=task.task_id,
         trace_id=task.trace_id or task.task_id,
@@ -122,6 +178,7 @@ def eod_picker_task_status(task_id: str) -> EodPickerTaskStatus:
         message=task.message,
         error=task.error,
         result=result,
+        steps=steps,
     )
 
 
