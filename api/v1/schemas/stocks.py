@@ -7,6 +7,7 @@
 职责：
 1. 定义股票实时行情模型
 2. 定义历史 K 线数据模型
+3. 定义单票分时（当日）数据模型
 """
 
 from typing import Optional, List
@@ -78,7 +79,6 @@ class KLineData(BaseModel):
 
 class ExtractItem(BaseModel):
     """单条提取结果（代码、名称、置信度）"""
-
     code: Optional[str] = Field(None, description="股票代码，None 表示解析失败")
     name: Optional[str] = Field(None, description="股票名称（如有）")
     confidence: str = Field("medium", description="置信度：high/medium/low")
@@ -106,5 +106,51 @@ class StockHistoryResponse(BaseModel):
             "stock_name": "贵州茅台",
             "period": "daily",
             "data": []
+        }
+    })
+
+
+class StockTimelinePoint(BaseModel):
+    """分时数据点（KLinePoint 形态，前端 KLineChart / KLineView 直接渲染）
+
+    date 已由服务层标准化为 ``YYYY-MM-DD HH:mm:ss``；open/high/low 缺失时等于 close
+    （桥接回退路径为 tick 线，无 OHLC）。
+    """
+
+    date: str = Field(..., description="分时时间（YYYY-MM-DD HH:mm:ss）")
+    open: Optional[float] = Field(None, description="开盘价")
+    close: Optional[float] = Field(None, description="收盘价（该分钟最新价）")
+    high: Optional[float] = Field(None, description="最高价")
+    low: Optional[float] = Field(None, description="最低价")
+    volume: Optional[float] = Field(None, description="成交量（股）")
+    amount: Optional[float] = Field(None, description="成交额（元）")
+
+
+class StockTimelineResponse(BaseModel):
+    """股票分时（当日）响应"""
+
+    stock_code: str = Field(..., description="股票代码")
+    stock_name: Optional[str] = Field(None, description="股票名称")
+    prev_close: Optional[float] = Field(None, description="昨收价（分时基准线）")
+    points: List[StockTimelinePoint] = Field(
+        default_factory=list, description="分时数据点（拉取失败或休市无数据时为空列表）"
+    )
+
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "stock_code": "600519",
+            "stock_name": "贵州茅台",
+            "prev_close": 1785.00,
+            "points": [
+                {
+                    "date": "2024-01-02 09:30:00",
+                    "open": 1785.00,
+                    "close": 1786.00,
+                    "high": 1787.00,
+                    "low": 1785.00,
+                    "volume": 12000,
+                    "amount": 21432000,
+                }
+            ]
         }
     })

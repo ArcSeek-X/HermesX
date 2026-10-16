@@ -9,10 +9,12 @@
 2. POST /api/v1/stocks/parse-import 解析 CSV/Excel/剪贴板
 3. GET /api/v1/stocks/{code}/quote 实时行情接口
 4. GET /api/v1/stocks/{code}/history 历史行情接口
+5. GET /api/v1/stocks/{code}/timeline 分时（当日）明细接口
 """
 
 import logging
-from typing import Optional
+import time
+from typing import Optional, Dict, Any
 import re
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, Depends
@@ -25,6 +27,8 @@ from api.v1.schemas.stocks import (
     KLineData,
     StockHistoryResponse,
     StockQuote,
+    StockTimelinePoint,
+    StockTimelineResponse,
 )
 from api.v1.schemas.history import WatchlistRequest, WatchlistResponse
 from api.v1.schemas.common import ErrorResponse
@@ -38,6 +42,7 @@ from src.services.import_parser import (
     parse_import_from_bytes,
     parse_import_from_text,
 )
+from src.services.intraday_timeline_service import fetch_intraday_timeline
 from src.services.stock_service import StockService
 from src.services.stock_list_parser import split_stock_list
 from src.services.system_config_service import SystemConfigService
@@ -49,6 +54,18 @@ router = APIRouter()
 
 # 须在 /{stock_code} 路由之前定义
 ALLOWED_MIME_STR = ", ".join(ALLOWED_MIME)
+
+# 分时缓存（TTL 30s）：分时为当日数据，短 TTL 即可显著降低自选股列表一页 10 行的
+# 重复请求压力；上游 trends2 有全局节流（≈3 req/s），缓存同时降低限流风险。
+_timeline_cache: Dict[str, Dict[str, Any]] = {}
+_TIMELINE_CACHE_TTL = 30
+
+
+def _timeline_cache_valid(cache_item: Optional[Dict[str, Any]], ttl: int) -> bool:
+    """分时缓存项是否仍在 TTL 内（与 kline 端点同一约定）。"""
+    if not cache_item:
+        return False
+    return (time.time() - float(cache_item.get("timestamp", 0))) < ttl
 
 
 def _read_watchlist_codes(service: SystemConfigService) -> list:
@@ -555,3 +572,67 @@ def get_stock_history(
                 "message": f"获取历史行情失败: {str(e)}"
             }
         )
+
+
+@router.get(
+    "/{stock_code}/timeline",
+    response_model=StockTimelineResponse,
+    responses={
+        200: {"description": "分时数据（上游取空时 points 为空列表）"},
+        500: {"description": "服务器错误", "model": ErrorResponse},
+    },
+    summary="获取股票当日分时明细",
+    description=(
+        "获取指定股票最近一个交易日的分时明细（1 分钟粒度，含真实均价线所需成交量/成交额），"
+        "用于分时缩略图、分时图懒加载等场景。数据源为东方财富 trends2（与尾盘选股同一取数契约），"
+        "休市日返回最近一个已收盘交易日的全天分时；上游取数失败时 points 为空列表，调用方按无数据渲染占位。"
+    )
+)
+def get_stock_timeline(stock_code: str) -> StockTimelineResponse:
+    """
+    获取股票当日分时明细
+
+    Args:
+        stock_code: 股票代码（如 600519、00700、AAPL）
+
+    Returns:
+        StockTimelineResponse: 昨收价 + 分时点（KLinePoint 形态，date 为 YYYY-MM-DD HH:mm:ss）
+    """
+    cached = _timeline_cache.get(stock_code)
+    if _timeline_cache_valid(cached, ttl=_TIMELINE_CACHE_TTL):
+        return cached["data"]  # type: ignore[return-value]
+
+    # 使用 def 而非 async def：FastAPI 会自动把同步端点放进线程池执行，
+    # 避免阻塞 IO 的上游抓取占用事件循环。
+    try:
+        result = fetch_intraday_timeline(stock_code)
+    except Exception as e:
+        logger.error(f"获取分时数据失败: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "internal_error",
+                "message": f"获取分时数据失败: {str(e)}"
+            }
+        )
+
+    response = StockTimelineResponse(
+        stock_code=stock_code,
+        stock_name=result.get("name") or None,
+        prev_close=result.get("prev_close"),
+        points=[
+            StockTimelinePoint(
+                date=point.get("date", ""),
+                open=point.get("open"),
+                close=point.get("close"),
+                high=point.get("high"),
+                low=point.get("low"),
+                volume=point.get("volume"),
+                amount=point.get("amount"),
+            )
+            for point in result.get("points", [])
+        ]
+    )
+
+    _timeline_cache[stock_code] = {"data": response, "timestamp": time.time()}
+    return response

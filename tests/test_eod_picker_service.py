@@ -366,103 +366,29 @@ def test_eastmoney_quote_snapshot_paginates_past_first_page(monkeypatch):
     assert df["代码"].nunique() == total  # 稳定排序下无重复
 
 
-class _FakeTrendsResp:
-    """最小化 trends2/get 响应桩：仅需 raise_for_status() 与 json()。"""
+def test_fetch_intraday_timeline_delegates_to_shared_service(monkeypatch):
+    """eod_picker.fetch_intraday_timeline 为兼容入口，实际取数委托 intraday_timeline_service。
 
-    def __init__(self, data: dict):
-        self._data = data
-
-    def raise_for_status(self) -> None:
-        return None
-
-    def json(self) -> dict:
-        return {"rc": 0, "data": self._data}
-
-
-def test_fetch_intraday_trends_uses_json_get(monkeypatch):
-    """回归：分时必须走 trends2/get（JSON），而非被东财断连的 trends2/sse。
-
-    校验 f51..f58 解析、昨收/名称透传、成交量手->股、均价取 f58，且请求 URL
-    以 /trends2/get 结尾、绝不出现 /trends2/sse。
+    校验委托关系与 KLinePoint 输出契约（分时取数的网络层测试见
+    tests/test_intraday_timeline_service.py）。
     """
-    called_urls = []
-
-    def fake_get(url, params=None, timeout=None, headers=None, **kwargs):
-        called_urls.append(url)
-        return _FakeTrendsResp({
-            "code": "600000",
+    def fake_fetch(code: str, limit: int = 240):
+        return {
+            "code": code,
             "name": "浦发银行",
-            "preClose": "9.6",
-            "trends": [
-                "2026-10-14 09:30,9.7,9.8,9.9,9.6,1000,980000,9.75",
-                "2026-10-14 09:31,9.8,9.85,9.9,9.78,1200,1180000,9.80",
-            ],
-        })
+            "prev_close": 9.6,
+            "points": [{"date": "2026-10-14 09:30:00", "open": 9.7, "close": 9.8,
+                        "high": 9.9, "low": 9.6, "volume": 100000, "amount": 980000.0}],
+        }
 
-    monkeypatch.setattr(svc._SESSION, "get", fake_get)
+    monkeypatch.setattr(svc, "_fetch_intraday_timeline_impl", fake_fetch)
 
-    points, prev_close, name = svc._fetch_intraday_trends("600000")
-    assert len(points) == 2
-    assert prev_close == 9.6
-    assert name == "浦发银行"
-    assert points[0]["close"] == 9.8
-    assert points[0]["avg_price"] == 9.75        # f58 真实均价
-    assert points[0]["volume"] == 1000 * 100      # 手 -> 股
-    assert called_urls and called_urls[0].endswith("/trends2/get")
-    assert all(not u.endswith("/trends2/sse") for u in called_urls)
+    data = svc.fetch_intraday_timeline("600000")
+    assert data["code"] == "600000"
+    assert data["prev_close"] == 9.6
+    assert len(data["points"]) == 1
+    assert set(data["points"][0].keys()) == {
+        "date", "open", "close", "high", "low", "volume", "amount"
+    }
 
 
-def test_fetch_intraday_trends_rotates_host_on_disconnect(monkeypatch):
-    """首主机被断连（RemoteDisconnected）时轮换到下一个 CDN 主机重试。"""
-    tried = []
-
-    def fake_get(url, params=None, timeout=None, headers=None, **kwargs):
-        tried.append(url)
-        if url == svc._TRENDS_URLS[0]:
-            raise ConnectionError("RemoteDisconnected")
-        return _FakeTrendsResp({
-            "name": "X", "preClose": "1.0",
-            "trends": ["2026-10-14 09:30,1,1,1,1,10,10,1"],
-        })
-
-    monkeypatch.setattr(svc._SESSION, "get", fake_get)
-    monkeypatch.setattr(svc.time, "sleep", lambda *_a, **_k: None)  # 跳过退避
-
-    points, prev_close, name = svc._fetch_intraday_trends("600000")
-    assert len(points) == 1
-    assert tried[0] == svc._TRENDS_URLS[0]
-    assert tried[1] == svc._TRENDS_URLS[1]   # 轮换到第二个主机
-
-
-def test_fetch_intraday_trends_falls_back_to_bridge(monkeypatch):
-    """直连全部失败时回退 stock-sdk 桥接（price/avgPrice 口径）。"""
-    from data_provider import stocksdk_bridge as bridge_mod
-
-    monkeypatch.setattr(svc.time, "sleep", lambda *_a, **_k: None)
-
-    def boom(*args, **kwargs):
-        raise ConnectionError("RemoteDisconnected")
-
-    monkeypatch.setattr(svc._SESSION, "get", boom)
-
-    class _Client:
-        def is_available(self):
-            return True
-
-        def fetch_timeline(self, code):
-            return {
-                "code": code,
-                "preClose": 9.6,
-                "points": [
-                    {"date": "2026-10-14 09:30", "open": 9.8, "close": 9.8, "high": 9.8,
-                     "low": 9.8, "volume": 1000, "amount": 9800, "avg_price": 9.75},
-                ],
-            }
-
-    monkeypatch.setattr(bridge_mod, "get_stocksdk_client", lambda: _Client())
-
-    points, prev_close, name = svc._fetch_intraday_trends("600000")
-    assert len(points) == 1
-    assert points[0]["close"] == 9.8
-    assert points[0]["avg_price"] == 9.75
-    assert prev_close == 9.6

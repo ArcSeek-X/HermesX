@@ -1618,6 +1618,7 @@ FastAPI 提供 RESTful API 服务，支持配置管理和触发分析。
 | `/api/v1/backtest/performance/{code}` | GET | 获取单股回测表现 |
 | `/api/v1/stocks/extract-from-image` | POST | 从图片提取股票代码（multipart，超时 60s） |
 | `/api/v1/stocks/parse-import` | POST | 解析 CSV/Excel/剪贴板（multipart file 或 JSON `{"text":"..."}`，文件≤2MB，文本≤100KB） |
+| `/api/v1/stocks/{stock_code}/timeline` | GET | 单只股票当日分时明细（KLinePoint 形态 + 昨收价，服务端 30s 缓存）；上游取空时 `points` 为空列表，用于自选股列表分时缩略图与分时图懒加载 |
 | `/api/health` | GET | 健康检查 |
 | `/docs` | GET | API Swagger 文档 |
 

@@ -1,10 +1,21 @@
 import apiClient from './index';
 import { toCamelCase } from './utils';
+import type { KLinePoint } from './kline';
 
 /**
  * 股票工具类 API。
  * 提供从截图/文件中识别股票代码、解析导入文本等辅助能力，服务于自选股录入。
  */
+
+/** 单只股票当日分时明细（KLinePoint 形态，date 为 'YYYY-MM-DD HH:mm:ss'） */
+export interface StockTimeline {
+  stockCode: string;
+  stockName: string | null;
+  /** 昨收价：分时图基准线（上游取空时为 null，前端退化为首末点比较） */
+  prevClose: number | null;
+  points: KLinePoint[];
+}
+
 
 /** 单条被识别出的股票项（含识别置信度） */
 export type ExtractItem = {
@@ -85,6 +96,22 @@ export const stocksApi = {
         `/api/v1/stocks/${encodeURIComponent(stockCode)}/quote`,
       );
       return toCamelCase<StockQuote>(data);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * 获取单只股票当日分时明细（自选股列表分时缩略图数据源）。
+   * 失败 / 上游取空时返回 null，由调用方降级为占位渲染（不阻断列表）。
+   */
+  async getTimeline(stockCode: string): Promise<StockTimeline | null> {
+    try {
+      const { data } = await apiClient.get<Record<string, unknown>>(
+        `/api/v1/stocks/${encodeURIComponent(stockCode)}/timeline`,
+      );
+      const timeline = toCamelCase<StockTimeline>(data);
+      return { ...timeline, points: timeline.points ?? [] };
     } catch {
       return null;
     }
