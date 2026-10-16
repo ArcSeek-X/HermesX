@@ -324,7 +324,7 @@ class IntelligenceItem(Base):
     - 通用资讯：``scope_type`` 取 ``symbol`` / ``market`` / ``sector``，
       一条资讯一行，``source_id`` 指向 :class:`IntelligenceSource`；
     - 实时快讯：``scope_type`` 固定为 ``channel``，``scope_value`` 存频道短码
-      （``global`` / ``a-stock`` / ``tech`` 等，见 ``docs/live-news.md``）。
+      （``global`` / ``a-stock`` / ``tech`` 等，见 ``documents/product/行情资讯/live-news.md``）。
       快讯不注册源，``source_id`` 为 NULL，靠 ``source_name`` 标识；
       同一条快讯命中多个频道时**各存一行**，由唯一约束天然去重。
 
@@ -359,7 +359,7 @@ class IntelligenceItem(Base):
     raw_payload = Column(Text)
     # 重要级（华尔街见闻快讯的 score：1=普通 / 2=重要 / 3=非常重要）。
     # 仅快讯类数据源（wscn_live_news）会写入；RSS / Atom / NewsNow 因上游无此字段保持 NULL，
-    # 前端据此判断「重要级筛选」是否可用。详见 docs/live-news.md。
+    # 前端据此判断「重要级筛选」是否可用。详见 documents/product/行情资讯/live-news.md。
     importance = Column(Integer, nullable=True, index=True)
 
     __table_args__ = (

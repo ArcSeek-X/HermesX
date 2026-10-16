@@ -30,7 +30,7 @@ def test_daily_analysis_workflow_matches_documented_searxng_variable_mapping() -
 
 
 def test_changelog_mentions_searxng_actions_variable_mapping() -> None:
-    changelog = (ROOT_DIR / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (ROOT_DIR / "documents" / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert (
         "- [修复] GitHub Actions 每日分析工作流读取 SearXNG 自建实例地址时"

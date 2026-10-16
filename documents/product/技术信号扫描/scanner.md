@@ -25,7 +25,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 关联架构 | `documents/架构设计/backend_architecture_adr.md`（ADR-001，已采纳） |
+| 关联架构 | `documents/framework/backend_architecture_adr.md`（ADR-001，已采纳） |
 | 状态 | 已实施（后端 service + endpoint + 前端页面均已落地，离线单测与页面冒烟通过） |
 
 ### <a id="改动日志"></a>改动日志

@@ -4696,7 +4696,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "告警中心文档",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/alerts.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/product/实时告警中心/alerts.md",
             },
         ],
         "warning_codes": [],
@@ -4722,7 +4722,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "告警中心文档",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/alerts.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/product/实时告警中心/alerts.md",
             },
         ],
         "warning_codes": [],
@@ -4753,7 +4753,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "告警中心文档",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/alerts.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/product/实时告警中心/alerts.md",
             },
         ],
         "warning_codes": ["legacy_json_only_basic_rules"],

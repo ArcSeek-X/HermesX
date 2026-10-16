@@ -40,7 +40,7 @@
 | 文档类型 | 前端架构设计 / 方案文档（原 ADR-002，2026-10-15 整体更新并更名） |
 | 编号 | ADR-002（沿用，作追溯 ID） |
 | 状态 | **已采纳（Accepted）** |
-| 关联方案 | `ADR-001`（后端分层架构，同为全局架构基准）；前端实现落地时同步更新 `docs/CHANGELOG.md` 与专题文档 |
+| 关联方案 | `ADR-001`（后端分层架构，同为全局架构基准）；前端实现落地时同步更新 `documents/CHANGELOG.md` 与专题文档 |
 | 适用范围 | HermesX Web 前端 `apps/hrs-web`（**全域前端架构基准**；首个落地范围：路由缓存能力） |
 | 实现底座 | 第三方库 `keepalive-for-react@6` + `keepalive-for-react-router@6`（React 19.2 / React Router v7） |
 
@@ -290,7 +290,7 @@ blacklist 意味着新页面默认进缓存，新增页面时确认：
 | `src/pages/Market/StockDashboardPage/StockDashboardPage.tsx` | interval 受 `active` 门控 |
 | `src/pages/News/LiveNewsPage/LiveNewsPage.tsx` | `useLiveNews` 增加 `enabled` 参数并门控 |
 | `src/pages/ErrorPage/RouteBoundary.tsx` | 补充注释：`RouteOutletBoundary` 在缓存场景下禁用（`Outlet` 无法固化已捕获元素） |
-| `docs/CHANGELOG.md` | `[Unreleased]` 追加一条 |
+| `documents/CHANGELOG.md` | `[Unreleased]` 追加一条 |
 
 **已删除（被库能力取代）**
 

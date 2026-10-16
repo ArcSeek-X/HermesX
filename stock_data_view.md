@@ -177,7 +177,7 @@
   - [A.1 文档信息](#a1-文档信息)
   - [A.2 契约事实来源](#a2-契约事实来源)
   - [A.3 变更日志](#a3-变更日志)
-- [架构决策记录 ADR-001（独立文档）](documents/架构设计/backend_architecture_adr.md) —— 后端分层 / 统一数据源策略的权威依据
+- [架构决策记录 ADR-001（独立文档）](documents/framework/backend_architecture_adr.md) —— 后端分层 / 统一数据源策略的权威依据
 
 ---
 
@@ -1126,7 +1126,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 | 后端配置 | — | `src/config.py`、`.env.example` |
 | 前端 | 3 个（页面 + API + 子组件） | `src/router/manifest.ts`、3 个 `i18n/uiText-*.ts` |
 | 测试 | 4 个 | — |
-| 文档 | — | `docs/CHANGELOG.md`（`[Unreleased]` 加一行） |
+| 文档 | — | `documents/CHANGELOG.md`（`[Unreleased]` 加一行） |
 
 > 方案 §3.3 称"后端 3 处 / 前端 4 处改动"，其中"前端 4 处"统计的是 manifest / 页面 / API / i18n 四处**修改点**，未计入新建的页面与 API 文件（已被归为"新增"）。本章按"新增文件 vs 修改文件"两维拆解，避免混淆。
 
@@ -1198,7 +1198,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 
 | 文件路径 | 改动点 | 对应章节 |
 |---|---|---|
-| `docs/CHANGELOG.md` | 在 `[Unreleased]` 段追加一行扁平记录：`[新功能] 新增本地 StockDB 行情浏览（复用 /api/v1/kline 等统一端点，数据源可切换）` | A.3 |
+| `documents/CHANGELOG.md` | 在 `[Unreleased]` 段追加一行扁平记录：`[新功能] 新增本地 StockDB 行情浏览（复用 /api/v1/kline 等统一端点，数据源可切换）` | A.3 |
 
 ### <a id="148-落地前需澄清的契约漂移点v02-adr-001-已消解"></a>14.8 落地前需澄清的契约漂移点（v0.2 → ADR-001 已消解）
 
@@ -1229,7 +1229,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 | 文件 | `stock_data_view.md`（仓库根目录） |
 | 状态 | 方案（未实现），待评审后进入 §13.2 的 P1 |
 | 适用版本 | HermesX 当前 main；Python 3.11（`requests` 已在 `requirements.txt`） |
-| 依赖文档 | `AGENTS.md`、`docs/CHANGELOG.md`、StockDB `调用方式/python/AI策略python开发接口文档.md`、StockDB `调用方式/ai_自动开发文档/AI策略界面开发纯js接口文档.md` |
+| 依赖文档 | `AGENTS.md`、`documents/CHANGELOG.md`、StockDB `调用方式/python/AI策略python开发接口文档.md`、StockDB `调用方式/ai_自动开发文档/AI策略界面开发纯js接口文档.md` |
 | 关联模块 | `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/`（新增，ADR-001 脏活层）、`api/v1/endpoints/{kline,stock_info,code_search}.py`（重构/新增）、`apps/hrs-web/src/pages/{StockDataViewPage,Settings/DataSourceSetting}.tsx`（修改/新增）；配套架构决策 `backend_architecture_adr.md`（ADR-001） |
 | 未决事项 | ① 复权公式对账（AC-3）未执行（上线硬阻断）；② Docker/桌面端可达性未验证；③ 数据字典是否独立建表待定（ADR-001 建议新增）；④ 方案范围已升级为「行情基础能力统一层」，详见配套 ADR-001 |
 
@@ -1254,4 +1254,4 @@ CODESEARCH_FALLBACK_ENABLED=true
 | v0.2 | 2026-10-06 | 增补：表头增加「作者 / 更新时间」；新增「0. 浏览目录」；新增「14. 修改范围」，按"新增文件 / 修改文件 / 测试 / 文档"两维拆解落地所需改动，并列出 6 处契约漂移点与影响面评估。 |
 | v0.3 | 2026-10-07 | 架构升级（配套 ADR-001）：① 后端按四层分层（数据库层 / 数据源层 / 标准接口层 / 横切辅助层），`data_provider` 为唯一脏活层；② 原「独立 /api/stockdb 页」改为「统一基础能力层」——K 线 / 基础信息 / 代码搜索三类能力各自独立成包、同级、多源可切换（本地 StockDB / 东方财富 / 新浪 / 腾讯）；③ 新增 §9.1 数据源切换配置（UI 可管，复用 `POST /api/v1/config`）；④ §3/§7/§14 文件清单与路由前缀全部改为 `data_provider/` + `/api/v1/kline` 等；⑤ 周期全集扩展含 120m/5d/yearly；⑥ 标题/范围升级为「行情基础能力统一层」。 |
 
-> 实现启动后，本节追加实际变更记录；`docs/CHANGELOG.md` 的 `[Unreleased]` 段按仓库约定追加一行扁平记录（`[新功能] 新增本地 StockDB 行情浏览页...`）。
+> 实现启动后，本节追加实际变更记录；`documents/CHANGELOG.md` 的 `[Unreleased]` 段按仓库约定追加一行扁平记录（`[新功能] 新增本地 StockDB 行情浏览页...`）。

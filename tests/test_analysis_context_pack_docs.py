@@ -418,7 +418,7 @@ def test_analysis_context_pack_doc_lists_source_anchors() -> None:
         "api/v1/schemas/history.py",
         "api/v1/schemas/portfolio.py",
         "src/notification.py",
-        "docs/alerts.md",
+        "documents/product/实时告警中心/alerts.md",
         "docs/notifications.md",
     ):
         assert path in section
@@ -427,7 +427,7 @@ def test_analysis_context_pack_doc_lists_source_anchors() -> None:
 def test_analysis_context_pack_doc_updates_indexes_and_changelog() -> None:
     index = (PROJECT_ROOT / "docs" / "INDEX.md").read_text(encoding="utf-8")
     index_en = (PROJECT_ROOT / "docs" / "INDEX_EN.md").read_text(encoding="utf-8")
-    changelog = (PROJECT_ROOT / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "documents" / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert "[分析上下文包契约、运行态消费与可见性](analysis-context-pack.md)" in index
     assert "P1/P2 内部契约、P3 Prompt 摘要消费、P4 历史/API/Web 低敏可见性、P5 数据质量评分、P6 迁移回滚" in index

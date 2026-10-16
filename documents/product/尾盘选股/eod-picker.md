@@ -34,7 +34,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 关联架构 | `documents/架构设计/backend_architecture_adr.md`（ADR-001，已采纳） |
+| 关联架构 | `documents/framework/backend_architecture_adr.md`（ADR-001，已采纳） |
 | 状态 | 已实施（后端 service + endpoint + 前端页面均已落地，离线单测通过） |
 
 ### <a id="改动日志"></a>改动日志
@@ -173,7 +173,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 
 - 后端：`py_compile` + pytest（覆盖筛选 / 强度计算，离线用例）。
 - 前端：`npm run lint` + `npm run build`；PR 描述附页面截图（AGENTS.md 硬规则）。
-- 文档：`docs/CHANGELOG.md` [Unreleased] 扁平条目 + 专题 `docs/eod-picker.md`。
+- 文档：`documents/CHANGELOG.md` [Unreleased] 扁平条目 + 专题 `documents/product/尾盘选股/eod-picker.md`。
 - 盘中实测全流程（非盘中仅验证降级提示与 UI）。
 
 <a id="sec-f"></a>
@@ -191,14 +191,14 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 
 1. 后端：数据快照入口（复用 AkshareFetcher 全市场 spot）+ `eod_picker_service.py`（两阶段筛选 + 分时强度计算，纯函数内聚）+ 三个 API（defaults / tasks / tasks/{id}，结果摘要不含分时明细）+ 测试。
 2. 前端：实现 `EodPickerPage.tsx`（开始屏 / 进度 / 结果屏 / 排序栏），组合现成组件；`eodPickerStorage.ts` 本地持久化（filters/schemes/recent）；`eodPicker.ts` API 封装；分时图复用 `KLineChart` + 现有 kline API **懒加载**；i18n 走字典。
-3. 文档与验证：后端 `py_compile` + pytest；前端 `npm run lint` + `npm run build`；PR 附页面截图；`docs/CHANGELOG.md` [Unreleased] 扁平条目 + `docs/eod-picker.md`。
+3. 文档与验证：后端 `py_compile` + pytest；前端 `npm run lint` + `npm run build`；PR 附页面截图；`documents/CHANGELOG.md` [Unreleased] 扁平条目 + `documents/product/尾盘选股/eod-picker.md`。
 
 **Phase 3（本次不纳入）**：批量加自选联动（接现有 watchlist API）、尾盘定时（~14:30）自动跑 + 推送通知（接 `RuntimeSchedulerService` + 通知服务）。
 
 <a id="sec-h"></a>
 ## <a id="h-与-adr-001后端架构的合规性对照"></a>H. 与 ADR-001（后端架构）的合规性对照
 
-本方案严格遵循 `documents/架构设计/backend_architecture_adr.md`（ADR-001，已采纳）的四层架构与「`data_provider` 为唯一脏活层」铁律，逐项核对如下：
+本方案严格遵循 `documents/framework/backend_architecture_adr.md`（ADR-001，已采纳）的四层架构与「`data_provider` 为唯一脏活层」铁律，逐项核对如下：
 
 | ADR-001 条款 | 本方案对应设计 | 合规 |
 |---|---|---|

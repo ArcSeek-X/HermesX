@@ -251,7 +251,7 @@ Docs_input.tsx    Docs_textArea.tsx    Docs_chip.tsx
 - **风险 3（低）**：HeroUI 弹层类组件（Modal/Drawer/Toast/Select 弹层）在 Demo 页嵌套使用时需避免触发器嵌套导致的焦点/事件冲突，页面设计已规避（各示例独立按钮触发）
 - **风险 4（低，本批）**：TextArea 源码 JSDoc 写「rows 默认 3」但实现默认 5，demo 页按实际行为演示；是否顺手修正该注释待评审确认（默认不改，遵循最小改动原则）
 - **回滚方式**：纯前端新增 + 少量挂载点追加，无数据库/接口变更；回滚即删除新增文件并还原挂载文件（git revert）
-- **CHANGELOG**：第一批已追加 `- [文档] 新增 11 个组件文档 Demo 页（/docs/component/*）` 条目；本批建议在 `docs/CHANGELOG.md` `[Unreleased]` 再追加一条 `- [文档] 新增 Input / TextArea / Chip 三个组件文档 Demo 页（/docs/component/input|textArea|chip）`，是否更新由评审确认
+- **CHANGELOG**：第一批已追加 `- [文档] 新增 11 个组件文档 Demo 页（/docs/component/*）` 条目；本批建议在 `documents/CHANGELOG.md` `[Unreleased]` 再追加一条 `- [文档] 新增 Input / TextArea / Chip 三个组件文档 Demo 页（/docs/component/input|textArea|chip）`，是否更新由评审确认
 
 ## 9. 待评审确认点
 
@@ -260,5 +260,5 @@ Docs_input.tsx    Docs_textArea.tsx    Docs_chip.tsx
 1. 菜单名称（第 3 节第二批表格）是否符合预期（Input → 输入框、TextArea → 文本域、Chip → 标签芯片）
 2. TextArea 路由与文件名的 camelCase 命名（`/docs/component/textArea` + `Docs_textArea.tsx`）是否符合多词组件约定
 3. 各页面示例区块划分（第 4.12~4.14 节）是否需要增删
-4. 是否同步更新 `docs/CHANGELOG.md`（本批条目）
+4. 是否同步更新 `documents/CHANGELOG.md`（本批条目）
 5. TextArea 源码 `rows` 默认值注释与实现不一致（JSDoc 写 3、代码为 5），是否顺手修正注释

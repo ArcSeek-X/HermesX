@@ -1040,7 +1040,7 @@ class IntelligenceService:
     #  2. 快讯额外写入 importance（重要级），通用 RSS/Atom/NewsNow 源该列为 NULL；
     #  3. 快讯不注册到 intelligence_sources，因此不会被 fetch_enabled_sources 误抓，
     #     它拥有独立的抓取入口 refresh_live_news()。
-    # 完整设计与接口契约见 docs/live-news.md。
+    # 完整设计与接口契约见 documents/product/行情资讯/live-news.md。
     # ==================================================================
 
     # 快讯数据源标识：官方源与降级源
@@ -1067,7 +1067,7 @@ class IntelligenceService:
     # 设计原则：数据源只是数据提供方，重要度的业务定义归本项目。上游量纲
     # （快讯 score 1~3、日历 importance 1~4、NewsNow 无字段）只允许在「归一化入口」
     # 出现一次，落库列 / API 输出 / 前端渲染统一使用本量纲。
-    # 完整设计与迁移说明见 docs/Live-calendar.md §5.7。
+    # 完整设计与迁移说明见 documents/product/行情资讯/Live-calendar.md §5.7。
     IMPORTANCE_NONE = 0        # 数据源未提供重要度（**不是**「最低等级」）
     IMPORTANCE_NORMAL = 1      # 普通
     IMPORTANCE_MINOR = 2       # 较重要
@@ -1159,7 +1159,7 @@ class IntelligenceService:
             raise IntelligenceServiceError(f"unsupported live news channel: {channel}")
         scope_value = WallstreetcnNewsSource.live_news_scope_value(channel)
         # 阈值按统一业务量纲判定（3=重要）；与快讯 importance 归一化改造同步上调，
-        # 保证「重要」判定结果与改造前完全一致（详见 docs/Live-calendar.md §5.7.5）
+        # 保证「重要」判定结果与改造前完全一致（详见 documents/product/行情资讯/Live-calendar.md §5.7.5）
         threshold = max(1, self._config_int("wscn_live_news_important_score", self.IMPORTANT_THRESHOLD))
         if limit is None:
             limit = self._config_int("wscn_live_news_default_limit", 30)
@@ -1464,7 +1464,7 @@ class IntelligenceService:
             "scope_value": (channel.get("scope_value") or "global",),
             "market": "cn",
             # 兜底源无重要级字段 -> 统一业务量纲的 0（无），而非 NULL。
-            # 「没告诉我」≠「这是普通的」，不可兜底为 1，详见 docs/Live-calendar.md §5.7.2。
+            # 「没告诉我」≠「这是普通的」，不可兜底为 1，详见 documents/product/行情资讯/Live-calendar.md §5.7.2。
             # 前端隐藏「只看重要的」开关改由 degraded 标记驱动（两者粒度不同）。
             "importance": self.IMPORTANCE_NONE,
             "raw_payload": json.dumps({"source": self._LIVE_NEWS_SOURCE_FALLBACK}, ensure_ascii=False),
@@ -1494,7 +1494,7 @@ class IntelligenceService:
 
         例外：**重要级不走 raw_payload**。``score`` 直接读 ``importance`` 列
         （已在落库入口归一化为统一业务量纲 0~4），原因详见下方注释与
-        docs/Live-calendar.md §5.7.7 改动点 3。
+        documents/product/行情资讯/Live-calendar.md §5.7.7 改动点 3。
         """
         raw: Dict[str, Any] = {}
         try:
@@ -1582,7 +1582,7 @@ class IntelligenceService:
     #  1. 日历按「月份时间窗」低频抓取，而非 30s 轮询；
     #  2. 事件按标题关键字打标分类（宏观 / 财报 / 新股 / 活动），而非上游频道字段；
     #  3. 日历不注册资讯源（source_id 为 NULL），有独立抓取入口 refresh_calendar()。
-    # 完整设计与接口契约见 docs/Live-calendar.md。
+    # 完整设计与接口契约见 documents/product/行情资讯/Live-calendar.md。
     # ==================================================================
 
     # 日历落库 scope_type 与源标识
@@ -1931,7 +1931,7 @@ class IntelligenceService:
 
     @staticmethod
     def _shorten_calendar_title(title: str) -> str:
-        """日历格子精简标题（规则见 docs/Live-calendar.md §11.2）。"""
+        """日历格子精简标题（规则见 documents/product/行情资讯/Live-calendar.md §11.2）。"""
         value = (title or "").strip()
         if not value:
             return ""

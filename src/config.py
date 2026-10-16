@@ -907,7 +907,7 @@ class Config:
     newsnow_base_url: str = "https://newsnow.busiyi.world"  # NewsNow HTTP API base URL (数据源侧，不影响 LLM/provider base URL)
 
     # === 华尔街见闻实时快讯（Live News）配置 ===
-    # 详见 docs/live-news.md：主数据源为华尔街见闻快讯接口，失败时降级到 NewsNow 聚合源。
+    # 详见 documents/product/行情资讯/live-news.md：主数据源为华尔街见闻快讯接口，失败时降级到 NewsNow 聚合源。
     wscn_live_news_enabled: bool = True  # 快讯能力总开关，关闭后所有快讯接口返回空且不抓取
     wscn_live_news_base_url: str = "https://api-one.wallstcn.com"  # 快讯接口基址（数据源侧，不影响 LLM/provider base URL）
     wscn_live_news_fetch_interval_sec: int = 300  # 后台定时抓取间隔（秒），0 表示关闭定时抓取
@@ -919,7 +919,7 @@ class Config:
     wscn_live_news_fallback_newsnow: bool = True  # 官方源失败时是否降级到 NewsNow 聚合源
 
     # === 华尔街见闻财经日历（Live Calendar）配置 ===
-    # 详见 docs/Live-calendar.md：主数据源为华尔街见闻日历接口 macrodatas/countries。
+    # 详见 documents/product/行情资讯/Live-calendar.md：主数据源为华尔街见闻日历接口 macrodatas/countries。
     wallstreetcn_calendar_enabled: bool = True  # 日历能力总开关，关闭后所有日历接口返回空且不抓取
     wallstreetcn_calendar_base_url: str = "https://api-one-wscn.awtmt.com"  # 日历接口基址（注意：与快讯域名不同）
     wallstreetcn_calendar_timeout: float = 8.0  # 单请求超时（秒）

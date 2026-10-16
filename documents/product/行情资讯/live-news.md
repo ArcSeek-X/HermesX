@@ -966,7 +966,7 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 | **⑨ 前端 Hook**       | 2 个 Hook（轮询、分页、防抖、分组）                           | `src/hooks/useLiveNews.ts` 🆕                                 | ✅ 已完成  |
 | **⑩ 前端页面**          | 页面 + 路由 + 侧边栏入口 + i18n（中/繁/英）                   | `src/pages/LiveNewsPage.tsx` 🆕、`App.tsx`、`SidebarNav.tsx`    | ✅ 已完成  |
 | **⑪ 测试**            | 后端单测 26 例（Fetcher / Service / 降级 / 边界）          | `tests/test_live_news.py` 🆕                                  | ✅ 已完成  |
-| **⑫ 文档**            | 本文档按实施结果校准 + `docs/CHANGELOG.md` 追加一行            | 见 §14.4                                                       | ⏳ 待合入时 |
+| **⑫ 文档**            | 本文档按实施结果校准 + `documents/CHANGELOG.md` 追加一行            | 见 §14.4                                                       | ⏳ 待合入时 |
 
 #### <a id="实施中的三处偏差已同步到对应章节"></a>实施中的三处偏差（已同步到对应章节）
 
@@ -1014,8 +1014,8 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 
 | 文档                      | 改动                                                                            |
 | ----------------------- | ----------------------------------------------------------------------------- |
-| 本文档 `docs/live-news.md` | 实施后按实际落地情况校准                                                                  |
-| `docs/CHANGELOG.md`     | `[Unreleased]` 段追加一行（**扁平格式，禁加类目标题**）：`- [新功能] 实时财经快讯中心：华尔街见闻 8 频道快讯流页面与 API` |
+| 本文档 `documents/product/行情资讯/live-news.md` | 实施后按实际落地情况校准                                                                  |
+| `documents/CHANGELOG.md`     | `[Unreleased]` 段追加一行（**扁平格式，禁加类目标题**）：`- [新功能] 实时财经快讯中心：华尔街见闻 8 频道快讯流页面与 API` |
 | `.env.example`          | 追加 `WSCN_LIVE_NEWS_*` 配置项及说明                                                  |
 | PR 描述                   | 按项目规范**必须附页面截图**                                                              |
 

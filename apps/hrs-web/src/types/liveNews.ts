@@ -1,7 +1,7 @@
 /**
  * 实时财经快讯（Live News）类型定义。
  *
- * 数据来源为华尔街见闻 7x24 快讯，接口契约见 docs/live-news.md。
+ * 数据来源为华尔街见闻 7x24 快讯，接口契约见 documents/product/行情资讯/live-news.md。
  * 字段与后端 Pydantic 模型一一对应（后端 snake_case，此处保持同名以简化对接）。
  */
 

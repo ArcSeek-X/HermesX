@@ -348,7 +348,7 @@ python main.py --market-only
 If the above content doesn't solve your issue, welcome to:
 1. Check [Complete Configuration Guide](full-guide_EN.md)
 2. Search or submit [GitHub Issue](https://github.com/ArcSeek-X/HermesX/issues)
-3. Check [Changelog](CHANGELOG.md) for latest fixes
+3. Check [Changelog](../documents/CHANGELOG.md) for latest fixes
 
 ---
 

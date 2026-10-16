@@ -13,7 +13,7 @@
  *    这里给出专门的文案「本频道暂无重要快讯」，而不是一片空白。
  * 4. 卡片点击跳转官方原文，不在站内嵌全文（合规：内容版权归华尔街见闻）。
  *
- * 接口契约与降级策略详见 docs/live-news.md。
+ * 接口契约与降级策略详见 documents/product/行情资讯/live-news.md。
  */
 
 import { toDateKey } from '@utils/format';

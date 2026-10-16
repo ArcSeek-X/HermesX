@@ -31,7 +31,7 @@
           }
         }
 
-已知边界（实测结论，详见 docs/live-news.md）
+已知边界（实测结论，详见 documents/product/行情资讯/live-news.md）
 -------------------------------------------
 - 8 个频道均可用，但 ``tech-channel`` **独立于 global 主流且更新最慢**，因此必须逐频道抓取，
   不能只抓 ``global-channel`` 再本地过滤。

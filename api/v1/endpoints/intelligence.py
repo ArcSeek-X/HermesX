@@ -234,7 +234,7 @@ def list_items(
 #
 # 数据源：华尔街见闻 7x24 快讯接口（主），失败时自动降级到 NewsNow 聚合源。
 # 降级后仅保留「要闻」单频道且无重要级，前端据此调整 Tab 与隐藏重要级筛选。
-# 接口契约与降级策略详见 docs/live-news.md。
+# 接口契约与降级策略详见 documents/product/行情资讯/live-news.md。
 #
 # 注意路由顺序：/live-news/channels 与 /live-news/refresh 必须注册在
 # /live-news/{item_id} 之前，否则会被路径参数 {item_id} 优先匹配。

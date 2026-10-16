@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DOC_PATH = PROJECT_ROOT / "docs" / "alerts.md"
+DOC_PATH = PROJECT_ROOT / "documents" / "product" / "实时告警中心" / "alerts.md"
 
 
 def _read_doc() -> str:
@@ -328,7 +328,7 @@ def test_alerts_doc_defines_p8_user_and_deployment_boundaries() -> None:
 
 
 def test_changelog_mentions_alert_p6_release_note() -> None:
-    changelog = (PROJECT_ROOT / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "documents" / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert "P6" in changelog
     assert "自选股" in changelog
@@ -337,14 +337,14 @@ def test_changelog_mentions_alert_p6_release_note() -> None:
 
 
 def test_changelog_mentions_alert_p8_docs_closeout() -> None:
-    changelog = (PROJECT_ROOT / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "documents" / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert "补齐告警中心 P8 文档与配置收口说明" in changelog
     assert "GitHub Actions 与 Desktop 边界" in changelog
 
 
 def test_changelog_unreleased_keeps_flat_entries() -> None:
-    changelog = (PROJECT_ROOT / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "documents" / "CHANGELOG.md").read_text(encoding="utf-8")
     unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
 
     assert "\n### " not in unreleased

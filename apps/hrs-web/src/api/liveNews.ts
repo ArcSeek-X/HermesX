@@ -1,7 +1,7 @@
 /**
  * 实时财经快讯（Live News）API。
  *
- * 对应后端 `/api/v1/intelligence/live-news/*`（见 docs/live-news.md）：
+ * 对应后端 `/api/v1/intelligence/live-news/*`（见 documents/product/行情资讯/live-news.md）：
  * - GET  /live-news/channels  频道列表（前端 Tab 数据源）
  * - GET  /live-news           快讯列表（频道/重要级/关键词/日期过滤 + 游标分页）
  * - POST /live-news/refresh   手动触发抓取
@@ -61,7 +61,7 @@ interface RawLiveNewsRefreshResponse {
 
 /** snake_case -> camelCase 归一化，避免后端字段风格泄漏到业务层 */
 function normalizeItem(raw: RawLiveNewsItem) {
-  // 快讯 title 常为空 → 回退取 content_text 首行截断（与 docs/live-news.md §11.4 契约一致）
+  // 快讯 title 常为空 → 回退取 content_text 首行截断（与 documents/product/行情资讯/live-news.md §11.4 契约一致）
   const rawTitle = raw.title ?? '';
   const fallbackTitle =
     rawTitle.trim().length > 0 ? rawTitle : raw.content?.split('\n')[0]?.trim() ?? '';

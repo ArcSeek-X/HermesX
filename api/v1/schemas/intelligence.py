@@ -143,7 +143,7 @@ class IntelligenceSourceTestResponse(BaseModel):
 #
 # 数据来源为华尔街见闻 7x24 快讯接口，失败时降级到 NewsNow 聚合源。
 # 降级后只有「要闻」单频道，且无重要级（importance 为 None），
-# 前端据此隐藏「只看重要的」开关与重要标签。详见 docs/live-news.md。
+# 前端据此隐藏「只看重要的」开关与重要标签。详见 documents/product/行情资讯/live-news.md。
 # ---------------------------------------------------------------------------
 
 
@@ -285,7 +285,7 @@ class CalendarCountriesResponse(BaseModel):
 
 
 class CalendarEvent(BaseModel):
-    """单条日历事件（统一业务量纲，详见 docs/Live-calendar.md §7.3）。"""
+    """单条日历事件（统一业务量纲，详见 documents/product/行情资讯/Live-calendar.md §7.3）。"""
 
     id: int
     key: str

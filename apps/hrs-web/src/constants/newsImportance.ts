@@ -5,7 +5,7 @@
  * （快讯 score 1~3、日历 importance 1~4、无字段的降级源）在服务层归一化
  * 入口统一为 0~4，前端据此做色阶与筛选，避免两套语义漂移。
  *
- * 完整设计见 docs/Live-calendar.md §5.7。
+ * 完整设计见 documents/product/行情资讯/Live-calendar.md §5.7。
  */
 
 /** 重要级，统一业务量纲（与后端 §5.7.2 一一对应） */

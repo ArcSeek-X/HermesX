@@ -65,7 +65,7 @@ Web 展示必须把这些 wire value 映射为当前 UI 语言的用户可读标
 
 ## API
 
-当前公开接口由 `api/v1/endpoints/decision_signals.py` 和 `docs/architecture/api_spec.json` 描述：
+当前公开接口由 `api/v1/endpoints/decision_signals.py` 和 `documents/archify/api_spec.json` 描述：
 
 - `POST /api/v1/decision-signals`：创建或按同源键去重，返回 `{ item, created }`。
 - `GET /api/v1/decision-signals`：分页查询，支持市场、股票、动作、阶段、`decision_profile`、来源、状态、时间范围和持仓过滤。省略或传空 `decision_profile` 不加 profile 条件，返回所有 profile；`decision_profile=unknown` 查询 `NULL` 行；合法 profile 精确匹配。
@@ -215,7 +215,7 @@ Web 入口位于 `/decision-signals`：
 - 通知不得输出 signal `metadata`、`evidence`、raw diagnostics、webhook URL、token 或 cookie。
 - `GET /api/v1/portfolio/risk` 的 `decision_signal_risk` 只统计当前持仓中的 active `sell/reduce/alert` 信号，查询失败时 fail-open。
 
-更多告警和通知细节见 `docs/alerts.md` 与 `docs/notifications.md`。
+更多告警和通知细节见 `documents/product/实时告警中心/alerts.md` 与 `docs/notifications.md`。
 
 ## 后验评估与反馈
 

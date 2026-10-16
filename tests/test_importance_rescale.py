@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """快讯 ``importance`` 统一业务量纲回归测试（P0 量纲改造）。
 
-覆盖 docs/Live-calendar.md §5.7.9 的核心断言：
+覆盖 documents/product/行情资讯/Live-calendar.md §5.7.9 的核心断言：
 1. ``normalize_live_news_importance`` 映射正确（缺失 / 非法 -> 0）；
 2. 存量迁移正确性（上游 score -> 业务量纲，NULL -> 0，非 channel 行不受影响）；
 3. 迁移幂等性（连续执行两次 / 重启后结果不变）；

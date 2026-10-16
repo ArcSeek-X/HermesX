@@ -1,7 +1,7 @@
 /**
  * 消息日历（Live Calendar）类型定义。
  *
- * 数据来源为华尔街见闻财经日历，接口契约见 docs/Live-calendar.md §7。
+ * 数据来源为华尔街见闻财经日历，接口契约见 documents/product/行情资讯/Live-calendar.md §7。
  * 类型命名遵循 .conventions/frontend/TYPE_NAMING.md：
  * 描述数据契约的类型用 `Def` 后缀（可脱离组件独立存在、被组件解析渲染）。
  *

@@ -1,7 +1,7 @@
 /**
  * 消息日历（Live Calendar）API。
  *
- * 对应后端 `/api/v1/intelligence/live-calendar/*`（见 docs/Live-calendar.md §7）：
+ * 对应后端 `/api/v1/intelligence/live-calendar/*`（见 documents/product/行情资讯/Live-calendar.md §7）：
  * - GET  /live-calendar/tabs      分类 Tab 列表
  * - GET  /live-calendar/countries 国家字典
  * - GET  /live-calendar           月度事件（分类/国家/重要级/经济数据过滤）

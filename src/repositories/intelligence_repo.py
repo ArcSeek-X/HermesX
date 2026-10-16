@@ -422,7 +422,7 @@ class IntelligenceRepository:
     # 一条事件可命中多个分类（宏观 / 财报 / 新股 / 活动），按分类拆多行落库
     # （scope_value 各不相同），由唯一约束天然去重——与快讯「多频道各存一行」一致。
     # 写入复用 ``upsert_items``（其去重键已含 scope_value），查询见本方法。
-    # 详见 docs/Live-calendar.md §5。
+    # 详见 documents/product/行情资讯/Live-calendar.md §5。
     # ------------------------------------------------------------------
     def list_calendar_events(
         self,

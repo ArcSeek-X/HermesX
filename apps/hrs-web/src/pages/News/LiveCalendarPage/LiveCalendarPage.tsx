@@ -15,7 +15,7 @@
  *    数据仍复用当月拉取结果，不触发重新请求）；
  * 4. 低频数据不轮询，仅提供手动刷新。
  *
- * 接口契约与选型理由详见 docs/Live-calendar.md。
+ * 接口契约与选型理由详见 documents/product/行情资讯/Live-calendar.md。
  */
 
 import { cn } from '@utils/cn';

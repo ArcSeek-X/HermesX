@@ -9,7 +9,7 @@
  * 让 LiveCalendar.tsx 的视觉细节淹没数据流与事件处理逻辑，故按语义拆到本文件，
  * 组件侧只保留一次引用：`cn(LIVE_CALENDAR_CSS_COVER, className)`。
  *
- * 为什么不新建 CSS/SCSS：仓库规范（AGENTS.md + docs/Live-calendar.md §9.6）要求
+ * 为什么不新建 CSS/SCSS：仓库规范（AGENTS.md + documents/product/行情资讯/Live-calendar.md §9.6）要求
  * 日历样式以「Tailwind 令牌 + FullCalendar 的 `--fc-*` 变量层」为唯一来源，不落
  * 任何自定义样式文件，主题取色全部经变量继承完成。
  *
