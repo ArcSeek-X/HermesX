@@ -17,6 +17,7 @@ import type { RouteHandle } from '../../types/router';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
+import { FullscreenToggle } from './HeaderComponents/FullscreenToggle';
 import { ApplicationMenu } from './HeaderComponents/ApplicationMenu';
 import { MenuSwitcher } from './HeaderComponents/MenuSwitcher';
 import { BackToHome } from './HeaderComponents/BackToHome';
@@ -115,6 +116,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           <ThemeSetting />
           <ThemeToggle />
           <LanguageSwitch />
+          <FullscreenToggle />
           <UserSetting/>
         </div>
       </div>
