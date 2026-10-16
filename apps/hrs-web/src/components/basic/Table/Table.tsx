@@ -293,6 +293,7 @@ export function Table<T extends { id: string | number }>({
                   <HeroTable.Column
                     key={col.key}
                     allowsSorting={col.allowsSorting}
+                    minWidth={col.minWidth as ComponentProps<typeof HeroTable.Column>['minWidth']}
                     defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
                     isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
                   >

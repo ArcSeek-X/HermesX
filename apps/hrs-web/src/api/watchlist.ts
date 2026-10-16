@@ -8,6 +8,7 @@
 
 import apiClient from './index';
 import { toCamelCase } from './utils';
+import type { KLinePoint } from './kline';
 
 /** 分类 */
 export interface WatchlistGroup {
@@ -40,10 +41,22 @@ export interface WatchlistQuote {
   amount: number | null;
   turnoverRate: number | null;
   totalMv: number | null;
+  /** 昨收价：分时缩略图的涨跌基准与昨收虚线（后端已返回，前端补齐映射） */
+  prevClose: number | null;
+}
+
+/** 当日分时明细（KLinePoint 形态），供自选股列表分时缩略图列渲染 */
+export interface WatchlistIntraday {
+  /** 分时点（date 为 'YYYY-MM-DD HH:mm:ss'，由后端 trends2 通路标准化） */
+  points: KLinePoint[];
+  /** 昨收价：分时基准线；上游缺失时为 null，前端退化为首末点比较 */
+  prevClose: number | null;
 }
 
 export type WatchlistItemWithQuote = WatchlistItem & {
   quote?: WatchlistQuote;
+  /** 当日分时（懒加载）：未拉取 / 拉取失败 / 无数据时为 undefined，缩略图列显示占位 */
+  intraday?: WatchlistIntraday;
 };
 
 /** 分页查询响应 */

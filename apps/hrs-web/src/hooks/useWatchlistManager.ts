@@ -5,7 +5,9 @@
  * 1. 加载并维护分类列表、当前选中分类、当前分类下的自选股（含实时行情合并）；
  * 2. 提供分类与自选股的增删改查、移动归类等操作（统一调用 api/watchlist）；
  * 3. 行情合并：按股票代码并发调用 stocksApi.getQuote 填充列表的 quote 字段；
- * 4. 暴露 stockIndex 映射（code -> 本地股票索引记录），供页面做拼音/简拼搜索匹配。
+ * 4. 分时合并：行情到位后按有界并发调用 stocksApi.getTimeline 填充列表的 intraday 字段
+ *    （分时缩略图列数据源），逐条合并、单只失败降级为占位，不阻塞列表渲染；
+ * 5. 暴露 stockIndex 映射（code -> 本地股票索引记录），供页面做拼音/简拼搜索匹配。
  *
  * 排序与搜索由页面层基于 items + quote 用 useMemo 完成（零后端开销）。
  */
@@ -26,8 +28,16 @@ import {
   type WatchlistGroup,
   type WatchlistItem,
   type WatchlistItemWithQuote,
+  type WatchlistIntraday,
   type WatchlistQuote,
 } from '../api/watchlist';
+
+/**
+ * 分时拉取并发上限。
+ * 上游（东财 trends2）对高并发限流严格（实测 16 并发会触发 IP 临时封禁），
+ * 后端另有全局节流；前端同步收敛并发，避免一页 10 行同时打上游。
+ */
+const TIMELINE_FETCH_CONCURRENCY = 3;
 
 /**
  * 空行情占位对象。
@@ -40,6 +50,7 @@ const EMPTY_QUOTE: WatchlistQuote = {
   amount: null, // 成交额（元）
   turnoverRate: null, // 换手率（%）
   totalMv: null, // 总市值（元）
+  prevClose: null, // 昨收价（分时缩略图基准）
 };
 
 /**
@@ -55,7 +66,44 @@ function quoteFromStockQuote(q: Awaited<ReturnType<typeof stocksApi.getQuote>> |
     amount: q.amount ?? null,
     turnoverRate: q.turnoverRate ?? null,
     totalMv: q.totalMv ?? null,
+    prevClose: q.prevClose ?? null,
   };
+}
+
+/**
+ * 有界并发地执行异步任务（保持入参顺序无关的「完成即回调」语义）。
+ *
+ * 与 Promise.all 的区别：调用方可以在单个任务完成时立即消费结果（如逐条合并分时数据），
+ * 而不必等整批完成；并发数受限，避免同时打爆上游。
+ *
+ * @param items 待处理项
+ * @param limit 并发上限（<1 时按 1 处理）
+ * @param task 单条任务；抛错不影响其它条目（由 task 自行兜底）
+ */
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) return;
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    while (cursor < items.length) {
+      const item = items[cursor];
+      cursor += 1;
+      await task(item);
+    }
+  };
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+}
+
+/** 把分时接口响应转换成列表使用的 WatchlistIntraday；失败 / 无数据时返回 null */
+function intradayFromTimeline(
+  timeline: Awaited<ReturnType<typeof stocksApi.getTimeline>> | null,
+): WatchlistIntraday | null {
+  if (!timeline || timeline.points.length === 0) return null;
+  return { points: timeline.points, prevClose: timeline.prevClose ?? null };
 }
 
 /** 默认每页数量（分页拉取自选股列表时使用） */
@@ -79,6 +127,7 @@ export interface UseWatchlistManagerResult {
   items: WatchlistItemWithQuote[]; // 当前分类下的自选股（已合并行情）
   itemsLoading: boolean; // 列表/行情整体加载中
   quotesLoading: boolean; // 仅行情并发拉取中
+  timelinesLoading: boolean; // 仅分时（分时缩略图数据）并发拉取中
   loadItems: (groupId: number, pageNum?: number) => Promise<void>; // 加载某分类某一页
   addItem: (groupId: number, payload: { stockCode: string; stockName?: string; description?: string }) => Promise<WatchlistItem>; // 新增自选股
   editItemDescription: (id: number, description: string) => Promise<void>; // 编辑备注
@@ -107,6 +156,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
   const [items, setItems] = useState<WatchlistItemWithQuote[]>([]); // 当前分类下的自选股（含行情）
   const [itemsLoading, setItemsLoading] = useState(false); // 列表 + 行情整体加载中
   const [quotesLoading, setQuotesLoading] = useState(false); // 仅行情并发拉取中
+  const [timelinesLoading, setTimelinesLoading] = useState(false); // 仅分时并发拉取中
 
   // —— 分页状态 ——
   const [pageNum, setPageNum] = useState(1); // 当前页码（从 1 开始）
@@ -160,14 +210,17 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
   }, []);
 
   /**
-   * 加载某分类指定页的自选股，并合并实时行情。
+   * 加载某分类指定页的自选股，并合并实时行情与当日分时。
    *
    * 关键设计：先清空列表（setItems([])），再并发拉取每只股票的实时行情，
    * 等所有「列表数据 + 行情数据」都加载并处理完毕之后，才一次性 setItems 渲染，
    * 避免先渲染空行情占位、再闪一下填充行情的视觉效果。
    *
-   * - 单只股票行情拉取失败会被 .catch(() => null) 兜底，不影响其它股票；
-   * - 行情缺失的条目保留 EMPTY_QUOTE 占位，UI 显示「—」。
+   * 分时（分时缩略图数据）在行情之后按有界并发拉取，**逐条合并**：单只到达即更新该行，
+   * 不让整表等最慢的一只；单只失败保留 intraday 为空，缩略图列显示占位「—」。
+   *
+   * - 单只股票行情 / 分时拉取失败均被兜底，不影响其它股票；
+   * - 过期请求（快速切换分类 / 翻页）的响应直接丢弃，避免竞态错乱。
    */
   const loadItems = useCallback(async (groupId: number, page: number = 1) => {
     const reqId = ++latestReqRef.current;
@@ -202,6 +255,26 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
           setItems(merged);
         } finally {
           setQuotesLoading(false);
+        }
+
+        // 行情到位后再拉分时（缩略图数据）：有界并发 + 逐条合并
+        if (reqId !== latestReqRef.current) return;
+        setTimelinesLoading(true);
+        try {
+          await runWithConcurrency(
+            withQuote,
+            TIMELINE_FETCH_CONCURRENCY,
+            async (it) => {
+              const timeline = await stocksApi.getTimeline(it.stockCode).catch(() => null);
+              if (reqId !== latestReqRef.current) return; // 过期请求丢弃
+              const intraday = intradayFromTimeline(timeline);
+              setItems((prev) =>
+                prev.map((row) => (row.id === it.id ? { ...row, intraday: intraday ?? undefined } : row)),
+              );
+            },
+          );
+        } finally {
+          if (reqId === latestReqRef.current) setTimelinesLoading(false);
         }
       } else {
         // 没有任何股票时，直接渲染空列表
@@ -264,22 +337,24 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
 
   /**
    * 新增自选股。成功后：
-   * - 若新增的分类正是当前展示的分类，则立即为这只股票拉取实时行情并合并，
+   * - 若新增的分类正是当前展示的分类，则立即为这只股票拉取实时行情与当日分时并合并，
    *   把新条目插到列表最前面（仍走「先拿到行情再渲染」的逻辑，避免空占位）。
-   * - 行情拉取失败不影响新增成功，仅该条显示空行情占位。
+   * - 行情 / 分时拉取失败不影响新增成功，仅该条显示空行情占位 / 分时占位。
    * - 若新增到其它分类，则不改动当前列表（由用户切换分类时自然加载）。
    */
   const addItem = useCallback(
     async (groupId: number, payload: { stockCode: string; stockName?: string; description?: string }) => {
       const item = await apiCreateWatchlistItem(groupId, payload);
       if (groupId === activeGroupId) {
-        let quote: Awaited<ReturnType<typeof stocksApi.getQuote>> | null = null;
-        try {
-          quote = await stocksApi.getQuote(item.stockCode);
-        } catch {
-          quote = null; // 行情失败降级为空占位，不阻断新增
-        }
-        setItems((prev) => [{ ...item, quote: quoteFromStockQuote(quote) }, ...prev]);
+        const [quote, timeline] = await Promise.all([
+          stocksApi.getQuote(item.stockCode).catch(() => null),
+          stocksApi.getTimeline(item.stockCode).catch(() => null),
+        ]);
+        const intraday = intradayFromTimeline(timeline);
+        setItems((prev) => [
+          { ...item, quote: quoteFromStockQuote(quote), intraday: intraday ?? undefined },
+          ...prev,
+        ]);
       }
       return item;
     },
@@ -336,6 +411,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     items,
     itemsLoading,
     quotesLoading,
+    timelinesLoading,
     loadItems,
     addItem,
     editItemDescription,
