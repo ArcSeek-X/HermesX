@@ -24,6 +24,8 @@ export interface WatchlistStockColumnOptions {
   onStartNoteEdit: (id: number, note: string | null) => void;
   onCommitNoteEdit: (id: number) => void | Promise<void>;
   onCancelNoteEdit: () => void;
+  /** 点击股票名称（跳转个股 K 线页）回调；未提供时名称不可跳转 */
+  onStockClick?: (stock: WatchlistItemWithQuote) => void;
 }
 
 /** 金额格式化：按「亿 / 万」缩写，缺失显示「—」，用于成交额与总市值 */
@@ -38,7 +40,7 @@ function formatCompactAmount(value: number | undefined | null, decimals = 2): st
 export function buildWatchlistStockColumns(
   options: WatchlistStockColumnOptions,
 ): TableColumnDef<WatchlistItemWithQuote>[] {
-  const { noteEditingStockId, noteDraft, onNoteDraftChange, onStartNoteEdit, onCommitNoteEdit, onCancelNoteEdit } = options;
+  const { noteEditingStockId, noteDraft, onNoteDraftChange, onStartNoteEdit, onCommitNoteEdit, onCancelNoteEdit, onStockClick } = options;
 
   return [
     {
@@ -47,7 +49,22 @@ export function buildWatchlistStockColumns(
       minWidth: 120,
       defaultWidth: '15%',
       render: (stock) => (
-        <div className="group cursor-pointer truncate pr-2">
+        <div
+          className="group cursor-pointer truncate pr-2"
+          role="button"
+          tabIndex={0}
+          title="查看 K 线"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStockClick?.(stock);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onStockClick?.(stock);
+            }
+          }}
+        >
           <div className="truncate font-semibold group-hover:text-primary">{stock.stockName || stock.stockCode}</div>
           <div className="truncate text-xs group-hover:text-primary">{stock.stockCode}</div>
         </div>

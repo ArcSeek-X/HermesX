@@ -276,7 +276,7 @@ export function Table<T extends { id: string | number }>({
     <div className={cn('hrs-table flex flex-col w-full', wrapperClassName)} style={wrapperStyle}>
       {/* HeroUI Table 主体：flex-1 占满 wrapper 高度，ScrollContainer 再占满 HeroTable */}
       <HeroTable variant={variant} className={cn('hrs-table__root flex-1 min-h-0 rounded-md bg-secondary', styles.root, className)}>
-        <HeroTable.ScrollContainer style={scrollContainerStyle}>
+        <HeroTable.ScrollContainer className={styles.scrollOverride} style={scrollContainerStyle}>
           <HeroTable.ResizableContainer>
             <HeroTable.Content
               className="hrs-table__content rounded-md"

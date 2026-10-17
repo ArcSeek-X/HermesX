@@ -14,6 +14,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
 
 // ---- mock echarts（KLineChart 依赖）----
@@ -68,12 +69,15 @@ vi.mock('../../api/kline', () => ({
 
 import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 
-/** 包裹页面必需的 Provider 后渲染（功能走查不联网、不依赖真实后端） */
+/** 包裹页面必需的 Provider 后渲染（功能走查不联网、不依赖真实后端）。
+ *  页面使用 useSearchParams/useNavigate，需 MemoryRouter 提供路由上下文。 */
 function renderPage() {
   return render(
-    <PageStateProvider>
-      <StockKLinePage />
-    </PageStateProvider>,
+    <MemoryRouter>
+      <PageStateProvider>
+        <StockKLinePage />
+      </PageStateProvider>
+    </MemoryRouter>,
   );
 }
 

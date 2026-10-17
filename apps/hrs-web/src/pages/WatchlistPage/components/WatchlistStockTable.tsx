@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { HrsButton } from '@components/basic/HrsButton';
 import { Select } from '@components/basic/Select';
 import { Table, type PaginationDef } from '@components/basic/Table';
@@ -34,14 +35,16 @@ export default function WatchlistStockTable({
   const [moveGroupDialog, setMoveGroupDialog] = useState<{ item: WatchlistItemWithQuote; targetGroupId: string } | null>(null);
   const [pendingDeleteStock, setPendingDeleteStock] = useState<WatchlistItemWithQuote | null>(null);
 
+  const navigate = useNavigate();
+
   const [editingStockId, setEditingStockId] = useState<number | null>(null);
   const [editingNoteDraft, setEditingNoteDraft] = useState('');
 
   const columns = buildWatchlistStockColumns({
-    editingStockId,
-    editingNoteDraft,
+    noteEditingStockId: editingStockId,
+    noteDraft: editingNoteDraft,
     onNoteDraftChange: setEditingNoteDraft,
-    onStartEditNote: (id, note) => {
+    onStartNoteEdit: (id, note) => {
       setEditingStockId(id);
       setEditingNoteDraft(note ?? '');
     },
@@ -53,6 +56,11 @@ export default function WatchlistStockTable({
     onCancelNoteEdit: () => {
       setEditingStockId(null);
       setEditingNoteDraft('');
+    },
+    onStockClick: (stock) => {
+      // 去掉可能的市场后缀（如 .SH），与 K 线页 stockCode 取值口径一致
+      const code = String(stock.stockCode).split('.')[0];
+      navigate(`/stock/kline?stockCode=${encodeURIComponent(code)}`);
     },
   });
 

@@ -32,10 +32,31 @@ $corner-radius: min(16px, var(--radius-xl));;
 // 因此必须用 :global(th) 直接选中 th 才能生效。
 .header {
   :global(th) {
-    color: hsl(var(--foreground) / 0.6) ;
+    color: hsl(var(--foreground) / 0.6);
+
+    // 行数多、表格内部滚动时，让表头吸顶固定。
+    // 注意：HeroUI 把 bg-muted 加在 <tr>/<thead> 上，th 本身透明，
+    // 必须给 th 单独设置 sticky + 背景色，否则滚动时行内容会从表头下方透出。
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: hsl(var(--muted));
   }
 }
 
 .root {
 //  background-color:#fff;
+}
+
+// 滚动容器修正：HeroUI 把 .table__resizable-container 本身也设成 overflow:auto（一个独立的滚动容器），
+// 与本组件 ScrollContainer（overflow:auto）形成「嵌套双滚动容器」。
+// th 的 position:sticky 会吸附到「最近的滚动容器祖先」，即这个内层 resizable-container；
+// 但它的高度等于表格高度（不真正纵向滚动），于是滚动 ScrollContainer 时表头反而跟着滚走。
+// 解决：把 resizable-container 两个轴都设为 visible（注意 overflow-x:auto + overflow-y:visible 在
+// CSS 规范里会被折算成 auto，因此必须整体 visible），使唯一滚动容器回到外层 ScrollContainer，
+// 列头才能正确吸顶。横向滚动也由 ScrollContainer 接管，列宽测量仍会向上找到 ScrollContainer。
+.scrollOverride {
+  :global(.table__resizable-container) {
+    overflow: visible;
+  }
 }

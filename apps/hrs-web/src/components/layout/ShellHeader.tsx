@@ -24,7 +24,6 @@ import { BackToHome } from './HeaderComponents/BackToHome';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { ModeSwitch } from './HeaderComponents/ModeSwitch';
 import { StockSearch } from '../StockSearch/StockSearch';
-import { setStorageItem } from '../../utils/storage';
 import { cn } from '../../utils/cn';
 
 type ShellHeaderProps = {
@@ -56,7 +55,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
     ? t(handle.routerDescription as UiTextKey) || handle.routerDescription
     : t('layout.appFallbackDescription');
 
-  // 头部股票搜索框：提交后将规范代码写入 sessionStorage（与 K 线页共享键）并跳转 /kline
+  // 头部股票搜索框：提交后带 ?stockCode= 跳转 K 线页
   const [stockQuery, setStockQuery] = useState('');
 
   return (
@@ -94,18 +93,11 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
               value={stockQuery}
               size="sm"
               onChange={setStockQuery}
-              onSubmit={(code, _name, _source, metadata) => {
+              onSubmit={(code) => {
                 if (!code) return;
-                // 写入 sessionStorage（与 StockKLinePage 共享的 useCachedState 键），跳转后由 K 线页加载数据
-                setStorageItem('kline.stockCode', code, 'session');
-                // 同步展示标签（"名称（规范代码）"），与页内一致的原始 sessionStorage 键，供 K 线页搜索框初始化显示
-                if (metadata?.displayLabel) {
-                  try {
-                    sessionStorage.setItem('hrs-state-kline.displayValue', JSON.stringify(metadata.displayLabel));
-                  } catch { /* ignore */ }
-                }
                 setStockQuery('');
-                navigate('/stock/kline');
+                // 统一跳转模式：带 ?stockCode= 直达 K 线页，与自选股列表一致
+                navigate(`/stock/kline?stockCode=${encodeURIComponent(code)}`);
               }}
               onClear={() => setStockQuery('')}
               className="h-9 text-xs w-60"
