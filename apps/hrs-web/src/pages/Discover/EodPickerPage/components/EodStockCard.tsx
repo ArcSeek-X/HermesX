@@ -12,9 +12,7 @@ import { Check, Plus } from 'lucide-react';
 import { AnimCard, HrsButton } from '@components';
 import { AVG_PRICE_LINE_COLOR, KLineView } from '@components/kline/KLineView';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../../../constants/stockColor';
-import { setStorageItem } from '../../../../utils/storage';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import { toFullStockSymbol } from '@utils/stock/stockCode';
 import type { EodPickerStock } from '../../../../api/eodPicker';
 
 // ----------------------------- 格式化与展示工具 -----------------------------
@@ -85,19 +83,10 @@ function EodStockCard({ stock, ordinal, inWatchlist, canAddWatchlist, onAddToWat
   const { t } = useUiLanguage();
   const navigate = useNavigate();
 
-  // 点击卡片跳转个股 K 线页：写入 sessionStorage 共享键（与 ShellHeader/StockKLinePage 同键），
-  // K 线页 useEffect([stockCode]) 监听到代码后自动加载 /info 与 /kline；
-  // 展示标签（"名称（规范代码）"）写入 hrs-state-kline.displayValue 供页内搜索框初始化显示。
+  // 点击卡片跳转个股 K 线页：统一带 ?stockCode= 直达，数据与展示标签由 K 线页自行加载生成
   const openInKline = () => {
     const pureCode = stock.code.split('.')[0].trim();
-    setStorageItem('kline.stockCode', pureCode, 'session');
-    try {
-      sessionStorage.setItem(
-        'hrs-state-kline.displayValue',
-        JSON.stringify(`${stock.name}（${toFullStockSymbol(stock.code)}）`),
-      );
-    } catch { /* ignore */ }
-    navigate('/stock/kline');
+    navigate(`/stock/kline?stockCode=${encodeURIComponent(pureCode)}`);
   };
 
   // 涨跌方向：驱动徽章、涨跌额与走势图例配色（红涨绿跌）

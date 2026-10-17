@@ -7,7 +7,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Check, Plus } from 'lucide-react';
 import { AnimCard, Chip, HrsButton } from '@components';
-import { setStorageItem } from '../../../../utils/storage';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../../i18n/uiText';
 import { type ScannerResultRow as ScannerResultRowData, type ScannerSignalKey } from '../../../../api/scanner';
@@ -39,20 +38,10 @@ export type ScannerResultRowProps = {
   onAddToWatchlist: (row: ScannerResultRowData) => void;
 };
 
-/** 整行点击跳转个股 K 线页：写入 sessionStorage 共享键（与 ShellHeader / StockKLinePage 同键），
- *  K 线页监听到代码后自动加载；展示标签写入 displayValue 供页内搜索框初始化。 */
+/** 整行点击跳转个股 K 线页：统一带 ?stockCode= 直达，数据与展示标签由 K 线页自行加载生成 */
 function openInKline(row: ScannerResultRowData, navigate: (path: string) => void) {
   const pureCode = normalizeStockCode(row.code);
-  setStorageItem('kline.stockCode', pureCode, 'session');
-  try {
-    sessionStorage.setItem(
-      'hrs-state-kline.displayValue',
-      JSON.stringify(`${row.name}（${toFullStockSymbol(row.code)}）`),
-    );
-  } catch {
-    /* ignore */
-  }
-  navigate('/stock/kline');
+  navigate(`/stock/kline?stockCode=${encodeURIComponent(pureCode)}`);
 }
 
 /** 扫描结果行：结果列表中的单条展示单元（视觉对齐参考项目 Scanner 的 resultItem）。 */
