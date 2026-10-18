@@ -4,15 +4,14 @@
  * Zustand 集中管理「主题模式（light/dark/system）」「主色（HEX）」与
  * 「侧栏视觉主题（pill/square）」。
  *
- * 持久化分工（关键：避免双写竞态）：
- * - themeMode    -> hrs-pref-theme.themeMode：next-themes 以原始串写盘，
- *                   store 仅读取用于初始化；落盘发生在 ThemeSync 订阅变化后调
- *                   next-themes.setTheme 时（同时切 <html> class）。
- * - themeColor   -> hrs-pref-theme.themeColor：store 经 utils/storage 写盘。
- * - sidebarTheme -> hrs-pref-theme.sidebarTheme：store 经 utils/storage 写盘，
- *                   由 Shell 作 prop 透传 SidebarNav 消费（非全局 CSS）。
+ * 持久化（三值收口为单一键）：
+ * - 三个维度统一存放在 localStorage 的 hrs-pref-theme（对象形态），由 store 独占读写，
+ *   消除原先「mode 由 next-themes 落盘、color/sidebar 由 store 落盘」的分键双写竞态。
+ * - next-themes 仅负责 <html> class 与系统色跟随，其自身 storageKey 见 ThemeProvider；
+ *   应用不再从 next-themes 的键读取真值。
+ * - 首次读取时若新键缺失而存在旧的三键，自动做一次性迁移并落盘。
  *
- * 读取均校验合法性，非法/缺失回退默认。
+ * 读取均按维度校验合法性，非法 / 缺失仅回退该维度，不牵连其他维度。
  * =====================================================================
  */
 import { getStorageItem, setStorageItem } from '@utils/storage';
@@ -21,58 +20,84 @@ import { create } from 'zustand';
 import { LOCAL_STORAGE_PREFIX } from '../constants/cacheConfig';
 import type { ThemeMode, SidebarTheme } from '../types/theme';
 
-/** 键名片段（utils/storage 自动加 hrs-pref- 前缀）。
- *  mode 片段仅用于 readStoredMode 拼接原始键读取；color/sidebar 由 setStorageItem 写盘。 */
-const THEME_MODE_STORAGE_KEY = 'theme.themeMode';
-const THEME_COLOR_STORAGE_KEY = 'theme.themeColor';
-const THEME_SIDEBAR_STORAGE_KEY = 'theme.sidebarTheme';
+/** 主题持久化单一键（utils/storage 自动加 hrs-pref- 前缀 → hrs-pref-theme） */
+const THEME_STORAGE_KEY = 'theme';
+
+/** 迁移用：旧的分键键名（utils/storage 自动加前缀；mode 旧键由 next-themes 以原始串写入） */
+const LEGACY_MODE_KEY = 'theme.themeMode';
+const LEGACY_COLOR_KEY = 'theme.themeColor';
+const LEGACY_SIDEBAR_KEY = 'theme.sidebarTheme';
 
 /** 合法模式集合 */
 const VALID_MODES: readonly ThemeMode[] = ['light', 'dark', 'system'];
 /** 合法侧栏主题集合 */
 const VALID_SIDEBAR_THEMES: readonly SidebarTheme[] = ['pill', 'square'];
+/** 主色 HEX 格式校验 */
+const HEX_COLOR = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
-/**
- * 从 localStorage 读取上次保存的主题模式（原始字符串，由 next-themes 写入）。
- * @returns 合法模式串；键缺失或值不在白名单时回退 'system'
- */
-const readStoredMode = (): ThemeMode => {
+/** 持久化对象形态：三个主题维度同键存放 */
+interface StoredTheme {
+  themeMode: ThemeMode;
+  themeColor: string;
+  sidebarTheme: SidebarTheme;
+}
+
+/** 默认主题（各维度的回退值） */
+const DEFAULT_THEME: StoredTheme = {
+  themeMode: 'system',
+  themeColor: DEFAULT_PRIMARY_COLOR,
+  sidebarTheme: 'square',
+};
+
+/** 按维度校验并规整主题对象；非法仅回退该维度，不影响其他维度 */
+function normalizeTheme(raw: Partial<StoredTheme> | null): StoredTheme {
+  const themeMode =
+    raw?.themeMode && VALID_MODES.includes(raw.themeMode) ? raw.themeMode : DEFAULT_THEME.themeMode;
+  const themeColor =
+    raw?.themeColor && HEX_COLOR.test(raw.themeColor) ? raw.themeColor : DEFAULT_THEME.themeColor;
+  const sidebarTheme =
+    raw?.sidebarTheme && VALID_SIDEBAR_THEMES.includes(raw.sidebarTheme)
+      ? raw.sidebarTheme
+      : DEFAULT_THEME.sidebarTheme;
+  return { themeMode, themeColor, sidebarTheme };
+}
+
+/** 读取旧的分键（一次性迁移用）；无任何旧值返回 null */
+function readLegacyTheme(): Partial<StoredTheme> | null {
+  const legacy: Partial<StoredTheme> = {};
   try {
-    const stored = window.localStorage.getItem(LOCAL_STORAGE_PREFIX + THEME_MODE_STORAGE_KEY);
-    if (stored && (VALID_MODES as readonly string[]).includes(stored)) return stored as ThemeMode;
+    const rawMode = window.localStorage.getItem(LOCAL_STORAGE_PREFIX + LEGACY_MODE_KEY);
+    if (rawMode && (VALID_MODES as readonly string[]).includes(rawMode)) {
+      legacy.themeMode = rawMode as ThemeMode;
+    }
   } catch { /* 忽略 */ }
-  return 'system';
-};
+  const legacyColor = getStorageItem<string>(LEGACY_COLOR_KEY, 'local');
+  if (legacyColor && HEX_COLOR.test(legacyColor)) legacy.themeColor = legacyColor;
+  const legacySidebar = getStorageItem<string>(LEGACY_SIDEBAR_KEY, 'local');
+  if (legacySidebar && (VALID_SIDEBAR_THEMES as readonly string[]).includes(legacySidebar)) {
+    legacy.sidebarTheme = legacySidebar as SidebarTheme;
+  }
+  return Object.keys(legacy).length ? legacy : null;
+}
 
-/**
- * 从 localStorage 读取上次保存的主色（HEX）。
- * @returns 合法 HEX；键缺失或格式非法时回退 DEFAULT_PRIMARY_COLOR
- */
-const readStoredPrimaryColor = (): string => {
-  const stored = getStorageItem<string>(THEME_COLOR_STORAGE_KEY, 'local');
-  if (stored && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(stored)) return stored;
-  return DEFAULT_PRIMARY_COLOR;
-};
+/** 写入持久化主题对象：整对象覆盖写，保证三值同键不漂移 */
+function writeStoredTheme(theme: StoredTheme): void {
+  setStorageItem(THEME_STORAGE_KEY, theme, 'local');
+}
 
-/**
- * 从 localStorage 读取上次保存的侧栏视觉主题。
- * @returns 合法主题串；键缺失或值不在白名单时回退 'square'（与组件默认一致）
- */
-const readStoredSidebarTheme = (): SidebarTheme => {
-  const stored = getStorageItem<string>(THEME_SIDEBAR_STORAGE_KEY, 'local');
-  if (stored && (VALID_SIDEBAR_THEMES as readonly string[]).includes(stored)) return stored as SidebarTheme;
-  return 'square';
-};
+/** 初始化：优先读新键；新键缺失时迁移旧的三键并立即落盘 */
+function initTheme(): StoredTheme {
+  const stored = getStorageItem<Partial<StoredTheme>>(THEME_STORAGE_KEY, 'local');
+  if (stored) return normalizeTheme(stored);
+  const legacy = readLegacyTheme();
+  const migrated = normalizeTheme(legacy);
+  if (legacy) writeStoredTheme(migrated); // 一次性迁移：旧分键归位到新单键
+  return migrated;
+}
 
 /** 主题 Store 状态与 Action 定义 */
-interface ThemeState {
-  /** 主题模式：light / dark / system（system=跟随系统） */
-  themeMode: ThemeMode;
-  /** 主色（HEX 字符串） */
-  themeColor: string;
-  /** 侧栏视觉主题：pill=大圆角（胶囊感）/ square=方角，驱动 SidebarNav 外观 */
-  sidebarTheme: SidebarTheme;
-  /** 设定主题模式（落盘由 ThemeSync 桥接） */
+interface ThemeState extends StoredTheme {
+  /** 设定主题模式并落盘（<html> class 切换由 ThemeSync 桥接 next-themes） */
   setThemeMode: (mode: ThemeMode) => void;
   /** 设定主色并落盘 */
   setThemeColor: (hex: string) => void;
@@ -82,43 +107,36 @@ interface ThemeState {
   themeReset: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
-  // 初始状态：优先从 localStorage 恢复，非法值回退默认
-  themeMode: readStoredMode(),
-  themeColor: readStoredPrimaryColor(),
-  sidebarTheme: readStoredSidebarTheme(),
+export const useThemeStore = create<ThemeState>((set, get) => {
+  const initial = initTheme();
 
-  /**
-   * 设定主题模式：仅更新内存状态；落盘与 <html> class 切换由 ThemeSync 订阅后调
-   * next-themes.setTheme 完成（next-themes 以原始字符串写入 hrs-pref-theme.themeMode）。
-   * @param mode 目标主题模式（light/dark/system）
-   */
-  setThemeMode: (mode) => {
-    set({ themeMode: mode });
-  },
+  /** 整对象落盘：始终以最新内存态为准，避免三值分键时互相漂移 */
+  const persistTheme = (): void => {
+    const { themeMode, themeColor, sidebarTheme } = get();
+    writeStoredTheme({ themeMode, themeColor, sidebarTheme });
+  };
 
-  /**
-   * 设定主色：写盘并更新内存（DOM 应用由 ThemeSync 桥接 --primary）。
-   * @param hex 目标主色（HEX 字符串）
-   */
-  setThemeColor: (hex) => {
-    setStorageItem(THEME_COLOR_STORAGE_KEY, hex, 'local');
-    set({ themeColor: hex });
-  },
+  return {
+    ...initial,
 
-  /**
-   * 设定侧栏视觉主题：写盘并更新内存（外观由 SidebarNav 消费）。
-   * @param theme 目标侧栏主题（pill/square）
-   */
-  setSidebarTheme: (theme) => {
-    setStorageItem(THEME_SIDEBAR_STORAGE_KEY, theme, 'local');
-    set({ sidebarTheme: theme });
-  },
+    setThemeMode: (mode) => {
+      set({ themeMode: mode });
+      persistTheme();
+    },
 
-  /** 恢复出厂默认：mode 落盘交给 next-themes，主色/侧栏主题由 store 落盘 */
-  themeReset: () => {
-    setStorageItem(THEME_COLOR_STORAGE_KEY, DEFAULT_PRIMARY_COLOR, 'local');
-    setStorageItem(THEME_SIDEBAR_STORAGE_KEY, 'square', 'local');
-    set({ themeMode: 'system', themeColor: DEFAULT_PRIMARY_COLOR, sidebarTheme: 'square' });
-  },
-}));
+    setThemeColor: (hex) => {
+      set({ themeColor: hex });
+      persistTheme();
+    },
+
+    setSidebarTheme: (theme) => {
+      set({ sidebarTheme: theme });
+      persistTheme();
+    },
+
+    themeReset: () => {
+      set({ ...DEFAULT_THEME });
+      persistTheme();
+    },
+  };
+});
