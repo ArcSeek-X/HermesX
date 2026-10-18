@@ -1,6 +1,7 @@
 import apiClient from './index';
 import { toCamelCase } from './utils';
 import type { KLinePoint } from './kline';
+import type { StockQuoteCore, StockRef } from '../types/stock';
 
 /**
  * 尾盘选股法（EOD Picker）相关 API。
@@ -24,18 +25,11 @@ export type EodPickerFilters = {
   limit: number;
 };
 
-/** 单只命中股票的展示数据 */
-export type EodPickerStock = {
-  code: string;
-  name: string;
-  price: number | null;
-  changePct: number | null;
+/** 单只命中股票的展示数据：通用行情字段 Pick 自 StockQuoteCore，其余为尾盘选股特有字段 */
+export type EodPickerStock = Pick<StockQuoteCore, 'code' | 'name' | 'price' | 'changePct' | 'turnoverRate' | 'amount' | 'prevClose'> & {
   circMv: number | null;
   volumeRatio: number | null;
-  turnoverRate: number | null;
-  amount: number | null;
   strength: number;
-  prevClose: number | null;
   /** 下采样分时点（KLinePoint 形态，供卡片分时图直接渲染） */
   timeline: KLinePoint[];
 };
@@ -58,12 +52,6 @@ export type EodPickerAccepted = {
   message: string;
 };
 
-/** 进度步骤中的单只股票条目（名称 + 代码） */
-export type EodPickerStepStock = {
-  code: string;
-  name: string;
-};
-
 /** 进度模态框中的筛选步骤快照（后端阶段性全量下发，前端整体替换） */
 export type EodPickerStep = {
   /** 步骤标识：basic 基础条件过滤 / strength 分时强度过滤 */
@@ -72,7 +60,7 @@ export type EodPickerStep = {
   status: 'running' | 'done';
   /** 该步骤真实股票数（可能大于 stocks.length，后者受后端上限截断） */
   total: number;
-  stocks: EodPickerStepStock[];
+  stocks: StockRef[];
 };
 
 export type EodPickerTaskStatus = {

@@ -68,10 +68,10 @@ export type StockItem = {
   code: string;
   name: string;
   price: number;
-  changePercent: number;
+  changePct: number;
   changeAmount: number;
   volume: number;
-  turnover: number;
+  amount: number;
   amplitude: number;
   high: number;
   low: number;
@@ -203,7 +203,7 @@ export type MarketIndexItem = {
   name: string;
   code: string;
   price: number | null;
-  changePercent: number | null;
+  changePct: number | null;
   /** 涨跌点数 */
   change: number | null;
   /** 成交额（元） */
@@ -213,7 +213,7 @@ export type MarketIndexItem = {
   /** 当日最低价 */
   low: number | null;
   /** 昨收价 */
-  preClose: number | null;
+  prevClose: number | null;
 };
 
 /** 获取市场指数数据 */

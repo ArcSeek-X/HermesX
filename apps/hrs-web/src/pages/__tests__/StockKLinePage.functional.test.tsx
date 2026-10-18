@@ -59,13 +59,18 @@ const fetchKLineMock = vi.fn();
 const fetchStockInfoMock = vi.fn();
 const searchStocksMock = vi.fn();
 
-vi.mock('../../api/kline', () => ({
-  klineApi: {
-    fetchKLine: (...args: unknown[]) => fetchKLineMock(...args),
-    fetchStockInfo: (...args: unknown[]) => fetchStockInfoMock(...args),
-    searchStocks: (...args: unknown[]) => searchStocksMock(...args),
-  },
-}));
+// 只覆盖 klineApi，保留模块其余导出（如 toStockSnapshot 适配函数），避免整体替换导致其为 undefined
+vi.mock('../../api/kline', async () => {
+  const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
+  return {
+    ...actual,
+    klineApi: {
+      fetchKLine: (...args: unknown[]) => fetchKLineMock(...args),
+      fetchStockInfo: (...args: unknown[]) => fetchStockInfoMock(...args),
+      searchStocks: (...args: unknown[]) => searchStocksMock(...args),
+    },
+  };
+});
 
 import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 

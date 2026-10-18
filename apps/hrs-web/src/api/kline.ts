@@ -1,4 +1,5 @@
 import apiClient from './index';
+import type { StockQuoteCore } from '../types/stock';
 
 /**
  * K 线（行情）相关 API。
@@ -64,6 +65,30 @@ export interface StockInfo {
   pe_ratio_ttm: number | null;
   total_market_cap: number | null;
   source?: string | null;
+}
+
+/**
+ * 边界适配：将 /info 接口返回的蛇形 StockInfo 归一为 types/stock.ts 的驼峰领域类型
+ * StockQuoteCore。页面状态与 UI 层统一消费驼峰领域类型，不直接依赖接口的蛇形字段形态。
+ */
+export function toStockSnapshot(info: StockInfo): StockQuoteCore {
+  return {
+    code: info.stock_code,
+    name: info.stock_name,
+    price: info.current_price,
+    change: info.change,
+    changePct: info.change_percent,
+    amount: info.amount,
+    volume: info.volume,
+    turnoverRate: info.turnover_rate,
+    prevClose: info.prev_close,
+    open: info.open,
+    high: info.high,
+    low: info.low,
+    amplitude: info.amplitude,
+    peRatioTTM: info.pe_ratio_ttm,
+    totalMarketCap: info.total_market_cap,
+  };
 }
 
 /** 搜索接口单条结果 */

@@ -24,7 +24,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, BarChart3, RefreshCw, Search, ShieldCheck } from 'lucide-react';
-import type { Market } from '../types/market';
+import type { StockIndexMarketTag } from '../types/stock';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
@@ -1059,7 +1059,7 @@ const DecisionSignalsPage: React.FC = () => {
     code: string,
     name?: string,
     _source?: 'manual' | 'autocomplete',
-    metadata?: { market?: Market; displayCode?: string },
+    metadata?: { market?: StockIndexMarketTag; displayCode?: string },
   ) => {
     const trimmedCode = code.trim();
     if (!trimmedCode) return;

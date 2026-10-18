@@ -1,5 +1,6 @@
 import type { AnalysisContextPackOverview, MarketPhaseSummary } from './analysis';
 import type { DecisionSignalItem } from './decisionSignals';
+import type { AlertSupportedMarket } from './stock';
 
 export type AlertType =
   | 'price_cross'
@@ -20,7 +21,7 @@ export type AlertSeverity = 'info' | 'warning' | 'critical';
 export type AlertTargetScope = 'single_symbol' | 'watchlist' | 'portfolio_holdings' | 'portfolio_account' | 'market';
 export type AlertDirection = 'above' | 'below' | 'up' | 'down' | 'bullish_cross' | 'bearish_cross';
 export type PortfolioStopLossMode = 'near' | 'breach';
-export type MarketRegion = 'cn' | 'hk' | 'us';
+export type MarketRegion = AlertSupportedMarket;
 export type MarketLightStatus = 'yellow' | 'red';
 export type AlertDryRunStatus = 'triggered' | 'not_triggered' | 'evaluation_error';
 export type AlertTriggerStatus = 'triggered' | 'skipped' | 'degraded' | 'failed';

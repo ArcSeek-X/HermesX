@@ -76,12 +76,12 @@ const EMPTY_INDEX: MarketIndexItem = {
   name: '--',
   code: '',
   price: null,
-  changePercent: null,
+  changePct: null,
   change: null,
   amount: null,
   high: null,
   low: null,
-  preClose: null,
+  prevClose: null,
 };
 
 function buildPlaceholderCards(market: MarketTab): MarketCardItem[] {

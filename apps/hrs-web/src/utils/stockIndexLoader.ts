@@ -188,16 +188,29 @@ export function getPopularStocks(
 }
 
 /**
- * 按市场（market）对股票分组，仅包含在市（active=true）股票。
+ * 将索引原始 market 标记归一化为"地域分组键"（小写）。
+ * - 地域标记 CN/HK/US/JP/KR/TW → 小写 cn/hk/us/jp/kr/tw；
+ * - BSE（北交所）→ 并入 cn 桶，不单独成桶（见 stock_type.md §6 方案 A）；
+ * - INDEX/ETF/UNKNOWN 等非地域标记 → 小写原值（index/etf/unknown），保留为独立桶，避免丢数据。
+ */
+function toMarketGroupKey(rawMarket: string): string {
+  const tag = String(rawMarket || '').trim().toUpperCase();
+  if (tag === 'BSE') return 'cn';
+  return tag.toLowerCase();
+}
+
+/**
+ * 按市场（地域）对股票分组，仅包含在市（active=true）股票。
+ * 分组键为归一化后的小写地域（北交所并入 cn）。
  *
  * @param index - 股票索引（StockIndexItem[]）
- * @returns 市场标识（如 'CN' / 'HK' / 'US'） -> 该市场股票数组 的 Map；
+ * @returns 市场地域（如 'cn' / 'hk' / 'us'） -> 该市场股票数组 的 Map；
  *          退市股票（active=false）会被跳过
  *
  * @example
  * const groups = groupStocksByMarket(index);
- * groups.get('CN') // => StockIndexItem[]（A股）
- * groups.get('HK') // => StockIndexItem[]（港股）
+ * groups.get('cn') // => StockIndexItem[]（A股，含北交所）
+ * groups.get('hk') // => StockIndexItem[]（港股）
  */
 export function groupStocksByMarket(
   index: StockIndexItem[]
@@ -207,7 +220,7 @@ export function groupStocksByMarket(
   for (const item of index) {
     if (!item.active) continue;
 
-    const market = item.market;
+    const market = toMarketGroupKey(item.market);
     if (!grouped.has(market)) {
       grouped.set(market, []);
     }

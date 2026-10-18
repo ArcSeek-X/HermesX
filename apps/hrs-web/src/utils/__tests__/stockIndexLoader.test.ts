@@ -378,16 +378,16 @@ describe('stockIndexLoader', () => {
     test('groups different markets correctly', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      expect(result.size).toBe(3); // CN, HK, US
-      expect(result.get('CN')).toHaveLength(2);
-      expect(result.get('HK')).toHaveLength(1);
-      expect(result.get('US')).toHaveLength(1);
+      expect(result.size).toBe(3); // cn, hk, us
+      expect(result.get('cn')).toHaveLength(2);
+      expect(result.get('hk')).toHaveLength(1);
+      expect(result.get('us')).toHaveLength(1);
     });
 
     test('filters out inactive stocks', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
+      const cnStocks = result.get('cn')!;
       const allActive = cnStocks.every(item => item.active);
       expect(allActive).toBe(true);
     });
@@ -420,14 +420,14 @@ describe('stockIndexLoader', () => {
     test('returns independent arrays for groups', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
+      const cnStocks = result.get('cn')!;
       const originalLength = cnStocks.length;
 
       // Modifying returned array should not affect original data
       cnStocks.pop();
 
       const result2 = groupStocksByMarket(mockIndexData);
-      const cnStocks2 = result2.get('CN')!;
+      const cnStocks2 = result2.get('cn')!;
 
       expect(cnStocks2.length).toBe(originalLength);
     });
@@ -435,7 +435,7 @@ describe('stockIndexLoader', () => {
     test('maintains order within groups', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
+      const cnStocks = result.get('cn')!;
       expect(cnStocks[0].canonicalCode).toBe('600519.SH');
       expect(cnStocks[1].canonicalCode).toBe('000001.SZ');
     });

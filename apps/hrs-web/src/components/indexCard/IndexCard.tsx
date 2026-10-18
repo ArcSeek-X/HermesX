@@ -72,12 +72,12 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
       name: '--',
       code: '',
       price: null,
-      changePercent: null,
+      changePct: null,
       change: null,
       amount: null,
       high: null,
       low: null,
-      preClose: null,
+      prevClose: null,
     } as MarketIndexItem);
 
   // 涨跌点数（带符号，2 位小数）
@@ -88,8 +88,8 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
   const safeHigh = typeof idx.high === 'number' && Number.isFinite(idx.high) ? idx.high : null;
   const safeLow = typeof idx.low === 'number' && Number.isFinite(idx.low) ? idx.low : null;
   const safePreClose =
-    typeof idx.preClose === 'number' && Number.isFinite(idx.preClose) && idx.preClose > 0
-      ? idx.preClose
+    typeof idx.prevClose === 'number' && Number.isFinite(idx.prevClose) && idx.prevClose > 0
+      ? idx.prevClose
       : null;
   const amplitude =
     safeHigh != null && safeLow != null && safePreClose != null
@@ -104,14 +104,14 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
         <div className="text-xs text-muted-text truncate">{idx.name}</div>
         {/* 点位 + 涨跌幅/涨跌点数 */}
         <div>
-          <div className={`text-2xl font-semibold font-mono mt-1 leading-tight tabular-nums ${getChangeColorClass(idx.changePercent)}`}>
+          <div className={`text-2xl font-semibold font-mono mt-1 leading-tight tabular-nums ${getChangeColorClass(idx.changePct)}`}>
             <AnimatedValue valueKey={formatPricePoint(idx.price)}>
               {formatPricePoint(idx.price)}
             </AnimatedValue>
           </div>
-          <div className={`text-xs font-mono mt-2 tabular-nums ${getChangeColorClass(idx.changePercent)}`}>
-            <AnimatedValue valueKey={`${formatPercent(idx.changePercent)}|${changeText}`}>
-              {formatPercent(idx.changePercent)}
+          <div className={`text-xs font-mono mt-2 tabular-nums ${getChangeColorClass(idx.changePct)}`}>
+            <AnimatedValue valueKey={`${formatPercent(idx.changePct)}|${changeText}`}>
+              {formatPercent(idx.changePct)}
               <span className="text-label ml-2">{changeText}</span>
             </AnimatedValue>
           </div>

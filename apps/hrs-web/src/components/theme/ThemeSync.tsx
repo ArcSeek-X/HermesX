@@ -2,8 +2,8 @@
  * ThemeSync —— 主题状态 <-> DOM 的桥接（根层 / 使用层）
  *
  * 订阅 themeStore，把 store 真值同步到实际渲染：
- *   - themeMode  -> next-themes.setTheme：写入 hrs-pref-theme.themeMode（原始串）
- *                   并切 <html> 的 .light/.dark class，联动子树 resolvedTheme
+ *   - themeMode  -> next-themes.setTheme：切 <html> 的 .light/.dark class，联动子树 resolvedTheme
+ *                   （落盘由 themeStore 统一写入 hrs-pref-theme，本组件不负责持久化）
  *   - themeColor -> 写入 <html> 的 --primary，全站主色联动
  *
  * 放在 NextThemesProvider 内部（见 ThemeProvider），仅客户端生效；

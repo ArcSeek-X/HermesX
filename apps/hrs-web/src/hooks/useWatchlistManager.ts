@@ -45,8 +45,8 @@ const TIMELINE_FETCH_CONCURRENCY = 3;
  * 列表里的 quote 字段会回到这个空值，UI 上统一显示为「—」。
  */
 const EMPTY_QUOTE: WatchlistQuote = {
-  currentPrice: null, // 现价
-  changePercent: null, // 涨跌幅（%）
+  price: null, // 现价
+  changePct: null, // 涨跌幅（%）
   amount: null, // 成交额（元）
   turnoverRate: null, // 换手率（%）
   totalMv: null, // 总市值（元）
@@ -61,8 +61,8 @@ const EMPTY_QUOTE: WatchlistQuote = {
 function quoteFromStockQuote(q: Awaited<ReturnType<typeof stocksApi.getQuote>> | null): WatchlistQuote {
   if (!q) return { ...EMPTY_QUOTE };
   return {
-    currentPrice: q.currentPrice ?? null,
-    changePercent: q.changePercent ?? null,
+    price: q.currentPrice ?? null,
+    changePct: q.changePercent ?? null,
     amount: q.amount ?? null,
     turnoverRate: q.turnoverRate ?? null,
     totalMv: q.totalMv ?? null,

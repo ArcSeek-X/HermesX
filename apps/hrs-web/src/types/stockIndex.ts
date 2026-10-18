@@ -3,11 +3,11 @@
  *
  * Stock data index for autocomplete functionality.
  *
- * Note: Common market / asset identifiers (Market / AssetType) are defined in
- * ./market and re-used here, since they are project-wide concepts rather than
- * stock-index-specific.
+ * Note: Common market / asset identifiers (AssetType / StockIndexMarketTag) are
+ * defined in ./stock and re-used here, since they are project-wide concepts
+ * rather than stock-index-specific.
  */
-import type { AssetType, Market } from './market';
+import type { AssetType, StockIndexMarketTag } from './stock';
 
 /**
  * Stock index item (full format)
@@ -28,7 +28,7 @@ export interface StockIndexItem {
   /** Aliases: ["茅台"] */
   aliases?: string[];
   /** Market */
-  market: Market;
+  market: StockIndexMarketTag;
   /** Asset type */
   assetType: AssetType;
   /** Is active */
@@ -48,7 +48,7 @@ export interface StockSuggestion {
   /** Chinese name */
   nameZh: string;
   /** Market */
-  market: Market;
+  market: StockIndexMarketTag;
   /** Match type */
   matchType: 'exact' | 'prefix' | 'contains' | 'fuzzy';
   /** Match field */
@@ -67,7 +67,7 @@ export type StockIndexTuple = [
   string | undefined, // pinyinFull
   string | undefined, // pinyinAbbr
   string[], // aliases (required, use empty array if none)
-  Market,
+  StockIndexMarketTag,
   AssetType,
   boolean, // active
   number | undefined, // popularity

@@ -129,12 +129,12 @@ export const SectorStockTable: React.FC<SectorStockTableProps> = ({
                   <td className="px-3 py-2 font-mono text-xs">{stock.code}</td>
                   <td className="px-3 py-2 font-medium">{stock.name}</td>
                   {/* 最新价：根据涨跌幅着色 */}
-                  <td className={`px-3 py-2 text-right font-mono ${getKChangeColor(stock.changePercent)}`}>
+                  <td className={`px-3 py-2 text-right font-mono ${getKChangeColor(stock.changePct)}`}>
                     {safeNumber(stock.price)}
                   </td>
                   {/* 涨跌幅：加粗显示，根据涨跌着色 */}
-                  <td className={`px-3 py-2 text-right font-mono font-medium ${getKChangeColor(stock.changePercent)}`}>
-                    {formatPercent(stock.changePercent)}
+                  <td className={`px-3 py-2 text-right font-mono font-medium ${getKChangeColor(stock.changePct)}`}>
+                    {formatPercent(stock.changePct)}
                   </td>
                   {/* 涨跌额：带正负号，根据涨跌额着色 */}
                   <td className={`px-3 py-2 text-right font-mono ${getKChangeColor(stock.changeAmount)}`}>
@@ -146,7 +146,7 @@ export const SectorStockTable: React.FC<SectorStockTableProps> = ({
                   </td>
                   {/* 成交额：格式化为万/亿 */}
                   <td className="px-3 py-2 text-right font-mono text-xs">
-                    {formatNumber(stock.turnover)}
+                    {formatNumber(stock.amount)}
                   </td>
                   {/* 振幅：根据振幅值着色 */}
                   <td className={`px-3 py-2 text-right font-mono text-xs ${getKChangeColor(stock.amplitude)}`}>

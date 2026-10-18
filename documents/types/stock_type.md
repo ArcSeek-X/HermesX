@@ -38,7 +38,7 @@
 
 ### 设计方案（Scheme）
 
-- **单文件收口** `src/types/stock.ts`：`StockRef`/`StockIdentity`/`StockQuoteCore` + 领域 `Pick` 扩展（`LimitUpStockQuote`/`WatchlistQuote`…）。
+- **单文件收口** `src/types/stock.ts`：`StockRef`/`StockIdentity`/`StockQuoteCore` + 领域 `Pick` 扩展（`StockLimitUpQuote`/`WatchlistQuote`…）。
 - **市场语义正交拆分（P0）**：`MarketLocale`（地域·小写）＋`AssetType`＋`Exchange`＋`StockIndexMarketTag`（原始标记）；`BSE → { market:'cn', exchange:'BSE' }`（方案 A，§6.5）。
 - **边界归一化**：api `toCamelCase` 与 `stockIndexLoader` 把大写 / 原始标记收敛为小写规范值。
 - **收口合并**：`market.ts` 并入 `stock.ts` 并**直接删除旧名 `Market`**；`stockIndex.ts` 去重身份字段（`nameZh→name`，§7.4）。
@@ -58,7 +58,7 @@
 ### 行动计划（Phased Plan）
 
 - **P0 市场语义正交拆分**：定义 `MarketLocale`/`AssetType`/`Exchange`/`StockIndexMarketTag`；`market.ts` 并入 `stock.ts` 并**直接删除旧名 `Market`**；`stockIndexLoader` / `normalizeDecisionSignalMarket` / `groupStocksByMarket` 边界归一化；测试夹具同步（§6.3）。
-- **P1 涨停榜单（样板）**：落地 `stock.ts`；`LimitUpItem` → `LimitUpStockQuote`（删别名）；`id` 外移至 `BoardlistPage` 行类型（§7.1）。
+- **P1 涨停榜单（样板）**：落地 `stock.ts`；`LimitUpItem` → `StockLimitUpQuote`（删别名）；`id` 外移至 `BoardlistPage` 行类型（§7.1）。
 - **P2 自选股**：`WatchlistQuote` `Pick` 化；`StockQuote` 不动，由 `quoteFromStockQuote` 适配；触及 5 文件（§7.2）。
 - **P3 其余类型（独立成期·批量）**：`EodPickerStock`/`AlphaSiftHotspotStock` `Pick` 化；`StockItem`/`MarketIndexItem` 改名 + 截图回归；pair 类型 → `StockRef`；`stockIndex.ts` 去重（P3-6）。波及前端页面/展示、后端接口层、第三方映射四层（§7.3）。
 
@@ -307,7 +307,7 @@ export interface StockQuoteCore extends StockIdentity {
  * 涨停榜单：后端返回 7 个通用字段，用 Pick 精确挑选。
  * `industry` 属股票完整信息，已统一收口至 `StockIdentity`（经 `StockQuoteCore` 继承），此处由 Pick 引入，不再作为领域专属字段。
  */
-export interface LimitUpStockQuote
+export interface StockLimitUpQuote
   extends Pick<StockQuoteCore, 'code' | 'name' | 'price' | 'changePct' | 'amount' | 'turnoverRate' | 'industry'> {
   /** 封板资金 / 封单额（元） */
   sealAmount: number | null;
@@ -428,9 +428,9 @@ export type MarketReviewSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'u
 
 ### 7.1 P1 涨停榜单（样板就绪，待执行）
 
-- 新增 `types/stock.ts`（L1+L2+L3）；`emotionData.ts` 把内联 `LimitUpItem` 改为引用 `LimitUpStockQuote`，**删除 `LimitUpItem` 别名**（统一为规范命名，同步更新 `BoardlistPage.tsx` 的 import 与 `useState`/`Table`/`columns` 类型）。
+- 新增 `types/stock.ts`（L1+L2+L3）；`emotionData.ts` 把内联 `LimitUpItem` 改为引用 `StockLimitUpQuote`，**删除 `LimitUpItem` 别名**（统一为规范命名，同步更新 `BoardlistPage.tsx` 的 import 与 `useState`/`Table`/`columns` 类型）。
 - 因选定命名基准与现有 `LimitUpItem` **100% 一致**，本阶段**零字段改名、无适配层**，风险最低，可直接落地。
-- **`id` 字段处置（已定）**：`id`（= 股票代码，纯 UI 行 key，后端不返回）**不进入** `LimitUpStockQuote`；改在 `BoardlistPage` 行类型承载（如 `type BoardRow = LimitUpStockQuote & { id: string }`，映射时 `id = code`），或直接以 `code` 作为表格 `key`（更彻底，可删 `id` 字段）。领域类型保持纯净（依据 §3.4）。
+- **`id` 字段处置（已定）**：`id`（= 股票代码，纯 UI 行 key，后端不返回）**不进入** `StockLimitUpQuote`；改在 `BoardlistPage` 行类型承载（如 `type BoardRow = StockLimitUpQuote & { id: string }`，映射时 `id = code`），或直接以 `code` 作为表格 `key`（更彻底，可删 `id` 字段）。领域类型保持纯净（依据 §3.4）。
 
 <a id="sec-7-2"></a>
 
@@ -545,7 +545,7 @@ export type StockIndexData = StockIndexItem[] | StockIndexTuple[];
 - `market.ts` 并入 `stock.ts`（§6.2）：市场 / 资产 / 交易所枚举统一收口至 `stock.ts`；`Market` 旧名**直接删除**、`market.ts` 一并删除，不留兼容别名（§9 已确认）。
 - `stockIndex.ts` 与 `stock.ts` 身份字段去重（§7.4）：`StockIndexItem` / `StockSuggestion` 改 `extends StockIdentity`，`nameZh→name`，搜索专属字段保留。
 - **`BSE` 采用方案 A（§6.5）**：`BSE → { market:'cn', exchange:'BSE' }`，新增独立 `Exchange` 维度，不丢弃交易所信息；并同步修正 `groupStocksByMarket` / `normalizeDecisionSignalMarket` / 测试夹具等使用点（见 §6.3）。
-- **P1 别名与 `id` 处置（§7.1）**：删除 `LimitUpItem` 别名、统一为 `LimitUpStockQuote`；`id`（=code 的 UI 行 key）外移至 `BoardlistPage` 行类型，不进标准类型。
+- **P1 别名与 `id` 处置（§7.1）**：删除 `LimitUpItem` 别名、统一为 `StockLimitUpQuote`；`id`（=code 的 UI 行 key）外移至 `BoardlistPage` 行类型，不进标准类型。
 - **P3 独立成期、批量执行（§7.3）**：字段改名波及前端页面/展示、后端接口层、第三方接口映射四层，范围大；P3 单独开一期，在 P0→P2 之后批量统一。`StockItem` 迁移须附 `SectorStockTable` 前后对比截图（写入 §7.3 表格风险列）。
 - **P0 大小写定小写（§3.1 / §6.3）**：`MarketLocale` 等枚举规范形态统一为小写；第三方/源数据大小写不统一由 api/loader 边界归一化，标准类型不接收原始大小写（见 §3.1 新增强制规则）。
 - **旧名 `Market` 直接删除（§6.2 / §9）**：P0 内删除 `type Market`，**不留** `type Market = MarketLocale` 兼容别名；`market.ts` 一并删除，全仓引用改指 `stock.ts` 新类型（locale 上下文用 `MarketLocale`，`stockIndex.ts` 原始标记用 `StockIndexMarketTag`）。

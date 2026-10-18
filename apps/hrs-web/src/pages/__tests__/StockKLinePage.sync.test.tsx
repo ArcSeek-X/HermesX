@@ -5,10 +5,11 @@
  * 必须与下方行情头上下一致（同一只股票）。
  *
  * 关键回归点（曾经的线上 bug）：
- * - 搜索框展示来自 sessionStorage 的 displayValue 缓存，导航直达时若不更新，
- *   会残留上一只股票的「名称（代码）」，导致与行情头不一致；
+ * - 导航直达（?stockCode=）时若未清掉上一只股票的展示标签，搜索框会残留旧的「名称（代码）」，
+ *   与下方行情头不一致；
  * - 展示标签以本地股票索引反查后缀，但索引异步加载常晚于 stockInfo 到达，
  *   早退逻辑会永久停留在退化标签——现实现以 stockInfo 为准，索引后到自动补后缀。
+ * 注：展示标签不落盘，由恢复的 stockInfo 直接重算（页面仅依赖 pageState.kline 单一对象）。
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -37,13 +38,18 @@ vi.mock('../../hooks/useStockIndex', () => ({
 
 const fetchKLineMock = vi.fn();
 const fetchStockInfoMock = vi.fn();
-vi.mock('../../api/kline', () => ({
-  klineApi: {
-    fetchKLine: (...a: unknown[]) => fetchKLineMock(...a),
-    fetchStockInfo: (...a: unknown[]) => fetchStockInfoMock(...a),
-    searchStocks: () => Promise.resolve([]),
-  },
-}));
+// 只覆盖 klineApi，保留模块其余导出（如 toStockSnapshot 适配函数），避免整体替换导致其为 undefined
+vi.mock('../../api/kline', async () => {
+  const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
+  return {
+    ...actual,
+    klineApi: {
+      fetchKLine: (...a: unknown[]) => fetchKLineMock(...a),
+      fetchStockInfo: (...a: unknown[]) => fetchStockInfoMock(...a),
+      searchStocks: () => Promise.resolve([]),
+    },
+  };
+});
 
 import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 

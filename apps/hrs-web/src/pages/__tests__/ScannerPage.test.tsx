@@ -36,6 +36,14 @@ vi.mock('../../api/watchlist', () => ({
   createWatchlistItem,
 }));
 
+// 捕获跳转目标：结果行点击应按统一模式带 ?stockCode= 直达 K 线页（不再写 sessionStorage）
+const { navigateSpy } = vi.hoisted(() => ({ navigateSpy: vi.fn() }));
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, useNavigate: () => navigateSpy };
+});
+
 const OPTIONS = {
   pool_sources: ['watchlist', 'ranking', 'limit_up'],
   ranking_fields: ['amount', 'change_percent', 'turnover_rate'],
@@ -86,6 +94,7 @@ describe('ScannerPage', () => {
     getWatchlistGroups.mockReset();
     getAllWatchlistItems.mockReset();
     createWatchlistItem.mockReset();
+    navigateSpy.mockReset();
 
     getWatchlistGroups.mockResolvedValue([{ id: 7, name: '默认', sortOrder: 0, groupCode: 'g1', itemCount: 1 }]);
     getAllWatchlistItems.mockResolvedValue([
@@ -185,12 +194,11 @@ describe('ScannerPage', () => {
     const addedButton = await screen.findByRole('button', { name: /已自选/ });
     expect(addedButton).toBeTruthy();
 
-    // 结果行整行点击跳转 K 线页（sessionStorage 写入目标代码，键名前缀由 storage 工具决定）
+    // 结果行整行点击：按统一跳转模式带 ?stockCode= 直达 K 线页（不再写 sessionStorage）
     const row = screen.getByText('贵州茅台');
     await act(async () => {
       fireEvent.click(row);
     });
-    const stored = Object.keys(sessionStorage).map((key) => sessionStorage.getItem(key) ?? '');
-    expect(stored.some((value) => value.includes('600519'))).toBe(true);
+    expect(navigateSpy).toHaveBeenCalledWith('/stock/kline?stockCode=600519');
   });
 });

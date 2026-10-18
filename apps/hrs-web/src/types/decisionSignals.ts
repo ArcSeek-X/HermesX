@@ -1,4 +1,5 @@
 import type { DecisionAction, MarketPhaseValue, ReportLanguage } from './analysis';
+import type { MarketLocale } from './stock';
 
 /**
  * Opaque JSON fields are passed through without inner key-name conversion.
@@ -10,7 +11,7 @@ export type DecisionSignalSourceType = 'analysis' | 'agent' | 'alert' | 'market_
 export type DecisionSignalStatus = 'active' | 'expired' | 'invalidated' | 'closed' | 'archived';
 export type DecisionSignalPlanQuality = 'complete' | 'partial' | 'minimal' | 'unknown';
 export type DecisionSignalHorizon = 'intraday' | '1d' | '3d' | '5d' | '10d' | 'swing' | 'long';
-export type DecisionSignalMarket = 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+export type DecisionSignalMarket = MarketLocale;
 export type DecisionSignalOutcomeEvalStatus = 'completed' | 'unable';
 export type DecisionSignalOutcomeValue = 'hit' | 'miss' | 'neutral';
 export type DecisionSignalFeedbackValue = 'useful' | 'not_useful';

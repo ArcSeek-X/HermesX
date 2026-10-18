@@ -1,6 +1,7 @@
 import apiClient from './index';
 import { systemConfigApi } from './systemConfig';
 import { toCamelCase } from './utils';
+import type { StockQuoteCore } from '../types/stock';
 
 /**
  * AlphaSift（量化选股/热点）相关 API。
@@ -139,12 +140,8 @@ export type AlphaSiftHotspotRouteItem = {
   url?: string;
 };
 
-export type AlphaSiftHotspotStock = {
-  code?: string;
-  name?: string;
-  changePct?: number | null;
-  amount?: number | null;
-  turnoverRate?: number | null;
+/** 热点成分股：通用字段 Partial Pick 自 StockQuoteCore，其余为 AlphaSift 特有字段 */
+export type AlphaSiftHotspotStock = Partial<Pick<StockQuoteCore, 'code' | 'name' | 'changePct' | 'amount' | 'turnoverRate'>> & {
   volumeRatio?: number | null;
   role?: string;
   hotStockScore?: number | null;

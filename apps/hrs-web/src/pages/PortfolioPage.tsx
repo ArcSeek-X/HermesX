@@ -44,6 +44,7 @@ import type {
   DecisionSignalItem,
   DecisionSignalMarket,
 } from '../types/decisionSignals';
+import type { MarketLocale } from '../types/stock';
 import type {
   PortfolioAccountItem,
   PortfolioCashDirection,
@@ -174,7 +175,7 @@ function formatPortfolioLimitation(limitation: string, language: PortfolioPageLa
 
 /** 决策信号支持的地区市场集合 */
 const DECISION_SIGNAL_MARKETS = new Set<DecisionSignalMarket>(['cn', 'hk', 'us', 'jp', 'kr', 'tw']);
-type PortfolioAccountMarket = 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+type PortfolioAccountMarket = MarketLocale;
 
 /**
  * 将字符串安全转换为决策信号市场标识

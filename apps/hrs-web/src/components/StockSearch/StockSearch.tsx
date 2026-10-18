@@ -25,7 +25,7 @@ import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { SEARCH_CONFIG } from '../../utils/stockIndexSchema';
 import { StockSearchList } from './StockSearchList';
 import { cn } from '../../utils/cn';
-import type { Market } from '../../types/market';
+import type { StockIndexMarketTag } from '../../types/stock';
 
 
 /** StockSearch 组件对外 Props */
@@ -54,7 +54,7 @@ export interface StockSearchProps {
     code: string,
     name?: string,
     source?: 'manual' | 'autocomplete',
-    metadata?: { market?: Market; displayCode?: string; displayLabel?: string },
+    metadata?: { market?: StockIndexMarketTag; displayCode?: string; displayLabel?: string },
   ) => void;
   /** 是否禁用输入框 */
   disabled?: boolean;

@@ -71,24 +71,24 @@ export function buildWatchlistStockColumns(
       ),
     },
     {
-      key: 'currentPrice',
+      key: 'price',
       title: '现价',
       minWidth: 88,
       defaultWidth: '9%',
       render: (stock) => (
-        <div className={getChangeColorClass(stock.quote?.changePercent ?? null)}>
-          {stock.quote?.currentPrice != null ? stock.quote.currentPrice.toFixed(2) : '—'}
+        <div className={getChangeColorClass(stock.quote?.changePct ?? null)}>
+          {stock.quote?.price != null ? stock.quote.price.toFixed(2) : '—'}
         </div>
       ),
     },
     {
-      key: 'changePercent',
+      key: 'changePct',
       title: '涨跌幅',
       minWidth: 88,
       defaultWidth: '9%',
       render: (stock) => (
-        <div className={getChangeColorClass(stock.quote?.changePercent ?? null)}>
-          {formatPercent(stock.quote?.changePercent ?? null)}
+        <div className={getChangeColorClass(stock.quote?.changePct ?? null)}>
+          {formatPercent(stock.quote?.changePct ?? null)}
         </div>
       ),
     },

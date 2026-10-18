@@ -18,11 +18,11 @@ import { Label, TextField, Description } from '@heroui/react';
 import { type WatchlistItemWithQuote } from '../../api/watchlist';
 import { getParsedApiError, type ParsedApiError } from '../../api/error';
 
-type WatchlistSortField = 'default' | 'changePercent' | 'amount' | 'turnoverRate' | 'totalMv';
+type WatchlistSortField = 'default' | 'changePct' | 'amount' | 'turnoverRate' | 'totalMv';
 
 const WATCHLIST_SORT_OPTIONS: { field: WatchlistSortField; label: string }[] = [
   { field: 'default', label: '默认' },
-  { field: 'changePercent', label: '涨幅' },
+  { field: 'changePct', label: '涨幅' },
   { field: 'amount', label: '成交额' },
   { field: 'turnoverRate', label: '换手率' },
   { field: 'totalMv', label: '市值' },

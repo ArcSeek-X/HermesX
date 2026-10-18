@@ -3,12 +3,14 @@
  * Aligned with the API schema.
  */
 
+import type { MarketReviewSupportedMarket } from './stock';
+
 // ============ Request Types ============
 
 export type StockReportType = 'simple' | 'detailed' | 'full' | 'brief';
 export type ReportType = StockReportType | 'market_review';
 export type AnalysisPhase = 'auto' | 'premarket' | 'intraday' | 'postmarket';
-export type MarketReviewRegion = 'cn' | 'hk' | 'us' | 'jp' | 'kr';
+export type MarketReviewRegion = MarketReviewSupportedMarket;
 
 export interface AnalysisRequest {
   stockCode?: string;

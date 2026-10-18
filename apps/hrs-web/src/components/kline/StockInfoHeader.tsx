@@ -7,7 +7,7 @@
  */
 
 import type React from 'react';
-import type { StockInfo } from '../../api/kline';
+import type { StockQuoteCore } from '../../types/stock';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import {
   formatStockVolumeFromShares,
@@ -17,8 +17,8 @@ import {
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, STOCK_FLAT_COLOR } from '../../constants/stockColor';
 
 export interface StockInfoHeaderProps {
-  /** 当前股票的行情快照（名称/代码/价格/各项指标），必填 */
-  info: StockInfo;
+  /** 当前股票的行情快照（名称/代码/价格/各项指标），必填；类型取自 types/stock.ts 单一真源 */
+  info: StockQuoteCore;
 }
 
 /** 行情数值格式化为 2 位小数；空值显示占位符 "-" */
@@ -52,27 +52,27 @@ export const StockInfoHeader: React.FC<StockInfoHeaderProps> = ({ info }) => {
   // useUiLanguage 的 t 入参为 UiTextKey 窄类型，而格式化工具要求 (key: string) => string，
   // 此处安全扩宽签名以复用同一翻译函数
   const translate: (key: string) => string = t as (key: string) => string;
-  const priceColor = getChangeColor(info.change_percent);
+  const priceColor = getChangeColor(info.changePct);
   const changeSign = (info.change ?? 0) > 0 ? '+' : '';
-  const percentSign = (info.change_percent ?? 0) > 0 ? '+' : '';
+  const percentSign = (info.changePct ?? 0) > 0 ? '+' : '';
 
   // 最高/最低相对昨收的红绿：高于昨收为红，低于昨收为绿
-  const highColor = getChangeColor(info.high != null && info.prev_close != null ? info.high - info.prev_close : null);
-  const lowColor = getChangeColor(info.low != null && info.prev_close != null ? info.low - info.prev_close : null);
+  const highColor = getChangeColor(info.high != null && info.prevClose != null ? info.high - info.prevClose : null);
+  const lowColor = getChangeColor(info.low != null && info.prevClose != null ? info.low - info.prevClose : null);
 
   return (
     <div className="space-y-3">
       {/* 股票名称 + 最新价 */}
       <div className="flex items-baseline gap-4 flex-wrap">
         <div>
-          <span className="text-xl font-bold text-foreground">{info.stock_name || info.stock_code}</span>
+          <span className="text-xl font-bold text-foreground">{info.name || info.code}</span>
         </div>
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-bold tabular-nums" style={{ color: priceColor }}>
-            {formatQuoteValue(info.current_price)}
+            {formatQuoteValue(info.price)}
           </span>
           <span className="text-sm font-medium tabular-nums" style={{ color: priceColor }}>
-            {changeSign}{formatQuoteValue(info.change)} / {percentSign}{formatQuoteValue(info.change_percent)}%
+            {changeSign}{formatQuoteValue(info.change)} / {percentSign}{formatQuoteValue(info.changePct)}%
           </span>
         </div>
       </div>
@@ -80,15 +80,15 @@ export const StockInfoHeader: React.FC<StockInfoHeaderProps> = ({ info }) => {
       {/* 关键指标网格 */}
       <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-5 gap-x-6 gap-y-2">
         <QuoteMetric label={t('kline.info.open')} value={formatQuoteValue(info.open)} />
-        <QuoteMetric label={t('kline.info.prevClose')} value={formatQuoteValue(info.prev_close)} />
+        <QuoteMetric label={t('kline.info.prevClose')} value={formatQuoteValue(info.prevClose)} />
         <QuoteMetric label={t('kline.info.high')} value={formatQuoteValue(info.high)} valueColor={highColor} />
         <QuoteMetric label={t('kline.info.low')} value={formatQuoteValue(info.low)} valueColor={lowColor} />
         <QuoteMetric label={t('kline.info.volume')} value={formatStockVolumeFromShares(info.volume, translate)} />
         <QuoteMetric label={t('kline.info.amount')} value={formatStockTurnoverAmount(info.amount, translate)} />
-        <QuoteMetric label={t('kline.info.turnoverRate')} value={info.turnover_rate != null ? `${info.turnover_rate.toFixed(2)}%` : '-'} />
+        <QuoteMetric label={t('kline.info.turnoverRate')} value={info.turnoverRate != null ? `${info.turnoverRate.toFixed(2)}%` : '-'} />
         <QuoteMetric label={t('kline.info.amplitude')} value={info.amplitude != null ? `${info.amplitude.toFixed(2)}%` : '-'} />
-        <QuoteMetric label={t('kline.info.peRatioTTM')} value={formatQuoteValue(info.pe_ratio_ttm)} />
-        <QuoteMetric label={t('kline.info.totalMarketCap')} value={formatStockMarketCap(info.total_market_cap, translate)} />
+        <QuoteMetric label={t('kline.info.peRatioTTM')} value={formatQuoteValue(info.peRatioTTM)} />
+        <QuoteMetric label={t('kline.info.totalMarketCap')} value={formatStockMarketCap(info.totalMarketCap, translate)} />
       </div>
     </div>
   );

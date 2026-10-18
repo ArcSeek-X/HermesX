@@ -20,6 +20,7 @@ from api.v1.endpoints import (
     backtest,
     decision_signals,
     eod_picker,
+    emotion,
     health,
     history,
     intelligence,
@@ -113,6 +114,12 @@ router.include_router(
     eod_picker.router,
     prefix="/eod-picker",
     tags=["EodPicker"]
+)
+
+router.include_router(
+    emotion.router,
+    prefix="/emotion",
+    tags=["Emotion"]
 )
 
 router.include_router(

@@ -22,8 +22,8 @@ import {
   type ScannerResultRow as ScannerResultRowData,
   type ScannerSignalKey,
   type ScannerStep,
-  type ScannerWatchlistItem,
 } from '../../../api/scanner';
+import type { StockRef } from '../../../types/stock';
 import { normalizeStockCode } from '@utils/stock/stockCode';
 import { toApiErrorMessage } from '../../../api/error';
 import {
@@ -156,7 +156,7 @@ const ScannerPage: React.FC = () => {
 
   // 自选股
   /** 参与扫描的个股：全部自选分组去重后的股票池（对齐参考项目的「全部自选分组」语义） */
-  const [watchlistStocks, setWatchlistStocks] = useState<ScannerWatchlistItem[]>([]);
+  const [watchlistStocks, setWatchlistStocks] = useState<StockRef[]>([]);
   /** 全部分组去重后的代码集合，用于结果行展示「已自选」 */
   const [watchlistCodes, setWatchlistCodes] = useState<Set<string>>(new Set());
   /** 默认写入分组（按 sortOrder 取首个），无分组时隐藏加自选按钮 */
@@ -206,7 +206,7 @@ const ScannerPage: React.FC = () => {
           sortedGroups.map((group) => getAllWatchlistItems(group.id).catch(() => [])),
         );
         if (!active) return;
-        const byCode = new Map<string, ScannerWatchlistItem>();
+        const byCode = new Map<string, StockRef>();
         for (const items of perGroup) {
           for (const item of items) {
             const code = normalizeStockCode(item.stockCode);

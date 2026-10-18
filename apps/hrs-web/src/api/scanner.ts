@@ -1,5 +1,6 @@
 import apiClient from './index';
 import { toCamelCase } from './utils';
+import type { StockRef } from '../types/stock';
 
 /**
  * 技术信号扫描器（Scanner）相关 API。
@@ -27,11 +28,7 @@ export type ScannerSignalKey =
   | 'boll_upper'
   | 'boll_lower';
 
-/** 自选股池条目（前端自带名称，后端无需再补名） */
-export type ScannerWatchlistItem = {
-  code: string;
-  name: string;
-};
+/** 自选股池条目：纯 {code,name} 对，统一复用 types/stock.ts 的 StockRef（不再重复定义） */
 
 /** 扫描请求（前端驼峰形态） */
 export type ScannerStartPayload = {
@@ -39,7 +36,7 @@ export type ScannerStartPayload = {
   rankingField: ScannerRankingField;
   topN: number;
   signals: ScannerSignalKey[];
-  watchlist?: ScannerWatchlistItem[];
+  watchlist?: StockRef[];
 };
 
 /** GET /options 返回的选项契约 */
@@ -65,12 +62,6 @@ export type ScannerResultRow = {
   scannedAt: string;
 };
 
-/** 步骤快照中的单只股票（仅展示用） */
-export type ScannerStepStock = {
-  code: string;
-  name: string;
-};
-
 /** 扫描分步快照：后端全量下发、前端整体替换。
  *  - key：步骤标识（pool=解析股票池 / signal=技术信号扫描），前端据此映射本地化标题
  *  - status：running / done
@@ -80,7 +71,7 @@ export type ScannerStep = {
   key: string;
   status: string;
   total: number;
-  stocks: ScannerStepStock[];
+  stocks: StockRef[];
 };
 
 /** POST /tasks 受理响应 */

@@ -1,4 +1,5 @@
 import type { DecisionSignalItem } from './decisionSignals';
+import type { MarketLocale } from './stock';
 
 export type PortfolioCostMethod = 'fifo' | 'avg';
 export type PortfolioSide = 'buy' | 'sell';
@@ -10,7 +11,7 @@ export interface PortfolioAccountItem {
   ownerId?: string | null;
   name: string;
   broker?: string | null;
-  market: 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+  market: MarketLocale;
   baseCurrency: string;
   isActive: boolean;
   createdAt?: string | null;
@@ -24,7 +25,7 @@ export interface PortfolioAccountListResponse {
 export interface PortfolioAccountCreateRequest {
   name: string;
   broker?: string;
-  market: 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+  market: MarketLocale;
   baseCurrency: string;
   ownerId?: string;
 }
@@ -187,7 +188,7 @@ export interface PortfolioTradeCreateRequest {
   price: number;
   fee?: number;
   tax?: number;
-  market?: 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+  market?: MarketLocale;
   currency?: string;
   tradeUid?: string;
   note?: string;
@@ -207,7 +208,7 @@ export interface PortfolioCorporateActionCreateRequest {
   symbol: string;
   effectiveDate: string;
   actionType: PortfolioCorporateActionType;
-  market?: 'cn' | 'hk' | 'us' | 'jp' | 'kr' | 'tw';
+  market?: MarketLocale;
   currency?: string;
   cashDividendPerShare?: number;
   splitRatio?: number;
