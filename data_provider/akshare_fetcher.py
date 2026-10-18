@@ -2254,7 +2254,9 @@ class AkshareFetcher(BaseFetcher):
         query_date = date or datetime.now().strftime('%Y%m%d')
         try:
             self._set_random_user_agent()
-            self._enforce_rate_limit()
+            # 榜单池为单次轻量 GET（与实时行情同级），2~5s 全量爬取休眠会把接口拖到秒级；
+            # 请求频率由 emotion 接口层 60s TTL 缓存控制，这里走轻量限速。
+            self._enforce_realtime_rate_limit()
 
             logger.info("[API调用] ak.stock_zt_pool_em(date=%s) 获取涨停池...", query_date)
             df = ak.stock_zt_pool_em(date=query_date)
@@ -2293,6 +2295,65 @@ class AkshareFetcher(BaseFetcher):
             return rows
         except Exception as e:
             logger.warning(f"[Akshare] 获取涨停池失败: {e}")
+            return None
+
+    def get_limit_down_pool(
+        self,
+        date: Optional[str] = None,
+        n: int = 20,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """获取跌停池，优先按连续跌停数和封板时间展示。
+
+        字段与涨停池归一为同一 schema（consecutive_boards 表示连续跌停次数）；
+        跌停池无「首次封板时间」字段，first_limit_time 以「最后封板时间」充当。
+        """
+        import akshare as ak
+
+        query_date = date or datetime.now().strftime('%Y%m%d')
+        try:
+            self._set_random_user_agent()
+            # 同涨停池：单次轻量 GET 走轻量限速，频率由接口层 60s TTL 缓存控制
+            self._enforce_realtime_rate_limit()
+
+            logger.info("[API调用] ak.stock_zt_pool_dtgc_em(date=%s) 获取跌停池...", query_date)
+            df = ak.stock_zt_pool_dtgc_em(date=query_date)
+            if df is None or df.empty:
+                return None
+
+            df = df.copy()
+            for col in ('连续跌停', '封单资金', '成交额', '换手率', '涨跌幅'):
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            if '最后封板时间' in df.columns:
+                df['最后封板时间'] = df['最后封板时间'].map(self._normalize_limit_time_value)
+                df['_封板时间排序'] = df['最后封板时间'].where(df['最后封板时间'] != '', '999999')
+            sort_cols = [col for col in ('连续跌停', '_封板时间排序') if col in df.columns]
+            if sort_cols:
+                ascending = [False if col == '连续跌停' else True for col in sort_cols]
+                df = df.sort_values(sort_cols, ascending=ascending)
+
+            rows: List[Dict[str, Any]] = []
+            for _, row in df.head(n).iterrows():
+                seal_time = str(row.get('最后封板时间', '')).strip()
+                rows.append({
+                    'code': str(row.get('代码', '')).strip(),
+                    'name': str(row.get('名称', '')).strip(),
+                    'change_pct': self._safe_float(row.get('涨跌幅')),
+                    'price': self._safe_float(row.get('最新价')),
+                    'amount': self._safe_float(row.get('成交额')),
+                    'turnover_rate': self._safe_float(row.get('换手率')),
+                    'seal_amount': self._safe_float(row.get('封单资金')),
+                    # 跌停池无首次封板时间，统一以最后封板时间充当封板时间
+                    'first_limit_time': seal_time,
+                    'last_limit_time': seal_time,
+                    'break_count': self._safe_int(row.get('开板次数')),
+                    'limit_stat': '',
+                    'consecutive_boards': self._safe_int(row.get('连续跌停')),
+                    'industry': str(row.get('所属行业', '')).strip(),
+                })
+            return rows
+        except Exception as e:
+            logger.warning(f"[Akshare] 获取跌停池失败: {e}")
             return None
 
     @staticmethod

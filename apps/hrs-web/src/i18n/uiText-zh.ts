@@ -111,9 +111,25 @@ const zh = {
   'emotion.board.col.boards': '连板', // 涨停榜单表头：连板
   'emotion.board.col.sealAmount': '封单额(亿)', // 涨停榜单表头：封单额
   'emotion.board.col.amount': '成交额(亿)', // 涨停榜单表头：成交额
-  'emotion.board.col.turnoverRate': '换手率', // 涨停榜单表头：换手率
-  'emotion.board.col.industry': '所属行业', // 涨停榜单表头：所属行业
-  'emotion.board.limitDownComing': '跌停榜单开发中', // 跌停榜单内容待开发占位
+  'emotion.board.col.turnoverRate': '换手率', // 涨跌停榜单表头：换手率
+  'emotion.board.col.industry': '所属行业', // 涨跌停榜单表头：所属行业
+  'emotion.board.col.limitDownTime': '跌停时间', // 跌停榜单表头：跌停时间
+  'emotion.board.kpi.limitUpCount': '涨停数量', // 涨停榜 KPI：涨停家数
+  'emotion.board.kpi.maxBoards': '连板高度', // 涨停榜 KPI：最高连板数
+  'emotion.board.kpi.sealAmount': '封单总额', // 涨停榜 KPI：封单资金合计
+  'emotion.board.kpi.breakRate': '炸板率', // 涨停榜 KPI：炸板率（炸板股池数据待接入）
+  'emotion.board.kpi.previousPremium': '昨日涨停溢价', // 涨停榜 KPI：昨日涨停股今日溢价（昨日涨停池数据待接入）
+  'emotion.board.kpi.limitDownCount': '跌停数量', // 跌停榜 KPI：跌停家数
+  'emotion.board.kpi.maxDownBoards': '跌停连板高度', // 跌停榜 KPI：最高连续跌停数
+  'emotion.board.kpi.downSealAmount': '封停单总额', // 跌停榜 KPI：封停单资金合计
+  'emotion.board.kpi.downTurnoverAmount': '跌停成交额', // 跌停榜 KPI：跌停股成交总额
+  'emotion.board.kpi.avgTurnoverRate': '平均换手率', // 跌停榜 KPI：跌停股平均换手率
+  'emotion.board.kpi.liquidityNote': '流动性参考', // 跌停榜 KPI：平均换手率辅助说明
+  'emotion.board.kpi.boardsValue': '{count} 板', // 涨跌停榜单 KPI：连板高度取值
+  'emotion.board.kpi.prevDayDelta': '较前日 {delta}', // 涨跌停榜单 KPI：较前一交易日变化
+  'emotion.board.kpi.topBoardStock': '最高标 {name}', // 涨跌停榜单 KPI：最高连板标的名称
+  'emotion.board.kpi.sealRatio': '占成交 {ratio}', // 涨跌停榜单 KPI：封单总额占成交额比例
+  'emotion.board.openKline': '查看 K 线', // 涨跌停榜单：代码/名称列点击跳转 K 线页提示
   'layout.nav.stock.title': '个股', // 个股一级分组导航项
   'layout.nav.stock.description': '个股行情、K 线与多周期分析', // 个股一级分组导航项描述
   'dashboard.tab.a': 'A股', // 总览页市场TAB：A股

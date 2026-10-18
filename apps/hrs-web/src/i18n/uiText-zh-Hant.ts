@@ -110,9 +110,25 @@ const zhHant = {
   'emotion.board.col.boards': '連板', // 漲停榜單表頭：連板
   'emotion.board.col.sealAmount': '封單額(億)', // 漲停榜單表頭：封單額
   'emotion.board.col.amount': '成交額(億)', // 漲停榜單表頭：成交額
-  'emotion.board.col.turnoverRate': '換手率', // 漲停榜單表頭：換手率
-  'emotion.board.col.industry': '所屬行業', // 漲停榜單表頭：所屬行業
-  'emotion.board.limitDownComing': '跌停榜單開發中', // 跌停榜單內容待開發占位
+  'emotion.board.col.turnoverRate': '換手率', // 漲跌停榜單表頭：換手率
+  'emotion.board.col.industry': '所屬行業', // 漲跌停榜單表頭：所屬行業
+  'emotion.board.col.limitDownTime': '跌停時間', // 跌停榜單表頭：跌停時間
+  'emotion.board.kpi.limitUpCount': '漲停數量', // 漲停榜 KPI：漲停家數
+  'emotion.board.kpi.maxBoards': '連板高度', // 漲停榜 KPI：最高連板數
+  'emotion.board.kpi.sealAmount': '封單總額', // 漲停榜 KPI：封單資金合計
+  'emotion.board.kpi.breakRate': '炸板率', // 漲停榜 KPI：炸板率（炸板股池資料待接入）
+  'emotion.board.kpi.previousPremium': '昨日漲停溢價', // 漲停榜 KPI：昨日漲停股今日溢價（昨日漲停池資料待接入）
+  'emotion.board.kpi.limitDownCount': '跌停數量', // 跌停榜 KPI：跌停家數
+  'emotion.board.kpi.maxDownBoards': '跌停連板高度', // 跌停榜 KPI：最高連續跌停數
+  'emotion.board.kpi.downSealAmount': '封停單總額', // 跌停榜 KPI：封停單資金合計
+  'emotion.board.kpi.downTurnoverAmount': '跌停成交額', // 跌停榜 KPI：跌停股成交總額
+  'emotion.board.kpi.avgTurnoverRate': '平均換手率', // 跌停榜 KPI：跌停股平均換手率
+  'emotion.board.kpi.liquidityNote': '流動性參考', // 跌停榜 KPI：平均換手率輔助說明
+  'emotion.board.kpi.boardsValue': '{count} 板', // 漲跌停榜單 KPI：連板高度取值
+  'emotion.board.kpi.prevDayDelta': '較前日 {delta}', // 漲跌停榜單 KPI：較前一交易日變化
+  'emotion.board.kpi.topBoardStock': '最高標 {name}', // 漲跌停榜單 KPI：最高連板標的名稱
+  'emotion.board.kpi.sealRatio': '占成交 {ratio}', // 漲跌停榜單 KPI：封單總額占成交額比例
+  'emotion.board.openKline': '查看 K 線', // 漲跌停榜單：代碼/名稱列點擊跳轉 K 線頁提示
   'layout.nav.stock.title': '個股', // 個股一級分組導航項
   'layout.nav.stock.description': '個股行情、K 線與多週期分析', // 個股一級分組導航項描述
   'dashboard.tab.a': 'A股', // 总览页市场TAB：A股

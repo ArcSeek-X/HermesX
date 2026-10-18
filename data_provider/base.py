@@ -448,6 +448,20 @@ class BaseFetcher(ABC):
         """
         return None
 
+    def get_limit_down_pool(
+        self,
+        date: Optional[str] = None,
+        n: int = 20,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        获取跌停池/连续跌停梯队。字段与涨停池归一为同一 schema。
+
+        Args:
+            date: YYYYMMDD，默认由具体数据源决定
+            n: 返回条数
+        """
+        return None
+
     def get_daily_data(
         self,
         stock_code: str,
@@ -3811,4 +3825,26 @@ class DataFetcherManager:
                 logger.warning(f"[{fetcher.name}] 获取涨停池失败: {error_reason}")
         if last_error:
             logger.warning(f"[涨停池] 所有数据源均失败，最终错误: {last_error}")
+        return []
+
+    def get_limit_down_pool(
+        self,
+        date: Optional[str] = None,
+        n: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """获取跌停池与连续跌停梯队（自动切换数据源）。"""
+        last_error = ""
+        for fetcher in self._fetchers:
+            try:
+                data = fetcher.get_limit_down_pool(date=date, n=n)
+                if data:
+                    logger.info(f"[{fetcher.name}] 获取跌停池成功")
+                    return data[:n]
+                last_error = f"{fetcher.name}返回空结果"
+            except Exception as e:
+                error_type, error_reason = summarize_exception(e)
+                last_error = f"{fetcher.name} ({error_type}) {error_reason}"
+                logger.warning(f"[{fetcher.name}] 获取跌停池失败: {error_reason}")
+        if last_error:
+            logger.warning(f"[跌停池] 所有数据源均失败，最终错误: {last_error}")
         return []

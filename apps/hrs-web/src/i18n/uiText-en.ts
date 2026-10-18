@@ -115,7 +115,23 @@ const en: Record<UiTextKey, string> = {
   'emotion.board.col.amount': 'Turnover (亿)',
   'emotion.board.col.turnoverRate': 'Turnover Rate',
   'emotion.board.col.industry': 'Industry',
-  'emotion.board.limitDownComing': 'Limit-down board coming soon',
+  'emotion.board.col.limitDownTime': 'Limit-Down Time',
+  'emotion.board.kpi.limitUpCount': 'Limit-Ups', // Limit-up board KPI: limit-up count
+  'emotion.board.kpi.maxBoards': 'Max Boards', // Limit-up board KPI: highest consecutive boards
+  'emotion.board.kpi.sealAmount': 'Seal Orders', // Limit-up board KPI: total seal amount
+  'emotion.board.kpi.breakRate': 'Break Rate', // Limit-up board KPI: broken-board rate (pending data)
+  'emotion.board.kpi.previousPremium': 'Prev. Day Premium', // Limit-up board KPI: previous-day premium (pending data)
+  'emotion.board.kpi.limitDownCount': 'Limit-Downs', // Limit-down board KPI: limit-down count
+  'emotion.board.kpi.maxDownBoards': 'Max Down Boards', // Limit-down board KPI: highest consecutive down boards
+  'emotion.board.kpi.downSealAmount': 'Down Seal Orders', // Limit-down board KPI: total seal amount
+  'emotion.board.kpi.downTurnoverAmount': 'Down Turnover', // Limit-down board KPI: total turnover of limit-down stocks
+  'emotion.board.kpi.avgTurnoverRate': 'Avg Turnover Rate', // Limit-down board KPI: average turnover rate
+  'emotion.board.kpi.liquidityNote': 'Liquidity ref.', // Limit-down board KPI: avg turnover rate note
+  'emotion.board.kpi.boardsValue': '{count} boards', // Limit board KPI: max boards value
+  'emotion.board.kpi.prevDayDelta': '{delta} vs prev. day', // Limit board KPI: change vs previous trading day
+  'emotion.board.kpi.topBoardStock': 'Top: {name}', // Limit board KPI: highest-board stock name
+  'emotion.board.kpi.sealRatio': '{ratio} of turnover', // Limit board KPI: seal amount as share of turnover
+  'emotion.board.openKline': 'View K-line', // Limit board: code/name column click hint to jump to K-line
   'layout.nav.stock.title': 'Stocks',
   'layout.nav.stock.description': 'Individual stock quotes, K-line, and multi-period analysis',
   'dashboard.tab.a': 'A-Shares', // Dashboard market TAB: A-Shares

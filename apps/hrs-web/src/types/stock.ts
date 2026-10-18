@@ -134,10 +134,12 @@ export interface StockQuoteCore extends StockIdentity {
  * ------------------------------------------------------------------ */
 
 /**
- * 涨停榜单：后端返回 7 个通用字段，用 Pick 精确挑选。
+ * 涨跌停榜单通用行情字段：后端返回 7 个通用字段，用 Pick 精确挑选。
  * industry 属股票完整信息，已统一收口至 StockIdentity（经 StockQuoteCore 继承），此处由 Pick 引入。
+ * 涨停池与跌停池字段完全同构（东财双接口经后端归一为同一 schema），语义差异：
+ * 跌停榜的连板数表示连续跌停次数，封板时间取最后封板时间（跌停池无首次封板时间字段）。
  */
-export interface StockLimitUpQuote
+export interface LimitBoardQuote
   extends Pick<StockQuoteCore, 'code' | 'name' | 'price' | 'changePct' | 'amount' | 'turnoverRate' | 'industry'> {
   /** 封板资金 / 封单额（元） */
   sealAmount: number | null;
@@ -145,10 +147,16 @@ export interface StockLimitUpQuote
   firstLimitTime: string;
   /** 最后封板时间 HHMMSS */
   lastLimitTime: string;
-  /** 炸板次数 */
+  /** 炸板次数（跌停榜为开板次数） */
   breakCount: number | null;
-  /** 涨停统计（如 '3/2'，表示 2 天内涨停 3 次） */
+  /** 涨停统计（如 '3/2'，表示 2 天内涨停 3 次）；跌停池不提供，为空串 */
   limitStat: string;
-  /** 连板数（1 = 首板） */
+  /** 连板数（1 = 首板；跌停榜表示连续跌停次数） */
   consecutiveBoards: number | null;
 }
+
+/** 涨停榜单：LimitBoardQuote 的涨停语义别名 */
+export type StockLimitUpQuote = LimitBoardQuote;
+
+/** 跌停榜单：LimitBoardQuote 的跌停语义别名 */
+export type StockLimitDownQuote = LimitBoardQuote;
