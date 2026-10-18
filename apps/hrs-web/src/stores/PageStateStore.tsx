@@ -18,19 +18,24 @@
 import type React from 'react';
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { KLinePeriod, StockInfo, KLinePoint } from '../api/kline';
+import type { KLinePeriod, KLinePoint } from '../api/kline';
+import type { StockQuoteCore } from '../types/stock';
 
 // ============ 类型定义 ============
 
-/** K 线页面状态 */
+/**
+ * K 线页面状态：收敛为「个股行情」+「K 线数据」两键。
+ * 字段命名与形态统一取自 types/stock.ts 的驼峰领域类型，状态层不再承载接口蛇形类型。
+ */
 export interface KLinePageState {
-  stockCode: string | null;
-  stockName: string | null;
-  period: KLinePeriod;
-  stockInfo: StockInfo | null;
-  klineData: KLinePoint[];
-  prevClose: number | null;
-  klineSource: string | null;
+  /** 个股行情快照（含标识 + 行情核心，类型唯一真源 StockQuoteCore） */
+  stockInfo: StockQuoteCore | null;
+  /** K 线数据相关：当前周期、K 线点数组、数据来源 */
+  klineInfo: {
+    period: KLinePeriod;
+    klineData: KLinePoint[];
+    klineSource: string | null;
+  };
 }
 
 /** 板块分析页面状态 */
@@ -102,13 +107,12 @@ interface PageStateContextType {
 /** 各页面的默认状态 */
 const DEFAULT_STATE: PageStateStore = {
   kline: {
-    stockCode: null,
-    stockName: null,
-    period: 'daily',
     stockInfo: null,
-    klineData: [],
-    prevClose: null,
-    klineSource: null,
+    klineInfo: {
+      period: 'daily',
+      klineData: [],
+      klineSource: null,
+    },
   },
   sector: {
     activeTab: 'concept',
@@ -160,7 +164,12 @@ export const PageStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...DEFAULT_STATE,
           ...saved,
-          kline: { ...DEFAULT_STATE.kline, ...saved.kline },
+          kline: {
+            ...DEFAULT_STATE.kline,
+            ...saved.kline,
+            // klineInfo 为嵌套结构，需深合并，否则旧数据缺字段时 period/klineData 恢复不到默认值
+            klineInfo: { ...DEFAULT_STATE.kline.klineInfo, ...saved.kline?.klineInfo },
+          },
           sector: { ...DEFAULT_STATE.sector, ...saved.sector },
           screening: { ...DEFAULT_STATE.screening, ...saved.screening },
           portfolio: { ...DEFAULT_STATE.portfolio, ...saved.portfolio },
