@@ -453,6 +453,26 @@ export const getChangeColorClass = (value: number | null | undefined): string =>
   return value > 0 ? 'stock-up' : 'stock-down';
 };
 
+/**
+ * 连板强度色：以亮度递进表达封板强度（A 股红涨绿跌）。
+ * 涨停连板越多红得越深、跌停连板越多绿得越深；基于 palette.css 令牌 --stock-up / --stock-down，
+ * 通过 color-mix 与白色混合调节亮度——10 板取令牌原色，首板混入白色最浅，超过 10 板不再递进。
+ */
+const MAX_GRADIENT_BOARDS = 10;
+/** 首板混入白色的占比（%），越大越浅；10 板为 0（取令牌原色） */
+const LIGHTEST_WHITE_MIX = 42;
+
+export function getBoardCountColor(boards: number, boardType: 'limit-up' | 'limit-down'): string {
+  const step = Math.max(1, Math.min(boards, MAX_GRADIENT_BOARDS)) - 1;
+  const ratio = step / (MAX_GRADIENT_BOARDS - 1);
+  const whiteMix = (1 - ratio) * LIGHTEST_WHITE_MIX;
+  const token = boardType === 'limit-up' ? '--stock-up' : '--stock-down';
+  return `color-mix(in srgb, hsl(var(${token})), white ${whiteMix.toFixed(1)}%)`;
+}
+
+
+
+
 /** 金额单位：万元 / 亿元 */
 export type AmountUnit = 'wan' | 'yi';
 
