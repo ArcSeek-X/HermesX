@@ -83,6 +83,8 @@ const en: Record<UiTextKey, string> = {
   'layout.header.myApps': 'My apps',
   'layout.header.themeSettings': 'Theme settings',
   'layout.header.userSettings': 'User settings',
+  'layout.header.fullscreen': 'Full screen',
+  'layout.header.exitFullscreen': 'Exit full screen',
   // 导航菜单 layout.nav.*
   'layout.nav.alerts.title': 'Alerts',
   'layout.nav.alerts.description': 'Rules, triggers, and notification attempts',
@@ -96,6 +98,24 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.index.description': 'A-shares, HK, US, and Japan/Korea market overview and key indicators',
   'layout.nav.market.title': 'Markets',
   'layout.nav.market.description': 'Market quotes, index overview, and sector analysis',
+  'layout.nav.emotion.title': 'Sentiment',
+  'layout.nav.emotion.description': 'Market sentiment and gainers/losers boards',
+  'layout.nav.boardlist.title': 'Gainers & Losers',
+  'layout.nav.boardlist.description': 'Limit-up and limit-down boards overview',
+  'emotion.board.limitUp': 'Limit-Up Board',
+  'emotion.board.limitDown': 'Limit-Down Board',
+  'emotion.board.switch': 'Board switch',
+  'emotion.board.col.code': 'Code',
+  'emotion.board.col.name': 'Name',
+  'emotion.board.col.price': 'Price',
+  'emotion.board.col.changePercent': 'Change %',
+  'emotion.board.col.limitTime': 'Limit Time',
+  'emotion.board.col.boards': 'Boards',
+  'emotion.board.col.sealAmount': 'Seal (亿)',
+  'emotion.board.col.amount': 'Turnover (亿)',
+  'emotion.board.col.turnoverRate': 'Turnover Rate',
+  'emotion.board.col.industry': 'Industry',
+  'emotion.board.limitDownComing': 'Limit-down board coming soon',
   'layout.nav.stock.title': 'Stocks',
   'layout.nav.stock.description': 'Individual stock quotes, K-line, and multi-period analysis',
   'dashboard.tab.a': 'A-Shares', // Dashboard market TAB: A-Shares
@@ -734,8 +754,6 @@ const en: Record<UiTextKey, string> = {
   'kline.error': 'Failed to load K-line data', // 【页面】个股K线-
   'kline.empty': 'No K-line data', // 【页面】个股K线-
   'kline.fullData': 'Full Data', // 【页面】个股K线-
-  'kline.meta.rows': 'Rows', // 【页面】个股K线-
-  'kline.meta.source': 'K-line Source', // 【页面】个股K线-
   'kline.info.amount': 'Amount', // 【页面】个股K线-
   'kline.info.amplitude': 'Amplitude', // 【页面】个股K线-
   'kline.info.high': 'High', // 【页面】个股K线-
@@ -758,17 +776,6 @@ const en: Record<UiTextKey, string> = {
   'kline.period.monthly': 'Monthly', // 【页面】个股K线-
   'kline.period.weekly': 'Weekly', // 【页面】个股K线-
   'kline.period.yearly': 'Yearly', // 【页面】个股K线-
-  'kline.source.eastmoney': 'EastMoney', // 【页面】个股K线-
-  'kline.source.local': 'Local StockDB', // 【页面】个股K线-
-  'kline.source.sina': 'Sina Finance', // 【页面】个股K线-
-  'kline.source.stocksdk': 'StockSDK', // 【页面】个股K线-
-  'kline.source.tencent': 'Tencent Finance', // 【页面】个股K线-
-  'kline.source.unknown': 'Unknown', // 【页面】个股K线-
-  'stockData.title': 'Local market data view', // 【页面】个股数据-
-  'stockData.adjustment.label': 'Adjustment', // 【页面】个股数据-
-  'stockData.adjustment.none': 'None', // 【页面】个股数据-
-  'stockData.adjustment.qfq': 'Forward', // 【页面】个股数据-
-  'stockData.adjustment.hfq': 'Backward', // 【页面】个股数据-
   'kline.tooltip.amount': 'Amount', // 【页面】个股K线-
   'kline.tooltip.change': 'Change', // 【页面】个股K线-
   'kline.tooltip.close': 'Close', // 【页面】个股K线-
