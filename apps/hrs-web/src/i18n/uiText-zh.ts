@@ -80,6 +80,8 @@ const zh = {
   'layout.header.myApps': '我的应用', // 头部我的应用按钮
   'layout.header.themeSettings': '主题设置', // 头部主题设置按钮
   'layout.header.userSettings': '个人设置', // 头部个人设置按钮
+  'layout.header.fullscreen': '全屏', // 头部全屏切换按钮（进入全屏）
+  'layout.header.exitFullscreen': '退出全屏', // 头部全屏切换按钮（退出全屏）
 
   // 导航菜单（产品模式） layout.nav.*
   'layout.nav.alerts.title': '告警', // 告警导航项
@@ -94,6 +96,24 @@ const zh = {
   'layout.nav.index.description': 'A股、港股、美股、日韩市场行情与核心指标总览', // 行情总览导航项描述
   'layout.nav.market.title': '行情', // 行情一级分组导航项
   'layout.nav.market.description': '市场行情、指数总览与板块分析', // 行情一级分组导航项描述
+  'layout.nav.emotion.title': '情绪', // 情绪一级分组导航项
+  'layout.nav.emotion.description': '市场情绪与涨跌榜单', // 情绪一级分组导航项描述
+  'layout.nav.boardlist.title': '涨跌榜', // 涨跌榜导航项
+  'layout.nav.boardlist.description': '涨停与跌停榜单总览', // 涨跌榜导航项描述
+  'emotion.board.limitUp': '涨停榜单', // 涨跌榜页 TAB：涨停榜单
+  'emotion.board.limitDown': '跌停榜单', // 涨跌榜页 TAB：跌停榜单
+  'emotion.board.switch': '榜单切换', // 涨跌榜页 TAB 切换无障碍标签
+  'emotion.board.col.code': '代码', // 涨停榜单表头：代码
+  'emotion.board.col.name': '名称', // 涨停榜单表头：名称
+  'emotion.board.col.price': '现价', // 涨停榜单表头：现价
+  'emotion.board.col.changePercent': '涨幅', // 涨停榜单表头：涨幅
+  'emotion.board.col.limitTime': '涨停时间', // 涨停榜单表头：涨停时间
+  'emotion.board.col.boards': '连板', // 涨停榜单表头：连板
+  'emotion.board.col.sealAmount': '封单额(亿)', // 涨停榜单表头：封单额
+  'emotion.board.col.amount': '成交额(亿)', // 涨停榜单表头：成交额
+  'emotion.board.col.turnoverRate': '换手率', // 涨停榜单表头：换手率
+  'emotion.board.col.industry': '所属行业', // 涨停榜单表头：所属行业
+  'emotion.board.limitDownComing': '跌停榜单开发中', // 跌停榜单内容待开发占位
   'layout.nav.stock.title': '个股', // 个股一级分组导航项
   'layout.nav.stock.description': '个股行情、K 线与多周期分析', // 个股一级分组导航项描述
   'dashboard.tab.a': 'A股', // 总览页市场TAB：A股
@@ -734,8 +754,6 @@ const zh = {
   'kline.error': 'K 线数据加载失败', // 【页面】个股K线-K 线加载失败提示
   'kline.empty': '暂无 K 线数据', // 【页面】个股K线-空态
   'kline.fullData': '全量数据', // 【页面】个股K线-全量数据选项
-  'kline.meta.rows': '数据行数', // 【页面】个股K线-数据条数
-  'kline.meta.source': 'K 线源', // 【页面】个股K线-K线来源
   'kline.info.amount': '成交额', // 【页面】个股K线-成交额
   'kline.info.amplitude': '振幅', // 【页面】个股K线-振幅
   'kline.info.high': '最高', // 【页面】个股K线-最高价
@@ -758,17 +776,6 @@ const zh = {
   'kline.period.monthly': '月 K', // 【页面】个股K线-月 K 周期
   'kline.period.weekly': '周 K', // 【页面】个股K线-周 K 周期
   'kline.period.yearly': '年 K', // 【页面】个股K线-年 K 周期
-  'kline.source.eastmoney': '东方财富', // 【页面】个股K线-数据源文案
-  'kline.source.local': '本地 StockDB', // 【页面】个股K线-数据源文案
-  'kline.source.sina': '新浪财经', // 【页面】个股K线-数据源文案
-  'kline.source.stocksdk': 'StockSDK', // 【页面】个股K线-数据源文案
-  'kline.source.tencent': '腾讯财经', // 【页面】个股K线-数据源文案
-  'kline.source.unknown': '未标注', // 【页面】个股K线-未知数据源
-  'stockData.title': '本地行情数据视图', // 【页面】个股数据-本地行情页面标题
-  'stockData.adjustment.label': '复权方式', // 【页面】个股数据-复权方式选择器标签
-  'stockData.adjustment.none': '不复权', // 【页面】个股数据-不复权选项
-  'stockData.adjustment.qfq': '前复权', // 【页面】个股数据-前复权选项
-  'stockData.adjustment.hfq': '后复权', // 【页面】个股数据-后复权选项
   'kline.tooltip.amount': '成交额', // 【页面】个股K线-tooltip 成交额
   'kline.tooltip.change': '涨跌幅', // 【页面】个股K线-tooltip 涨跌幅
   'kline.tooltip.close': '收盘', // 【页面】个股K线-tooltip 收盘价
