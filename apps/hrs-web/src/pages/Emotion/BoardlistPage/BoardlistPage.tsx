@@ -34,8 +34,9 @@ const BoardlistPage: React.FC = () => {
   );
 
   return (
-    <AppPage>
-      <div className="flex h-full flex-col gap-3">
+    // fill：本页需要「页头 + TAB + 指标卡 + 表格」贴底适配，转 flex 列让面板以 flex-1 填充剩余高度
+    <AppPage fill>
+      <div className="flex flex-1 min-h-0 flex-col gap-3">
         <PageHeader title={t('layout.nav.boardlist.title')} description={t('layout.nav.boardlist.description')} />
         <TabNav<BoardTab>
           ariaLabel={t('emotion.board.switch')}

@@ -158,6 +158,19 @@ export interface TableProps<T extends { id: string | number }> {
   /** 表格整体高度，超出后表格内部滚动；默认 320px */
   height?: string | number;
   /**
+   * 是否让表格撑满父容器剩余高度（需父级为 flex 列布局）。
+   * 为 true 时忽略 height：外层 wrapper 以 flex-1 + min-h-0 占据剩余空间，
+   * 滚动交给内部 ScrollContainer。
+   *
+   * 适用「页头 + 指标卡 + 表格」这类需要贴底适配的面板：改用 calc(100vh - Npx)
+   * 这类魔法数时，窗口缩放、浏览器全屏（100vh 变屏幕高而页头/KPI 卡不同步变化）、
+   * KPI 卡换行都会让减数失配，表格下方空出一段。
+   *
+   * 注意：父链上每一级都需能给出确定高度（如 AppPage 配 fill 转 flex 列、
+   * 中间层用 flex-1 min-h-0），否则百分比/flex 会退化，详见 AppPage.fill。
+   */
+  fillHeight?: boolean;
+  /**
    * 分页配置。
    * 传入对象后启用分页功能，显示分页控件和统计信息。
    * 采用受控模式：调用方负责数据切片和页码管理。
@@ -186,6 +199,7 @@ export function Table<T extends { id: string | number }>({
   renderEmptyState,
   isLoading = false,
   height = 320,
+  fillHeight = false,
   pagination,
   rowClassName = '',
   wrapperClassName = '',
@@ -260,11 +274,11 @@ export function Table<T extends { id: string | number }>({
 
   /**
    * 外层容器样式。
-   * height 决定表格整体占用高度，滚动由内部 ScrollContainer 处理。
+   * fillHeight 时不写死高度：由 flex-1 占据父级 flex 列的剩余空间，内部滚动。
    */
-  const wrapperStyle = useMemo(() => ({
-    height: typeof height === 'number' ? `${height}px` : height,
-  }), [height]);
+  const wrapperStyle = useMemo(() => (
+    fillHeight ? undefined : { height: typeof height === 'number' ? `${height}px` : height }
+  ), [fillHeight, height]);
 
   /** 滚动容器占满 HeroTable 剩余空间。 */
   const scrollContainerStyle = useMemo(() => ({
@@ -273,7 +287,10 @@ export function Table<T extends { id: string | number }>({
   }), []);
 
   return (
-    <div className={cn('hrs-table flex flex-col w-full', wrapperClassName)} style={wrapperStyle}>
+    <div
+      className={cn('hrs-table flex flex-col w-full', fillHeight && 'flex-1 min-h-0', wrapperClassName)}
+      style={wrapperStyle}
+    >
       {/* HeroUI Table 主体：flex-1 占满 wrapper 高度，ScrollContainer 再占满 HeroTable */}
       <HeroTable variant={variant} className={cn('hrs-table__root flex-1 min-h-0 rounded-md bg-secondary', styles.root, className)}>
         <HeroTable.ScrollContainer className={styles.scrollOverride} style={scrollContainerStyle}>

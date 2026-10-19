@@ -77,7 +77,7 @@ export function LimitDownBoardPanel() {
   const sortedBoardRows = useMemo(() => sortBoardRows(boardRows, sortDescriptor), [boardRows, sortDescriptor]);
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex flex-1 min-h-0 flex-col gap-3">
       <LimitBoardIndexCards boardType="limit-down" boardSummary={boardSummary} isBoardLoading={isBoardLoading} />
       <Table<LimitBoardRow>
         columns={boardColumns}
@@ -85,7 +85,7 @@ export function LimitDownBoardPanel() {
         isLoading={isBoardLoading}
         sortDescriptor={sortDescriptor}
         onSortChange={setSortDescriptor}
-        height="calc(100vh - 380px)"
+        fillHeight
       />
     </div>
   );
