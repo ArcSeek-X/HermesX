@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：HrsButton（通用按钮）
- * 路由地址 /docs/component/button，菜单名「按钮」。
- * 用于演示 HrsButton 的视觉变体、尺寸档位、加载态、禁用态、发光效果与 onClick 事件桥接。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsButton 组件文档演示页：视觉变体、尺寸档位、加载态、禁用态与发光效果。
  */
 
 import React, { useState } from 'react';

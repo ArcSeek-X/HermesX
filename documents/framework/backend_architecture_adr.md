@@ -301,7 +301,7 @@ data_provider/
 >
 > 本表是后续代码拆分、新建、挪动的**唯一对齐基准**。改造完成后，`data_provider/` 的实际目录与文件须与本表**逐行一一匹配**（路径、名称、职责一致）。表中"落地阶段"标注该项属于哪一期：阶段1=本期、阶段2=实时行情迁入、阶段3=其余功能包迁入（独立 follow-up）。
 >
-> **划分总则**：第一维按**功能/用途**分目录（`common`/`kline`/`realtime`/`stock_info`/`code_search`/`sector`/`fundamentals`/`news`/`institutional`）；第二维在功能包内按**数据源**拆文件（`<源>_source.py`）；跨功能公共逻辑全部进 `common/`，绝不在各源重复。🔍 标注的两类查询接口详见本 ADR 4.3「两类高频查询接口的归类」（= 方案 §3.8.9）。
+> **划分总则**：第一维按**功能/用途**分目录（`common`/`kline`/`realtime`/`stock_info`/`code_search`/`sector`/`limit_pool`/`fundamentals`/`news`/`institutional`）；第二维在功能包内按**数据源**拆文件（`<源>_source.py`）；跨功能公共逻辑全部进 `common/`，绝不在各源重复。🔍 标注的两类查询接口详见本 ADR 4.3「两类高频查询接口的归类」（= 方案 §3.8.9）。
 
 | 一级目录（根） | 二级目录（功能包） | 三级（文件） | 作用（干什么） | 对应业务接口（用户视角） | 划分依据 | 落地阶段 |
 |---|---|---|---|---|---|---|
@@ -335,11 +335,16 @@ data_provider/
 | | | `local_stockdb_source.py` | 源 = 本地 StockDB | 同上 | 第二维=源 local | 阶段1 |
 | | | `eastmoney_source.py` | 源 = 东财，复用既有搜索接口 + 薄适配壳；**承接 §3.7 A10：`name_to_code_resolver.py` 取数下沉此（③ 功能接口层不再直接 `import akshare` 取数，解析/缓存留薄壳）** | 同上 | 第二维=源 eastmoney | 阶段1 |
 | | | `stocksdk_source.py` | 源 = StockSDK，桥接 `sdk.search()` 与符号归一能力，输出 `CodeSearchResult` 契约 | 同上 | 第二维=源 stocksdk | 阶段1 |
-| | `sector/` | `__init__.py` | 包标识 | **板块 / 概念 / 涨跌停 / 热门榜单** | 目录标识 | 阶段3 |
-| | | `base.py` | `SectorDataSource(ABC)` + `SectorDataSourceManager`；板块/概念/涨跌停/热门契约 | 板块行情 | 第一维=功能 板块行情（功能包核心） | 阶段3 |
+| | `sector/` | `__init__.py` | 包标识 | **板块 / 概念 / 热门榜单** | 目录标识 | 阶段3 |
+| | | `base.py` | `SectorDataSource(ABC)` + `SectorDataSourceManager`；板块/概念/热门榜单契约 | 板块行情 | 第一维=功能 板块行情（功能包核心） | 阶段3 |
 | | | `eastmoney_source.py` | 源 = 东财，承接市场指数 / 市场概览 / 北向资金 / 大盘主力 / 板块列表 / 板块资金流历史等东财接口主链路；**完成 B1 中东财内联取数下沉** | 同上 | 第二维=源 eastmoney | 阶段3 |
 | | | `shidaotec_source.py` | 源 = 时到量化，承接行业 / 个股 / ETF / 概念云图的直连取数、缓存与整形 | 同上 | 第二维=源 shidaotec | 阶段3 |
 | | | `stocksdk_source.py` | 源 = StockSDK，桥接行业 / 概念板块 / 资金流 / 北向资金等标准板块接口；主要作为 eastmoney 的桥接型补充源，不承接时到量化云图专属接口 | 同上 | 第二维=源 stocksdk | 阶段3 |
+| | | `market_cards_source.py` | 功能包内共享能力：统一组装 `/api/v1/sector/market-cards?market=<tab-key>` 卡片列表（B1 已落地，此前漏登记本表，本次补登记） | 同上 | 功能包内共享能力（非数据源维度） | 阶段3 |
+| | `limit_pool/` | `__init__.py` | 包标识 | **涨跌停榜单（涨停池 / 跌停池；后续扩炸板池 / 昨日涨停池 / 连板梯队）** | 目录标识 | 阶段3 |
+| | | `base.py` | `LimitPoolDataSource(ABC)` + `LimitPoolDataSourceManager`；统一 `LimitPoolEntry` 契约（`code / name / price / change_pct / amount / turnover_rate / seal_amount / first_limit_time / last_limit_time / break_count / limit_stat / consecutive_boards / industry`），以 `pool_type`（`limit_up` / `limit_down`）区分涨跌停；选源 / 回退 / TTL / 健康冷却复用 `common/base.py`（配置键 `limit_pool_data_source` / `limit_pool_source_priority` / `limit_pool_fallback_enabled`，随 B2 落进 `src/config.py` 与运行时白名单） | 涨跌停榜单 | 第一维=功能 涨跌停（功能包核心） | 阶段3 |
+| | | `eastmoney_source.py` | 源 = 东财，承接涨停股池 / 跌停股池取数；**复用既有 akshare 东财通道（`stock_zt_pool_em` / `stock_zt_pool_dtgc_em`），不重写**；**承接 B2：涨跌停池从 `BaseFetcher` 巨类下沉** | 同上 | 第二维=源 eastmoney | 阶段3 |
+| | | `stocksdk_source.py` | 源 = StockSDK，经 `stocksdk_bridge.py` 桥接涨跌停 / 封板类接口，作为 eastmoney 的桥接型补充源；**用于补齐涨跌停第二源，使回退链真正成立** | 同上 | 第二维=源 stocksdk | 阶段3 |
 | | `fundamentals/` | `__init__.py` | 包标识 | **财务基本面（财报 / 估值）** | 目录标识 | 阶段3 |
 | | | `base.py` | `FundamentalsDataSource(ABC)` + `FundamentalsDataSourceManager` | 财务数据 | 第一维=功能 基本面（功能包核心） | 阶段3 |
 | | | `tushare_source.py` | 源 = tushare，复用 `tushare_fetcher` 财务通道 | 同上 | 第二维=源 tushare | 阶段3 |
@@ -402,6 +407,7 @@ api/v1/
 │   ├── analysis.py  sector.py  stocks.py  history.py  decision_signals.py
 │   ├── alphasift.py  agent.py  intelligence.py
 │   ├── auth.py  health.py  system_config.py  usage.py
+│   ├── eod_picker.py  scanner.py  limit_pool.py   # 编制后新增，逐项职责见 §5.3
 │   └── (规划) stock-info.py  code-search.py   # §4.3 两类查询接口将来上提的端点
 └── schemas/           # 请求 / 响应 Pydantic 模型（契约定义，与端点同层固定）
 src/services/          # ③ 功能编排层：组合数据源与业务规则（调用 ② 层取数 + 本地 DB）
@@ -411,7 +417,15 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 ### <a id="53-功能接口层铺排总表枚举所有标准功能接口-权威基准"></a>5.3 功能接口层铺排总表（枚举所有标准功能接口 · 权威基准）
 
-> 下表逐文件枚举 `api/v1/endpoints/` 下全部 17 个端点文件。每个文件 = 一个标准功能域；其契约固定、不随数据源变，底层取数由 ② 层透明供给。🌟 = K 线图（边界铁律典型样例）。**本表为权威基准，主方案 §3.9 与之对齐、不重复列全表。**
+> 下表逐文件枚举 `api/v1/endpoints/` 下全部 20 个端点文件。每个文件 = 一个标准功能域；其契约固定、不随数据源变，底层取数由 ② 层透明供给。🌟 = K 线图（边界铁律典型样例）。**本表为权威基准，主方案 §3.9 与之对齐、不重复列全表。**
+>
+> **登记与命名公约（新增 / 重命名端点必读）**：
+>
+> 1. **登记**：新增或重命名端点须同步登记本表，避免权威基准与实际目录漂移。
+> 2. **按服务端能力域命名，不完全绑定前端菜单**：端点文件名与路由前缀**建议按照服务端能力域**命名（如涨跌停池 → `limit_pool.py` / `/limit-pool`），**不得完全绑定前端菜单分组**（因为菜单会重组、页面会迁移，能力域不会；前端页面只是消费方）。（实例：`emotion.py` / `/emotion` 原按「情绪」菜单命名，已按本公约改名为 `limit_pool.py` / `/limit-pool`。）
+> 3. **规划端点**：§5.2 中规划的 `stock-info.py` / `code-search.py`（对应 §4.3 两类查询接口）待 ② 层能力包成熟后上提，届时按上述公约命名并登记本表。
+>
+> 本表末三行 `limit_pool.py` / `eod_picker.py` / `scanner.py` 为本表编制后新增的端点，追加于表末。
 
 | 目录地址 | 文件夹 | 文件名 | 做什么（标准功能职责） | 作用（面向谁） | 划分依据 | 随数据源变动 |
 |---|---|---|---|---|---|---|
@@ -432,6 +446,9 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | `api/v1/` | `endpoints/` | `health.py` | 服务健康检查（`/health`） | 运维探针（横切） | ③ 系统级横切功能接口 | 否 |
 | `api/v1/` | `endpoints/` | `system_config.py` | 配置读写、运行时改配置基建（`/config`，数据源 UI 后台） | 配置管理（横切，支撑 §2.5） | ③ 系统级横切功能接口 | 否 |
 | `api/v1/` | `endpoints/` | `usage.py` | 使用量统计查询（`/usage`） | 用量统计（横切） | ③ 系统级横切功能接口 | 否 |
+| `api/v1/` | `endpoints/` | `limit_pool.py` | 涨停榜 / 跌停榜单查询（`limit-up-board` / `limit-down-board`，入参 `date` + `limit`） | 涨跌停榜单（当前由「情绪」菜单下的涨跌榜页面消费；菜单调整不影响本端点） | ③ 标准功能接口：契约固定（date + limit → `LimitPoolEntry[]`），取数由 ② 层 `limit_pool/` 透明供给（B2 已落地） | 否 |
+| `api/v1/` | `endpoints/` | `eod_picker.py` | 尾盘选股：默认筛选条件 / 提交选股任务 / 轮询任务进度与结果 / 单只股票分时明细（`/eod-picker`） | 尾盘选股 | ③ 选股编排标准，取数透明 | 否 |
+| `api/v1/` | `endpoints/` | `scanner.py` | 技术信号扫描：扫描选项 / 提交扫描任务 / 轮询任务状态 / 取消任务（`/scanner`） | 技术信号扫描 | ③ 扫描编排标准，取数透明 | 否 |
 
 ### <a id="54-与-②-数据源对接层的关系调用链路"></a>5.4 与 ② 数据源对接层的关系（调用链路）
 
@@ -446,7 +463,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 > 本章对应「④ 横切基础辅助层」：被以上各层读取的全局可读基础设施。整体决策见 §2.5（UI 配置页复用运行时改配置）；数据字典建议见开放项 O1。
 
-- **配置与白名单**：`src/config.py` + `system_config_service`。配置键（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*`）须登记进 `system_config` 运行时白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），新增键须注册。
+- **配置与白名单**：`src/config.py` + `system_config_service`。配置键（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `SECTOR_*` / `LIMITPOOL_*`）须登记进 `system_config` 运行时白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），新增键须注册；其中 `KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 已落地，**`SECTOR_*` / `LIMITPOOL_*` 尚未落进 `src/config.py` 与白名单**（分别随 B1 收尾与 B2 建包补齐，见 §10.2）。
 - **数据字典模块（应建为独立表，不再以 config 顶替）**：承载跨能力字典，按 §2.7 正确做法本期建表；具体表结构与落点见开放项 O1。
 
 > **落地说明（暂不行执行，后续再修改）**：本节对「横切基础辅助层」中数据字典（O1）的调整——由"建议新增 / 先用 `config.py` 常量顶替"改为"应建为独立表、不再 config 顶替"——**仅作设计立场记录（与 §2.7 正确做法一致）；对应代码落地（新建数据字典表 + Repository、移除 `config.py` 常量顶替）暂不在本期执行，后续再修改 / 排期**。本期实际不动 `config.py`、不新增数据字典表；O1 维持"设计已定、执行待排"状态。
@@ -511,12 +528,14 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | ② 数据源对接层 | `data_provider/kline/`（base / local_stockdb / eastmoney / sina / tencent / stocksdk / transform） | **新建** | 2.2/2.3/2.4、A2–A5、A12 |
 | ② 数据源对接层 | `data_provider/stockdb_fetcher.py`（共享 StockDB 客户端） | **新建 / 确认** | 2.2、A6 |
 | ② 数据源对接层 | `data_provider/stock_info/`、`data_provider/code_search/`（base + 源） | **新建占位** | 2.3、A9/A10、A12 |
+| ② 数据源对接层 | `data_provider/limit_pool/`（base / eastmoney_source / stocksdk_source） | **新建**（阶段3，B2） | 2.3、§4.4、B2 |
 | ② 数据源对接层 | 既有顶层 `akshare_fetcher.py` / `tushare_fetcher.py` / `efinance_fetcher.py` / `tencent_fetcher.py` / `tickflow_fetcher.py` 等 | **不改**（降级为"物理后端"被 `<源>_source.py` 复用） | 2.3、§4.4 既有文件处置 |
 | ③ 功能接口层 | `api/v1/endpoints/kline.py` | **修改（瘦身）** | 2.6、A1 |
 | ③ 功能接口层 | 可选 `api/v1/stock-info`、`api/v1/code-search` | **新增**（随 `stock_info/code_search`） | 2.3 |
 | ③ 功能接口层 | `src/services/name_to_code_resolver.py` | **修改（取数下沉 code_search，留薄壳）** | 2.2、A10 / A12 |
 | ③ 功能接口层 | `src/services/stock_service.py`（`get_stock_name`） | **修改（迁 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`）** | 2.2、A10 / A12 |
 | ③ 功能接口层 | `api/v1/endpoints/sector.py` | **修改（已瘦身）**：板块相关取数与缓存已下沉到 `data_provider/sector/{eastmoney_source,shidaotec_source,stocksdk_source,market_cards_source}.py`，其中 `stocksdk_source.py` 用于总览页标准市场接口与板块资金接口的优先桥接源，`market_cards_source.py` 用于 `/market/index` 的统一卡片列表聚合 | B1 |
+| ③ 功能接口层 | `api/v1/endpoints/emotion.py` → `limit_pool.py`（路由 `/api/v1/emotion` → `/api/v1/limit-pool`） | **修改（按服务端能力域重命名）**：端点不完全绑定前端「情绪」菜单分组；前端封装 `apps/hrs-web/src/api/emotionData.ts` → `limitPoolData.ts` 同步；**不兼容变更**（无兼容层，依据 §2.7）。前端页面目录 `pages/Emotion/` 与路由 `/emotion/boardlist` 属 UI 呈现层，保持不动 | §5.3 命名公约 |
 | ③ 功能接口层 | `src/services/` 其余 SaaS 外联（alphasift / intelligence / social_sentiment / stock_index_remote） | **不改** | C1 |
 | ④ 横切基础辅助层 | `src/config.py` + `.env.example` | **修改**（新增 `KLINE_*` 等切换键） | 2.4/2.5、A7 |
 | ④ 横切基础辅助层 | `system_config` 运行时白名单 | **修改**（注册新键） | 2.5、A7 |
@@ -544,6 +563,8 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 **Tier B — 超方案范围（记录状态，独立 follow-up）**
 
 - [x] **B1. `api/v1/endpoints/sector.py` 瘦化与取数下沉**：原内联东财主链路已下沉到 `data_provider/sector/eastmoney_source.py`，行业 / 个股 / ETF / 概念云图已下沉到 `data_provider/sector/shidaotec_source.py`，总览页标准市场接口与板块资金接口新增 `data_provider/sector/stocksdk_source.py` 作为 StockSDK 优先桥接源，并通过 `data_provider/sector/market_cards_source.py` 统一组装 `/api/v1/sector/market-cards?market=<tab-key>` 卡片列表；`sector.py` 当前仅保留路由参数校验、异常映射与响应编排。`[2.2][2.6]`｜前端：❌｜**已完成（文档同步更新）**
+
+- [x] **B2. 涨跌停池下沉到 `data_provider/limit_pool/`，收口为涨跌停数据的唯一入口**（**已完成 2026-10-19**，仅 ⑤ 第二源待 bridge 支持后启用）：① 把 `get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/akshare_fetcher.py`（`BaseFetcher` 巨类）与 `data_provider/base.py`（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）下沉到 `data_provider/limit_pool/eastmoney_source.py`，内部**复用既有 akshare 东财通道**（`stock_zt_pool_em` / `stock_zt_pool_dtgc_em`），不重写；② 由 `limit_pool/base.py` 的 `LimitPoolDataSourceManager` 统一供给，选源 / 回退 / TTL / 健康冷却复用 `common/base.py`，并固化 `LimitPoolEntry` 契约（涨停 / 跌停以 `pool_type` 区分，后续炸板池 / 昨日涨停池同构扩展）；③ 消费方 `api/v1/endpoints/limit_pool.py`（原 `emotion.py`）与 `src/services/signal_scanner_service.py` 改调新 Manager，删除端点自建的 `_BOARD_CACHE`（含"取数失败也把空结果缓存 60s"的缺陷）；④ 同步迁移 `tests/test_signal_scanner_service.py` / `tests/test_akshare_realtime_logging.py` 的 mock 点，避免测试绕过真实取数层；⑤ 补 `limit_pool/stocksdk_source.py` 作为第二源——**文件已建**，但 StockSDK bridge（`scripts/stocksdk_bridge/bridge.mjs`）的 action 白名单尚无涨跌停池能力，故 `is_available()` **显式返回 False**：回退链结构上就绪、实际仍为东财单源，待 bridge 扩展后启用（启用步骤见该文件 docstring）；⑥ 把 `LIMITPOOL_DATA_SOURCE` / `LIMITPOOL_FALLBACK_ENABLED` / `LIMITPOOL_SOURCE_PRIORITY` 落进 `src/config.py` 并登记运行时白名单——**注意 `sector` 包当前同样未落地 `SECTOR_*`（`getattr` 兜底走默认单源、不可在 UI 配置），可一并补齐**。`[2.2][2.3][2.5][2.7][§4.4]`｜前端：❌｜**已完成（2026-10-19）**：①②③④⑥ 已落地，⑤ 待 StockSDK bridge 提供涨跌停池 action 后启用
 
 **Tier C — 不纳入（仅记录，不改动）**
 
@@ -600,6 +621,8 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 - [ ] `kline.py` 内联 `_fetch_from_*` 已删除，仅保留路由 + 调用 Manager
 - [ ] `data_provider/code_search/base.py` 定义 `CodeSearchDataSource`+Manager（继承 common），`name_to_code_resolver.py` 取数已下沉，由 `eastmoney_source.py` / `stocksdk_source.py` 承接，功能接口层（③）不再直接 `import akshare`
 - [ ] `data_provider/stock_info/base.py` 定义 `StockInfoDataSource`+Manager（继承 common），`get_stock_name` 已从 `BaseFetcher` 巨类迁至 `stock_info/eastmoney_source.py` / `stock_info/stocksdk_source.py`
+- [x] `data_provider/limit_pool/base.py` 定义 `LimitPoolDataSource`+Manager（继承 common）与 `LimitPoolEntry` 契约；涨停池 / 跌停池取数已从 `data_provider/base.py` 巨类下沉到 `limit_pool/eastmoney_source.py`（`akshare_fetcher.py` 按 §4.4 保留为物理后端）（B2，2026-10-19 已验证）
+- [ ] 涨跌停数据收口为唯一入口：`limit_pool.py`（原 `emotion.py`）与 `signal_scanner_service.py` 均经 `limit_pool/` Manager 取涨跌停，③ 层不再经 `DataFetcherManager` 取池数据；`LIMITPOOL_SOURCE_PRIORITY` 在补齐第二源后回退链可生效（B2）
 
 **衍生改动验证（编制期已落地项）**
 
@@ -626,6 +649,9 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | 修订 D（2026-10-07 晚） | 第二章"决策"改名为"整体设计"；按"先总后分"拆分出 §3 数据库层设计 / §4 数据源对接层设计 / §5 功能接口层设计 / §6 横切基础辅助层设计（目录铺排总表等并入 §4）；全文统一四层命名为「数据库层 / 数据源对接层 / 功能接口层 / 横切基础辅助层」 |
 | 修订 E（2026-10-07 晚） | **确立"ADR 为主"的落盘顺序**：§5 功能接口层设计升级为该层**权威完整规范**（5.1 定位与边界 / 5.2 端点目录结构 / 5.3 17 个端点铺排总表 / 5.4 调用链路）；主方案 `stock_data_view.md` §3.9 相应**精简为对齐摘要**，权威表迁入 ADR §5.3（避免两处重复、维护漂移）；浏览目录补 5.1–5.4 可点击子项（锚点经 `github-slugger` 校验） |
 | 修订 F（2026-10-09） | 新增 `StockSDK` 可行性分析与分层接入方案：将其定义为 **Node 18 桥接型物理后端**，补充 `data_provider/stocksdk_bridge.py` 与各能力 `stocksdk_source.py` 的目录铺排、配置键、执行顺序、验证项与功能接口层边界说明 |
+| 修订 G（2026-10-19） | **涨跌停从 `sector/` 剥离，单列 `data_provider/limit_pool/` 功能包**：按「第一维按功能/用途分目录」总则，板块 / 概念（标的维度聚合）与涨跌停榜单（状态维度筛选）属两种不同能力，不应同包；`sector/` 职责收敛为「板块 / 概念 / 热门榜单」，`limit_pool/` 承接涨停池 / 跌停池并预留炸板池 / 昨日涨停池 / 连板梯队，固化 `LimitPoolEntry` 契约（`pool_type` 区分涨跌停）。新增 Tier B 代办 B2（下沉 + 消费方收口 + 第二源）与对应验证项；§5.3 端点铺排表补登记 `emotion.py` / `eod_picker.py` / `scanner.py`（17 → 20；其中 `emotion.py` 于修订 H 改名 `limit_pool.py`）；配置键前缀补登记 `SECTOR_*` / `LIMITPOOL_*` |
+| 修订 H（2026-10-19） | **确立端点命名公约，并把涨跌停端点按能力域重命名**：§5.3 新增「登记与命名公约」——端点文件名与路由前缀**建议按照服务端能力域**命名，**不得完全绑定前端菜单分组**（因为菜单会重组、页面会迁移，能力域不会；前端页面只是消费方）。据此 `api/v1/endpoints/emotion.py` / `/api/v1/emotion/*` → `limit_pool.py` / `/api/v1/limit-pool/*`，前端接口封装 `emotionData.ts` → `limitPoolData.ts`；§5.2 目录树补 `eod_picker.py` / `scanner.py` / `limit_pool.py`，§10.1 修改范围登记该重命名。**范围边界**：前端页面目录 `pages/Emotion/`、前端路由 `/emotion/boardlist`、i18n 键 `emotion.board.*` 属 UI 呈现层，不在本次改名范围 |
+| 修订 I（2026-10-19） | **B2 落地：涨跌停池下沉到 `data_provider/limit_pool/`**：新建 `limit_pool/{__init__,base,eastmoney_source,stocksdk_source}.py`，固化 `LimitPoolEntry` 契约（13 字段，`pool_type` 区分 `limit_up` / `limit_down`）；`get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/base.py` 巨类（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）**移除**，`akshare_fetcher.py` 按 §4.4「既有文件处置」**保留为物理后端**并由 `eastmoney_source.py` 复用；消费方 `endpoints/limit_pool.py` 与 `signal_scanner_service.py` 改调 `LimitPoolDataSourceManager`（涨跌停数据收口为唯一入口），端点自建 `_BOARD_CACHE` 删除，**"取数失败也把空结果缓存 60s"缺陷由 Manager「仅在成功时写缓存」的语义修复**；测试 mock 点迁至 `data_provider.limit_pool.get_limit_pool`；`LIMITPOOL_*` 与 `SECTOR_*` 配置键落进 `src/config.py`、运行时白名单与 `.env.example`。**剩余**：`stocksdk_source.py` 因 bridge 无涨跌停 action 而 `is_available()` 返回 False，涨跌停实际仍为东财单源 |
 
 ### <a id="122-adr-方案-章节映射"></a>12.2 ADR ↔ 方案 章节映射
 
@@ -653,4 +679,4 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 - 命名 / 目录 / 文件结构以方案 **§3.5（Python 标准化结构）** 为代码落地模板（PEP 8 + HermesX 既有 `*_service.py` / `*_repo.py` / `*_fetcher.py` / `base.py` 规律）。
 - 统一契约类型：`KLinePoint` / `StockInfo` / `CodeSearchResult`（见 2.4）。
-- 配置键前缀：`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `STOCKSDK_*`，须登记 `system_config` 白名单（见 §10.2 A7）。
+- 配置键前缀：`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `SECTOR_*` / `LIMITPOOL_*` / `STOCKSDK_*`，须登记 `system_config` 白名单（见 §10.2 A7）。

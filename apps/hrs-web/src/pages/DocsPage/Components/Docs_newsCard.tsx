@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：NewsCard（财经快讯卡片）
- * 路由地址 /docs/component/newsCard，菜单名「快讯卡片」。
- * 用于演示 NewsCard 的时间轴布局、重要条目强调、正文两行截断与展开/收起。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * NewsCard 组件文档演示页：时间轴布局、重要条目强调、截断与展开/收起。
  */
 
 import React, { useState } from 'react';

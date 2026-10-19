@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：HrsDrawer（侧滑抽屉）
- * 路由地址 /docs/component/drawer，菜单名「抽屉」。
- * 用于演示 HrsDrawer 声明式用法：滑出方向、尺寸档位、遮罩变体与快捷插槽（title / footer / showHandle）。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsDrawer 组件文档演示页：滑出方向、尺寸档位、遮罩变体与插槽。
  */
 
 import React, { useState } from 'react';

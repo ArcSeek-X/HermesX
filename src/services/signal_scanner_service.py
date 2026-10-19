@@ -279,23 +279,23 @@ def _resolve_ranking_pool(ranking_field: str, top_n: int) -> List[Dict[str, str]
 
 
 def _resolve_limit_up_pool(top_n: int) -> List[Dict[str, str]]:
-    """涨停池：DataFetcherManager 多源回退，已按连板数 / 封板时间排序。"""
-    from data_provider.base import DataFetcherManager
+    """涨停池：经 data_provider/limit_pool 统一入口取数，已按连板数 / 封板时间排序。"""
+    from data_provider.limit_pool import LIMIT_UP, get_limit_pool
 
     try:
-        rows = DataFetcherManager().get_limit_up_pool(n=top_n) or []
+        result = get_limit_pool(pool_type=LIMIT_UP, n=top_n)
     except Exception as exc:  # 数据源异常不拖垮整体，降级为空池由上层提示
         logger.warning("[Scanner] 获取涨停池失败: %s", exc)
         return []
 
     pool: List[Dict[str, str]] = []
     seen = set()
-    for row in rows:
-        code = normalize_stock_code(str(row.get("code") or ""))
+    for entry in result.entries:
+        code = normalize_stock_code(str(entry.code or ""))
         if not code or code in seen:
             continue
         seen.add(code)
-        pool.append({"code": code, "name": str(row.get("name") or "")})
+        pool.append({"code": code, "name": str(entry.name or "")})
     return pool
 
 

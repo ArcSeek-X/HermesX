@@ -1,27 +1,6 @@
 /**
- * @file Market/StockDashboardPage/StockDashboardPage.tsx
- * StockDashboardPage —— 市场总览页面
- * =====================================================================
- * 【功能介绍】
- * 市场行情与核心指标的一屏总览，顶部提供「A股 / 港美 / 日韩」三个市场 TAB，
- * 下方以卡片网格展示：指数行情 + 市场统计指标（涨跌家数、涨跌停、成交额、
- * 北向资金、大盘主力、最强板块）。数据每 30 秒自动刷新，TAB 偏好通过
- * useCachedState 持久化到 localStorage，刷新页面后保持上次选择。
- *
- * 【主要能力】
- * - 三个市场 TAB：A股（指数 + 6 张统计卡同网格）、港美、日韩（纯指数卡）。
- * - 前端每次只请求一个统一接口 `/api/v1/sector/market-cards?market=<tab-key>`，
- *   由后端按 TAB key 直接组装标准卡片列表并返回。
- * - 无感占位：数据未到达前先渲染 EMPTY_INDEX 占位卡片，数据到达后按位置替换，
- *   卡片实例保持稳定、入场动画只跑一次（避免布局抖动与 motion 重挂载）。
- * - 自动刷新：挂载时首次加载，之后每 30 秒轮询；卸载清理定时器。
- *
- * 【状态 / 数据流】
- * - 三个 TAB 共用统一 `cards[]` 契约，前端仅维护按 market key 分桶的卡片缓存。
- * - 所有接口后端有 60 秒 TTL，前端 30 秒轮询当前 TAB，只触发一个请求。
- * =====================================================================
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * 市场总览页：A 股 / 港美 / 日韩三个市场 TAB，统一卡片接口 + 30s 自动刷新。
+ * TAB 偏好通过 useCachedState 持久化，路由缓存隐藏时暂停轮询。
  */
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -33,8 +12,6 @@ import { useKeepAliveContext } from 'keepalive-for-react';
 import { MarketBreadthCard, LimitUpDownCard, TotalAmountCard, NorthboundCard, MainFlowCard, StrongestSectorCard } from '@components/indexCard/MarketStatCards';
 import IndexCard from '@components/indexCard/IndexCard';
 import { useCachedState } from '../../../hooks/useCachedState';
-
-
 
 import {
   fetchMarketCards,
@@ -152,7 +129,7 @@ const StockDashboardPage: React.FC = () => {
   );
 
   /** 加载单个市场 TAB 的统一卡片列表 */
-  const load = useCallback(async (market: MarketTab) => {
+  const loadMarketCards = useCallback(async (market: MarketTab) => {
     try {
       const response = await fetchMarketCards(market);
       setCardsByMarket((prev) => ({
@@ -169,14 +146,14 @@ const StockDashboardPage: React.FC = () => {
   useEffect(() => {
     if (!isPageActive) return undefined;
     async function init() {
-      await load(marketTab);
+      await loadMarketCards(marketTab);
     }
     init();
     const timer = setInterval(() => {
-      load(marketTab);
+      loadMarketCards(marketTab);
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [load, marketTab, isPageActive]);
+  }, [loadMarketCards, marketTab, isPageActive]);
 
   const currentCards = cardsByMarket[marketTab];
   const displayCards = currentCards && currentCards.length > 0 ? currentCards : buildPlaceholderCards(marketTab);

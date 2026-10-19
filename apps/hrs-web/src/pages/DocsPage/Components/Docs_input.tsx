@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Input（通用表单输入框）
- * 路由地址 /docs/component/input，菜单名「输入框」。
- * 用于演示 Input 的尺寸档位、受控用法、type 变体、只读展示与禁用、placeholder/maxLength、清除按钮（clearable，默认开启）及搜索表单组合。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsInput 组件文档演示页：尺寸档位、受控用法、type 变体、只读/禁用、maxLength 与清除按钮。
  */
 
 import React, { useState } from 'react';

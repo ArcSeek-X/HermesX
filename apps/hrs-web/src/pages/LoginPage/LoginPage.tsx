@@ -1,7 +1,5 @@
 /**
- * @file LoginPage.tsx
- * @description 登录页，提供管理员密码登录，包含深色紫色弧线背景与 3D 视差动画效果
- * @module pages
+ * 登录页：管理员密码登录，含粒子背景、底部弧线光晕与鼠标视差 3D 倾斜动画。
  */
 import type * as React from 'react';
 import { useEffect } from 'react';
@@ -12,12 +10,7 @@ import { UiLanguageToggle } from '@components/i18n/UiLanguageToggle';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import LoginCard from './LoginCard';
 
-/**
- * 登录页组件
- * 提供管理员密码登录：验证用户输入的密码以完成登录。
- * 包含鼠标视差 3D 倾斜动画、粒子背景、底部紫色弧线（参考 Next-Gen AI Studio 风格）视觉设计
- * @returns 登录页的 JSX 元素
- */
+/** 登录页：组装背景、品牌标题与登录卡片，并接管鼠标视差与页面标题。 */
 const LoginPage: React.FC = () => {
   /** UI 语言翻译函数 */
   const { t } = useUiLanguage();

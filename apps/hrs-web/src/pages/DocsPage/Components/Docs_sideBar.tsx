@@ -1,12 +1,5 @@
 /**
- * @fileoverview 组件文档页：侧边栏 / Sidebar
- * 路由地址 /docs/component/sideBar，菜单名「侧边栏」。
- * 演示两块内容：
- * 1) 应用自身主导航 SidebarNavOld（default / rail 形态 + collapsed 折叠态）
- * 2) SidebarNav：轻量自研侧栏（纯 React + Tailwind，接入真实菜单数据）
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * 侧边栏文档演示页：SidebarNavOld（default/rail/collapsed）与自研 SidebarNav。
  */
 
 import React, { useState } from 'react';

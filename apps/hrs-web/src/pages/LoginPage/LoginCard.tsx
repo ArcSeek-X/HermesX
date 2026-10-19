@@ -1,7 +1,5 @@
 /**
- * @file LoginCard.tsx
- * @description 登录表单卡片组件：账号/密码输入、HeroUI 表单校验、提交与错误展示（完全基于 HeroUI 重构）
- * @module pages/LoginPage
+ * 登录表单卡片：账号/密码输入、HeroUI 校验、提交与错误展示。
  */
 import type * as React from 'react';
 import { useState } from 'react';
@@ -26,12 +24,7 @@ import {
   TextField,
 } from '@heroui/react';
 
-/**
- * 登录表单卡片组件
- * 自包含账号/密码状态与提交逻辑，表单校验、错误提示与提交按钮全部由 HeroUI 实现，
- * 密码框支持点击右侧图标切换明文/密文显示。
- * @returns 登录表单卡片的 JSX 元素
- */
+/** 登录表单卡片：自包含账号/密码状态与提交逻辑，密码框支持明文切换。 */
 const LoginCard: React.FC = () => {
   /** 认证上下文：提供登录方法 */
   const { login } = useAuth();
@@ -108,7 +101,7 @@ const LoginCard: React.FC = () => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="hrs-login-card relative group z-20 pointer-events-auto"
+      className="relative group z-20 pointer-events-auto"
     >
       {/* 卡片边框发光效果 */}
       <div className="pointer-events-none absolute -inset-0.5 rounded-3xl bg-gradient-to-b from-[var(--login-accent-glow)] to-[hsl(214_100%_56%_/_0.18)] opacity-50 blur-sm transition duration-1000 group-hover:opacity-100 group-hover:duration-200" />
@@ -133,7 +126,7 @@ const LoginCard: React.FC = () => {
         <Form
           onSubmit={handleSubmit}
           validationBehavior="aria"
-          className="hrs-login-form flex flex-col gap-6"
+          className="flex flex-col gap-6"
         >
           {/* ===== 账号输入框（HeroUI TextField + Input，validate 校验必填） ===== */}
           <TextField

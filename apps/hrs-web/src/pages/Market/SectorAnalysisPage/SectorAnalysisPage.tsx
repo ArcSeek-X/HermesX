@@ -1,37 +1,6 @@
 /**
- * @file Market/SectorAnalysisPage/SectorAnalysisPage.tsx
- * ===================================
- * 板块分析页面（SectorAnalysisPage）
- * ===================================
- *
- * 定位：
- * A 股板块综合分析页面的主入口，整合三大功能模块：
- * 1. 板块（sector）：板块卡片列表，展示行业/概念板块的涨跌幅、总市值、
- *    换手率、涨跌家数，支持类型切换和关键词搜索
- * 2. 云图（cloud-map）：四类资产云图可视化（板块/个股/ETF/概念），
- *    基于 ECharts Treemap 展示，支持实时模式（30 秒自动刷新）和快照模式（历史时间点），
- *    点击行业板块可下钻查看成分股详情
- * 3. 资金（sector-fund）：板块资金流向折线图，支持行业/概念板块筛选、
- *    多日周期选择、板块多选，基于 ECharts 多折线图展示
- *
- * 页面结构（从上到下）：
- * 1. 一级 TAB 页签 + 右侧 更新时间 / 手动刷新按钮（同一行布局）
- * 2. 二级 TAB 页签：
- *    - 「板块」下有：行业板块 / 概念板块
- *    - 「云图」下有：板块云图 / 个股云图 / ETF 云图 / 概念云图
- *    （「资金」无二级 TAB）
- * 3. 各 TAB 对应的内容区域
- *
- * 数据刷新策略（本页核心）：
- * - 「手动刷新」按钮与「倒计时归零」共用同一个刷新入口 refreshActiveTabData，
- *   只刷新当前一级 TAB 下的全部数据，不会重新挂载页面。
- * - 实时模式下倒计时归零会自动重新拉取当前 TAB 数据并重置倒计时；快照模式不启动倒计时。
- *
- * 状态管理：
- * - 一级/二级 TAB、快照时间、周期等用户偏好通过 useCachedState 持久化
- * - 云图数据、资金流数据通过 API 函数从后端获取
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * 板块分析页：板块卡片 / 云图（行业·个股·ETF·概念 treemap）/ 板块资金流三大模块。
+ * 支持一级与二级 TAB、快照时间、实时刷新（30s）与成分股下钻。
  */
 
 import type React from 'react';
@@ -153,7 +122,7 @@ const SectorAnalysisPage: React.FC = () => {
   /** 云图 Treemap 数据（四类云图共用同一份数据状态） */
   const [treemapData, setTreemapData] = useState<SectorNode[]>([]);
   /** 云图数据加载状态 */
-  const [loading, setLoading] = useState(false);
+  const [isTreemapLoading, setIsTreemapLoading] = useState(false);
   /** 最后一次数据更新时间
    * 初始值取当前时间，保证「板块」TAB 等无独立加载入口的场景在进入页面时即显示「更新于」；
    * 实际数据加载完成后会被各 load 函数覆盖为接口返回时间。 */
@@ -228,7 +197,7 @@ const SectorAnalysisPage: React.FC = () => {
 
   /** 加载板块云图数据（申万行业分类），time 为空表示实时 */
   const loadSectorCloudMap = useCallback(async (time?: string) => {
-    setLoading(true);
+    setIsTreemapLoading(true);
     try {
       const result = await fetchIndustryTree(time);
       setTreemapData(result.sectors);
@@ -236,13 +205,13 @@ const SectorAnalysisPage: React.FC = () => {
     } catch (err) {
       console.error('加载板块云图失败:', err);
     } finally {
-      setLoading(false);
+      setIsTreemapLoading(false);
     }
   }, []);
 
   /** 加载个股云图数据（三级树：行业 → 细分行业 → 个股），time 为空表示实时 */
   const loadStockCloudMap = useCallback(async (time?: string) => {
-    setLoading(true);
+    setIsTreemapLoading(true);
     setStockError(null);
     try {
       const result = await fetchStockCloudMap(time);
@@ -257,13 +226,13 @@ const SectorAnalysisPage: React.FC = () => {
           : '个股云图数据加载失败，请稍后重试'
       );
     } finally {
-      setLoading(false);
+      setIsTreemapLoading(false);
     }
   }, []);
 
   /** 加载 ETF 云图数据（按量化 API 的 period 参数） */
   const loadETFCloudMap = useCallback(async (period?: ETFPeriod) => {
-    setLoading(true);
+    setIsTreemapLoading(true);
     try {
       const result = await fetchETFCloudMap(period || etfPeriod);
       setTreemapData(result.sectors);
@@ -271,13 +240,13 @@ const SectorAnalysisPage: React.FC = () => {
     } catch (err) {
       console.error('加载 ETF 云图失败:', err);
     } finally {
-      setLoading(false);
+      setIsTreemapLoading(false);
     }
   }, [etfPeriod]);
 
   /** 加载概念云图数据 */
   const loadConceptCloudMap = useCallback(async (period?: ETFPeriod) => {
-    setLoading(true);
+    setIsTreemapLoading(true);
     try {
       const result = await fetchConceptCloudMap(period || conceptPeriod);
       setTreemapData(result.sectors);
@@ -285,7 +254,7 @@ const SectorAnalysisPage: React.FC = () => {
     } catch (err) {
       console.error('加载概念云图失败:', err);
     } finally {
-      setLoading(false);
+      setIsTreemapLoading(false);
     }
   }, [conceptPeriod]);
 
@@ -403,6 +372,8 @@ const SectorAnalysisPage: React.FC = () => {
   /** 切换到「资金」一级 TAB 时，先加载板块列表，再加载资金流数据 */
   useEffect(() => {
     if (primaryTabValue === 'sector-fund') {
+      // 数据加载型副作用，按仓库约定关闭该规则
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadFundSectorList().then(() => loadFundFlow());
     }
     // 仅依赖 primaryTabValue：列表与资金流各自会读取最新的类型/天数/选中项
@@ -411,8 +382,8 @@ const SectorAnalysisPage: React.FC = () => {
 
   /** 首次加载 + TAB 切换时拉取云图数据；实时模式的自动刷新倒计时由 DataRefreshBar 内部管理 */
   useEffect(() => {
-    // 板块一级 TAB 通过 loadActiveCloudMap（默认板块云图）加载数据，
-    // 自动刷新（含 30s 倒计时）已在 DataRefreshBar 内部自治，本处只负责触发数据加载
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadActiveCloudMap(selectedTime || undefined);
   }, [primaryTabValue, loadActiveCloudMap, selectedTime]);
 
@@ -545,7 +516,7 @@ const SectorAnalysisPage: React.FC = () => {
   // ===================================================================
   return (
     <AppPage>
-      <div className="hrs-page-sector space-y-3">
+      <div className="space-y-3">
         <PageHeader
           title={t('layout.nav.sectorAnalysis.title')}
           description={t('layout.nav.sectorAnalysis.description')}
@@ -553,24 +524,17 @@ const SectorAnalysisPage: React.FC = () => {
             <DataRefreshBar
               lastUpdate={lastUpdate}
               snapshotTime={selectedTime}
-              loading={loading}
+              loading={isTreemapLoading}
               onRefresh={refreshActiveTabData}
               onCountdownEnd={refreshActiveTabData}
             />
           )} />
 
-        {/* ===== 整体说明 =====
-         * 一级 TAB 行右侧统一挂「更新时间 / 刷新」栏；
-         * 二级 TAB 随一级切换：
-         * - 「板块」下：行业板块 / 概念板块（boardTab）
-         * - 「云图」下：板块云图 / 个股云图 / ETF 云图 / 概念云图（cloudMapTab）
-         * - 「资金」无二级 TAB
-         */}
+
 
 
 
         <div className="space-y-3">
-          {/* ===== 一级TAB导航 ===== */}
           <TabNav<PrimaryTab>
             items={PRIMARY_TABS}
             value={primaryTabValue}
@@ -580,7 +544,6 @@ const SectorAnalysisPage: React.FC = () => {
           />
 
 
-          {/* ===== 一级TAB为 ”板块“ ===== */}
           {primaryTabValue === 'sector' && (
 
             <TabNav<BoardType>
@@ -604,7 +567,6 @@ const SectorAnalysisPage: React.FC = () => {
               }
             />
           )}
-          {/* ===== 一级TAB为” 云图“ ===== */}
           {primaryTabValue === 'cloud-map' && (
             <TabNav<CloudMapTab>
               items={CLOUD_MAP_TABS}
@@ -616,7 +578,6 @@ const SectorAnalysisPage: React.FC = () => {
           )}
         </div>
 
-        {/* ===== 3. 板块卡片列表（仅「板块」一级 TAB；类型与搜索词均由二级 TAB 驱动）===== */}
         {primaryTabValue === 'sector' && (
           <SectorBoardCards
             boardType={boardTab}
@@ -625,7 +586,6 @@ const SectorAnalysisPage: React.FC = () => {
           />
         )}
 
-        {/* ===== 4. 云图内容（仅「云图」一级 TAB + 概览模式）===== */}
         {primaryTabValue === 'cloud-map' && viewMode === 'overview' && (
           <>
             {/* 统计卡片（4 个） */}
@@ -711,7 +671,7 @@ const SectorAnalysisPage: React.FC = () => {
               </div>
 
               {/* 云图主体：ECharts treemap */}
-              {loading && treemapData.length === 0 ? (
+              {isTreemapLoading && treemapData.length === 0 ? (
                 <div className="flex items-center justify-center py-24">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
                 </div>
@@ -762,7 +722,6 @@ const SectorAnalysisPage: React.FC = () => {
           </>
         )}
 
-        {/* ===== 5. 详情视图：点击行业板块后下钻展示成分股表格（仅「云图」一级 TAB + 详情模式）===== */}
         {primaryTabValue === 'cloud-map' && viewMode === 'detail' && selectedSector && (
           <SectorStockTable
             sectorName={`${selectedSector.name}（行业板块）`}
@@ -772,7 +731,6 @@ const SectorAnalysisPage: React.FC = () => {
           />
         )}
 
-        {/* ===== 一级TAB为 ”资金“ ===== */}
         {primaryTabValue === 'sector-fund' && (
           <>
             {/* 控制栏：板块类型 + 板块多选 + 天数 + 查询 */}

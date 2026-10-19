@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页通用「示例区块」容器。
- * 统一 Docs_* 文档页中「标题 + 说明 + 演示内容」的卡片化区块外观，
- * 消除各文档页重复编写的 section 包裹结构。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * DocsSection 容器：统一承载「标题 + 说明 + 演示」卡片区块，供各文档页复用。
  */
 
 import React, { type ReactNode } from 'react';

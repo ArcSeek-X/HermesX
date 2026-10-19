@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：NumberField（数字输入框）
- * 路由地址 /docs/component/numberField，菜单名「数字输入框」。
- * 用于演示 HrsNumberField 的尺寸档位、默认值、格式化、受控用法、范围限制、描述文本、禁用态及隐藏步进按钮。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsNumberField 组件文档演示页：尺寸、默认值、格式化、受控、范围限制、禁用与隐藏步进。
  */
 
 import React, { useState } from 'react';

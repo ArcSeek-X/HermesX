@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：AnimCard（动画卡片）
- * 路由地址 /docs/component/animCard，菜单名「动画卡片」。
- * 用于演示 AnimCard 的基础样式、错位入场动画、渐变边框与渐变背景。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * AnimCard 组件文档演示页：基础样式、错位入场动画、渐变边框与渐变背景。
  */
 
 import React from 'react';

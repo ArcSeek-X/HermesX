@@ -105,7 +105,7 @@
 
 ## 一、背景与问题
 
-用户在实现 `/emotion/boardlist`（涨跌榜）时发现：`LimitUpItem`（`apps/hrs-web/src/api/emotionData.ts:11-40`）承载的"代码/名称/现价/涨幅/封单额/成交额/换手率/连板/所属行业"等字段，与项目中大量其它股票类型高度同源。用户诉求有两点：
+用户在实现 `/emotion/boardlist`（涨跌榜）时发现：`LimitUpItem`（`apps/hrs-web/src/api/limitPoolData.ts:11-40`）承载的"代码/名称/现价/涨幅/封单额/成交额/换手率/连板/所属行业"等字段，与项目中大量其它股票类型高度同源。用户诉求有两点：
 
 1. 把这类"股票基础信息"类型统一字段、统一类型，集中到 `apps/hrs-web/src/types/`；
 2. 将股票基础信息**穷举**进单一类型，以满足项目内所有股票相关类型定义，并统一"对象信息 / 字段 / 含义 / 单位"的说明。
@@ -428,7 +428,7 @@ export type MarketReviewSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'u
 
 ### 7.1 P1 涨停榜单（样板就绪，待执行）
 
-- 新增 `types/stock.ts`（L1+L2+L3）；`emotionData.ts` 把内联 `LimitUpItem` 改为引用 `StockLimitUpQuote`，**删除 `LimitUpItem` 别名**（统一为规范命名，同步更新 `BoardlistPage.tsx` 的 import 与 `useState`/`Table`/`columns` 类型）。
+- 新增 `types/stock.ts`（L1+L2+L3）；`limitPoolData.ts`（原 `emotionData.ts`）把内联 `LimitUpItem` 改为引用 `StockLimitUpQuote`，**删除 `LimitUpItem` 别名**（统一为规范命名，同步更新 `BoardlistPage.tsx` 的 import 与 `useState`/`Table`/`columns` 类型）。
 - 因选定命名基准与现有 `LimitUpItem` **100% 一致**，本阶段**零字段改名、无适配层**，风险最低，可直接落地。
 - **`id` 字段处置（已定）**：`id`（= 股票代码，纯 UI 行 key，后端不返回）**不进入** `StockLimitUpQuote`；改在 `BoardlistPage` 行类型承载（如 `type BoardRow = StockLimitUpQuote & { id: string }`，映射时 `id = code`），或直接以 `code` 作为表格 `key`（更彻底，可删 `id` 字段）。领域类型保持纯净（依据 §3.4）。
 

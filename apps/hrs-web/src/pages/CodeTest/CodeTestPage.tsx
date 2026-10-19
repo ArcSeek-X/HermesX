@@ -1,7 +1,5 @@
 /**
- * @fileoverview 测试页面（CodeTest）
- * 用于开发期功能验证与组件联调，路由地址 /codeTest。
- * @module pages
+ * 测试页面：开发期组件联调与功能验证，路由 /codeTest。
  */
 
 import React from "react";
@@ -12,10 +10,7 @@ import { type ParsedApiError } from '../../api/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 
-/**
- * 测试页面组件
- * 当前为占位内容，可在开发过程中按需挂载待验证的组件与逻辑。
- */
+/** 测试页面：在开发期挂载各基础组件做联调验证。 */
 
     // if (import.meta.env.DEV) throw new Error('component inside debug :RouteOutletBoundary');
 
@@ -151,8 +146,8 @@ const inlineTipSamples: {
 
 const CodeTestPage: React.FC = () => {
     // 三个尺寸的输入框共享同一受控值，便于对比 size 参数的视觉效果。
-    const [newName] = useState('');
-    const [text, setText] = useState('这是一段初始的多行文本内容，用于演示 TextArea 的受控用法。');
+    const [previewGroupName] = useState('');
+    const [memoText, setMemoText] = useState('这是一段初始的多行文本内容，用于演示 TextArea 的受控用法。');
     const [isOpen, setIsOpen] = useState(false);
     // HrsSelect 演示：基础受控单选（共享同一状态，用于对比各尺寸）
     const [selectMarket, setSelectMarket] = useState<Key | null>('a');
@@ -190,16 +185,13 @@ const CodeTestPage: React.FC = () => {
     const [drawerHideClose, setDrawerHideClose] = useState(false);
     const [drawerDismissable, setDrawerDismissable] = useState(true);
 
-    const clsickFn = () => {
-        console.log('点击了')
-    }
+    const handleDemoClick = () => {};
 
 
 
-    const openModel = () => {
-        setIsOpen(true)
-        console.log('打开模态框')
-    }
+    const openModal = () => {
+        setIsOpen(true);
+    };
 
     return (
         <AppPage>
@@ -694,20 +686,20 @@ const CodeTestPage: React.FC = () => {
                 {/* 受控 + 不同尺寸 */}
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
-                        <span className="text-xs text-secondary-text">size=&quot;xs&quot;（受控，当前 {text.length} 字）</span>
-                        <TextArea size="xs" value={text} onChange={(e) => setText(e.target.value)} placeholder="超紧凑尺寸" />
+                        <span className="text-xs text-secondary-text">size=&quot;xs&quot;（受控，当前 {memoText.length} 字）</span>
+                        <TextArea size="xs" value={memoText} onChange={(e) => setMemoText(e.target.value)} placeholder="超紧凑尺寸" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">size=&quot;sm&quot;</span>
-                        <TextArea size="sm" value={text} onChange={(e) => setText(e.target.value)} placeholder="默认尺寸" />
+                        <TextArea size="sm" value={memoText} onChange={(e) => setMemoText(e.target.value)} placeholder="默认尺寸" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">size=&quot;md&quot;</span>
-                        <TextArea size="md" value={text} onChange={(e) => setText(e.target.value)} placeholder="中等尺寸" />
+                        <TextArea size="md" value={memoText} onChange={(e) => setMemoText(e.target.value)} placeholder="中等尺寸" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">size=&quot;lg&quot;</span>
-                        <TextArea size="lg" value={text} onChange={(e) => setText(e.target.value)} placeholder="大尺寸" />
+                        <TextArea size="lg" value={memoText} onChange={(e) => setMemoText(e.target.value)} placeholder="大尺寸" />
                     </div>
                 </div>
 
@@ -715,15 +707,15 @@ const CodeTestPage: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">variant=&quot;secondary&quot;（无阴影，适配 Surface）</span>
-                        <TextArea variant="secondary" value={text} onChange={(e) => setText(e.target.value)} placeholder="Surface 内使用" />
+                        <TextArea variant="secondary" value={memoText} onChange={(e) => setMemoText(e.target.value)} placeholder="Surface 内使用" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">disabled（禁用）</span>
-                        <TextArea disabled value={text} placeholder="禁用状态" />
+                        <TextArea disabled value={memoText} placeholder="禁用状态" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-secondary-text">只读展示（仅传 value 无 onChange，自动补 readOnly）</span>
-                        <TextArea value={text} placeholder="只读状态" />
+                        <TextArea value={memoText} placeholder="只读状态" />
                     </div>
                 </div>
             </div>
@@ -908,14 +900,13 @@ const CodeTestPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
-                <HrsButton variant="primary" size="sm" onClick={openModel}>
+                <HrsButton variant="primary" size="sm" onClick={openModal}>
                     Open Modal
                 </HrsButton>
 
                 <Modal
                     isOpen={isOpen}
                     onClose={() => {
-                        console.log(555555555555)
                         setIsOpen(false);
                     }}
                 >
@@ -948,29 +939,29 @@ const CodeTestPage: React.FC = () => {
             </div>
             <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-card/75 p-6">
                 <HrsInput
-                    className="w-100"
+                    className="w-56"
                     placeholder="新分组名称（xs）"
                     size="xs"
-                    value={newName}
+                    value={previewGroupName}
 
                 />
                 <HrsInput
-                    className="w-200"
+                    className="w-72"
                     placeholder="新分组名称（sm）"
                     size="sm"
-                    value={newName}
+                    value={previewGroupName}
                 />
                 <HrsInput
                     className="w-full"
                     placeholder="新分组名称（md）"
                     size="md"
-                    value={newName}
+                    value={previewGroupName}
 
                 />
                 <HrsInput
                     placeholder="新分组名称（lg）"
                     size="lg"
-                    value={newName}
+                    value={previewGroupName}
                 />
             </div>
 
@@ -998,7 +989,7 @@ const CodeTestPage: React.FC = () => {
                                     <HrsButton
                                         variant={variant}
                                         size={size}
-                                        onClick={variant === 'primary' ? clsickFn : undefined}
+                                        onClick={variant === 'primary' ? handleDemoClick : undefined}
                                     >
                                         {size}
                                     </HrsButton>

@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：ListCard（通用列表卡片）
- * 路由地址 /docs/component/listCard，菜单名「列表卡片」。
- * 用于演示 ListCard 的图标/标题/描述/计数徽标、选中态与 hover 编辑删除操作。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * ListCard 组件文档演示页：图标/标题/描述/计数徽标、选中态与 hover 操作。
  */
 
 import React, { useState } from 'react';

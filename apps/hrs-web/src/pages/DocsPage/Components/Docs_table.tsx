@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Table（通用数据表格）
- * 路由地址 /docs/component/table，菜单名「表格」。
- * 用于演示 Table 的数据驱动渲染、列排序、行选择、操作列插槽、空态与分页。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * Table 组件文档演示页：数据驱动渲染、列排序、行选择、操作列、空态与分页。
  */
 
 import React, { useMemo, useState } from 'react';

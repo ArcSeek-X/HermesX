@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：TextArea（通用多行文本输入框）
- * 路由地址 /docs/component/textArea，菜单名「文本域」。
- * 用于演示 TextArea 的受控用法、尺寸档位、rows 行数、variant 变体、禁用与只读及提交表单组合。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * TextArea 组件文档演示页：受控用法、尺寸、rows、variant、禁用/只读与表单组合。
  */
 
 import React, { useState } from 'react';

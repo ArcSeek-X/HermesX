@@ -1,7 +1,9 @@
 /**
- * 情绪面板 - 涨跌榜数据接口。
- * 后端代理东财/akshare 涨停池（/api/v1/emotion/*），前端不直接连外部 API，避免 CORS。
+ * 涨跌停榜单数据接口。
+ * 后端代理东财/akshare 涨停池、跌停池（/api/v1/limit-pool/*），前端不直接连外部 API，避免 CORS。
  * 后端返回 snake_case，经 toCamelCase 统一转 camelCase。
+ *
+ * 命名说明：本模块按能力域（涨跌停池 = limit_pool）命名，不绑定前端「情绪」菜单分组。
  */
 
 import apiClient from './index';
@@ -34,7 +36,7 @@ export type LimitDownBoardResponse = {
  * @param limit 返回条数上限
  */
 export async function fetchLimitUpBoard(date?: string, limit = 100): Promise<LimitUpBoardResponse> {
-  const { data } = await apiClient.get('/api/v1/emotion/limit-up-board', {
+  const { data } = await apiClient.get('/api/v1/limit-pool/limit-up-board', {
     params: { date, limit },
   });
   return toCamelCase<LimitUpBoardResponse>(data);
@@ -46,7 +48,7 @@ export async function fetchLimitUpBoard(date?: string, limit = 100): Promise<Lim
  * @param limit 返回条数上限
  */
 export async function fetchLimitDownBoard(date?: string, limit = 100): Promise<LimitDownBoardResponse> {
-  const { data } = await apiClient.get('/api/v1/emotion/limit-down-board', {
+  const { data } = await apiClient.get('/api/v1/limit-pool/limit-down-board', {
     params: { date, limit },
   });
   return toCamelCase<LimitDownBoardResponse>(data);

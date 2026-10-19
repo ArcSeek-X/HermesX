@@ -1,11 +1,5 @@
 /**
- * @fileoverview 组件文档页：EmptyState（空状态）
- * 路由地址 /docs/component/empty-state，菜单名「空状态」。
- * 用于演示 EmptyState 的两种外层形态（card / text）与强调色变体（primary / muted / danger / success），
- * 以及图标、说明文案、操作区等插槽用法。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * EmptyState 组件文档演示页：card / text 形态与强调色变体、插槽用法。
  */
 
 import React from 'react';

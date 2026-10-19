@@ -795,6 +795,12 @@ class Config:
     codesearch_data_source: str = "auto"
     codesearch_fallback_enabled: bool = True
     codesearch_source_priority: str = "local,eastmoney,stocksdk"
+    sector_data_source: str = "auto"
+    sector_fallback_enabled: bool = True
+    sector_source_priority: str = "eastmoney"
+    limit_pool_data_source: str = "auto"
+    limit_pool_fallback_enabled: bool = True
+    limit_pool_source_priority: str = "eastmoney"
     finnhub_api_key: Optional[str] = None
     alphavantage_api_key: Optional[str] = None
     longbridge_app_key: Optional[str] = None
@@ -1256,6 +1262,12 @@ class Config:
             "CODESEARCH_DATA_SOURCE",
             "CODESEARCH_FALLBACK_ENABLED",
             "CODESEARCH_SOURCE_PRIORITY",
+            "SECTOR_DATA_SOURCE",
+            "SECTOR_FALLBACK_ENABLED",
+            "SECTOR_SOURCE_PRIORITY",
+            "LIMITPOOL_DATA_SOURCE",
+            "LIMITPOOL_FALLBACK_ENABLED",
+            "LIMITPOOL_SOURCE_PRIORITY",
         }
     )
     _BOOTSTRAP_RUNTIME_ENV_OVERRIDES_CAPTURED = False
@@ -1817,6 +1829,19 @@ class Config:
             ),
             codesearch_source_priority=(
                 os.getenv('CODESEARCH_SOURCE_PRIORITY') or 'local,eastmoney,stocksdk'
+            ).strip().lower(),
+            sector_data_source=(os.getenv('SECTOR_DATA_SOURCE') or 'auto').strip().lower(),
+            sector_fallback_enabled=parse_env_bool(os.getenv('SECTOR_FALLBACK_ENABLED'), default=True),
+            sector_source_priority=(
+                os.getenv('SECTOR_SOURCE_PRIORITY') or 'eastmoney'
+            ).strip().lower(),
+            limit_pool_data_source=(os.getenv('LIMITPOOL_DATA_SOURCE') or 'auto').strip().lower(),
+            limit_pool_fallback_enabled=parse_env_bool(
+                os.getenv('LIMITPOOL_FALLBACK_ENABLED'),
+                default=True,
+            ),
+            limit_pool_source_priority=(
+                os.getenv('LIMITPOOL_SOURCE_PRIORITY') or 'eastmoney'
             ).strip().lower(),
             finnhub_api_key=os.getenv('FINNHUB_API_KEY') or None,
             alphavantage_api_key=os.getenv('ALPHAVANTAGE_API_KEY') or None,

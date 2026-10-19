@@ -168,28 +168,32 @@ def test_resolve_ranking_pool_sorted_by_amount(monkeypatch):
 
 
 def test_resolve_limit_up_pool(monkeypatch):
-    from data_provider import base as dp_base
+    # 涨跌停池统一入口在 data_provider/limit_pool 包上，mock 包属性才能被延迟导入命中
+    from data_provider import limit_pool as limit_pool_pkg
 
-    monkeypatch.setattr(
-        dp_base.DataFetcherManager,
-        "get_limit_up_pool",
-        lambda self, date=None, n=20: [
-            {"code": "600519", "name": "贵州茅台"},
-            {"code": "600519", "name": "贵州茅台"},  # 重复代码应去重
-            {"code": "", "name": "空代码"},  # 空代码应丢弃
-        ],
-    )
+    def _fake(pool_type=None, date=None, n=20):
+        return limit_pool_pkg.LimitPoolResult(
+            entries=[
+                limit_pool_pkg.LimitPoolEntry(code="600519", name="贵州茅台"),
+                limit_pool_pkg.LimitPoolEntry(code="600519", name="贵州茅台"),  # 重复代码应去重
+                limit_pool_pkg.LimitPoolEntry(code="", name="空代码"),  # 空代码应丢弃
+            ],
+            source="fake",
+            pool_type=pool_type or limit_pool_pkg.LIMIT_UP,
+        )
+
+    monkeypatch.setattr(limit_pool_pkg, "get_limit_pool", _fake)
     pool = svc.resolve_stock_pool({"pool_source": "limit_up", "top_n": 20})
     assert pool == [{"code": "600519", "name": "贵州茅台"}]
 
 
 def test_resolve_limit_up_pool_source_failure_degrades(monkeypatch):
-    from data_provider import base as dp_base
+    from data_provider import limit_pool as limit_pool_pkg
 
-    def _boom(self, date=None, n=20):
+    def _boom(pool_type=None, date=None, n=20):
         raise RuntimeError("data source down")
 
-    monkeypatch.setattr(dp_base.DataFetcherManager, "get_limit_up_pool", _boom)
+    monkeypatch.setattr(limit_pool_pkg, "get_limit_pool", _boom)
     # 数据源异常降级为空池，由上层提示，不向上抛
     assert svc.resolve_stock_pool({"pool_source": "limit_up", "top_n": 20}) == []
 

@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：TabNav（标签页导航）
- * 路由地址 /docs/component/tabNav，菜单名「标签页」。
- * 用于演示 TabNav 的受控切换、primary/secondary 变体、图标与禁用项、rightSlot 插槽、size 尺寸档位，以及 size × variant 交叉组合。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * TabNav 组件文档演示页：受控切换、primary/secondary 变体、图标/禁用项、插槽与尺寸。
  */
 
 import React, { useState } from 'react';

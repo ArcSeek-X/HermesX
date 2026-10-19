@@ -20,11 +20,11 @@ from api.v1.endpoints import (
     backtest,
     decision_signals,
     eod_picker,
-    emotion,
     health,
     history,
     intelligence,
     kline,
+    limit_pool,
     portfolio,
     scanner,
     sector,
@@ -117,9 +117,9 @@ router.include_router(
 )
 
 router.include_router(
-    emotion.router,
-    prefix="/emotion",
-    tags=["Emotion"]
+    limit_pool.router,
+    prefix="/limit-pool",
+    tags=["LimitPool"]
 )
 
 router.include_router(

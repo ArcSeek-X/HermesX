@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Toast（命令式轻提示）
- * 路由地址 /docs/component/toast，菜单名「轻提示」。
- * 用于演示 showToast 命令式触发：视觉变体、浮层方位、自动关闭时长、查看详情与手动关闭。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * Toast 组件文档演示页：命令式触发、视觉变体、浮层方位、时长、详情与手动关闭。
  */
 
 import React, { useState } from 'react';

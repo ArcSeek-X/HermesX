@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Separator（分割线）
- * 路由地址 /docs/component/separator，菜单名「分割线」。
- * 用于演示 Separator 的方向、颜色变体、两端渐隐渐变与垂直分割场景。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * Separator 组件文档演示页：方向、颜色变体、渐隐渐变与垂直分割。
  */
 
 import React from 'react';

@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：HrsSelect（下拉选择器）
- * 路由地址 /docs/component/select，菜单名「下拉选择」。
- * 用于演示 HrsSelect 的声明式用法：基础单选、分组选项、多选折叠标签、尺寸档位与校验态。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsSelect 组件文档演示页：基础单选、分组选项、多选折叠、尺寸档位与校验态。
  */
 
 import React, { useState } from 'react';

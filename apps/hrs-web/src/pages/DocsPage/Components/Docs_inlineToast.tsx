@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：InlineToast（内联轻提示）
- * 路由地址 /docs/component/inline-toast，菜单名「内联轻提示」。
- * 用于演示 InlineToast：视觉变体、标题与可展开详情、操作按钮、关闭按钮。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * InlineToast 组件文档演示页：视觉变体、详情展开、操作与关闭按钮。
  */
 
 import React, { useState } from 'react';

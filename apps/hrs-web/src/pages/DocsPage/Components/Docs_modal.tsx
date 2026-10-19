@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Modal（模态框）
- * 路由地址 /docs/component/modal，菜单名「模态框」。
- * 用于演示 Modal 的声明式用法：Header/Heading/Body/Footer 组织、尺寸档位、弹出位置、遮罩变体与长内容滚动。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * Modal 组件文档演示页：Header/Body/Footer 组织、尺寸、位置、遮罩变体与长内容滚动。
  */
 
 import React, { useState } from 'react';

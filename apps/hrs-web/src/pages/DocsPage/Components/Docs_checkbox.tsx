@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：HrsCheckbox（复选框）
- * 路由地址 /docs/component/checkbox，菜单名「复选框」。
- * 用于演示 HrsCheckbox 在「多选组」与「单选框」两种模式下的常见用法与状态字段。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * HrsCheckbox 组件文档演示页：多选组 / 单选框模式与状态字段。
  */
 
 import React, { useState } from 'react';

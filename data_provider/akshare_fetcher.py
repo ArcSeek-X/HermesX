@@ -2248,7 +2248,11 @@ class AkshareFetcher(BaseFetcher):
         date: Optional[str] = None,
         n: int = 20,
     ) -> Optional[List[Dict[str, Any]]]:
-        """获取涨停池，优先按连板数和封板时间展示。"""
+        """获取涨停池，优先按连板数和封板时间展示。
+
+        角色：作为 `data_provider/limit_pool/eastmoney_source.py` 的物理后端
+        （ADR-001 §4.4「既有文件处置」），不再属于 `BaseFetcher` 能力契约。
+        """
         import akshare as ak
 
         query_date = date or datetime.now().strftime('%Y%m%d')
@@ -2306,6 +2310,9 @@ class AkshareFetcher(BaseFetcher):
 
         字段与涨停池归一为同一 schema（consecutive_boards 表示连续跌停次数）；
         跌停池无「首次封板时间」字段，first_limit_time 以「最后封板时间」充当。
+
+        角色：作为 `data_provider/limit_pool/eastmoney_source.py` 的物理后端
+        （ADR-001 §4.4「既有文件处置」），不再属于 `BaseFetcher` 能力契约。
         """
         import akshare as ak
 

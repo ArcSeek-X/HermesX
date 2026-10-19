@@ -1,10 +1,5 @@
 /**
- * @fileoverview 组件文档页：Chip（通用标签芯片）
- * 路由地址 /docs/component/chip，菜单名「标签芯片」。
- * 用于演示 Chip 的 variant / color / size / radius 组合、onClose 可关闭标签与禁用态、图标文字组合场景。
- * @module pages
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-10-14
+ * Chip 组件文档演示页：variant × color × size × radius 组合、onClose 与禁用态。
  */
 
 import React, { useState } from 'react';
