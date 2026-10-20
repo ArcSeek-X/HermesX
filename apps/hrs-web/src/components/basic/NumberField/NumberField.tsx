@@ -11,6 +11,7 @@
  *   - 默认渲染左右水平 +/- 步进按钮；vertical 为 true 时切换为右侧上下 chevron 排列。
  *   - 可通过 hideControls 完全隐藏步进按钮。
  *   - 支持可选 label 属性，渲染 HeroUI Label 在输入框上方。
+ *   - 支持可选 placeholder 占位提示，透传至 HeroUI NumberField.Input（复合结构下仅 Input 接受该属性）。
  *   - 内部样式全部基于 Tailwind 工具类，不引入或新建样式文件。
  * @author Lensgcx (GaoCangxiong)
  */
@@ -29,6 +30,8 @@ export interface HrsNumberFieldProps extends Omit<React.ComponentProps<typeof He
   label?: React.ReactNode;
   /** 辅助描述文本；传入时会在输入框下方渲染 HeroUI Description。 */
   description?: React.ReactNode;
+  /** 输入框占位提示文本；透传到 HeroUI NumberField.Input（根节点 Root 不接受该属性）。 */
+  placeholder?: string;
   /** 是否隐藏右侧步进按钮，默认 false（显示步进按钮）。 */
   hideControls?: boolean;
   /** 控制步进按钮排列方式：true 为右侧上下垂直排列（chevron），false 为左右水平排列（- / +），默认 false。 */
@@ -135,6 +138,7 @@ export const HrsNumberField: React.FC<HrsNumberFieldProps> = ({
   size = 'sm',
   label,
   description,
+  placeholder,
   hideControls = false,
   vertical = false,
   ...props
@@ -167,6 +171,7 @@ export const HrsNumberField: React.FC<HrsNumberFieldProps> = ({
         ) : null}
 
         <HeroNumberField.Input
+          placeholder={placeholder}
           className={cn(
             'hrs-number-field-input flex-1 bg-transparent px-2 outline-none',
             hideControls ? 'w-full' : 'min-w-0',
