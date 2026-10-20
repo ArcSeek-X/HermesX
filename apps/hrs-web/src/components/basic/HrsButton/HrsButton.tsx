@@ -128,6 +128,8 @@ export const HrsButton: React.FC<ButtonProps> = ({
   // aria-busy 供辅助技术识别加载态；统一并入 props 透传给 HeroUI Button。
   const passthroughProps = {
     ...props,
+    // type 需显式透传：默认 'button' 防止表单内误提交，调用方显式传 'submit' 时方才提交表单
+    type,
     variant,
     'data-variant': variant,
     'aria-busy': isLoading || undefined,
