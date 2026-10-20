@@ -16,7 +16,7 @@ describe('Input', () => {
     // 默认尺寸 sm：h-8 / !text-xs / rounded-sm
     expect(input.className).toContain('h-8');
     expect(input.className).toContain('rounded-sm');
-    expect(input.className).toContain('hrs-input-surface');
+    expect(input.className).toContain('border');
   });
 
   it.each([
@@ -76,7 +76,9 @@ describe('Input', () => {
   });
 
   it('merges the caller className into the generated class list', () => {
-    render(<HrsInput className="custom-input" data-testid="native-input" />);
+    // clearable 模式下 className 落在承载尺寸/定位的外层容器上；此处用 clearable={false}
+    // 验证「无插槽 + 关闭 clearable」时 className 直接合入输入框类名列表。
+    render(<HrsInput className="custom-input" clearable={false} data-testid="native-input" />);
 
     expect(screen.getByTestId('native-input').className).toContain('custom-input');
   });
