@@ -7,6 +7,8 @@
  * 持久化边界：
  * - asyncRouteData：动态路由树（含 children 的树状结构），需持久化到 localStorage；
  *   存储即唯一权威数据源，有则直接可用，缺失视为未登录（空数组）。
+ *   持久化 blob 携带清单指纹：清单（真源）变更后旧缓存视为过期丢弃，
+ *   交由 main.tsx 的「已登录但路由为空 → 回退登录页」路径重新登录重建。
  *
  * 两个业务场景与 Store 入口的对应关系（登录功能尚未实现，以下入口供后续直接调用）：
  * - 场景一 首次登录：登录成功后调用 `buildAsyncRouterData()` ——
@@ -32,9 +34,33 @@ import {
 /** localStorage 中持久化「动态路由树（asyncRouteData）」的键；存储即路由数据源，有则直接可用 */
 const ASYNC_ROUTER_STORAGE_KEY = 'router.asyncRouteData';
 
+/** 持久化 blob 结构：动态路由树 + 产出该树时的路由清单指纹（用于识别真源清单变更） */
+interface StoredAsyncRouterBlob {
+  fingerprint: string;
+  routes: AsyncRouteNode[];
+}
+
+/**
+ * 由路由清单（真源）计算指纹：清单任一字段变更都会改变该值，
+ * 用于识别「持久化路由树由旧清单产出」的过期缓存。
+ * @param manifest 路由清单真源（MENU_MANIFEST）
+ * @returns 指纹字符串（djb2 哈希 + 序列化长度，双 36 进制拼接）
+ */
+const computeManifestFingerprint = (manifest: unknown): string => {
+  const source = JSON.stringify(manifest);
+  let hash = 5381;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = ((hash << 5) + hash + source.charCodeAt(index)) | 0;
+  }
+  return `${hash.toString(36)}-${source.length.toString(36)}`;
+};
+
+/** 当前真源清单指纹；持久化 blob 指纹与其不一致即视为过期（见 readStoredAsyncRouterData） */
+const MENU_MANIFEST_FINGERPRINT = computeManifestFingerprint(MENU_MANIFEST);
+
 interface RouterState {
   /** 动态路由树（树状结构，含 children）。需持久化（见 ASYNC_ROUTER_STORAGE_KEY）；
-   *  存储缺失（未登录）时为空数组，登录后由 buildAsyncRouterData 构建并落盘 */
+   *  存储缺失或清单指纹过期（未登录 / 清单变更）时为空数组，登录后由 buildAsyncRouterData 构建并落盘 */
   asyncRouteData: AsyncRouteNode[];
   /** 场景一：登录后构建全量动态路由树并持久化 */
   buildAsyncRouterData: () => void;
@@ -90,15 +116,20 @@ const buildAsyncRouteTree = (nodes: AppRouteNode[]): AsyncRouteNode[] =>
  * @returns 持久化的动态路由树；缺失或格式非法时返回空数组
  */
 const readStoredAsyncRouterData = (): AsyncRouteNode[] => {
-  const stored = getStorageItem<AsyncRouteNode[]>(ASYNC_ROUTER_STORAGE_KEY, 'local');
-  // 只接受数组形态：null（缺失/解析失败/存储不可用）与 JSON 基本类型一律视为「没有」。
-  // 空数组是刻意的合法初值，不伪装成已初始化。
-  // 字段名随版本演进（menuId→routerKey、新增 routerPagePath 等）；旧格式 blob 不含关键字段，
-  // 视为无效并丢弃，避免拿着旧字段名去读新结构导致路由全部渲染为空（登录尚未实现时无法自动重建，更需稳妥兜底）。
+  const stored = getStorageItem<StoredAsyncRouterBlob>(ASYNC_ROUTER_STORAGE_KEY, 'local');
+  // 只接受「清单指纹一致 + 数组形态」的持久化数据：清单（真源）变更后旧 blob 一律视为没有，
+  // 交由 main.tsx 的「已登录但路由为空 → 回退登录页」路径重新登录重建。
+  // 否则旧 blob 里的过期 menuPagePath（如页面文件移动前的路径）会被 resolvePageImporter
+  // 查表未命中，调用时报 “resolvePageImporter(...) is not a function”。
+  // 旧格式裸数组（无 fingerprint 字段）同样在此被丢弃。
+  if (!stored || typeof stored !== 'object' || stored.fingerprint !== MENU_MANIFEST_FINGERPRINT
+    || !Array.isArray(stored.routes)) {
+    return [];
+  }
+  // 节点形态校验：字段名随版本演进（menuId→routerKey、新增 routerPagePath 等）；
   // routerPagePath 允许为 ''（redirect 节点本就无页面），故只校验其为 string 类型即可。
-  return Array.isArray(stored)
-    && stored.every((n) => n && typeof n.routerKey === 'string' && typeof n.routerPagePath === 'string')
-    ? stored
+  return stored.routes.every((n) => n && typeof n.routerKey === 'string' && typeof n.routerPagePath === 'string')
+    ? stored.routes
     : [];
 };
 
@@ -111,7 +142,11 @@ const applyAsyncRouterData = (
   set: (partial: Partial<RouterState>) => void,
   asyncRouteData: AsyncRouteNode[],
 ): void => {
-  setStorageItem(ASYNC_ROUTER_STORAGE_KEY, asyncRouteData, 'local');
+  const storedBlob: StoredAsyncRouterBlob = {
+    fingerprint: MENU_MANIFEST_FINGERPRINT,
+    routes: asyncRouteData,
+  };
+  setStorageItem(ASYNC_ROUTER_STORAGE_KEY, storedBlob, 'local');
   set({ asyncRouteData });
 };
 
