@@ -306,7 +306,7 @@ export const MENU_MANIFEST: ModuleNode[] = [
             menuType: 'page',
             auth: 'protected',
             menuVisible: true,
-            menuPagePath: 'pages/PortfolioPage',
+            menuPagePath: 'pages/Trading/PortfolioPage/PortfolioPage',
           },
         ]
       },
