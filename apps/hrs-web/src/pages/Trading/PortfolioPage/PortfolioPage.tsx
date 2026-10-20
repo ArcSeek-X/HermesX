@@ -1,7 +1,5 @@
 /**
- * @file PortfolioPage.tsx
- * @description 投资组合页面，管理账户、持仓快照、风险指标、交易/资金/公司行为录入与查询，支持券商 CSV 导入和汇率刷新
- * @module pages
+ * 投资组合页：账户与持仓快照、风险指标、交易/资金/公司行为录入，支持券商 CSV 导入与汇率刷新。
  */
 
 import type React from 'react';
@@ -12,16 +10,20 @@ import { toCnOrEn } from '@utils/uiLanguage';
 import type { FxRefreshFeedback } from '@utils/portfolioFormat';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
-import { decisionSignalsApi } from '../api/decisionSignals';
-import { portfolioApi } from '../api/portfolio';
-import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { InlineToast, Card, Badge, ConfirmDialog, InlineAlert } from '@components';
+import { decisionSignalsApi } from '../../../api/decisionSignals';
+import { portfolioApi } from '../../../api/portfolio';
+import { getParsedApiError, type ParsedApiError } from '../../../api/error';
+import {
+  InlineToast, Card, Badge, ConfirmDialog, InlineAlert, AnimCard,
+  HrsButton, HrsInput, HrsSelect, HrsCheckbox, HrsNumberField,
+} from '@components';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { EmptyState } from '@components/basic/EmptyState';
 import { PortfolioSignalSummary } from '@components/decision-signals/DecisionSignalDisplay';
-import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { formatUiText } from '../i18n/uiText';
-import { PORTFOLIO_TEXT } from '../locales/featureText';
-import { usePreference } from '../hooks/usePreference';
+import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import { formatUiText } from '../../../i18n/uiText';
+import { PORTFOLIO_TEXT } from '../../../locales/featureText';
+import { usePreference } from '../../../hooks/usePreference';
 import {
   buildFxRefreshFeedback,
   formatBrokerLabel,
@@ -43,8 +45,8 @@ import {
 import type {
   DecisionSignalItem,
   DecisionSignalMarket,
-} from '../types/decisionSignals';
-import type { MarketLocale } from '../types/stock';
+} from '../../../types/decisionSignals';
+import type { MarketLocale } from '../../../types/stock';
 import type {
   PortfolioAccountItem,
   PortfolioCashDirection,
@@ -60,7 +62,7 @@ import type {
   PortfolioSide,
   PortfolioSnapshotResponse,
   PortfolioTradeListItem,
-} from '../types/portfolio';
+} from '../../../types/portfolio';
 
 /** 饼图颜色调色板 */
 const PIE_COLORS = ['#00d4ff', '#00ff88', '#ffaa00', '#ff7a45', '#7f8cff', '#ff4466'];
@@ -132,12 +134,7 @@ type FxRefreshContext = {
   requestId: number;
 };
 
-/** 输入框公共样式类名 */
-const PORTFOLIO_INPUT_CLASS =
-  'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
-/** 下拉选择框公共样式类名（在输入框样式基础上增加下拉箭头空间） */
-const PORTFOLIO_SELECT_CLASS = `${PORTFOLIO_INPUT_CLASS} appearance-none pr-10`;
-/** 文件选择器公共样式类名 */
+/** 文件选择器样式：无基础组件对应，保留原生 input */
 const PORTFOLIO_FILE_PICKER_CLASS =
   'input-surface input-focus-glow flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border bg-transparent px-4 text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
 
@@ -293,11 +290,11 @@ const PortfolioPage: React.FC = () => {
   const [riskWarning, setRiskWarning] = useState<string | null>(null); // 风险数据降级警告
   const [writeWarning, setWriteWarning] = useState<string | null>(null); // 写入操作提示（如需先选择账户）
   const [portfolioSignals, setPortfolioSignals] = useState<DecisionSignalItem[]>([]); // 持仓决策信号列表
-  const [portfolioSignalsLoading, setPortfolioSignalsLoading] = useState(false); // 决策信号加载中状态
+  const [isSignalsLoading, setIsSignalsLoading] = useState(false); // 决策信号加载中状态
   const [portfolioSignalsWarning, setPortfolioSignalsWarning] = useState<string | null>(null); // 决策信号部分失败警告
   const [portfolioSignalsRefreshKey, setPortfolioSignalsRefreshKey] = useState(0); // 决策信号刷新触发键（手动刷新时递增）
   const portfolioSignalsRequestRef = useRef(0); // 决策信号请求序列号，用于取消过期请求
-  const [positionAnalysisLoadingKey, setPositionAnalysisLoadingKey] = useState<string | null>(null); // 当前正在提交分析的持仓行键
+  const [positionUnderAnalysis, setPositionUnderAnalysis] = useState<string | null>(null); // 当前正在提交分析的持仓行键
   const [positionAnalysisMessage, setPositionAnalysisMessage] = useState<string | null>(null); // 持仓分析任务提交结果提示
 
   const [brokers, setBrokers] = useState<PortfolioImportBrokerItem[]>([]); // 可用券商列表
@@ -540,17 +537,23 @@ const PortfolioPage: React.FC = () => {
 
   // 页面挂载时：并行加载账户列表和券商列表
   useEffect(() => {
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAccounts();
     void loadBrokers();
   }, [loadAccounts, loadBrokers]);
 
   // 快照/风险数据加载：账户选择或成本方式变化时触发
   useEffect(() => {
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSnapshotAndRisk();
   }, [loadSnapshotAndRisk]);
 
   // 事件记录加载：页码、筛选条件或加载函数变化时触发
   useEffect(() => {
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadEvents();
   }, [loadEvents]);
 
@@ -560,18 +563,24 @@ const PortfolioPage: React.FC = () => {
       viewKey: refreshViewKey,
       requestId: refreshContextRef.current.requestId + 1,
     };
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFxRefreshing(false);
     setFxRefreshFeedback(null);
   }, [refreshViewKey]);
 
   // 筛选条件变化时重置到第一页
   useEffect(() => {
+    // 数据加载型副作用，按仓库约定关闭该规则
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEventPage(1);
   }, [eventType, queryAccountId, eventDateFrom, eventDateTo, eventSymbol, eventSide, eventDirection, eventActionType]);
 
   // 写入限制解除时清除提示
   useEffect(() => {
     if (!writeBlocked) {
+      // 数据加载型副作用，按仓库约定关闭该规则
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setWriteWarning(null);
     }
   }, [writeBlocked]);
@@ -625,9 +634,11 @@ const PortfolioPage: React.FC = () => {
   // 使用请求序列号防止竞态条件，快照不匹配范围时跳过加载
   useEffect(() => {
     if (positionSignalLookups.length === 0) {
+      // 数据加载型副作用，按仓库约定关闭该规则
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPortfolioSignals([]);
       setPortfolioSignalsWarning(null);
-      setPortfolioSignalsLoading(false);
+      setIsSignalsLoading(false);
       return;
     }
 
@@ -635,7 +646,7 @@ const PortfolioPage: React.FC = () => {
     const isActiveRequest = () => portfolioSignalsRequestRef.current === requestId;
 
     const loadPortfolioSignals = async () => {
-      setPortfolioSignalsLoading(true);
+      setIsSignalsLoading(true);
       setPortfolioSignalsWarning(null);
       const results = await mapWithConcurrency(
         positionSignalLookups,
@@ -656,7 +667,7 @@ const PortfolioPage: React.FC = () => {
           : null,
       );
       if (isActiveRequest()) {
-        setPortfolioSignalsLoading(false);
+        setIsSignalsLoading(false);
       }
     };
 
@@ -700,7 +711,7 @@ const PortfolioPage: React.FC = () => {
    */
   const handleAnalyzePosition = async (row: FlatPosition) => {
     const key = `${row.accountId}-${row.symbol}-${row.market}`;
-    setPositionAnalysisLoadingKey(key);
+    setPositionUnderAnalysis(key);
     setPositionAnalysisMessage(null);
     setError(null);
     try {
@@ -713,7 +724,7 @@ const PortfolioPage: React.FC = () => {
     } catch (err) {
       setError(getParsedApiError(err));
     } finally {
-      setPositionAnalysisLoadingKey(null);
+      setPositionUnderAnalysis(null);
     }
   };
 
@@ -759,6 +770,10 @@ const PortfolioPage: React.FC = () => {
       setWriteWarning('请先在右上角选择具体账户，再进行录入或导入提交。');
       return;
     }
+    if (!tradeForm.symbol.trim() || !tradeForm.quantity || !tradeForm.price) {
+      setWriteWarning('股票代码、数量、成交价为必填项。');
+      return;
+    }
     try {
       setWriteWarning(null);
       await portfolioApi.createTrade({
@@ -791,6 +806,10 @@ const PortfolioPage: React.FC = () => {
       setWriteWarning('请先在右上角选择具体账户，再进行录入或导入提交。');
       return;
     }
+    if (!cashForm.eventDate || !cashForm.amount) {
+      setWriteWarning('交易日期与金额为必填项。');
+      return;
+    }
     try {
       setWriteWarning(null);
       await portfolioApi.createCashLedger({
@@ -817,6 +836,11 @@ const PortfolioPage: React.FC = () => {
     e.preventDefault();
     if (!writableAccountId) {
       setWriteWarning('请先在右上角选择具体账户，再进行录入或导入提交。');
+      return;
+    }
+    const hasCorpValue = corpForm.cashDividendPerShare || corpForm.splitRatio;
+    if (!corpForm.symbol.trim() || !corpForm.effectiveDate || !hasCorpValue) {
+      setWriteWarning('股票代码、生效日期与分红/拆股比例为必填项。');
       return;
     }
     try {
@@ -1150,46 +1174,42 @@ const PortfolioPage: React.FC = () => {
 
   return (
     <div className="portfolio-page min-h-screen space-y-4 p-4 md:p-6">
-      {/* ===== 页面标题与账户选择区 ===== */}
+      {/* ===== 页面标题 ===== */}
+      <PageHeader title={text.title} description={text.description} />
+      {/* ===== 账户选择区 ===== */}
       <section className="space-y-3">
-        <div className="space-y-2">
-          <p className="text-xs md:text-sm text-secondary">
-            {text.description}
-          </p>
-        </div>
         {hasAccounts ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_280px] gap-2 items-end">
               <div>
                 <p className="text-xs text-secondary mb-1">{text.accountView}</p>
-                <select
-                  value={String(selectedAccount)}
-                  onChange={(e) => setSelectedAccount(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className={PORTFOLIO_SELECT_CLASS}
-                >
-                  <option value="all">{text.allAccounts}</option>
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} (#{account.id})
-                    </option>
-                  ))}
-                </select>
+                <HrsSelect
+                  value={selectedAccount === 'all' ? 'all' : String(selectedAccount)}
+                  onChange={(v) => setSelectedAccount(v === 'all' ? 'all' : Number(v))}
+                  options={[
+                    { key: 'all', label: text.allAccounts },
+                    ...accounts.map((account) => ({
+                      key: String(account.id),
+                      label: `${account.name} (#${account.id})`,
+                    })),
+                  ]}
+                />
               </div>
               <div>
                 <p className="text-xs text-secondary mb-1">{text.costMethod}</p>
-                <select
+                <HrsSelect
                   value={costMethod}
-                  onChange={(e) => setCostMethod(e.target.value as PortfolioCostMethod)}
-                  className={PORTFOLIO_SELECT_CLASS}
-                >
-                  <option value="fifo">{text.fifo}</option>
-                  <option value="avg">{text.avg}</option>
-                </select>
+                  onChange={(v) => setCostMethod(v as PortfolioCostMethod)}
+                  options={[
+                    { key: 'fifo', label: text.fifo },
+                    { key: 'avg', label: text.avg },
+                  ]}
+                />
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="btn-secondary text-sm flex-1"
+                <HrsButton
+                  variant="secondary"
+                  className="flex-1"
                   onClick={() => {
                     setShowCreateAccount((prev) => !prev);
                     setAccountCreateError(null);
@@ -1197,23 +1217,23 @@ const PortfolioPage: React.FC = () => {
                   }}
                 >
                   {showCreateAccount ? text.collapseCreate : text.createAccount}
-                </button>
-                <button
-                  type="button"
+                </HrsButton>
+                <HrsButton
+                  variant="secondary"
+                  className="flex-1"
                   onClick={() => void handleRefresh()}
-                  disabled={isLoading || fxRefreshing}
-                  className="btn-secondary text-sm flex-1"
+                  isDisabled={isLoading || fxRefreshing}
                 >
                   {isLoading ? text.refreshing : text.refreshData}
-                </button>
-                <button
-                  type="button"
+                </HrsButton>
+                <HrsButton
+                  variant="danger-soft"
+                  className="flex-1"
                   onClick={openAccountDeleteDialog}
-                  disabled={!canDeleteSelectedAccount}
-                  className="btn-secondary text-sm flex-1 border-red-400/40 text-red-100 hover:bg-red-500/15 disabled:border-white/10 disabled:text-secondary"
+                  isDisabled={!canDeleteSelectedAccount}
                 >
                   {accountDeleteLoading ? text.deletingAccount : text.deleteAccount}
-                </button>
+                </HrsButton>
               </div>
             </div>
           </div>
@@ -1255,9 +1275,9 @@ const PortfolioPage: React.FC = () => {
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">新建账户</h2>
             {hasAccounts ? (
-              <button
-                type="button"
-                className="btn-secondary text-xs px-3 py-1"
+              <HrsButton
+                variant="secondary"
+                size="xs"
                 onClick={() => {
                   setShowCreateAccount(false);
                   setAccountCreateError(null);
@@ -1265,9 +1285,9 @@ const PortfolioPage: React.FC = () => {
                 }}
               >
                 收起
-              </button>
+              </HrsButton>
             ) : (
-              <span className="text-xs text-secondary">创建后自动切换到该账户</span>
+              <span className="text-xs text-foreground-soft">创建后自动切换到该账户</span>
             )}
           </div>
           {accountCreateError ? (
@@ -1287,39 +1307,37 @@ const PortfolioPage: React.FC = () => {
             />
           ) : null}
           <form className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2" onSubmit={handleCreateAccount}>
-            <input
-              className={`${PORTFOLIO_INPUT_CLASS} md:col-span-2`}
+            <HrsInput
+              className="md:col-span-2"
               placeholder="账户名称（必填）"
               value={accountForm.name}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, name: e.target.value }))}
             />
-            <input
-              className={PORTFOLIO_INPUT_CLASS}
+            <HrsInput
               placeholder="券商（可选，如 Demo/华泰）"
               value={accountForm.broker}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, broker: e.target.value }))}
             />
-            <input
-              className={PORTFOLIO_INPUT_CLASS}
+            <HrsInput
               placeholder="基准币（如 CNY/USD/HKD）"
               value={accountForm.baseCurrency}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, baseCurrency: e.target.value.toUpperCase() }))}
             />
-            <select
-              className={PORTFOLIO_SELECT_CLASS}
+            <HrsSelect
               value={accountForm.market}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, market: e.target.value as PortfolioAccountMarket }))}
-            >
-              <option value="cn">市场：A 股（cn）</option>
-              <option value="hk">市场：港股（hk）</option>
-              <option value="us">市场：美股（us）</option>
-              <option value="jp">市场：日股（jp）</option>
-              <option value="kr">市场：韩股（kr）</option>
-              <option value="tw">市场：台股（tw）</option>
-            </select>
-            <button type="submit" className="btn-secondary text-sm" disabled={accountCreating}>
+              onChange={(v) => setAccountForm((prev) => ({ ...prev, market: v as PortfolioAccountMarket }))}
+              options={[
+                { key: 'cn', label: '市场：A 股（cn）' },
+                { key: 'hk', label: '市场：港股（hk）' },
+                { key: 'us', label: '市场：美股（us）' },
+                { key: 'jp', label: '市场：日股（jp）' },
+                { key: 'kr', label: '市场：韩股（kr）' },
+                { key: 'tw', label: '市场：台股（tw）' },
+              ]}
+            />
+            <HrsButton type="submit" variant="primary" isDisabled={accountCreating}>
               {accountCreating ? '创建中...' : '创建账户'}
-            </button>
+            </HrsButton>
           </form>
         </Card>
       ) : null}
@@ -1336,29 +1354,29 @@ const PortfolioPage: React.FC = () => {
 
       {/* ===== 总览统计卡片区（总权益/市值/现金/汇率状态）===== */}
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.totalEquity}</p>
+        <AnimCard className="flex-col p-5" variant="gradient" gradientBackground ordinal={0}>
+          <p className="text-xs text-secondary-soft">{text.totalEquity}</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalEquity, snapshot?.currency || 'CNY')}</p>
-        </Card>
-        <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.totalMarketValue}</p>
+        </AnimCard>
+        <AnimCard className="flex-col p-5" gradientBackground ordinal={1}>
+          <p className="text-xs text-secondary-soft">{text.totalMarketValue}</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalMarketValue, snapshot?.currency || 'CNY')}</p>
-        </Card>
-        <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.totalCash}</p>
+        </AnimCard>
+        <AnimCard className="flex-col p-5" gradientBackground ordinal={2}>
+          <p className="text-xs text-secondary-soft">{text.totalCash}</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalCash, snapshot?.currency || 'CNY')}</p>
-        </Card>
-        <Card variant="gradient" padding="md">
+        </AnimCard>
+        <AnimCard className="flex-col p-5" gradientBackground ordinal={3}>
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs text-secondary">{text.fxStatus}</p>
-            <button
-              type="button"
-              className="btn-secondary !px-3 !py-1 !text-xs shrink-0"
+            <p className="text-xs text-secondary-soft">{text.fxStatus}</p>
+            <HrsButton
+              variant="secondary"
+              size="xs"
               onClick={() => void handleRefreshFx()}
-              disabled={!hasAccounts || isLoading || fxRefreshing}
+              isDisabled={!hasAccounts || isLoading || fxRefreshing}
             >
               {fxRefreshing ? text.refreshing : text.refreshFx}
-            </button>
+            </HrsButton>
           </div>
           <div className="mt-2">{snapshot?.fxStale ? <Badge variant="warning">{text.stale}</Badge> : <Badge variant="success">{text.latest}</Badge>}</div>
           {fxRefreshFeedback ? (
@@ -1369,7 +1387,7 @@ const PortfolioPage: React.FC = () => {
               className="mt-3 rounded-xl px-3 py-2 text-xs shadow-none"
             />
           ) : null}
-        </Card>
+        </AnimCard>
       </section>
 
       {/* ===== 持仓表格与集中度饼图区 ===== */}
@@ -1413,7 +1431,7 @@ const PortfolioPage: React.FC = () => {
                 <tbody>
                   {positionRows.map((row) => {
                     const rowKey = `${row.accountId}-${row.symbol}-${row.market}`;
-                    const analyzing = positionAnalysisLoadingKey === rowKey;
+                    const analyzing = positionUnderAnalysis === rowKey;
                     const signal = signalByPositionKey.get(rowKey);
                     return (
                     <tr key={rowKey} className="border-b border-white/5">
@@ -1451,17 +1469,17 @@ const PortfolioPage: React.FC = () => {
                         {formatSignedPct(row.unrealizedPnlPct)}
                       </td>
                       <td className="py-2 pr-3 text-right align-top">
-                        <PortfolioSignalSummary item={signal} loading={portfolioSignalsLoading} />
+                        <PortfolioSignalSummary item={signal} loading={isSignalsLoading} />
                       </td>
                       <td className="py-2 text-right">
-                        <button
-                          type="button"
+                        <HrsButton
+                          variant="secondary"
+                          size="xs"
                           onClick={() => void handleAnalyzePosition(row)}
-                          disabled={analyzing}
-                          className="btn-secondary px-2 py-1 text-xs disabled:cursor-wait disabled:opacity-60"
+                          isDisabled={analyzing}
                         >
                           {analyzing ? text.submitting : text.analyze}
-                        </button>
+                        </HrsButton>
                       </td>
                     </tr>
                     );
@@ -1497,7 +1515,7 @@ const PortfolioPage: React.FC = () => {
               className="border-none bg-transparent px-4 py-10 shadow-none"
             />
           )}
-          <div className="mt-3 text-xs text-secondary space-y-1">
+          <div className="mt-3 text-xs text-foreground-soft space-y-1">
             <div>{text.displayScope}: {concentrationMode === 'sector' ? text.sectorDimension : text.positionDimensionFallback}</div>
             <div>{text.sectorAlert}: {risk?.sectorConcentration?.alert ? text.yes : text.no}</div>
             <div>{text.topWeight}: {formatPct(risk?.sectorConcentration?.topWeightPct ?? risk?.concentration?.topWeightPct)}</div>
@@ -1518,7 +1536,7 @@ const PortfolioPage: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-2">{text.drawdownMonitor}</h3>
-          <div className="text-xs text-secondary space-y-1">
+          <div className="text-xs text-foreground-soft space-y-1">
             <div>{text.maxDrawdown}: {formatPct(risk?.drawdown?.maxDrawdownPct)}</div>
             <div>{text.currentDrawdown}: {formatPct(risk?.drawdown?.currentDrawdownPct)}</div>
             <div>{text.alert}: {risk?.drawdown?.alert ? text.yes : text.no}</div>
@@ -1526,7 +1544,7 @@ const PortfolioPage: React.FC = () => {
         </Card>
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-2">{text.stopLossWarning}</h3>
-          <div className="text-xs text-secondary space-y-1">
+          <div className="text-xs text-foreground-soft space-y-1">
             <div>{text.triggeredCount}: {risk?.stopLoss?.triggeredCount ?? 0}</div>
             <div>{text.nearCount}: {risk?.stopLoss?.nearCount ?? 0}</div>
             <div>{text.alert}: {risk?.stopLoss?.nearAlert ? text.yes : text.no}</div>
@@ -1534,7 +1552,7 @@ const PortfolioPage: React.FC = () => {
         </Card>
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-2">{text.scope}</h3>
-          <div className="text-xs text-secondary space-y-1">
+          <div className="text-xs text-foreground-soft space-y-1">
             <div>{text.accountCount}: {snapshot?.accountCount ?? 0}</div>
             <div>{text.currency}: {snapshot?.currency || 'CNY'}</div>
             <div>{text.costMethodShort}: {(snapshot?.costMethod || costMethod).toUpperCase()}</div>
@@ -1542,7 +1560,7 @@ const PortfolioPage: React.FC = () => {
         </Card>
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-2">{text.aiRiskSignals}</h3>
-          <div className="text-xs text-secondary space-y-1">
+          <div className="text-xs text-foreground-soft space-y-1">
             {risk?.decisionSignalRisk?.available === false ? (
               <div className="text-warning">{text.aiRiskUnavailable}</div>
             ) : (
@@ -1573,31 +1591,66 @@ const PortfolioPage: React.FC = () => {
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-3">手工录入：交易</h3>
           <form className="space-y-2" onSubmit={handleTradeSubmit}>
-            <input className={PORTFOLIO_INPUT_CLASS} placeholder="股票代码（例如 600519）" value={tradeForm.symbol}
-              onChange={(e) => setTradeForm((prev) => ({ ...prev, symbol: e.target.value }))} required />
+            <HrsInput
+              placeholder="股票代码（例如 600519）"
+              value={tradeForm.symbol}
+              onChange={(e) => setTradeForm((prev) => ({ ...prev, symbol: e.target.value }))}
+            />
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="date" value={tradeForm.tradeDate}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, tradeDate: e.target.value }))} required />
-              <select className={PORTFOLIO_SELECT_CLASS} value={tradeForm.side}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, side: e.target.value as PortfolioSide }))}>
-                <option value="buy">买入</option>
-                <option value="sell">卖出</option>
-              </select>
+              <HrsInput
+                type="date"
+                clearable={false}
+                className="w-full"
+                value={tradeForm.tradeDate}
+                onChange={(e) => setTradeForm((prev) => ({ ...prev, tradeDate: e.target.value }))}
+                />
+              <HrsSelect
+                value={tradeForm.side}
+                onChange={(v) => setTradeForm((prev) => ({ ...prev, side: v as PortfolioSide }))}
+                options={[
+                  { key: 'buy', label: '买入' },
+                  { key: 'sell', label: '卖出' },
+                ]}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.0001" placeholder="数量（必填）" value={tradeForm.quantity}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, quantity: e.target.value }))} required />
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.0001" placeholder="成交价（必填）" value={tradeForm.price}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, price: e.target.value }))} required />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.0001}
+                placeholder="数量（必填）"
+                value={tradeForm.quantity === '' ? undefined : Number(tradeForm.quantity)}
+                onChange={(v) => setTradeForm((prev) => ({ ...prev, quantity: v == null ? '' : String(v) }))}
+                />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.0001}
+                placeholder="成交价（必填）"
+                value={tradeForm.price === '' ? undefined : Number(tradeForm.price)}
+                onChange={(v) => setTradeForm((prev) => ({ ...prev, price: v == null ? '' : String(v) }))}
+                />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.0001" placeholder="手续费（可选）" value={tradeForm.fee}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, fee: e.target.value }))} />
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.0001" placeholder="税费（可选）" value={tradeForm.tax}
-                onChange={(e) => setTradeForm((prev) => ({ ...prev, tax: e.target.value }))} />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.0001}
+                placeholder="手续费（可选）"
+                value={tradeForm.fee === '' ? undefined : Number(tradeForm.fee)}
+                onChange={(v) => setTradeForm((prev) => ({ ...prev, fee: v == null ? '' : String(v) }))}
+              />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.0001}
+                placeholder="税费（可选）"
+                value={tradeForm.tax === '' ? undefined : Number(tradeForm.tax)}
+                onChange={(v) => setTradeForm((prev) => ({ ...prev, tax: v == null ? '' : String(v) }))}
+              />
             </div>
-            <p className="text-xs text-secondary">手续费和税费可留空，系统将按 0 处理。</p>
-            <button type="submit" className="btn-secondary w-full" disabled={!writableAccountId}>提交交易</button>
+            <p className="text-xs text-foreground-soft">手续费和税费可留空，系统将按 0 处理。</p>
+            <HrsButton type="submit" variant="primary" className="w-full" isDisabled={!writableAccountId}>提交交易</HrsButton>
           </form>
         </Card>
 
@@ -1605,46 +1658,84 @@ const PortfolioPage: React.FC = () => {
           <h3 className="text-sm font-semibold text-foreground mb-3">手工录入：资金流水</h3>
           <form className="space-y-2" onSubmit={handleCashSubmit}>
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="date" value={cashForm.eventDate}
-                onChange={(e) => setCashForm((prev) => ({ ...prev, eventDate: e.target.value }))} required />
-              <select className={PORTFOLIO_SELECT_CLASS} value={cashForm.direction}
-                onChange={(e) => setCashForm((prev) => ({ ...prev, direction: e.target.value as PortfolioCashDirection }))}>
-                <option value="in">流入</option>
-                <option value="out">流出</option>
-              </select>
+              <HrsInput
+                type="date"
+                clearable={false}
+                className="w-full"
+                value={cashForm.eventDate}
+                onChange={(e) => setCashForm((prev) => ({ ...prev, eventDate: e.target.value }))}
+                />
+              <HrsSelect
+                value={cashForm.direction}
+                onChange={(v) => setCashForm((prev) => ({ ...prev, direction: v as PortfolioCashDirection }))}
+                options={[
+                  { key: 'in', label: '流入' },
+                  { key: 'out', label: '流出' },
+                ]}
+              />
             </div>
-            <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.0001" placeholder="金额"
-              value={cashForm.amount} onChange={(e) => setCashForm((prev) => ({ ...prev, amount: e.target.value }))} required />
-            <input className={PORTFOLIO_INPUT_CLASS} placeholder={`币种（可选，默认 ${writableAccount?.baseCurrency || '账户基准币'}）`} value={cashForm.currency}
-              onChange={(e) => setCashForm((prev) => ({ ...prev, currency: e.target.value }))} />
-            <button type="submit" className="btn-secondary w-full" disabled={!writableAccountId}>提交资金流水</button>
+            <HrsNumberField
+              className="max-w-none"
+              minValue={0}
+              step={0.0001}
+              placeholder="金额"
+              value={cashForm.amount === '' ? undefined : Number(cashForm.amount)}
+              onChange={(v) => setCashForm((prev) => ({ ...prev, amount: v == null ? '' : String(v) }))}
+            />
+            <HrsInput
+              placeholder={`币种（可选，默认 ${writableAccount?.baseCurrency || '账户基准币'}）`}
+              value={cashForm.currency}
+              onChange={(e) => setCashForm((prev) => ({ ...prev, currency: e.target.value }))}
+            />
+            <HrsButton type="submit" variant="primary" className="w-full" isDisabled={!writableAccountId}>提交资金流水</HrsButton>
           </form>
         </Card>
 
         <Card padding="md">
           <h3 className="text-sm font-semibold text-foreground mb-3">手工录入：公司行为</h3>
           <form className="space-y-2" onSubmit={handleCorporateSubmit}>
-            <input className={PORTFOLIO_INPUT_CLASS} placeholder="股票代码" value={corpForm.symbol}
-              onChange={(e) => setCorpForm((prev) => ({ ...prev, symbol: e.target.value }))} required />
+            <HrsInput
+              placeholder="股票代码"
+              value={corpForm.symbol}
+              onChange={(e) => setCorpForm((prev) => ({ ...prev, symbol: e.target.value }))}
+            />
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="date" value={corpForm.effectiveDate}
-                onChange={(e) => setCorpForm((prev) => ({ ...prev, effectiveDate: e.target.value }))} required />
-              <select className={PORTFOLIO_SELECT_CLASS} value={corpForm.actionType}
-                onChange={(e) => setCorpForm((prev) => ({ ...prev, actionType: e.target.value as PortfolioCorporateActionType }))}>
-                <option value="cash_dividend">现金分红</option>
-                <option value="split_adjustment">拆并股调整</option>
-              </select>
+              <HrsInput
+                type="date"
+                clearable={false}
+                className="w-full"
+                value={corpForm.effectiveDate}
+                onChange={(e) => setCorpForm((prev) => ({ ...prev, effectiveDate: e.target.value }))}
+                />
+              <HrsSelect
+                value={corpForm.actionType}
+                onChange={(v) => setCorpForm((prev) => ({ ...prev, actionType: v as PortfolioCorporateActionType }))}
+                options={[
+                  { key: 'cash_dividend', label: '现金分红' },
+                  { key: 'split_adjustment', label: '拆并股调整' },
+                ]}
+              />
             </div>
             {corpForm.actionType === 'cash_dividend' ? (
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.000001" placeholder="每股分红"
-                value={corpForm.cashDividendPerShare}
-                onChange={(e) => setCorpForm((prev) => ({ ...prev, cashDividendPerShare: e.target.value, splitRatio: '' }))} required />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.000001}
+                placeholder="每股分红"
+                value={corpForm.cashDividendPerShare === '' ? undefined : Number(corpForm.cashDividendPerShare)}
+                onChange={(v) => setCorpForm((prev) => ({ ...prev, cashDividendPerShare: v == null ? '' : String(v), splitRatio: '' }))}
+                />
             ) : (
-              <input className={PORTFOLIO_INPUT_CLASS} type="number" min="0" step="0.000001" placeholder="拆并股比例"
-                value={corpForm.splitRatio}
-                onChange={(e) => setCorpForm((prev) => ({ ...prev, splitRatio: e.target.value, cashDividendPerShare: '' }))} required />
+              <HrsNumberField
+                className="max-w-none"
+                minValue={0}
+                step={0.000001}
+                placeholder="拆并股比例"
+                value={corpForm.splitRatio === '' ? undefined : Number(corpForm.splitRatio)}
+                onChange={(v) => setCorpForm((prev) => ({ ...prev, splitRatio: v == null ? '' : String(v), cashDividendPerShare: '' }))}
+                />
             )}
-            <button type="submit" className="btn-secondary w-full" disabled={!writableAccountId}>提交企业行为</button>
+            <HrsButton type="submit" variant="primary" className="w-full" isDisabled={!writableAccountId}>提交企业行为</HrsButton>
           </form>
         </Card>
       </section>
@@ -1662,13 +1753,13 @@ const PortfolioPage: React.FC = () => {
               />
             ) : null}
             <div className="grid grid-cols-2 gap-2">
-              <select className={PORTFOLIO_SELECT_CLASS} value={selectedBroker} onChange={(e) => setSelectedBroker(e.target.value)}>
-                {brokers.length > 0 ? (
-                  brokers.map((item) => <option key={item.broker} value={item.broker}>{formatBrokerLabel(item.broker, item.displayName)}</option>)
-                ) : (
-                  <option value="huatai">huatai（华泰）</option>
-                )}
-              </select>
+              <HrsSelect
+                value={selectedBroker}
+                onChange={(v) => setSelectedBroker(v as string)}
+                options={brokers.length > 0
+                  ? brokers.map((item) => ({ key: item.broker, label: formatBrokerLabel(item.broker, item.displayName) }))
+                  : [{ key: 'huatai', label: 'huatai（华泰）' }]}
+              />
               <label className={PORTFOLIO_FILE_PICKER_CLASS}>
                 选择 CSV
                 <input type="file" accept=".csv" className="hidden"
@@ -1676,17 +1767,16 @@ const PortfolioPage: React.FC = () => {
               </label>
             </div>
             <div className="flex items-center gap-2 text-xs text-secondary">
-              <input id="csv-dry-run" type="checkbox" checked={csvDryRun} onChange={(e) => setCsvDryRun(e.target.checked)} />
-              <label htmlFor="csv-dry-run">仅预演（不写入）</label>
+              <HrsCheckbox isSelected={csvDryRun} onChange={(checked) => setCsvDryRun(checked as boolean)} label="仅预演（不写入）" />
             </div>
             <div className="flex gap-2">
-              <button type="button" className="btn-secondary flex-1" disabled={!csvFile || csvParsing} onClick={() => void handleParseCsv()}>
+              <HrsButton variant="primary" className="flex-1" isDisabled={!csvFile || csvParsing} onClick={() => void handleParseCsv()}>
                 {csvParsing ? '解析中...' : '解析文件'}
-              </button>
-              <button type="button" className="btn-secondary flex-1"
-                disabled={!csvFile || !writableAccountId || csvCommitting} onClick={() => void handleCommitCsv()}>
+              </HrsButton>
+              <HrsButton variant="primary" className="flex-1"
+                isDisabled={!csvFile || !writableAccountId || csvCommitting} onClick={() => void handleCommitCsv()}>
                 {csvCommitting ? '提交中...' : '提交导入'}
-              </button>
+              </HrsButton>
             </div>
             {csvParseResult ? (
               <InlineAlert
@@ -1711,47 +1801,61 @@ const PortfolioPage: React.FC = () => {
           <h3 className="text-sm font-semibold text-foreground mb-3">事件记录</h3>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <select className={PORTFOLIO_SELECT_CLASS} value={eventType} onChange={(e) => setEventType(e.target.value as EventType)}>
-                <option value="trade">交易流水</option>
-                <option value="cash">资金流水</option>
-                <option value="corporate">公司行为</option>
-              </select>
-              <button type="button" className="btn-secondary text-sm" onClick={() => void loadEvents()} disabled={eventLoading}>
+              <HrsSelect
+                value={eventType}
+                onChange={(v) => setEventType(v as EventType)}
+                options={[
+                  { key: 'trade', label: '交易流水' },
+                  { key: 'cash', label: '资金流水' },
+                  { key: 'corporate', label: '公司行为' },
+                ]}
+              />
+              <HrsButton variant="secondary" onClick={() => void loadEvents()} isDisabled={eventLoading}>
                 {eventLoading ? '加载中...' : '刷新流水'}
-              </button>
+              </HrsButton>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input className={PORTFOLIO_INPUT_CLASS} type="date" value={eventDateFrom} onChange={(e) => setEventDateFrom(e.target.value)} />
-              <input className={PORTFOLIO_INPUT_CLASS} type="date" value={eventDateTo} onChange={(e) => setEventDateTo(e.target.value)} />
+              <HrsInput type="date" clearable={false} className="w-full" value={eventDateFrom} onChange={(e) => setEventDateFrom(e.target.value)} />
+              <HrsInput type="date" clearable={false} className="w-full" value={eventDateTo} onChange={(e) => setEventDateTo(e.target.value)} />
             </div>
             {(eventType === 'trade' || eventType === 'corporate') ? (
-              <input className={PORTFOLIO_INPUT_CLASS} placeholder="按股票代码筛选" value={eventSymbol}
+              <HrsInput placeholder="按股票代码筛选" value={eventSymbol}
                 onChange={(e) => setEventSymbol(e.target.value)} />
             ) : null}
             {eventType === 'trade' ? (
-              <select className={PORTFOLIO_SELECT_CLASS} value={eventSide} onChange={(e) => setEventSide(e.target.value as '' | PortfolioSide)}>
-                <option value="">全部买卖方向</option>
-                <option value="buy">买入</option>
-                <option value="sell">卖出</option>
-              </select>
+              <HrsSelect
+                value={eventSide}
+                onChange={(v) => setEventSide(v as '' | PortfolioSide)}
+                options={[
+                  { key: '', label: '全部买卖方向' },
+                  { key: 'buy', label: '买入' },
+                  { key: 'sell', label: '卖出' },
+                ]}
+              />
             ) : null}
             {eventType === 'cash' ? (
-              <select className={PORTFOLIO_SELECT_CLASS} value={eventDirection}
-                onChange={(e) => setEventDirection(e.target.value as '' | PortfolioCashDirection)}>
-                <option value="">全部资金方向</option>
-                <option value="in">流入</option>
-                <option value="out">流出</option>
-              </select>
+              <HrsSelect
+                value={eventDirection}
+                onChange={(v) => setEventDirection(v as '' | PortfolioCashDirection)}
+                options={[
+                  { key: '', label: '全部资金方向' },
+                  { key: 'in', label: '流入' },
+                  { key: 'out', label: '流出' },
+                ]}
+              />
             ) : null}
             {eventType === 'corporate' ? (
-              <select className={PORTFOLIO_SELECT_CLASS} value={eventActionType}
-                onChange={(e) => setEventActionType(e.target.value as '' | PortfolioCorporateActionType)}>
-                <option value="">全部公司行为</option>
-                <option value="cash_dividend">现金分红</option>
-                <option value="split_adjustment">拆并股调整</option>
-              </select>
+              <HrsSelect
+                value={eventActionType}
+                onChange={(v) => setEventActionType(v as '' | PortfolioCorporateActionType)}
+                options={[
+                  { key: '', label: '全部公司行为' },
+                  { key: 'cash_dividend', label: '现金分红' },
+                  { key: 'split_adjustment', label: '拆并股调整' },
+                ]}
+              />
             ) : null}
-            <div className="text-[11px] text-secondary">
+            <div className="text-[11px] text-foreground-soft">
               {writeBlocked ? '删除修正仅在单账户视图可用。请先选择具体账户后再删除错误流水。' : '如有错误流水，可直接删除后重新录入。'}
             </div>
             <div className="max-h-64 overflow-auto rounded-lg border border-white/10 p-2">
@@ -1761,9 +1865,9 @@ const PortfolioPage: React.FC = () => {
                     {item.tradeDate} {formatSideLabel(item.side)} {item.symbol} 数量={item.quantity} 价格={item.price}
                   </div>
                   {!writeBlocked ? (
-                    <button
-                      type="button"
-                      className="btn-secondary shrink-0 !px-3 !py-1 !text-[11px]"
+                    <HrsButton
+                      variant="danger-soft"
+                      size="xs"
                       onClick={() => openDeleteDialog({
                         eventType: 'trade',
                         id: item.id,
@@ -1771,7 +1875,7 @@ const PortfolioPage: React.FC = () => {
                       })}
                     >
                       删除
-                    </button>
+                    </HrsButton>
                   ) : null}
                 </div>
               ))}
@@ -1781,9 +1885,9 @@ const PortfolioPage: React.FC = () => {
                     {item.eventDate} {formatCashDirectionLabel(item.direction)} {item.amount} {item.currency}
                   </div>
                   {!writeBlocked ? (
-                    <button
-                      type="button"
-                      className="btn-secondary shrink-0 !px-3 !py-1 !text-[11px]"
+                    <HrsButton
+                      variant="danger-soft"
+                      size="xs"
                       onClick={() => openDeleteDialog({
                         eventType: 'cash',
                         id: item.id,
@@ -1791,7 +1895,7 @@ const PortfolioPage: React.FC = () => {
                       })}
                     >
                       删除
-                    </button>
+                    </HrsButton>
                   ) : null}
                 </div>
               ))}
@@ -1801,9 +1905,9 @@ const PortfolioPage: React.FC = () => {
                     {item.effectiveDate} {formatCorporateActionLabel(item.actionType)} {item.symbol}
                   </div>
                   {!writeBlocked ? (
-                    <button
-                      type="button"
-                      className="btn-secondary shrink-0 !px-3 !py-1 !text-[11px]"
+                    <HrsButton
+                      variant="danger-soft"
+                      size="xs"
                       onClick={() => openDeleteDialog({
                         eventType: 'corporate',
                         id: item.id,
@@ -1811,7 +1915,7 @@ const PortfolioPage: React.FC = () => {
                       })}
                     >
                       删除
-                    </button>
+                    </HrsButton>
                   ) : null}
                 </div>
               ))}
@@ -1829,14 +1933,14 @@ const PortfolioPage: React.FC = () => {
             <div className="flex items-center justify-between text-xs text-secondary">
               <span>第 {eventPage} / {totalEventPages} 页</span>
               <div className="flex gap-2">
-                <button type="button" className="btn-secondary text-xs px-3 py-1" disabled={eventPage <= 1}
+                <HrsButton variant="secondary" size="xs" isDisabled={eventPage <= 1}
                   onClick={() => setEventPage((prev) => Math.max(1, prev - 1))}>
                   上一页
-                </button>
-                <button type="button" className="btn-secondary text-xs px-3 py-1" disabled={eventPage >= totalEventPages}
+                </HrsButton>
+                <HrsButton variant="secondary" size="xs" isDisabled={eventPage >= totalEventPages}
                   onClick={() => setEventPage((prev) => Math.min(totalEventPages, prev + 1))}>
                   下一页
-                </button>
+                </HrsButton>
               </div>
             </div>
           </div>
