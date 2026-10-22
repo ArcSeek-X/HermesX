@@ -40,7 +40,6 @@
 
 }
 
-
 /* 此处不写 @tailwind base/components/utilities 指令：项目为 Tailwind v4，
    三层样式由唯一入口 style/index.css 的 @import "tailwindcss" 生成，
    本文件只在 Tailwind 已声明的同名层（base / components / utilities）里追加自定义内容。 */
@@ -57,7 +56,6 @@
   }
 }
 
-
 @layer components {
 
   /* 指数卡片：1px 淡灰外边框，颜色取自设计令牌 --border-subtle（亮色 foreground/0.08，暗色 /0.04） */
@@ -66,26 +64,10 @@
   }
 }
 
-
-
-
-
-
-
 /* ============ Circular Gauge ============ */
 .gauge-ring {
   filter: drop-shadow(0 0 8px var(--color-cyan-glow));
   transform: translateZ(0);
-}
-
-.gauge-track {
-  stroke: rgba(255, 255, 255, 0.05);
-  fill: none;
-}
-
-.gauge-glow {
-  filter: blur(6px);
-  opacity: 0.6;
 }
 
 /* ============ Sentiment-based Gauge Colors ============ */
@@ -190,7 +172,6 @@
     color 0.2s ease;
 }
 
-
 .input-surface::placeholder {
   color: var(--input-surface-placeholder, var(--text-muted-text));
   -webkit-text-fill-color: var(--input-surface-placeholder, var(--text-muted-text));
@@ -237,20 +218,6 @@
   border-color: var(--input-surface-border-focus);
   box-shadow: var(--input-surface-shadow, var(--shadow-soft-card)), var(--input-surface-focus-ring);
 }
-
-.input-appearance-login {
-  --input-surface-bg: var(--login-input-surface);
-  --input-surface-border: var(--login-input-border);
-  --input-surface-border-hover: var(--login-input-border-hover);
-  --input-surface-border-focus: var(--login-input-border-focus);
-  --input-surface-focus-ring: var(--login-input-focus-ring);
-  --input-surface-text: var(--login-input-text);
-  --input-surface-placeholder: var(--login-input-placeholder);
-  --input-surface-caret: var(--login-input-caret);
-  --input-surface-fill: var(--login-input-fill);
-  --input-surface-shadow: var(--login-input-shadow, var(--shadow-soft-card));
-}
-
 
 /* ============ Animations ============ */
 @keyframes spin {
@@ -341,11 +308,6 @@
   animation-name: slideInFromTopMd;
 }
 
-/* ============ Glassmorphism Panels ============ */
-.glass-panel-lg {
-  @apply rounded-3xl border border-border/60 bg-card/70 shadow-soft-card backdrop-blur-md transition-all;
-}
-
 /* ============ Utilities ============ */
 .text-cyan-400 {
   color: hsl(var(--color-cyan-400));
@@ -370,9 +332,6 @@
 /* .text-success { color: hsl(var(--color-success)); } */
 /* .text-danger { color: hsl(var(--color-danger)); } */
 /* .text-warning { color: hsl(var(--color-warning)); } */
-
-
-
 
 .bg-base {
   background: var(--bg-base);
@@ -410,7 +369,6 @@
 /* .border-subtle {
   border-color: var(--border-subtle);
 } */
-
 
 /* ============ Responsive ============ */
 /* =========================================
@@ -1300,31 +1258,6 @@ textarea {
   transform: none;
 }
 
-:root:not(.dark) .portfolio-page .btn-primary:not(:disabled),
-:root:not(.dark) .portfolio-page .btn-secondary:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.7),
-    0 3px 8px hsl(220 18% 30% / 0.045),
-    0 10px 20px hsl(220 18% 30% / 0.075);
-}
-
-:root:not(.dark) .portfolio-page .btn-secondary:not(:disabled) {
-  border-color: hsl(218 22% 82% / 0.92);
-}
-
-:root:not(.dark) .portfolio-page .btn-secondary:hover:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.76),
-    0 5px 12px hsl(220 18% 30% / 0.06),
-    0 14px 26px hsl(220 18% 30% / 0.1);
-}
-
-:root:not(.dark) .portfolio-page .btn-primary:hover:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.18),
-    0 18px 34px rgba(0, 212, 255, 0.22);
-}
-
 .bg-primary-gradient {
   background: var(--gradient-primary);
 }
@@ -1333,24 +1266,12 @@ textarea {
   box-shadow: var(--shadow-soft-card-strong);
 }
 
-.settings-surface {
-  background: var(--settings-surface);
-}
-
-.settings-surface-hover {
-  background: var(--settings-surface-hover);
-}
-
 .settings-surface-strong {
   background: var(--settings-surface-strong);
 }
 
 .settings-surface-panel {
   background: var(--settings-surface-panel);
-}
-
-.settings-surface-overlay {
-  background: var(--settings-surface-overlay);
 }
 
 .settings-surface-overlay-soft {
@@ -1365,24 +1286,8 @@ textarea {
   border-color: var(--settings-border);
 }
 
-.settings-border-soft {
-  border-color: var(--settings-border-soft);
-}
-
 .settings-border-strong {
   border-color: var(--settings-border-strong);
-}
-
-.settings-nav-item-active {
-  border-color: hsl(var(--primary) / 0.36);
-  background: hsl(var(--primary) / 0.12);
-  box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.74);
-}
-
-.dark .settings-nav-item-active {
-  border-color: hsl(var(--primary) / 0.34);
-  background: hsl(var(--primary) / 0.12);
-  box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.68);
 }
 
 .settings-button-primary {
@@ -2125,17 +2030,6 @@ textarea {
   text-align: center;
 }
 
-.backtest-empty-state .icon-wrap {
-  width: 3rem;
-  height: 3rem;
-  margin-bottom: 0.75rem;
-  border-radius: 0.75rem;
-  background: hsl(var(--elevated));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .backtest-empty-state .title {
   font-size: 1rem;
   font-weight: 500;
@@ -2174,10 +2068,6 @@ textarea {
 
 .stock-flat {
   color: hsl(var(--stock-flat));
-}
-
-.bg-stock-up {
-  background-color: hsl(var(--stock-up));
 }
 
 .bg-stock-up-10 {
