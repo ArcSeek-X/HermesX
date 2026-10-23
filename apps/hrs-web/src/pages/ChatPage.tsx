@@ -113,7 +113,7 @@ const resolveUniqueStockNameContext = (
   for (const item of index) {
     if (!item.active) continue;
     // 中文名至少 2 个字，英文名至少 3 个字符，避免短词误匹配
-    const terms = [item.nameZh, item.nameEn, ...(item.aliases || [])]
+    const terms = [item.name, item.nameEn, ...(item.aliases || [])]
       .map((term) => term?.trim())
       .filter((term): term is string => Boolean(term))
       .filter((term) => /[\u3400-\u9fff]/.test(term) ? term.length >= 2 : term.length >= 3);
@@ -121,7 +121,7 @@ const resolveUniqueStockNameContext = (
       continue;
     }
     const stockCode = normalizeStockCode(item.canonicalCode);
-    matches.set(stockCode, { stock_code: stockCode, stock_name: item.nameZh || null });
+    matches.set(stockCode, { stock_code: stockCode, stock_name: item.name || null });
   }
 
   // 仅当唯一匹配时返回，多匹配视为歧义

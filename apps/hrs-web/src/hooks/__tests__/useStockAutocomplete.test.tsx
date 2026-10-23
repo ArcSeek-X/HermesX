@@ -17,7 +17,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: '600519.SH',
     displayCode: '600519',
-    nameZh: '贵州茅台',
+    name: '贵州茅台',
     pinyinFull: 'guizhoumaotai',
     pinyinAbbr: 'gzmt',
     aliases: ['茅台'],
@@ -64,7 +64,7 @@ describe('useStockAutocomplete', () => {
       {
         canonicalCode: '600519.SH',
         displayCode: '600519',
-        nameZh: '贵州茅台',
+        name: '贵州茅台',
         market: 'CN',
         matchType: 'exact',
         matchField: 'code',

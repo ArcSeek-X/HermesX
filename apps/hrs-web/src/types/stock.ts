@@ -85,8 +85,6 @@ export interface StockIdentity extends StockRef {
   exchange?: Exchange;
   /** 带交易所后缀的规范代码（如 600519.SH），跨市场 / 搜索场景使用 */
   canonicalCode?: string;
-  /** 展示用代码（如 600519），用户界面直接显示 */
-  displayCode?: string;
   /** 英文名（如 Kweichow Moutai），国际化 / 搜索辅助 */
   nameEn?: string;
   /** 所属行业（完整信息的一部分，如 白酒 / 半导体）；可选，源未提供时由边界适配层补默认值或留空 */
@@ -160,3 +158,42 @@ export type StockLimitUpQuote = LimitBoardQuote;
 
 /** 跌停榜单：LimitBoardQuote 的跌停语义别名 */
 export type StockLimitDownQuote = LimitBoardQuote;
+
+/* ------------------------------------------------------------------ *
+ * 展示层（L4）：UI 呈现给用户的最小展示字段契约
+ * ------------------------------------------------------------------ */
+
+/**
+ * 股票展示信息：UI 直接呈现给用户所需的派生展示字段，与标识层 / 行情层正交。
+ *
+ * 分层定位：
+ * - 标识层（StockIdentity）回答"这是哪只股票"——code/name + 归一化 market/assetType/exchange；
+ * - 行情层（StockQuoteCore）回答"它现在值多少"；
+ * - 本层回答"在界面上怎么把它展示给用户看"。
+ *
+ * 与标识层的关系：本层的展示码（displayCode）对应搜索索引项（StockSuggestion /
+ * StockIndexItem）上的展示用代码（如 600519，不带交易所后缀），而非 StockIdentity
+ * 的字段；跨系统存储 / 检索请改用 canonicalCode（带后缀，如 600519.SH）。
+ *
+ * 展示名直接使用标识层的 name，本层不再单独定义 displayName，避免与 name 重复。
+ */
+export interface StockDisplay {
+  /** 展示用代码（如 600519），不带交易所后缀；跨系统存储 / 检索用 canonicalCode */
+  displayCode?: string;
+  /**
+   * 组合展示标签（如「中科曙光（603019.SH）」）：名称 + 规范代码。
+   * 用于输入框回填、列表单行等"一眼识别"场景；原则上可由 name 与
+   * canonicalCode 派生，本身不在源数据 / 存储中单独落库。
+   */
+  displayLabel?: string;
+}
+
+/**
+ * 股票选择元信息：StockSearch.onSubmit 回调的 metadata 形状。
+ * 在展示字段（StockDisplay）基础上附加原始市场标签 marketTag（来自搜索索引项，
+ * 为 StockIndexMarketTag 未归一化值）；调用方如需归一化地域（MarketLocale），
+ * 应在边界处自行转换，不在此收口。
+ */
+export type StockSelectionMeta = StockDisplay & {
+  marketTag?: StockIndexMarketTag;
+};

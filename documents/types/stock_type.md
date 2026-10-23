@@ -471,7 +471,7 @@ export type MarketReviewSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'u
 | `StockIndexItem` 字段 | 处置 |
 |---|---|
 | `canonicalCode` / `displayCode` / `nameEn?` / `market` / `assetType` | **继承**：已是 `StockIdentity` 成员 |
-| `nameZh` | **改名 → `name`**（与 `StockIdentity.name` 对齐；当前 `nameZh` 即中文名，属命名漂移） |
+| `nameZh` | **已改名 → `name`**（与 `StockIdentity.name` 对齐；原 `nameZh` 即中文名，属命名漂移，本版已完成） |
 | `pinyinFull?` / `pinyinAbbr?` / `aliases?` / `active` / `popularity?` | **保留**：搜索 / 补全专属，不入核心 |
 
 **目标形态**
@@ -520,7 +520,7 @@ export type StockIndexTuple = [
 export type StockIndexData = StockIndexItem[] | StockIndexTuple[];
 ```
 
-> 注：`StockIdentity.name` 在本项目即中文名（与 `nameEn` 对应），故 `nameZh` 直接对齐为 `name`；`StockIndexTuple` 元组下标 2 的映射由 `stockIndexLoader.ts` 同步从 `nameZh` 改为 `name`。
+> 注：`StockIdentity.name` 在本项目即中文名（与 `nameEn` 对应），故 `nameZh` 已对齐为 `name`；`StockIndexTuple` 元组下标 2 的映射由 `stockIndexLoader.ts` 同步从 `nameZh` 改为 `name`（本版已完成）。
 
 **迁移成本（机械但面广）**：`nameZh→name` 触及约 15 个文件、`stockIndexLoader.ts`（元组映射）、`searchStocks.ts`、`StockSearch*.tsx`、`useStockAutocomplete.ts`、`ChatPage.tsx` 及 4 个测试文件，总计约 80+ 处引用。因无历史包袱可一次性完成，但**必须连带更新测试**（`stockIndexLoader.test.ts` / `searchStocks.test.ts` / `StockSearch.test.tsx` 的 `nameZh` 断言会失败）。建议独立成 P3-6，附前后对比验证。
 

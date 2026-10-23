@@ -56,7 +56,7 @@ import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 const INDEX_HIT: StockIndexItem = {
   canonicalCode: '600519.SH',
   displayCode: '600519',
-  nameZh: '贵州茅台',
+  name: '贵州茅台',
   market: 'CN',
   assetType: 'stock',
   active: true,

@@ -51,7 +51,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "600519.SH",
     displayCode: "600519",
-    nameZh: "贵州茅台",
+    name: "贵州茅台",
     pinyinFull: "guizhoumaotai",
     pinyinAbbr: "gzmt",
     aliases: ["茅台"],
@@ -66,7 +66,7 @@ const mockSuggestions: StockSuggestion[] = [
   {
     canonicalCode: "600519.SH",
     displayCode: "600519",
-    nameZh: "贵州茅台",
+    name: "贵州茅台",
     market: "CN",
     matchType: "exact" as const,
     matchField: "code" as const,
@@ -77,7 +77,7 @@ const mockSuggestions: StockSuggestion[] = [
 const hkSuggestion = {
   canonicalCode: "00700.HK",
   displayCode: "00700",
-  nameZh: "腾讯控股",
+  name: "腾讯控股",
   market: "HK" as const,
   matchType: "exact" as const,
   matchField: "code" as const,
@@ -87,7 +87,7 @@ const hkSuggestion = {
 const bseSuggestion = {
   canonicalCode: "920493.BJ",
   displayCode: "920493",
-  nameZh: "示例北交所股票",
+  name: "示例北交所股票",
   market: "BSE" as const,
   matchType: "exact" as const,
   matchField: "code" as const,
@@ -97,7 +97,7 @@ const bseSuggestion = {
 const krSuggestion = {
   canonicalCode: "000660.KS",
   displayCode: "000660.KS",
-  nameZh: "SK Hynix",
+  name: "SK Hynix",
   market: "KR" as const,
   matchType: "contains" as const,
   matchField: "code" as const,
@@ -107,7 +107,7 @@ const krSuggestion = {
 const jpSuggestion = {
   canonicalCode: "7203.T",
   displayCode: "7203.T",
-  nameZh: "ソニーグループ",
+  name: "ソニーグループ",
   market: "JP" as const,
   matchType: "contains" as const,
   matchField: "code" as const,
@@ -464,7 +464,7 @@ describe('StockSearch', () => {
 
       // 候选展开但未高亮时，回车提交首个候选（component 统一把中文名/代码转换为规范代码）
       expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', expect.objectContaining({
-        market: 'CN',
+        marketTag: 'CN',
         displayCode: '600519',
       }));
     });
@@ -501,7 +501,7 @@ describe('StockSearch', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith('600519');
       expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', {
-        market: 'CN',
+        marketTag: 'CN',
         displayCode: '600519',
         // 统一展示格式："股票名称（规范代码）"
         displayLabel: '贵州茅台（600519.SH）',
@@ -540,7 +540,7 @@ describe('StockSearch', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith('00700');
       expect(mockOnSubmit).toHaveBeenCalledWith('00700.HK', '腾讯控股', 'autocomplete', {
-        market: 'HK',
+        marketTag: 'HK',
         displayCode: '00700',
         displayLabel: '腾讯控股（00700.HK）',
       });
@@ -578,7 +578,7 @@ describe('StockSearch', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith('920493');
       expect(mockOnSubmit).toHaveBeenCalledWith('920493.BJ', '示例北交所股票', 'autocomplete', {
-        market: 'BSE',
+        marketTag: 'BSE',
         displayCode: '920493',
         displayLabel: '示例北交所股票（920493.BJ）',
       });
@@ -681,7 +681,7 @@ describe('StockSearch', () => {
           {
             canonicalCode: 'TEST.OTC',
             displayCode: 'TEST',
-            nameZh: '测试市场',
+            name: '测试市场',
             market: 'OTC' as never,
             matchType: 'exact' as const,
             matchField: 'code' as const,

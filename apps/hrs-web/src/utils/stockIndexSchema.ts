@@ -11,7 +11,7 @@
 export const STOCK_INDEX_FIELDS = [
   'canonicalCode',
   'displayCode',
-  'nameZh',
+  'name',
   'pinyinFull',
   'pinyinAbbr',
   'aliases',

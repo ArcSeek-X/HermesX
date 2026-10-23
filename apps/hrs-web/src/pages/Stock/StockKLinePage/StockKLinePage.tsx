@@ -40,7 +40,7 @@ const FULL_DATA_PERIODS: KLinePeriod[] = ['5d', 'daily', 'weekly'];
 /** 生成与搜索框一致的展示标签「名称（规范代码）」：优先用本地索引补市场后缀，缺失时退化为行情名+代码 */
 function buildSearchLabel(stockIndex: StockIndexItem[], stockInfo: StockQuoteCore, code: string): string {
   const hit = stockIndex.find((item) => item.displayCode === code);
-  if (hit) return hit.nameZh ? `${hit.nameZh}（${hit.canonicalCode}）` : hit.canonicalCode;
+  if (hit) return hit.name ? `${hit.name}（${hit.canonicalCode}）` : hit.canonicalCode;
   return stockInfo.name ? `${stockInfo.name}（${stockInfo.code || code}）` : code;
 }
 

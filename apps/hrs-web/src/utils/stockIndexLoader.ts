@@ -104,13 +104,13 @@ function isCompressedFormat(data: StockIndexData): data is StockIndexTuple[] {
  *
  * @example
  * // 输入：['600519', '600519', '贵州茅台', 'guizhoumaotai', 'gzm', [], 'CN', 'stock', true, 100]
- * // 输出：{ canonicalCode:'600519', displayCode:'600519', nameZh:'贵州茅台', ... }
+ * // 输出：{ canonicalCode:'600519', displayCode:'600519', name:'贵州茅台', ... }
  */
 function unpackTuples(tuples: StockIndexTuple[]): StockIndexItem[] {
   return tuples.map(tuple => ({
     canonicalCode: tuple[INDEX_FIELD.CANONICAL_CODE],
     displayCode: tuple[INDEX_FIELD.DISPLAY_CODE],
-    nameZh: tuple[INDEX_FIELD.NAME_ZH],
+    name: tuple[INDEX_FIELD.NAME_ZH],
     pinyinFull: tuple[INDEX_FIELD.PINYIN_FULL],
     pinyinAbbr: tuple[INDEX_FIELD.PINYIN_ABBR],
     aliases: tuple[INDEX_FIELD.ALIASES],
@@ -130,14 +130,14 @@ function unpackTuples(tuples: StockIndexTuple[]): StockIndexItem[] {
  * @returns 压缩后的元组数组（StockIndexTuple[]），每个元组的列顺序见 INDEX_FIELD
  *
  * @example
- * compressIndex([{ canonicalCode:'600519', displayCode:'600519', nameZh:'贵州茅台', ... }])
+ * compressIndex([{ canonicalCode:'600519', displayCode:'600519', name:'贵州茅台', ... }])
  * // => [['600519','600519','贵州茅台',...]]
  */
 export function compressIndex(items: StockIndexItem[]): StockIndexTuple[] {
   return items.map(item => [
     item.canonicalCode,
     item.displayCode,
-    item.nameZh,
+    item.name,
     item.pinyinFull,
     item.pinyinAbbr,
     item.aliases || [],
@@ -156,7 +156,7 @@ export function compressIndex(items: StockIndexItem[]): StockIndexTuple[] {
  * @returns 命中的索引项；未找到时返回 null
  *
  * @example
- * findStockInIndex('600519.SH', index) // => { canonicalCode:'600519.SH', nameZh:'贵州茅台', ... }
+ * findStockInIndex('600519.SH', index) // => { canonicalCode:'600519.SH', name:'贵州茅台', ... }
  * findStockInIndex('000000.SH', index) // => null
  */
 export function findStockInIndex(

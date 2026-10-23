@@ -18,7 +18,7 @@ export interface StockIndexItem {
   /** Display code: 600519 */
   displayCode: string;
   /** Chinese name: 贵州茅台 */
-  nameZh: string;
+  name: string;
   /** English name: Kweichow Moutai */
   nameEn?: string;
   /** Pinyin full: guizhoumaotai */
@@ -46,7 +46,7 @@ export interface StockSuggestion {
   /** Display code */
   displayCode: string;
   /** Chinese name */
-  nameZh: string;
+  name: string;
   /** Market */
   market: StockIndexMarketTag;
   /** Match type */
@@ -63,7 +63,7 @@ export interface StockSuggestion {
 export type StockIndexTuple = [
   string,  // canonicalCode
   string,  // displayCode
-  string,  // nameZh
+  string,  // name
   string | undefined, // pinyinFull
   string | undefined, // pinyinAbbr
   string[], // aliases (required, use empty array if none)

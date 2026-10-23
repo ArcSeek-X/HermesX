@@ -10,7 +10,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "600519.SH",
     displayCode: "600519",
-    nameZh: "贵州茅台",
+    name: "贵州茅台",
     pinyinFull: "guizhoumaotai",
     pinyinAbbr: "gzmt",
     aliases: ["茅台"],
@@ -22,7 +22,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "000001.SZ",
     displayCode: "000001",
-    nameZh: "平安银行",
+    name: "平安银行",
     pinyinFull: "pinganyinxing",
     pinyinAbbr: "payh",
     aliases: ["平银"],
@@ -34,7 +34,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "000002.SZ",
     displayCode: "000002",
-    nameZh: "万科Ａ",
+    name: "万科Ａ",
     pinyinFull: "wankeＡ",
     pinyinAbbr: "wkＡ",
     aliases: [],
@@ -46,7 +46,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "00700.HK",
     displayCode: "00700",
-    nameZh: "腾讯控股",
+    name: "腾讯控股",
     pinyinFull: "tengxunkonggu",
     pinyinAbbr: "txkg",
     aliases: ["腾讯"],
@@ -58,7 +58,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "AAPL.US",
     displayCode: "AAPL",
-    nameZh: "苹果",
+    name: "苹果",
     pinyinFull: "pingguo",
     pinyinAbbr: "pg",
     aliases: [],
@@ -70,7 +70,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "7203.T",
     displayCode: "7203.T",
-    nameZh: "丰田汽车",
+    name: "丰田汽车",
     pinyinFull: "fengtianqiche",
     pinyinAbbr: "ftqc",
     aliases: ["Toyota", "Toyota Motor", "丰田"],
@@ -82,7 +82,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "005930.KS",
     displayCode: "005930.KS",
-    nameZh: "三星电子",
+    name: "三星电子",
     pinyinFull: "sanxingdianzi",
     pinyinAbbr: "sxdz",
     aliases: ["Samsung", "Samsung Electronics", "三星"],
@@ -94,7 +94,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "035720.KQ",
     displayCode: "035720.KQ",
-    nameZh: "Kakao",
+    name: "Kakao",
     pinyinFull: "Kakao",
     pinyinAbbr: "Kakao",
     aliases: ["Kakao", "可可"],
@@ -106,7 +106,7 @@ const mockIndex: StockIndexItem[] = [
   {
     canonicalCode: "600000.SH",
     displayCode: "600000",
-    nameZh: "浦发银行",
+    name: "浦发银行",
     pinyinFull: "pufayinxing",
     pinyinAbbr: "pfyh",
     aliases: ["浦发"],
@@ -322,7 +322,7 @@ describe('searchStocks', () => {
       const results = searchStocks('银', mockIndex);
       expect(results.length).toBeGreaterThan(0);
       // Should match 平安银行 and 浦发银行
-      const banks = results.filter(r => r.nameZh.includes('银行'));
+      const banks = results.filter(r => r.name.includes('银行'));
       expect(banks.length).toBeGreaterThan(0);
     });
   });
@@ -351,7 +351,7 @@ describe('searchStocks', () => {
         {
           canonicalCode: 'TEST1.SH',
           displayCode: 'TEST1',
-          nameZh: '测试1',
+          name: '测试1',
           pinyinFull: 'test1',
           pinyinAbbr: 'ts1',
           aliases: [],
@@ -363,7 +363,7 @@ describe('searchStocks', () => {
         {
           canonicalCode: 'TEST2.SH',
           displayCode: 'TEST2',
-          nameZh: '测试2',
+          name: '测试2',
           pinyinFull: 'test2',
           pinyinAbbr: 'ts2',
           aliases: [],
@@ -411,7 +411,7 @@ describe('searchStocks', () => {
       const largeIndex: StockIndexItem[] = Array.from({ length: 5000 }, (_, i) => ({
         canonicalCode: `${i}.SH`,
         displayCode: `${i}`,
-        nameZh: `股票${i}`,
+        name: `股票${i}`,
         pinyinFull: `stock${i}`,
         pinyinAbbr: `s${i}`,
         aliases: [],

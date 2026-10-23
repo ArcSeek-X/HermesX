@@ -137,7 +137,7 @@ const stockIndexItems: StockIndexItem[] = [
   {
     canonicalCode: '600519.SH',
     displayCode: '600519',
-    nameZh: '贵州茅台',
+    name: '贵州茅台',
     pinyinFull: 'guizhoumaotai',
     pinyinAbbr: 'gzmt',
     aliases: ['茅台'],
@@ -149,7 +149,7 @@ const stockIndexItems: StockIndexItem[] = [
   {
     canonicalCode: 'AAPL',
     displayCode: 'AAPL',
-    nameZh: 'Apple',
+    name: 'Apple',
     market: 'US',
     assetType: 'stock',
     active: true,
@@ -158,7 +158,7 @@ const stockIndexItems: StockIndexItem[] = [
   {
     canonicalCode: '00700.HK',
     displayCode: '00700',
-    nameZh: '腾讯控股',
+    name: '腾讯控股',
     market: 'HK',
     assetType: 'stock',
     active: true,

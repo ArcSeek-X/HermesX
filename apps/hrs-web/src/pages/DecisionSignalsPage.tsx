@@ -24,7 +24,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, BarChart3, RefreshCw, Search, ShieldCheck } from 'lucide-react';
-import type { StockIndexMarketTag } from '../types/stock';
+import type { StockSelectionMeta } from '../types/stock';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
@@ -363,7 +363,7 @@ function toPopularCandidates(index: StockIndexItem[], limit = STOCK_CANDIDATE_LI
     const candidate: StockCandidate = {
       code: item.canonicalCode,
       displayCode: item.displayCode,
-      name: item.nameZh,
+      name: item.name,
       market,
       source: 'popular',
     };
@@ -1059,7 +1059,7 @@ const DecisionSignalsPage: React.FC = () => {
     code: string,
     name?: string,
     _source?: 'manual' | 'autocomplete',
-    metadata?: { market?: StockIndexMarketTag; displayCode?: string },
+    metadata?: StockSelectionMeta,
   ) => {
     const trimmedCode = code.trim();
     if (!trimmedCode) return;
@@ -1067,7 +1067,7 @@ const DecisionSignalsPage: React.FC = () => {
       code: trimmedCode,
       displayCode: metadata?.displayCode,
       name,
-      market: normalizeDecisionSignalMarket(metadata?.market),
+      market: normalizeDecisionSignalMarket(metadata?.marketTag),
     });
   }, [applyStockContext]);
 

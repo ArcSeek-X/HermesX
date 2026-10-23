@@ -23,7 +23,7 @@ describe('stockIndexLoader', () => {
     {
       canonicalCode: '600519.SH',
       displayCode: '600519',
-      nameZh: '贵州茅台',
+      name: '贵州茅台',
       pinyinFull: 'guizhoumaotai',
       pinyinAbbr: 'gzmt',
       aliases: ['茅台'],
@@ -35,7 +35,7 @@ describe('stockIndexLoader', () => {
     {
       canonicalCode: '000001.SZ',
       displayCode: '000001',
-      nameZh: '平安银行',
+      name: '平安银行',
       pinyinFull: 'pinganyinxing',
       pinyinAbbr: 'payh',
       aliases: ['平银'],
@@ -47,7 +47,7 @@ describe('stockIndexLoader', () => {
     {
       canonicalCode: '00700.HK',
       displayCode: '00700',
-      nameZh: '腾讯控股',
+      name: '腾讯控股',
       pinyinFull: 'tengxunkonggu',
       pinyinAbbr: 'txkg',
       aliases: ['腾讯'],
@@ -59,7 +59,7 @@ describe('stockIndexLoader', () => {
     {
       canonicalCode: 'AAPL.US',
       displayCode: 'AAPL',
-      nameZh: '苹果',
+      name: '苹果',
       pinyinFull: 'pingguo',
       pinyinAbbr: 'pg',
       aliases: [],
@@ -71,7 +71,7 @@ describe('stockIndexLoader', () => {
     {
       canonicalCode: '600000.SH',
       displayCode: '600000',
-      nameZh: '浦发银行',
+      name: '浦发银行',
       pinyinFull: 'pufayinxing',
       pinyinAbbr: 'pfyh',
       aliases: ['浦发'],
@@ -118,7 +118,7 @@ describe('stockIndexLoader', () => {
       expect(result.fallback).toBe(false);
       expect(result.data).toHaveLength(2);
       expect(result.data[0].canonicalCode).toBe('600519.SH');
-      expect(result.data[0].nameZh).toBe('贵州茅台');
+      expect(result.data[0].name).toBe('贵州茅台');
     });
 
     test('returns fallback mode on network error', async () => {
@@ -213,7 +213,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'TEST.US',
           displayCode: 'TEST',
-          nameZh: '测试',
+          name: '测试',
           pinyinFull: 'test',
           pinyinAbbr: 'test',
           aliases: [],
@@ -234,7 +234,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'TEST.US',
           displayCode: 'TEST',
-          nameZh: '测试',
+          name: '测试',
           pinyinFull: 'test',
           pinyinAbbr: 'test',
           aliases: undefined as unknown as string[],
@@ -261,7 +261,7 @@ describe('stockIndexLoader', () => {
       const result = findStockInIndex('600519.SH', mockIndexData);
       expect(result).not.toBeNull();
       expect(result?.canonicalCode).toBe('600519.SH');
-      expect(result?.nameZh).toBe('贵州茅台');
+      expect(result?.name).toBe('贵州茅台');
     });
 
     test('returns null for non-existent stock', () => {
@@ -324,7 +324,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'TEST.US',
           displayCode: 'TEST',
-          nameZh: '测试',
+          name: '测试',
           pinyinFull: 'test',
           pinyinAbbr: 'test',
           aliases: [],
@@ -344,7 +344,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'A.US',
           displayCode: 'A',
-          nameZh: 'A',
+          name: 'A',
           pinyinFull: 'a',
           pinyinAbbr: 'a',
           aliases: [],
@@ -356,7 +356,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'B.US',
           displayCode: 'B',
-          nameZh: 'B',
+          name: 'B',
           pinyinFull: 'b',
           pinyinAbbr: 'b',
           aliases: [],
@@ -402,7 +402,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'A.US',
           displayCode: 'A',
-          nameZh: 'A',
+          name: 'A',
           pinyinFull: 'a',
           pinyinAbbr: 'a',
           aliases: [],
@@ -446,7 +446,7 @@ describe('stockIndexLoader', () => {
       const largeIndex: StockIndexItem[] = Array.from({ length: 10000 }, (_, i) => ({
         canonicalCode: `TEST${i}.US`,
         displayCode: `TEST${i}`,
-        nameZh: `测试${i}`,
+        name: `测试${i}`,
         pinyinFull: `test${i}`,
         pinyinAbbr: `t${i}`,
         aliases: [],
@@ -466,7 +466,7 @@ describe('stockIndexLoader', () => {
         {
           canonicalCode: 'TEST.US',
           displayCode: 'TEST',
-          nameZh: '测试·公司',
+          name: '测试·公司',
           pinyinFull: 'test-gongsi',
           pinyinAbbr: 'test',
           aliases: ['测试(集团)'],

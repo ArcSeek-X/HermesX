@@ -66,7 +66,7 @@ export function searchStocks(
   return matched.slice(0, limit).map(s => ({
     canonicalCode: s.item.canonicalCode,
     displayCode: s.item.displayCode,
-    nameZh: s.item.nameZh,
+    name: s.item.name,
     market: s.item.market,
     matchType: determineMatchType(s.score),
     matchField: determineMatchField(normalizedQuery, s.item),
@@ -92,7 +92,7 @@ function calculateMatchScore(query: string, item: StockIndexItem): number {
   const q = query.toLowerCase();
   const normalizedCanonicalCode = normalizeQuery(item.canonicalCode);
   const normalizedDisplayCode = normalizeQuery(item.displayCode);
-  const normalizedName = normalizeQuery(item.nameZh);
+  const normalizedName = normalizeQuery(item.name);
   const normalizedPinyinFull = normalizeQuery(item.pinyinFull || '');
   const normalizedPinyinAbbr = normalizeQuery(item.pinyinAbbr || '');
   const normalizedAliases = item.aliases?.map(alias => normalizeQuery(alias)) || [];
@@ -137,7 +137,7 @@ function determineMatchField(query: string, item: StockIndexItem): 'code' | 'nam
   const q = query.toLowerCase();
   const normalizedCanonicalCode = normalizeQuery(item.canonicalCode);
   const normalizedDisplayCode = normalizeQuery(item.displayCode);
-  const normalizedName = normalizeQuery(item.nameZh);
+  const normalizedName = normalizeQuery(item.name);
   const normalizedPinyinFull = normalizeQuery(item.pinyinFull || '');
   const normalizedPinyinAbbr = normalizeQuery(item.pinyinAbbr || '');
   const normalizedAliases = item.aliases?.map(alias => normalizeQuery(alias)) || [];

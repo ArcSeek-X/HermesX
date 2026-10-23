@@ -61,10 +61,10 @@ const {
   mockFormatSessionAsMarkdown: vi.fn(),
   // 标准股票索引：A股/美股/港股多市场，含别名（茅台）便于解析测试
   mockStockIndex: [
-    { canonicalCode: '600519.SH', displayCode: '600519', nameZh: '贵州茅台', aliases: ['茅台'], market: 'CN', assetType: 'stock', active: true },
-    { canonicalCode: '300750.SZ', displayCode: '300750', nameZh: '宁德时代', aliases: [], market: 'CN', assetType: 'stock', active: true },
-    { canonicalCode: 'BABA', displayCode: 'BABA', nameZh: '阿里巴巴', aliases: [], market: 'US', assetType: 'stock', active: true },
-    { canonicalCode: '09988.HK', displayCode: '09988', nameZh: '阿里巴巴', aliases: [], market: 'HK', assetType: 'stock', active: true },
+    { canonicalCode: '600519.SH', displayCode: '600519', name: '贵州茅台', aliases: ['茅台'], market: 'CN', assetType: 'stock', active: true },
+    { canonicalCode: '300750.SZ', displayCode: '300750', name: '宁德时代', aliases: [], market: 'CN', assetType: 'stock', active: true },
+    { canonicalCode: 'BABA', displayCode: 'BABA', name: '阿里巴巴', aliases: [], market: 'US', assetType: 'stock', active: true },
+    { canonicalCode: '09988.HK', displayCode: '09988', name: '阿里巴巴', aliases: [], market: 'HK', assetType: 'stock', active: true },
   ],
 }));
 

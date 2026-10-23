@@ -180,7 +180,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
     const map = new Map<string, { name: string; pinyin: string; pinyinShort: string }>();
     for (const it of index) {
       const entry = {
-        name: it.nameZh ?? '', // 中文名
+        name: it.name ?? '', // 中文名
         pinyin: it.pinyinFull ?? '', // 全拼，如 zhongkeshuguang
         pinyinShort: it.pinyinAbbr ?? '', // 简拼，如 zksg
       };

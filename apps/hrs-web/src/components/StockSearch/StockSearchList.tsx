@@ -1,9 +1,8 @@
 /**
- * 股票搜索下拉建议列表组件
+ * 股票搜索下拉建议列表
  *
- * 负责在 StockSearch 输入联想时，渲染候选股票/指数/ETF 列表。
- * 外层用 AnimCard 包裹（带渐变背景与外边阴影），内部 <ul> 为可滚动列表。
- * 每个候选项为三栏布局：市场徽标 | 名称+代码 | 匹配类型徽标。
+ * 渲染候选股票/指数/ETF 列表：外层 AnimCard（渐变背景 + 浮层阴影），
+ * 内部 <ul> 可滚动，每项三栏布局——市场徽标 | 名称+代码 | 匹配类型徽标。
  *
  * @author Lensgcx (GaoCangxiong)
  */
@@ -14,7 +13,7 @@ import { Chip } from '../';
 import { cn } from '../../utils/cn';
 import AnimCard from '../common/Card/AnimCard';
 
-// 下拉列表底部圆角映射：跟随输入框 size，保证下拉与输入框视觉连贯
+// 下拉底部圆角跟随输入框 size，保证视觉连贯
 const ROUNDED_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
   xs: 'rounded-b-sm',
   sm: 'rounded-b-sm',
@@ -55,11 +54,11 @@ export function StockSearchList({
   }
 
   return (
-    // 外层 AnimCard：渐变背景 + 浮层层级 + 最大高度 + 外边阴影；style 透传固定定位
-    <AnimCard gradientBackground className="relative z-[100] max-h-100 mt-2 py-3" id="suggestions-list"
-      style={{
-        ...style,
-      }}>
+    // 外层 AnimCard：渐变背景 + 浮层层级 + 最大高度 + 外边阴影；style 透传固定定位。
+    // z-[100000] 与 HeroUI 弹层遮罩（--z-index-overlay: 100000，Modal/Drawer 等）持平：
+    // 下拉经 Portal 挂 body 且晚于遮罩挂载，同层级时按 DOM 顺序胜出，保证在弹窗内可交互；
+    // Toast 层级为 overlay+1（100001），仍高于下拉。
+    <AnimCard gradientBackground className="relative z-[100000] max-h-100 mt-2 py-3" id="suggestions-list" style={style}>
       {/* 内容层置于 ::before 渐变之上，避免被 bg-card 遮盖 */}
       <ul
         className={cn(
@@ -92,9 +91,9 @@ export function StockSearchList({
             <div className="flex flex-col min-w-0 overflow-hidden">
               <span
                 className="!text-xs font-medium text-primary-text break-all line-clamp-2"
-                title={suggestion.nameZh}
+                title={suggestion.name}
               >
-                {suggestion.nameZh}
+                {suggestion.name}
               </span>
               <span className="!text-xs text-secondary-text truncate">
                 {suggestion.displayCode}
@@ -111,7 +110,6 @@ export function StockSearchList({
 }
 
 // 市场标识 -> 中文标签 + 徽标配色（A股红、港股绿、美股青……）
-// variant/color 为 Chip 规格字段（color 仅作语义占位，真实配色由 className 透传自定义色实现） purple、indigo
 const MARKET_BADGE_CONFIG = {
   CN: { label: 'A股', variant: 'primary', color: 'danger' },
   HK: { label: '港股', variant: 'primary', color: 'success' },
@@ -133,7 +131,7 @@ function MarketBadge({ market }: { market: string }) {
   }
 
   return (
-    <Chip variant={config.variant} color={config.color} size="xs" radius="sm" className={cn('min-w-[3rem] justify-center', config.className)}>
+    <Chip variant={config.variant} color={config.color} size="xs" radius="sm" className="min-w-[3rem] justify-center">
       {config.label}
     </Chip>
   );
