@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react';
 import type { StockSuggestion } from '../../types/stockIndex';
 import { Chip } from '../';
 import { cn } from '../../utils/cn';
-import AnimCard from '../common/Card/AnimCard';
+import AnimCard from '../common/Card/AnimCard/AnimCard';
 
 // 下拉底部圆角跟随输入框 size，保证视觉连贯
 const ROUNDED_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {

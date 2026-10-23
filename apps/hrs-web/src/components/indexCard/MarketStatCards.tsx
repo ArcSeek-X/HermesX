@@ -23,7 +23,7 @@ import type {
   NorthboundFlowData,
 } from '../../api/sectorData';
 import { formatAmountRounding, formatPercent, formatSignedAmount, getChangeColorClass } from '../../utils/format';
-import AnimCard from '../common/Card/AnimCard';
+import AnimCard from '../common/Card/AnimCard/AnimCard';
 
 /** 通用统计卡片 props */
 export type MarketStatCardProps = {

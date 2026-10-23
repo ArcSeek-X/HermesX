@@ -13,7 +13,7 @@
 
 import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { cn } from '../../../utils/cn';
+import { cn } from '../../../../utils/cn';
 
 /**
  * 指标卡片视觉变体：仅影响左侧强调条与图标颜色，不改变布局与字号。

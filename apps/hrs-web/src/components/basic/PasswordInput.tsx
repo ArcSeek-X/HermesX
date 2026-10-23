@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { Lock, Key } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
-import { EyeToggleIcon } from '../common/EyeToggleIcon';
+import { EyeToggleIcon } from '../common/EyeToggleIcon/EyeToggleIcon';
 import { HrsInput, type InputProps } from './HrsInput';
 
 /**

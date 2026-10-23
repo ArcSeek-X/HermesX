@@ -13,7 +13,7 @@
 import type { MarketIndexItem } from '../../api/sectorData';
 import { formatAmount, formatPercent, formatPricePoint, getChangeColorClass } from '../../utils/format';
 import { AnimatedValue } from '../../utils/animate.tsx';
-import AnimCard from '../common/Card/AnimCard';
+import AnimCard from '../common/Card/AnimCard/AnimCard';
 
 /** IndexCard 入参 */
 export type IndexCardProps = {

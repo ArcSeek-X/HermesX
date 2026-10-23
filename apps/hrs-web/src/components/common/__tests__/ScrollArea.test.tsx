@@ -5,7 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ScrollArea } from '../ScrollArea';
+import { ScrollArea } from '../../basic/ScrollArea/ScrollArea';
 
 describe('ScrollArea', () => {
   it('renders a scrollable viewport and forwards custom classes', () => {

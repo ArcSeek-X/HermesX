@@ -16,7 +16,7 @@ import type React from 'react';
 import type { ParsedApiError } from '../../../api/error';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
-import AnimCard from '../../common/Card/AnimCard';
+import AnimCard from '../../common/Card/AnimCard/AnimCard';
 import { HrsButton, type HrsButtonVariant } from '../HrsButton';
 import { CloseIcon } from '@heroui/react';
 

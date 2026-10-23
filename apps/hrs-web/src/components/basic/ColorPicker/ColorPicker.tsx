@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 /** 默认预设色板（覆盖中性色、语义色与项目青蓝主色） */
 const DEFAULT_PRESETS = [

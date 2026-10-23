@@ -27,7 +27,7 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from '@heroui/react';
-import AnimCard from '../../common/Card/AnimCard';
+import AnimCard from '../../common/Card/AnimCard/AnimCard';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
 

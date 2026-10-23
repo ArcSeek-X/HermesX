@@ -8,8 +8,8 @@
  */
 
 import type { ReactNode } from 'react';
-import AnimCard from './AnimCard';
-import { cn } from '../../../utils/cn';
+import { AnimCard } from '../AnimCard';
+import { cn } from '../../../../utils/cn';
 
 /** KeyValueCard 组件的 Props 定义。 */
 export interface KeyValueCardProps {

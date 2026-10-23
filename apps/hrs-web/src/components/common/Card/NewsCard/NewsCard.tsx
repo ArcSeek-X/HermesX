@@ -6,14 +6,14 @@
  * @author Lensgcx (GaoCangxiong)
  */
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { LiveNewsItem } from '../../../types/liveNews';
-import { useUiLanguage } from '../../../contexts/UiLanguageContext';
+import type { LiveNewsItem } from '../../../../types/liveNews';
+import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
 import { motion } from 'motion/react';
-import { Chip } from '../../basic/Chip';
-import { HrsButton } from '../../basic/HrsButton';
-import { Separator } from '../../basic/Separator';
+import { Chip } from '../../../basic/Chip';
+import { HrsButton } from '../../../basic/HrsButton';
+import { Separator } from '../../../basic/Separator';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '../../../utils/cn';
+import { cn } from '../../../../utils/cn';
 
 /** 把秒级时间戳格式化为 `HH:mm` */
 function formatTime(displayTime: number | null): string {

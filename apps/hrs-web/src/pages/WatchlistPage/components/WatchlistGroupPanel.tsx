@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 import { Plus, Layers3 } from 'lucide-react';
-import AnimCard from '@components/common/Card/AnimCard';
+import AnimCard from '@components/common/Card/AnimCard/AnimCard';
 import { ListCard } from '@components/common/Card';
 import { HrsButton, HrsInput, TextArea } from '@components';
 import { Description, TextField } from '@heroui/react';

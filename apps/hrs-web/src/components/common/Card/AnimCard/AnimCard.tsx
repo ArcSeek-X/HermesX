@@ -10,7 +10,7 @@
  */
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { cn } from '../../../utils/cn';
+import { cn } from '../../../../utils/cn';
 
 /** Card 通用卡片入参 */
 export type AnimCardProps = {
