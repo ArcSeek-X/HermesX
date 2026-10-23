@@ -2,8 +2,11 @@
 import type React from 'react';
 // 测试库：within 用于在某个 DOM 子树内查询
 import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// 本套件含持仓决策信号等异步加载断言，整体运行负载下默认 1s 等待易超时，放宽到 5s
+configure({ asyncUtilTimeout: 5000 });
 import { decisionSignalsApi } from '../../api/decisionSignals';
 import { createApiError, createParsedApiError } from '../../api/error';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
@@ -299,18 +302,35 @@ function deferredPromise<T>() {
   return { promise, resolve, reject };
 }
 
-// 等待初始加载完成：断言账户/快照/风险/交易四项接口各被调用一次
-async function waitForInitialLoad() {
+// 等待初始加载完成：断言账户/快照/风险三项核心接口各被调用一次
+// （事件记录改为懒加载，仅在切换到「事件记录」页签后才抓取，不在挂载期断言）
+async function waitForInitialLoad(panel?: string) {
   await waitFor(() => expect(getAccounts).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(getRisk).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(listTrades).toHaveBeenCalledTimes(1));
+  if (panel) await switchToPanel(panel);
+}
+
+// 切换主区页签：页面默认落在「持仓总览」，持仓表格相关断言需先切页签
+async function switchToPanel(label: string) {
+  const byRole = screen.queryAllByRole('tab', { name: label });
+  const byText = screen.queryAllByText(label);
+  // 套件连续渲染时可能残留上一次渲染的 DOM，取最后一个（即当前这次渲染）避免点到旧节点
+  const target = byRole[byRole.length - 1] ?? byText[byText.length - 1];
+  if (!target) throw new Error(`tab not found: ${label}`);
+  // react-aria 的 Tab 走 usePress（pointer 事件），仅派发 click 时部分场景不触发选中
+  fireEvent.mouseDown(target);
+  fireEvent.mouseUp(target);
+  fireEvent.click(target);
+  await waitFor(() => expect(target).toHaveAttribute('aria-selected', 'true'));
 }
 
 describe('PortfolioPage FX refresh', () => {
   // 每个用例前：清空 mock 与 localStorage，设定账户/快照/风险/交易/信号/公司行动等默认响应
   beforeEach(() => {
-    vi.clearAllMocks();
+    // resetAllMocks（而非 clearAllMocks）：失败用例可能残留未消费的 once 队列，
+    // 只清调用记录会让这些实现泄漏到后续用例，导致 mock 返回非预期数据
+    vi.resetAllMocks();
     window.localStorage.clear();
 
     getAccounts.mockResolvedValue(makeAccounts());
@@ -509,8 +529,7 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitForInitialLoad();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Main (#1)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Main/ }));
 
     await waitFor(() => {
       expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 1, costMethod: 'fifo', includeRealtime: false });
@@ -582,7 +601,7 @@ describe('PortfolioPage FX refresh', () => {
 
     render(<PortfolioPage />);
 
-    await waitForInitialLoad();
+    await waitForInitialLoad('持仓表格');
 
     expect(await screen.findByText('HK00700')).toBeInTheDocument();
     expect(screen.getByText('420.0000')).toBeInTheDocument();
@@ -597,10 +616,12 @@ describe('PortfolioPage FX refresh', () => {
     expect(hkRow).not.toBeNull();
     expect(aaplRow).not.toBeNull();
 
-    const hkRowCells = within(hkRow as HTMLTableRowElement).getAllByRole('cell');
-    const aaplRowCells = within(aaplRow as HTMLTableRowElement).getAllByRole('cell');
-    expect(hkRowCells.at(-3)).toHaveClass('text-success');
-    expect(aaplRowCells.at(-3)).toHaveClass('text-secondary');
+    // basic/Table 基于 react-aria，单元格角色为 gridcell；涨跌色渲染在单元格内的 span 上
+    // 倒数第三个单元格为收益率列（returnPct）
+    const hkRowCells = within(hkRow as HTMLTableRowElement).getAllByRole('gridcell');
+    const aaplRowCells = within(aaplRow as HTMLTableRowElement).getAllByRole('gridcell');
+    expect(within(hkRowCells.at(-3) as HTMLElement).getByText('+5.00%')).toHaveClass('text-success');
+    expect(within(aaplRowCells.at(-3) as HTMLElement).getByText('--')).toHaveClass('text-secondary');
   });
 
   it('loads latest active signals for holdings without scanning paginated signal lists', async () => {
@@ -616,6 +637,9 @@ describe('PortfolioPage FX refresh', () => {
     getLatestDecisionSignals.mockResolvedValueOnce({ items: [latestSignal], total: 1, page: 1, pageSize: 1 });
 
     render(<PortfolioPage />);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
+
+    await switchToPanel('持仓表格');
 
     expect(await screen.findByText('600519')).toBeInTheDocument();
     expect(await screen.findByText('分页后的风险摘要')).toBeInTheDocument();
@@ -644,9 +668,12 @@ describe('PortfolioPage FX refresh', () => {
       });
 
     render(<PortfolioPage />);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
+
+    await switchToPanel('持仓表格');
 
     expect(await screen.findByText('旧 AI 风险')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '刷新数据' }));
+    fireEvent.click(screen.getByRole('button', { name: '刷新全部' }));
 
     expect(await screen.findByText('新 AI 风险')).toBeInTheDocument();
     await waitFor(() => expect(getLatestDecisionSignals).toHaveBeenCalledTimes(2));
@@ -679,8 +706,7 @@ describe('PortfolioPage FX refresh', () => {
     expect(await screen.findByText('账号信号')).toBeInTheDocument();
     const signalCallsBeforeSwitch = getLatestDecisionSignals.mock.calls.length;
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Alt (#2)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Alt/ }));
 
     await waitFor(() => {
       expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 2, costMethod: 'fifo', includeRealtime: false });
@@ -744,8 +770,7 @@ describe('PortfolioPage FX refresh', () => {
 
     expect(await screen.findByText('600519')).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Alt (#2)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Alt/ }));
 
     await waitFor(() => expect(screen.getByText('新账号信号')).toBeInTheDocument());
 
@@ -821,6 +846,9 @@ describe('PortfolioPage FX refresh', () => {
       .mockRejectedValueOnce(new Error('latest AAPL failed'));
 
     render(<PortfolioPage />);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
+
+    await switchToPanel('持仓表格');
 
     expect(await screen.findByText('已加载风险')).toBeInTheDocument();
     expect(await screen.findByText('AI 建议降级')).toBeInTheDocument();
@@ -840,6 +868,9 @@ describe('PortfolioPage FX refresh', () => {
     });
 
     render(<PortfolioPage />);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
+
+    await switchToPanel('持仓表格');
 
     expect(await screen.findAllByText('唯一 latest 风险')).toHaveLength(2);
     expect(getLatestDecisionSignals).toHaveBeenCalledTimes(1);
@@ -866,6 +897,9 @@ describe('PortfolioPage FX refresh', () => {
     });
 
     render(<PortfolioPage />);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(1));
+
+    await switchToPanel('持仓表格');
 
     expect(await screen.findByText('AAPL0')).toBeInTheDocument();
     await waitFor(() => expect(getLatestDecisionSignals).toHaveBeenCalledTimes(10));
@@ -882,7 +916,7 @@ describe('PortfolioPage FX refresh', () => {
 
     render(<PortfolioPage />);
 
-    await waitForInitialLoad();
+    await waitForInitialLoad('持仓表格');
 
     const row = (await screen.findByText('HK00700')).closest('tr');
     expect(row).not.toBeNull();
@@ -1038,15 +1072,13 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitForInitialLoad();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Main (#1)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Main/ }));
     await waitFor(() => expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 1, costMethod: 'fifo', includeRealtime: false }));
 
     fireEvent.click(screen.getByRole('button', { name: '刷新汇率' }));
     expect(await screen.findByRole('button', { name: '刷新中...' })).toBeDisabled();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Alt (#2)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Alt/ }));
     await waitFor(() => expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 2, costMethod: 'fifo', includeRealtime: false }));
     await waitFor(() => expect(screen.getByRole('button', { name: '刷新汇率' })).not.toBeDisabled());
 
@@ -1088,7 +1120,7 @@ describe('PortfolioPage FX refresh', () => {
     fireEvent.click(screen.getByRole('button', { name: '刷新汇率' }));
     expect(await screen.findByRole('button', { name: '刷新中...' })).toBeDisabled();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
     fireEvent.click(await screen.findByRole('option', { name: /AVG|Average/ }));
     await waitFor(() => expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: undefined, costMethod: 'avg', includeRealtime: false }));
     await waitFor(() => expect(screen.getByRole('button', { name: '刷新汇率' })).not.toBeDisabled());
@@ -1122,11 +1154,12 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitForInitialLoad();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Main (#1)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Main/ }));
 
     await waitFor(() => expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 1, costMethod: 'fifo', includeRealtime: false }));
-    fireEvent.click(screen.getByRole('button', { name: '删除账户' }));
+    const mainCard = screen.getByRole('button', { name: /Main/ });
+    fireEvent.mouseEnter(mainCard);
+    fireEvent.click(screen.getByRole('button', { name: '删除' }));
 
     const dialog = await screen.findByText('删除持仓账户');
     expect(dialog.closest('[role="dialog"]') ?? document.body).toHaveTextContent(
@@ -1136,8 +1169,7 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitFor(() => expect(deleteAccount).toHaveBeenCalledWith(1));
     await waitFor(() => expect(getAccounts).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByText('Main (#1)')).not.toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button', { name: /请选择/ })[0]);
-    expect(await screen.findByRole('option', { name: 'Alt (#2)' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Main')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Alt/ }));
   });
 });

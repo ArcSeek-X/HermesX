@@ -6,6 +6,12 @@ export type PortfolioSide = 'buy' | 'sell';
 export type PortfolioCashDirection = 'in' | 'out';
 export type PortfolioCorporateActionType = 'cash_dividend' | 'split_adjustment';
 
+/** 账户选项：'all' 为全部账户只读汇总视图，数字为具体账户 ID */
+export type AccountOption = 'all' | number;
+
+/** 账户市场取值（与股票市场的地区口径一致） */
+export type PortfolioAccountMarket = MarketLocale;
+
 export interface PortfolioAccountItem {
   id: number;
   ownerId?: string | null;
@@ -30,6 +36,16 @@ export interface PortfolioAccountCreateRequest {
   ownerId?: string;
 }
 
+/** 更新账户请求（全字段可选，按传入字段部分更新） */
+export interface PortfolioAccountUpdateRequest {
+  name?: string;
+  broker?: string;
+  market?: MarketLocale;
+  baseCurrency?: string;
+  ownerId?: string;
+  isActive?: boolean;
+}
+
 export interface PortfolioPositionItem {
   symbol: string;
   market: string;
@@ -50,6 +66,12 @@ export interface PortfolioPositionItem {
   dataQuality?: 'ok' | 'partial' | string;
   limitations?: string[];
 }
+
+/** 扁平化持仓行：在持仓数据上附加所属账户，供持仓表格展示 */
+export type FlatPosition = PortfolioPositionItem & {
+  accountId: number;
+  accountName: string;
+};
 
 export interface PortfolioPositionAnalysisRequest {
   accountId?: number;

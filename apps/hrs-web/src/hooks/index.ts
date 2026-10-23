@@ -13,3 +13,6 @@ export { useRunFlowSnapshot } from './useRunFlowSnapshot';
 export { useStockIndex } from './useStockIndex';
 export { useSystemConfig } from './useSystemConfig';
 export { useTaskStream } from './useTaskStream';
+export { usePortfolioSignals } from './usePortfolioSignals';
+export { useAccountView, ACCOUNT_MARKET_OPTIONS } from './useAccountView';
+export type { AccountDraft, PendingAccountRemoval, UseAccountViewResult } from './useAccountView';

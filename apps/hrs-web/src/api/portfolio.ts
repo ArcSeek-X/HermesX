@@ -11,6 +11,7 @@ import type {
   PortfolioAccountItem,
   PortfolioAccountCreateRequest,
   PortfolioAccountListResponse,
+  PortfolioAccountUpdateRequest,
   PortfolioCashLedgerCreateRequest,
   PortfolioCashLedgerListResponse,
   PortfolioCorporateActionCreateRequest,
@@ -151,6 +152,19 @@ export const portfolioApi = {
   async deleteAccount(accountId: number): Promise<PortfolioDeleteResponse> {
     const response = await apiClient.delete<Record<string, unknown>>(`/api/v1/portfolio/accounts/${accountId}`);
     return toCamelCase<PortfolioDeleteResponse>(response.data);
+  },
+
+  /** 更新账户（名称/券商/市场/基础币种等，按传入字段部分更新） */
+  async updateAccount(accountId: number, payload: PortfolioAccountUpdateRequest): Promise<PortfolioAccountItem> {
+    const response = await apiClient.put<Record<string, unknown>>(`/api/v1/portfolio/accounts/${accountId}`, {
+      name: payload.name,
+      broker: payload.broker,
+      market: payload.market,
+      base_currency: payload.baseCurrency,
+      owner_id: payload.ownerId,
+      is_active: payload.isActive,
+    });
+    return toCamelCase<PortfolioAccountItem>(response.data);
   },
 
   /** 获取持仓快照（按账户/时点/计价方法，可含实时价） */

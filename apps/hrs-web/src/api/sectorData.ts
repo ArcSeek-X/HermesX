@@ -216,10 +216,49 @@ export type MarketIndexItem = {
   prevClose: number | null;
 };
 
+/**
+ * 市场指数接口的原始 payload（后端契约字段，未经前端适配）。
+ * `/market-indices` 与 `/market-cards` 的 index_quote payload 均返回该形态。
+ */
+type RawMarketIndexPayload = {
+  name: string;
+  code: string;
+  price: number | null;
+  /** 涨跌幅（%）——后端字段名，适配层映射为 changePct */
+  changePercent: number | null;
+  change: number | null;
+  amount: number | null;
+  high: number | null;
+  low: number | null;
+  /** 昨收价——后端字段名，适配层映射为 prevClose */
+  preClose: number | null;
+};
+
+/**
+ * 边界适配：将市场指数原始 payload 归一为前端领域类型 MarketIndexItem。
+ *
+ * 后端契约（changePercent / preClose）保持不动，差异在本适配层消化，
+ * 与 kline.ts `toStockSnapshot` 的策略一致。缺失字段一律归 null，
+ * 由消费侧（IndexCard）走占位渲染。
+ */
+export function toMarketIndexItem(raw: RawMarketIndexPayload): MarketIndexItem {
+  return {
+    name: raw?.name ?? '',
+    code: raw?.code ?? '',
+    price: raw?.price ?? null,
+    changePct: raw?.changePercent ?? null,
+    change: raw?.change ?? null,
+    amount: raw?.amount ?? null,
+    high: raw?.high ?? null,
+    low: raw?.low ?? null,
+    prevClose: raw?.preClose ?? null,
+  };
+}
+
 /** 获取市场指数数据 */
 export async function fetchMarketIndices(): Promise<MarketIndexItem[]> {
   const response = await apiClient.get('/api/v1/sector/market-indices');
-  return response.data.indices;
+  return (response.data.indices as RawMarketIndexPayload[]).map(toMarketIndexItem);
 }
 
 /** 获取欧美股主要指数数据（market=us：道琼斯、标普500、纳斯达克、纳指金龙中国等） */
@@ -227,7 +266,7 @@ export async function fetchGlobalIndices(): Promise<MarketIndexItem[]> {
   const response = await apiClient.get('/api/v1/sector/market-indices', {
     params: { market: 'us' },
   });
-  return response.data.indices;
+  return (response.data.indices as RawMarketIndexPayload[]).map(toMarketIndexItem);
 }
 
 /** 获取日韩主要指数数据（market=jp-kr：日经指数、韩国综指、韩国KOSDAQ） */
@@ -235,7 +274,7 @@ export async function fetchAsiaIndices(): Promise<MarketIndexItem[]> {
   const response = await apiClient.get('/api/v1/sector/market-indices', {
     params: { market: 'jp-kr' },
   });
-  return response.data.indices;
+  return (response.data.indices as RawMarketIndexPayload[]).map(toMarketIndexItem);
 }
 
 /** 市场概览数据（涨跌家数 + 量能） */
@@ -349,12 +388,28 @@ export type MarketCardsResponse = {
   cards: MarketCardItem[];
 };
 
+/**
+ * 边界适配：将 market-cards 原始卡片列表归一为前端卡片契约。
+ * 仅 index_quote 的 payload 需要字段映射（changePercent/preClose → changePct/prevClose），
+ * 其余卡片字段与后端一致，原样透传。
+ */
+function toMarketCardItem(card: MarketCardItem): MarketCardItem {
+  if (card.cardType !== 'index_quote') return card;
+  return {
+    ...card,
+    payload: toMarketIndexItem(card.payload as unknown as RawMarketIndexPayload),
+  };
+}
+
 /** 获取总览页统一卡片列表（按 market TAB key） */
 export async function fetchMarketCards(market: MarketTabKey): Promise<MarketCardsResponse> {
   const response = await apiClient.get('/api/v1/sector/market-cards', {
     params: { market },
   });
-  return response.data;
+  return {
+    ...response.data,
+    cards: (response.data.cards as MarketCardItem[]).map(toMarketCardItem),
+  };
 }
 
 /** 板块资金流历史 - 单个板块序列 */
