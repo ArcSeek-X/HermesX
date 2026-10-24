@@ -179,15 +179,30 @@ export interface HrsSelectProps {
 }
 
 /**
- * 各尺寸触发器样式（高度 / 圆角 / 内边距 / 字号）。
+ * 各尺寸触发器样式（高度 / 圆角 / 内边距）。
  * 注：HeroUI 的 .select__trigger 自带 min-h-9，CSS 中 min-height 会钳制 height，
  * 因此每档必须同步声明匹配的 min-h-*；圆角随尺寸缩放（小尺寸小圆角）。
+ * 字号不在此处声明——见下方 SIZE_TEXT_STYLES 说明。
  */
 const SIZE_TRIGGER_STYLES: Record<HrsSelectSize, string> = {
-    xs: 'h-7 min-h-7 rounded-sm px-2.5 py-1 text-xxs',
-    sm: 'h-8 min-h-8 rounded-sm px-2.5 py-1.5 text-xs',
-    md: 'h-9 min-h-9 rounded-sm px-3 text-sm',
-    lg: 'h-10 min-h-10 rounded-md px-3.5 text-sm',
+    xs: 'h-7 min-h-7 rounded-sm px-2.5 py-1',
+    sm: 'h-8 min-h-8 rounded-sm px-2.5 py-1.5',
+    md: 'h-9 min-h-9 rounded-sm px-3',
+    lg: 'h-10 min-h-10 rounded-md px-3.5',
+};
+
+/**
+ * 各尺寸字号类（触发器与选中值文本共用，单一数据源）。
+ * 必须同时作用于 HeroSelect.Trigger 与 HeroSelect.Value：
+ * HeroUI 的 .select__trigger 与 .select__value 在 @heroui/styles 中各自写死了
+ * font-size: var(--text-sm)，若只加在触发器上，选中值文本（由 .select__value
+ * 这个独立子元素渲染）会被其自带规则钳回 text-sm，字号档位不生效。
+ */
+const SIZE_TEXT_STYLES: Record<HrsSelectSize, string> = {
+    xs: 'text-xxs',
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-sm',
 };
 
 /** 各尺寸下拉弹层圆角，与触发器同档保证视觉连贯 */
@@ -414,11 +429,11 @@ export const HrsSelect: React.FC<HrsSelectProps> = ({
             {label && <Label className={LABEL_STYLES}>{label}</Label>}
 
             {/* 触发器 */}
-            <HeroSelect.Trigger className={cn('hrs-select-trigger', TRIGGER_BASE_STYLES, SIZE_TRIGGER_STYLES[size])}>
+            <HeroSelect.Trigger className={cn('hrs-select-trigger', TRIGGER_BASE_STYLES, SIZE_TRIGGER_STYLES[size], SIZE_TEXT_STYLES[size])}>
                 {/* 多选折叠标签：文字 + 内嵌 × */}
                 {selectionMode === 'multiple' && collapseTags
                     ? renderCollapsedValue()
-                    : <HeroSelect.Value className="data-[placeholder=true]:text-muted-text" />}
+                    : <HeroSelect.Value className={cn(SIZE_TEXT_STYLES[size], 'data-[placeholder=true]:text-muted-text')} />}
                 {/* 展开箭头 */}
                 <HeroSelect.Indicator className="transition-transform duration-200 data-[open=true]:rotate-180" />
             </HeroSelect.Trigger>
