@@ -127,3 +127,12 @@ if (!hasLocalStorage) {
     value: new MemoryStorageMock(),
   });
 }
+
+/**
+ * Web Animations API 的最小 shim：jsdom 未实现 Element.getAnimations，
+ * 而 HeroUI / react-aria 的 Tabs 等组件在切换时会读取元素动画，缺失会直接抛错。
+ * 这里返回空数组占位，不改变组件其他行为。
+ */
+if (!Element.prototype.getAnimations) {
+  Element.prototype.getAnimations = () => [];
+}
