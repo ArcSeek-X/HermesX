@@ -143,7 +143,9 @@ export const DocsSelectPage: React.FC = () => {
         <DocsSection title="示例四：尺寸对比（size）" description="size 支持 xs / sm / md / lg（默认 sm），控制触发器高度 / 内边距 / 字号与弹层圆角。">
           <div className="flex flex-wrap items-end gap-6">
             {SELECT_SIZES.map((size) => (
-              <div key={size} className="flex max-w-40 flex-col gap-2">
+              // 列宽需 >= HrsSelect 根元素内置的固定宽度 w-50（200px）：
+              // 容器更窄时 select 会溢出容器并压住相邻列，导致互相堆叠
+              <div key={size} className="flex w-50 flex-col gap-2">
                 <span className="text-[11px] text-muted">size={size}</span>
                 <HrsSelect
                   size={size}
