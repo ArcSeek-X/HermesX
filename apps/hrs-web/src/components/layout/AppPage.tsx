@@ -39,6 +39,16 @@ interface AppPageProps {
   children: React.ReactNode;
   /** 自定义 CSS 类名，用于覆盖默认样式 */
   className?: string;
+  /**
+   * 是否让页面内容撑满可用高度（贴底适配），默认 false。
+   *
+   * 为 true 时本容器转为 flex 列布局，子节点即可用 flex-1 / min-h-0 填充剩余空间，
+   * 用于「页头 + 指标卡 + 表格」这类需要贴底的面板。仅靠子级的 height:100% 是无效的——
+   * 本容器默认只有 min-h-full（高度随内容），百分比高度会退化成 auto 导致整条链塌陷。
+   *
+   * 内容超高时本容器仍随内容长高、由外层 Main 滚动，不影响长页面。
+   */
+  fill?: boolean;
 }
 
 /**
@@ -56,7 +66,7 @@ interface AppPageProps {
  * @param props.className - 可选的自定义样式类名
  * @returns 带统一布局约束的页面容器
  */
-export const AppPage: React.FC<AppPageProps> = ({ children, className = '' }) => {
+export const AppPage: React.FC<AppPageProps> = ({ children, className = '', fill = false }) => {
   // 当前路由信息，用于派生页面级标识类名
   const location = useLocation();
   // 路由标识名，如 stock-dashboard / home / settings
@@ -69,6 +79,8 @@ export const AppPage: React.FC<AppPageProps> = ({ children, className = '' }) =>
         `hrs-apge-${routeName}`,
         // 布局约束：居中 + 最小高度
         'mx-auto min-h-full w-full',
+        // fill：转为 flex 列，使子节点能以 flex-1 / min-h-0 填充剩余高度（贴底适配）
+        fill && 'flex flex-col',
         // 用户自定义样式（优先级最高）
         className,
       )}
