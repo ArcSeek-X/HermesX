@@ -71,7 +71,7 @@ export const InlineAlert: React.FC<InlineAlertProps> = ({
     // 根容器：role=alert 供无障碍播报；应用变体配色与卡片圆角/阴影
     <div
       role="alert"
-      className={cn('max-w-full overflow-hidden rounded-2xl border px-4 py-3 shadow-soft-card', variantStyles[variant], className)}
+      className={cn('max-w-full overflow-hidden rounded-md border px-4 py-3 shadow-soft-card', variantStyles[variant], className)}
     >
       {/* 内容行：窄屏纵向、宽屏左右分布（内容左、操作右） */}
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
