@@ -11,7 +11,7 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import { AppPage } from '@components/layout/AppPage';
 import { toCnOrEn } from '@utils/uiLanguage';
 import { buildFxRefreshFeedback, getFxRefreshFeedbackVariant } from '@utils/portfolioFormat';
 
@@ -283,7 +283,8 @@ const PortfolioPage: React.FC = () => {
     // min-h-full 即可解析为 Main 的内容高度；往下 flex 列 + grid flex-1 min-h-0 +
     // items-stretch，使持仓表格贴底填充剩余高度并随窗口变高而变高。
     // 内容超高时容器随内容长高、由 Main 滚动，不影响长页面。
-    <div className="flex min-h-full flex-col gap-4 p-4 md:p-6">
+    <AppPage className="flex flex-col space-y-3" fill>
+
       <PageHeader
         title={text.title}
         description={text.description}
@@ -426,7 +427,7 @@ const PortfolioPage: React.FC = () => {
         onError={handleApiError}
         onWriteWarning={setWriteGuardMessage}
       />
-    </div>
+    </AppPage>
   );
 };
 
