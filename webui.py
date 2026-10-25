@@ -37,11 +37,11 @@ def main() -> int:
 
     try:
         import uvicorn
-        from src.config import setup_env
-        from src.logging_config import setup_logging
+        from src.bootstrap.environment import bootstrap_environment
+        from src.bootstrap.logging_setup import setup_service_logging
 
-        setup_env()
-        setup_logging(log_prefix="web_server")
+        bootstrap_environment()
+        setup_service_logging("web_server")
 
         uvicorn.run(
             "api.app:app",
