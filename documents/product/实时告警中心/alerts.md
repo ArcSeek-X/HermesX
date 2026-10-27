@@ -48,7 +48,7 @@
 
 ## <a id="当前基线"></a>当前基线
 
-当前运行时告警由 `src/services/alert_worker.py` 中的后台 worker 统一调度，底层规则评估复用 `src/services/alert_service.py` 与 `src/agent/events.py` 中的 EventMonitor 规则模型。
+当前运行时告警由 `src/application/alert/worker.py` 中的后台 worker 统一调度，底层规则评估复用 `src/application/alert/service.py` 与 `src/agent/events.py` 中的 EventMonitor 规则模型。
 
 - 配置入口：`AGENT_EVENT_MONITOR_ENABLED`、`AGENT_EVENT_MONITOR_INTERVAL_MINUTES`、`AGENT_EVENT_ALERT_RULES_JSON`。
 - 运行入口：`main.py` 在 schedule 模式中注册 `agent_event_monitor` 后台任务；后台 worker 每轮读取持久化 active rules，并继续兼容 legacy `AGENT_EVENT_ALERT_RULES_JSON`。
@@ -151,7 +151,7 @@
 
 当前仓库已有 SQLite 存储层和 repository/service 分层：
 
-- `src/storage.py` 管理 SQLite 连接、SQLAlchemy ORM 模型和 `DatabaseManager`。
+- `src/storage.py` 保留 `DatabaseManager` 单例装配与会话入口，业务查询/写入以同名薄委托转发到 `src/infrastructure/persistence/repositories/`；引擎、PRAGMA 与写事务重试在 `src/infrastructure/persistence/session.py`，启动期 schema 升级在 `schema_compat.py`；ORM 模型按业务域放在 `src/infrastructure/persistence/models/`（告警表见 `models/alert.py`）。
 - `src/repositories/` 放置数据访问层，例如 `PortfolioRepository`。
 - `src/services/` 放置业务服务层，例如 `PortfolioService`、`PortfolioRiskService`。
 - 默认数据库路径跟随现有配置，通常落在 `data/stock_analysis.db`。
@@ -265,7 +265,7 @@ P4 不做：
 
 ## <a id="p5-技术指标规则"></a>P5 技术指标规则
 
-P5 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 评估链路中新增日线技术指标规则。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义。
+P5 在现有 Alert API、Web 告警中心和 `src/application/alert/worker.py` 评估链路中新增日线技术指标规则。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义。
 
 P5 支持的 `alert_type` 与 `parameters`：
 
@@ -283,7 +283,7 @@ P5 支持的 `alert_type` 与 `parameters`：
 - 边缘触发只比较最近两根已收盘日线；非边缘但当前 level 已满足阈值时仍返回 `not_triggered`，避免规则创建首日把历史状态误报为新触发。
 - 边缘触发包含前一根刚好等于阈值或零轴的情况：`above` / `bullish_cross` 使用 `prev <= threshold < current`，`below` / `bearish_cross` 使用 `prev >= threshold > current`。
 - partial bar 只使用服务器本地时区启发式：当前本地时间早于 16:00 时，最后一行日期等于本地今天或日期不可判定都会保守丢弃；不区分 A 股、港股、美股市场时区或交易日历。Issue #1386 P0 的市场阶段基线暂不接入技术指标规则，告警 partial bar 精确判定留到后续阶段。
-- `src/services/alert_indicators.py` 自行归一化 OHLCV 并计算 MA、RSI、MACD、KDJ、CCI，不依赖 fetcher 预计算的 MA5/MA10/MA20。
+- `src/domain/alert/alert_indicators.py` 自行归一化 OHLCV 并计算 MA、RSI、MACD、KDJ、CCI，不依赖 fetcher 预计算的 MA5/MA10/MA20。
 - RSI 使用 Wilder's EMA / SMMA：`avg_gain = gain.ewm(alpha=1/period, adjust=False).mean()`，`avg_loss` 同理，不使用 rolling SMA。
 - MACD 使用 `EMA(fast_period) - EMA(slow_period)` 得到 DIF，DEA 为 DIF 的 `EMA(signal_period)`；金叉/死叉比较 DIF-DEA 相对 0 的边缘穿越。
 - KDJ 使用最近 `period` 日最高/最低价计算 RSV，并用 `alpha=1/k_period`、`alpha=1/d_period` 的 EMA 得到 K/D；金叉/死叉比较 K-D 相对 0 的边缘穿越。
@@ -311,7 +311,7 @@ P5 不做：
 
 ## <a id="p6-持仓与自选股联动"></a>P6 持仓与自选股联动
 
-P6 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 评估链路中新增 `watchlist`、`portfolio_holdings`、`portfolio_account` 三类目标范围。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义，不新增表或迁移。
+P6 在现有 Alert API、Web 告警中心和 `src/application/alert/worker.py` 评估链路中新增 `watchlist`、`portfolio_holdings`、`portfolio_account` 三类目标范围。规则仍写入 `alert_rules`，触发、降级、失败、通知结果和持久化冷却继续复用 P2-P4 的 `alert_triggers`、`alert_notifications` 与 `alert_cooldowns` 语义，不新增表或迁移。
 
 ### <a id="p6-scopetype-矩阵"></a>P6 scope/type 矩阵
 
@@ -396,7 +396,7 @@ DecisionSignal 字段、脱敏、迁移与回滚边界见 [DecisionSignal 决策
 
 ## <a id="p7-大盘红绿灯结构化告警"></a>P7 大盘红绿灯结构化告警
 
-P7 在现有 Alert API、Web 告警中心和 `src/services/alert_worker.py` 中新增 `target_scope=market`，消费结构化 `MarketLightSnapshot`，不解析 Markdown，不扩展 legacy `AGENT_EVENT_ALERT_RULES_JSON`，不新增表。大盘复盘历史仍写一条 `analysis_history(code=MARKET, report_type=market_review)`；多市场复盘通过 `context_snapshot.market_light_snapshots` 按 region 保存本次实际复盘的快照 map。
+P7 在现有 Alert API、Web 告警中心和 `src/application/alert/worker.py` 中新增 `target_scope=market`，消费结构化 `MarketLightSnapshot`，不解析 Markdown，不扩展 legacy `AGENT_EVENT_ALERT_RULES_JSON`，不新增表。大盘复盘历史仍写一条 `analysis_history(code=MARKET, report_type=market_review)`；多市场复盘通过 `context_snapshot.market_light_snapshots` 按 region 保存本次实际复盘的快照 map。
 
 ### <a id="p7-scopetype-矩阵"></a>P7 scope/type 矩阵
 
