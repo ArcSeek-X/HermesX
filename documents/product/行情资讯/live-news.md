@@ -115,11 +115,11 @@
 
 | 已有能力        | 位置                                      | 状态                                     |
 | ----------- | --------------------------------------- | -------------------------------------- |
-| 资讯服务主干      | `src/services/intelligence_service.py`  | ✅ 支持 `rss` / `atom` / `newsnow` 三种协议   |
+| 资讯服务主干      | `src/application/intelligence/intelligence_service.py`  | ✅ 支持 `rss` / `atom` / `newsnow` 三种协议   |
 | 资讯持久化       | `src/repositories/intelligence_repo.py` | ✅ 统一落 `intelligence_items`             |
 | 资讯 API      | `api/v1/endpoints/intelligence.py`      | ✅ 已注册 `/api/v1/intelligence/*`         |
 | NewsNow 内置源 | `_NEWSNOW_DEFAULT_SOURCE_DEFS`          | ✅ 已含 `wallstreetcn-quick` 等 5 个源       |
-| 配置项         | `src/config.py` + `.env.example`        | ✅ 已含 `news_intel_*`、`newsnow_base_url` |
+| 配置项         | `src/config/settings.py` + `.env.example`        | ✅ 已含 `news_intel_*`、`newsnow_base_url` |
 | 前端路由        | `apps/hrs-web/src/App.tsx`              | ✅ 壳 + 子路由结构，新增页面成本低                    |
 | SSE 通道      | `/api/v1/analysis/events`               | ✅ 已有（本期不复用，见 §4.4）                     |
 | **独立快讯页**   | —                                       | ❌ **缺失，本期建设**                          |
@@ -236,13 +236,13 @@ GET https://api-one.wallstcn.com/apiv1/content/lives?channel=<频道ID>&limit=<N
 
 | 层                | 文件                                           | 职责                                                      | 本期改动                                    |
 | ---------------- | -------------------------------------------- | ------------------------------------------------------- | --------------------------------------- |
-| **配置层**          | `src/config.py` + `.env.example`             | 开关、阈值、上游地址                                              | 新增 `wscn_live_news_*` 系列配置              |
+| **配置层**          | `src/config/settings.py` + `.env.example`             | 开关、阈值、上游地址                                              | 新增 `wscn_live_news_*` 系列配置              |
 | **Fetcher 层**    | `data_provider/wallstreetcn_live_news_fetcher.py` 🆕 | 纯 HTTP：8 频道拉取、`polling_cursor` 增量、`next_cursor` 翻页、超时重试 | **全部新增**                                |
-| **Service 层**    | `src/services/intelligence_service.py`       | 编排：**官方源 → 失败降级 NewsNow**；字段标准化；`importance` 计算         | **扩展**，新增 3 个方法                         |
+| **Service 层**    | `src/application/intelligence/intelligence_service.py`       | 编排：**官方源 → 失败降级 NewsNow**；字段标准化；`importance` 计算         | **扩展**，新增 3 个方法                         |
 | **Repository 层** | `src/repositories/intelligence_repo.py`      | 落库与查询                                                   | **扩展**，新增按 channel / importance / 日期 查询 |
 | **Schema 层**     | `api/v1/schemas/intelligence.py`             | Pydantic 出入参模型                                          | **扩展**，新增 7 个模型                         |
 | **API 层**        | `api/v1/endpoints/intelligence.py`           | HTTP 暴露                                                 | **扩展**，新增 4 个路由（**不新建 endpoint 文件**）    |
-| **刷新策略**        | `src/services/intelligence_service.py`       | 按需惰性刷新与节流                                             | **新增** `ensure_live_news_fresh()`，见 §4.4 |
+| **刷新策略**        | `src/application/intelligence/intelligence_service.py`       | 按需惰性刷新与节流                                             | **新增** `ensure_live_news_fresh()`，见 §4.4 |
 | **前端 API 层**     | `apps/hrs-web/src/api/liveNews.ts` 🆕        | 封装 HTTP 调用                                              | **全部新增**                                |
 | **前端 Hook 层**    | `apps/hrs-web/src/hooks/useLiveNews.ts` 🆕   | 轮询、分页、按日分组                                              | **全部新增**                                |
 | **前端页面层**        | `apps/hrs-web/src/pages/LiveNewsPage.tsx` 🆕 | 布局渲染                                                    | **全部新增**                                |
@@ -428,7 +428,7 @@ CREATE INDEX ix_intel_item_channel_time ON intelligence_items (scope_value, publ
 | **行情类**    | `data_provider/` 下 12 个 fetcher：`akshare` / `baostock` / `efinance` / `pytdx` / `tencent` / `tushare`（A股）`yfinance` / `alphavantage` / `finnhub`（美股）`longbridge`（港股）`tickflow`（实时 tick）`tw_institutional`（台股法人） | OHLCV 日线、实时报价、基本面                                 | ✅  | **`stock_daily`**（code+date 唯一，含 OHLCV + 技术指标）**`fundamental_snapshot`**（P0 write-only） |
 | **资讯类（旧）** | `src/services/news_service.py`（已被替代）                                                                                                                                                                            | 个股新闻，按股票代码检索                                      | ✅  | **`news_intel`**（按 `code` 关联，`ReportNews.tsx` 仍在使用）                                     |
 | **资讯类（新）** | `IntelligenceService`（RSS/Atom/NewsNow）                                                                                                                                                                         | 大盘 / 板块 / 市场级资讯                                   | ✅  | **`intelligence_items`** ← **本期快讯同样落此表**                                                |
-| **社交舆情**   | `src/services/social_sentiment_service.py`                                                                                                                                                                      | Reddit / X / Polymarket 情绪（仅美股）                   | ❌  | 实时查询，用完即弃                                                                               |
+| **社交舆情**   | `src/application/intelligence/social_sentiment_service.py`                                                                                                                                                                      | Reddit / X / Polymarket 情绪（仅美股）                   | ❌  | 实时查询，用完即弃                                                                               |
 | **搜索增强**   | `src/search_service.py`                                                                                                                                                                                         | Anspire / Tavily / Brave 等，给 LLM 注入 news\_context | ❌  | 实时查询                                                                                    |
 
 **规律**：**结构化且可复用**的数据（行情、资讯）落表供历史回溯；**一次性上下文**（舆情、LLM 搜索）不落表以避免存储膨胀。本期快讯属可复用资讯，落 `intelligence_items` 符合既有分层惯例。
@@ -955,13 +955,13 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 
 | 阶段                  | 内容                                              | 涉及文件                                                          | 状态     |
 | ------------------- | ----------------------------------------------- | ------------------------------------------------------------- | ------ |
-| **① 配置**            | 新增 `WSCN_LIVE_NEWS_*` 配置项与解析                    | `src/config.py`、`.env.example`                                | ✅ 已完成  |
+| **① 配置**            | 新增 `WSCN_LIVE_NEWS_*` 配置项与解析                    | `src/config/settings.py`、`.env.example`                                | ✅ 已完成  |
 | **② Fetcher**       | 8 频道抓取 + cursor 增量 + 翻页 + 超时重试                  | `data_provider/wallstreetcn_live_news_fetcher.py` 🆕                  | ✅ 已完成  |
 | **③ Schema**        | 7 个 Pydantic 模型                                 | `api/v1/schemas/intelligence.py`                              | ✅ 已完成  |
-| **④ Service**       | 编排、降级、字段标准化（`importance` / 频道短码 / 秒毫秒换算）       | `src/services/intelligence_service.py`                        | ✅ 已完成  |
-| **⑤ Repository**    | 新增 `importance` 列 + 索引 + 迁移；按频道/重要级/日期查询       | `src/repositories/intelligence_repo.py`、`src/storage.py`      | ✅ 已完成  |
+| **④ Service**       | 编排、降级、字段标准化（`importance` / 频道短码 / 秒毫秒换算）       | `src/application/intelligence/intelligence_service.py`                        | ✅ 已完成  |
+| **⑤ Repository**    | 新增 `importance` 列 + 索引 + 迁移；按频道/重要级/日期查询       | `src/repositories/intelligence_repo.py`、`src/infrastructure/persistence/schema_compat.py`      | ✅ 已完成  |
 | **⑥ API**           | 4 个新路由                                          | `api/v1/endpoints/intelligence.py`                            | ✅ 已完成  |
-| **⑦ 刷新策略**          | 按需惰性刷新 + 双闸节流（改为不挂 `runtime_scheduler`，见 §4.4） | `src/services/intelligence_service.py`                        | ✅ 已完成  |
+| **⑦ 刷新策略**          | 按需惰性刷新 + 双闸节流（改为不挂 `runtime_scheduler`，见 §4.4） | `src/application/intelligence/intelligence_service.py`                        | ✅ 已完成  |
 | **⑧ 前端类型 & API**    | 类型定义 + 4 个 API 方法                               | `src/types/liveNews.ts` 🆕、`src/api/liveNews.ts` 🆕           | ✅ 已完成  |
 | **⑨ 前端 Hook**       | 2 个 Hook（轮询、分页、防抖、分组）                           | `src/hooks/useLiveNews.ts` 🆕                                 | ✅ 已完成  |
 | **⑩ 前端页面**          | 页面 + 路由 + 侧边栏入口 + i18n（中/繁/英）                   | `src/pages/LiveNewsPage.tsx` 🆕、`App.tsx`、`SidebarNav.tsx`    | ✅ 已完成  |
