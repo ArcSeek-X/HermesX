@@ -68,7 +68,7 @@ python scripts/check_ai_assets.py
 - 核心职责：
   - `src/core/`：主流程编排
   - `src/services/`：业务服务层
-  - `src/repositories/`：数据访问层
+  - `src/infrastructure/persistence/repositories/`：数据访问层（仓储实现，经 `src/application/*/ports.py` 端口消费）
   - `src/reports/`：报告生成
   - `src/schemas/`：Schema / 数据结构
   - `data_provider/`：多数据源适配与 fallback
