@@ -4773,6 +4773,20 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 - **CHANGELOG 判定**：触及 CI／部署行为（`testpaths` 收窄收集面、`ci_gate.sh` 新增 architecture 阶段）与迁移收尾事实 → `[Unreleased]` 新增 1 条 `[chore]`，保持扁平格式（窗口内 `###` 实测 **0**）。
 - **下一步**：W1–W14 收官，迁移主线闭环；余 **推送与 PR（维护者手动）**、W11 前端 lint/build 债务（58 err / 26 TS，W12 复测未恶化）、D3 深层拆分第二轮（`src/` ≥1800 行 **10 件**）、D4 的 Docker 真实 build。
 
+## 0.175 补清 W3.3 残留：删除全仓孤儿字节码缓存并回收空目录（零代码、零 tracked 变更）
+
+**动机**：收尾复核时用户要求把台账长期标记为「🔴 部分完成」的 `src/core/__pycache__` 残留彻底处理掉。该残留自 W3.3 起因删除工具对 `.pyc`／空目录静默失败（报成功但文件仍在）而长期未清。
+
+**取证与判定**：`src/core/` 下仅 `__pycache__/` 的 9 个 cpython-311 `.pyc`，无 `.py` 源码、无 `__init__.py`；`git ls-files src/core` 为空、`git check-ignore` 命中 → 全部 git-ignored，删除不产生任何 tracked diff。全仓对 `src.core` 的引用仅为 docstring／注释的历史叙述，以及 `scripts/check_architecture.py`（L93／L104／L154）**刻意保留的 tombstone 禁入规则**（W3.4 决定保留、防旧路径复活），无任何功能性 import。`__pycache__` 内的 `.pyc` 在无同名 `.py` 时永不被解释器加载，属死缓存、可安全删。
+
+**扩大排查（不只台账点名的 9 个）**：按「同目录无同名 `.py` 源码」全仓扫 `src/**/__pycache__` → 孤儿 `.pyc` 共 **27**（`src/core/` 9 + `src/__pycache__/` 17 + `src/application/quote/__pycache__/` 1），均为历史迁移把源文件搬走后遗留的缓存。
+
+**处理**：`./.venv/bin/python` 逐一 `os.remove` 27 个孤儿 `.pyc` → 回收变空的 `__pycache__` 与 `src/core` 目录（`os.rmdir`）；仍在使用的有效缓存不动。**结果**：`src/core` 目录已不存在、孤儿 `.pyc` 复扫归零（0）。
+
+**验证**：守卫 `check_architecture.py --check` **passed**；`main`／`server`／`src.application.analysis.pipeline`／`src.domain.market.trading_calendar`／`src.application.market.market_review_lock` 真实导入 **OK**（无 `src.core` 断链）。因删除对象全部 git-ignored，**本片不产生任何提交内容**，仅回写文档口径。
+
+**文档回写**：STATUS §4 W3.3 由 🔴 部分完成改 ✅、§2「旧模块清理」行的「未清」表述改为已清理、§0.4 切片计数（178→179、最新序号 §0.174→§0.175）与 §7 里程碑同步；本台账追加本节；CHANGELOG `[Unreleased]` 增 1 条 `[chore]`（保持扁平格式）。
+
 ## 1. 已确认决策
 
 | 编号 | 决策 | 依据与影响 |
