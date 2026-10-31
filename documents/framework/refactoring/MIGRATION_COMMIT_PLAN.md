@@ -652,4 +652,4 @@ git log -1 --format='%B' | head -3         # 抽查正文换行与顶格是否�
 
 **`testpaths` 改动的 CI 副作用（入库后实测，必须知道）**：`offline_test_suite()` 是裸跑 `python -m pytest -m "not network"`，受 `testpaths` 直接影响。旧值 `.` 在本地以 `-o testpaths=. --ignore=vibe-template` 模拟 CI 干净检出，实测收集 **5727 items**，其中 **10 个恒为 collection error**：`apps/hrs-web/scripts/test_wt/kline/test_wt_kline_backend.py` 与 `…/sector-analysis/test_wt_sector-analysis_backend.py`（已跟踪，自 `fd862ba3` 2026-08-09 入库）用的 `client` fixture 全仓无定义（只在 `tests/conftest.py` 作用域内可见）→ `fixture 'client' not found` ×10，`set -euo pipefail` 下会把 backend-gate 拖红。新值 `tests` 下收集 **5717 items / 0 error**：这 10 个既有错误消失，代价是这 2 个已跟踪的脚本样本不再进入默认收集面（它们本身从入库那天起就不可运行，不属覆盖损失；若将来要修，应移到 `tests/` 下并补 `client` fixture 而不是放宽 `testpaths`）。
 
-**执行明细的落点**：本方案执行后的逐笔 hash 与项数、worktree 取证数值、message 事实纠正（six 而非 four 个禁止出现断言）、本片自有失误与未归因项，已同步追加到流水台账 `documents/framework/architecture_migration_progress.md` **§0.174**（台账只追加不改写，本节与 §7.1–§7.3 仍是执行结果的第一事实源）。
+**执行明细的落点**：本方案执行后的逐笔 hash 与项数、worktree 取证数值、message 事实纠正（six 而非 four 个禁止出现断言）、本片自有失误与未归因项，已同步追加到流水台账 `documents/framework/refactoring/architecture_migration_progress.md` **§0.174**（台账只追加不改写，本节与 §7.1–§7.3 仍是执行结果的第一事实源）。
