@@ -7,9 +7,9 @@
 
 ---
 
-## 0. 为什么是这个切法（四条实测证据）
+## 0. 为什么是这个切法（五条实测证据）
 
-本方案不是按"看起来合理"排的序，四个约束都做过可复现实验（均在 `/tmp` 构造，未触碰工作区与索引）。
+本方案不是按"看起来合理"排的序，五个约束都做过可复现实验（均在 `/tmp` 或 `git worktree` 构造，未触碰主工作区内容）。
 
 | 编号 | 实验 | 构造方式 | 实测结果 | 对方案的约束 |
 |---|---|---|---|---|
@@ -17,10 +17,14 @@
 | **E-2** | 只切驱动、测试留旧版 | HEAD ∪ 新五层 ∪ 新 api/bot，tests 保持 HEAD | **57 个 collection error，exit 2**（`ImportError`：旧测试从 api/bot 模块导入已迁走的符号） | ❌ 驱动层与它的 wiring 测试**必须同一提交** → C7 不可再拆 |
 | **E-3** | 切驱动+切测试，但**保留 legacy 代码** | HEAD ∪ 全部变更，但不删 196 个 legacy 文件 | **5714 passed / 3 skipped，exit 0** | ✅ legacy 删除可独立成提交 → C8 与 C7 解耦 |
 | **E-4** | 守卫能否先落地 | HEAD 旧布局 + 空 baseline 跑守卫 | 报出 **15 条违规**（`src/services/*→fastapi/sqlalchemy`、`src/core/pipeline→bot.models`、`api/*→src.storage`、`src/notification.py→bot.*`） | ❌ 守卫脚本 + baseline + CI gate 必须排在删 legacy **之后** → C9 收尾 |
+| **E-5** | 逐笔 checkout 独立可运行（`git worktree`） | 先按 C2→C3 顺提交，在 C2 的树上跑 `import src.config` | **`ModuleNotFoundError: No module named 'src.domain'`**：`config/llm_channels.py:16`、`config/settings.py`（9 处）、`config/field_definitions.py`（2 处）均硬依赖 `src.domain.*` | ❌ 五层内部**不是**彼此独立的纯新增 → **domain 必须先于 config 入库**，执行顺序改为 C1 → C3 → C2 → C4… |
+| **E-6** | C7/C8 单独 checkout 能否跑绿 | `git worktree` 实跑 C7 `8e43c72b`、C8 `f8971664` 的全量 `pytest tests` | 不拷入属 C9 的 4 件工具链文件时**测试无法收集**；拷入后 C7 **5675 passed / 0 failed**、C8 **5674 passed / 4 skipped / 0 failed** | ⚠️ C7 的测试依赖 C9 的文件 → 本序列**不是逐笔可跑**，bisect 只保证“语义完整”，真实可运行基线从 C9 开始（详见 §7.4） |
 
 > E-3 的 5714 与 E-1 的 5713 差 1：E-3 树里 `tests/test_notification_capabilities.py`（旧测试，最终态已删除）被 `--ignore` 跳过，不是用例增减。
 
 **分片原则**：自底向上纯新增（C2–C6）→ 驱动与测试原子切换（C7）→ 删旧（C8）→ 强制（C9）。legacy 代码在最后两笔之前一直存在但已无人引用，这样 E-2 与 E-4 两个约束都不会被破坏。
+
+**五层之间的实际入库顺序（由 E-5 修正）**：`C1 docs → C3 domain → C2 config → C4 infrastructure → C5 application → C6 bootstrap → C7 驱动+测试 → C8 删 legacy → C9 守卫与工具链`。依据是静态 import 取证：`src/domain` 对外只依赖 `src.domain`（27 处）与 `src.utils`（2 处），不碰 config；`src/config` 硬依赖 `src.domain`（12 处）；`src/utils/time.py` 的消费者在 infrastructure/application，因此随 config 一笔入库仍早于首个消费方。⚠️ 本文余下部分的 **C2/C3 编号指内容组，不代表先后**；执行时以本行的顺序为准。
 
 ---
 
@@ -28,7 +32,7 @@
 
 ### C1 `docs(arch): record architecture baseline, layering rules and migration facts`
 
-- **内容**：37 个文件（32 改 + 5 新增）
+- **内容**：36 个文件（32 改 + 4 新增）
   - 根级：`AGENTS.md`、`ARCHITECTURE_TARGET.md`、`SKILL.md`、`stock_data_view.md`
   - `docs/` 18 篇：`LLM_CONFIG_GUIDE(_EN)`、`agent-stream-events`、`analysis-context-pack`、`bot-command(_EN)`、`decision-signals`、`full-guide(_EN)`、`image-extract-prompt`、`intelligence-sources`、`llm-providers`、`multi-strategy-contract`、`notifications`、`run-diagnostics-p1/p2/p3`、`settings-help`
   - `documents/`：`CHANGELOG.md`、`framework/` 3 篇 ADR/进度、`product/` 6 篇中文产品文档
@@ -56,7 +60,7 @@
 
 ### C2 `feat(config): split configuration into src/config with shared utils`
 
-- **内容**：10 个文件（9 新增 + 1 删除）
+- **内容**：10 个文件（9 新增 + 1 删除）—— **必须在 domain 之后入库**（E-5）
   - 新增 `src/config/`：`__init__.py`（门面转发）、`settings.py`、`env_file.py`、`env_parsers.py`、`llm_channels.py`、`registry.py`、`field_definitions.py`、`field_help.py`
   - 新增 `src/utils/time.py`
   - 删除 `src/config.py`
@@ -226,7 +230,7 @@
   | `src/core/`（磁盘上只剩 `__pycache__`，删除后目录自行消失） | 11 |
   | `src/schemas/` | 8 |
 - **message 描述**
-  删除已无人引用的 legacy 实现。删除前先做全仓引用扫描：`src.{services,core,agent,llm,repositories,schemas,notification_sender}` 与根级扁平模块在生产代码、`api/`、`bot/`、`data_provider/`、测试中的真实导入均已归零，只剩 4 个接线测试把这类路径当作"禁止出现"的断言（analysis/kline/limit_pool 端点与 bot 用例接线），另有守卫测试仅在临时目录里构造同名的假路径，两者都不依赖 legacy 文件存在。实验 E-3 已单独验证过"切完驱动+测试但保留 legacy"这一状态全绿，因此本笔只可能因遗漏引用而失败，diff 是纯删除、可逐文件核对。`src/services/__init__.py` 与 `src/storage.py` 作为对外兼容面刻意保留。
+  删除已无人引用的 legacy 实现。删除前先做全仓引用扫描：`src.{services,core,agent,llm,repositories,schemas,notification_sender}` 与根级扁平模块在生产代码、`api/`、`bot/`、`data_provider/`、测试中的真实导入均已归零（入库前复扫：855 个候选文件、正则捕获 `from/import` 命中为 0），只剩 **6 个**测试文件把这类路径当作"禁止出现"的断言字符串（`test_analysis_endpoint_wiring`、`test_kline_endpoint_wiring`、`test_limit_pool_endpoints`、`test_sector_endpoint_refactor`、`test_bot_use_case_wiring`、`test_analysis_context_builder`），另有守卫测试仅在临时目录里构造同名的假路径（守卫测试本身属 C9，本笔提交时尚未入库），两者都不依赖 legacy 文件存在。实验 E-3 已单独验证过"切完驱动+测试但保留 legacy"这一状态全绿，因此本笔只可能因遗漏引用而失败，diff 是纯删除、可逐文件核对。`src/services/__init__.py` 与 `src/storage.py` 作为对外兼容面刻意保留。
 - **英文 message**
 
   ```text
@@ -236,9 +240,9 @@
   deleting, a repository-wide scan confirmed zero production, api/, bot/,
   data_provider/ and test imports of src.{services,core,agent,llm,repositories,
   schemas,notification_sender} and of the root-level flat modules. The only
-  remaining mentions are four wiring tests that assert those paths stay absent
-  from driver sources and the guard test, which builds equivalent paths only
-  inside a temporary directory - neither depends on the legacy files existing.
+  remaining mentions are six tests that keep such paths in forbidden-import
+  assertions and the guard test, which builds equivalent paths only inside a
+  temporary directory - neither depends on the legacy files existing.
   Experiment E-3 already proved the "switched drivers and tests, legacy still
   present" state is green, so this commit can only fail on a missed reference
   and its diff is pure deletion. src/services/__init__.py and src/storage.py
@@ -305,7 +309,9 @@
 
 ## 3. 逐笔执行脚本（暂存 → 验证 → 提交，**每段自带完整英文 message**）
 
-> ⚠️ 每一笔的 `git commit` 都需要你逐笔确认后再执行；本方案未替你提交。
+> ⚠️ **执行顺序没有按 C2→C3 的字面编号**：按 E-5 的结论，先跑下面标为“C3 —— domain 层”的块，再跑“C2 —— config 层”的块；其余 C1→C4→…→C9 依次不变。
+
+> ⚠️ 已获授权逐笔执行（2026-10-31）：每笔暂存与验证完成后贴 `git diff --cached --stat` 给用户，再 `commit`，一笔一确认。**全程不执行 `git push` / `git tag` / 建 PR**，推送节奏由维护者自己掌握。
 >
 > **message 约定**（与 `AGENTS.md` 一致）：
 > 1. 提交正文一律使用下面 heredoc 里的**完整英文 message**，与 §1 各笔的「英文 message」代码块**逐字一致**——执行时不要临场改写、不要翻译、不要截断；§1 的中文描述仅供你评审对照，**不入库**。
@@ -344,8 +350,8 @@ MSG
 ### C2 —— config 层
 
 ```bash
-git add -A -- src/config src/utils
-git diff --cached --name-only | wc -l      # 期望 10
+git add -A -- src/config src/utils src/config.py
+git diff --cached --name-only | wc -l      # 期望 10（注意：pathspec `src/config` 不匹配同名文件 `src/config.py`，必须显式列出）
 $V -m pytest -q tests
 
 git commit -F - <<'MSG'
@@ -483,7 +489,11 @@ MSG
 ```bash
 git add -A -- src/agent src/services src/core src/llm src/repositories src/schemas src/notification_sender
 git add -A -- $(git status --porcelain -uall | awk '$1=="D"{print $2}' | grep '^src/.*\.py$')
-git diff --cached --name-only | wc -l      # 期望 193
+# 执行时改用更稳的写法（避开 shell 词分割与八进制转义）：先把 D 路径写进清单，再喂给 git
+./.venv/bin/python -c "import subprocess;d=[l[3:] for l in subprocess.run(['git','status','--porcelain','-uall'],capture_output=True,text=True).stdout.splitlines() if l[:2]==' D'];open('/tmp/c8_list.txt','w').write('\n'.join(d)+'\n');print(len(d))"
+git add -A --pathspec-from-file=/tmp/c8_list.txt
+git diff --cached --name-status --no-renames | wc -l      # 期望 193（全部为 D）
+git ls-files src/services/__init__.py src/storage.py src/auth.py src/__init__.py src/webui_frontend.py   # 兼容面必须仍在索引
 $V -m pytest -q tests scripts
 
 git commit -F - <<'MSG'
@@ -493,9 +503,9 @@ Remove the legacy implementations that no longer have any referent. Before
 deleting, a repository-wide scan confirmed zero production, api/, bot/,
 data_provider/ and test imports of src.{services,core,agent,llm,repositories,
 schemas,notification_sender} and of the root-level flat modules. The only
-remaining mentions are four wiring tests that assert those paths stay absent
-from driver sources and the guard test, which builds equivalent paths only
-inside a temporary directory - neither depends on the legacy files existing.
+remaining mentions are six tests that keep such paths in forbidden-import
+assertions and the guard test, which builds equivalent paths only inside a
+temporary directory - neither depends on the legacy files existing.
 Experiment E-3 already proved the "switched drivers and tests, legacy still
 present" state is green, so this commit can only fail on a missed reference
 and its diff is pure deletion. src/services/__init__.py and src/storage.py
@@ -560,10 +570,14 @@ git log -1 --format='%B' | head -3         # 抽查正文换行与顶格是否�
 | C7 diff 巨大（287 文件）不可再拆 | 单笔 review 负担重 | 靠 C1–C6 先把语义讲清；review 时按 `api/` → `bot/` → `data_provider/` → `tests/` 四段看；拆开的代价已由 E-2 量化（57 个收集错误） |
 | 中间提交只跑 pytest、未跑守卫 | C1–C8 期间无静态分层校验 | 每笔补跑 `$V -m compileall -q <改动目录>`；守卫在 C9 一次性阻断 |
 | `git add -A -- src/...` 误吞 `__pycache__` | 提交夹带二进制垃圾 | `__pycache__/` 已在 `.gitignore` 第 21 行；仍建议 `PYTHONDONTWRITEBYTECODE=1`，并在终审时看 `git diff --cached --stat` |
-| C8 遗漏引用 | 该提交红 | 已做全仓 import 扫描（生产/驱动/测试中 legacy 真实引用为 0，只有 4 个"禁止出现"断言 + 守卫测试的 tempdir 构造）；且 E-3 证明"切完但保留"是绿的，删除面是纯减法 |
+| C8 遗漏引用 | 该提交红 | 已做全仓 import 扫描（生产/驱动/测试中 legacy 真实引用为 0，只有 6 个"禁止出现"断言 + 守卫测试的 tempdir 构造）；且 E-3 证明"切完但保留"是绿的，删除面是纯减法 |
 | 非 ASCII 文件名在 `git status` 里被八进制转义 | 生成清单时漏挂文件 | C1 不使 `git add -A` 扫根级单文件，而是显式列出四个根级 md（`build的问题清单.md` 已定排除）；核对口径统一用 `git status --porcelain -uall` 展开计数 916 |
+| **worktree 里缺 `.env.example`（被 `.gitignore` 屏蔽）当代码回归** | 误判 5 条红为迁移缺陷 | 该文件永不在任何提交里；验证前 `cp .env.example <wt>/`，已拷 `.env` 同理（见 §7.4） |
+| **C7/C8 的测试依赖 C9 的 4 件工具链文件** | 中间笔不可独立收集 | 已由 E-6 实测定位；不重写历史、不夹带文件，改以 §7.1/§7.4 如实记录可运行基线从 C9 开始 |
 | **§1 与 §3 的 message 双处维护漂移** | 提交的正文与评审过的正文不一致 | 已做逐字校验：抽出 §1 九个 text 围栏块与 §3 九个 `<<'MSG'` heredoc 块，去缩进后逐行对比，C1–C9 **全部 IDENTICAL**（行数 10/11/13/11/11/11/12/13/12）。后续若改任一处，必须重跑此对比 |
-| 中途想放弃 | — | 全部提交都在本地分支、未 push：`git reset --soft fe7410bb` 即可回到零提交状态，改动完整退回工作树（内容与当前一致，因未做任何改写） |
+| **git rename 检测使计数口径飘移** | 按 `--stat` / `--name-only` 核数会对不上守恒表 | C2 的 `src/config.py`（删）与 `src/config/settings.py`（增）被识别为 **rename R087**，9 条路径对应 10 个 porcelain 项。统一改用 **`git diff --cached --name-status --no-renames \| wc -l`** 作为每笔的验收尺 |
+| **pathspec `src/config` 不匹配同名文件 `src/config.py`** | 删旧模块那一半静默漏提交，拖到后续笔 | 已实测确认，并在 C2 命令里显式列出 `src/config.py`；C8 删根级 `src/*.py` 同理，必须逐个列路径或先 `git add -n` 干跑核对 |
+| 中途想放弃 | — | 未 push 的部分：`git reset --soft fe7410bb` 即可回到零提交状态，改动完整退回工作树（内容与当前一致，因未做任何改写）。⚠️ **C1 已由维护者手动推到 `origin/main`**，该回滚只覆盖本地，远端退出方式见 §7.3。 |
 | 自动 tag / Release 被触发 | 意外发版 | 9 笔 title 均不含 `#patch/#minor/#major`，不触发自动 tag；push 与建 PR 另需单独授权 |
 
 ---
@@ -580,3 +594,62 @@ git log -1 --format='%B' | head -3         # 抽查正文换行与顶格是否�
 ---
 
 **下一步**：第 4 节三项已按「撤销 1 / 排除 2 / 采纳 3」定稿，你已授权逐笔执行。按第 3 节顺序 C1→C9，每笔先暂存、跑验证、贴 `git diff --cached --stat`，再 `git commit -F -`，一笔一确认。
+
+---
+
+## 7. 执行实况与逐笔健康度（2026-10-31 补，已发生的事实）
+
+### 7.1 已入库
+
+| 执行序 | commit | 对应内容组 | 入库项 | 独立可运行取证 |
+|---|---|---|---:|---|
+| 1 | `4a315ae1` | C1 docs | 36 | 未单跑 worktree；按 §7.3 判定为**非 test-green** |
+| 2 | `cec61271` | C3 domain | 67 | worktree：67/67 模块 import OK，`main`/`server` OK，legacy `src.services` OK |
+| 3 | `17b70b72` | C2 config | 10 | worktree：`import src.config` → `ModuleNotFoundError: src.domain`（→ E-5，已重排）；重排后 `pytest tests` → **154 failed / 4999 passed / 3 skipped + 1 收集错误** |
+| 4 | `20fb0c9b` | C4 infrastructure | 109 | `compileall` RC=0；未跑 worktree（按 §7.2 判定为 test-green：旧测试不导入它） |
+| 5 | `b5014fa2` | C5 application | 168 | 同上 |
+| 6 | `10e5a139` | C6 bootstrap | 25 | 同上 |
+| 7 | `8e43c72b` | C7 驱动+测试 | 287 | worktree：拷入 `.env` + `.env.example` + C9 的 4 件工具链文件后 **5675 passed / 3 skipped / 0 failed**（原跑 5 failed 系 `.env.example` 被 `.gitignore` 屏蔽，见 §7.4）；**不拷那 4 件则无法收集** |
+| 8 | `f8971664` | C8 删 legacy | 193 | worktree（同上环境修正）：**5674 passed / 4 skipped / 0 failed（322.42s）**，`src/` 下 `core`/`agent`/`llm`/`repositories`/`schemas`/`notification_sender` 已不存在，`services/` 只剩 `__init__.py`；仍需那 4 件才能收集 |
+| 9 | `7a97cd32` | C9 守卫与工具链 | 20 | 终态主工作区跑完整门禁 `PATH=$PWD/.venv/bin:$PATH ./scripts/ci_gate.sh all` → **5713 passed / 4 deselected / 511 subtests passed（259.96s），`all checks passed`**；守卫 `--check` RC=0、严格 flake8 RC=0、`test.sh code`+`yfinance` 全过 |
+
+执行时偏离本节的四处（均已写回 §0/§3/§5）：C2 与 C3 交换顺序；C2 的暂存命令补 `src/config.py` 显式 pathspec；C8 的暂存命令改用 `--pathspec-from-file`（避开 shell 词分割）；§4 第 3 项最终落的是 **`testpaths = tests`** 而非 `tests scripts`——实测 `scripts/` 无符合 `python_files = test_*.py` 的文件（`e2e_test_feishu_app.py` 不匹配前缀），列入无收益。
+
+⚠️ **三笔纯新增层之间不是彼此可导入的**（不影响 test-green，因为旧测试不导入它们，但影响"完整可运行"的口径）：静态取证 `src/infrastructure` 模块级 `from src.application` **41 处**（适配器实现应用层端口，方向合法），而 `src/application/market/market_light_alerts.py:17` 又模块级 `from src.bootstrap.market import ...`（文件内自述为「过渡设计债，待后续切片端口化」，守卫并未禁这一条）——所以上表 C5 的 message 里"Application depends only on the domain and on ports it declares"是设计意图而非当前实况的完整描述，已知反例就是上述这一行。因此五层的导入完整性只有到 **C6 全部落完**才成立。
+
+### 7.2 逐笔健康度矩阵（方案拍板前未评估到的事实）
+
+| 笔 | 纯新增？ | test-green？ | 原因 |
+|---|---|---|---|
+| C1 docs | — | ❌ | 文档已改指五层新路径，而断言旧路径的测试仍在 C7 → `test_alerts_docs`、`test_analysis_context_pack_docs` 等约 15 条红 |
+| C3 domain | ✅ | ✅ | 全仓无人引用，旧测试不导入它 |
+| C2 config | ✅+1 删 | ❌ | 旧测试 patch 已被搬走/删掉的 `Config` 私有 helper 与薄委托 → 约 122 条红，含 1 条 `ImportError` 收集错误 |
+| C4 infrastructure / C5 application / C6 bootstrap | ✅ | ✅ | 旧测试不导入它们（已静态取证）。但三层之间模块级互导，单独 checkout 其中一笔时新层自身不可导入，要到 C6 才闭合（不影响 test-green） |
+| C7 | 混合（34 新/251 改/2 删） | ✅* | 所有测试适配在这一笔落地；但\*其测试文件 import 了 C9 才入库的 `scripts.check_env` / `scripts.codex_app_server_gate_a` / `scripts.generate_notification_actions_env_table` 与 `requirements.txt` 终版，**单独 checkout C7 不拷这 4 件会直接 collection error**（见 §7.4 E-6）
+| C8 | 纯删除 | ✅ | 全仓扫描确认引用为 0，删除后 worktree 实跑 0 failed |
+| C9 | 守卫与工具链 | ✅ | 终态 `ci_gate.sh all` 全绿（RC=0），这是本方案唯一的“完整门禁”级取证 |
+
+取证手段：`git worktree add --detach` + 拷入 `.env`（只读，不触碰主工作区），失败归因按 `AttributeError` 聚合：`Config._legacy_keys_to_model_list` ×61、`Config._parse_litellm_yaml` ×56、`_channels_to_model_list` ×3、`src.config.os`/`load_dotenv` ×2、`get_fixed_litellm_temperature` ×1。
+
+### 7.3 为何不为了让每一笔绿而继续拆（已拍板：保留 9 笔）
+
+三种修法均不采纳：
+
+- **把测试适配摘到更早的笔**：不可行。`tests/test_llm_channel_config.py` 终版第 26/27/33 行 import `src.infrastructure`/`src.application`，比 C2 晚两笔。
+- **把 config 并入 C7（会变 8 笔）**：能让 C3–C6 全绿，代价是 C7 从 287 → 297 文件，且配置拆分的独立叙事被埋进切换笔。
+- **把 C1+C2 都并入 C7（会变 6 笔）**：每一笔都绿，但 C7 ≈ 333 文件，单笔 review 负担最重，文档先行的设计目的消失。
+
+采纳的口径：**不写仅为了中间态可运行而存在的一次性代码**（AGENTS.md：不新增平行实现、不做非任务需要的抽象），以「每笔 message 写明范围 + 本节记录哪几笔非 test-green 及其确切原因」替代完整 bisect 保证。全仓可交付性以**终态实测**为准（见 §0 E-1）。
+
+回滚口径修正：执行期间 `refs/remotes/origin/main` 已从 `4a315ae1` 前进到 `10e5a139`（C1–C6 均由维护者手动推送，agent 全程未执行 push），所以上表的回滚不再全在本地。`git reset --soft fe7410bb` 只能退本地；远端已入库的笔如需退出，由维护者自行决定 revert 或 force-with-lease，本方案不代为实现。
+
+### 7.4 worktree 独立验证的环境修正与 E-6
+
+`git worktree add --detach /tmp/wt-<笔> <commit>` + 用主仓 `.venv/bin/python -m pytest`（`python -m` 使 cwd 进入 `sys.path[0]`，`import src.` 才能解析）。该方法有两个与代码无关的固有缺口，必须知道后才能读数：
+
+1. **`.env.example` 永不在任何提交里**：`.gitignore` 第 3 行 `.env.*` 屏蔽了它（`git ls-tree` 在 `fe7410bb` 与 HEAD 均无该路径）。不拷入时 `test_config_env_compat` / `test_config_registry` / `test_daily_analysis_workflow_llm_env` / `test_searxng_env_docs` 共 **5 条 `FileNotFoundError` 红**；拷入后这四个文件 **164 passed**。→ 验证前必须 `cp .env.example <wt>/`。
+2. **E-6（新发现，修正本方案“C7 之后自然全绿”的表述）**：C7 的测试终版直接 import 了属 C9 的 `scripts/check_env.py`、`scripts/codex_app_server_gate_a.py`、`scripts/generate_notification_actions_env_table.py` 与 `requirements.txt` 终版，因此 **C7/C8 单独 checkout 时测试无法收集**，需拷入这 4 件才能跑绿。已按 A 口径**不重写已入库的 C7/C8**（避免在维护者随时可能推送的窗口里改写历史），也不把 4 件从 C9 剔到 C7；推论：本序列的 bisect 粒度是“语义完整”而非“逐笔可跑”，真实可运行基线从 **C9** 开始。
+
+**`testpaths` 改动的 CI 副作用（入库后实测，必须知道）**：`offline_test_suite()` 是裸跑 `python -m pytest -m "not network"`，受 `testpaths` 直接影响。旧值 `.` 在本地以 `-o testpaths=. --ignore=vibe-template` 模拟 CI 干净检出，实测收集 **5727 items**，其中 **10 个恒为 collection error**：`apps/hrs-web/scripts/test_wt/kline/test_wt_kline_backend.py` 与 `…/sector-analysis/test_wt_sector-analysis_backend.py`（已跟踪，自 `fd862ba3` 2026-08-09 入库）用的 `client` fixture 全仓无定义（只在 `tests/conftest.py` 作用域内可见）→ `fixture 'client' not found` ×10，`set -euo pipefail` 下会把 backend-gate 拖红。新值 `tests` 下收集 **5717 items / 0 error**：这 10 个既有错误消失，代价是这 2 个已跟踪的脚本样本不再进入默认收集面（它们本身从入库那天起就不可运行，不属覆盖损失；若将来要修，应移到 `tests/` 下并补 `client` fixture 而不是放宽 `testpaths`）。
+
+**执行明细的落点**：本方案执行后的逐笔 hash 与项数、worktree 取证数值、message 事实纠正（six 而非 four 个禁止出现断言）、本片自有失误与未归因项，已同步追加到流水台账 `documents/framework/architecture_migration_progress.md` **§0.174**（台账只追加不改写，本节与 §7.1–§7.3 仍是执行结果的第一事实源）。
