@@ -17,8 +17,12 @@ if "newspaper" not in sys.modules:
     mock_np.Config = MagicMock()
     sys.modules["newspaper"] = mock_np
 
-from src.search_service import SearchResponse, SearchResult, SearchService
-from src.services.run_diagnostics import (
+from src.application.intelligence.search_service import SearchResponse, SearchResult, SearchService
+from src.bootstrap.intelligence import configure_search
+
+# SA2-3b：Provider 已下沉 infrastructure，测试顶层显式装配 hook（沿用 analyzer 先例）。
+configure_search()
+from src.application.runtime.run_diagnostics import (
     activate_run_diagnostic_context,
     current_diagnostic_snapshot,
     reset_run_diagnostic_context,
@@ -1440,7 +1444,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             ),
         )
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="00700.HK",
                 stock_name="腾讯控股",
@@ -1865,7 +1869,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
                     }
                 }
 
-                with patch("src.search_service.requests.get", return_value=fake_response) as mock_get:
+                with patch("src.infrastructure.search.providers.requests.get", return_value=fake_response) as mock_get:
                     service = SearchService(
                         brave_keys=["dummy_key"],
                         searxng_public_instances_enabled=False,
@@ -1896,7 +1900,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("old", old), _result("fresh", fresh)]),
             _response([_result("analysis_unknown", None), _result("analysis_dated", analysis_text)]),
         ]
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -1935,7 +1939,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("earnings", None)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -1982,7 +1986,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             ]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -2018,7 +2022,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("risk_unknown", None)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="510300",
                 stock_name="沪深300ETF",
@@ -2047,7 +2051,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("risk_unknown", None)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -2075,7 +2079,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("announcement_item", fresh_text)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -2105,7 +2109,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("old_announcement", old), _result("fresh_announcement", fresh_text)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="600519",
                 stock_name="贵州茅台",
@@ -2134,7 +2138,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
             _response([_result("announcement_item", fresh_text)]),
         ]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             intel = service.search_comprehensive_intel(
                 stock_code="510300",
                 stock_name="沪深300ETF",
@@ -2267,7 +2271,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
         provider = SimpleNamespace(is_available=True, name="USProvider", search=MagicMock(side_effect=_capture))
         service._providers = [provider]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             service.search_stock_news("AAPL", "苹果", max_results=5)
 
         q = captured_query.get("value", "")
@@ -2288,7 +2292,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
 
         mock_search.side_effect = _capture
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             service.search_comprehensive_intel(
                 stock_code="AMZN",
                 stock_name="亚马逊",
@@ -2317,7 +2321,7 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
         provider = SimpleNamespace(is_available=True, name="USProvider", search=MagicMock(side_effect=_capture))
         service._providers = [provider]
 
-        with patch("src.search_service.time.sleep"):
+        with patch("src.application.intelligence.search_service.time.sleep"):
             service.search_stock_events("MSFT", "微软")
 
         q = captured_query.get("value", "")

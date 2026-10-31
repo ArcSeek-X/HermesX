@@ -10,10 +10,10 @@ import threading
 import time
 from pathlib import Path
 
-from src.agent.stock_scope import StockScope
-from src.agent.tool_surface import ToolSurface
-from src.agent.tools.execution import ToolAccessContext, check_tool_execution
-from src.agent.tools.registry import ToolDefinition, ToolParameter, ToolPolicy, ToolRegistry
+from src.application.agent.stock_scope import StockScope
+from src.infrastructure.agent_runtime.tool_surface import ToolSurface
+from src.application.agent.tools.execution import ToolAccessContext, check_tool_execution
+from src.application.agent.tools.registry import ToolDefinition, ToolParameter, ToolPolicy, ToolRegistry
 
 
 def _single_tool_registry(tool: ToolDefinition) -> ToolRegistry:
@@ -657,7 +657,7 @@ def test_tool_surface_unsupported_scope_dimension_fails_closed() -> None:
 
 
 def test_default_production_registry_has_supported_declared_policies() -> None:
-    from src.agent.factory import get_tool_registry
+    from src.application.agent.factory import get_tool_registry
 
     registry = get_tool_registry()
 
@@ -665,7 +665,7 @@ def test_default_production_registry_has_supported_declared_policies() -> None:
 
 
 def test_default_production_registry_only_exposes_bounded_tools_to_codex() -> None:
-    from src.agent.factory import get_tool_registry
+    from src.application.agent.factory import get_tool_registry
 
     safe_names = {
         item["name"]
@@ -683,7 +683,7 @@ def test_default_production_registry_only_exposes_bounded_tools_to_codex() -> No
 
 
 def test_analysis_context_honors_cancellation_after_database_read(monkeypatch) -> None:
-    from src.agent.tools import data_tools
+    from src.application.agent.tools import data_tools
 
     cancel_event = threading.Event()
 
@@ -711,7 +711,7 @@ def test_analysis_context_honors_cancellation_after_database_read(monkeypatch) -
 
 
 def test_backtest_summary_honors_cancellation_after_database_read(monkeypatch) -> None:
-    from src.agent.tools import backtest_tools
+    from src.application.agent.tools import backtest_tools
 
     cancel_event = threading.Event()
 
@@ -849,6 +849,6 @@ def test_max_result_bytes_caps_error_result_text() -> None:
 
 
 def test_stock_scope_no_longer_imports_runner_for_normalization() -> None:
-    source = Path("src/agent/stock_scope.py").read_text(encoding="utf-8")
+    source = Path("src/application/agent/stock_scope.py").read_text(encoding="utf-8")
 
-    assert "from src.agent.runner import _normalize_tool_stock_code" not in source
+    assert "from src.application.agent.runner import _normalize_tool_stock_code" not in source

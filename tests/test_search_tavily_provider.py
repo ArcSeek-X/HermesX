@@ -17,7 +17,13 @@ if "newspaper" not in sys.modules:
     mock_np.Config = MagicMock()
     sys.modules["newspaper"] = mock_np
 
-from src.search_service import SearchService, TavilySearchProvider
+from src.application.intelligence.search_service import SearchService
+from src.infrastructure.search import TavilySearchProvider
+from src.application.intelligence.ports import SearchOptions
+from src.bootstrap.intelligence import configure_search
+
+# SA2-3b：Provider 已下沉 infrastructure，测试顶层显式装配 hook（沿用 analyzer 先例）。
+configure_search()
 
 
 class _FakeTavilyClient:
@@ -69,7 +75,7 @@ class TestTavilySearchProvider(unittest.TestCase):
                 ]
             }
         ):
-            resp = provider.search("BABA latest news", max_results=5, days=3, topic="news")
+            resp = provider.search("BABA latest news", max_results=5, days=3, options=SearchOptions(topic="news"))
 
         self.assertTrue(resp.success)
         self.assertEqual(_FakeTavilyClient.init_api_keys, ["dummy_key"])
@@ -97,7 +103,7 @@ class TestTavilySearchProvider(unittest.TestCase):
                 ]
             }
         ):
-            resp = provider.search("BABA latest news", max_results=5, days=7, topic="news")
+            resp = provider.search("BABA latest news", max_results=5, days=7, options=SearchOptions(topic="news"))
 
         self.assertTrue(resp.success)
         self.assertEqual(len(resp.results), 1)

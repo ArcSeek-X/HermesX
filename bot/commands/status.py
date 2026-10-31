@@ -13,7 +13,8 @@ from datetime import datetime
 from typing import List
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage
 
 
 class StatusCommand(BotCommand):

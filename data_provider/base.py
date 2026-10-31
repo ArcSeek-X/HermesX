@@ -26,8 +26,13 @@ import pandas as pd
 import numpy as np
 from src.data.stock_index_loader import get_index_stock_name
 from src.data.stock_mapping import STOCK_NAME_MAP, is_meaningful_stock_name
-from src.services.market_symbol_utils import is_suffix_market_symbol
-from src.services.run_diagnostics import record_provider_run, record_provider_run_started
+from src.domain.market.market_symbol_utils import is_suffix_market_symbol
+from src.application.runtime.run_diagnostics import record_provider_run, record_provider_run_started
+from src.domain.market.stock_codes import (  # noqa: F401  re-export: keep legacy `from data_provider.base import ...` surface
+    canonical_stock_code,
+    is_bse_code,
+    normalize_stock_code,
+)
 from .fundamental_adapter import AkshareFundamentalAdapter
 from .yfinance_fundamental_adapter import YfinanceFundamentalAdapter
 from .realtime_types import CircuitBreaker
@@ -65,88 +70,6 @@ def summarize_exception(exc: Exception) -> Tuple[str, str]:
     error_type = type(root).__name__
     message = str(exc).strip() or str(root).strip() or error_type
     return error_type, " ".join(message.split())
-
-
-def normalize_stock_code(stock_code: str) -> str:
-    """
-    Normalize stock code by stripping exchange prefixes/suffixes.
-
-    Accepted formats and their normalized results:
-    - '600519'      -> '600519'   (already clean)
-    - 'SH600519'    -> '600519'   (strip SH prefix)
-    - 'SH.600519'   -> '600519'   (strip SH. prefix)
-    - 'SZ000001'    -> '000001'   (strip SZ prefix)
-    - 'SS600519'    -> '600519'   (strip legacy Yahoo Shanghai prefix)
-    - 'SZ.000001'   -> '000001'   (strip SZ. prefix)
-    - 'BJ920748'    -> '920748'   (strip BJ prefix, BSE)
-    - 'BJ.920748'   -> '920748'   (strip BJ. prefix, BSE)
-    - 'sh600519'    -> '600519'   (case-insensitive)
-    - '600519.SH'   -> '600519'   (strip .SH suffix)
-    - '000001.SZ'   -> '000001'   (strip .SZ suffix)
-    - '920748.BJ'   -> '920748'   (strip .BJ suffix, BSE)
-    - 'HK00700'     -> 'HK00700'  (keep HK prefix for HK stocks)
-    - '1810.HK'     -> 'HK01810'  (normalize HK suffix to canonical prefix form)
-    - '7203.T'      -> '7203.T'   (keep Japan Yahoo suffix form)
-    - '005930.KS'   -> '005930.KS' (keep Korea Yahoo suffix form)
-    - '2330.TW'     -> '2330.TW'  (keep Taiwan TWSE Yahoo suffix form)
-    - '6505.TWO'    -> '6505.TWO' (keep Taiwan TPEx Yahoo suffix form)
-    - 'AAPL'        -> 'AAPL'     (keep US stock ticker as-is)
-
-    This function is applied at the DataProviderManager layer so that
-    all individual fetchers receive a clean 6-digit code (for A-shares/ETFs).
-    """
-    code = stock_code.strip()
-    upper = code.upper()
-
-    # Normalize HK prefix to a canonical 5-digit form (e.g. hk1810 -> HK01810)
-    if upper.startswith('HK') and not upper.startswith('HK.'):
-        candidate = upper[2:]
-        if candidate.isdigit() and 1 <= len(candidate) <= 5:
-            return f"HK{candidate.zfill(5)}"
-
-    # Strip SH/SZ/SS prefix (e.g. SH600519 -> 600519, SS600519 -> 600519)
-    if upper.startswith(('SH', 'SZ', 'SS')) and not upper.startswith(('SH.', 'SZ.', 'SS.')):
-        candidate = code[2:]
-        # Only strip if the remainder looks like a valid numeric code
-        if candidate.isdigit() and len(candidate) in (5, 6):
-            return candidate
-
-    # Strip dotted SH/SZ/SS prefix (e.g. SH.600519 -> 600519)
-    if upper.startswith(('SH.', 'SZ.', 'SS.')):
-        candidate = code[3:]
-        if candidate.isdigit() and len(candidate) in (5, 6):
-            return candidate
-
-    # Strip BJ prefix (e.g. BJ920748 -> 920748)
-    if upper.startswith('BJ') and not upper.startswith('BJ.'):
-        candidate = code[2:]
-        if candidate.isdigit() and len(candidate) == 6:
-            return candidate
-
-    # Strip dotted BJ prefix (e.g. BJ.920748 -> 920748)
-    if upper.startswith('BJ.'):
-        candidate = code[3:]
-        if candidate.isdigit() and len(candidate) == 6:
-            return candidate
-
-    # Strip .SH/.SZ/.BJ suffix (e.g. 600519.SH -> 600519, 920748.BJ -> 920748)
-    # while preserving explicit Yahoo suffix forms for JP/KR/TW.
-    if '.' in code:
-        base, suffix = code.rsplit('.', 1)
-        if suffix.upper() == 'T' and base.isdigit() and len(base) in (4, 5):
-            return f"{base}.{suffix.upper()}"
-        if suffix.upper() in ('KS', 'KQ') and base.isdigit() and len(base) == 6:
-            return f"{base}.{suffix.upper()}"
-        if suffix.upper() in ('TW', 'TWO') and base.isdigit() and 4 <= len(base) <= 6:
-            return f"{base}.{suffix.upper()}"
-        if suffix.upper() == 'HK' and base.isdigit() and 1 <= len(base) <= 5:
-            return f"HK{base.zfill(5)}"
-        if base.upper() in ('SH', 'SS', 'SZ', 'BJ') and suffix.isdigit():
-            return suffix
-        if suffix.upper() in ('SH', 'SZ', 'SS', 'BJ') and base.isdigit():
-            return base
-
-    return code
 
 
 ETF_PREFIXES = ("51", "52", "56", "58", "15", "16", "18")
@@ -254,26 +177,6 @@ def _market_tag(code: str) -> str:
     return "cn"
 
 
-def is_bse_code(code: str) -> bool:
-    """
-    Check if the code is a Beijing Stock Exchange (BSE) A-share code.
-
-    BSE rules (2026):
-    - New format (2024+): 92xxxx main trading codes
-    - Historical ranges: 43xxxx, 83xxxx, 87xxxx, 88xxxx
-    - Special instruments: 81xxxx convertible bonds, 82xxxx preferred shares
-    - Subscription codes: 889xxx
-    Note: 900xxx are Shanghai B-shares and must return False.
-    """
-    c = (code or "").strip().split(".")[0]
-    if len(c) != 6 or not c.isdigit():
-        return False
-
-    if c.startswith("900"):
-        return False
-
-    return c.startswith(("92", "43", "81", "82", "83", "87", "88"))
-
 def is_st_stock(name: str) -> bool:
     """
     Check if the stock is an ST or *ST stock based on its name.
@@ -293,23 +196,6 @@ def is_kc_cy_stock(code: str) -> bool:
     """
     c = (code or "").strip().split(".")[0]
     return c.startswith("688") or c.startswith("30")
-
-
-def canonical_stock_code(code: str) -> str:
-    """
-    Return the canonical (uppercase) form of a stock code.
-
-    This is a display/storage layer concern, distinct from normalize_stock_code
-    which strips exchange prefixes. Apply at system input boundaries to ensure
-    consistent case across BOT, WEB UI, API, and CLI paths (Issue #355).
-
-    Examples:
-        'aapl'    -> 'AAPL'
-        'AAPL'    -> 'AAPL'
-        '600519'  -> '600519'  (digits are unchanged)
-        'hk00700' -> 'HK00700'
-    """
-    return (code or "").strip().upper()
 
 
 class DataFetchError(Exception):

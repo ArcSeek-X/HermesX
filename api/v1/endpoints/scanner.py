@@ -14,9 +14,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from src.services import signal_scanner_service as scanner_service
-from src.services.task_queue import TaskStatus as QueueTaskStatus
-from src.services.task_queue import get_task_queue
+from src.application.decision import signal_scanner_service as scanner_service
+from src.application.runtime.task_queue import TaskStatus as QueueTaskStatus
+from src.application.runtime.task_queue import get_task_queue
 
 router = APIRouter()
 

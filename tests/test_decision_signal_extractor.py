@@ -9,14 +9,21 @@ import os
 
 import pytest
 
-from src.analyzer import AnalysisResult
+from src.application.analysis.analyzer import AnalysisResult
 from src.config import Config
-from src.services.decision_signal_extractor import (
+from src.application.decision.decision_signal_extractor import (
     build_decision_signal_payload_from_report,
     extract_and_persist_from_analysis_result,
 )
-from src.services.decision_signal_service import DecisionSignalService
+from src.application.decision.decision_signal_service import DecisionSignalService
 from src.storage import DatabaseManager
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.portfolio import configure_portfolio_repository
+from src.bootstrap.quote import configure_stock_repository
+
+configure_portfolio_repository()
+configure_decision_repositories()
+configure_stock_repository()
 
 
 BUILD_PROFILE_SOURCE = "legacy_unknown"

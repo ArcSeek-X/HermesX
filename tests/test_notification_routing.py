@@ -3,7 +3,7 @@
 测试通知路由相关功能测试
 """
 
-from src.notification_routing import ROUTABLE_NOTIFICATION_CHANNELS, split_notification_route_channels
+from src.domain.notification.routing import ROUTABLE_NOTIFICATION_CHANNELS, split_notification_route_channels
 
 
 def test_ntfy_and_gotify_are_routable_notification_channels() -> None:

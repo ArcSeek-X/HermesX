@@ -10,7 +10,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Tuple
 
-from bot.models import BotMessage, BotResponse, WebhookResponse
+from bot.models import BotResponse, WebhookResponse
+from src.domain.notification.bot_message import BotMessage
 
 
 class BotPlatform(ABC):

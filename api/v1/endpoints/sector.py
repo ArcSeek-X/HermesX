@@ -11,74 +11,41 @@
 4. GET /api/v1/sector/market-overview - 市场概览（涨跌家数、成交额、涨跌停家数、量能）
 5. GET /api/v1/sector/northbound-flow - 北向资金（沪深港通）净流入
 6. GET /api/v1/sector/market-fund-flow - 大盘主力资金净流入
+
+端点层只做 Query 校验、错误映射（400 / 404 / 502）与响应返回；来源优先级、降级
+策略与响应信封在 ``src.application.market.SectorService``（用例），具体数据源在
+``src.infrastructure.providers.sector_provider`` → ``data_provider/sector/*``。
+端点不直接对接数据源包。
 """
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from data_provider.sector.eastmoney_source import (
-    fetch_sector_fund_flow_rank as fetch_sector_fund_flow_rank_from_eastmoney,
-    get_cached_board_list as get_cached_board_list_from_eastmoney,
-    get_cached_market_fund_flow as get_cached_market_fund_flow_from_eastmoney,
-    get_cached_market_indices as get_cached_market_indices_from_eastmoney,
-    get_cached_market_overview as get_cached_market_overview_from_eastmoney,
-    get_cached_northbound_flow as get_cached_northbound_flow_from_eastmoney,
-    get_sector_fund_flow_history_data as get_sector_fund_flow_history_data_from_eastmoney,
-)
-from data_provider.sector.market_cards_source import get_market_cards as get_market_cards_from_source
-from data_provider.sector.shidaotec_source import (
-    SnapshotDataUnavailableError,
-    get_board_card_list as get_board_card_list_from_shidaotec,
-    get_concept_treemap,
-    get_etf_treemap,
-    get_industry_treemap,
-    get_stock_treemap,
-)
-from data_provider.sector.stocksdk_source import (
-    fetch_sector_fund_flow_rank as fetch_sector_fund_flow_rank_from_stocksdk,
-    get_cached_board_list as get_cached_board_list_from_stocksdk,
-    get_cached_market_fund_flow as get_cached_market_fund_flow_from_stocksdk,
-    get_cached_market_indices as get_cached_market_indices_from_stocksdk,
-    get_cached_market_overview as get_cached_market_overview_from_stocksdk,
-    get_cached_northbound_flow as get_cached_northbound_flow_from_stocksdk,
-    get_sector_fund_flow_history_data as get_sector_fund_flow_history_data_from_stocksdk,
-)
+from api.deps import get_sector_service
+from src.application.market import SectorService, SectorSnapshotUnavailableError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-def _prefer_stocksdk_then_fallback(stocksdk_loader, fallback_loader):
-    """优先尝试 StockSDK，失败后回退到既有数据源。"""
-    try:
-        data = stocksdk_loader()
-    except Exception as exc:  # noqa: BLE001 - endpoint 只负责聚合回退
-        logger.warning("StockSDK sector provider failed, fallback to legacy source: %s", exc)
-        data = None
-    if data:
-        return data
-    return fallback_loader()
+def _require(result: Optional[Dict[str, Any]], detail: str) -> Dict[str, Any]:
+    """空数据统一映射 502。
 
-
-def _prefer_loader_chain(*loaders):
-    """按顺序尝试多个 provider，返回第一份可用数据。"""
-    for loader in loaders:
-        try:
-            data = loader()
-        except Exception as exc:  # noqa: BLE001 - endpoint 只负责聚合回退
-            logger.warning("Sector provider failed in fallback chain: %s", exc)
-            data = None
-        if data:
-            return data
-    return None
+    「所有来源都没有数据」不是客户端参数错误，也不是 500：保持既有语义，由端点
+    给出与接口对应的文案，用例层不接触 HTTP。
+    """
+    if not result:
+        raise HTTPException(status_code=502, detail=detail)
+    return result
 
 
 @router.get("/industry")
 def get_industry_sectors(
     time: str = Query("", description="快照时间，如 '10:00'，空字符串表示实时数据"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取行业板块树形数据（申万行业分类）
@@ -92,16 +59,17 @@ def get_industry_sectors(
     - time: 快照时间（如 '10:00'），为空则返回实时数据
     """
     try:
-        result = get_industry_treemap(time)
-    except SnapshotDataUnavailableError as exc:
+        result = service.get_industry_treemap(time_str=time)
+    except SectorSnapshotUnavailableError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    if not result:
-        raise HTTPException(status_code=502, detail="数据获取失败")
-    return result
+    return _require(result, "数据获取失败")
 
 
 @router.get("/market-indices")
-def get_market_indices(market: str = Query("a", description="市场类型：a=A股，us=欧美股，jp-kr=日韩")):
+def get_market_indices(
+    market: str = Query("a", description="市场类型：a=A股，us=欧美股，jp-kr=日韩"),
+    service: SectorService = Depends(get_sector_service),
+):
     """
     获取市场指数数据
 
@@ -112,18 +80,13 @@ def get_market_indices(market: str = Query("a", description="市场类型：a=A�
     """
     if market not in ("a", "us", "jp-kr"):
         raise HTTPException(status_code=400, detail="market 仅支持 a、us 或 jp-kr")
-    data = _prefer_stocksdk_then_fallback(
-        lambda: get_cached_market_indices_from_stocksdk(market),
-        lambda: get_cached_market_indices_from_eastmoney(market),
-    )
-    if not data:
-        raise HTTPException(status_code=502, detail="市场指数数据获取失败")
-    return {"indices": data}
+    return _require(service.get_market_indices(market=market), "市场指数数据获取失败")
 
 
 @router.get("/market-cards")
 def get_market_cards(
     market: str = Query("a", description="市场类型：a=A股，hk-us=港美，jp-kr=日韩"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取市场总览 TAB 统一卡片列表。
@@ -134,15 +97,11 @@ def get_market_cards(
     """
     if market not in ("a", "hk-us", "jp-kr"):
         raise HTTPException(status_code=400, detail="market 仅支持 a、hk-us 或 jp-kr")
-
-    result = get_market_cards_from_source(market)
-    if not result:
-        raise HTTPException(status_code=502, detail="市场卡片数据获取失败")
-    return result
+    return _require(service.get_market_cards(market=market), "市场卡片数据获取失败")
 
 
 @router.get("/market-overview")
-def get_market_overview():
+def get_market_overview(service: SectorService = Depends(get_sector_service)):
     """
     获取市场概览数据（涨跌家数 + 量能）
 
@@ -153,17 +112,11 @@ def get_market_overview():
     - flatCount: 平盘家数
     - totalAmount: 当日成交额（元）
     """
-    data = _prefer_stocksdk_then_fallback(
-        get_cached_market_overview_from_stocksdk,
-        get_cached_market_overview_from_eastmoney,
-    )
-    if not data:
-        raise HTTPException(status_code=502, detail="市场概览数据获取失败")
-    return data
+    return _require(service.get_market_overview(), "市场概览数据获取失败")
 
 
 @router.get("/northbound-flow")
-def get_northbound_flow():
+def get_northbound_flow(service: SectorService = Depends(get_sector_service)):
     """
     获取北向资金（沪深港通）净流入数据
 
@@ -171,30 +124,18 @@ def get_northbound_flow():
     注意：自 2024-08 起北向资金实时数据停止盘中披露，接口可能返回空数据，
     此时返回 netInflow=None（200），由前端展示占位符，不抛错。
     """
-    data = _prefer_stocksdk_then_fallback(
-        get_cached_northbound_flow_from_stocksdk,
-        get_cached_northbound_flow_from_eastmoney,
-    )
-    if not data:
-        return {"netInflow": None, "name": "北向资金"}
-    return data
+    return service.get_northbound_flow()
 
 
 @router.get("/market-fund-flow")
-def get_market_fund_flow():
+def get_market_fund_flow(service: SectorService = Depends(get_sector_service)):
     """
     获取大盘主力资金净流入
 
     数据来源：东方财富 ulist 实时接口（上证指数 + 深证成指主力净流入汇总）
     返回：mainNetInflow（元）、mainNetInflowPercent（%）、date（实时接口为 None）
     """
-    data = _prefer_stocksdk_then_fallback(
-        get_cached_market_fund_flow_from_stocksdk,
-        get_cached_market_fund_flow_from_eastmoney,
-    )
-    if not data:
-        return {"mainNetInflow": None, "mainNetInflowPercent": None, "date": None}
-    return data
+    return service.get_market_fund_flow()
 
 
 @router.get("/{sector_code}/stocks")
@@ -216,6 +157,7 @@ def get_sector_stocks(
 @router.get("/stock-map")
 def get_stock_cloud_map(
     time: str = Query("", description="快照时间，如 '10:00'，空字符串表示实时数据"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取个股云图数据（三级树：行业→子行业→个股）
@@ -224,18 +166,17 @@ def get_stock_cloud_map(
     - time: 快照时间（如 '10:00'），为空则返回实时数据
     """
     try:
-        result = get_stock_treemap(time)
-    except SnapshotDataUnavailableError as exc:
+        result = service.get_stock_cloud_map(time_str=time)
+    except SectorSnapshotUnavailableError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    if not result:
-        raise HTTPException(status_code=502, detail="个股云图数据获取失败")
-    return result
+    return _require(result, "个股云图数据获取失败")
 
 
 @router.get("/etf-map")
 def get_etf_cloud_map(
     period: str = Query("yesterday", description="涨跌幅周期：yesterday/week/month/quarter/half_year/ytd/year/three_year"),
     top_n: int = Query(100, ge=10, le=500, description="选取市值前 N 的 ETF"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取 ETF 云图数据（扁平列表，按市值排序）
@@ -245,10 +186,8 @@ def get_etf_cloud_map(
               quarter=近三月, half_year=近半年, ytd=今年以来, year=近一年, three_year=近三年）
     - top_n: 选取市值前 N 的 ETF（默认 100）
     """
-    result = get_etf_treemap(period=period, top_n=top_n)
-    if not result:
-        raise HTTPException(status_code=502, detail="ETF 云图数据获取失败")
-    return result
+    result = service.get_etf_cloud_map(period=period, top_n=top_n)
+    return _require(result, "ETF 云图数据获取失败")
 
 
 @router.get("/fund-flow-history")
@@ -257,6 +196,7 @@ def get_sector_fund_flow_history(
     limit: int = Query(30, ge=5, le=100, description="返回天数"),
     top_n: int = Query(10, ge=1, le=30, description="资金流排名前 N 的板块"),
     sector_codes: Optional[str] = Query(None, description="指定板块代码，逗号分隔，如 BK0475,BK0717"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取板块资金流历史序列（日线）
@@ -268,50 +208,37 @@ def get_sector_fund_flow_history(
     """
     specified_codes = [code.strip() for code in sector_codes.split(",") if code.strip()] if sector_codes else None
     try:
-        result = _prefer_stocksdk_then_fallback(
-            lambda: get_sector_fund_flow_history_data_from_stocksdk(
-                sector_type=sector_type,
-                limit=limit,
-                top_n=top_n,
-                sector_codes=specified_codes,
-            ),
-            lambda: get_sector_fund_flow_history_data_from_eastmoney(
-                sector_type=sector_type,
-                limit=limit,
-                top_n=top_n,
-                sector_codes=specified_codes,
-            ),
+        result = service.get_sector_fund_flow_history(
+            sector_type=sector_type,
+            limit=limit,
+            top_n=top_n,
+            sector_codes=specified_codes,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail="指定的板块代码未找到") from exc
-    if not result:
-        raise HTTPException(status_code=502, detail="板块资金流排行数据获取失败")
-    return result
+    return _require(result, "板块资金流排行数据获取失败")
 
 
 @router.get("/fund-flow-sectors")
 def get_sector_fund_flow_sector_list(
     sector_type: str = Query("industry", description="板块类型：industry / concept"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取板块资金流可选板块列表（用于前端多选下拉框）
 
     返回所有行业/概念板块的代码和名称，按当日主力净流入降序排列。
     """
-    all_sectors = _prefer_stocksdk_then_fallback(
-        lambda: fetch_sector_fund_flow_rank_from_stocksdk(sector_type, 200),
-        lambda: fetch_sector_fund_flow_rank_from_eastmoney(sector_type, 200),
+    return _require(
+        service.get_sector_fund_flow_sector_list(sector_type=sector_type),
+        "板块列表获取失败",
     )
-    if not all_sectors:
-        raise HTTPException(status_code=502, detail="板块列表获取失败")
-    return {
-        "sectors": [{"code": sector["code"], "name": sector["name"]} for sector in all_sectors],
-    }
 
 
 @router.get("/board-list")
 def get_board_list(
     sector_type: str = Query("industry", description="板块类型：industry / concept"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取板块卡片列表数据
@@ -323,24 +250,14 @@ def get_board_list(
 
     注意：领涨股票信息需要额外调用成分股接口，本接口暂不包含。
     """
-    boards = _prefer_loader_chain(
-        lambda: get_cached_board_list_from_stocksdk(sector_type),
-        lambda: get_cached_board_list_from_eastmoney(sector_type),
-        lambda: get_board_card_list_from_shidaotec(sector_type),
-    )
-    if not boards:
-        raise HTTPException(status_code=502, detail="板块列表获取失败")
-    return {
-        "sectorType": sector_type,
-        "total": len(boards),
-        "boards": boards,
-    }
+    return _require(service.get_board_list(sector_type=sector_type), "板块列表获取失败")
 
 
 @router.get("/concept-map")
 def get_concept_cloud_map(
     period: str = Query("yesterday", description="涨跌幅周期：yesterday/week/month/quarter/half_year/ytd/year/three_year"),
     top_n: int = Query(100, ge=10, le=500, description="选取市值前 N 的概念"),
+    service: SectorService = Depends(get_sector_service),
 ):
     """
     获取概念云图数据（扁平列表，按市值排序）
@@ -350,7 +267,5 @@ def get_concept_cloud_map(
               quarter=近三月, half_year=近半年, ytd=今年以来, year=近一年, three_year=近三年）
     - top_n: 选取市值前 N 的概念（默认 100）
     """
-    result = get_concept_treemap(period=period, top_n=top_n)
-    if not result:
-        raise HTTPException(status_code=502, detail="概念云图数据获取失败")
-    return result
+    result = service.get_concept_cloud_map(period=period, top_n=top_n)
+    return _require(result, "概念云图数据获取失败")

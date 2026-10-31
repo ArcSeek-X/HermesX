@@ -17,10 +17,13 @@ from unittest.mock import patch
 import pandas as pd
 
 from src.config import Config
-from src.core.backtest_engine import OVERALL_SENTINEL_CODE
-from src.repositories import BacktestRepository
-from src.services.backtest_service import BacktestService
-from src.storage import AnalysisHistory, BacktestResult, BacktestSummary, DatabaseManager, StockDaily
+from src.domain.backtest.engine import OVERALL_SENTINEL_CODE
+from src.infrastructure.persistence.repositories.backtest_repository import BacktestRepository
+from src.infrastructure.persistence.repositories.stock_repository import StockRepository
+from src.application.backtest.service import BacktestService
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.analysis import AnalysisHistory, BacktestResult, BacktestSummary
+from src.infrastructure.persistence.models.market_data import StockDaily
 
 
 def _phase_snapshot(
@@ -49,6 +52,14 @@ def _phase_snapshot(
 
 
 class BacktestServiceTestCase(unittest.TestCase):
+    def _service(self, daily_refill=None):
+        # 用例层只接收端口对象；这里用真实仓储绑定测试库复现原 BacktestService(db) 的行为。
+        return BacktestService(
+            backtest_repository=BacktestRepository(self.db),
+            stock_repository=StockRepository(self.db),
+            daily_refill=daily_refill,
+        )
+
     def setUp(self) -> None:
         self._temp_dir = tempfile.TemporaryDirectory()
         self._db_path = os.path.join(self._temp_dir.name, "test_backtest_service.db")
@@ -331,7 +342,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             include_effective_date=False,
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data") as refill:
             stats = service.run_backtest(
                 code=None,
@@ -390,7 +401,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             analysis.context_snapshot = json.dumps(snapshot)
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data") as refill:
             stats = service.run_backtest(
                 code=None,
@@ -437,7 +448,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             engine_version="v1",
             force=True,
         )
-        stats = BacktestService(self.db).run_backtest(
+        stats = self._service().run_backtest(
             code="08035.HK",
             force=False,
             eval_window_days=1,
@@ -459,7 +470,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
 
     def test_force_semantics(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         stats1 = service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
         self.assertEqual(stats1["saved"], 1)
@@ -478,7 +489,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertEqual(self._count_results(), 1)
 
     def test_run_backtest_rejects_invalid_eval_window_days_at_entry(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         for value in (0, -1, 1.5, True, "1"):
             with self.subTest(value=value):
@@ -490,7 +501,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                     )
 
     def test_run_backtest_accepts_dotted_exchange_prefix_and_filters_analysis_date_range(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         stats = service.run_backtest(
             code="SH.600519",
@@ -535,7 +546,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ],
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519.SH",
             force=False,
@@ -598,7 +609,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519",
             force=False,
@@ -631,7 +642,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ],
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="SS600519",
             force=False,
@@ -688,7 +699,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519",
             force=False,
@@ -760,7 +771,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519",
             force=False,
@@ -817,7 +828,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="920748",
             force=False,
@@ -863,7 +874,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                 self.assertEqual(matches, [])
 
     def test_run_backtest_rejects_invalid_market_suffix_length_input(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         with self.assertRaisesRegex(ValueError, "非法股票代码格式"):
             service.run_backtest(
                 code="600519.HK",
@@ -876,7 +887,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
 
     def test_run_backtest_rejects_explicit_wrong_a_share_market(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         for invalid_code in ("600519.SZ", "SH000001", "000001.SH", "920748.SH", "SH920748"):
             with self.subTest(invalid_code=invalid_code):
                 with self.assertRaisesRegex(ValueError, "非法股票代码格式"):
@@ -891,7 +902,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                     )
 
     def test_get_recent_evaluations_rejects_explicit_wrong_a_share_market(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         for invalid_code in ("600519.SZ", "SH000001", "000001.SH", "920748.SH", "SH920748"):
             with self.subTest(invalid_code=invalid_code):
                 with self.assertRaisesRegex(ValueError, "非法股票代码格式"):
@@ -905,7 +916,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                     )
 
     def test_get_summary_rejects_explicit_wrong_a_share_market(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         for invalid_code in ("600519.SZ", "SH000001", "000001.SH", "920748.SH", "SH920748"):
             with self.subTest(invalid_code=invalid_code):
                 with self.assertRaisesRegex(ValueError, "非法股票代码格式"):
@@ -931,7 +942,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ],
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519",
             force=False,
@@ -999,7 +1010,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="600519",
             force=False,
@@ -1062,7 +1073,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data"):
             stats = service.run_backtest(
                 code="600518",
@@ -1138,9 +1149,9 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch(
-            "src.services.stock_daily_start_resolver.resolve_historical_daily_bar_date",
+            "src.application.quote.stock_daily_start_resolver.resolve_historical_daily_bar_date",
             return_value=date(2024, 1, 5),
         ) as resolve_historical_date:
             stats = service.run_backtest(
@@ -1208,7 +1219,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             phase="postmarket",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data") as refill:
             stats = service.run_backtest(
                 code="600520",
@@ -1291,7 +1302,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data") as refill:
             stats = service.run_backtest(
                 code="7203.T",
@@ -1383,7 +1394,11 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        from src.infrastructure.providers.backtest_daily_refill import (
+            DataProviderDailyBarRefill,
+        )
+
+        service = self._service(daily_refill=DataProviderDailyBarRefill(self.db))
         with patch(
             "data_provider.base.DataFetcherManager",
             ControlledDataFetcherManager,
@@ -1473,7 +1488,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(service, "_try_fill_daily_data"):
             stats = service.run_backtest(
                 code="600517.SH",
@@ -1515,7 +1530,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             market="us",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="AAPL.US",
             force=False,
@@ -1555,7 +1570,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             market="us",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="NASDAQ",
             force=False,
@@ -1592,7 +1607,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             market="us",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="AAPL.US",
             force=False,
@@ -1639,7 +1654,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             market="us",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="AAPL",
             force=False,
@@ -1741,7 +1756,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         suffix_query = service.get_recent_evaluations(
             code="AAPL.US",
             eval_window_days=1,
@@ -1832,7 +1847,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="01810",
             force=False,
@@ -1910,7 +1925,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="01810",
             force=False,
@@ -1977,7 +1992,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="HK.01810",
             force=False,
@@ -2046,7 +2061,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="000003",
             force=False,
@@ -2093,7 +2108,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="000004",
             force=False,
@@ -2176,7 +2191,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="000005",
             force=False,
@@ -2274,7 +2289,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code="000006",
             force=False,
@@ -2328,7 +2343,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                 )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(
             code=None,
             force=False,
@@ -2348,7 +2363,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             self.assertEqual(result.analysis_date, date(2024, 1, 1))
 
     def test_run_backtest_reports_no_matching_candidates(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         stats = service.run_backtest(
             code="600519",
@@ -2393,7 +2408,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         with patch.object(BacktestService, "_try_fill_daily_data", return_value=None):
             stats = service.run_backtest(code="000002", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
@@ -2406,7 +2421,7 @@ class BacktestServiceTestCase(unittest.TestCase):
 
     def _run_and_get_result(self) -> BacktestResult:
         """Helper: run backtest and return the single BacktestResult row."""
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
         with self.db.get_session() as session:
             return session.query(BacktestResult).one()
@@ -2446,7 +2461,7 @@ class BacktestServiceTestCase(unittest.TestCase):
 
     def test_summaries_created_after_run(self) -> None:
         """Verify both overall and per-stock BacktestSummary rows are created."""
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         with self.db.get_session() as session:
@@ -2474,7 +2489,7 @@ class BacktestServiceTestCase(unittest.TestCase):
 
     def test_get_summary_overall_returns_sentinel_as_none(self) -> None:
         """Verify get_summary translates __overall__ sentinel back to None."""
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         summary = service.get_summary(scope="overall", code=None)
@@ -2484,7 +2499,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertEqual(summary["win_count"], 1)
 
     def test_agent_learning_summary_helpers_keep_skill_rollups_neutral_until_supported(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         global_summary = service.get_global_summary(eval_window_days=3)
@@ -2507,7 +2522,7 @@ class BacktestServiceTestCase(unittest.TestCase):
 
     def test_get_recent_evaluations(self) -> None:
         """Verify get_recent_evaluations returns correct paginated results."""
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         data = service.get_recent_evaluations(code="600519", limit=10, page=1)
@@ -2523,7 +2538,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertTrue(item["direction_correct"])
 
     def test_get_recent_evaluations_aligns_neutral_advice_with_score(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         with self.db.get_session() as session:
             history = session.query(AnalysisHistory).filter(AnalysisHistory.query_id == "q1").one()
             history.operation_advice = "持有"
@@ -2552,7 +2567,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertEqual(item["action_label"], "买入")
 
     def test_get_recent_evaluations_prefers_persisted_raw_action(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         with self.db.get_session() as session:
             history = session.query(AnalysisHistory).filter(AnalysisHistory.query_id == "q1").one()
@@ -2603,7 +2618,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ],
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=1, min_age_days=0, limit=20)
 
         data = service.get_recent_evaluations(
@@ -2635,7 +2650,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ],
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=1, min_age_days=0, limit=20)
 
         summary = service.get_summary(
@@ -2654,7 +2669,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertAlmostEqual(summary["direction_accuracy_pct"], 0.0)
 
     def test_get_summary_date_range_filters_to_single_window_and_engine(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         with self.db.get_session() as session:
@@ -2766,7 +2781,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertAlmostEqual(summary_explicit["direction_accuracy_pct"], 100.0)
 
     def test_get_summary_date_range_rejects_excessive_row_counts(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         with patch.object(BacktestService, "MAX_DYNAMIC_SUMMARY_ROWS", 0):
@@ -2779,7 +2794,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                 )
 
     def test_get_summary_phase_filter_cap_uses_phase_candidate_message(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         with patch.object(BacktestService, "MAX_DYNAMIC_SUMMARY_ROWS", 0):
@@ -2791,7 +2806,7 @@ class BacktestServiceTestCase(unittest.TestCase):
                 )
 
     def test_phase_filter_results_allows_exact_dynamic_cap(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         phase_snapshot = json.dumps({"market_phase_summary": {"phase": "intraday", "market": "cn"}})
         raw_result = json.dumps(
             {
@@ -2839,7 +2854,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertEqual(data["items"][0]["action_label"], "观望")
 
     def test_phase_filter_without_window_matches_summary_window(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         with self.db.get_session() as session:
@@ -2903,7 +2918,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             phase="intraday",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=1, min_age_days=0, limit=20)
 
         intraday = service.get_recent_evaluations(
@@ -2980,7 +2995,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             phase="non_trading",
         )
 
-        service = BacktestService(self.db)
+        service = self._service()
         service.run_backtest(code="600519", force=False, eval_window_days=1, min_age_days=0, limit=20)
 
         intraday = service.get_recent_evaluations(
@@ -3009,7 +3024,7 @@ class BacktestServiceTestCase(unittest.TestCase):
         self.assertEqual(unknown["items"][0]["market_phase_summary"]["phase"], "non_trading")
 
     def test_phase_filter_rejects_values_outside_public_query_contract(self) -> None:
-        service = BacktestService(self.db)
+        service = self._service()
 
         with self.assertRaisesRegex(ValueError, "analysis_phase must be one of"):
             service.get_recent_evaluations(code=None, analysis_phase="lunch_break")
@@ -3054,7 +3069,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             ])
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(code=None, force=False, eval_window_days=3, min_age_days=0, limit=10)
         self.assertEqual(stats["saved"], 2)
         self.assertEqual(stats["completed"], 2)
@@ -3102,7 +3117,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(code=None, force=False, eval_window_days=3, min_age_days=0, limit=10)
 
         self.assertEqual(stats["processed"], 1)
@@ -3141,7 +3156,7 @@ class BacktestServiceTestCase(unittest.TestCase):
             )
             session.commit()
 
-        service = BacktestService(self.db)
+        service = self._service()
         stats = service.run_backtest(code=None, force=False, eval_window_days=3, min_age_days=0, limit=10)
         self.assertGreaterEqual(stats["processed"], 2)
         self.assertGreaterEqual(stats["saved"], 2)
@@ -3150,6 +3165,89 @@ class BacktestServiceTestCase(unittest.TestCase):
                 session.query(BacktestResult).filter(BacktestResult.code == "000858").count(),
                 1,
             )
+
+
+class _RecordingDailyRefill:
+    """``DailyBarRefillPort`` 的测试替身，记录调用参数并可控抛错。"""
+
+    def __init__(self, raise_exc=None):
+        self.calls = []
+        self._raise = raise_exc
+
+    def refill(self, *, code, start_date, end_date, days):
+        self.calls.append(
+            {"code": code, "start_date": start_date, "end_date": end_date, "days": days}
+        )
+        if self._raise is not None:
+            raise self._raise
+
+
+class BacktestDailyRefillSeamTests(unittest.TestCase):
+    """回测日线补数编排归位到 ``DailyBarRefillPort`` 的契约锁定。"""
+
+    def _service(self, refill):
+        from unittest.mock import MagicMock
+
+        # 注入 daily_refill 后 _try_fill_daily_data 不触库；两个仓储端口仅为占位。
+        return BacktestService(
+            backtest_repository=MagicMock(),
+            stock_repository=MagicMock(),
+            daily_refill=refill,
+        )
+
+    def test_try_fill_delegates_to_port_with_expected_window(self):
+        refill = _RecordingDailyRefill()
+        service = self._service(refill)
+        service._try_fill_daily_data(
+            code="600514", analysis_date=date(2024, 1, 5), eval_window_days=3
+        )
+        self.assertEqual(len(refill.calls), 1)
+        call = refill.calls[0]
+        self.assertEqual(call["code"], "600514")
+        self.assertEqual(call["start_date"], "2024-01-05")
+        # end_date = analysis_date + timedelta(days=max(3*2, 30)) == +30d
+        self.assertEqual(call["end_date"], "2024-02-04")
+        self.assertEqual(call["days"], 6)
+
+    def test_try_fill_skips_blank_code(self):
+        refill = _RecordingDailyRefill()
+        service = self._service(refill)
+        service._try_fill_daily_data(
+            code="   ", analysis_date=date(2024, 1, 5), eval_window_days=1
+        )
+        self.assertEqual(refill.calls, [])
+
+    def test_try_fill_logs_warning_and_swallows_refill_failure(self):
+        # 端口抛错时，用例层降级为 warning 且不向外传播——保持原内联实现的错误语义。
+        boom = _RecordingDailyRefill(raise_exc=RuntimeError("boom"))
+        service = self._service(boom)
+        with self.assertLogs("src.application.backtest.service", level="WARNING") as cm:
+            service._try_fill_daily_data(
+                code="600514", analysis_date=date(2024, 1, 5), eval_window_days=1
+            )
+        self.assertTrue(any("补全日线数据失败" in m for m in cm.output))
+
+    def test_bootstrap_factory_wires_infrastructure_adapter(self):
+        # 缺省装配已从 application 层移除，改由 bootstrap 装配口显式注入数据源适配器。
+        from src.bootstrap.backtest import build_backtest_service
+
+        from src.infrastructure.providers.backtest_daily_refill import (
+            DataProviderDailyBarRefill,
+        )
+
+        service = build_backtest_service()
+        self.assertIsInstance(service.daily_refill, DataProviderDailyBarRefill)
+
+    def test_backtest_service_has_no_data_provider_coupling(self):
+        import inspect
+
+        import src.application.backtest.service as bs
+
+        source = inspect.getsource(bs)
+        self.assertNotIn("from data_provider", source)
+        self.assertNotIn("DataFetcherManager", source)
+        self.assertNotIn("self.db.save_daily_data", source)
+        self.assertIn("self.daily_refill.refill(", source)
 
 
 if __name__ == "__main__":

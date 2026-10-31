@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from src.services import intraday_timeline_service as tls
+from src.application.quote import intraday_timeline_service as tls
 
 
 class _FakeTrendsResp:
@@ -47,7 +47,7 @@ def test_fetch_intraday_trends_uses_json_get(monkeypatch):
 
     monkeypatch.setattr(tls._SESSION, "get", fake_get)
 
-    points, prev_close, name = tls._fetch_intraday_trends("600000")
+    points, prev_close, name = tls.fetch_intraday_trends("600000")
     assert len(points) == 2
     assert prev_close == 9.6
     assert name == "浦发银行"
@@ -74,16 +74,18 @@ def test_fetch_intraday_trends_rotates_host_on_disconnect(monkeypatch):
     monkeypatch.setattr(tls._SESSION, "get", fake_get)
     monkeypatch.setattr(tls.time, "sleep", lambda *_a, **_k: None)  # 跳过退避
 
-    points, prev_close, name = tls._fetch_intraday_trends("600000")
+    points, prev_close, name = tls.fetch_intraday_trends("600000")
     assert len(points) == 1
     assert tried[0] == tls._TRENDS_URLS[0]
     assert tried[1] == tls._TRENDS_URLS[1]   # 轮换到第二个主机
 
 
 def test_fetch_intraday_trends_falls_back_to_bridge(monkeypatch):
-    """直连全部失败时回退 stock-sdk 桥接（price/avgPrice 口径）。"""
-    from data_provider import stocksdk_bridge as bridge_mod
+    """直连全部失败时回退到注入的 stock-sdk 桥接端口（price/avgPrice 口径）。
 
+    桥接改为经 `IntradayTimelineBridgePort` 注入后，测试不再 patch data_provider，
+    而是直接装配一个假端口（验证回退链路与输出口径）。
+    """
     monkeypatch.setattr(tls.time, "sleep", lambda *_a, **_k: None)
 
     def boom(*args, **kwargs):
@@ -91,11 +93,8 @@ def test_fetch_intraday_trends_falls_back_to_bridge(monkeypatch):
 
     monkeypatch.setattr(tls._SESSION, "get", boom)
 
-    class _Client:
-        def is_available(self):
-            return True
-
-        def fetch_timeline(self, code):
+    class _FakeBridgePort:
+        def fetch_timeline(self, *, code):
             return {
                 "code": code,
                 "preClose": 9.6,
@@ -105,13 +104,33 @@ def test_fetch_intraday_trends_falls_back_to_bridge(monkeypatch):
                 ],
             }
 
-    monkeypatch.setattr(bridge_mod, "get_stocksdk_client", lambda: _Client())
+    monkeypatch.setattr(tls, "_get_bridge_port", lambda: _FakeBridgePort())
 
-    points, prev_close, name = tls._fetch_intraday_trends("600000")
+    points, prev_close, name = tls.fetch_intraday_trends("600000")
     assert len(points) == 1
     assert points[0]["close"] == 9.8
     assert points[0]["avg_price"] == 9.75
     assert prev_close == 9.6
+
+
+def test_fetch_intraday_trends_bridge_degrades_when_port_not_configured(monkeypatch):
+    """桥接端口未装配时优雅降级为空（直连仍是主路径），不抛异常。
+
+    与 S2c name_to_code_resolver 同型的未装配降级：保证搬入 application 后不依赖
+    data_provider 仍可导入、仍可仅走直连。
+    """
+    monkeypatch.setattr(tls.time, "sleep", lambda *_a, **_k: None)
+
+    def boom(*args, **kwargs):
+        raise ConnectionError("RemoteDisconnected")
+
+    monkeypatch.setattr(tls._SESSION, "get", boom)
+    monkeypatch.setattr(tls, "_get_bridge_port", lambda: None)
+
+    points, prev_close, name = tls.fetch_intraday_trends("600000")
+    assert points == []
+    assert prev_close is None
+    assert name == ""
 
 
 def test_normalize_trend_date_supports_compact_and_padded_formats():
@@ -149,8 +168,66 @@ def test_fetch_intraday_timeline_returns_kline_points(monkeypatch):
 
 def test_fetch_intraday_timeline_empty_when_source_fails(monkeypatch):
     """上游取空时 points 为空列表（调用方按无数据渲染占位），不抛异常。"""
-    monkeypatch.setattr(tls, "_fetch_intraday_trends", lambda code: ([], None, ""))
+    monkeypatch.setattr(tls, "fetch_intraday_trends", lambda code: ([], None, ""))
 
     data = tls.fetch_intraday_timeline("600000")
     assert data["points"] == []
     assert data["prev_close"] is None
+
+
+def test_stocksdk_bridge_adapter_best_effort_semantics(monkeypatch):
+    """桥接适配器：SDK 不可用 / 调用异常均返回 None（best-effort），可用时透传原始字典。
+
+    适配器把 data_provider.stocksdk_bridge 转成 IntradayTimelineBridgePort 形状，
+    本身不抛异常、不拖垮调用方（由应用层降级为空）。
+    """
+    import data_provider.stocksdk_bridge as bridge_mod
+    from src.infrastructure.providers.stocksdk_timeline_provider import (
+        DataProviderStocksdkTimelineBridge,
+    )
+
+    adapter = DataProviderStocksdkTimelineBridge()
+
+    class _Client:
+        def __init__(self, available, result=None, raises=False):
+            self._available = available
+            self._result = result
+            self._raises = raises
+
+        def is_available(self):
+            return self._available
+
+        def fetch_timeline(self, code):
+            if self._raises:
+                raise RuntimeError("node missing")
+            return self._result
+
+    # 不可用 -> None
+    monkeypatch.setattr(
+        bridge_mod, "get_stocksdk_client", lambda: _Client(available=False)
+    )
+    assert adapter.fetch_timeline(code="600000") is None
+
+    # 可用 -> 透传原始字典
+    payload = {"points": [{"date": "x", "close": 1.0}], "preClose": 9.6, "name": "Y"}
+    monkeypatch.setattr(
+        bridge_mod,
+        "get_stocksdk_client",
+        lambda: _Client(available=True, result=payload),
+    )
+    assert adapter.fetch_timeline(code="600000") == payload
+
+    # 调用异常 -> None（不抛）
+    monkeypatch.setattr(
+        bridge_mod,
+        "get_stocksdk_client",
+        lambda: _Client(available=True, raises=True),
+    )
+    assert adapter.fetch_timeline(code="600000") is None
+
+    # get_stocksdk_client 自身抛 -> None（不抛）
+    def _boom():
+        raise RuntimeError("import fail")
+
+    monkeypatch.setattr(bridge_mod, "get_stocksdk_client", _boom)
+    assert adapter.fetch_timeline(code="600000") is None

@@ -11,8 +11,13 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.llm.generation_backend import GenerationError, GenerationErrorCode
-from src.services.generation_backend_status_service import GenerationBackendStatusService
+from src.application.generation.ports import GenerationError, GenerationErrorCode
+from src.application.runtime.generation_backend_status import GenerationBackendStatusService
+from src.bootstrap.generation import configure_generation_runtime
+
+# 顶层装配生成链路端口（R2-A3；configure_analyzer_runtime 同型）：生成后端构造 / 配置
+# 探测 / 能力表外调簇已下沉 infra 适配器，用例经 seam 消费，未装配即 fail-fast。
+configure_generation_runtime()
 
 
 class _FailingBackend:
@@ -31,7 +36,7 @@ class _FakeAnalyzer:
     def __init__(self, _config):
         pass
 
-    def _get_generation_backend(self, _backend_id):
+    def get_generation_backend(self, _backend_id):
         return _FailingBackend()
 
 
@@ -56,7 +61,7 @@ class _CapturingAnalyzer:
         self.configs.append(config)
         self.config = config
 
-    def _get_generation_backend(self, _backend_id):
+    def get_generation_backend(self, _backend_id):
         return _PassingBackend(self.config)
 
 
@@ -77,7 +82,7 @@ def test_local_cli_missing_executable_reports_current_config_error() -> None:
         }
     )
 
-    with patch("src.llm.local_cli_backend.shutil.which", return_value=None):
+    with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=None):
         payload = service.get_status()
 
     primary = payload["primary"]
@@ -132,8 +137,8 @@ def test_local_cli_smoke_failure_keeps_available_true_when_cheap_check_passes() 
         analyzer_factory=lambda config: _FakeAnalyzer(config),
     )
 
-    with patch("src.llm.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
-         patch("src.llm.local_cli_backend.os.access", return_value=True):
+    with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
+         patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
         payload = service.smoke_test(backend_id="codex_cli", mode="json")
 
     status = payload["status"]
@@ -155,8 +160,8 @@ def test_smoke_timeout_overrides_config_timeout_for_local_cli() -> None:
         analyzer_factory=lambda config: _CapturingAnalyzer(config),
     )
 
-    with patch("src.llm.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
-         patch("src.llm.local_cli_backend.os.access", return_value=True):
+    with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
+         patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
         payload = service.smoke_test(backend_id="codex_cli", mode="json", timeout_seconds=1)
 
     assert payload["success"] is True
@@ -178,7 +183,7 @@ def test_litellm_smoke_timeout_reaches_final_completion_dispatch() -> None:
 
     service = GenerationBackendStatusService(effective_map=_litellm_effective_map())
 
-    with patch("src.analyzer.GeminiAnalyzer._dispatch_litellm_completion", new=_dispatch):
+    with patch("src.application.analysis.analyzer.GeminiAnalyzer._dispatch_litellm_completion", new=_dispatch):
         payload = service.smoke_test(mode="json", timeout_seconds=1)
 
     assert payload["success"] is True
@@ -198,9 +203,9 @@ def test_litellm_smoke_redacts_provider_error_from_response_and_logs(caplog) -> 
     service = GenerationBackendStatusService(
         effective_map=_litellm_effective_map("plain-provider-secret-value")
     )
-    caplog.set_level(logging.WARNING, logger="src.analyzer")
+    caplog.set_level(logging.WARNING, logger="src.application.analysis.analyzer")
 
-    with patch("src.analyzer.GeminiAnalyzer._dispatch_litellm_completion", new=_dispatch):
+    with patch("src.application.analysis.analyzer.GeminiAnalyzer._dispatch_litellm_completion", new=_dispatch):
         payload = service.smoke_test(mode="json")
 
     assert payload["success"] is False
@@ -222,8 +227,8 @@ def test_generation_fallback_self_is_noop_not_recursive() -> None:
         }
     )
 
-    with patch("src.llm.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
-         patch("src.llm.local_cli_backend.os.access", return_value=True):
+    with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
+         patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
         payload = service.get_status()
 
     assert payload["primary_backend_id"] == "codex_cli"
@@ -240,8 +245,8 @@ def test_invalid_fallback_does_not_fail_primary() -> None:
         }
     )
 
-    with patch("src.llm.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
-         patch("src.llm.local_cli_backend.os.access", return_value=True):
+    with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
+         patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
         payload = service.get_status()
 
     assert payload["primary"]["available"] is True

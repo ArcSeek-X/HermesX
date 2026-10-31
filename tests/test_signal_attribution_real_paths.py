@@ -10,10 +10,10 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.utils.data_processing import normalize_signal_attribution_values, normalize_dashboard_signal_attribution
-from src.schemas.report_schema import Dashboard, SignalAttribution
+from src.application.analysis.report_schema import Dashboard, SignalAttribution
 
 # AnalysisResult 在 analyzer.py 中定义
-from src.analyzer import AnalysisResult
+from src.application.analysis.analyzer import AnalysisResult
 
 
 class TestNormalizeSignalAttribution:
@@ -118,7 +118,7 @@ class TestHistoryServiceDisplay:
 
     def test_signal_attribution_in_markdown(self):
         """验证 markdown 报告包含信号归因段落"""
-        from src.services.history_service import HistoryService
+        from src.application.history.read_model import HistoryService
 
         result = AnalysisResult(
             code="600519",
@@ -148,7 +148,7 @@ class TestHistoryServiceDisplay:
 
     def test_no_signal_attribution_no_section(self):
         """验证没有 signal_attribution 时不显示段落"""
-        from src.services.history_service import HistoryService
+        from src.application.history.read_model import HistoryService
 
         result = AnalysisResult(
             code="600519",

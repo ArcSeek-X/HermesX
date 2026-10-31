@@ -12,10 +12,10 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.analyzer import GeminiAnalyzer
-from src.core.pipeline import StockAnalysisPipeline
-from src.enums import ReportType
-from src.services.daily_market_context import DailyMarketContext
+from src.application.analysis.analyzer import GeminiAnalyzer
+from src.application.analysis.pipeline import StockAnalysisPipeline
+from src.domain.shared.enums import ReportType
+from src.application.market.daily_market_context import DailyMarketContext
 
 
 def _pipeline_config(*, daily_market_context_enabled: bool) -> SimpleNamespace:
@@ -50,13 +50,13 @@ def _build_initialized_pipeline(
     social_sentiment_service = MagicMock()
     social_sentiment_service.is_available = False
 
-    with patch("src.core.pipeline.get_db", return_value=MagicMock()), \
-         patch("src.core.pipeline.DataFetcherManager", return_value=MagicMock()), \
-         patch("src.core.pipeline.StockTrendAnalyzer", return_value=MagicMock()), \
-         patch("src.core.pipeline.GeminiAnalyzer", return_value=MagicMock()), \
-         patch("src.core.pipeline.NotificationService", return_value=MagicMock()), \
-         patch("src.core.pipeline.SearchService", return_value=search_service), \
-         patch("src.core.pipeline.SocialSentimentService", return_value=social_sentiment_service):
+    with patch("src.application.analysis.pipeline.build_pipeline_persistence_port", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.build_stock_data_port", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.StockTrendAnalyzer", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.GeminiAnalyzer", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.NotificationService", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.SearchService", return_value=search_service), \
+         patch("src.application.analysis.pipeline.SocialSentimentService", return_value=social_sentiment_service):
         return StockAnalysisPipeline(config=config, **kwargs)
 
 
@@ -109,7 +109,7 @@ def test_pipeline_loads_daily_market_context_when_market_review_enabled() -> Non
     pipeline.search_service = MagicMock()
     pipeline.query_id = "pipeline-query"
 
-    with patch("src.core.pipeline.DailyMarketContextService") as service_cls:
+    with patch("src.application.analysis.pipeline.DailyMarketContextService") as service_cls:
         service = service_cls.return_value
         service.get_context.return_value = _market_context()
 
@@ -118,7 +118,7 @@ def test_pipeline_loads_daily_market_context_when_market_review_enabled() -> Non
         context = pipeline._load_daily_market_context("cn", target_date=target_date)
 
     assert context is not None
-    service_cls.assert_called_once_with(db_manager=pipeline.db)
+    service_cls.assert_called_once_with(history_repo=pipeline.db)
     service.get_context.assert_called_once_with(
         region="cn",
         config=pipeline.config,
@@ -146,7 +146,7 @@ def test_pipeline_can_load_daily_market_context_without_runtime_generation() -> 
     pipeline.search_service = MagicMock()
     pipeline.daily_market_context_allow_generate = False
 
-    with patch("src.core.pipeline.DailyMarketContextService") as service_cls:
+    with patch("src.application.analysis.pipeline.DailyMarketContextService") as service_cls:
         service = service_cls.return_value
         service.get_context.return_value = None
 
@@ -169,7 +169,7 @@ def test_pipeline_skips_daily_market_context_when_context_is_disabled() -> None:
     )
     pipeline.daily_market_context_enabled = False
 
-    with patch("src.core.pipeline.DailyMarketContextService") as service_cls:
+    with patch("src.application.analysis.pipeline.DailyMarketContextService") as service_cls:
         context = pipeline._load_daily_market_context(
             "cn",
             target_date=date(2026, 6, 6),
@@ -188,7 +188,7 @@ def test_pipeline_skips_daily_market_context_when_config_is_disabled() -> None:
     )
     pipeline.daily_market_context_enabled = True
 
-    with patch("src.core.pipeline.DailyMarketContextService") as service_cls:
+    with patch("src.application.analysis.pipeline.DailyMarketContextService") as service_cls:
         context = pipeline._load_daily_market_context(
             "cn",
             target_date=date(2026, 6, 6),
@@ -230,7 +230,7 @@ def test_pipeline_initializes_daily_market_context_service_once_across_threads()
         release_constructor.wait(timeout=2)
         return service
 
-    with patch("src.core.pipeline.DailyMarketContextService", side_effect=_create_service) as service_cls:
+    with patch("src.application.analysis.pipeline.DailyMarketContextService", side_effect=_create_service) as service_cls:
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
             futures = [executor.submit(_load) for _ in range(worker_count)]
             assert constructor_entered.wait(timeout=2)
@@ -239,7 +239,7 @@ def test_pipeline_initializes_daily_market_context_service_once_across_threads()
             contexts = [future.result(timeout=2) for future in futures]
 
     assert contexts == [_market_context()] * worker_count
-    service_cls.assert_called_once_with(db_manager=pipeline.db)
+    service_cls.assert_called_once_with(history_repo=pipeline.db)
     assert service.get_context.call_count == worker_count
 
 
@@ -299,7 +299,7 @@ def test_pipeline_uses_market_phase_effective_date_for_daily_market_context() ->
     pipeline._emit_progress = MagicMock()
     pipeline._load_daily_market_context = MagicMock(return_value=_market_context())
 
-    with patch("src.core.pipeline.build_market_phase_context", return_value=phase_context):
+    with patch("src.application.analysis.pipeline.build_market_phase_context", return_value=phase_context):
         pipeline.analyze_stock(
             "600519",
             ReportType.SIMPLE,

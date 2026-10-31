@@ -14,7 +14,7 @@ Covers:
 import pytest
 from unittest.mock import patch
 
-from src.services.name_to_code_resolver import (
+from src.application.quote.name_to_code_resolver import (
     resolve_name_to_code,
     _is_code_like,
     _normalize_code,
@@ -132,27 +132,27 @@ class TestResolveNameToCode:
         # "阿里巴巴" maps to both BABA and 09988 in STOCK_NAME_MAP
         assert resolve_name_to_code("阿里巴巴") is None
 
-    @patch("src.services.name_to_code_resolver._search_remote_name_to_code")
+    @patch("src.application.quote.name_to_code_resolver._search_remote_name_to_code")
     def test_remote_fallback_when_not_in_local(self, mock_remote):
         mock_remote.return_value = {"浦发银行": "600000"}
         result = resolve_name_to_code("浦发银行")
         assert result == "600000"
         mock_remote.assert_called()
 
-    @patch("src.services.name_to_code_resolver._search_remote_name_to_code")
+    @patch("src.application.quote.name_to_code_resolver._search_remote_name_to_code")
     def test_fuzzy_match_fallback(self, mock_remote):
         mock_remote.return_value = {"贵州茅台": "600519"}
         # Typo: 贵州茅苔 -> should fuzzy match 贵州茅台
         result = resolve_name_to_code("贵州茅苔")
         assert result == "600519"
 
-    @patch("src.services.name_to_code_resolver._search_remote_name_to_code")
+    @patch("src.application.quote.name_to_code_resolver._search_remote_name_to_code")
     def test_returns_none_when_no_match(self, mock_remote):
         mock_remote.return_value = {}
         result = resolve_name_to_code("不存在的股票名称xyz")
         assert result is None
 
-    @patch("src.services.name_to_code_resolver._search_remote_name_to_code")
+    @patch("src.application.quote.name_to_code_resolver._search_remote_name_to_code")
     def test_skips_remote_search_for_non_cjk_garbage_input(self, mock_remote):
         result = resolve_name_to_code("aaaaaaa")
         assert result is None

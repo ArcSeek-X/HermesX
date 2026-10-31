@@ -21,9 +21,26 @@ from tests.litellm_stub import ensure_litellm_stub
 ensure_litellm_stub()
 
 from src.config import ANSPIRE_LLM_MODEL_DEFAULT, DEFAULT_ALPHASIFT_INSTALL_SPEC, Config
-from src.core.config_manager import ConfigManager
-from src.llm.backend_registry import GENERATION_ONLY_BACKEND_IDS
-from src.services.system_config_service import ConfigConflictError, ConfigImportError, ConfigValidationError, SystemConfigService
+from src.config.env_file import ConfigManager
+from src.domain.generation.backend_identity import (
+    GENERATION_ONLY_BACKEND_IDS,
+)
+from src.application.runtime import system_config_service
+from src.application.runtime.system_config_service import (
+    ConfigConflictError,
+    ConfigImportError,
+    ConfigValidationError,
+    SystemConfigService,
+    _build_llm_models_url,
+)
+from src.bootstrap.system_config import configure_system_config_runtime
+from src.bootstrap.generation import configure_generation_runtime
+
+# 顶层装配 SystemConfig 运行时端口（test_alphasift_api configure 同型）：service 的
+# 探测/通知试发/单例重置外调簇已下沉 infra 适配器，用例经 seam 消费，未装配即 fail-fast。
+configure_system_config_runtime()
+# 生成链路端口（R2-A3）：预设解析 / 参数归一外调簇同样下沉 infra 适配器。
+configure_generation_runtime()
 
 
 class SystemConfigServiceTestCase(unittest.TestCase):
@@ -79,8 +96,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         saved_backend: str,
         runtime_backend: str,
     ) -> None:
-        from src.agent.agent_backend import resolve_agent_backend_id
-        from src.services.agent_backend_status_service import AgentBackendStatusService
+        from src.application.agent.agent_backend import resolve_agent_backend_id
+        from src.application.runtime.agent_backend_status import AgentBackendStatusService
 
         self._rewrite_env(
             "GEMINI_API_KEY=secret-key-value",
@@ -134,7 +151,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
     def test_agent_backend_empty_preview_uses_runtime_generation_route(self) -> None:
-        from src.services.agent_backend_status_service import AgentBackendStatusService
+        from src.application.runtime.agent_backend_status import AgentBackendStatusService
 
         self._rewrite_env(
             "AGENT_BACKEND=litellm",
@@ -207,7 +224,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             "LLM_HERMES_API_KEY=sk-hermes-secret-value",
         )
 
-        with patch("src.services.system_config_service.requests.Session") as session_cls:
+        with patch("src.application.runtime.system_config_service.requests.Session") as session_cls:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -231,7 +248,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {"LLM_HERMES_BASE_URL": "http://127.0.0.1:9999/v1"}, clear=False), \
-             patch("src.services.system_config_service.requests.Session") as session_cls:
+             patch("src.application.runtime.system_config_service.requests.Session") as session_cls:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -266,8 +283,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             def close(self) -> None:
                 observed["closed"] = True
 
-        with patch("src.services.system_config_service.requests.Session", side_effect=FakeSession), \
-             patch("src.services.system_config_service.requests.get") as requests_get:
+        with patch("src.application.runtime.system_config_service.requests.Session", side_effect=FakeSession), \
+             patch("src.application.runtime.system_config_service.requests.get") as requests_get:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -284,7 +301,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         requests_get.assert_not_called()
 
     def test_hermes_model_discovery_invalid_url_fails_before_request(self) -> None:
-        with patch("src.services.system_config_service.requests.Session") as session_cls:
+        with patch("src.application.runtime.system_config_service.requests.Session") as session_cls:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -316,7 +333,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             def close(self) -> None:
                 pass
 
-        with patch("src.services.system_config_service.requests.Session", side_effect=FakeSession):
+        with patch("src.application.runtime.system_config_service.requests.Session", side_effect=FakeSession):
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -428,8 +445,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             def close(self) -> None:
                 pass
 
-        with patch("src.services.system_config_service.requests.Session", side_effect=FakeSession), \
-             self.assertLogs("src.services.system_config_service", level="WARNING") as logs:
+        with patch("src.application.runtime.system_config_service.requests.Session", side_effect=FakeSession), \
+             self.assertLogs("src.application.runtime.system_config_service", level="WARNING") as logs:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -460,8 +477,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             " | ".join(variants),
             redaction_values=redactions,
         )
-        with self.assertLogs("src.services.system_config_service", level="WARNING") as logs:
-            logging.getLogger("src.services.system_config_service").warning(
+        with self.assertLogs("src.application.runtime.system_config_service", level="WARNING") as logs:
+            logging.getLogger("src.application.runtime.system_config_service").warning(
                 "LLM channel model discovery failed for hermes: %s",
                 sanitized,
             )
@@ -476,7 +493,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertIn("[REDACTED]", log_text)
 
     def test_hermes_channel_test_invalid_url_fails_before_completion(self) -> None:
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client") as no_proxy_client, \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client") as no_proxy_client, \
              patch("litellm.completion") as completion:
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -497,7 +514,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         completion.assert_not_called()
 
     def test_hermes_runtime_only_masked_key_is_not_sent_for_channel_test(self) -> None:
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client") as no_proxy_client, \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client") as no_proxy_client, \
              patch("litellm.completion") as completion:
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -517,7 +534,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         completion.assert_not_called()
 
     def test_hermes_masked_key_is_not_sent_for_model_discovery(self) -> None:
-        with patch("src.services.system_config_service.requests.Session") as session_cls:
+        with patch("src.application.runtime.system_config_service.requests.Session") as session_cls:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -540,7 +557,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             "LLM_HERMES_API_KEY=******",
         )
 
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client") as no_proxy_client, \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client") as no_proxy_client, \
              patch("litellm.completion") as completion:
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -558,7 +575,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     def test_hermes_channel_test_rejects_comma_api_key_before_outbound(self) -> None:
         raw_key = "key-a,key-b"
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client") as no_proxy_client, \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client") as no_proxy_client, \
              patch("litellm.completion") as completion:
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -581,7 +598,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     def test_hermes_model_discovery_rejects_comma_api_key_before_outbound(self) -> None:
         raw_key = "key-a,key-b"
-        with patch("src.services.system_config_service.requests.Session") as session_cls:
+        with patch("src.application.runtime.system_config_service.requests.Session") as session_cls:
             result = self.service.discover_llm_channel_models(
                 name="hermes",
                 protocol="openai",
@@ -616,7 +633,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             self.assertNotIn("api_base", kwargs)
             return self._mock_completion_response("OK")
 
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
              patch("litellm.completion", side_effect=fake_completion):
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -644,9 +661,9 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         def fake_completion(**_kwargs: Any) -> Any:
             raise RuntimeError("upstream echoed saved-secret-token")
 
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
              patch("litellm.completion", side_effect=fake_completion), \
-             self.assertLogs("src.services.system_config_service", level="WARNING") as logs:
+             self.assertLogs("src.application.runtime.system_config_service", level="WARNING") as logs:
             result = self.service.test_llm_channel(
                 name="hermes",
                 protocol="openai",
@@ -673,7 +690,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
                 return self._mock_completion_response("OK")
             raise RuntimeError("json capability saw saved-secret-token")
 
-        with patch("src.services.system_config_service.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
+        with patch("src.infrastructure.providers.system_config_runtime.open_hermes_no_proxy_client", fake_no_proxy_openai_client), \
              patch("litellm.completion", side_effect=fake_completion):
             result = self.service.test_llm_channel(
                 name="hermes",
@@ -1050,7 +1067,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             "GEMINI_API_KEY=secret-key-value",
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value=None):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=None):
             payload = self.service.preview_generation_backend_status(
                 items=[
                     {"key": "GENERATION_BACKEND", "value": "codex_cli"},
@@ -1212,7 +1229,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             "LITELLM_MODEL=gemini/gemini-3-flash-preview",
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value=None):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=None):
             payload = self.service.preview_generation_backend_status(
                 items=[
                     {"key": "GENERATION_BACKEND", "value": "codex_cli"},
@@ -1245,8 +1262,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             "GENERATION_FALLBACK_BACKEND=bad_backend",
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
-             patch("src.llm.local_cli_backend.os.access", return_value=True):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value="/usr/bin/codex"), \
+             patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
             payload = self.service.get_generation_backend_status()
 
         self.assertTrue(payload["primary"]["available"])
@@ -1261,7 +1278,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1281,7 +1298,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/claude"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/claude"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1301,7 +1318,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value=None):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value=None):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1320,7 +1337,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1338,7 +1355,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1362,7 +1379,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1383,7 +1400,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1414,7 +1431,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/opencode"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/opencode"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1429,7 +1446,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("src.services.system_config_service.shutil.which", return_value="/usr/bin/codex"):
+             patch("src.application.runtime.system_config_service.shutil.which", return_value="/usr/bin/codex"):
             status = self.service.get_setup_status()
 
         checks = {check["key"]: check for check in status["checks"]}
@@ -1606,8 +1623,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
                 "STOCK_LIST": "600519",
             },
             clear=True,
-        ), patch("src.services.system_config_service.Config.reset_instance") as mock_reset, \
-             patch("src.services.system_config_service.setup_env") as mock_setup_env:
+        ), patch("src.application.runtime.system_config_service.Config.reset_instance") as mock_reset, \
+             patch("src.application.runtime.system_config_service.setup_env") as mock_setup_env:
             status = self.service.get_setup_status()
 
         self.assertTrue(status["is_complete"])
@@ -1850,6 +1867,86 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         validation = self.service.validate(items=[{"key": "SCHEDULE_TIME", "value": "25:70"}])
         self.assertFalse(validation["valid"])
         self.assertTrue(any(issue["code"] == "invalid_format" for issue in validation["issues"]))
+
+    def test_validate_rejects_portfolio_risk_values_below_registry_min(self) -> None:
+        """越界数值在设置页是「拒绝保存」，不是运行时 clamp。
+
+        两条路径必须分开：`parse_env_float/int(minimum=...)` 只作用于 `.env` /
+        进程环境变量读取；设置页保存走 registry ``validation.min``，越界返回
+        ``out_of_range`` 并阻止写入。批次 P4 的文案据此描述，这里把区分钉住，
+        避免后续批次把 clamp 当成唯一越界行为。
+        """
+        cases = (
+            ("PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT", "-1", ">=0.0"),
+            ("PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT", "-0.5", ">=0.0"),
+            ("PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT", "-10", ">=0.0"),
+            ("PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO", "-0.1", ">=0.0"),
+            ("PORTFOLIO_RISK_LOOKBACK_DAYS", "0", ">=1"),
+        )
+        for key, bad_value, expected in cases:
+            with self.subTest(key=key):
+                validation = self.service.validate(items=[{"key": key, "value": bad_value}])
+                self.assertFalse(validation["valid"])
+                issue = next(i for i in validation["issues"] if i["key"] == key)
+                self.assertEqual(issue["code"], "out_of_range")
+                self.assertEqual(issue["severity"], "error")
+                self.assertEqual(issue["expected"], expected)
+
+    def test_validate_accepts_portfolio_risk_values_without_upper_bound(self) -> None:
+        """registry 只声明下限、不新增上限：下限上的边界值与极大值都应通过。"""
+        validation = self.service.validate(
+            items=[
+                {"key": "PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT", "value": "0"},
+                {"key": "PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO", "value": "10000"},
+                {"key": "PORTFOLIO_RISK_LOOKBACK_DAYS", "value": "1"},
+            ]
+        )
+        self.assertTrue(validation["valid"], validation["issues"])
+
+    def test_validate_rejects_non_literal_boolean_for_portfolio_fx_switch(self) -> None:
+        """`1` 在 `.env` 里会被读成关闭，因此设置页必须直接拒绝而不是静默关闭。"""
+        validation = self.service.validate(items=[{"key": "PORTFOLIO_FX_UPDATE_ENABLED", "value": "1"}])
+        self.assertFalse(validation["valid"])
+        issue = next(i for i in validation["issues"] if i["key"] == "PORTFOLIO_FX_UPDATE_ENABLED")
+        self.assertEqual(issue["code"], "invalid_type")
+        accepted = self.service.validate(items=[{"key": "PORTFOLIO_FX_UPDATE_ENABLED", "value": "false"}])
+        self.assertTrue(accepted["valid"], accepted["issues"])
+
+    def test_validate_rejects_p5_numeric_values_below_registry_min(self) -> None:
+        """批次 P5 数值字段与 P4 同口径：越界是拒绝保存，不是静默 clamp。"""
+        for key, bad_value in (("WECHAT_MAX_BYTES", "0"), ("MARKDOWN_TO_IMAGE_MAX_CHARS", "-1")):
+            with self.subTest(key=key):
+                validation = self.service.validate(items=[{"key": key, "value": bad_value}])
+                self.assertFalse(validation["valid"])
+                issue = next(i for i in validation["issues"] if i["key"] == key)
+                self.assertEqual(issue["code"], "out_of_range")
+                self.assertEqual(issue["severity"], "error")
+                self.assertEqual(issue["expected"], ">=1")
+                accepted = self.service.validate(items=[{"key": key, "value": "1"}])
+                self.assertTrue(accepted["valid"], accepted["issues"])
+        # 只声明下限：极大值仍可保存。
+        huge = self.service.validate(items=[{"key": "WECHAT_MAX_BYTES", "value": "999999999"}])
+        self.assertTrue(huge["valid"], huge["issues"])
+
+    def test_validate_rejects_p5_select_values_outside_options(self) -> None:
+        """下拉字段的 enum 由 options 派生，保存时必须拦住列表外的值。
+
+        运行时对这两个字段并不同构：`MD2IMG_ENGINE` 会回落 wkhtmltoimage，
+        而 `WECHAT_MSG_TYPE` 会把任意值原样存下、由发送侧按 markdown 处理，
+        所以设置页不能像 `.env` 那样“填了再说”。
+        """
+        for key, bad_value, options in (
+            ("MD2IMG_ENGINE", "puppeteer", ("wkhtmltoimage", "markdown-to-file")),
+            ("WECHAT_MSG_TYPE", "news", ("markdown", "text")),
+        ):
+            with self.subTest(key=key):
+                validation = self.service.validate(items=[{"key": key, "value": bad_value}])
+                self.assertFalse(validation["valid"])
+                issue = next(i for i in validation["issues"] if i["key"] == key)
+                self.assertEqual(issue["code"], "invalid_enum")
+                self.assertEqual(issue["expected"], ",".join(options))
+                accepted = self.service.validate(items=[{"key": key, "value": options[1]}])
+                self.assertTrue(accepted["valid"], accepted["issues"])
 
     def test_validate_accepts_empty_schedule_times_fallback(self) -> None:
         validation = self.service.validate(items=[{"key": "SCHEDULE_TIMES", "value": ""}])
@@ -2305,7 +2402,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     @patch.object(
         Config,
-        "_parse_litellm_yaml",
+        "parse_litellm_yaml",
         return_value=[
             {
                 "model_name": "gpt4o",
@@ -2326,7 +2423,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     @patch.object(
         Config,
-        "_parse_litellm_yaml",
+        "parse_litellm_yaml",
         return_value=[{"model_name": "gemini/gemini-2.5-flash", "litellm_params": {"model": "gemini/gemini-2.5-flash"}}],
     )
     def test_validate_skips_channel_checks_when_litellm_yaml_is_active(self, _mock_parse_yaml) -> None:
@@ -2626,7 +2723,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
     @patch.object(
         Config,
-        "_parse_litellm_yaml",
+        "parse_litellm_yaml",
         return_value=[{"model_name": "gemini/gemini-2.5-flash", "litellm_params": {"model": "gemini/gemini-2.5-flash"}}],
     )
     def test_validate_reports_unknown_primary_model_for_litellm_yaml(self, _mock_parse_yaml) -> None:
@@ -2640,7 +2737,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertFalse(validation["valid"])
         self.assertTrue(any(issue["key"] == "LITELLM_MODEL" and issue["code"] == "unknown_model" for issue in validation["issues"]))
 
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_validate_keeps_channel_checks_when_litellm_yaml_has_no_models(self, _mock_parse_yaml) -> None:
         validation = self.service.validate(
             items=[
@@ -2822,7 +2919,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
     def _notification_test_env(self):
         return patch.dict(os.environ, {"ENV_FILE": str(self.env_path)}, clear=True)
 
-    @patch("src.notification_sender.wechat_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.wechat_sender.requests.post")
     def test_test_notification_channel_uses_temporary_items_without_persisting(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200, {"errcode": 0})
 
@@ -2911,7 +3008,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(captured["config"].feishu_domain, "lark")
 
-    @patch("src.notification_sender.wechat_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.wechat_sender.requests.post")
     def test_test_notification_channel_skips_masked_secret_overwrite(self, mock_post) -> None:
         self._rewrite_env("WECHAT_WEBHOOK_URL=https://saved.example.com/hook?key=savedsecret")
         mock_post.return_value = self._mock_http_response(200, {"errcode": 0})
@@ -2929,7 +3026,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(mock_post.call_args[0][0], "https://saved.example.com/hook?key=savedsecret")
 
-    @patch("src.notification_sender.custom_webhook_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.custom_webhook_sender.requests.post")
     def test_test_notification_channel_returns_custom_webhook_attempts(self, mock_post) -> None:
         mock_post.side_effect = [
             self._mock_http_response(500),
@@ -2964,7 +3061,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("access_token=first", str(payload))
         self.assertEqual(mock_post.call_args_list[0].kwargs["timeout"], 4)
 
-    @patch("src.notification_sender.custom_webhook_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.custom_webhook_sender.requests.post")
     def test_test_notification_channel_custom_webhook_all_failures_are_retryable(self, mock_post) -> None:
         mock_post.side_effect = [
             self._mock_http_response(500),
@@ -2998,7 +3095,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("access_token=first", str(payload))
         self.assertNotIn("token=second", str(payload))
 
-    @patch("src.notification_sender.ntfy_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.ntfy_sender.requests.post")
     def test_test_notification_channel_supports_ntfy_and_masks_topic_target(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200)
 
@@ -3023,7 +3120,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("private-topic", str(payload))
         self.assertNotIn("NTFY_URL", self.env_path.read_text(encoding="utf-8"))
 
-    @patch("src.notification_sender.ntfy_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.ntfy_sender.requests.post")
     def test_test_notification_channel_rejects_ntfy_url_without_topic(self, mock_post) -> None:
         with self._notification_test_env():
             payload = self.service.test_notification_channel(
@@ -3040,7 +3137,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertIn("NTFY_URL", payload["message"])
         mock_post.assert_not_called()
 
-    @patch("src.notification_sender.gotify_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.gotify_sender.requests.post")
     def test_test_notification_channel_supports_gotify_and_keeps_token_out_of_url(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200)
 
@@ -3064,7 +3161,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("secret-token", str(payload))
         self.assertNotIn("GOTIFY_URL", self.env_path.read_text(encoding="utf-8"))
 
-    @patch("src.notification_sender.gotify_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.gotify_sender.requests.post")
     def test_test_notification_channel_rejects_gotify_message_endpoint(self, mock_post) -> None:
         with self._notification_test_env():
             payload = self.service.test_notification_channel(
@@ -3085,7 +3182,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         mock_post.assert_not_called()
 
     @patch(
-        "src.notification_sender.WechatSender.send_to_wechat",
+        "src.infrastructure.notification.senders.WechatSender.send_to_wechat",
         side_effect=requests.exceptions.Timeout(
             "timeout for https://qyapi.example.com/cgi-bin/webhook/send?key=secret token=abc123"
         ),
@@ -3113,7 +3210,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("key=secret", str(payload))
         self.assertNotIn("abc123", str(payload))
 
-    @patch("src.notification_sender.telegram_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.telegram_sender.requests.post")
     def test_test_notification_channel_masks_short_sensitive_target(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200, {"ok": True})
 
@@ -3133,7 +3230,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(payload["attempts"][0]["target"], "***")
         self.assertNotIn("tok123", str(payload))
 
-    @patch("src.notification_sender.wechat_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.wechat_sender.requests.post")
     def test_test_notification_channel_strips_url_userinfo_from_target(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200, {"errcode": 0})
 
@@ -3157,7 +3254,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("user", target)
         self.assertNotIn("password", target)
 
-    @patch("src.notification_sender.discord_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.discord_sender.requests.post")
     def test_test_notification_channel_prefers_discord_main_channel_alias(self, mock_post) -> None:
         mock_post.return_value = self._mock_http_response(200)
 
@@ -3411,13 +3508,13 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("temperature", mock_completion.call_args.kwargs)
 
     @patch("litellm.completion")
-    @patch("src.services.system_config_service.Config._load_from_env")
+    @patch("src.application.runtime.system_config_service.Config._load_from_env")
     def test_test_llm_channel_recovers_from_unsupported_temperature(
         self,
         mock_load_config,
         mock_completion,
     ) -> None:
-        from src.llm.generation_params import clear_litellm_generation_param_recovery_cache
+        from src.infrastructure.generation.generation_params import clear_litellm_generation_param_recovery_cache
 
         clear_litellm_generation_param_recovery_cache()
         mock_load_config.return_value = SimpleNamespace(llm_temperature=0.42)
@@ -3445,7 +3542,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertNotIn("temperature", mock_completion.call_args_list[1].kwargs)
 
     @patch("litellm.completion")
-    @patch("src.services.system_config_service.Config._load_from_env")
+    @patch("src.application.runtime.system_config_service.Config._load_from_env")
     def test_test_llm_channel_uses_runtime_temperature_for_non_kimi_models(
         self,
         mock_load_config,
@@ -3806,7 +3903,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(payload["error_code"], "invalid_config")
         self.assertEqual(payload["details"]["reason"], "missing_api_key")
 
-    @patch("src.services.system_config_service.requests.get")
+    @patch("src.application.runtime.system_config_service.requests.get")
     def test_discover_llm_channel_models_returns_deduped_ids(self, mock_get) -> None:
         mock_response = Mock()
         mock_response.ok = True
@@ -3841,7 +3938,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
         self.assertFalse(mock_get.call_args.kwargs["allow_redirects"])
 
-    @patch("src.services.system_config_service.requests.get")
+    @patch("src.application.runtime.system_config_service.requests.get")
     def test_discover_llm_channel_models_classifies_error_scenarios(self, mock_get) -> None:
         auth_response = Mock(ok=False, status_code=401, text="invalid api key sk-secret-value")
         auth_response.json.return_value = {"error": {"message": "invalid api key sk-secret-value"}}
@@ -3893,7 +3990,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
                 if error_code == "auth":
                     self.assertNotIn("sk-secret-value", payload["error"])
 
-    @patch("src.services.system_config_service.requests.get")
+    @patch("src.application.runtime.system_config_service.requests.get")
     def test_discover_llm_channel_models_rejects_redirect_responses(self, mock_get) -> None:
         mock_response = Mock()
         mock_response.ok = True
@@ -3937,14 +4034,14 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertIn("does not support /models discovery yet", payload["error"])
 
     def test_build_llm_models_url_strips_query_and_fragment(self) -> None:
-        models_url = SystemConfigService._build_llm_models_url(
+        models_url = _build_llm_models_url(
             "https://example.com/v1/chat/completions?api-version=1#frag"
         )
 
         self.assertEqual(models_url, "https://example.com/v1/models")
 
     def test_build_llm_models_url_supports_deepseek_root_base_url(self) -> None:
-        models_url = SystemConfigService._build_llm_models_url("https://api.deepseek.com")
+        models_url = _build_llm_models_url("https://api.deepseek.com")
 
         self.assertEqual(models_url, "https://api.deepseek.com/models")
 
@@ -4436,6 +4533,76 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             ]
         )
         self.assertFalse(any(issue["code"] == "ssrf_blocked" for issue in validation["issues"]))
+
+
+class SystemConfigRuntimePortWiringTestCase(unittest.TestCase):
+    """§4.3 拆分 F3 后的端口装配链路回归：bootstrap 绑定 seam、未装配 fail-fast。"""
+
+    def test_configure_system_config_runtime_binds_adapters_idempotently(self) -> None:
+        from src.application.runtime.system_config_ports import (  # noqa: F401  契约锚点
+            ConfigProbePort,
+            NotificationDispatchPort,
+            RuntimeResetPort,
+        )
+        from src.infrastructure.providers.system_config_runtime import (
+            NotificationDispatchAdapter,
+            RuntimeResetAdapter,
+            SystemConfigProbeAdapter,
+        )
+
+        originals = (
+            system_config_service._config_probe_port,
+            system_config_service._notification_dispatch_port,
+            system_config_service._runtime_reset_port,
+        )
+        try:
+            system_config_service.set_config_probe_port(None)  # None 不覆盖：幂等语义
+            system_config_service.set_notification_dispatch_port(None)
+            system_config_service.set_runtime_reset_port(None)
+            self.assertIsInstance(
+                system_config_service._get_config_probe_port(), SystemConfigProbeAdapter
+            )
+            configure_system_config_runtime()
+            configure_system_config_runtime()
+            self.assertIsInstance(
+                system_config_service._get_config_probe_port(), SystemConfigProbeAdapter
+            )
+            self.assertIsInstance(
+                system_config_service._get_notification_dispatch_port(),
+                NotificationDispatchAdapter,
+            )
+            self.assertIsInstance(
+                system_config_service._get_runtime_reset_port(), RuntimeResetAdapter
+            )
+        finally:
+            (
+                system_config_service._config_probe_port,
+                system_config_service._notification_dispatch_port,
+                system_config_service._runtime_reset_port,
+            ) = originals
+
+    def test_unconfigured_ports_fail_fast(self) -> None:
+        originals = (
+            system_config_service._config_probe_port,
+            system_config_service._notification_dispatch_port,
+            system_config_service._runtime_reset_port,
+        )
+        try:
+            system_config_service._config_probe_port = None
+            system_config_service._notification_dispatch_port = None
+            system_config_service._runtime_reset_port = None
+            with self.assertRaises(RuntimeError):
+                system_config_service._get_config_probe_port()
+            with self.assertRaises(RuntimeError):
+                system_config_service._get_notification_dispatch_port()
+            with self.assertRaises(RuntimeError):
+                system_config_service._get_runtime_reset_port()
+        finally:
+            (
+                system_config_service._config_probe_port,
+                system_config_service._notification_dispatch_port,
+                system_config_service._runtime_reset_port,
+            ) = originals
 
 
 if __name__ == "__main__":

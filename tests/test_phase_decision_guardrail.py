@@ -3,8 +3,8 @@
 
 from types import SimpleNamespace
 
-from src.analyzer import AnalysisResult
-from src.phase_decision_guardrail import apply_phase_decision_guardrails
+from src.application.analysis.analyzer import AnalysisResult
+from src.application.analysis.phase_decision_guardrail import apply_phase_decision_guardrails
 
 
 def _result(**kwargs) -> AnalysisResult:

@@ -7,7 +7,9 @@ import logging
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse, ChatType
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
+from src.bootstrap.agent import build_agent_conversation_service
 from src.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -32,11 +34,9 @@ def _resolve_chat_session_id(message: BotMessage) -> str:
         return session_id
 
     try:
-        from src.storage import get_db
-
-        db = get_db()
-        legacy_exists = db.conversation_session_exists(legacy_session_id)
-        current_exists = db.conversation_session_exists(session_id)
+        service = build_agent_conversation_service()
+        legacy_exists = service.session_exists(legacy_session_id)
+        current_exists = service.session_exists(session_id)
         if legacy_exists and not current_exists:
             return legacy_session_id
     except Exception as exc:
@@ -92,7 +92,7 @@ class ChatCommand(BotCommand):
         session_id = _resolve_chat_session_id(message)
         
         try:
-            from src.agent.factory import build_agent_executor
+            from src.bootstrap.agent import build_agent_executor
             executor = build_agent_executor(config)
             result = executor.chat(message=user_message, session_id=session_id)
             

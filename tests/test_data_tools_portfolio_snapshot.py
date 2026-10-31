@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.agent.tools.data_tools import _handle_get_portfolio_snapshot
+from src.application.agent.tools.data_tools import _handle_get_portfolio_snapshot
 
 
 class _FakePortfolioService:
@@ -97,8 +97,8 @@ class _FakeRiskService:
 
 
 class TestGetPortfolioSnapshotTool(unittest.TestCase):
-    @patch("src.services.portfolio_service.PortfolioService", _FakePortfolioService)
-    @patch("src.services.portfolio_risk_service.PortfolioRiskService", _FakeRiskService)
+    @patch("src.application.portfolio.portfolio_service.PortfolioService", _FakePortfolioService)
+    @patch("src.application.portfolio.portfolio_risk_service.PortfolioRiskService", _FakeRiskService)
     def test_default_returns_compact_snapshot_and_risk(self) -> None:
         result = _handle_get_portfolio_snapshot(account_id=1)
         self.assertEqual(result["status"], "ok")
@@ -112,8 +112,8 @@ class TestGetPortfolioSnapshotTool(unittest.TestCase):
         self.assertEqual(account["position_count"], 2)
         self.assertEqual(account["top_positions"][0]["symbol"], "600519")
 
-    @patch("src.services.portfolio_service.PortfolioService", _FakePortfolioService)
-    @patch("src.services.portfolio_risk_service.PortfolioRiskService", _FakeRiskService)
+    @patch("src.application.portfolio.portfolio_service.PortfolioService", _FakePortfolioService)
+    @patch("src.application.portfolio.portfolio_risk_service.PortfolioRiskService", _FakeRiskService)
     def test_include_positions_and_disable_risk(self) -> None:
         result = _handle_get_portfolio_snapshot(
             account_id=1,

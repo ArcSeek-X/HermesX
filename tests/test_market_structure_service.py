@@ -9,11 +9,11 @@ from concurrent.futures import Future
 import threading
 import time
 
-from src.services.market_hotspot_service import (
+from src.application.market.market_hotspot import (
     RANKING_FETCH_TIMEOUT_RETRY_DELAY_SECONDS,
     MarketHotspotService,
 )
-from src.services.market_structure_service import MarketStructureService
+from src.application.market.market_structure import MarketStructureService
 
 
 class _FakeFetcherManager:

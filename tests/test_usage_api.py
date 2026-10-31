@@ -7,14 +7,18 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 from api.app import create_app
-from api.deps import get_database_manager
+from api.deps import get_usage_service
+from src.application.usage import UsageService
 
 
-class FakeUsageDbManager:
+class FakeUsageRepository:
+    """结构上满足 ``UsageRepositoryPort`` 的假仓储。"""
+
     def get_llm_usage_summary(self, from_dt, to_dt):
         return {
             "total_calls": 2,
@@ -73,10 +77,12 @@ class UsageDashboardApiTestCase(unittest.TestCase):
     def test_dashboard_returns_token_summary_and_recent_calls(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             app = create_app(static_dir=Path(temp_dir))
-            app.dependency_overrides[get_database_manager] = lambda: FakeUsageDbManager()
+            app.dependency_overrides[get_usage_service] = lambda: UsageService(FakeUsageRepository())
             client = TestClient(app)
 
-            response = client.get("/api/v1/usage/dashboard?period=today&limit=10")
+            # 与其余 API 测试一致：本文件验证接口契约，不依赖本地 .env 的 ADMIN_AUTH_ENABLED。
+            with patch("api.middlewares.auth.is_auth_enabled", return_value=False):
+                response = client.get("/api/v1/usage/dashboard?period=today&limit=10")
 
         self.assertEqual(response.status_code, 200)
         body = response.json()

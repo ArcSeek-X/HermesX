@@ -311,7 +311,7 @@ class TestSelectionSourceValidationIntegration:
 
     def test_task_queue_validation(self):
         """Test that task queue validates selection sources"""
-        from src.services.task_queue import AnalysisTaskQueue
+        from src.application.runtime.task_queue import AnalysisTaskQueue
 
         queue = AnalysisTaskQueue(max_workers=1)
 
@@ -324,7 +324,7 @@ class TestSelectionSourceValidationIntegration:
 
     def test_task_queue_reject_invalid_source(self):
         """Test that task queue rejects invalid selection sources"""
-        from src.services.task_queue import AnalysisTaskQueue
+        from src.application.runtime.task_queue import AnalysisTaskQueue
 
         queue = AnalysisTaskQueue(max_workers=1)
 
@@ -336,7 +336,7 @@ class TestSelectionSourceValidationIntegration:
 
     def test_task_queue_none_source(self):
         """Test that task queue accepts None as selection source"""
-        from src.services.task_queue import AnalysisTaskQueue
+        from src.application.runtime.task_queue import AnalysisTaskQueue
 
         queue = AnalysisTaskQueue(max_workers=1)
 

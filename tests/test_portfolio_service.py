@@ -21,10 +21,18 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import select
 
 from src.config import Config
-from src.repositories import PortfolioRepository
-from src.repositories.portfolio_repo import PortfolioBusyError
-from src.services.portfolio_service import _AvgState, PortfolioConflictError, PortfolioOversellError, PortfolioService
-from src.storage import DatabaseManager, PortfolioDailySnapshot, PortfolioPosition, PortfolioPositionLot, PortfolioTrade
+from src.infrastructure.persistence.repositories.portfolio_repository import PortfolioRepository
+from src.application.portfolio.ports import PortfolioBusyError
+from src.application.portfolio.portfolio_service import _AvgState, PortfolioConflictError, PortfolioOversellError, PortfolioService
+from src.application.portfolio import portfolio_service as portfolio_service_module
+from src.infrastructure.providers.portfolio_realtime_provider import (
+    DataProviderPortfolioRealtimeQuote,
+)
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.portfolio import PortfolioDailySnapshot, PortfolioPosition, PortfolioPositionLot, PortfolioTrade
+from src.bootstrap.portfolio import configure_portfolio_repository
+
+configure_portfolio_repository()
 
 
 class PortfolioServiceTestCase(unittest.TestCase):
@@ -54,8 +62,15 @@ class PortfolioServiceTestCase(unittest.TestCase):
 
         self.db = DatabaseManager.get_instance()
         self.service = PortfolioService()
+        # S2f-3 实时取数改经 PortfolioRealtimeQuotePort：装配真实适配器后，用例对
+        # `data_provider.base.DataFetcherManager` 的 patch 仍贯穿 app→port→adapter→manager
+        # 全链路（与迁移前直连 DataFetcherManager 行为等价）。
+        portfolio_service_module.set_realtime_port(DataProviderPortfolioRealtimeQuote())
 
     def tearDown(self) -> None:
+        # 复位实时行情端口全局指向（set_realtime_port(None) 为幂等不清除，直接置 None），
+        # 避免装配态泄漏到其他用例。
+        portfolio_service_module._realtime_port = None
         DatabaseManager.reset_instance()
         Config.reset_instance()
         os.environ.pop("ENV_FILE", None)
@@ -110,7 +125,7 @@ class PortfolioServiceTestCase(unittest.TestCase):
             currency=currency,
         )
         if close is not None:
-            self._save_close(self.service._normalize_symbol(symbol), close_date or date(2026, 1, 3), close)
+            self._save_close(self.service.normalize_symbol(symbol), close_date or date(2026, 1, 3), close)
         return aid
 
     def test_current_snapshot_uses_realtime_price_when_close_missing(self) -> None:
@@ -817,10 +832,10 @@ class PortfolioServiceTestCase(unittest.TestCase):
         self.assertAlmostEqual(pos["avg_cost"], 5.0, places=6)
 
     def test_normalize_symbol_preserves_cn_exchange_prefix_and_suffix(self) -> None:
-        self.assertEqual(self.service._normalize_symbol("sh600519"), "SH600519")
-        self.assertEqual(self.service._normalize_symbol("600519.SH"), "SH600519")
-        self.assertEqual(self.service._normalize_symbol("SZ000001"), "SZ000001")
-        self.assertEqual(self.service._normalize_symbol("000001.SZ"), "SZ000001")
+        self.assertEqual(self.service.normalize_symbol("sh600519"), "SH600519")
+        self.assertEqual(self.service.normalize_symbol("600519.SH"), "SH600519")
+        self.assertEqual(self.service.normalize_symbol("SZ000001"), "SZ000001")
+        self.assertEqual(self.service.normalize_symbol("000001.SZ"), "SZ000001")
 
     def test_explicit_exchange_position_valuation_uses_exchange_qualified_symbol(self) -> None:
         account = self.service.create_account(name="Explicit Valuation", broker="Demo", market="cn", base_currency="CNY")
@@ -852,8 +867,8 @@ class PortfolioServiceTestCase(unittest.TestCase):
             currency="CNY",
             market="cn",
         )
-        self._save_close(self.service._normalize_symbol("SH600519"), date(2026, 1, 3), 12.0)
-        self._save_close(self.service._normalize_symbol("000001.SZ"), date(2026, 1, 3), 9.0)
+        self._save_close(self.service.normalize_symbol("SH600519"), date(2026, 1, 3), 12.0)
+        self._save_close(self.service.normalize_symbol("000001.SZ"), date(2026, 1, 3), 9.0)
 
         snapshot = self.service.get_portfolio_snapshot(account_id=aid, as_of=date(2026, 1, 3), cost_method="fifo")
         positions = {item["symbol"]: item for item in snapshot["accounts"][0]["positions"]}

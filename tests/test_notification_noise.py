@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from src.notification_noise import (
+from src.application.notification.noise import (
     evaluate_notification_noise,
     record_notification_noise,
     release_notification_noise,

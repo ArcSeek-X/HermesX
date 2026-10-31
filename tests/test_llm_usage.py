@@ -30,7 +30,7 @@ except ModuleNotFoundError:
     ensure_litellm_stub()
     from litellm.types.utils import Usage
 
-from src.llm.usage import (
+from src.infrastructure.generation.usage import (
     attach_legacy_message_stability_audit,
     attach_message_hmacs,
     build_message_hmacs,
@@ -40,13 +40,9 @@ from src.llm.usage import (
     should_persist_usage_telemetry,
     _reset_usage_hmac_secret_cache_for_tests,
 )
-from src.llm.provider_cache import filter_prompt_cache_telemetry
-from src.storage import (
-    DatabaseManager,
-    LLMUsage,
-    persist_llm_usage,
-    _LLM_USAGE_TELEMETRY_COLUMN_SQL,
-)
+from src.infrastructure.generation.provider_cache import filter_prompt_cache_telemetry
+from src.storage import DatabaseManager, persist_llm_usage
+from src.infrastructure.persistence.models.agent import LLMUsage, _LLM_USAGE_TELEMETRY_COLUMN_SQL
 
 
 def _fresh_db() -> DatabaseManager:
@@ -1928,7 +1924,7 @@ class TestLLMUsageMigration(unittest.TestCase):
                 Connection,
                 "exec_driver_sql",
                 new=flaky_exec_driver_sql,
-            ), patch("src.storage.time.sleep") as sleep_mock:
+            ), patch("src.infrastructure.persistence.session.time.sleep") as sleep_mock:
                 DatabaseManager(db_url=f"sqlite:///{db_path}")
 
             self.assertTrue(lock_fired["value"])

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.services.history_service import HistoryService
+from src.application.history.read_model import HistoryService
 
 
 class HistoryNewsFallbackTestCase(unittest.TestCase):
@@ -39,9 +39,9 @@ class HistoryNewsFallbackTestCase(unittest.TestCase):
         mock_db.get_analysis_history.return_value = [analysis]
         mock_db.get_recent_news.return_value = candidates
 
-        svc = HistoryService(db_manager=mock_db)
+        svc = HistoryService(history_repo=mock_db)
         fake_cfg = SimpleNamespace(news_max_age_days=30, news_strategy_profile="short")
-        with patch("src.services.history_service.get_config", return_value=fake_cfg):
+        with patch("src.application.history.read_model.get_config", return_value=fake_cfg):
             result = svc._fallback_news_by_analysis_context("q-1", limit=20)
 
         self.assertEqual([item.title for item in result], ["fresh"])
@@ -67,9 +67,9 @@ class HistoryNewsFallbackTestCase(unittest.TestCase):
         mock_db.get_analysis_history.return_value = [analysis]
         mock_db.get_recent_news.return_value = candidates
 
-        svc = HistoryService(db_manager=mock_db)
+        svc = HistoryService(history_repo=mock_db)
         fake_cfg = SimpleNamespace(news_max_age_days=30, news_strategy_profile="short")
-        with patch("src.services.history_service.get_config", return_value=fake_cfg):
+        with patch("src.application.history.read_model.get_config", return_value=fake_cfg):
             result = svc._fallback_news_by_analysis_context("q-1", limit=20)
 
         self.assertEqual([item.title for item in result], ["valid_near_analysis_date"])

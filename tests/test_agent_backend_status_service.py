@@ -15,7 +15,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.services.agent_backend_status_service import AgentBackendStatusService, _run_codex_probe
+from src.application.runtime.agent_backend_status import AgentBackendStatusService, _run_codex_probe
 
 
 _PROTOCOL_SCHEMAS = {
@@ -46,7 +46,7 @@ def _write_protocol_schemas(schema_dir: Path, *, missing: str | None = None) -> 
 
 def _install_successful_codex_probe(monkeypatch, *, version: str = "codex-cli test\n") -> list[list[str]]:
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: ["/usr/local/bin/codex", "app-server", "--stdio"],
     )
     calls: list[list[str]] = []
@@ -57,7 +57,7 @@ def _install_successful_codex_probe(monkeypatch, *, version: str = "codex-cli te
             _write_protocol_schemas(Path(argv[argv.index("--out") + 1]))
         return SimpleNamespace(returncode=0, stdout=version)
 
-    monkeypatch.setattr("src.services.agent_backend_status_service._run_codex_probe", fake_run)
+    monkeypatch.setattr("src.application.runtime.agent_backend_status._run_codex_probe", fake_run)
     return calls
 
 
@@ -95,7 +95,7 @@ def test_litellm_status_uses_unsaved_model_draft() -> None:
 
 def test_codex_multi_is_rejected_without_command_probe(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: (_ for _ in ()).throw(AssertionError("command probe must not run")),
     )
     payload = AgentBackendStatusService(
@@ -108,7 +108,7 @@ def test_codex_multi_is_rejected_without_command_probe(monkeypatch) -> None:
 
 def test_explicit_agent_mode_false_remains_a_kill_switch(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: (_ for _ in ()).throw(AssertionError("command probe must not run")),
     )
     payload = AgentBackendStatusService(
@@ -124,9 +124,9 @@ def test_explicit_agent_mode_false_remains_a_kill_switch(monkeypatch) -> None:
 
 
 def test_native_windows_is_rejected_before_command_probe(monkeypatch) -> None:
-    monkeypatch.setattr("src.services.agent_backend_status_service.is_native_windows", lambda: True)
+    monkeypatch.setattr("src.application.runtime.agent_backend_status.is_native_windows", lambda: True)
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: (_ for _ in ()).throw(AssertionError("command probe must not run")),
     )
 
@@ -185,7 +185,7 @@ def test_codex_status_rejects_each_missing_required_protocol_capability(
     missing: str,
 ) -> None:
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: ["codex", "app-server", "--stdio"],
     )
 
@@ -194,7 +194,7 @@ def test_codex_status_rejects_each_missing_required_protocol_capability(
             _write_protocol_schemas(Path(argv[argv.index("--out") + 1]), missing=missing)
         return SimpleNamespace(returncode=0, stdout="codex-cli test\n")
 
-    monkeypatch.setattr("src.services.agent_backend_status_service._run_codex_probe", fake_run)
+    monkeypatch.setattr("src.application.runtime.agent_backend_status._run_codex_probe", fake_run)
     payload = AgentBackendStatusService(
         effective_map={"AGENT_BACKEND": "codex_app_server", "AGENT_ARCH": "single"}
     ).get_status()
@@ -217,7 +217,7 @@ def test_codex_status_treats_version_as_optional_display_data(monkeypatch) -> No
 
 def test_codex_status_does_not_fail_when_optional_version_probe_times_out(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.services.agent_backend_status_service.resolve_command",
+        "src.application.runtime.agent_backend_status.resolve_command",
         lambda: ["/usr/local/bin/codex", "app-server", "--stdio"],
     )
 
@@ -227,7 +227,7 @@ def test_codex_status_does_not_fail_when_optional_version_probe_times_out(monkey
             return SimpleNamespace(returncode=0, stdout="")
         raise subprocess.TimeoutExpired(argv, 5)
 
-    monkeypatch.setattr("src.services.agent_backend_status_service._run_codex_probe", fake_run)
+    monkeypatch.setattr("src.application.runtime.agent_backend_status._run_codex_probe", fake_run)
 
     payload = AgentBackendStatusService(
         effective_map={"AGENT_BACKEND": "codex_app_server", "AGENT_ARCH": "single"}

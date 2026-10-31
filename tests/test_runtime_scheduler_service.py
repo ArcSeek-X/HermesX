@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from src.services.runtime_scheduler import (
+from src.application.runtime.runtime_scheduler import (
     CLI_SCHEDULER_OWNER_ENV,
     RUNTIME_SCHEDULER_ARGS_ENV,
     RUNTIME_SCHEDULER_FORCE_ENABLED_ENV,
@@ -209,7 +209,7 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         service._reload_config = lambda: config
 
         with patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _SynchronousThread,
         ):
             result = service.run_now()
@@ -282,7 +282,7 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         service._reload_config = lambda: config
 
         with patch.dict(sys.modules, {"schedule": fake_schedule}), patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _NoopThread,
         ):
             service.reconcile_from_config()
@@ -318,7 +318,7 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         service._reload_config = lambda: config
 
         with patch.dict(sys.modules, {"schedule": fake_schedule}), patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _NoopThread,
         ):
             service.reconcile_from_config(run_immediately=True)
@@ -388,12 +388,12 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         service._reload_config = lambda: config
 
         with patch(
-            "src.services.runtime_scheduler.Scheduler",
+            "src.application.runtime.runtime_scheduler.Scheduler",
             _FakeScheduler,
         ), patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _NoopThread,
-        ), patch("src.services.alert_worker.AlertWorker", return_value=fake_worker):
+        ), patch("src.bootstrap.alert.build_alert_worker", return_value=fake_worker):
             service.start()
 
         scheduler = service._scheduler
@@ -469,12 +469,12 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         service._reload_config = lambda: config
 
         with patch(
-            "src.services.runtime_scheduler.Scheduler",
+            "src.application.runtime.runtime_scheduler.Scheduler",
             _FakeScheduler,
         ), patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _NoopThread,
-        ), patch("src.services.alert_worker.AlertWorker", return_value=fake_worker) as worker_cls:
+        ), patch("src.bootstrap.alert.build_alert_worker", return_value=fake_worker) as worker_cls:
             service.reconcile_from_config()
             config.schedule_times = ["19:00"]
             config.agent_event_monitor_interval_minutes = 11
@@ -508,7 +508,7 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         )
 
         with patch.dict(sys.modules, {"schedule": fake_schedule}), patch(
-            "src.services.runtime_scheduler.threading.Thread",
+            "src.application.runtime.runtime_scheduler.threading.Thread",
             _NoopThread,
         ):
             service.reconcile_from_config()
@@ -563,10 +563,10 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch(
             "src.config.get_config",
             return_value=SimpleNamespace(schedule_run_immediately=True),
-        ), patch("api.app.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
-            "api.app.SystemConfigService",
+        ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
+            "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("api.app._schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -610,10 +610,10 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
                 RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV: "true",
             },
             clear=False,
-        ), patch("api.app.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
-            "api.app.SystemConfigService",
+        ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
+            "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("api.app._schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -659,10 +659,10 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch(
             "src.config.get_config",
             return_value=SimpleNamespace(schedule_run_immediately=True),
-        ), patch("api.app.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
-            "api.app.SystemConfigService",
+        ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
+            "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("api.app._schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -715,10 +715,10 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch(
             "src.config.get_config",
             return_value=SimpleNamespace(schedule_run_immediately=True),
-        ), patch("api.app.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
-            "api.app.SystemConfigService",
+        ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
+            "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("api.app._schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -755,10 +755,10 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir, patch.dict(os.environ, {}, clear=False), patch(
             "src.config.get_config",
             return_value=SimpleNamespace(schedule_run_immediately=True),
-        ), patch("api.app.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
-            "api.app.SystemConfigService",
+        ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
+            "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("api.app._schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
             os.environ.pop(CLI_SCHEDULER_OWNER_ENV, None)
             os.environ.pop(RUNTIME_SCHEDULER_FORCE_ENABLED_ENV, None)
             os.environ.pop(RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV, None)

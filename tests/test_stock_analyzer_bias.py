@@ -6,9 +6,8 @@ Unit tests for StockTrendAnalyzer._generate_signal bias and strong-trend relief 
 
 import math
 import unittest
-from unittest.mock import patch, MagicMock
 
-from src.stock_analyzer import (
+from src.domain.analysis.stock_analyzer import (
     BuySignal,
     StockTrendAnalyzer,
     TrendAnalysisResult,
@@ -17,7 +16,7 @@ from src.stock_analyzer import (
     MACDStatus,
     RSIStatus,
 )
-from src.schemas.decision_scale import action_for_score, decision_type_for_score, signal_key_for_score
+from src.domain.decision.scale import action_for_score, decision_type_for_score, signal_key_for_score
 
 
 def _make_result(
@@ -59,7 +58,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
     """Tests for bias_ma5 and strong-trend relief in _generate_signal."""
 
     def setUp(self) -> None:
-        self.analyzer = StockTrendAnalyzer()
+        # 阈值由构造参数注入（原实现读取 get_config().bias_threshold）
+        self.analyzer = StockTrendAnalyzer(bias_threshold=5.0)
 
     def _assert_contains(self, items: list, substring: str) -> None:
         """Assert at least one item contains the substring."""
@@ -75,10 +75,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
             msg=f"Did not expect substring '{substring}' in {items}",
         )
 
-    @patch("src.stock_analyzer.get_config")
-    def test_bias_nan_defense(self, mock_get_config: MagicMock) -> None:
+    def test_bias_nan_defense(self) -> None:
         """bias_ma5=NaN should be treated as 0.0 without exception."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=float("nan"),
@@ -87,10 +85,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.assertIsInstance(result.signal_score, (int, float))
         self.assertFalse(math.isnan(result.signal_score))
 
-    @patch("src.stock_analyzer.get_config")
-    def test_bias_negative_pullback(self, mock_get_config: MagicMock) -> None:
+    def test_bias_negative_pullback(self) -> None:
         """bias=-2% should yield '回踩买点'."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=-2.0,
@@ -98,10 +94,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.analyzer._generate_signal(result)
         self._assert_contains(result.signal_reasons, "回踩买点")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_bias_close_to_ma5(self, mock_get_config: MagicMock) -> None:
+    def test_bias_close_to_ma5(self) -> None:
         """bias=1.5% should yield '介入好时机'."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=1.5,
@@ -109,10 +103,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.analyzer._generate_signal(result)
         self._assert_contains(result.signal_reasons, "介入好时机")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_bias_slightly_high(self, mock_get_config: MagicMock) -> None:
+    def test_bias_slightly_high(self) -> None:
         """bias=4% (< base_threshold=5%) should yield '可小仓介入'."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=4.0,
@@ -120,10 +112,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.analyzer._generate_signal(result)
         self._assert_contains(result.signal_reasons, "可小仓介入")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_strong_trend_relaxed_threshold(self, mock_get_config: MagicMock) -> None:
+    def test_strong_trend_relaxed_threshold(self) -> None:
         """STRONG_BULL + trend_strength=75 + bias=6% -> '可轻仓追踪' (effective=7.5%)."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.STRONG_BULL,
             trend_strength=75.0,
@@ -133,10 +123,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self._assert_contains(result.signal_reasons, "可轻仓追踪")
         self._assert_not_contains(result.risk_factors, "严禁追高")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_non_strong_trend_strict_threshold(self, mock_get_config: MagicMock) -> None:
+    def test_non_strong_trend_strict_threshold(self) -> None:
         """BULL + bias=6% -> '严禁追高!'."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=6.0,
@@ -144,10 +132,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.analyzer._generate_signal(result)
         self._assert_contains(result.risk_factors, "严禁追高")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_strong_trend_exceed_effective(self, mock_get_config: MagicMock) -> None:
+    def test_strong_trend_exceed_effective(self) -> None:
         """STRONG_BULL + trend_strength=80 + bias=10% -> '严禁追高!' (exceeds 7.5%)."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.STRONG_BULL,
             trend_strength=80.0,
@@ -156,10 +142,8 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         self.analyzer._generate_signal(result)
         self._assert_contains(result.risk_factors, "严禁追高")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_boundary_at_base_threshold(self, mock_get_config: MagicMock) -> None:
+    def test_boundary_at_base_threshold(self) -> None:
         """bias=5.0% (exact base_threshold) -> '可小仓介入' (bias < base_threshold is False)."""
-        mock_get_config.return_value.bias_threshold = 5.0
         result = _make_result(
             trend_status=TrendStatus.BULL,
             bias_ma5=5.0,
@@ -181,9 +165,7 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
         # Because 5.0 is not < 5.0, not > 5.0 when effective=base=5. So we hit the else.
         self._assert_contains(result.risk_factors, "严禁追高")
 
-    @patch("src.stock_analyzer.get_config")
-    def test_signal_thresholds_follow_canonical_score_scale(self, mock_get_config: MagicMock) -> None:
-        mock_get_config.return_value.bias_threshold = 5.0
+    def test_signal_thresholds_follow_canonical_score_scale(self) -> None:
         cases = [
             (
                 _make_result(
@@ -317,9 +299,7 @@ class StockAnalyzerBiasTestCase(unittest.TestCase):
             self.assertEqual(decision_type_for_score(result.signal_score), expected_scale_decision_type)
             self.assertEqual(result.buy_signal, expected_signal)
 
-    @patch("src.stock_analyzer.get_config")
-    def test_non_bull_high_score_falls_back_to_wait(self, mock_get_config: MagicMock) -> None:
-        mock_get_config.return_value.bias_threshold = 5.0
+    def test_non_bull_high_score_falls_back_to_wait(self) -> None:
         result = _make_result(
             trend_status=TrendStatus.WEAK_BEAR,
             bias_ma5=-1.5,

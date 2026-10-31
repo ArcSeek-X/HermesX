@@ -18,7 +18,8 @@ except ModuleNotFoundError:
 
 from bot.commands.base import BotCommand
 from bot.dispatcher import CommandDispatcher
-from bot.models import BotMessage, BotResponse, ChatType
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
 
 
 class DummyCommand(BotCommand):
@@ -105,7 +106,7 @@ class TestCommandDispatcherAsync(unittest.IsolatedAsyncioTestCase):
             "bot.dispatcher.asyncio.to_thread",
             new=AsyncMock(side_effect=lambda func, *args, **kwargs: func(*args, **kwargs)),
         ) as to_thread:
-            with patch("src.agent.llm_adapter.LLMToolAdapter") as adapter_cls:
+            with patch("src.infrastructure.agent_runtime.llm_adapter.LLMToolAdapter") as adapter_cls:
                 adapter = MagicMock()
                 adapter.call_text.return_value = fake_response
                 adapter_cls.return_value = adapter
@@ -156,8 +157,8 @@ class TestCommandDispatcherAsync(unittest.IsolatedAsyncioTestCase):
 
         with patch("src.config.get_config", return_value=config):
             with patch(
-                "src.services.name_to_code_resolver._get_akshare_name_to_code"
-            ) as mock_akshare:
+                "src.application.quote.name_to_code_resolver._search_remote_name_to_code"
+            ) as mock_remote:
                 with patch.object(
                     dispatcher,
                     "_parse_intent_via_llm",
@@ -172,7 +173,7 @@ class TestCommandDispatcherAsync(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.text, "ask-ok")
         ask_command.execute_async.assert_awaited_once()
-        mock_akshare.assert_not_called()
+        mock_remote.assert_not_called()
         _, args = ask_command.execute_async.await_args.args
         self.assertEqual(args, ["600519"])
 
@@ -246,12 +247,11 @@ class TestChatCommandCompatibility(unittest.TestCase):
         config = SimpleNamespace(agent_mode=True)
         executor = MagicMock()
         executor.chat.return_value = SimpleNamespace(success=True, content="ok", error=None)
-        db = MagicMock()
-        db.conversation_session_exists.side_effect = lambda session_id: session_id == "feishu_u1"
 
         with patch("bot.commands.chat.get_config", return_value=config), \
-             patch("src.storage.get_db", return_value=db), \
-             patch("src.agent.factory.build_agent_executor", return_value=executor):
+             patch("bot.commands.chat.build_agent_conversation_service") as build_service, \
+             patch("src.bootstrap.agent.build_agent_executor", return_value=executor):
+            build_service.return_value.session_exists.side_effect = lambda session_id: session_id == "feishu_u1"
             response = command.execute(_make_message("/chat hello"), ["hello"])
 
         self.assertEqual(response.text, "ok")
@@ -265,15 +265,14 @@ class TestChatCommandCompatibility(unittest.TestCase):
         config = SimpleNamespace(agent_mode=True)
         executor = MagicMock()
         executor.chat.return_value = SimpleNamespace(success=True, content="ok", error=None)
-        db = MagicMock()
-        db.conversation_session_exists.side_effect = lambda session_id: session_id == "feishu_u1"
         message = _make_message("/chat hello")
         message.chat_type = ChatType.GROUP
         message.chat_id = "group-1"
 
         with patch("bot.commands.chat.get_config", return_value=config), \
-             patch("src.storage.get_db", return_value=db), \
-             patch("src.agent.factory.build_agent_executor", return_value=executor):
+             patch("bot.commands.chat.build_agent_conversation_service") as build_service, \
+             patch("src.bootstrap.agent.build_agent_executor", return_value=executor):
+            build_service.return_value.session_exists.return_value = True
             response = command.execute(message, ["hello"])
 
         self.assertEqual(response.text, "ok")
@@ -286,17 +285,19 @@ class TestHistoryCommandCompatibility(unittest.TestCase):
         from bot.commands.history import HistoryCommand
 
         command = HistoryCommand()
-        db = MagicMock()
-        db.delete_conversation_session.side_effect = lambda session_id: 1 if session_id == "feishu_u1:group-1:chat" else 0
         message = _make_message("/history clear")
         message.chat_type = ChatType.GROUP
         message.chat_id = "group-1"
 
-        with patch("src.storage.get_db", return_value=db):
+        with patch("bot.commands.history.build_agent_conversation_service") as build_service:
+            service = build_service.return_value
+            service.delete_session.side_effect = (
+                lambda session_id: 1 if session_id == "feishu_u1:group-1:chat" else 0
+            )
             response = command.execute(message, ["clear"])
 
         self.assertIn("1 条消息", response.text)
-        db.delete_conversation_session.assert_called_once_with("feishu_u1:group-1:chat")
+        service.delete_session.assert_called_once_with("feishu_u1:group-1:chat")
 
 
 class TestDispatcherBaseException(unittest.TestCase):

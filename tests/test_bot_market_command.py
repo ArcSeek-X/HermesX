@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     ensure_litellm_stub()
 
 from bot.commands.market import MarketCommand
-from bot.models import BotMessage, ChatType
+from src.domain.notification.bot_message import BotMessage, ChatType
 
 
 def _make_message() -> BotMessage:
@@ -73,7 +73,7 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
         trading_calendar_module = MagicMock()
         trading_calendar_module.get_open_markets_today.return_value = open_markets
         # Re-export the real compute_effective_region semantics
-        from src.core.trading_calendar import compute_effective_region
+        from src.domain.market.trading_calendar import compute_effective_region
         trading_calendar_module.compute_effective_region.side_effect = compute_effective_region
 
         patches = [
@@ -81,12 +81,12 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
                 sys.modules,
                 {
                     "src.config": config_module,
-                    "src.notification": notification_module,
-                    "src.core.market_review": market_review_module,
-                    "src.core.market_review_runtime": runtime_module,
-                    "src.search_service": search_module,
-                    "src.analyzer": analyzer_module,
-                    "src.core.trading_calendar": trading_calendar_module,
+                    "src.application.notification.notification": notification_module,
+                    "src.application.market.market_review": market_review_module,
+                    "src.application.market.market_review_runtime": runtime_module,
+                    "src.application.intelligence.search_service": search_module,
+                    "src.application.analysis.analyzer": analyzer_module,
+                    "src.domain.market.trading_calendar": trading_calendar_module,
                 },
             )
         ]

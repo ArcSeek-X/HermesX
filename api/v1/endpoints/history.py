@@ -10,11 +10,11 @@
 """
 
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Depends, Body
 
-from api.deps import get_database_manager
+from api.deps import get_history_query_service
 from api.v1.schemas.history import (
     HistoryListResponse,
     HistoryItem,
@@ -33,17 +33,19 @@ from api.v1.schemas.history import (
     StockBarResponse,
 )
 from api.v1.schemas.common import ErrorResponse
-from api.v1.schemas.run_flow import RunFlowSnapshot
-from src.storage import DatabaseManager
-from src.report_language import (
+from src.domain.analysis.flow_snapshot import RunFlowSnapshot
+from src.application.history import (
+    HistoryMarkdownGenerationError,
+    HistoryQueryService,
+    HistoryValidationError,
+)
+from src.domain.shared.report_language import (
     get_sentiment_label,
     get_localized_stock_name,
     localize_operation_advice,
     localize_trend_prediction,
     normalize_report_language,
 )
-from src.services.history_service import HistoryService, MarkdownReportGenerationError
-from src.schemas.decision_action import build_action_fields
 from src.utils.data_processing import (
     normalize_model_used,
     extract_fundamental_detail_fields,
@@ -51,90 +53,15 @@ from src.utils.data_processing import (
     extract_market_structure_detail_field,
     extract_realtime_detail_fields,
 )
-from src.analysis_context_pack_overview import (
+from src.application.analysis.context_pack_overview import (
     extract_analysis_context_pack_overview,
     sanitize_context_snapshot_for_api,
 )
-from src.market_phase_summary import extract_market_phase_summary
+from src.application.market.phase_summary import extract_market_phase_summary
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-_DELETE_BY_CODE_BATCH_SIZE = 10_000
-
-
-def _normalize_code_for_grouping(code: str) -> str:
-    """Normalize stock code for deduplication grouping.
-
-    Delegates to data_provider.base.normalize_stock_code which handles
-    SH600519, 600519.SH, HK00700, 00700.HK, BJ920748, etc.
-    """
-    from data_provider.base import normalize_stock_code
-    return normalize_stock_code(code or "")
-
-
-def _raw_result_value(raw_result: Any, key: str) -> Any:
-    if not isinstance(raw_result, dict):
-        return None
-
-    value = raw_result.get(key)
-    if value is not None and value != "":
-        return value
-
-    for container_key in ("summary", "dashboard"):
-        container = raw_result.get(container_key)
-        if isinstance(container, dict):
-            nested_value = container.get(key)
-            if nested_value is not None and nested_value != "":
-                return nested_value
-
-    return None
-
-
-def _coalesce_text(*values: Any) -> Optional[str]:
-    for value in values:
-        if value is None:
-            continue
-        text = str(value).strip()
-        if text:
-            return text
-    return None
-
-
-def _coalesce_int(*values: Any) -> Optional[int]:
-    for value in values:
-        if value is None or isinstance(value, bool):
-            continue
-        if isinstance(value, str) and not value.strip():
-            continue
-        try:
-            return int(float(value))
-        except (TypeError, ValueError):
-            continue
-    return None
-
-
-def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
-    if not isinstance(raw_result, dict):
-        return None
-    for reason in (
-        raw_result.get("guardrail_reason"),
-        raw_result.get("downgrade_reason"),
-        raw_result.get("decision_score_guardrail_reason"),
-    ):
-        if reason is not None:
-            text = str(reason).strip()
-            if text:
-                return text
-
-    metadata = raw_result.get("metadata")
-    if isinstance(metadata, dict):
-        metadata_reason = metadata.get("guardrail_reason") or metadata.get("downgrade_reason")
-        if metadata_reason is not None:
-            text = str(metadata_reason).strip()
-            if text:
-                return text
-    return None
 
 
 @router.get(
@@ -154,7 +81,7 @@ def get_history_list(
     end_date: Optional[str] = Query(None, description="结束日期 (YYYY-MM-DD)"),
     page: int = Query(1, ge=1, description="页码（从 1 开始）"),
     limit: int = Query(20, ge=1, le=100, description="每页数量"),
-    db_manager: DatabaseManager = Depends(get_database_manager)
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> HistoryListResponse:
     """
     获取历史分析列表
@@ -168,16 +95,14 @@ def get_history_list(
         end_date: 结束日期
         page: 页码
         limit: 每页数量
-        db_manager: 数据库管理器依赖
+        service: 分析历史用例
         
     Returns:
         HistoryListResponse: 历史记录列表
     """
     try:
-        service = HistoryService(db_manager)
-        
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
-        result = service.get_history_list(
+        result = service.list_records(
             stock_code=stock_code,
             report_type=report_type,
             start_date=start_date,
@@ -244,37 +169,15 @@ def get_history_list(
 )
 def delete_history_by_code(
     stock_code: str,
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> DeleteHistoryResponse:
     try:
-        candidates = HistoryService._history_code_filter_candidates(stock_code)
-        if not candidates:
-            raise HTTPException(
-                status_code=400,
-                detail={"error": "invalid_request", "message": "stock_code 不能为空"},
-            )
-
-        deleted = 0
-        while True:
-            records, _ = db_manager.get_analysis_history_paginated(
-                code=candidates,
-                limit=_DELETE_BY_CODE_BATCH_SIZE,
-            )
-            record_ids = [r.id for r in records if r.id is not None]
-            if not record_ids:
-                break
-
-            batch_deleted = db_manager.delete_analysis_history_records(record_ids)
-            if batch_deleted == 0:
-                raise RuntimeError("history deletion made no progress")
-            deleted += batch_deleted
-
-            if len(records) < _DELETE_BY_CODE_BATCH_SIZE:
-                break
-
-        return DeleteHistoryResponse(deleted=deleted)
-    except HTTPException:
-        raise
+        return DeleteHistoryResponse(deleted=service.delete_by_code(stock_code))
+    except HistoryValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": e.error_code, "message": e.message},
+        )
     except Exception as e:
         logger.error(f"按股票代码删除历史记录失败: {e}", exc_info=True)
         raise HTTPException(
@@ -296,7 +199,7 @@ def delete_history_by_code(
 )
 def delete_history_records(
     request: DeleteHistoryRequest = Body(...),
-    db_manager: DatabaseManager = Depends(get_database_manager)
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> DeleteHistoryResponse:
     """
     按主键 ID 批量删除历史分析记录。
@@ -312,11 +215,8 @@ def delete_history_records(
         )
 
     try:
-        service = HistoryService(db_manager)
-        deleted = service.delete_history_records(record_ids)
+        deleted = service.delete_records(record_ids)
         return DeleteHistoryResponse(deleted=deleted)
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"删除历史记录失败: {e}", exc_info=True)
         raise HTTPException(
@@ -342,84 +242,17 @@ def get_stock_bar(
     start_date: Optional[str] = Query(None, description="开始日期 (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="结束日期 (YYYY-MM-DD)"),
     limit: int = Query(200, ge=1, le=500, description="最大返回数量"),
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> StockBarResponse:
     try:
-        from datetime import date as date_type
-        from src.utils.data_processing import parse_json_field
-
-        service = HistoryService(db_manager)
-        start = date_type.fromisoformat(start_date) if start_date else None
-        end = date_type.fromisoformat(end_date) if end_date else None
-
-        # Fetch more than limit to compensate for normalization dedup shrinkage
-        # (e.g. 002460 + 002460.SZ both initially counted but merged to one)
-        fetch_limit = min(limit * 3, 500)
-        records = db_manager.get_distinct_stocks_from_history(
-            start_date=start,
-            end_date=end,
-            limit=fetch_limit,
-        )
-
-        # Deduplicate by normalized code, keeping the record with highest id
-        seen: dict = {}
-        for record in records:
-            display_code = service._display_stock_code(record.code or "")
-            norm_code = _normalize_code_for_grouping(display_code)
-            if norm_code not in seen or record.id > seen[norm_code].id:
-                seen[norm_code] = record
-
-        items = []
-        for norm_code in seen:
-            record = seen[norm_code]
-            raw_result = parse_json_field(getattr(record, "raw_result", None))
-            model_used = raw_result.get("model_used") if isinstance(raw_result, dict) else None
-            sentiment_score = _coalesce_int(
-                record.sentiment_score,
-                _raw_result_value(raw_result, "sentiment_score"),
+        items = [
+            StockBarItem(**item)
+            for item in service.list_stock_bar(
+                start_date=start_date,
+                end_date=end_date,
+                limit=limit,
             )
-            operation_advice = _coalesce_text(
-                record.operation_advice,
-                _raw_result_value(raw_result, "operation_advice"),
-            )
-            action_fields = build_action_fields(
-                operation_advice=operation_advice,
-                explicit_action=_raw_result_value(raw_result, "action"),
-                report_type=record.report_type,
-                report_language=normalize_report_language(
-                    _raw_result_value(raw_result, "report_language")
-                ),
-                sentiment_score=sentiment_score,
-                guardrail_reason=_extract_guardrail_reason(raw_result),
-                align_with_score=True,
-            )
-
-            display_stock_code = service._display_stock_code(record.code)
-            analysis_count = db_manager.get_analysis_history_paginated(
-                code=HistoryService._history_code_filter_candidates(display_stock_code),
-                limit=1,
-            )[1]
-            items.append(
-                StockBarItem(
-                    id=record.id,
-                    stock_code=display_stock_code,
-                    stock_name=record.name,
-                    report_type=record.report_type,
-                    sentiment_score=sentiment_score,
-                    operation_advice=operation_advice,
-                    action=action_fields["action"],
-                    action_label=action_fields["action_label"],
-                    analysis_count=analysis_count,
-                    last_analysis_time=service._serialize_created_at(record.created_at),
-                    model_used=normalize_model_used(model_used),
-                    market_phase_summary=service._display_market_phase_summary(
-                        record.code,
-                        getattr(record, "context_snapshot", None),
-                    ),
-                )
-            )
-
-        items = items[:limit]
+        ]
         return StockBarResponse(total=len(items), items=items)
 
     except Exception as e:
@@ -446,7 +279,7 @@ def get_stock_bar(
 )
 def get_history_detail(
     record_id: str,
-    db_manager: DatabaseManager = Depends(get_database_manager)
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> AnalysisReport:
     """
     获取历史报告详情
@@ -456,7 +289,7 @@ def get_history_detail(
     
     Args:
         record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
-        db_manager: 数据库管理器依赖
+        service: 分析历史用例
         
     Returns:
         AnalysisReport: 完整分析报告
@@ -465,10 +298,8 @@ def get_history_detail(
         HTTPException: 404 - 报告不存在
     """
     try:
-        service = HistoryService(db_manager)
-        
         # Try integer ID first, fall back to query_id string lookup
-        result = service.resolve_and_get_detail(record_id)
+        result = service.get_detail(record_id)
         
         if result is None:
             raise HTTPException(
@@ -552,7 +383,7 @@ def get_history_detail(
             take_profit=result.get("take_profit")
         )
         
-        fallback_fundamental = db_manager.get_latest_fundamental_snapshot(
+        fallback_fundamental = service.get_latest_fundamental_snapshot(
             query_id=result.get("query_id", ""),
             code=result.get("storage_stock_code") or result.get("stock_code", ""),
         )
@@ -615,14 +446,13 @@ def get_history_detail(
 )
 def get_history_diagnostics(
     record_id: str,
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> RunDiagnosticSummaryResponse:
     """
     获取历史报告运行诊断摘要。
     """
     try:
-        service = HistoryService(db_manager)
-        summary = service.resolve_and_get_diagnostics(record_id)
+        summary = service.get_diagnostics(record_id)
         if summary is None:
             raise HTTPException(
                 status_code=404,
@@ -658,14 +488,13 @@ def get_history_diagnostics(
 )
 def get_history_run_flow(
     record_id: str,
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> RunFlowSnapshot:
     """
     获取历史报告运行流。
     """
     try:
-        service = HistoryService(db_manager)
-        snapshot = service.resolve_and_get_run_flow(record_id)
+        snapshot = service.get_run_flow(record_id)
         if snapshot is None:
             raise HTTPException(
                 status_code=404,
@@ -701,7 +530,7 @@ def get_history_run_flow(
 def get_history_news(
     record_id: str,
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
-    db_manager: DatabaseManager = Depends(get_database_manager)
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> NewsIntelResponse:
     """
     获取历史报告关联新闻
@@ -712,14 +541,13 @@ def get_history_news(
     Args:
         record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
         limit: 返回数量限制
-        db_manager: 数据库管理器依赖
+        service: 分析历史用例
 
     Returns:
         NewsIntelResponse: 新闻情报列表
     """
     try:
-        service = HistoryService(db_manager)
-        items = service.resolve_and_get_news(record_id=record_id, limit=limit)
+        items = service.get_news(record_id=record_id, limit=limit)
 
         response_items = [
             NewsIntelItem(
@@ -759,7 +587,7 @@ def get_history_news(
 )
 def get_history_markdown(
     record_id: str,
-    db_manager: DatabaseManager = Depends(get_database_manager)
+    service: HistoryQueryService = Depends(get_history_query_service),
 ) -> MarkdownReportResponse:
     """
     获取历史报告的 Markdown 格式内容
@@ -768,7 +596,7 @@ def get_history_markdown(
 
     Args:
         record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
-        db_manager: 数据库管理器依赖
+        service: 分析历史用例
 
     Returns:
         MarkdownReportResponse: Markdown 格式的完整报告
@@ -777,11 +605,9 @@ def get_history_markdown(
         HTTPException: 404 - 报告不存在
         HTTPException: 500 - 报告生成失败（服务器内部错误）
     """
-    service = HistoryService(db_manager)
-
     try:
-        markdown_content = service.get_markdown_report(record_id)
-    except MarkdownReportGenerationError as e:
+        markdown_content = service.get_markdown(record_id)
+    except HistoryMarkdownGenerationError as e:
         logger.error(f"Markdown report generation failed for {record_id}: {e.message}")
         raise HTTPException(
             status_code=500,

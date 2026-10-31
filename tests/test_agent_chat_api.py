@@ -299,7 +299,7 @@ def test_agent_models_do_not_fall_back_to_litellm_for_codex_or_invalid_backend()
 def test_agent_models_does_not_hide_unexpected_backend_resolution_errors() -> None:
     with patch("api.v1.endpoints.agent.get_config", return_value=_litellm_config()), \
          patch(
-             "src.agent.agent_backend.resolve_agent_backend_id",
+             "src.application.agent.agent_backend.resolve_agent_backend_id",
              side_effect=ValueError("programming error"),
          ), \
          pytest.raises(ValueError, match="programming error"):
@@ -545,9 +545,9 @@ def test_research_ignores_codex_chat_backend_and_keeps_litellm_route() -> None:
     research_agent.research.return_value = result
 
     with patch("api.v1.endpoints.agent.get_config", return_value=config), \
-         patch("src.agent.research.ResearchAgent", return_value=research_agent), \
-         patch("src.agent.factory.get_tool_registry", return_value=MagicMock()), \
-         patch("src.agent.llm_adapter.LLMToolAdapter", return_value=MagicMock()):
+         patch("src.application.agent.research.ResearchAgent", return_value=research_agent), \
+         patch("src.application.agent.factory.get_tool_registry", return_value=MagicMock()), \
+         patch("src.infrastructure.agent_runtime.llm_adapter.LLMToolAdapter", return_value=MagicMock()):
         response = asyncio.run(
             agent_endpoint.agent_research(agent_endpoint.ResearchRequest(question="why"))
         )

@@ -12,8 +12,15 @@ from datetime import date, datetime
 import pytest
 
 from src.config import Config
-from src.services.decision_signal_outcome_service import DecisionSignalOutcomeService
-from src.storage import DatabaseManager, DecisionSignalOutcomeRecord, DecisionSignalRecord, StockDaily
+from src.application.decision.decision_signal_outcome_service import DecisionSignalOutcomeService
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.decision import DecisionSignalOutcomeRecord, DecisionSignalRecord
+from src.infrastructure.persistence.models.market_data import StockDaily
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.quote import configure_stock_repository
+
+configure_decision_repositories()
+configure_stock_repository()
 
 
 @pytest.fixture()

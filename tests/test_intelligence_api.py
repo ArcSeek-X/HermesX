@@ -16,6 +16,7 @@ import requests
 from fastapi.testclient import TestClient
 
 from api.app import create_app
+from src.bootstrap.intelligence import configure_intelligence_repository
 from src.config import Config
 from src.storage import DatabaseManager
 
@@ -28,12 +29,19 @@ class IntelligenceApiTestCase(unittest.TestCase):
         os.environ["DATABASE_PATH"] = os.path.join(self._temp_dir.name, "api_intel.db")
         Config._instance = None
         DatabaseManager.reset_instance()
+        # TestClient 未进入 lifespan 时不会执行启动装配；本文件显式装配资讯仓储端口
+        # （bootstrap seam 幂等），否则接口会 fail-fast 报 "repository port is not configured"。
+        configure_intelligence_repository()
         self._dns_patcher = patch(
-            "src.services.intelligence_service.socket.getaddrinfo",
+            "src.application.intelligence.intelligence_service.socket.getaddrinfo",
             return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))],
         )
         self._dns_patcher.start()
         self.addCleanup(self._dns_patcher.stop)
+        # 与其余 API 测试一致：本文件验证接口契约，不依赖本地 .env 的 ADMIN_AUTH_ENABLED。
+        self._auth_patcher = patch("api.middlewares.auth.is_auth_enabled", return_value=False)
+        self._auth_patcher.start()
+        self.addCleanup(self._auth_patcher.stop)
         self.client = TestClient(create_app(static_dir=Path(self._temp_dir.name)))
 
     def tearDown(self) -> None:
@@ -66,7 +74,7 @@ class IntelligenceApiTestCase(unittest.TestCase):
         create_resp = self.client.post("/api/v1/intelligence/sources", json={"name": "api-feed", "url": "https://feeds.example.com/rss.xml", "source_type": "rss", "scope_type": "market", "market": "cn"})
         self.assertEqual(create_resp.status_code, 200)
         source_id = create_resp.json()["id"]
-        with patch("src.services.intelligence_service.requests.get", return_value=self._mock_response()):
+        with patch("src.application.intelligence.intelligence_service.requests.get", return_value=self._mock_response()):
             fetch_resp = self.client.post(f"/api/v1/intelligence/sources/{source_id}/fetch")
         self.assertEqual(fetch_resp.status_code, 200)
         self.assertEqual(fetch_resp.json()["saved_count"], 1)
@@ -124,7 +132,7 @@ class IntelligenceApiTestCase(unittest.TestCase):
         create_resp = self.client.post("/api/v1/intelligence/sources", json={"name": "api-feed", "url": "https://feeds.example.com/rss.xml", "source_type": "rss", "scope_type": "market", "market": "cn"})
         self.assertEqual(create_resp.status_code, 200)
         source_id = create_resp.json()["id"]
-        with patch("src.services.intelligence_service.IntelligenceService.fetch_source", side_effect=RuntimeError("token=secret api_key=abc12345")):
+        with patch("src.application.intelligence.intelligence_service.IntelligenceService.fetch_source", side_effect=RuntimeError("token=secret api_key=abc12345")):
             fetch_resp = self.client.post(f"/api/v1/intelligence/sources/{source_id}/fetch")
 
         self.assertEqual(fetch_resp.status_code, 500)
@@ -136,7 +144,7 @@ class IntelligenceApiTestCase(unittest.TestCase):
         create_resp = self.client.post("/api/v1/intelligence/sources", json={"name": "api-feed", "url": "https://feeds.example.com/rss.xml", "source_type": "rss", "scope_type": "market", "market": "cn"})
         self.assertEqual(create_resp.status_code, 200)
         source_id = create_resp.json()["id"]
-        with patch("src.services.intelligence_service.IntelligenceService.fetch_source", side_effect=RuntimeError("unexpected runtime assertion failure: pipeline context exhausted")):
+        with patch("src.application.intelligence.intelligence_service.IntelligenceService.fetch_source", side_effect=RuntimeError("unexpected runtime assertion failure: pipeline context exhausted")):
             fetch_resp = self.client.post(f"/api/v1/intelligence/sources/{source_id}/fetch")
 
         self.assertEqual(fetch_resp.status_code, 500)
@@ -173,7 +181,7 @@ class IntelligenceApiTestCase(unittest.TestCase):
             ("fetch", lambda: self.client.post(f"/api/v1/intelligence/sources/{source_id}/fetch")),
         ]
         with patch(
-            "src.services.intelligence_service.requests.get",
+            "src.application.intelligence.intelligence_service.requests.get",
             side_effect=lambda url, **_kwargs: self._mock_http_error_response(url),
         ):
             for endpoint, send_request in requests_to_check:
@@ -206,7 +214,7 @@ class IntelligenceApiTestCase(unittest.TestCase):
             ("fetch", lambda: self.client.post(f"/api/v1/intelligence/sources/{source_id}/fetch")),
         ]
         with patch(
-            "src.services.intelligence_service.requests.get",
+            "src.application.intelligence.intelligence_service.requests.get",
             side_effect=lambda url, **_kwargs: self._mock_http_error_response(url),
         ):
             for endpoint, send_request in requests_to_check:

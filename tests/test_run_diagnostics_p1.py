@@ -19,14 +19,14 @@ import pandas as pd
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from data_provider.base import BaseFetcher, DataFetcherManager
-from src.services.run_diagnostics import (
+from src.application.runtime.run_diagnostics import (
     RunDiagnosticContext,
     activate_run_diagnostic_context,
     current_diagnostic_snapshot,
     record_provider_run,
     reset_run_diagnostic_context,
 )
-from src.services.task_queue import AnalysisTaskQueue, TaskInfo, TaskStatus
+from src.application.runtime.task_queue import AnalysisTaskQueue, TaskInfo, TaskStatus
 
 
 class _FailingDailyFetcher(BaseFetcher):
@@ -236,7 +236,7 @@ class RunDiagnosticsP1TestCase(unittest.TestCase):
                 latency_ms=12,
                 record_count=3,
             )
-            from src.services.run_diagnostics import record_history_run, record_llm_run, record_notification_run
+            from src.application.runtime.run_diagnostics import record_history_run, record_llm_run, record_notification_run
 
             record_llm_run(success=True, model="deepseek-chat", duration_ms=34)
             record_history_run(report_saved=True, metadata_saved=True, analysis_history_id=7)

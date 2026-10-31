@@ -5,7 +5,7 @@
 --------
 本模块**只负责与华尔街见闻快讯接口的 HTTP 交互与原始响应解析**，不承载：
 
-- 落库与去重（由 ``src/services/intelligence_service.py`` 负责）
+- 落库与去重（由 ``src/application/intelligence/intelligence_service.py`` 负责）
 - SSRF / DNS 校验（由服务层注入安全的 ``request_get`` 回调来提供）
 - 数据源降级策略（官方源失败时降级到 NewsNow，由服务层编排）
 

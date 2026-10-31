@@ -16,21 +16,28 @@ import pytest
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError
 
-from src.agent.protocols import AgentContext, AgentOpinion
-from src.agent.runtime_facts import (
+from src.application.agent.protocols import AgentContext, AgentOpinion
+from src.application.agent.runtime_facts import (
     AgentRuntimeFacts,
     SkillOpinionFact,
     build_agent_runtime_facts,
 )
-from src.agent.skills.skill_agent import SkillAgent
+from src.application.agent.skills.skill_agent import SkillAgent
 from src.config import Config
-from src.core.pipeline import StockAnalysisPipeline
-from src.repositories import SkillOpinionSampleRepository
-from src.services.skill_opinion_sample_service import (
+from src.application.analysis.pipeline import StockAnalysisPipeline
+from src.infrastructure.persistence.repositories.skill_opinion_sample_repository import (
+    SkillOpinionSampleRepository,
+)
+from src.application.decision.skill_opinion_sample_service import (
     SKILL_OPINION_SAMPLE_SCHEMA_VERSION,
     SkillOpinionSampleService,
 )
-from src.storage import AnalysisHistory, DatabaseManager, SkillOpinionSampleRecord
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
+from src.infrastructure.persistence.models.decision import SkillOpinionSampleRecord
+from src.bootstrap.decision import configure_decision_repositories
+
+configure_decision_repositories()
 
 
 @pytest.fixture()
@@ -157,12 +164,12 @@ def test_service_retries_sqlite_locked_write_without_losing_samples(isolated_db)
     )
 
     with patch.object(
-        isolated_db,
-        "get_session",
+        isolated_db._session,
+        "create_session",
         side_effect=[first_session, second_session],
     ):
         with patch.object(first_session, "execute", side_effect=locked):
-            with patch("src.storage.time.sleep") as sleep:
+            with patch("src.infrastructure.persistence.session.time.sleep") as sleep:
                 created = service.persist(
                     analysis_history_id=history_id,
                     stock_code="600519",
@@ -192,12 +199,12 @@ def test_history_deletion_retries_sqlite_locked_write(isolated_db) -> None:
     )
 
     with patch.object(
-        isolated_db,
-        "get_session",
+        isolated_db._session,
+        "create_session",
         side_effect=[first_session, second_session],
     ):
         with patch.object(first_session, "execute", side_effect=locked):
-            with patch("src.storage.time.sleep") as sleep:
+            with patch("src.infrastructure.persistence.session.time.sleep") as sleep:
                 deleted = isolated_db.delete_analysis_history_records([history_id])
 
     assert deleted == 1
@@ -206,7 +213,7 @@ def test_history_deletion_retries_sqlite_locked_write(isolated_db) -> None:
 
 
 def test_sample_schema_is_idempotent_and_has_identity_constraints(isolated_db) -> None:
-    from src.storage import Base
+    from src.infrastructure.persistence.base import Base
 
     Base.metadata.create_all(isolated_db._engine)
     inspector = inspect(isolated_db._engine)
@@ -408,7 +415,7 @@ def test_runtime_facts_defensively_filter_clamped_invalid_skill_confidence(
 
 
 def test_runtime_facts_preserve_invalid_confidence_through_canonical_copy() -> None:
-    from src.agent.skills.engine import StrategyEngine
+    from src.application.agent.skills.engine import StrategyEngine
 
     partition = StrategyEngine().partition_only(
         [
@@ -448,7 +455,7 @@ def test_valid_skill_agent_confidence_persists_through_real_chain(isolated_db) -
 
 
 def test_pipeline_helper_is_noop_without_skill_opinions() -> None:
-    with patch("src.services.skill_opinion_sample_service.SkillOpinionSampleService") as service:
+    with patch("src.application.decision.skill_opinion_sample_service.SkillOpinionSampleService") as service:
         pipeline = object.__new__(StockAnalysisPipeline)
         pipeline.db = MagicMock()
         pipeline._persist_skill_opinion_samples_after_history_save(
@@ -467,7 +474,7 @@ def test_pipeline_helper_persists_quality_and_fails_open() -> None:
     service = MagicMock()
     service.persist.side_effect = RuntimeError("private database path")
     with patch(
-        "src.services.skill_opinion_sample_service.SkillOpinionSampleService",
+        "src.application.decision.skill_opinion_sample_service.SkillOpinionSampleService",
         return_value=service,
     ) as service_class:
         pipeline = object.__new__(StockAnalysisPipeline)
@@ -479,7 +486,12 @@ def test_pipeline_helper_persists_quality_and_fails_open() -> None:
             analysis_context_pack_overview={"data_quality": {"level": "limited"}},
         )
 
-    service_class.assert_called_once_with(db_manager=pipeline.db)
+    # W4.2：pipeline 的持久化改为端口注入后，样本服务改经决策层仓储工厂取得 repo，
+    # 不再把 pipeline 的持久化端口当作 ``db_manager`` 传入。
+    service_class.assert_called_once()
+    assert isinstance(
+        service_class.call_args.kwargs["repo"], SkillOpinionSampleRepository
+    )
     service.persist.assert_called_once_with(
         analysis_history_id=42,
         stock_code="600519",

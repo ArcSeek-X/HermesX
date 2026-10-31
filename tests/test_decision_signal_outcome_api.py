@@ -22,7 +22,8 @@ except ModuleNotFoundError:
 import src.auth as auth
 from api.app import create_app
 from src.config import Config
-from src.storage import DatabaseManager, StockDaily
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.market_data import StockDaily
 
 
 def _reset_auth_globals() -> None:

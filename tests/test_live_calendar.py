@@ -23,9 +23,17 @@ from data_provider.news.base import NewsRequest
 from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
 from data_provider.wallstreetcn_calendar_fetcher import CalendarEventEntry
 from src.config import Config
-from src.repositories import IntelligenceRepository
-from src.services.intelligence_service import IntelligenceService
+from src.infrastructure.persistence.repositories.intelligence_repository import (
+    IntelligenceRepository,
+)
+from src.application.intelligence.intelligence_service import IntelligenceService
 from src.storage import DatabaseManager
+
+# 资讯源/仓储端口装配（calendar 用例经 NewsSourcePort + IntelligenceRepositoryPort；seam 幂等，模块级一次即可）
+from src.bootstrap.intelligence import configure_intelligence_repository, configure_news_source
+
+configure_news_source()
+configure_intelligence_repository()
 
 _YEAR, _MONTH = 2026, 8
 # 月内一个确定时间点（UTC 秒级），保证落在 _month_utc_range(2026, 8) 闭区间内

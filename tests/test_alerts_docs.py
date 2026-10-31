@@ -3,15 +3,25 @@
 测试alerts文档相关功能测试
 """
 
+import re
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = PROJECT_ROOT / "documents" / "product" / "实时告警中心" / "alerts.md"
 
+# 文档正文用 `<a id="x"></a>标题` 承载目录内链（9508e62b 引入的锚点风格），
+# 断言按标题文本进行，故读取时先剥掉显式锚点；锚点本身由
+# `test_alerts_doc_toc_anchors_resolve` 单独校验。
+_ANCHOR_RE = re.compile(r'<a id="[^"]*"></a>')
+
+
+def _read_raw_doc() -> str:
+    return DOC_PATH.read_text(encoding="utf-8")
+
 
 def _read_doc() -> str:
-    return DOC_PATH.read_text(encoding="utf-8")
+    return _ANCHOR_RE.sub("", _read_raw_doc())
 
 
 def test_alerts_doc_exists_and_links_p0_scope() -> None:
@@ -68,8 +78,8 @@ def test_alerts_doc_covers_storage_evaluation_and_rollback() -> None:
     for token in (
         "## 存储方案评估",
         "src/storage.py",
-        "src/repositories/",
-        "src/services/",
+        "src/infrastructure/persistence/repositories/",
+        "src/application/",
         "data/stock_analysis.db",
         "幂等初始化",
         "回滚说明",
@@ -137,7 +147,7 @@ def test_alerts_doc_defines_p2_worker_scope() -> None:
 
     for token in (
         "## P2 告警评估 Worker",
-        "src/services/alert_worker.py",
+        "src/application/alert/worker.py",
         "agent_event_monitor",
         "持久化 active rules",
         "legacy JSON",
@@ -209,7 +219,7 @@ def test_alerts_doc_defines_p5_indicator_scope() -> None:
         "16:00",
         "日期不可判定都会保守丢弃",
         "legacy JSON 路径",
-        "不扩展 `src/agent/events.py`",
+        "不扩展 `src/application/alert/events.py`",
         "HTTP 400 + `validation_error`",
         "HTTP 400 + `unsupported_alert_type`",
         "不支持 MACD 柱体放大/收缩",
@@ -348,3 +358,18 @@ def test_changelog_unreleased_keeps_flat_entries() -> None:
     unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
 
     assert "\n### " not in unreleased
+
+
+def test_alerts_doc_toc_anchors_resolve() -> None:
+    """方案目录里的每个内链锚点都必须在正文中存在对应显式锚点。
+
+    标题文本已由各 phase 用例断言；本用例只负责锁住锚点风格本身，
+    避免后续把 `## <a id="x"></a>标题` 改成纯标题时目录内链静默失效。
+    """
+    raw = _read_raw_doc()
+    toc = raw.split("## 方案目录", 1)[1].split("\n本文档记录", 1)[0]
+    links = re.findall(r"\]\(#([^)]+)\)", toc)
+    anchors = set(re.findall(r'<a id="([^"]+)"></a>', raw))
+
+    assert links, "方案目录未解析到任何内链"
+    assert [link for link in links if link not in anchors] == []

@@ -18,14 +18,18 @@ if "newspaper" not in sys.modules:
     mock_np.Config = MagicMock()
     sys.modules["newspaper"] = mock_np
 
-from src.search_service import (
-    BaseSearchProvider,
+from src.application.intelligence.search_service import (
     SearchResponse,
     SearchResult,
     SearchService,
     get_search_service,
     reset_search_service,
 )
+from src.infrastructure.search import BaseSearchProvider
+from src.bootstrap.intelligence import configure_search
+
+# SA2-3b：Provider 已下沉 infrastructure，测试顶层显式装配 hook（沿用 analyzer 先例）。
+configure_search()
 
 
 class _ThreadUnsafeCycle:
@@ -258,7 +262,7 @@ class SearchServiceConcurrencyTestCase(unittest.TestCase):
         errors = []
         services = []
 
-        with patch("src.search_service.SearchService", side_effect=build_service) as mock_cls:
+        with patch("src.application.intelligence.search_service.SearchService", side_effect=build_service) as mock_cls:
             with patch("src.config.get_config", return_value=config):
                 def worker():
                     try:

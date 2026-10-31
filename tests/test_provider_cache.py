@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.llm.provider_cache import (
+from src.infrastructure.generation.provider_cache import (
     DeepSeekCaps,
     DirectiveSupport,
     ProviderCacheCaps,
@@ -28,7 +28,7 @@ from src.llm.provider_cache import (
     infer_provider_family,
     resolve_provider_cache_caps,
 )
-from src.llm.usage import build_domain_hmac
+from src.infrastructure.generation.usage import build_domain_hmac
 
 
 def _config(**kwargs):
@@ -126,7 +126,7 @@ def test_registry_honors_exact_and_prefix_model_patterns():
         model_pattern="openai/gpt-4*",
     )
 
-    with patch("src.llm.provider_cache.PROVIDER_CACHE_REGISTRY", (prefix_caps,)):
+    with patch("src.infrastructure.generation.provider_cache.PROVIDER_CACHE_REGISTRY", (prefix_caps,)):
         matched = resolve_provider_cache_caps(
             ProviderCacheRouteContext(
                 model="openai/gpt-4o",
@@ -223,7 +223,7 @@ def test_verified_openai_prompt_cache_key_uses_hmac_without_mutating_input(monke
     before = copy.deepcopy(original)
     caps = _verified_caps("openai", DirectiveSupport(prompt_cache_key=True))
 
-    with patch("src.llm.provider_cache.resolve_provider_cache_caps", return_value=caps):
+    with patch("src.infrastructure.generation.provider_cache.resolve_provider_cache_caps", return_value=caps):
         result = apply_prompt_cache_hints(
             original,
             ProviderCacheRouteContext(model="openai/gpt-4o", provider="openai"),
@@ -247,7 +247,7 @@ def test_anthropic_lowering_adds_cache_control_to_system_prefix_only():
     }
     caps = _verified_caps("anthropic", DirectiveSupport(block_cache_control=True))
 
-    with patch("src.llm.provider_cache.resolve_provider_cache_caps", return_value=caps):
+    with patch("src.infrastructure.generation.provider_cache.resolve_provider_cache_caps", return_value=caps):
         result = apply_prompt_cache_hints(
             original,
             ProviderCacheRouteContext(model="anthropic/claude-sonnet-4-6", provider="anthropic"),
@@ -273,7 +273,7 @@ def test_repeated_lowering_from_shared_input_does_not_cross_pollute_results():
     before = copy.deepcopy(original)
     caps = _verified_caps("anthropic", DirectiveSupport(block_cache_control=True))
 
-    with patch("src.llm.provider_cache.resolve_provider_cache_caps", return_value=caps):
+    with patch("src.infrastructure.generation.provider_cache.resolve_provider_cache_caps", return_value=caps):
         first = apply_prompt_cache_hints(
             original,
             ProviderCacheRouteContext(model="anthropic/claude-sonnet-4-6", provider="anthropic"),
@@ -434,7 +434,7 @@ def test_debug_diagnostics_do_not_include_raw_prompt_or_request_body(monkeypatch
     }
     caps = _verified_caps("openai", DirectiveSupport(prompt_cache_key=True))
 
-    with patch("src.llm.provider_cache.resolve_provider_cache_caps", return_value=caps):
+    with patch("src.infrastructure.generation.provider_cache.resolve_provider_cache_caps", return_value=caps):
         result = apply_prompt_cache_hints(
             original,
             ProviderCacheRouteContext(model="openai/gpt-4o", provider="openai"),

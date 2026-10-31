@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.formatters import (
+from src.domain.shared.text_chunking import (
     chunk_markdown_preserving_blocks,
     utf16_len,
     utf8_len,

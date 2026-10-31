@@ -3,7 +3,7 @@
 测试所属板块运行流向相关功能测试
 """
 
-from src.services.run_diagnostics import (
+from src.application.runtime.run_diagnostics import (
     activate_run_diagnostic_context,
     current_diagnostic_snapshot,
     reset_run_diagnostic_context,

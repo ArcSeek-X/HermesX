@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from api.v1.schemas.market_phase import MarketPhaseSummary
-from src.schemas.decision_action import DecisionAction
+from src.domain.decision.action import DecisionAction
 
 
 class BacktestRunRequest(BaseModel):

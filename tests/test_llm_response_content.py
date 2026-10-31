@@ -1,7 +1,7 @@
 # 本文件主要测试：测试llm响应content相关功能
 import pytest
 
-from src.llm.response_content import strip_leading_think_wrapper
+from src.domain.generation.response_content import strip_leading_think_wrapper
 
 
 @pytest.mark.parametrize(

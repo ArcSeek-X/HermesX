@@ -31,10 +31,10 @@ from scripts.codex_app_server_gate_a import (
     _harden_command_against_configured_mcp,
     _resolve_command,
 )
-from src.agent.tool_surface import ToolSurface
-from src.agent.codex_tool_process import CodexToolProcessRunner
-from src.agent.tools.execution import ToolAccessContext
-from src.agent.tools.registry import ToolDefinition, ToolParameter, ToolPolicy, ToolRegistry
+from src.infrastructure.agent_runtime.tool_surface import ToolSurface
+from src.infrastructure.agent_runtime.codex_tool_process import CodexToolProcessRunner
+from src.application.agent.tools.execution import ToolAccessContext
+from src.application.agent.tools.registry import ToolDefinition, ToolParameter, ToolPolicy, ToolRegistry
 
 
 _FAKE_APP_SERVER = r"""

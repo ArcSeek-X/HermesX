@@ -12,24 +12,26 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.llm.backend_registry import (  # noqa: E402
-    AGENT_CAPABLE_BACKEND_IDS,
-    GENERATION_ONLY_BACKEND_IDS,
-    LITELLM_BACKEND_ID,
-    LOCAL_CLI_GENERATION_BACKEND_IDS,
+from src.application.generation.catalog import (
     resolve_agent_generation_backend_id,
     resolve_generation_backend_id,
     resolve_generation_fallback_backend_id,
 )
-from src.llm.backend_factory import create_generation_backend  # noqa: E402
-from src.llm.generation_backend import (  # noqa: E402
+from src.domain.generation.backend_identity import (
+    AGENT_CAPABLE_BACKEND_IDS,
+    GENERATION_ONLY_BACKEND_IDS,
+    LITELLM_BACKEND_ID,
+    LOCAL_CLI_GENERATION_BACKEND_IDS,
+)
+from src.infrastructure.generation.backend_factory import create_generation_backend  # noqa: E402
+from src.application.generation.ports import (  # noqa: E402
     GenerationCapabilities,
     GenerationError,
     GenerationErrorCode,
     GenerationResult,
 )
-from src.llm.litellm_backend import LiteLLMGenerationBackend  # noqa: E402
-from src.llm.local_cli_backend import LocalCliGenerationBackend  # noqa: E402
+from src.infrastructure.generation.litellm_backend import LiteLLMGenerationBackend  # noqa: E402
+from src.infrastructure.generation.local_cli_backend import LocalCliGenerationBackend  # noqa: E402
 
 
 def _config(**overrides):
@@ -336,9 +338,9 @@ def test_explicit_local_agent_backends_resolve_to_unsupported_ids() -> None:
 def test_llm_tool_adapter_local_agent_backend_is_not_silent_litellm_fallback(
     agent_backend: str,
 ) -> None:
-    from src.agent.llm_adapter import LLMToolAdapter
+    from src.infrastructure.agent_runtime.llm_adapter import LLMToolAdapter
 
-    with patch("src.agent.llm_adapter.litellm.register_model", create=True):
+    with patch("src.infrastructure.agent_runtime.llm_adapter.litellm.register_model", create=True):
         adapter = LLMToolAdapter(_config(agent_generation_backend=agent_backend))
 
     assert adapter.is_available is False
@@ -352,7 +354,7 @@ def test_llm_tool_adapter_local_agent_backend_is_not_silent_litellm_fallback(
 def test_agent_auto_with_local_generation_backend_returns_unsupported_when_litellm_missing(
     generation_backend: str,
 ) -> None:
-    from src.agent.llm_adapter import LLMToolAdapter
+    from src.infrastructure.agent_runtime.llm_adapter import LLMToolAdapter
 
     config = _config(
         generation_backend=generation_backend,
@@ -363,7 +365,7 @@ def test_agent_auto_with_local_generation_backend_returns_unsupported_when_litel
         llm_model_list=[],
     )
 
-    with patch("src.agent.llm_adapter.litellm.register_model", create=True):
+    with patch("src.infrastructure.agent_runtime.llm_adapter.litellm.register_model", create=True):
         adapter = LLMToolAdapter(config)
 
     assert adapter.is_available is False

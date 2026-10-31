@@ -8,9 +8,9 @@ import threading
 import time
 import unittest
 
-from src.agent.protocols import AgentContext, AgentOpinion, StageResult, StageStatus
-from src.agent.skills.scheduler import AgentSkillScheduler
-from src.services.history_loader import (
+from src.application.agent.protocols import AgentContext, AgentOpinion, StageResult, StageStatus
+from src.application.agent.skills.scheduler import AgentSkillScheduler
+from src.application.history.loader import (
     get_frozen_target_date,
     reset_frozen_target_date,
     set_frozen_target_date,

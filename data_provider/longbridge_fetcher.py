@@ -178,7 +178,7 @@ def _longbridge_config_kwargs() -> Dict[str, Any]:
 
     if "language" in params:
         try:
-            from src.report_language import normalize_report_language
+            from src.domain.shared.report_language import normalize_report_language
 
             rl = normalize_report_language(os.getenv("REPORT_LANGUAGE"), default="zh")
             if rl == "zh":

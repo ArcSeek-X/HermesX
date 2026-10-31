@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from src.core.trading_calendar import build_market_phase_context
-from src.schemas.analysis_context_pack import (
+from src.domain.market.trading_calendar import build_market_phase_context
+from src.domain.analysis.context_pack import (
     PACK_VERSION,
     AnalysisContextBlock,
     AnalysisContextItem,

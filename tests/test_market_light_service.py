@@ -14,15 +14,19 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.config import Config
-from src.core.market_review import MARKET_REVIEW_HISTORY_CODE, MARKET_REVIEW_REPORT_TYPE
-from src.market_analyzer import MarketIndex, MarketOverview
-from src.services.market_light_service import (
+from src.application.market.market_review import MARKET_REVIEW_HISTORY_CODE, MARKET_REVIEW_REPORT_TYPE
+from src.application.market.market_analyzer import MarketIndex, MarketOverview
+from src.infrastructure.persistence.repositories.analysis_repository import (
     MARKET_LIGHT_HISTORY_BATCH_SIZE,
+    AnalysisRepository,
+)
+from src.application.market.market_light import (
     build_current_snapshot,
     load_previous_snapshot,
     normalize_market_region,
 )
-from src.storage import AnalysisHistory, DatabaseManager
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
 
 
 def _snapshot(region: str, trade_date: str, score: int = 50) -> dict:
@@ -101,7 +105,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             context_snapshot={"market_light_snapshots": {"cn": _snapshot("cn", "2026-03-06", 72)}},
         )
 
-        previous = load_previous_snapshot("cn", before_trade_date="2026-03-07", db_manager=self.db)
+        previous = load_previous_snapshot("cn", before_trade_date="2026-03-07", repository=AnalysisRepository(self.db))
 
         self.assertIsNotNone(previous)
         assert previous is not None
@@ -122,7 +126,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             context_snapshot={"market_light_snapshots": {"cn": _snapshot("cn", "2026-03-08", 80)}},
         )
 
-        previous = load_previous_snapshot("cn", before_trade_date="2026-03-10", db_manager=self.db)
+        previous = load_previous_snapshot("cn", before_trade_date="2026-03-10", repository=AnalysisRepository(self.db))
 
         self.assertIsNotNone(previous)
         assert previous is not None
@@ -143,7 +147,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             context_snapshot={"market_light_snapshots": {"cn": _snapshot("cn", "2026-03-05", 99)}},
         )
 
-        previous = load_previous_snapshot("cn", before_trade_date="2026-03-10", db_manager=self.db)
+        previous = load_previous_snapshot("cn", before_trade_date="2026-03-10", repository=AnalysisRepository(self.db))
 
         self.assertIsNotNone(previous)
         assert previous is not None
@@ -170,7 +174,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(ValueError, "invalid persisted market light snapshot"):
-            load_previous_snapshot("cn", before_trade_date="2026-03-10", db_manager=self.db)
+            load_previous_snapshot("cn", before_trade_date="2026-03-10", repository=AnalysisRepository(self.db))
 
     def test_load_previous_snapshot_scans_beyond_batch_without_default_cap(self) -> None:
         newest = datetime(2026, 3, 7, 18, 0)
@@ -184,7 +188,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             context_snapshot={"market_light_snapshots": {"cn": _snapshot("cn", "2026-03-06", 72)}},
         )
 
-        previous = load_previous_snapshot("cn", before_trade_date="2026-03-07", db_manager=self.db)
+        previous = load_previous_snapshot("cn", before_trade_date="2026-03-07", repository=AnalysisRepository(self.db))
 
         self.assertIsNotNone(previous)
         assert previous is not None
@@ -201,7 +205,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             limit_down_count=80,
         )
 
-        with patch("src.services.market_light_service.MarketAnalyzer") as analyzer_cls:
+        with patch("src.application.market.market_light.MarketAnalyzer") as analyzer_cls:
             analyzer = analyzer_cls.return_value
             analyzer.get_market_overview.return_value = overview
             analyzer.build_market_light_snapshot.return_value = _snapshot("cn", "2026-03-07", 33)
@@ -220,7 +224,7 @@ class MarketLightServiceTestCase(unittest.TestCase):
             context_snapshot={"market_light_snapshots": {"jp": _snapshot("jp", "2026-03-06", 54)}},
         )
 
-        previous = load_previous_snapshot("JP", before_trade_date="2026-03-07", db_manager=self.db)
+        previous = load_previous_snapshot("JP", before_trade_date="2026-03-07", repository=AnalysisRepository(self.db))
 
         self.assertEqual(normalize_market_region("KR"), "kr")
         self.assertIsNotNone(previous)

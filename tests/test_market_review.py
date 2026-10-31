@@ -4,11 +4,13 @@
 """
 
 import importlib
+import inspect
 import json
 import os
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -41,16 +43,31 @@ def _build_optional_module_stubs() -> dict[str, ModuleType]:
 
 
 sys.modules.update(_build_optional_module_stubs())
-import src.core.market_review as market_review_module
+import src.application.market.market_review as market_review_module
 from src.config import Config
-from src.llm.generation_backend import GenerationError, GenerationErrorCode
-from src.services.run_diagnostics import activate_run_diagnostic_context, reset_run_diagnostic_context
-from src.storage import AnalysisHistory, DatabaseManager
+from src.application.generation.ports import GenerationError, GenerationErrorCode
+from src.application.runtime.run_diagnostics import activate_run_diagnostic_context, reset_run_diagnostic_context
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
+from src.infrastructure.persistence.repositories.analysis_history_repo import (
+    AnalysisHistoryRepository,
+)
 
 run_market_review = market_review_module.run_market_review
 
 
 class MarketReviewLocalizationTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        # 历史落库默认工厂由 bootstrap 装配；用例内直接注册同域仓储实现。
+        # 工厂不缓存仓储，每次按当前 ``DatabaseManager`` 单例现建，因此对
+        # setUp/tearDown 中的 ``reset_instance()``（切换临时库）保持敏感。
+        market_review_module.set_default_history_repo_factory(
+            lambda: AnalysisHistoryRepository(DatabaseManager.get_instance())
+        )
+
+    def tearDown(self) -> None:
+        market_review_module.set_default_history_repo_factory(None)
+
     def _make_notifier(self) -> MagicMock:
         notifier = MagicMock()
         notifier.save_report_to_file.return_value = "/tmp/market_review.md"
@@ -447,7 +464,7 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
     def test_run_market_review_jp_kr_skips_market_light_snapshot_schema(self) -> None:
         notifier = self._make_notifier()
 
-        from src.market_analyzer import MarketOverview
+        from src.application.market.market_analyzer import MarketOverview
 
         with patch.object(
             market_review_module.MarketAnalyzer,
@@ -903,6 +920,55 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
                     os.environ.pop("DATABASE_PATH", None)
                 else:
                     os.environ["DATABASE_PATH"] = old_db_path
+
+
+class TestMarketReviewHistoryPort(unittest.TestCase):
+    """复盘历史落库端口回归：降级语义、仓储签名对齐与 application 零 storage 直连。"""
+
+    def tearDown(self) -> None:
+        market_review_module.set_default_history_repo_factory(None)
+
+    def test_unconfigured_history_repo_returns_zero_and_logs_warning(self) -> None:
+        market_review_module.set_default_history_repo_factory(None)
+        with self.assertLogs(
+            "src.application.market.market_review", level="WARNING"
+        ) as captured:
+            saved = market_review_module._persist_market_review_history(
+                review_report="## 今日大盘\n\n复盘正文",
+                markdown_report="# 大盘复盘\n\n复盘正文",
+                region="cn",
+                config=SimpleNamespace(report_language="zh"),
+                query_id="market-task-unconfigured",
+            )
+
+        self.assertEqual(saved, 0)
+        self.assertTrue(
+            any("not configured" in line for line in captured.output),
+            captured.output,
+        )
+
+    def test_concrete_repository_matches_port_signature(self) -> None:
+        from src.application.market.ports import MarketReviewHistoryPort
+
+        for name in (
+            "save_analysis_history",
+            "update_analysis_history_diagnostics",
+        ):
+            port_params = inspect.signature(
+                getattr(MarketReviewHistoryPort, name)
+            ).parameters
+            repo_params = inspect.signature(
+                getattr(AnalysisHistoryRepository, name)
+            ).parameters
+            for param in port_params:
+                self.assertIn(param, repo_params, f"{name} 缺少参数 {param}")
+
+    def test_market_review_has_no_storage_import(self) -> None:
+        """复盘历史写侧必须走端口，不得回退为 application→storage 直连。"""
+        source = Path(market_review_module.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("from src.storage", source)
+        self.assertNotIn("import src.storage", source)
+        self.assertFalse(hasattr(market_review_module, "DatabaseManager"))
 
 
 if __name__ == "__main__":

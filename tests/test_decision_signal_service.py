@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -17,10 +18,20 @@ from types import SimpleNamespace
 import pytest
 
 from src.config import Config
-from src.repositories.decision_signal_repo import DecisionSignalCreateResult
-from src.services.decision_signal_service import DecisionSignalService, DecisionSignalStorageError
-from src.storage import AnalysisHistory, DatabaseManager, DecisionSignalRecord, utc_naive_now
+from src.application.decision.ports import DecisionSignalCreateResult
+from src.application.decision.decision_signal_service import DecisionSignalService, DecisionSignalStorageError
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.base import utc_naive_now
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
+from src.infrastructure.persistence.models.decision import DecisionSignalRecord
 from src.utils.sanitize import sanitize_decision_signal_text, sanitize_diagnostic_text
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.portfolio import configure_portfolio_repository
+from src.bootstrap.quote import configure_stock_repository
+
+configure_portfolio_repository()
+configure_decision_repositories()
+configure_stock_repository()
 
 
 def test_service_imports_without_api_bootstrap() -> None:
@@ -29,7 +40,7 @@ def test_service_imports_without_api_bootstrap() -> None:
         [
             sys.executable,
             "-c",
-            "from src.services.decision_signal_service import DecisionSignalService; "
+            "from src.application.decision.decision_signal_service import DecisionSignalService; "
             "print(DecisionSignalService.__name__)",
         ],
         cwd=repo_root,
@@ -82,7 +93,7 @@ def _payload(**overrides):
 
 
 def _history_result(**overrides):
-    from src.analyzer import AnalysisResult
+    from src.application.analysis.analyzer import AnalysisResult
 
     result = AnalysisResult(
         code="600519",
@@ -1575,3 +1586,101 @@ def test_service_propagates_unexpected_invalidation_failures(isolated_db) -> Non
 
     with pytest.raises(RuntimeError, match="invalidation write failed"):
         service.create_signal(_payload(source_report_id=392, trace_id="trace-invalidation-failure"))
+
+
+# --- W4.2 §0.166：分析历史读取改走窄端口的装配契约 --------------------------
+
+
+@pytest.fixture()
+def _history_port():
+    """临时改写默认历史来源 seam，用例结束后自动恢复。"""
+
+    from src.application.decision import ports
+
+    had = ports._default_history_repo_factory
+    try:
+        yield ports
+    finally:
+        ports._default_history_repo_factory = had
+
+
+class _RepoWithDb:
+    """携带 ``db`` 属性的仓储替身（真实仓储的形态）。"""
+
+    def __init__(self, db: object) -> None:
+        self.db = db
+
+
+class _RepoWithoutDb:
+    """无 ``db`` 属性的窄端口替身（需回落到 bootstrap 默认来源）。"""
+
+
+def test_default_history_repo_is_none_when_unwired(_history_port) -> None:
+    ports = _history_port
+    ports.set_default_history_repo_factory(None)
+
+    assert ports.get_default_history_repo() is None
+
+
+def test_default_history_repo_returns_wired_source(_history_port) -> None:
+    ports = _history_port
+    sentinel = object()
+    ports.set_default_history_repo_factory(lambda: sentinel)
+
+    assert ports.get_default_history_repo() is sentinel
+
+
+def test_signal_service_prefers_explicit_history_repo(_history_port, isolated_db) -> None:
+    ports = _history_port
+    ports.set_default_history_repo_factory(lambda: "bootstrap-default")
+    sentinel = object()
+
+    service = DecisionSignalService(repo=_RepoWithDb(isolated_db), history_repo=sentinel)
+
+    assert service.history_repo is sentinel
+
+
+def test_signal_service_prefers_repo_db_over_default_source(_history_port, isolated_db) -> None:
+    ports = _history_port
+    ports.set_default_history_repo_factory(lambda: "bootstrap-default")
+
+    service = DecisionSignalService(repo=_RepoWithDb(isolated_db))
+
+    assert service.history_repo is isolated_db
+
+
+def test_signal_service_falls_back_to_default_source_when_repo_has_no_db(_history_port) -> None:
+    ports = _history_port
+    sentinel = object()
+    ports.set_default_history_repo_factory(lambda: sentinel)
+
+    service = DecisionSignalService(repo=_RepoWithoutDb())
+
+    assert service.history_repo is sentinel
+
+
+def test_backfill_skips_when_no_history_source_wired(_history_port, caplog) -> None:
+    ports = _history_port
+    ports.set_default_history_repo_factory(None)
+    service = DecisionSignalService(repo=_RepoWithoutDb())
+
+    with caplog.at_level(logging.DEBUG, logger="src.application.decision.decision_signal_service"):
+        service._backfill_analysis_signal_from_history(987654)
+
+    assert service.history_repo is None
+    assert any("skip decision signal lazy backfill" in record.getMessage() for record in caplog.records)
+
+
+def test_reassess_service_propagates_db_to_inner_signal_service(_history_port, isolated_db) -> None:
+    from src.application.decision.decision_signal_reassess_service import (
+        DecisionSignalReassessService,
+    )
+
+    ports = _history_port
+    ports.set_default_history_repo_factory(lambda: "bootstrap-default")
+
+    service = DecisionSignalReassessService(db=isolated_db)
+
+    assert service.history_repo is isolated_db
+    assert service.signal_service.history_repo is isolated_db
+    assert service.signal_service.repo.db is isolated_db

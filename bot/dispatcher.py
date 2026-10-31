@@ -15,7 +15,8 @@ import time
 from collections import defaultdict
 from typing import Dict, List, Optional, Type, Callable
 
-from bot.models import BotMessage, BotResponse
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage
 from bot.commands.base import BotCommand
 
 logger = logging.getLogger(__name__)
@@ -450,7 +451,7 @@ User: "analyze TSLA and NVDA using trend strategy"
         if " " in stripped or len(stripped) > 10:
             return False
 
-        from src.agent.orchestrator import _extract_stock_code
+        from src.application.agent.orchestrator import _extract_stock_code
 
         return bool(_extract_stock_code(stripped))
 
@@ -605,13 +606,13 @@ User: "analyze TSLA and NVDA using trend strategy"
     async def _parse_intent_via_llm(text: str, config) -> Optional[dict]:
         """Call LLM to parse user intent.  Returns parsed dict or None on failure."""
         try:
-            from src.agent.llm_adapter import LLMToolAdapter
+            from src.bootstrap.agent import build_agent_llm_adapter
 
             messages = [
                 {"role": "system", "content": CommandDispatcher._NL_PARSE_PROMPT},
                 {"role": "user", "content": text},
             ]
-            adapter = LLMToolAdapter(config)
+            adapter = build_agent_llm_adapter(config)
             resp = await asyncio.to_thread(
                 adapter.call_text,
                 messages,
@@ -628,13 +629,13 @@ User: "analyze TSLA and NVDA using trend strategy"
     def _parse_intent_via_llm_sync(text: str, config) -> Optional[dict]:
         """Synchronous variant for webhook/stream integrations."""
         try:
-            from src.agent.llm_adapter import LLMToolAdapter
+            from src.bootstrap.agent import build_agent_llm_adapter
 
             messages = [
                 {"role": "system", "content": CommandDispatcher._NL_PARSE_PROMPT},
                 {"role": "user", "content": text},
             ]
-            adapter = LLMToolAdapter(config)
+            adapter = build_agent_llm_adapter(config)
             resp = adapter.call_text(
                 messages,
                 temperature=0,
@@ -674,9 +675,9 @@ User: "analyze TSLA and NVDA using trend strategy"
     @classmethod
     def _resolve_stock_code_from_text(cls, text: str) -> Optional[str]:
         """Best-effort stock name/code resolution for NL-routed analysis requests."""
-        from data_provider.base import canonical_stock_code
         from src.data.stock_mapping import STOCK_NAME_MAP
-        from src.services.name_to_code_resolver import resolve_name_to_code
+        from src.application.quote.name_to_code_resolver import resolve_name_to_code
+        from src.application.quote.stock_code_utils import canonical_stock_code_for_input
 
         def _iter_candidates(raw_text: str) -> List[str]:
             candidates: List[str] = []
@@ -708,7 +709,7 @@ User: "analyze TSLA and NVDA using trend strategy"
             ]
             unique_matches = list(dict.fromkeys(matches))
             if len(unique_matches) == 1:
-                return canonical_stock_code(unique_matches[0])
+                return canonical_stock_code_for_input(unique_matches[0])
             return None
 
         candidates = _iter_candidates(text)
@@ -723,7 +724,7 @@ User: "analyze TSLA and NVDA using trend strategy"
         for candidate in candidates:
             resolved = resolve_name_to_code(candidate)
             if resolved:
-                return canonical_stock_code(resolved)
+                return canonical_stock_code_for_input(resolved)
 
         return None
 

@@ -13,10 +13,17 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from src.config import Config, get_config
-from src.core.pipeline import StockAnalysisPipeline
-from src.market_analyzer import MarketAnalyzer, MarketIndex, MarketOverview
-from src.repositories import IntelligenceRepository
+from src.application.analysis.pipeline import StockAnalysisPipeline
+from src.application.market.market_analyzer import MarketAnalyzer, MarketIndex, MarketOverview
+from src.infrastructure.persistence.repositories.intelligence_repository import (
+    IntelligenceRepository,
+)
 from src.storage import DatabaseManager
+
+# 资讯仓储端口装配（pipeline/market_analyzer 用例会构造 IntelligenceService，需 seam 已注册 infra 实现）
+from src.bootstrap.intelligence import configure_intelligence_repository
+
+configure_intelligence_repository()
 
 
 class PersistedIntelligenceAnalysisIntegrationTestCase(unittest.TestCase):
@@ -82,7 +89,7 @@ class PersistedIntelligenceAnalysisIntegrationTestCase(unittest.TestCase):
         pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
         pipeline.config = self.config
 
-        with patch("src.core.pipeline.IntelligenceService.refresh_auto_sources", return_value={"ok": True}) as refresh:
+        with patch("src.application.analysis.pipeline.IntelligenceService.refresh_auto_sources", return_value={"ok": True}) as refresh:
             context = pipeline._load_persisted_intelligence_context(
                 code="600519",
                 stock_name="贵州茅台",
@@ -97,7 +104,7 @@ class PersistedIntelligenceAnalysisIntegrationTestCase(unittest.TestCase):
         pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
         pipeline.config = replace(self.config, news_intel_auto_fetch_enabled=False)
 
-        with patch("src.core.pipeline.IntelligenceService") as service_cls:
+        with patch("src.application.analysis.pipeline.IntelligenceService") as service_cls:
             service = service_cls.return_value
             service.refresh_auto_sources.return_value = {"ok": True}
             service.list_items.return_value = {"items": [], "total": 0}
@@ -214,7 +221,7 @@ class PersistedIntelligenceAnalysisIntegrationTestCase(unittest.TestCase):
         self.config.news_intel_auto_fetch_enabled = True
         analyzer = MarketAnalyzer(config=self.config, region="cn")
 
-        with patch("src.market_analyzer.IntelligenceService.refresh_auto_sources", return_value={"ok": True}) as refresh:
+        with patch("src.application.market.market_analyzer.IntelligenceService.refresh_auto_sources", return_value={"ok": True}) as refresh:
             merged = analyzer._merge_persisted_market_intelligence([])
 
         refresh.assert_called_once()
@@ -224,7 +231,7 @@ class PersistedIntelligenceAnalysisIntegrationTestCase(unittest.TestCase):
         self.config.news_intel_auto_fetch_enabled = True
         analyzer = MarketAnalyzer(config=replace(self.config, news_intel_auto_fetch_enabled=False), region="cn")
 
-        with patch("src.market_analyzer.IntelligenceService") as service_cls:
+        with patch("src.application.market.market_analyzer.IntelligenceService") as service_cls:
             service = service_cls.return_value
             service.refresh_auto_sources.return_value = {"ok": True}
             service.list_items.return_value = {"items": [], "total": 0}

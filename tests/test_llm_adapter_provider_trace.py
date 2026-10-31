@@ -15,7 +15,7 @@ except ModuleNotFoundError:
     ensure_litellm_stub()
     from litellm.types.utils import Usage
 
-from src.agent.llm_adapter import LLMToolAdapter  # noqa: E402
+from src.infrastructure.agent_runtime.llm_adapter import LLMToolAdapter  # noqa: E402
 
 
 def test_convert_messages_preserves_reasoning_blocks_and_provider_specific_fields() -> None:

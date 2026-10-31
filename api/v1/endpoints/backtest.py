@@ -9,7 +9,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from api.deps import get_database_manager
+from api.deps import get_backtest_service
 from api.v1.schemas.backtest import (
     BacktestRunRequest,
     BacktestRunResponse,
@@ -18,8 +18,7 @@ from api.v1.schemas.backtest import (
     PerformanceMetrics,
 )
 from api.v1.schemas.common import ErrorResponse
-from src.services.backtest_service import BacktestService
-from src.storage import DatabaseManager
+from src.application.backtest.service import BacktestService
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +54,10 @@ def _validate_analysis_date_range(
 )
 def run_backtest(
     request: BacktestRunRequest,
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: BacktestService = Depends(get_backtest_service),
 ) -> BacktestRunResponse:
     try:
         _validate_analysis_date_range(request.analysis_date_from, request.analysis_date_to)
-        service = BacktestService(db_manager)
         stats = service.run_backtest(
             code=request.code,
             force=request.force,
@@ -104,11 +102,10 @@ def get_backtest_results(
     analysis_phase: Optional[BacktestAnalysisPhaseQuery] = Query(None, description="分析阶段过滤：premarket/intraday/postmarket/unknown"),
     page: int = Query(1, ge=1, description="页码"),
     limit: int = Query(20, ge=1, le=200, description="每页数量"),
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: BacktestService = Depends(get_backtest_service),
 ) -> BacktestResultsResponse:
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
-        service = BacktestService(db_manager)
         data = service.get_recent_evaluations(
             code=code,
             eval_window_days=eval_window_days,
@@ -156,11 +153,10 @@ def get_overall_performance(
     analysis_date_from: Optional[date] = Query(None, description="分析日期起始（含）"),
     analysis_date_to: Optional[date] = Query(None, description="分析日期结束（含）"),
     analysis_phase: Optional[BacktestAnalysisPhaseQuery] = Query(None, description="分析阶段过滤：premarket/intraday/postmarket/unknown"),
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: BacktestService = Depends(get_backtest_service),
 ) -> PerformanceMetrics:
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
-        service = BacktestService(db_manager)
         summary = service.get_summary(
             scope="overall",
             code=None,
@@ -207,11 +203,10 @@ def get_stock_performance(
     analysis_date_from: Optional[date] = Query(None, description="分析日期起始（含）"),
     analysis_date_to: Optional[date] = Query(None, description="分析日期结束（含）"),
     analysis_phase: Optional[BacktestAnalysisPhaseQuery] = Query(None, description="分析阶段过滤：premarket/intraday/postmarket/unknown"),
-    db_manager: DatabaseManager = Depends(get_database_manager),
+    service: BacktestService = Depends(get_backtest_service),
 ) -> PerformanceMetrics:
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
-        service = BacktestService(db_manager)
         summary = service.get_summary(
             scope="stock",
             code=code,

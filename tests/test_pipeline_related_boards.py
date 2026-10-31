@@ -11,9 +11,9 @@ from unittest.mock import MagicMock
 
 from api.v1.schemas.history import ReportDetails
 from data_provider.base import DataFetcherManager
-from src.core.pipeline import StockAnalysisPipeline
-from src.services.market_hotspot_service import MarketHotspotService
-from src.services.market_structure_service import MarketStructureService
+from src.application.analysis.pipeline import StockAnalysisPipeline
+from src.application.market.market_hotspot import MarketHotspotService
+from src.application.market.market_structure import MarketStructureService
 from src.utils.data_processing import (
     extract_board_detail_fields,
     extract_market_structure_detail_field,

@@ -12,8 +12,9 @@ import logging
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse
-from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage
+from src.application.quote.stock_code_utils import resolve_index_stock_code_for_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +78,8 @@ class AnalyzeCommand(BotCommand):
         
         try:
             # 调用分析服务
-            from src.services.task_service import get_task_service
-            from src.enums import ReportType
+            from src.application.runtime.task_service import get_task_service
+            from src.domain.shared.enums import ReportType
             
             service = get_task_service()
             

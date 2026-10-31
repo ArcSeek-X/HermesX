@@ -5,8 +5,8 @@
 
 import unittest
 
-from src.core.market_review import _get_market_review_text
-from src.report_language import (
+from src.application.market.market_review import _get_market_review_text
+from src.domain.shared.report_language import (
     get_no_data_text,
     get_placeholder_text,
     get_unknown_text,

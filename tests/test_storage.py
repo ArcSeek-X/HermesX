@@ -17,7 +17,10 @@ from sqlalchemy.sql import func
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.config import Config
-from src.storage import Base, CURRENT_SCHEMA_VERSION, DatabaseManager, DatabaseSchemaMigration, StockDaily
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.base import Base, CURRENT_SCHEMA_VERSION
+from src.infrastructure.persistence.models.market_data import StockDaily
+from src.infrastructure.persistence.models.schema import DatabaseSchemaMigration
 
 class TestStorage(unittest.TestCase):
 
@@ -172,8 +175,12 @@ class TestStorage(unittest.TestCase):
         db._ensure_schema_migration_record()
 
         with db.get_session() as session:
+            # schema_migrations 同时承载数据迁移标记（如快讯重要级重标），
+            # 幂等性只针对基线版本这一行。
             count = session.execute(
-                select(func.count()).select_from(DatabaseSchemaMigration)
+                select(func.count())
+                .select_from(DatabaseSchemaMigration)
+                .where(DatabaseSchemaMigration.version == CURRENT_SCHEMA_VERSION)
             ).scalar_one()
 
         self.assertEqual(count, 1)
@@ -286,7 +293,7 @@ class TestStorage(unittest.TestCase):
                     ],
                 )
 
-            with self.assertLogs("src.storage", level="INFO") as logs:
+            with self.assertLogs("src.infrastructure.persistence.schema_compat", level="INFO") as logs:
                 DatabaseManager(db_url=f"sqlite:///{db_path}")
 
             with sqlite3.connect(db_path) as conn:
@@ -343,7 +350,7 @@ class TestStorage(unittest.TestCase):
             self.assertIn("skipped_existing_profile_count=0", log_text)
 
             DatabaseManager.reset_instance()
-            with self.assertLogs("src.storage", level="INFO") as second_logs:
+            with self.assertLogs("src.infrastructure.persistence.schema_compat", level="INFO") as second_logs:
                 DatabaseManager(db_url=f"sqlite:///{db_path}")
             second_log_text = "\n".join(second_logs.output)
             self.assertIn("candidate_count=15", second_log_text)
@@ -393,7 +400,7 @@ class TestStorage(unittest.TestCase):
                     ],
                 )
 
-            with self.assertLogs("src.storage", level="INFO") as logs:
+            with self.assertLogs("src.infrastructure.persistence.schema_compat", level="INFO") as logs:
                 DatabaseManager(db_url=f"sqlite:///{db_path}")
 
             with sqlite3.connect(db_path) as conn:
@@ -425,8 +432,13 @@ class TestStorage(unittest.TestCase):
 
         DatabaseManager.reset_instance()
         try:
-            with patch("src.storage.inspect", return_value=BrokenInspector()):
-                with self.assertLogs("src.storage", level="ERROR") as logs:
+            with patch(
+                "src.infrastructure.persistence.schema_compat.inspect",
+                return_value=BrokenInspector(),
+            ):
+                with self.assertLogs(
+                    "src.infrastructure.persistence.schema_compat", level="ERROR"
+                ) as logs:
                     with self.assertRaises(RuntimeError):
                         DatabaseManager(db_url="sqlite:///:memory:")
 
@@ -1005,7 +1017,10 @@ class TestStorage(unittest.TestCase):
             return engine
 
         try:
-            with patch("src.storage.create_engine", side_effect=create_engine_with_failing_dispose):
+            with patch(
+                "src.infrastructure.persistence.session.create_engine",
+                side_effect=create_engine_with_failing_dispose,
+            ):
                 with patch.object(Base.metadata, "create_all", side_effect=original_error):
                     with self.assertRaisesRegex(RuntimeError, "create all failed") as ctx:
                         DatabaseManager.get_instance()
@@ -1022,7 +1037,7 @@ class TestStorage(unittest.TestCase):
         connection = session.connection()
 
         try:
-            with patch.object(db, "get_session", return_value=session):
+            with patch.object(db._session, "create_session", return_value=session):
                 with patch.object(connection, "exec_driver_sql", wraps=connection.exec_driver_sql) as mock_exec:
                     result = db._run_write_transaction("unit-test", lambda current_session: 7)
 

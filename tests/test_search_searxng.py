@@ -16,7 +16,13 @@ if "newspaper" not in sys.modules:
     mock_np.Config = MagicMock()
     sys.modules["newspaper"] = mock_np
 
-from src.search_service import SearchService, SearXNGSearchProvider
+from src.application.intelligence.search_service import SearchService
+from src.infrastructure.search import SearXNGSearchProvider
+from src.bootstrap.intelligence import configure_search
+
+# SA2-3b：Provider 本体已下沉 infrastructure，SearchService 经 bootstrap hook 构造；
+# 测试沿用 analyzer 先例在模块顶层显式装配（幂等）。
+configure_search()
 
 
 class TestSearXNGSearchProvider(unittest.TestCase):
@@ -74,7 +80,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
             }
         return {"instances": instances}
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_success_response_maps_fields_for_self_hosted_instance(self, mock_get):
         fresh_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         mock_get.return_value = self._response(
@@ -104,7 +110,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertEqual(result.published_date, expected_date)
         self.assertEqual(result.source, "example.com")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_uses_description_when_content_missing(self, mock_get):
         mock_get.return_value = self._response(
             json_payload={
@@ -124,7 +130,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertTrue(resp.success)
         self.assertEqual(resp.results[0].snippet, "Desc text")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_403_returns_specific_error(self, mock_get):
         mock_get.return_value = self._response(
             status_code=403,
@@ -138,7 +144,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertFalse(resp.success)
         self.assertIn("settings.yml", resp.error_message or "")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_empty_results_success(self, mock_get):
         mock_get.return_value = self._response(json_payload={"results": []})
 
@@ -148,7 +154,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertTrue(resp.success)
         self.assertEqual(resp.results, [])
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_filters_before_applying_max_results(self, mock_get):
         mock_get.return_value = self._response(
             json_payload={
@@ -166,7 +172,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertEqual(len(resp.results), 1)
         self.assertEqual(resp.results[0].title, "Valid")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_time_range_mapping(self, mock_get):
         mock_get.return_value = self._response(json_payload={"results": []})
         provider = self._create_provider(["https://searx.example.org"])
@@ -182,7 +188,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
                 provider.search("query", max_results=5, days=days)
                 self.assertEqual(mock_get.call_args[1]["params"]["time_range"], expected)
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_non_json_response_returns_failure(self, mock_get):
         mock_get.return_value = self._response(json_side_effect=ValueError("No JSON"))
 
@@ -192,7 +198,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertFalse(resp.success)
         self.assertIn("JSON", resp.error_message or "")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_json_returns_non_dict_returns_failure(self, mock_get):
         mock_get.return_value = self._response(json_payload=[{"results": []}])
 
@@ -202,7 +208,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertFalse(resp.success)
         self.assertIn("格式无效", resp.error_message or "")
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_failover_tries_next_instance_on_timeout(self, mock_get):
         import requests as req_module
 
@@ -221,7 +227,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertIn("https://searx-a.example.org/search", mock_get.call_args_list[0][0][0])
         self.assertIn("https://searx-b.example.org/search", mock_get.call_args_list[1][0][0])
 
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_rotation_advances_start_instance(self, mock_get):
         mock_get.return_value = self._response(json_payload={"results": []})
         provider = self._create_provider(
@@ -280,7 +286,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
             ],
         )
 
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_lazily_fetches_and_caches_instance_feed(self, mock_get):
         feed_resp = self._response(json_payload=self._public_feed(["https://public-1.example/"]))
         search_resp = self._response(json_payload={"results": []})
@@ -297,8 +303,8 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertIn("https://public-1.example/search", mock_get.call_args_list[1][0][0])
         self.assertIn("https://public-1.example/search", mock_get.call_args_list[2][0][0])
 
-    @patch("src.search_service._get_with_retry")
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers._get_with_retry")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_uses_requests_without_tenacity_retry(self, mock_get, mock_retry_get):
         mock_get.side_effect = [
             self._response(json_payload=self._public_feed(["https://public-1.example/"])),
@@ -311,7 +317,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertTrue(resp.success)
         mock_retry_get.assert_not_called()
 
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_limits_failover_to_max_attempts_instances(self, mock_get):
         feed_urls = [
             f"https://public-{i}.example/"
@@ -333,7 +339,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         last_search_url = mock_get.call_args_list[-1][0][0]
         self.assertIn(f"https://public-{max_attempts}.example/search", last_search_url)
 
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_rotates_start_instance_across_requests(self, mock_get):
         feed_urls = [
             "https://public-1.example/",
@@ -354,7 +360,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertIn("https://public-1.example/search", mock_get.call_args_list[1][0][0])
         self.assertIn("https://public-2.example/search", mock_get.call_args_list[2][0][0])
 
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_returns_failure_when_feed_unavailable(self, mock_get):
         import requests as req_module
 
@@ -367,8 +373,8 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertIn("公共 SearXNG 实例", resp.error_message or "")
         self.assertEqual(mock_get.call_count, 1)
 
-    @patch("src.search_service.time.time")
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.time.time")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_mode_cold_start_failure_honors_backoff_then_retries(self, mock_get, mock_time):
         import requests as req_module
 
@@ -395,8 +401,8 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertEqual(mock_get.call_args_list[1][0][0], SearXNGSearchProvider.PUBLIC_INSTANCES_URL)
         self.assertIn("https://public-1.example/search", mock_get.call_args_list[2][0][0])
 
-    @patch("src.search_service.time.time")
-    @patch("src.search_service.requests.get")
+    @patch("src.infrastructure.search.providers.time.time")
+    @patch("src.infrastructure.search.providers.requests.get")
     def test_public_instance_refresh_failure_reuses_stale_cache(self, mock_get, mock_time):
         import requests as req_module
 
@@ -426,7 +432,7 @@ class TestSearXNGSearchProvider(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
 
     @patch.object(SearXNGSearchProvider, "_get_public_instances")
-    @patch("src.search_service._get_with_retry")
+    @patch("src.infrastructure.search.providers._get_with_retry")
     def test_self_hosted_mode_does_not_fetch_public_instances(self, mock_get, mock_public_instances):
         mock_get.return_value = self._response(json_payload={"results": []})
 

@@ -5,10 +5,10 @@
 
 import unittest
 
-from src.agent.agents.decision_agent import DecisionAgent
-from src.agent.protocols import AgentContext
-from src.analysis_context_pack_prompt import normalize_analysis_context_pack_language
-from src.market_phase_prompt import format_market_phase_prompt_section
+from src.application.agent.agents.decision_agent import DecisionAgent
+from src.application.agent.protocols import AgentContext
+from src.application.reporting.context_pack_prompt import normalize_analysis_context_pack_language
+from src.application.reporting.market_phase_prompt import format_market_phase_prompt_section
 
 
 def _phase_ctx():

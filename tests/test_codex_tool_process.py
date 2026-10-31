@@ -17,9 +17,9 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
 
-from src.agent.codex_tool_process import MAX_TOOL_RESULT_BYTES, CodexToolProcessRunner
-from src.agent.stock_scope import StockScope
-from src.agent.tools.execution import ToolAccessContext
+from src.infrastructure.agent_runtime.codex_tool_process import MAX_TOOL_RESULT_BYTES, CodexToolProcessRunner
+from src.application.agent.stock_scope import StockScope
+from src.application.agent.tools.execution import ToolAccessContext
 
 
 def _ok_result(tool_name: str, payload: dict) -> dict:

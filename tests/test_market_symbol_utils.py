@@ -3,7 +3,7 @@
 测试大盘标的工具函数相关功能测试
 """
 
-from src.services.market_symbol_utils import (
+from src.domain.market.market_symbol_utils import (
     get_suffix_market,
     is_suffix_market_symbol,
     normalize_suffix_market_symbol,

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-from src.analyzer import AnalysisResult
+from src.application.analysis.analyzer import AnalysisResult
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +28,8 @@ class TestGenerateSingleStockReport:
 
     def test_single_stock_report_renders_signal_attribution(self):
         """测试 generate_single_stock_report() 正确渲染 signal_attribution"""
-        from src.analyzer import AnalysisResult
-        from src.notification import NotificationService
+        from src.application.analysis.analyzer import AnalysisResult
+        from src.application.notification.notification import NotificationService
 
         signal_attr = {
             "technical_indicators": 35,
@@ -53,8 +53,8 @@ class TestGenerateSingleStockReport:
 
     def test_single_stock_report_without_signal_attribution(self):
         """测试没有 signal_attribution 时不会崩溃"""
-        from src.analyzer import AnalysisResult
-        from src.notification import NotificationService
+        from src.application.analysis.analyzer import AnalysisResult
+        from src.application.notification.notification import NotificationService
 
         result = self._make_result({})
 
@@ -177,7 +177,7 @@ class TestParseResponseIntegration:
 
     def test_parse_response_calls_normalization(self):
         """测试 _parse_response() 正确调用归一化函数"""
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
         from unittest.mock import MagicMock
 
         # 构造模拟的 LLM 返回（JSON 字符串，包含 signal_attribution）

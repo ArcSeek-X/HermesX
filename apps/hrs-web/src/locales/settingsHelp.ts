@@ -399,6 +399,142 @@ const settingsHelpZhCN: SettingsHelpMap = {
     impact: ['影响使用 Pytdx 数据源时的行情连接目标和可用性。'],
     notes: ['服务器不可达时应依赖数据源 fallback，不建议只配置单个不稳定地址。'],
   },
+  'settings.data_source.stockdb': {
+    title: 'StockDB 本地数据源',
+    summary: 'StockDB 是可选的本地行情服务，启用后参与 K 线、股票信息和代码搜索的候选源。',
+    usage: '先用 STOCKDB_BASE_URL 指向已启动的 StockDB HTTP 服务，再打开 STOCKDB_ENABLED；超时、返回行数、缓存和失败冷却按需调整。',
+    valueNotes: [
+      'STOCKDB_BASE_URL 需要以 http:// 或 https:// 开头。',
+      '未启用时不会发起任何 StockDB 请求。',
+      '连接失败后会按 STOCKDB_COOLDOWN_SEC 临时跳过该源，避免请求级重试拖慢主流程。',
+    ],
+    impact: ['影响 K 线、股票信息和代码搜索中 StockDB 参与的部分。'],
+    notes: ['本地服务未启动或不可用时应依赖数据源 fallback，不应阻断分析流程。'],
+  },
+  'settings.data_source.stocksdk': {
+    title: 'StockSDK Node 桥',
+    summary: 'StockSDK 通过 Node.js 桥接进程提供可选的 K 线、股票信息和代码搜索数据源。',
+    usage: '确认运行环境可执行 node 后再打开 STOCKSDK_ENABLED；STOCKSDK_NODE_BIN 可填绝对路径，STOCKSDK_BRIDGE_ENTRY 默认指向仓库内的 bridge.mjs。',
+    valueNotes: [
+      'STOCKSDK_TIMEOUT_MS 控制单次桥接请求超时，STOCKSDK_RATE_LIMIT_RPS 控制请求频率。',
+      'STOCKSDK_KLINE_FALLBACK 允许桥接内部在主上游失败后再做一层 K 线降级。',
+      '未启用时不会启动桥接进程。',
+    ],
+    impact: ['影响 K 线、股票信息和代码搜索中 StockSDK 参与的部分。'],
+    notes: ['桥接进程依赖 Node 环境；Node 缺失或启动失败时按数据源 fallback 处理。'],
+  },
+  'settings.data_source.kline_routing': {
+    title: 'K 线数据源路由',
+    summary: '决定日线/历史 K 线请求优先使用哪个数据源，以及失败后如何降级。',
+    usage: 'KLINE_DATA_SOURCE=auto 时按 KLINE_SOURCE_PRIORITY 顺序尝试；也可以直接指定单个源。KLINE_FALLBACK_ENABLED=false 表示只尝试主源。',
+    valueNotes: [
+      '优先级使用英文逗号分隔，从高到低排列。',
+      '可选值：auto、local、sina、eastmoney、tencent、stocksdk。',
+    ],
+    impact: ['影响 K 线获取成功率，以及技术分析和报告中的价格数据。'],
+    notes: ['单一数据源失败会继续尝试后续源，不建议只配置一个不稳定来源。'],
+  },
+  'settings.data_source.stockinfo_routing': {
+    title: '股票信息数据源路由',
+    summary: '决定股票名称、基础信息等请求优先使用哪个数据源，以及失败后的降级顺序。',
+    usage: 'STOCKINFO_DATA_SOURCE=auto 时按 STOCKINFO_SOURCE_PRIORITY 顺序尝试；也可以直接指定单个源。STOCKINFO_FALLBACK_ENABLED=false 表示只尝试主源。',
+    valueNotes: [
+      '优先级使用英文逗号分隔，从高到低排列。',
+      '可选值：auto、local、eastmoney、tencent、stocksdk。',
+    ],
+    impact: ['影响股票名称解析、自动补全和报告展示的基础信息。'],
+    notes: ['单一数据源失败会继续尝试后续源。'],
+  },
+  'settings.data_source.codesearch_routing': {
+    title: '代码搜索数据源路由',
+    summary: '决定按名称或拼音搜索股票代码时优先使用哪个数据源，以及失败后的降级顺序。',
+    usage: 'CODESEARCH_DATA_SOURCE=auto 时按 CODESEARCH_SOURCE_PRIORITY 顺序尝试；也可以直接指定单个源。CODESEARCH_FALLBACK_ENABLED=false 表示只尝试主源。',
+    valueNotes: [
+      '优先级使用英文逗号分隔，从高到低排列。',
+      '可选值：auto、local、eastmoney、stocksdk。',
+    ],
+    impact: ['影响 Web 股票搜索、自选股添加和代码识别结果。'],
+    notes: ['单一数据源失败会继续尝试后续源。'],
+  },
+  'settings.data_source.sector_routing': {
+    title: '板块数据源路由',
+    summary: '决定板块涨跌排行使用哪个数据源，以及主源失败后的降级顺序。',
+    usage:
+      'SECTOR_DATA_SOURCE=auto 时按 SECTOR_SOURCE_PRIORITY 顺序尝试；也可以直接指定单个源。SECTOR_FALLBACK_ENABLED=false 表示只尝试主源。',
+    valueNotes: [
+      '优先级使用英文逗号分隔，从高到低排列。',
+      '当前默认注册表只接入 eastmoney，填写其它源不会生效。',
+    ],
+    impact: ['影响板块排行与板块相关分析的数据来源。'],
+    notes: ['保存后运行时重载即可生效，无需重启进程。'],
+  },
+  'settings.data_source.limitpool_routing': {
+    title: '涨跌停池数据源路由',
+    summary: '决定涨停池、跌停池等数据使用哪个数据源，以及主源失败后的降级顺序。',
+    usage:
+      'LIMITPOOL_DATA_SOURCE=auto 时按 LIMITPOOL_SOURCE_PRIORITY 顺序尝试。stocksdk 需要先启用 STOCKSDK_ENABLED。',
+    valueNotes: [
+      '优先级使用英文逗号分隔，从高到低排列。',
+      '当前可选源：eastmoney、stocksdk。',
+    ],
+    impact: ['影响涨跌停池与情绪统计的数据来源。'],
+    notes: ['保存后运行时重载即可生效，无需重启进程。'],
+  },
+  'settings.data_source.alphavantage': {
+    title: 'Alpha Vantage API Key',
+    summary: '用于获取美股等市场的行情与基本面数据，留空则不启用该数据源。',
+    usage: '在 Alpha Vantage 官网申请 Key 后填入 ALPHAVANTAGE_API_KEY。',
+    valueNotes: [
+      '留空表示禁用该数据源，不影响其它数据源。',
+      '免费额度有限，高频调用可能触发限流。',
+    ],
+    impact: ['影响依赖 Alpha Vantage 的行情与基本面请求。'],
+    notes: [
+      '如果通过容器环境变量注入了同名键，环境变量会优先于设置页保存的值，需要重启容器才能让新值生效。',
+    ],
+  },
+  'settings.data_source.finnhub': {
+    title: 'Finnhub API Key',
+    summary: '用于获取美股等市场的行情数据，留空则不启用该数据源。',
+    usage: '在 Finnhub 官网申请 Key 后填入 FINNHUB_API_KEY。',
+    valueNotes: [
+      '留空表示禁用该数据源，不影响其它数据源。',
+      '免费额度按分钟限流，超限时请求会失败并由后续数据源补位。',
+    ],
+    impact: ['影响依赖 Finnhub 的美股行情请求。'],
+    notes: [
+      '如果通过容器环境变量注入了同名键，环境变量会优先于设置页保存的值，需要重启容器才能让新值生效。',
+    ],
+  },
+  'settings.data_source.longbridge': {
+    title: 'Longbridge 长桥配置',
+    summary:
+      '长桥 OpenAPI 用于港股、美股行情数据。新版推荐 OAuth 2.0，旧版 API Key 三件套仍兼容。',
+    usage:
+      '优先填写 LONGBRIDGE_OAUTH_CLIENT_ID，由 SDK 管理 token 缓存；旧接入方式再填 LONGBRIDGE_APP_KEY、LONGBRIDGE_APP_SECRET 和 LONGBRIDGE_ACCESS_TOKEN。',
+    valueNotes: [
+      'OAuth 模式下 access token 由 SDK 缓存维护，一般不需要手工填写 LONGBRIDGE_ACCESS_TOKEN。',
+      'APP_KEY / APP_SECRET 与 OAuth Client ID 属于两套接入方式，不要混用。',
+      '长桥开放平台对行情权限有单独订阅要求，权限不足时请求会失败。',
+    ],
+    impact: ['影响港股、美股通过长桥获取的行情数据。'],
+    notes: [
+      '如果通过容器环境变量注入了同名键，环境变量会优先于设置页保存的值，需要重启容器才能让新值生效。',
+    ],
+  },
+  'settings.data_source.social_sentiment': {
+    title: '社交情绪数据源',
+    summary: '为分析提供社交平台情绪数据，留空则跳过该能力。',
+    usage: '填写服务地址 SOCIAL_SENTIMENT_API_URL 和访问密钥 SOCIAL_SENTIMENT_API_KEY。',
+    valueNotes: [
+      '地址末尾的斜杠会在加载时自动去掉。',
+      '留空 API Key 表示不启用社交情绪。',
+    ],
+    impact: ['影响分析上下文中的社交情绪信号。'],
+    notes: [
+      '如果通过容器环境变量注入了同名键，环境变量会优先于设置页保存的值，需要重启容器才能让新值生效。',
+    ],
+  },
   'settings.data_source.news_window': {
     title: '新闻时间窗口',
     summary: '控制纳入分析上下文的新闻时效范围。',
@@ -406,6 +542,62 @@ const settingsHelpZhCN: SettingsHelpMap = {
     valueNotes: ['实际窗口会受 profile 与最大天数共同约束。'],
     impact: ['影响新闻上下文数量、时效性和报告长度。'],
     notes: ['窗口过长可能引入陈旧信息，过短可能遗漏慢发酵事件。'],
+  },
+  'settings.data_source.live_news': {
+    title: '实时快讯',
+    summary: '控制「行情资讯 → 快讯」页面的数据来源、刷新节奏与重要级判定。',
+    usage:
+      'WSCN_LIVE_NEWS_ENABLED 控制总开关；WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC 控制按需刷新节流（0 表示只保留手动刷新）；WSCN_LIVE_NEWS_BASE_URL 指定上游接口地址。',
+    valueNotes: [
+      'WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC 单位为秒，范围 0–86400，默认 300；设为 0 时不自动抓取。',
+      'WSCN_LIVE_NEWS_IMPORTANT_SCORE 为重要级阈值（1–10，默认 3），上游 score 达到该值即标记为重要。',
+      'WSCN_LIVE_NEWS_DEFAULT_LIMIT 为列表默认每页条数（1–100，默认 30）。',
+      'WSCN_LIVE_NEWS_TIMEOUT_SEC 为单频道请求超时（1–30 秒，默认 8）。',
+      'WSCN_LIVE_NEWS_FALLBACK_NEWSNOW 开启后，官方接口失败时降级到 NewsNow 聚合源。',
+    ],
+    impact: ['影响快讯页面的可用性、刷新频率与「重要」筛选结果。'],
+    notes: [
+      '快讯上游为滚动窗口，抓取间隔过大会丢数据，建议不超过 1800 秒。',
+      '关闭 WSCN_LIVE_NEWS_ENABLED 后所有快讯接口返回空列表且不再发起请求。',
+    ],
+  },
+  'settings.data_source.live_calendar': {
+    title: '财经日历',
+    summary: '控制「行情资讯 → 日历」页面的数据来源、超时与重要级阈值。',
+    usage:
+      'WALLSTREETCN_CALENDAR_ENABLED 控制总开关；WALLSTREETCN_CALENDAR_BASE_URL 指定接口地址；WALLSTREETCN_CALENDAR_TIMEOUT 控制单次请求超时。',
+    valueNotes: [
+      '日历接口域名与快讯不同，默认 https://api-one-wscn.awtmt.com。',
+      'WALLSTREETCN_CALENDAR_TIMEOUT 范围 1–30 秒，默认 8。',
+      'WALLSTREETCN_CALENDAR_IMPORTANT_SCORE 范围 0–10，默认 3，与快讯共用同一业务量纲。',
+    ],
+    impact: ['影响日历事件的可用性与「重要」标记。'],
+    notes: ['关闭后日历接口返回空且不再抓取，可随时重新开启。'],
+  },
+  'settings.data_source.news_intel': {
+    title: '本地资讯池',
+    summary: '控制本地资讯池的自动采集、单源条数、拉取超时与保留天数。',
+    usage:
+      'NEWS_INTEL_AUTO_FETCH_ENABLED 开启后，个股分析、Agent 分析与大盘复盘读取资讯池前会自动初始化并拉取启用的资讯源；其余三项控制采集规模与清理。',
+    valueNotes: [
+      '默认关闭自动采集，避免未确认的外部请求与输入变化。',
+      'NEWS_INTEL_MAX_ITEMS_PER_SOURCE 范围 1–200，默认 50。',
+      'NEWS_INTEL_FETCH_TIMEOUT_SEC 范围 1–30 秒，默认 8，超时的源会被跳过。',
+      'NEWS_INTEL_RETENTION_DAYS 范围 1–365，默认 30；只清理资讯池条目，不影响历史报告。',
+    ],
+    impact: ['影响分析上下文中的资讯来源、数量与新鲜度。'],
+    notes: ['仓库默认 GitHub Actions workflow 未透传 NEWS_INTEL_AUTO_FETCH_ENABLED，Actions 使用需自行补齐映射。'],
+  },
+  'settings.data_source.newsnow': {
+    title: 'NewsNow 聚合源',
+    summary: 'NewsNow HTTP API 基地址，用于聚合资讯源与快讯降级。',
+    usage: '填写自建 NewsNow 实例地址，例如 https://newsnow.example.com；末尾斜杠会自动去掉。',
+    valueNotes: [
+      '默认 https://newsnow.busiyi.world 是公开示例实例，不保证稳定性，仅适合试用。',
+      '生产环境建议替换为自建实例。',
+    ],
+    impact: ['影响依赖 NewsNow 的聚合资讯源，以及快讯官方接口失败后的降级链路。'],
+    notes: ['该地址只影响资讯侧请求，不会改变 LLM / provider 的 base URL。'],
   },
   'settings.notification.FEISHU_WEBHOOK_URL': {
     title: '飞书群机器人 Webhook',
@@ -564,6 +756,7 @@ const settingsHelpZhCN: SettingsHelpMap = {
     valueNotes: [
       'EMAIL_PASSWORD 通常是邮箱授权码，不是网页登录密码。',
       '可用 STOCK_GROUP_N / EMAIL_GROUP_N 配置分组收件人。',
+      'EMAIL_SENDER_NAME 只是收件人看到的显示名，不会改变 SMTP 登录账号。',
     ],
     impact: ['影响邮件报告发送、分组收件和大盘复盘邮件送达。'],
     notes: ['不同邮箱服务商需要先开启 SMTP 服务。'],
@@ -575,6 +768,71 @@ const settingsHelpZhCN: SettingsHelpMap = {
     valueNotes: ['同一平台同时配置 Bot 与 Webhook 时，代码可能按既定优先级选择其中一种。'],
     impact: ['影响对应聊天平台通知渠道。'],
     notes: ['Bot Token、Webhook URL、SendKey 都应按密钥处理。'],
+  },
+  'settings.notification.bot_runtime': {
+    title: '机器人命令入口',
+    summary: '控制聊天平台回调是否执行命令、命令前缀，以及管理员用户白名单。',
+    usage: 'BOT_ENABLED 是 Webhook 命令入口的总开关；BOT_COMMAND_PREFIX 决定识别命令的前缀（默认 /）；BOT_ADMIN_USERS 用英文逗号分隔平台用户 ID，只影响标记为仅管理员可用的命令。',
+    valueNotes: [
+      '关闭 BOT_ENABLED 只让 Webhook 入口不再执行命令，不会断开已经启动的飞书 / 钉钉 Stream 长连接；长连接由各自的 *_STREAM_ENABLED 在进程启动时决定。',
+      '命令前缀和管理员列表在分发器单例首次构建时读取，设置页保存不会重置分发器，需要重启服务生效。',
+      '当前没有命令声明仅管理员可用，因此 BOT_ADMIN_USERS 暂不影响任何命令；一旦新增此类命令，未列出的用户会被拒绝。',
+      'BOT_ENABLED 按 .lower() == true 判定，大小写不敏感（TRUE 有效），但写 1 / yes 等同于关闭。',
+    ],
+    impact: ['影响飞书、钉钉等平台的入站命令处理与帮助命令展示。'],
+    notes: ['企业微信和 Telegram 适配器尚未实现，相关配置项暂未在设置页开放。'],
+  },
+  'settings.notification.feishu_event_security': {
+    title: '飞书事件订阅安全',
+    summary: '飞书应用机器人 / 事件订阅模式的校验 Token 与加密密钥。',
+    usage: '在飞书开发者后台开启事件订阅后，把 Verification Token 与 Encrypt Key 填到对应字段；群 Webhook 推送不使用这两个字段。',
+    valueNotes: [
+      'Stream 长连接在启动时读取这两个值，保存后需要重启服务才会用新值建连。',
+      '未开启加密推送时 Encrypt Key 可留空，SDK 会以空字符串接收。',
+    ],
+    impact: ['影响飞书事件回调的验签与解密。'],
+    notes: ['与 FEISHU_WEBHOOK_SECRET 是两套独立机制，不要混填。'],
+  },
+  'settings.notification.feishu_delivery': {
+    title: '飞书报告发送形态',
+    summary: '控制飞书消息的分段阈值、是否以文件发送报告，以及长报告落到的云文档文件夹。',
+    usage: 'FEISHU_MAX_BYTES 是单条消息分段的字节阈值（默认 20000）；FEISHU_SEND_AS_FILE 让报告以附件发送；FEISHU_FOLDER_TOKEN 配合 FEISHU_APP_ID / FEISHU_APP_SECRET 把长报告发布为云文档。',
+    valueNotes: [
+      '这些配置在通知服务实例构建时读取，保存后下一次通知即生效，不需要重启服务。',
+      'FEISHU_MAX_BYTES 只设下限 1：低于 1 在设置页保存会被拒绝（out_of_range），写在 .env 或进程环境变量里的低于 1 的值加载时收敛到 1。',
+      'FEISHU_SEND_AS_FILE 接受 true / 1 / yes，开关比 BOT_ENABLED 宽松。',
+    ],
+    impact: ['影响飞书报告的分片数量、是否附件化，以及超长报告是否被截断。'],
+    notes: ['云文档方式需要先把目标文件夹授权给应用可管理。'],
+  },
+  'settings.notification.wechat_delivery': {
+    title: '企业微信消息形态',
+    summary: '控制企业微信群机器人推送时用的消息类型，以及单条消息的字节上限。',
+    usage: 'WECHAT_MSG_TYPE 决定发 markdown 还是纯文本；WECHAT_MAX_BYTES 是单条消息的字节阈值（默认 4000），超过后分批发送。Webhook 本身在「通知渠道」分类配置。',
+    valueNotes: [
+      '这些配置在通知服务实例构建时读取，保存后下一次通知即生效，不需要重启服务。',
+      'WECHAT_MSG_TYPE 只影响企业微信一个渠道：markdown 会渲染格式，但在微信内置浏览器里常常展示不好；text 发纯文本，兼容最好。',
+      'text 模式下运行时会把单条上限再压到 2000 字节（取 WECHAT_MAX_BYTES 与 2000 的较小值），因为企业微信 text 类型本身限 2048 字节。',
+      'WECHAT_MAX_BYTES 不填时的默认值跟消息类型走：text 为 2048、markdown 为 4000；registry 展示的是字段声明默认 4000。',
+      '超过阈值的报告会分批发送，不会被截断；只设下限 1，低于 1 在设置页保存会被拒绝（out_of_range），写在 .env 或进程环境变量里的低于 1 的值加载时收敛到 1。',
+    ],
+    impact: ['影响企业微信报告的渲染形式（格式 / 纯文本）与分批数量，也决定单条消息的上限能否调大。'],
+    notes: ['运行时对消息类型只做大小写归一，非 text 的值一律按 markdown 处理；设置页的下拉会先拦住列表之外的取值。'],
+  },
+  'settings.notification.markdown_to_image': {
+    title: '报告转图片',
+    summary: '把 Markdown 报告渲染成 PNG，让不支持 Markdown 的渠道也能看到排版好的报告。',
+    usage: 'MARKDOWN_TO_IMAGE_CHANNELS 列出需要图片形式的渠道（逗号分隔，如 telegram,wechat,custom,email,slack）；MARKDOWN_TO_IMAGE_MAX_CHARS 是允许转图的最大正文字符数（默认 15000）；MD2IMG_ENGINE 选择外部渲染引擎。',
+    valueNotes: [
+      '这两个数值与引擎在通知服务实例构建时读取，引擎则在每次转图调用时读取，保存后下一次通知即生效，不需要重启服务。',
+      'MARKDOWN_TO_IMAGE_CHANNELS 默认为空，即该特性关闭：只有列出的渠道会把报告转成图片，且渠道本身仍需先配置好。',
+      'MARKDOWN_TO_IMAGE_MAX_CHARS 是“跳过开关”而不是截断长度：报告字符数超过它就完全不转图（只发文字），调大才会让长报告也出图，代价是图片更大、渲染更慢。',
+      'MD2IMG_ENGINE 只有两个取值：wkhtmltoimage（默认，需装 wkhtmltopdf）与 markdown-to-file（emoji 支持更好，需 npm i -g markdown-to-file）。',
+      '选定引擎不在 PATH 里或转换失败时不会报错中断，而是降级为普通文字发送（日志里有 warning）。',
+      '数值区间只声明下限：低于 1 在设置页保存会被拒绝（out_of_range），写在 .env 或进程环境变量里的低于 1 的值加载时收敛到 1。',
+    ],
+    impact: ['决定哪些渠道的报告会以图片发送、多长的报告会被跳过转图，以及图片由哪个外部引擎渲染。'],
+    notes: ['两种引擎都依赖系统二进制：官方 Docker 镜像已预装 wkhtmltopdf（默认引擎可直接用），`markdown-to-file` 需镜像内自行安装；选定引擎不在环境里时该特性会默默降级为文字。'],
   },
   'settings.notification.report_output': {
     title: '报告输出设置',
@@ -1245,6 +1503,34 @@ const settingsHelpZhCN: SettingsHelpMap = {
     impact: ['影响分析报告中大盘概览部分的内容和视觉呈现。'],
     notes: ['大盘分析依赖对应市场的指数数据源可用性。'],
   },
+  'settings.system.portfolio_risk': {
+    title: '组合风险阈值',
+    summary: '设置持仓风险报告的集中度、回撤、止损预警阈值与回撤统计窗口，同时决定持仓告警规则的触发灵敏度。',
+    usage: 'PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT / PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT / PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT 按百分比填写（35 表示 35%）；PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO 是止损阈值的小数比例（0.8 表示亏到止损线的 80% 就列入预警）；PORTFOLIO_RISK_LOOKBACK_DAYS 为回撤统计的自然日窗口。',
+    valueNotes: [
+      '这些值不只是页面展示默认值：会写入风险报告的 thresholds，并参与持仓告警规则的触发判定（breach 模式比较止损线，near 模式的阈值为止损百分比 × 接近比例）。',
+      '数值只收下限不收上限：把阈值填大只会让告警更难触发；设置页保存低于下限的值会被拒绝（out_of_range），而 .env 或进程环境变量里低于下限的值加载时静默收敛（百分比与比例收敛到 0，LOOKBACK_DAYS 收敛到 1）。',
+      '回撤窗口内缺失的每日快照会在计算前自动回填，窗口越大首次风险报告越慢，回撤幅度也统计得越长。',
+      '集中度阈值同时用于单票集中度与板块集中度判断。',
+    ],
+    impact: ['影响 /portfolio 风险摘要的告警标记，以及持仓告警规则是否触发与推送。'],
+    notes: [
+      '风险服务按请求构建，保存后下一次风险报告或告警评估即使用新阈值，不需要重启；CLI / 定时任务进程仍使用启动时读取的配置。',
+      '若 GitHub Actions 每日任务注入了同名环境变量，该场景以仓库 Variables / Secrets 为准，设置页保存不影响每日任务。',
+    ],
+  },
+  'settings.system.portfolio_fx': {
+    title: '汇率在线刷新',
+    summary: '控制持仓页手动刷新汇率时是否访问在线数据源。',
+    usage: '关闭后仍使用已缓存汇率计算持仓与风险，只是不再向外部接口请求最新汇率。',
+    valueNotes: [
+      '布尔解析只认字面量 true（大小写不敏感），写 1 或 yes 会被当作关闭。',
+      '关闭时手动刷新接口返回显式的 refresh_enabled=false 与 disabled_reason，页面提示“在线刷新已禁用”，不会误报成“当前没有可刷新的汇率对”。',
+      '在线获取失败时回退到最近一次缓存并标记 is_stale=true，快照与风险页不会整体不可用。',
+    ],
+    impact: ['影响持仓页汇率刷新接口的行为和跨币种持仓的市值换算时效。'],
+    notes: ['按调用读取配置，保存后下一次刷新请求即生效，不需要重启。'],
+  },
 };
 
 const settingsHelpEnUS: SettingsHelpMap = {
@@ -1602,6 +1888,142 @@ const settingsHelpEnUS: SettingsHelpMap = {
     impact: ['Affects quote connectivity and availability when the Pytdx data source is used.'],
     notes: ['If a server is unreachable, rely on data-source fallback and avoid a single unstable endpoint.'],
   },
+  'settings.data_source.stockdb': {
+    title: 'StockDB Local Source',
+    summary: 'StockDB is an optional local quote service that can join K-line, stock info, and code-search candidate sources.',
+    usage: 'Point STOCKDB_BASE_URL at a running StockDB HTTP service, then enable STOCKDB_ENABLED. Adjust timeout, row limit, cache TTL, and failure cooldown as needed.',
+    valueNotes: [
+      'STOCKDB_BASE_URL must start with http:// or https://.',
+      'No StockDB request is made while the switch is off.',
+      'After a connection failure the source is skipped for STOCKDB_COOLDOWN_SEC to avoid per-request retries slowing the main flow.',
+    ],
+    impact: ['Affects the StockDB portion of K-line, stock info, and code-search requests.'],
+    notes: ['When the local service is unavailable, rely on data-source fallback; it should not block analysis.'],
+  },
+  'settings.data_source.stocksdk': {
+    title: 'StockSDK Node Bridge',
+    summary: 'StockSDK provides optional K-line, stock info, and code-search data through a Node.js bridge process.',
+    usage: 'Make sure node is executable in the runtime, then enable STOCKSDK_ENABLED. STOCKSDK_NODE_BIN accepts an absolute path; STOCKSDK_BRIDGE_ENTRY defaults to the bundled bridge.mjs.',
+    valueNotes: [
+      'STOCKSDK_TIMEOUT_MS bounds one bridge request; STOCKSDK_RATE_LIMIT_RPS controls request frequency.',
+      'STOCKSDK_KLINE_FALLBACK lets the bridge apply its own K-line fallback when the primary upstream fails.',
+      'The bridge process is not started while the switch is off.',
+    ],
+    impact: ['Affects the StockSDK portion of K-line, stock info, and code-search requests.'],
+    notes: ['The bridge depends on Node; a missing or failing Node runtime falls back to other data sources.'],
+  },
+  'settings.data_source.kline_routing': {
+    title: 'K-line Source Routing',
+    summary: 'Selects the preferred source for daily and historical K-line requests, plus the fallback behavior.',
+    usage: 'KLINE_DATA_SOURCE=auto follows KLINE_SOURCE_PRIORITY; you can also pin a single source. KLINE_FALLBACK_ENABLED=false tries only the primary source.',
+    valueNotes: [
+      'Priority lists use English commas and run from highest to lowest.',
+      'Allowed values: auto, local, sina, eastmoney, tencent, stocksdk.',
+    ],
+    impact: ['Affects K-line fetch success, technical analysis, and price data in reports.'],
+    notes: ['A failing source continues down the chain; avoid relying on a single unstable source.'],
+  },
+  'settings.data_source.stockinfo_routing': {
+    title: 'Stock Info Source Routing',
+    summary: 'Selects the preferred source for stock names and basic info, plus the fallback order.',
+    usage: 'STOCKINFO_DATA_SOURCE=auto follows STOCKINFO_SOURCE_PRIORITY; you can also pin a single source. STOCKINFO_FALLBACK_ENABLED=false tries only the primary source.',
+    valueNotes: [
+      'Priority lists use English commas and run from highest to lowest.',
+      'Allowed values: auto, local, eastmoney, tencent, stocksdk.',
+    ],
+    impact: ['Affects stock-name resolution, autocomplete, and basic info shown in reports.'],
+    notes: ['A failing source continues down the chain.'],
+  },
+  'settings.data_source.codesearch_routing': {
+    title: 'Code Search Source Routing',
+    summary: 'Selects the preferred source when searching stock codes by name or pinyin, plus the fallback order.',
+    usage: 'CODESEARCH_DATA_SOURCE=auto follows CODESEARCH_SOURCE_PRIORITY; you can also pin a single source. CODESEARCH_FALLBACK_ENABLED=false tries only the primary source.',
+    valueNotes: [
+      'Priority lists use English commas and run from highest to lowest.',
+      'Allowed values: auto, local, eastmoney, stocksdk.',
+    ],
+    impact: ['Affects Web stock search, watchlist additions, and code recognition.'],
+    notes: ['A failing source continues down the chain.'],
+  },
+  'settings.data_source.sector_routing': {
+    title: 'Sector Source Routing',
+    summary: 'Selects the source used for sector rankings, plus the fallback order when the primary source fails.',
+    usage:
+      'SECTOR_DATA_SOURCE=auto follows SECTOR_SOURCE_PRIORITY; you can also pin a single source. SECTOR_FALLBACK_ENABLED=false tries only the primary source.',
+    valueNotes: [
+      'Priority lists use English commas and run from highest to lowest.',
+      'Only eastmoney is registered in the default source table today; other values have no effect.',
+    ],
+    impact: ['Affects the data source behind sector rankings and sector-related analysis.'],
+    notes: ['Takes effect after a runtime config reload; no process restart is required.'],
+  },
+  'settings.data_source.limitpool_routing': {
+    title: 'Limit Pool Source Routing',
+    summary: 'Selects the source used for limit-up / limit-down pools, plus the fallback order.',
+    usage:
+      'LIMITPOOL_DATA_SOURCE=auto follows LIMITPOOL_SOURCE_PRIORITY. stocksdk requires STOCKSDK_ENABLED.',
+    valueNotes: [
+      'Priority lists use English commas and run from highest to lowest.',
+      'Allowed values today: eastmoney, stocksdk.',
+    ],
+    impact: ['Affects the data source behind limit pools and sentiment statistics.'],
+    notes: ['Takes effect after a runtime config reload; no process restart is required.'],
+  },
+  'settings.data_source.alphavantage': {
+    title: 'Alpha Vantage API Key',
+    summary: 'Provides quote and fundamental data for markets such as US equities. Leave empty to disable this source.',
+    usage: 'Request a key from Alpha Vantage and fill in ALPHAVANTAGE_API_KEY.',
+    valueNotes: [
+      'An empty value disables this source without affecting the others.',
+      'The free tier is rate limited; bursty usage can be throttled.',
+    ],
+    impact: ['Affects quote and fundamental requests that rely on Alpha Vantage.'],
+    notes: [
+      'If a container environment variable with the same name is present, it overrides the value saved here; restart the container for the new value to take effect.',
+    ],
+  },
+  'settings.data_source.finnhub': {
+    title: 'Finnhub API Key',
+    summary: 'Provides market data for US equities. Leave empty to disable this source.',
+    usage: 'Request a key from Finnhub and fill in FINNHUB_API_KEY.',
+    valueNotes: [
+      'An empty value disables this source without affecting the others.',
+      'The free tier is rate limited per minute; failures fall through to later sources.',
+    ],
+    impact: ['Affects US market requests that rely on Finnhub.'],
+    notes: [
+      'If a container environment variable with the same name is present, it overrides the value saved here; restart the container for the new value to take effect.',
+    ],
+  },
+  'settings.data_source.longbridge': {
+    title: 'Longbridge Configuration',
+    summary:
+      'Longbridge OpenAPI provides HK and US market data. OAuth 2.0 is preferred; the legacy API-key triplet remains supported.',
+    usage:
+      'Prefer LONGBRIDGE_OAUTH_CLIENT_ID and let the SDK manage the token cache. For the legacy flow, set LONGBRIDGE_APP_KEY, LONGBRIDGE_APP_SECRET, and LONGBRIDGE_ACCESS_TOKEN.',
+    valueNotes: [
+      'In OAuth mode the SDK maintains the access token, so LONGBRIDGE_ACCESS_TOKEN is usually unnecessary.',
+      'APP_KEY / APP_SECRET and OAuth Client ID are two separate connection modes; do not mix them.',
+      'Longbridge requires a separate market-data subscription; requests fail without the entitlement.',
+    ],
+    impact: ['Affects HK and US market data retrieved through Longbridge.'],
+    notes: [
+      'If a container environment variable with the same name is present, it overrides the value saved here; restart the container for the new value to take effect.',
+    ],
+  },
+  'settings.data_source.social_sentiment': {
+    title: 'Social Sentiment Source',
+    summary: 'Supplies social sentiment data to analysis. Leave the API key empty to skip this capability.',
+    usage: 'Set SOCIAL_SENTIMENT_API_URL for the endpoint and SOCIAL_SENTIMENT_API_KEY for access.',
+    valueNotes: [
+      'Trailing slashes are stripped from the URL when the value is loaded.',
+      'An empty API key disables social sentiment.',
+    ],
+    impact: ['Affects social sentiment signals in the analysis context.'],
+    notes: [
+      'If a container environment variable with the same name is present, it overrides the value saved here; restart the container for the new value to take effect.',
+    ],
+  },
   'settings.data_source.news_window': {
     title: 'News Window',
     summary: 'Controls how old news can be before it is excluded from analysis context.',
@@ -1609,6 +2031,62 @@ const settingsHelpEnUS: SettingsHelpMap = {
     valueNotes: ['The effective window is constrained by both values.'],
     impact: ['Affects news context size, freshness, and report length.'],
     notes: ['Too wide can include stale news; too narrow can miss slow-moving events.'],
+  },
+  'settings.data_source.live_news': {
+    title: 'Live News',
+    summary: 'Controls the source, refresh cadence, and importance threshold behind the Market News → Live News page.',
+    usage:
+      'WSCN_LIVE_NEWS_ENABLED is the master switch; WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC throttles on-demand refresh (0 keeps manual refresh only); WSCN_LIVE_NEWS_BASE_URL sets the upstream endpoint.',
+    valueNotes: [
+      'WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC is in seconds, range 0–86400, default 300. 0 disables automatic fetching.',
+      'WSCN_LIVE_NEWS_IMPORTANT_SCORE is the importance threshold (1–10, default 3).',
+      'WSCN_LIVE_NEWS_DEFAULT_LIMIT is the default page size (1–100, default 30).',
+      'WSCN_LIVE_NEWS_TIMEOUT_SEC is the per-channel timeout (1–30 seconds, default 8).',
+      'WSCN_LIVE_NEWS_FALLBACK_NEWSNOW falls back to the NewsNow aggregation source when the official endpoint fails.',
+    ],
+    impact: ['Affects live news availability, refresh frequency, and the Important filter.'],
+    notes: [
+      'The upstream feed is a rolling window; an interval that is too large loses items, so keep it at or below 1800 seconds.',
+      'Disabling WSCN_LIVE_NEWS_ENABLED makes every live-news endpoint return an empty list and stops outbound requests.',
+    ],
+  },
+  'settings.data_source.live_calendar': {
+    title: 'Economic Calendar',
+    summary: 'Controls the source, timeout, and importance threshold behind the Market News → Calendar page.',
+    usage:
+      'WALLSTREETCN_CALENDAR_ENABLED is the master switch; WALLSTREETCN_CALENDAR_BASE_URL sets the endpoint; WALLSTREETCN_CALENDAR_TIMEOUT bounds one request.',
+    valueNotes: [
+      'The calendar host differs from the live news host; the default is https://api-one-wscn.awtmt.com.',
+      'WALLSTREETCN_CALENDAR_TIMEOUT range is 1–30 seconds, default 8.',
+      'WALLSTREETCN_CALENDAR_IMPORTANT_SCORE range is 0–10, default 3, sharing the live news scale.',
+    ],
+    impact: ['Affects calendar event availability and the Important marker.'],
+    notes: ['When disabled, calendar endpoints return no events and stop fetching; it can be re-enabled at any time.'],
+  },
+  'settings.data_source.news_intel': {
+    title: 'Local News Intelligence Pool',
+    summary: 'Controls automatic collection, per-source item count, fetch timeout, and retention for the local intelligence pool.',
+    usage:
+      'NEWS_INTEL_AUTO_FETCH_ENABLED makes analysis fetch enabled sources before reading the pool; the other three keys control volume and cleanup.',
+    valueNotes: [
+      'Automatic fetching is off by default to avoid unconfirmed outbound requests and input changes.',
+      'NEWS_INTEL_MAX_ITEMS_PER_SOURCE range is 1–200, default 50.',
+      'NEWS_INTEL_FETCH_TIMEOUT_SEC range is 1–30 seconds, default 8; slow sources are skipped.',
+      'NEWS_INTEL_RETENTION_DAYS range is 1–365, default 30; only pool items are cleaned, historical reports are kept.',
+    ],
+    impact: ['Affects news sources, volume, and freshness in the analysis context.'],
+    notes: ['The default GitHub Actions workflow does not pass NEWS_INTEL_AUTO_FETCH_ENABLED through; add the mapping yourself if you run on Actions.'],
+  },
+  'settings.data_source.newsnow': {
+    title: 'NewsNow Aggregator',
+    summary: 'NewsNow HTTP API base URL used by aggregation sources and the live-news fallback.',
+    usage: 'Point it at your own NewsNow instance, for example https://newsnow.example.com; trailing slashes are stripped.',
+    valueNotes: [
+      'The default https://newsnow.busiyi.world is a public demo instance without stability guarantees, suitable for trials only.',
+      'Use a self-hosted instance in production.',
+    ],
+    impact: ['Affects NewsNow-backed aggregation sources and the live-news fallback chain.'],
+    notes: ['This URL only affects news requests; it does not change LLM or provider base URLs.'],
   },
   'settings.notification.FEISHU_WEBHOOK_URL': {
     title: 'Feishu Webhook URL',
@@ -1759,7 +2237,7 @@ const settingsHelpEnUS: SettingsHelpMap = {
     title: 'Email Delivery',
     summary: 'Sends analysis reports through SMTP.',
     usage: 'Set sender, SMTP authorization code, and comma-separated receivers.',
-    valueNotes: ['EMAIL_PASSWORD is usually an app authorization code, not the web login password.', 'STOCK_GROUP_N and EMAIL_GROUP_N can route groups to different receivers.'],
+    valueNotes: ['EMAIL_PASSWORD is usually an app authorization code, not the web login password.', 'STOCK_GROUP_N and EMAIL_GROUP_N can route groups to different receivers.', 'EMAIL_SENDER_NAME only changes the display name in the recipient inbox, not the SMTP account.'],
     impact: ['Affects email reports, grouped recipients, and market-review emails.'],
     notes: ['Enable SMTP in the mailbox provider first.'],
   },
@@ -1770,6 +2248,71 @@ const settingsHelpEnUS: SettingsHelpMap = {
     valueNotes: ['When both Bot and Webhook are configured, existing code may prefer one mode.'],
     impact: ['Affects the corresponding chat notification channel.'],
     notes: ['Bot tokens, webhook URLs, and SendKeys are secrets.'],
+  },
+  'settings.notification.bot_runtime': {
+    title: 'Bot Command Entry',
+    summary: 'Controls whether platform callbacks execute commands, the command prefix, and the admin allow-list.',
+    usage: 'BOT_ENABLED is the master switch for the webhook command entry; BOT_COMMAND_PREFIX sets the prefix used to recognise commands (default /); BOT_ADMIN_USERS is a comma-separated list of platform user IDs allowed to run admin-only commands.',
+    valueNotes: [
+      'Turning BOT_ENABLED off only stops the webhook entry from executing commands; it does not drop already established Feishu / DingTalk Stream connections, which are started by their own *_STREAM_ENABLED flags at process startup.',
+      'The prefix and the admin list are read once when the command dispatcher singleton is first built. Saving from the settings page does not reset the dispatcher, so a restart is required.',
+      'No command declares itself admin-only today, so BOT_ADMIN_USERS has no visible effect yet; once one is added, users outside this list will be rejected.',
+      'BOT_ENABLED uses .lower() == true, so TRUE works but 1 or yes keeps it off.',
+    ],
+    impact: ['Affects inbound command handling and the help command output for chat platforms.'],
+    notes: ['WeCom and Telegram adapters are not implemented, so their keys are not exposed in the settings page yet.'],
+  },
+  'settings.notification.feishu_event_security': {
+    title: 'Feishu Event Security',
+    summary: 'Verification token and encrypt key for the Feishu app-bot / event subscription mode.',
+    usage: 'After enabling event subscription in the Feishu developer console, fill in the verification token and encrypt key. Group webhook delivery does not use these fields.',
+    valueNotes: [
+      'The Stream client reads both values when it connects, so a saved change needs a service restart to take effect.',
+      'The encrypt key can stay empty when encrypted event push is off; the SDK receives an empty string.',
+    ],
+    impact: ['Affects signature verification and decryption of Feishu event callbacks.'],
+    notes: ['This is a different mechanism from FEISHU_WEBHOOK_SECRET; do not mix the values.'],
+  },
+  'settings.notification.feishu_delivery': {
+    title: 'Feishu Report Delivery',
+    summary: 'Controls the chunk threshold, whether reports are sent as a file, and the Drive folder for long reports.',
+    usage: 'FEISHU_MAX_BYTES is the byte threshold for splitting one message (default 20000); FEISHU_SEND_AS_FILE sends reports as attachments; FEISHU_FOLDER_TOKEN, together with FEISHU_APP_ID / FEISHU_APP_SECRET, publishes long reports as a Drive document.',
+    valueNotes: [
+      'These are read when the notification service instance is built, so the next delivery picks up a saved change without a restart.',
+      'Values below 1 for FEISHU_MAX_BYTES are rejected on the settings page (out_of_range), while a value below 1 in .env or the process environment is clamped to 1 on load.',
+      'FEISHU_SEND_AS_FILE accepts true / 1 / yes, a looser rule than BOT_ENABLED.',
+    ],
+    impact: ['Affects how many Feishu chunks a report produces, whether it becomes an attachment, and whether long reports are truncated.'],
+    notes: ['The Drive folder must grant the app manage permission first.'],
+  },
+  'settings.notification.wechat_delivery': {
+    title: 'WeChat Work Message Form',
+    summary: 'Controls the message type and the per-message byte threshold used when pushing to a WeChat Work group bot.',
+    usage: 'WECHAT_MSG_TYPE picks markdown or plain text; WECHAT_MAX_BYTES is the byte threshold for splitting one message (default 4000). The webhook itself is configured under the Notification category.',
+    valueNotes: [
+      'These are read when the notification service instance is built, so the next delivery picks up a saved change without a restart.',
+      'WECHAT_MSG_TYPE only affects the WeChat Work channel: markdown renders formatting but often displays poorly inside the WeChat app, while text sends plain text with the best compatibility.',
+      'In text mode the runtime additionally holds the per-message limit at 2000 bytes (the smaller of WECHAT_MAX_BYTES and 2000), because WeChat Work caps a text message at 2048 bytes.',
+      'When WECHAT_MAX_BYTES is unset the default follows the message type: 2048 for text, 4000 otherwise; the registry shows the declared field default 4000.',
+      'Over-threshold reports are split into several sends, never truncated. Only the lower bound 1 is declared: values below 1 are rejected on the settings page (out_of_range), while a value below 1 in .env or the process environment is clamped to 1 on load.',
+    ],
+    impact: ['Affects how WeChat Work reports are rendered (formatted or plain) and how many chunks they split into, and whether the per-message cap can be raised.'],
+    notes: ['The runtime only normalises casing for the message type; any value other than text behaves as markdown. The settings dropdown rejects values outside the list first.'],
+  },
+  'settings.notification.markdown_to_image': {
+    title: 'Report To Image',
+    summary: 'Renders the Markdown report as a PNG so channels without Markdown support can still show a formatted report.',
+    usage: 'MARKDOWN_TO_IMAGE_CHANNELS lists the channels that receive the image form (comma-separated, e.g. telegram,wechat,custom,email,slack); MARKDOWN_TO_IMAGE_MAX_CHARS is the maximum body length allowed for conversion (default 15000); MD2IMG_ENGINE selects the external renderer.',
+    valueNotes: [
+      'The two values and the engine are read when the notification service instance is built, and the engine again at each conversion call, so the next delivery picks up a saved change without a restart.',
+      'MARKDOWN_TO_IMAGE_CHANNELS defaults to empty, which disables the feature: only listed channels turn the report into an image, and each channel still has to be configured on its own.',
+      'MARKDOWN_TO_IMAGE_MAX_CHARS is a skip switch, not a truncation length: a longer report is not converted at all (text only). Raising it lets long reports become images too, at the cost of larger images and slower renders.',
+      'MD2IMG_ENGINE has two values: wkhtmltoimage (default, requires wkhtmltopdf) and markdown-to-file (better emoji support, requires npm i -g markdown-to-file).',
+      'If the selected engine is missing from PATH or the conversion fails, the run does not abort; it degrades to a plain text send and logs a warning.',
+      'Numeric ranges only declare the lower bound: values below 1 are rejected on the settings page (out_of_range), while a value below 1 in .env or the process environment is clamped to 1 on load.',
+    ],
+    impact: ['Decides which channels receive reports as images, how long a report may be before conversion is skipped, and which external engine renders the image.'],
+    notes: ['Both engines depend on system binaries: the official Docker image already ships wkhtmltopdf (so the default engine works out of the box), while markdown-to-file must be installed into the image yourself. When the selected engine is absent the feature silently degrades to text.'],
   },
   'settings.notification.report_output': {
     title: 'Report Output',
@@ -2431,6 +2974,34 @@ const settingsHelpEnUS: SettingsHelpMap = {
     ],
     impact: ['Affects the market overview section in analysis reports.'],
     notes: ['Market review depends on the availability of index data sources for the selected markets.'],
+  },
+  'settings.system.portfolio_risk': {
+    title: 'Portfolio Risk Thresholds',
+    summary: 'Sets the concentration, drawdown and stop-loss warning thresholds of the portfolio risk report, together with the lookback window, and controls how sensitive portfolio alert rules are.',
+    usage: 'PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT / PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT / PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT are percentages (35 means 35%); PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO is a fraction of the stop-loss line (0.8 lists a holding once it has lost 80% of the stop-loss distance); PORTFOLIO_RISK_LOOKBACK_DAYS is the calendar-day window for the drawdown series.',
+    valueNotes: [
+      'These are not display-only defaults: they are written into the risk report thresholds and feed portfolio alert-rule evaluation (breach mode compares against the stop-loss line, near mode uses stop_loss_alert_pct × near ratio).',
+      'Only the lower bound is declared, so a larger value simply makes alerts harder to fire. Out-of-range handling differs by entry point: the settings page rejects a value below the bound (out_of_range) instead of saving it, while a value below it in .env or the process environment is silently clamped on load (percentages and the ratio to 0, LOOKBACK_DAYS to 1).',
+      'Missing daily snapshots inside the window are backfilled before the calculation, so a longer window means a slower first risk report and a drawdown measured over a longer period.',
+      'The concentration threshold is used for both single-position and sector concentration.',
+    ],
+    impact: ['Affects alert flags in the /portfolio risk summary and whether portfolio alert rules fire and notify.'],
+    notes: [
+      'The risk service is built per request, so a saved value applies to the next risk report or alert evaluation without a restart; CLI and scheduler processes still use the configuration read at startup.',
+      'If the GitHub Actions daily run injects the same variable names, that scenario is driven by repository Variables / Secrets and the settings page has no effect there.',
+    ],
+  },
+  'settings.system.portfolio_fx': {
+    title: 'Portfolio FX Online Refresh',
+    summary: 'Controls whether the manual rate refresh on the holdings page is allowed to call online sources.',
+    usage: 'When disabled, positions and risk are still computed from cached rates; the system simply stops requesting the latest rates from external sources.',
+    valueNotes: [
+      'Boolean parsing accepts only the literal true (case-insensitive); writing 1 or yes is read as disabled.',
+      'While disabled, the refresh endpoint returns an explicit refresh_enabled=false with a disabled_reason, so the page says online refresh is turned off instead of implying that no refreshable pairs exist.',
+      'If the online fetch fails, rates fall back to the last cache with is_stale=true, keeping the snapshot and risk pages usable.',
+    ],
+    impact: ['Affects the holdings page FX refresh endpoint and how current the rates behind multi-currency positions are.'],
+    notes: ['Read per call, so a saved change applies to the next refresh request without a restart.'],
   },
 };
 

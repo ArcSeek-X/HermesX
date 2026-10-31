@@ -17,8 +17,8 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.analyzer import AnalysisResult
-from src.core.pipeline import StockAnalysisPipeline
+from src.application.analysis.analyzer import AnalysisResult
+from src.application.analysis.pipeline import StockAnalysisPipeline
 
 
 def _make_result(code: str) -> AnalysisResult:

@@ -20,7 +20,8 @@ from typing import Dict, Any, Optional
 from urllib.parse import quote_plus
 
 from bot.platforms.base import BotPlatform
-from bot.models import BotMessage, BotResponse, WebhookResponse, ChatType
+from bot.models import BotResponse, WebhookResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 import unittest
 import json
 from unittest.mock import patch, MagicMock
-from src.notification_sender.dingtalk_sender import DingtalkSender
+from src.infrastructure.notification.senders.dingtalk_sender import DingtalkSender
 from src.config import Config
 
 class TestDingtalkSender(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestDingtalkSender(unittest.TestCase):
         self.config.dingtalk_secret = "test_secret"
         self.sender = DingtalkSender(self.config)
 
-    @patch("src.notification_sender.dingtalk_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.dingtalk_sender.requests.post")
     def test_send_success(self, mock_post):
         mock_response = MagicMock()
         mock_response.json.return_value = {"errcode": 0, "errmsg": "ok"}
@@ -26,7 +26,7 @@ class TestDingtalkSender(unittest.TestCase):
         self.assertIn("timestamp=", called_url)
         self.assertIn("sign=", called_url)
 
-    @patch("src.notification_sender.dingtalk_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.dingtalk_sender.requests.post")
     def test_send_chunked_long_chinese_message_payload_size(self, mock_post):
         """测试超过 20KB 限制的多字节中文长文本与长标题，验证实际发送的 JSON payload 字节数严格遵守限制"""
         mock_response = MagicMock()
@@ -56,7 +56,7 @@ class TestDingtalkSender(unittest.TestCase):
             # 确保标题被成功截断并没有丢失分页信息
             self.assertLessEqual(len(payload['markdown']['title']), 120)
 
-    @patch("src.notification_sender.dingtalk_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.dingtalk_sender.requests.post")
     def test_send_api_error(self, mock_post):
         mock_response = MagicMock()
         mock_response.json.return_value = {"errcode": 310000, "errmsg": "invalid token"}
@@ -65,7 +65,7 @@ class TestDingtalkSender(unittest.TestCase):
         result = self.sender.send_to_dingtalk("Test content")
         self.assertFalse(result)
 
-    @patch("src.notification_sender.dingtalk_sender.requests.post")
+    @patch("src.infrastructure.notification.senders.dingtalk_sender.requests.post")
     def test_send_exception(self, mock_post):
         mock_post.side_effect = Exception("Network Error")
         result = self.sender.send_to_dingtalk("Test content")

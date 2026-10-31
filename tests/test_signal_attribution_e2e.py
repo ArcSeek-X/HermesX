@@ -16,10 +16,10 @@ import json
 # 添加 src 到 path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from src.analyzer import AnalysisResult, check_content_integrity
+from src.application.analysis.analyzer import AnalysisResult, check_content_integrity
 from src.utils.data_processing import normalize_dashboard_signal_attribution
-from src.agent.runner import parse_dashboard_json
-from src.services.report_renderer import render
+from src.application.agent.runner import parse_dashboard_json
+from src.application.reporting.report_renderer import render
 
 
 class TestSignalAttributionE2E:
@@ -62,7 +62,7 @@ class TestSignalAttributionE2E:
         1. 输入贡献度为字符串 "30%" → 归一化后变为 int 30
         2. 输入贡献度之和不为 100 → 归一化后变为之和=100
         """
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         # 创建 analyzer 实例
         analyzer = GeminiAnalyzer.__new__(GeminiAnalyzer)
@@ -120,7 +120,7 @@ class TestSignalAttributionE2E:
         1. signal_attribution 存在时，通知中包含"信号归因"段落
         2. 四个贡献度都正确显示
         """
-        from src.notification import NotificationService
+        from src.application.notification.notification import NotificationService
 
         signal_attr = {
             "technical_indicators": 35,
@@ -199,8 +199,8 @@ class TestSignalAttributionE2E:
 
     def test_partial_signal_attribution_uses_same_display_contract(self):
         """Partial weights should not render N/A% or None% in any report path."""
-        from src.notification import NotificationService
-        from src.services.history_service import HistoryService
+        from src.application.notification.notification import NotificationService
+        from src.application.history.read_model import HistoryService
 
         dashboard = self._make_dashboard_with_signal_attr({
             "technical_indicators": 35,
@@ -229,8 +229,8 @@ class TestSignalAttributionE2E:
 
     def test_all_zero_signal_attribution_is_hidden_without_signals(self):
         """All-zero weights without strongest signals should not render attribution."""
-        from src.notification import NotificationService
-        from src.services.history_service import HistoryService
+        from src.application.notification.notification import NotificationService
+        from src.application.history.read_model import HistoryService
 
         dashboard = self._make_dashboard_with_signal_attr({
             "technical_indicators": 0,
@@ -259,9 +259,9 @@ class TestSignalAttributionE2E:
 
     def test_non_finite_signal_attribution_is_hidden_across_real_paths(self):
         """NaN/Infinity weights are missing values, not confident attribution."""
-        from src.analyzer import GeminiAnalyzer
-        from src.notification import NotificationService
-        from src.services.history_service import HistoryService
+        from src.application.analysis.analyzer import GeminiAnalyzer
+        from src.application.notification.notification import NotificationService
+        from src.application.history.read_model import HistoryService
 
         def non_finite_signal_attr():
             return {
@@ -332,7 +332,7 @@ class TestSignalAttributionE2E:
         1. signal_attribution 存在时，markdown 中包含"信号归因分析"段落
         2. 四个贡献度都正确显示
         """
-        from src.services.history_service import HistoryService
+        from src.application.history.read_model import HistoryService
 
         signal_attr = {
             "technical_indicators": 35,

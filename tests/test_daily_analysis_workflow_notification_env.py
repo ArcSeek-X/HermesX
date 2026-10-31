@@ -12,7 +12,7 @@ from scripts.generate_notification_actions_env_table import (
     generate_table,
     normalize_markdown_block,
 )
-from src.services.notification_diagnostics import (
+from src.application.alert.notification_diagnostics import (
     P0_ACTIONS_ENV_KEYS,
     P3_ROUTE_ENV_KEYS,
     P4_NOISE_ACTIONS_ENV_KEYS,

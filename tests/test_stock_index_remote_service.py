@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.services import stock_index_remote_service as service
+from src.application.quote import stock_index_remote_service as service
 
 
 @pytest.fixture(autouse=True)
@@ -206,7 +206,7 @@ def test_validate_stock_index_payload_rejects_missing_popularity() -> None:
 def test_missing_remote_stock_index_cache_is_silent(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     cache_path = tmp_path / "missing" / "stocks.index.json"
 
-    with caplog.at_level(logging.WARNING, logger="src.services.stock_index_remote_service"):
+    with caplog.at_level(logging.WARNING, logger="src.application.quote.stock_index_remote_service"):
         assert service.is_valid_remote_stock_index_file(cache_path) is False
 
     assert not any("cached remote index is invalid" in record.getMessage() for record in caplog.records)

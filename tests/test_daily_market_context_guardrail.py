@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from src.analyzer import AnalysisResult
-from src.daily_market_context_guardrail import apply_daily_market_context_guardrail
+from src.application.analysis.analyzer import AnalysisResult
+from src.domain.market.daily_context_guardrail import apply_daily_market_context_guardrail
 
 
 def _result() -> AnalysisResult:

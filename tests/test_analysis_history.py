@@ -38,17 +38,14 @@ except ModuleNotFoundError:
     get_stock_bar = None
 
 from src.config import Config
-from src.storage import (
-    DatabaseManager,
-    AnalysisHistory,
-    BacktestResult,
-    DecisionSignalFeedbackRecord,
-    DecisionSignalOutcomeRecord,
-    DecisionSignalRecord,
-)
-from src.analyzer import AnalysisResult
-from src.daily_market_context_guardrail import apply_daily_market_context_guardrail
-from src.services.history_service import HistoryService
+from src.storage import DatabaseManager
+from src.application.history import HistoryQueryService
+from src.infrastructure.indexing.stock_code_normalizer import DataProviderStockCodeNormalizer
+from src.infrastructure.persistence.models.analysis import AnalysisHistory, BacktestResult
+from src.infrastructure.persistence.models.decision import DecisionSignalFeedbackRecord, DecisionSignalOutcomeRecord, DecisionSignalRecord
+from src.application.analysis.analyzer import AnalysisResult
+from src.domain.market.daily_context_guardrail import apply_daily_market_context_guardrail
+from src.application.history.read_model import HistoryService
 import src.auth as auth
 
 
@@ -158,7 +155,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
         self._temp_dir.cleanup()
 
     def test_history_timestamps_include_server_timezone_offset(self) -> None:
-        serialized = HistoryService._serialize_created_at(datetime(2026, 7, 11, 0, 30))
+        serialized = HistoryService.serialize_created_at(datetime(2026, 7, 11, 0, 30))
 
         self.assertIsNotNone(serialized)
         self.assertRegex(serialized or "", r"[+-]\d{2}:\d{2}$")
@@ -181,7 +178,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
                 end_date=None,
                 page=1,
                 limit=20,
-                db_manager=db,
+                service=self._history_service(db),
             )
 
         self.assertEqual(getattr(raised.exception, "status_code", None), 500)
@@ -207,7 +204,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
         db.get_analysis_history_paginated.side_effect = get_records
         db.delete_analysis_history_records.side_effect = delete_records
 
-        response = delete_history_by_code("600519", db_manager=db)
+        response = delete_history_by_code("600519", service=self._history_service(db))
 
         self.assertEqual(response.deleted, 10_001)
         self.assertEqual(remaining, {})
@@ -231,13 +228,20 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             ) as delete,
         ):
             with self.assertRaises(Exception) as raised:
-                delete_history_by_code(" ", db_manager=self.db)
+                delete_history_by_code(" ", service=self._history_service())
 
         self.assertEqual(getattr(raised.exception, "status_code", None), 400)
         query.assert_not_called()
         delete.assert_not_called()
         with self.db.get_session() as session:
             self.assertIsNotNone(session.query(AnalysisHistory).filter(AnalysisHistory.id == record_id).first())
+
+    def _history_service(self, db=None) -> HistoryQueryService:
+        """构造与分析历史端点同形状的用例对象。"""
+        return HistoryQueryService(
+            repository=db or self.db,
+            code_normalizer=DataProviderStockCodeNormalizer(),
+        )
 
     def _build_result(self) -> AnalysisResult:
         """构造分析结果"""
@@ -343,7 +347,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
         self.assertGreater(saved, 0)
 
         service = HistoryService(self.db)
-        with patch("src.services.history_service.resolve_index_stock_code", return_value="005930.KS"):
+        with patch("src.application.history.read_model.resolve_index_stock_code", return_value="005930.KS"):
             listing = service.get_history_list(page=1, limit=5)
             detail = service.resolve_and_get_detail("query_kr_bare")
 
@@ -383,7 +387,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
         self.assertGreater(saved, 0)
 
         service = HistoryService(self.db)
-        with patch("src.services.history_service.resolve_index_stock_code", return_value="005930.KS"):
+        with patch("src.application.history.read_model.resolve_index_stock_code", return_value="005930.KS"):
             items = service.get_history_list(page=1, limit=5)["items"]
 
         self.assertEqual(items[0]["stock_code"], "005930.KS")
@@ -428,13 +432,13 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             0,
         )
 
-        with patch("src.services.history_service.resolve_index_stock_code", side_effect=lambda code: "005930.KS" if str(code).split(".", 1)[0] == "005930" else None):
+        with patch("src.application.history.read_model.resolve_index_stock_code", side_effect=lambda code: "005930.KS" if str(code).split(".", 1)[0] == "005930" else None):
             listing = HistoryService(self.db).get_history_list(stock_code="005930.KS", page=1, limit=10)
             stock_bar = get_stock_bar(
                 start_date=None,
                 end_date=None,
                 limit=10,
-                db_manager=self.db,
+                service=self._history_service(),
             )
 
         self.assertEqual(listing["total"], 2)
@@ -784,7 +788,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
                 end_date=None,
                 page=1,
                 limit=10,
-                db_manager=self.db,
+                service=self._history_service(),
             )
             self.assertEqual(response.items[0].region, "jp,kr")
 
@@ -848,7 +852,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             start_date=None,
             end_date=None,
             limit=10,
-            db_manager=self.db,
+            service=self._history_service(),
         )
 
         self.assertEqual(len(response.items), 1)
@@ -878,7 +882,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             start_date=None,
             end_date=None,
             limit=10,
-            db_manager=self.db,
+            service=self._history_service(),
         )
 
         self.assertEqual(len(response.items), 1)
@@ -917,7 +921,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             start_date=None,
             end_date=None,
             limit=10,
-            db_manager=self.db,
+            service=self._history_service(),
         )
 
         self.assertEqual(len(response.items), 1)
@@ -931,7 +935,8 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.skipTest("fastapi is not installed in this test environment")
 
         service = MagicMock()
-        service.resolve_and_get_detail.return_value = {
+        service.get_latest_fundamental_snapshot.return_value = None
+        service.get_detail.return_value = {
             "id": 1,
             "query_id": "query_action_conflict",
             "stock_code": "600519",
@@ -952,8 +957,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             },
         }
 
-        with patch("api.v1.endpoints.history.HistoryService", return_value=service):
-            response = get_history_detail("query_action_conflict", db_manager=self.db)
+        response = get_history_detail("query_action_conflict", service=service)
 
         self.assertEqual(response.summary.operation_advice, "持有观察")
         self.assertEqual(response.summary.action, "watch")
@@ -1117,7 +1121,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.meta.current_price, 100.0)
         self.assertEqual(report.meta.change_pct, 0.0)
 
@@ -1155,7 +1159,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.meta.current_price, 200.0)
         self.assertEqual(report.meta.change_pct, 1.23)
 
@@ -1351,7 +1355,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.details.financial_report["report_date"], "2025-12-31")
         self.assertEqual(report.details.dividend_metrics["ttm_dividend_yield_pct"], 2.6)
         self.assertEqual(report.details.belong_boards, [{"name": "白酒", "type": "行业"}])
@@ -1397,8 +1401,8 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        with patch("src.services.history_service.resolve_index_stock_code", return_value="005930.KS"):
-            report = get_history_detail(str(record_id), db_manager=self.db)
+        with patch("src.application.history.read_model.resolve_index_stock_code", return_value="005930.KS"):
+            report = get_history_detail(str(record_id), service=self._history_service())
 
         self.assertEqual(report.meta.stock_code, "005930.KS")
         self.assertEqual(report.details.financial_report["report_date"], "2025-12-31")
@@ -1441,7 +1445,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.details.belong_boards, [{"name": "白酒", "type": "行业"}])
         self.assertIsNone(report.details.sector_rankings)
 
@@ -1468,7 +1472,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertIsNone(report.details.financial_report)
         self.assertIsNone(report.details.dividend_metrics)
         self.assertEqual(report.details.belong_boards, [])
@@ -1504,7 +1508,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.details.belong_boards, [])
         self.assertIsNone(report.details.sector_rankings)
 
@@ -1546,7 +1550,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(report.meta.current_price, 1888.0)
         self.assertEqual(report.meta.change_pct, 1.56)
         self.assertEqual(report.details.belong_boards, [{"name": "白酒", "type": "行业"}])
@@ -1584,7 +1588,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertEqual(
             report.details.analysis_context_pack_overview.metadata.trigger_source,
             "api",
@@ -1633,7 +1637,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             record_id = row.id
             self.assertIsNone(row.context_snapshot)
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertIsNone(report.meta.market_phase_summary)
         self.assertIsNone(report.details.analysis_context_pack_overview)
         self.assertIsNone(report.details.context_snapshot)
@@ -1682,7 +1686,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertIsNone(row.context_snapshot)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
         self.assertIsNone(report.details.context_snapshot)
         self.assertEqual(
             report.details.market_structure["market_theme_context"]["active_themes"][0]["name"],
@@ -1944,7 +1948,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
 
         self.assertEqual(report.meta.report_type, "market_review")
         self.assertEqual(report.summary.analysis_summary, report_content)
@@ -1986,7 +1990,7 @@ class AnalysisHistoryTestCase(unittest.TestCase):
             self.assertEqual(row.id, saved)
             record_id = row.id
 
-        report = get_history_detail(str(record_id), db_manager=self.db)
+        report = get_history_detail(str(record_id), service=self._history_service())
 
         self.assertEqual(report.meta.report_language, "en")
         self.assertEqual(report.meta.stock_name, "Unnamed Stock")

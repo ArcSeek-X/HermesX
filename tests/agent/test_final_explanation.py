@@ -4,20 +4,20 @@
 import pytest
 from pydantic import ValidationError
 
-from src.agent.final_explanation import (
+from src.application.agent.final_explanation import (
     PipelineActionAdjustment,
     build_pipeline_final_explanation,
 )
-from src.agent.risk_override import RiskOverrideApplication
-from src.agent.runtime_facts import (
+from src.application.agent.risk_override import RiskOverrideApplication
+from src.application.agent.runtime_facts import (
     AgentRuntimeFacts,
     BaseAgentOpinionFact,
     DegradationBoundary,
     DegradedEvent,
     PipelineTerminationFact,
 )
-from src.agent.protocols import StageFailureReason
-from src.schemas.report_schema import AgentDisagreementExplanation, AnalysisReportSchema
+from src.application.agent.protocols import StageFailureReason
+from src.application.analysis.report_schema import AgentDisagreementExplanation, AnalysisReportSchema
 
 
 def _facts() -> AgentRuntimeFacts:

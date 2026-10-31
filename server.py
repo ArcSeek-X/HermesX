@@ -18,22 +18,15 @@ HermesX（赫尔墨斯）- FOR AI交易量化 - FastAPI 后端服务入口
     python main.py --serve           # API 服务 + 执行分析
 """
 
-import logging
-
-from src.config import setup_env, get_config
-from src.logging_config import setup_logging
+from src.bootstrap.environment import bootstrap_environment
+from src.bootstrap.logging_setup import setup_service_logging
 
 # 初始化环境变量与日志
-setup_env()
-
-config = get_config()
-level_name = (config.log_level or "INFO").upper()
-level = getattr(logging, level_name, logging.INFO)
-
-setup_logging(
-    log_prefix="api_server",
-    console_level=level,
-    extra_quiet_loggers=['uvicorn', 'fastapi'],
+bootstrap_environment()
+setup_service_logging(
+    "api_server",
+    use_config_level=True,
+    quiet_loggers=("uvicorn", "fastapi"),
 )
 
 # 从 api.app 导入应用实例

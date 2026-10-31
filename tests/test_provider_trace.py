@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.agent.provider_trace import (  # noqa: E402
+from src.application.agent.provider_trace import (  # noqa: E402
     extract_provider_trace_turns,
     provider_namespace,
     resolved_model_provider_identity,
@@ -166,3 +166,99 @@ def test_extract_trace_drops_deepseek_without_required_tool_reasoning_pair_and_m
     assert mixed_turns == []
     assert mixed_diag.mixed_model_trace is True
     assert mixed_diag.trace_dropped_reason == "mixed_model_trace"
+
+
+# ---------------------------------------------------------------------------
+# W4.2 依赖倒置收敛：persist_provider_trace_turns 默认 db_factory seam
+# ---------------------------------------------------------------------------
+
+_TRACEABLE_MESSAGES = [
+    {"role": "user", "content": "question"},
+    {
+        "role": "assistant",
+        "content": "checking",
+        "_trace_provider": "deepseek",
+        "_trace_model": "deepseek/deepseek-chat",
+        "reasoning_content": "r1",
+        "tool_calls": [{"id": "call_1", "name": "echo", "arguments": {"message": "x"}}],
+    },
+    {"role": "tool", "tool_call_id": "call_1", "content": "tool-result"},
+]
+
+
+def test_provider_trace_default_db_factory_seam_accessor() -> None:
+    """seam setter/getter 往返；可置 None 回退，不污染进程级默认值。"""
+    from src.application.agent import provider_trace as pt_mod
+
+    prior = pt_mod._get_default_db_factory()
+    sentinel = object()
+    try:
+        pt_mod.set_default_db_factory(sentinel)
+        assert pt_mod._get_default_db_factory() is sentinel
+        pt_mod.set_default_db_factory(None)
+        assert pt_mod._get_default_db_factory() is None
+    finally:
+        pt_mod.set_default_db_factory(prior)
+
+
+def test_persist_provider_trace_turns_consumes_default_db_factory_seam() -> None:
+    """未显式传入 db_factory 时应经模块级默认 seam 取库（收敛后的真实持久化路径）。"""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from src.application.agent import provider_trace as pt_mod
+
+    calls = []
+    db = SimpleNamespace(
+        save_agent_provider_turn=MagicMock(side_effect=lambda **kw: (calls.append(kw), 1)[1])
+    )
+    prior = pt_mod._get_default_db_factory()
+    pt_mod.set_default_db_factory(lambda: db)
+    try:
+        pt_mod.persist_provider_trace_turns(
+            session_id="s-seam",
+            run_id="r-seam",
+            messages=_TRACEABLE_MESSAGES,
+            baseline_len=1,
+            user_message_id=10,
+            assistant_message_id=11,
+        )
+    finally:
+        pt_mod.set_default_db_factory(prior)
+
+    assert db.save_agent_provider_turn.called
+    assert calls and calls[0]["session_id"] == "s-seam"
+
+
+def test_persist_provider_trace_turns_fails_open_when_seam_unwired() -> None:
+    """seam 未装配（None）时不得抛出，沿用既有 try/except fail-open 语义。"""
+    from src.application.agent import provider_trace as pt_mod
+
+    prior = pt_mod._get_default_db_factory()
+    pt_mod.set_default_db_factory(None)
+    try:
+        assert pt_mod.persist_provider_trace_turns(
+            session_id="s-unwired",
+            run_id="r-unwired",
+            messages=_TRACEABLE_MESSAGES,
+            baseline_len=1,
+            user_message_id=10,
+            assistant_message_id=11,
+        ) is None
+    finally:
+        pt_mod.set_default_db_factory(prior)
+
+
+def test_configure_provider_trace_wires_database_manager_get_instance() -> None:
+    """bootstrap 装配将 DatabaseManager.get_instance 绑定为默认 db_factory（幂等）。"""
+    from unittest.mock import patch
+
+    from src.application.agent import provider_trace as pt_mod
+    from src.bootstrap.agent import configure_provider_trace
+
+    with patch("src.bootstrap.agent.DatabaseManager") as mock_dm, patch.object(
+        pt_mod, "set_default_db_factory"
+    ) as mock_set:
+        configure_provider_trace()
+
+    mock_set.assert_called_once_with(mock_dm.get_instance)

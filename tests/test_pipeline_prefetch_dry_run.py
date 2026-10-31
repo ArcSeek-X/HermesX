@@ -17,7 +17,7 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.core.pipeline import StockAnalysisPipeline
+from src.application.analysis.pipeline import StockAnalysisPipeline
 
 
 class TestPipelinePrefetchBehavior(unittest.TestCase):

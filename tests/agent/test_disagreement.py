@@ -5,8 +5,8 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from src.agent.disagreement import build_agent_disagreement_summary
-from src.agent.protocols import AgentContext, AgentOpinion, StageResult, StageStatus
+from src.application.agent.disagreement import build_agent_disagreement_summary
+from src.application.agent.protocols import AgentContext, AgentOpinion, StageResult, StageStatus
 
 
 def test_consensus_bullish_summary_is_low_sensitivity():
@@ -242,7 +242,7 @@ def _mock_optional_litellm(monkeypatch):
 
 def test_decision_agent_prompt_includes_disagreement_summary_when_present(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.agents.decision_agent import DecisionAgent
+    from src.application.agent.agents.decision_agent import DecisionAgent
 
     ctx = AgentContext(query="test", stock_code="600519")
     ctx.add_opinion(AgentOpinion(agent_name="technical", signal="buy", confidence=0.72))
@@ -259,7 +259,7 @@ def test_decision_agent_prompt_includes_disagreement_summary_when_present(monkey
 
 def test_decision_agent_build_messages_injects_disagreement_summary_once(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.agents.decision_agent import DecisionAgent
+    from src.application.agent.agents.decision_agent import DecisionAgent
 
     ctx = AgentContext(query="test", stock_code="600519")
     ctx.add_opinion(AgentOpinion(agent_name="technical", signal="buy", confidence=0.72))
@@ -278,7 +278,7 @@ def test_decision_agent_build_messages_injects_disagreement_summary_once(monkeyp
 
 def test_decision_agent_prompt_omits_summary_when_context_lacks_it(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.agents.decision_agent import DecisionAgent
+    from src.application.agent.agents.decision_agent import DecisionAgent
 
     ctx = AgentContext(query="test", stock_code="600519")
     ctx.add_opinion(AgentOpinion(agent_name="technical", signal="buy", confidence=0.8))
@@ -291,7 +291,7 @@ def test_decision_agent_prompt_omits_summary_when_context_lacks_it(monkeypatch):
 
 def test_orchestrator_prepare_decision_context_sets_summary_without_running_agents(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.orchestrator import AgentOrchestrator
+    from src.application.agent.orchestrator import AgentOrchestrator
 
     ctx = AgentContext(query="test", stock_code="600519")
     ctx.add_opinion(AgentOpinion(agent_name="technical", signal="buy", confidence=0.72))
@@ -312,7 +312,7 @@ def test_orchestrator_prepare_decision_context_sets_summary_without_running_agen
 
 def test_orchestrator_prepare_decision_context_respects_risk_override_config(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.orchestrator import AgentOrchestrator
+    from src.application.agent.orchestrator import AgentOrchestrator
 
     ctx = AgentContext(query="test", stock_code="600519")
     ctx.add_opinion(AgentOpinion(agent_name="technical", signal="buy", confidence=0.72))
@@ -341,8 +341,8 @@ def test_orchestrator_prepare_decision_context_respects_risk_override_config(mon
 
 def test_orchestrator_prepare_decision_context_propagates_summary_errors(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent import orchestrator as orchestrator_module
-    from src.agent.orchestrator import AgentOrchestrator
+    from src.application.agent import orchestrator as orchestrator_module
+    from src.application.agent.orchestrator import AgentOrchestrator
 
     def raise_summary_error(*args, **kwargs):
         raise RuntimeError("summary bug")
@@ -364,7 +364,7 @@ def test_orchestrator_prepare_decision_context_propagates_summary_errors(monkeyp
 
 def test_orchestrator_records_specialist_failure_using_single_criticality_source(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.orchestrator import AgentOrchestrator
+    from src.application.agent.orchestrator import AgentOrchestrator
 
     ctx = AgentContext(query="test", stock_code="600519")
     result = StageResult(stage_name="chan_theory", status=StageStatus.FAILED, error="raw error")
@@ -391,7 +391,7 @@ def test_orchestrator_records_specialist_failure_using_single_criticality_source
 
 def test_orchestrator_rejects_non_failed_degraded_stage_markers(monkeypatch):
     _mock_optional_litellm(monkeypatch)
-    from src.agent.orchestrator import AgentOrchestrator
+    from src.application.agent.orchestrator import AgentOrchestrator
 
     orchestrator = AgentOrchestrator(
         tool_registry=MagicMock(),

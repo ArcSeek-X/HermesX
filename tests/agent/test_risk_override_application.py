@@ -3,8 +3,8 @@
 
 import pytest
 
-from src.agent.protocols import AgentContext, AgentOpinion
-from src.agent.risk_override import (
+from src.application.agent.protocols import AgentContext, AgentOpinion
+from src.application.agent.risk_override import (
     DashboardDecisionSignal,
     RiskApplicationReason,
     RiskOverrideApplication,

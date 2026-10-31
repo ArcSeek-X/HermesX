@@ -47,11 +47,15 @@ except Exception:  # pragma: no cover - optional dependency environments
     get_analysis_status = None
     get_task_list = None
 
-from src.enums import ReportType
+from src.domain.shared.enums import ReportType
+from src.application.history import HistoryQueryService
 from src.config import Config
-from src.services.analysis_service import AnalysisService
-from src.services.image_stock_extractor import _call_litellm_vision
-from src.services.task_queue import AnalysisTaskQueue, TaskInfo as QueueTaskInfo, TaskStatus
+from src.infrastructure.indexing.stock_code_normalizer import (
+    DataProviderStockCodeNormalizer,
+)
+from src.application.analysis.analysis_service import AnalysisService
+from src.application.analysis.image_stock_extractor import _call_litellm_vision
+from src.application.runtime.task_queue import AnalysisTaskQueue, TaskInfo as QueueTaskInfo, TaskStatus
 
 
 def tearDownModule() -> None:
@@ -165,6 +169,22 @@ def _market_phase_summary() -> dict:
 
 
 class AnalysisApiContractTestCase(unittest.TestCase):
+    def _history_service(self, *, record=None, fundamental=None):
+        """构造注入了假仓储的分析历史用例。
+
+        分析端点已改为依赖注入 ``HistoryQueryService``，不再在函数体内取
+        ``DatabaseManager``；本 helper 返回 ``(service, repository)``，便于测试继续
+        断言底层收到的查询参数。
+        """
+        repository = MagicMock()
+        repository.get_latest_analysis_by_query_id.return_value = record
+        repository.get_latest_fundamental_snapshot.return_value = fundamental
+        service = HistoryQueryService(
+            repository=repository,
+            code_normalizer=DataProviderStockCodeNormalizer(),
+        )
+        return service, repository
+
     def test_market_review_region_is_authoritative_across_active_task_lifecycle(self) -> None:
         if (
             trigger_market_review is None
@@ -224,7 +244,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                         "_build_market_review_runtime",
                         return_value=(MagicMock(), MagicMock(), MagicMock()),
                     ), patch(
-                        "src.core.market_review.run_market_review",
+                        "src.application.market.market_review.run_market_review",
                         return_value=report,
                     ) as run_market_review, patch(
                         "api.v1.endpoints.analysis.get_task_queue",
@@ -342,7 +362,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             analysis_endpoint_module,
             "_build_market_review_runtime",
             return_value=(runtime_notifier, runtime_analyzer, runtime_search),
-        ), patch("src.core.market_review.run_market_review") as run_market_review, patch(
+        ), patch("src.application.market.market_review.run_market_review") as run_market_review, patch(
             "api.v1.endpoints.analysis.get_task_queue",
             return_value=task_queue,
         ), patch.object(
@@ -394,7 +414,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             analysis_endpoint_module,
             "_build_market_review_runtime",
             return_value=(runtime_notifier, runtime_analyzer, runtime_search),
-        ), patch("src.core.market_review.run_market_review") as run_market_review, patch(
+        ), patch("src.application.market.market_review.run_market_review") as run_market_review, patch(
             "api.v1.endpoints.analysis.get_task_queue",
             return_value=task_queue,
         ), patch.object(
@@ -439,7 +459,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             "_build_market_review_runtime",
             return_value=(MagicMock(), MagicMock(), MagicMock()),
         ), patch(
-            "src.core.market_review.run_market_review",
+            "src.application.market.market_review.run_market_review",
             return_value="report",
         ) as run_market_review, patch(
             "api.v1.endpoints.analysis.get_task_queue",
@@ -468,7 +488,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             "_build_market_review_runtime",
             return_value=(MagicMock(), MagicMock(), MagicMock()),
         ), patch(
-            "src.core.market_review.run_market_review",
+            "src.application.market.market_review.run_market_review",
             return_value="report",
         ) as run_market_review, patch.object(
             analysis_endpoint_module,
@@ -515,7 +535,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         if trigger_market_review is None or analysis_endpoint_module is None:
             self.skipTest("analysis endpoint helpers unavailable in this environment")
 
-        from src.core.market_review_lock import (
+        from src.application.market.market_review_lock import (
             release_market_review_lock,
             try_acquire_market_review_lock,
         )
@@ -557,10 +577,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         lock_token = object()
 
         with patch(
-            "src.core.trading_calendar.get_open_markets_today",
+            "src.domain.market.trading_calendar.get_open_markets_today",
             return_value=set(),
         ) as get_open_markets_today, patch(
-            "src.core.trading_calendar.compute_effective_region",
+            "src.domain.market.trading_calendar.compute_effective_region",
             return_value="",
         ) as compute_effective_region, patch.object(
             analysis_endpoint_module,
@@ -606,7 +626,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             analysis_endpoint_module,
             "_build_market_review_runtime",
             return_value=(runtime_notifier, runtime_analyzer, runtime_search),
-        ), patch("src.core.market_review.run_market_review") as run_market_review:
+        ), patch("src.application.market.market_review.run_market_review") as run_market_review:
             analysis_endpoint_module._run_market_review_background(
                 send_notification=False,
                 effective_region="cn,us",
@@ -638,8 +658,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             anthropic_api_keys=["sk-ant-test-value"],
         )
 
-        with patch("src.notification.NotificationService"), \
-             patch("src.analyzer.GeminiAnalyzer") as analyzer_cls:
+        with patch("src.application.notification.notification.NotificationService"), \
+             patch("src.application.analysis.analyzer.GeminiAnalyzer") as analyzer_cls:
             analyzer_cls.return_value.is_available.return_value = True
 
             _, analyzer, search_service = analysis_endpoint_module._build_market_review_runtime(config)
@@ -660,7 +680,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             analysis_endpoint_module,
             "_build_market_review_runtime",
             return_value=(runtime_notifier, runtime_analyzer, runtime_search),
-        ), patch("src.core.market_review.run_market_review", return_value="report") as run_market_review:
+        ), patch("src.application.market.market_review.run_market_review", return_value="report") as run_market_review:
             result = analysis_endpoint_module._run_market_review_background(
                 send_notification=False,
                 effective_region="cn",
@@ -681,7 +701,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         )
 
     def test_run_market_review_uses_request_scoped_config_language(self) -> None:
-        from src.core.market_review import run_market_review
+        from src.application.market.market_review import run_market_review
 
         global_config = SimpleNamespace(report_language="zh", market_review_region="cn")
         scoped_config = SimpleNamespace(report_language="en", market_review_region="cn")
@@ -700,9 +720,9 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         market_analyzer = MagicMock()
         market_analyzer.run_daily_review_with_snapshot.return_value = review_result
 
-        with patch("src.core.market_review.get_config", return_value=global_config) as get_config_mock, \
-             patch("src.core.market_review.MarketAnalyzer", return_value=market_analyzer) as market_analyzer_cls, \
-             patch("src.core.market_review._persist_market_review_history") as persist:
+        with patch("src.application.market.market_review.get_config", return_value=global_config) as get_config_mock, \
+             patch("src.application.market.market_review.MarketAnalyzer", return_value=market_analyzer) as market_analyzer_cls, \
+             patch("src.application.market.market_review._persist_market_review_history") as persist:
             result = run_market_review(
                 notifier=notifier,
                 search_service=MagicMock(),
@@ -1031,6 +1051,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             completed_at=datetime(2026, 5, 21, 17, 45, 0),
         )
 
+        history_service, _ = self._history_service()
+
         with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), \
              patch(
                  "api.v1.endpoints.analysis._load_sync_fundamental_sources",
@@ -1044,7 +1066,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                      },
                  ),
              ) as load_sources:
-            status = get_analysis_status("task-queue-market-structure-raw")
+            status = get_analysis_status(
+                "task-queue-market-structure-raw",
+                history_service=history_service,
+            )
 
         self.assertEqual(status.status, "completed")
         self.assertIsNotNone(status.result)
@@ -1063,6 +1088,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         load_sources.assert_called_once_with(
             query_id="task-queue-market-structure-raw",
             stock_code="300024",
+            history_service=history_service,
         )
 
     def test_get_analysis_status_enriches_in_memory_market_structure_without_history_snapshot(self) -> None:
@@ -1190,7 +1216,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             analysis_endpoint_module,
             "_build_market_review_runtime",
             return_value=(runtime_notifier, runtime_analyzer, runtime_search),
-        ), patch("src.core.market_review.run_market_review", return_value=None):
+        ), patch("src.application.market.market_review.run_market_review", return_value=None):
             with self.assertRaisesRegex(RuntimeError, "大盘复盘未返回可持久化报告"):
                 analysis_endpoint_module._run_market_review_background(
                     send_notification=False,
@@ -1267,9 +1293,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         mock_queue = MagicMock()
         mock_queue.get_task.return_value = None
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [
-            SimpleNamespace(
+        history_service, _ = self._history_service(
+            record=SimpleNamespace(
                 id=1,
                 code="600519",
                 name="贵州茅台",
@@ -1295,11 +1320,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 take_profit=None,
                 created_at=None,
             )
-        ]
+        )
 
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue), \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
-            result = get_analysis_status("task-1")
+        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue):
+            result = get_analysis_status("task-1", history_service=history_service)
 
         self.assertEqual(result.status, "completed")
         self.assertEqual(result.result.report["meta"]["current_price"], 1234.5)
@@ -1311,9 +1335,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         mock_queue = MagicMock()
         mock_queue.get_task.return_value = None
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [
-            SimpleNamespace(
+        history_service, _ = self._history_service(
+            record=SimpleNamespace(
                 id=10,
                 code="MARKET",
                 name="大盘复盘",
@@ -1330,11 +1353,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 news_content="复盘正文",
                 created_at=None,
             )
-        ]
+        )
 
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue), \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
-            result = get_analysis_status("market-task-1")
+        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue):
+            result = get_analysis_status("market-task-1", history_service=history_service)
 
         self.assertEqual(result.status, "completed")
         self.assertEqual(result.market_review_report, "# 🎯 大盘复盘\n\n复盘正文")
@@ -1348,9 +1370,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         mock_queue = MagicMock()
         mock_queue.get_task.return_value = None
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [
-            SimpleNamespace(
+        history_service, _ = self._history_service(
+            record=SimpleNamespace(
                 id=2,
                 code="AAPL",
                 name="Apple",
@@ -1376,11 +1397,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 take_profit=None,
                 created_at=None,
             )
-        ]
+        )
 
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue), \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
-            result = get_analysis_status("task-2")
+        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue):
+            result = get_analysis_status("task-2", history_service=history_service)
 
         self.assertEqual(result.status, "completed")
         self.assertEqual(result.result.report["meta"]["current_price"], 180.35)
@@ -1392,9 +1412,8 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         mock_queue = MagicMock()
         mock_queue.get_task.return_value = None
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [
-            SimpleNamespace(
+        history_service, _ = self._history_service(
+            record=SimpleNamespace(
                 id=3,
                 code="MSFT",
                 name="Microsoft",
@@ -1420,11 +1439,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 take_profit=None,
                 created_at=None,
             )
-        ]
+        )
 
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue), \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
-            result = get_analysis_status("task-3")
+        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=mock_queue):
+            result = get_analysis_status("task-3", history_service=history_service)
 
         self.assertEqual(result.status, "completed")
         self.assertEqual(result.result.report["meta"]["current_price"], 412.6)
@@ -1436,7 +1454,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         pipeline_instance.process_single_stock.return_value = object()
 
         with patch("src.config.get_config", return_value=SimpleNamespace()), \
-             patch("src.core.pipeline.StockAnalysisPipeline", return_value=pipeline_instance), \
+             patch("src.application.analysis.pipeline.StockAnalysisPipeline", return_value=pipeline_instance), \
              patch.object(AnalysisService, "_build_analysis_response", return_value={"stock_code": "600519"}):
             result = AnalysisService.analyze_stock(service, "600519", report_type="full", query_id="q1")
 
@@ -1454,7 +1472,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         request_skills = ["growth_quality"]
 
         with patch("src.config.get_config", return_value=SimpleNamespace()), \
-             patch("src.core.pipeline.StockAnalysisPipeline", return_value=pipeline_instance) as pipeline_cls, \
+             patch("src.application.analysis.pipeline.StockAnalysisPipeline", return_value=pipeline_instance) as pipeline_cls, \
              patch.object(AnalysisService, "_build_analysis_response", return_value={"stock_code": "600519"}):
             result = AnalysisService.analyze_stock(
                 service,
@@ -1488,7 +1506,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         )
 
         with patch("src.config.get_config", return_value=SimpleNamespace()), \
-             patch("src.core.pipeline.StockAnalysisPipeline", return_value=pipeline_instance):
+             patch("src.application.analysis.pipeline.StockAnalysisPipeline", return_value=pipeline_instance):
             result = service.analyze_stock("600519", report_type="full", query_id="q1", send_notification=False)
 
         self.assertEqual(result["report"]["meta"]["report_type"], "full")
@@ -1502,7 +1520,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         )
 
         with patch("src.config.get_config", return_value=SimpleNamespace()), \
-             patch("src.core.pipeline.StockAnalysisPipeline", return_value=pipeline_instance):
+             patch("src.application.analysis.pipeline.StockAnalysisPipeline", return_value=pipeline_instance):
             result = service.analyze_stock("600519", report_type="detailed", query_id="q1", send_notification=False)
 
         self.assertIsNone(result)
@@ -1516,7 +1534,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         service_instance.analyze_stock.return_value = None
         service_instance.last_error = "LLM stream interrupted"
 
-        with patch("src.services.analysis_service.AnalysisService", return_value=service_instance):
+        with patch("src.application.analysis.analysis_service.AnalysisService", return_value=service_instance):
             with self.assertRaises(Exception) as ctx:
                 _handle_sync_analysis(
                     "600519",
@@ -1526,6 +1544,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                         notify=True,
                         analysis_phase="auto",
                     ),
+                    self._history_service()[0],
                 )
 
         self.assertEqual(ctx.exception.status_code, 500)
@@ -1556,7 +1575,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         }
 
         with patch("uuid.uuid4", return_value=SimpleNamespace(hex="q-sync-overview")), \
-             patch("src.services.analysis_service.AnalysisService", return_value=service_instance), \
+             patch("src.application.analysis.analysis_service.AnalysisService", return_value=service_instance), \
              patch(
                  "api.v1.endpoints.analysis._load_sync_fundamental_sources",
                  return_value=(
@@ -1578,6 +1597,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                     skills=None,
                     analysis_phase="intraday",
                 ),
+                self._history_service()[0],
             )
 
         self.assertEqual(
@@ -1615,7 +1635,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         }
 
         with patch("uuid.uuid4", return_value=SimpleNamespace(hex="q-sync-market-structure")), \
-             patch("src.services.analysis_service.AnalysisService", return_value=service_instance), \
+             patch("src.application.analysis.analysis_service.AnalysisService", return_value=service_instance), \
              patch(
                  "api.v1.endpoints.analysis._load_sync_fundamental_sources",
                  return_value=(
@@ -1637,6 +1657,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                     skills=None,
                     analysis_phase="intraday",
                 ),
+                self._history_service()[0],
             )
 
         self.assertEqual(
@@ -1686,7 +1707,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         service_instance.analyze_stock.return_value = service_result
 
         with patch("uuid.uuid4", return_value=SimpleNamespace(hex="q-sync-no-history")), \
-             patch("src.services.analysis_service.AnalysisService", return_value=service_instance), \
+             patch("src.application.analysis.analysis_service.AnalysisService", return_value=service_instance), \
              patch(
                  "api.v1.endpoints.analysis._load_sync_fundamental_sources",
                  return_value=(None, None, None),
@@ -1700,6 +1721,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                     skills=None,
                     analysis_phase="intraday",
                 ),
+                self._history_service()[0],
             )
 
         self.assertIsNotNone(result)
@@ -1867,7 +1889,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         )
 
         with patch("src.config.get_config", return_value=SimpleNamespace()), patch(
-            "src.core.pipeline.StockAnalysisPipeline",
+            "src.application.analysis.pipeline.StockAnalysisPipeline",
             return_value=pipeline_instance,
         ) as pipeline_cls:
             result = service.analyze_stock(
@@ -2462,18 +2484,11 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         if _load_sync_fundamental_sources is None:
             self.skipTest("analysis endpoint helpers unavailable in this environment")
 
-        mock_db = MagicMock()
         raw_result_payload = {
             "model_used": "test-model",
             "report_language": "zh",
             "market_structure_context": _market_structure_context(),
         }
-        mock_db.get_analysis_history.return_value = [
-            SimpleNamespace(
-                context_snapshot=None,
-                raw_result=json.dumps(raw_result_payload, ensure_ascii=False),
-            )
-        ]
         fallback_payload = {
             "earnings": {
                 "data": {
@@ -2482,23 +2497,29 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 }
             }
         }
-        mock_db.get_latest_fundamental_snapshot.return_value = fallback_payload
+        history_service, repository = self._history_service(
+            record=SimpleNamespace(
+                context_snapshot=None,
+                raw_result=json.dumps(raw_result_payload, ensure_ascii=False),
+            ),
+            fundamental=fallback_payload,
+        )
 
-        with patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
-            context_snapshot, fundamental_snapshot, raw_result_snapshot = _load_sync_fundamental_sources(
-                query_id="q_sync_001",
-                stock_code="600519",
-            )
+        context_snapshot, fundamental_snapshot, raw_result_snapshot = _load_sync_fundamental_sources(
+            query_id="q_sync_001",
+            stock_code="600519",
+            history_service=history_service,
+        )
 
         self.assertIsNone(context_snapshot)
         self.assertEqual(fundamental_snapshot, fallback_payload)
         self.assertEqual(raw_result_snapshot, raw_result_payload)
-        mock_db.get_analysis_history.assert_called_once_with(
-            query_id="q_sync_001",
+        repository.get_latest_analysis_by_query_id.assert_called_once_with(
+            "q_sync_001",
             code="600519",
-            limit=1,
+            report_type=None,
         )
-        mock_db.get_latest_fundamental_snapshot.assert_called_once_with(
+        repository.get_latest_fundamental_snapshot.assert_called_once_with(
             query_id="q_sync_001",
             code="600519",
         )
@@ -2539,13 +2560,11 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             stop_loss=None,
             take_profit=None,
         )
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [record]
+        history_service, _ = self._history_service(record=record)
 
-        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock, \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
+        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock:
             queue_mock.return_value.get_task.return_value = None
-            status = get_analysis_status("task_123")
+            status = get_analysis_status("task_123", history_service=history_service)
 
         self.assertEqual(status.status, "completed")
         self.assertEqual(status.result.report["meta"]["current_price"], 1234.5)
@@ -2597,14 +2616,11 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             stop_loss=None,
             take_profit=None,
         )
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [record]
-        mock_db.get_latest_fundamental_snapshot.return_value = None
+        history_service, _ = self._history_service(record=record)
 
-        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock, \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
+        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock:
             queue_mock.return_value.get_task.return_value = None
-            status = get_analysis_status("task_market_structure_raw_1")
+            status = get_analysis_status("task_market_structure_raw_1", history_service=history_service)
 
         self.assertEqual(status.status, "completed")
         self.assertEqual(
@@ -2657,14 +2673,11 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             stop_loss=None,
             take_profit=None,
         )
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [record]
-        mock_db.get_latest_fundamental_snapshot.return_value = None
+        history_service, _ = self._history_service(record=record)
 
-        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock, \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
+        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock:
             queue_mock.return_value.get_task.return_value = None
-            status = get_analysis_status("task_agent_snapshot_1")
+            status = get_analysis_status("task_agent_snapshot_1", history_service=history_service)
 
         self.assertEqual(status.status, "completed")
         self.assertEqual(status.result.report["meta"]["current_price"], 1888.0)
@@ -2754,14 +2767,14 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             completed_at=datetime(2026, 4, 10, 12, 1, 0),
         )
         record = SimpleNamespace(context_snapshot=json.dumps(context_snapshot))
-        mock_db = MagicMock()
-        mock_db.get_analysis_history.return_value = [record]
-        mock_db.get_latest_fundamental_snapshot.return_value = None
+        history_service, repository = self._history_service(record=record)
 
-        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock, \
-             patch("src.storage.DatabaseManager.get_instance", return_value=mock_db):
+        with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock:
             queue_mock.return_value.get_task.return_value = task
-            status = get_analysis_status("task_agent_snapshot_in_memory_1")
+            status = get_analysis_status(
+                "task_agent_snapshot_in_memory_1",
+                history_service=history_service,
+            )
 
         self.assertEqual(status.status, "completed")
         self.assertEqual(status.result.report["meta"]["current_price"], 1888.0)
@@ -2794,10 +2807,10 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             "market_phase_summary",
             status.result.report["details"]["context_snapshot"],
         )
-        mock_db.get_analysis_history.assert_called_once_with(
-            query_id="task_agent_snapshot_in_memory_1",
+        repository.get_latest_analysis_by_query_id.assert_called_once_with(
+            "task_agent_snapshot_in_memory_1",
             code="600519",
-            limit=1,
+            report_type=None,
         )
 
     def test_get_analysis_status_in_memory_task_without_db_snapshot_preserves_service_phase_summary(self) -> None:
@@ -2833,13 +2846,18 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             completed_at=datetime(2026, 4, 10, 12, 1, 0),
         )
 
+        history_service, _ = self._history_service()
+
         with patch("api.v1.endpoints.analysis.get_task_queue") as queue_mock, \
              patch(
                  "api.v1.endpoints.analysis._load_sync_fundamental_sources",
                  return_value=(None, None, None),
              ) as load_sources:
             queue_mock.return_value.get_task.return_value = task
-            status = get_analysis_status("task_no_snapshot_in_memory_1")
+            status = get_analysis_status(
+                "task_no_snapshot_in_memory_1",
+                history_service=history_service,
+            )
 
         self.assertEqual(status.status, "completed")
         self.assertEqual(status.analysis_phase, "intraday")
@@ -2851,6 +2869,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         load_sources.assert_called_once_with(
             query_id="task_no_snapshot_in_memory_1",
             stock_code="600519",
+            history_service=history_service,
         )
 
     def test_openapi_declares_single_and_batch_async_202_payloads(self) -> None:
@@ -3767,7 +3786,7 @@ class BatchTaskQueueContractTestCase(unittest.TestCase):
 
         service_instance = MagicMock()
         service_instance.analyze_stock.return_value = {"stock_name": "贵州茅台"}
-        with patch("src.services.analysis_service.AnalysisService", return_value=service_instance):
+        with patch("src.application.analysis.analysis_service.AnalysisService", return_value=service_instance):
             executor.calls[0][0](*executor.calls[0][1])
 
         self.assertIs(
@@ -3873,8 +3892,8 @@ class ImageStockExtractorContractTestCase(unittest.TestCase):
         response = MagicMock()
         response.choices = [choice]
 
-        with patch("src.services.image_stock_extractor.get_config", return_value=cfg), \
-             patch("src.services.image_stock_extractor.litellm.completion", return_value=response) as mock_completion:
+        with patch("src.application.analysis.image_stock_extractor.get_config", return_value=cfg), \
+             patch("src.infrastructure.generation.vision_litellm.litellm.completion", return_value=response) as mock_completion:
             result = _call_litellm_vision("base64data", "image/jpeg")
 
         self.assertEqual(result, '["600519"]')

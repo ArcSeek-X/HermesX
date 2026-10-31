@@ -19,12 +19,12 @@ from api.v1.schemas.alerts import (
     AlertTriggerListResponse,
 )
 from api.v1.schemas.common import ErrorResponse
-from src.services.alert_service import (
+from src.application.alert.service import (
     AlertNotFoundError,
-    AlertService,
     AlertServiceError,
     UnsupportedAlertTypeError,
 )
+from src.bootstrap.alert import build_alert_service
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def _internal_error(message: str, exc: Exception) -> HTTPException:
     summary="Create alert rule",
 )
 def create_rule(request: AlertRuleCreateRequest) -> AlertRuleItem:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleItem(**service.create_rule(request.model_dump()))
     except UnsupportedAlertTypeError as exc:
@@ -86,7 +86,7 @@ def list_rules(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> AlertRuleListResponse:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleListResponse(
             **service.list_rules(
@@ -110,7 +110,7 @@ def list_rules(
     summary="Get alert rule",
 )
 def get_rule(rule_id: int) -> AlertRuleItem:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleItem(**service.get_rule(rule_id))
     except AlertNotFoundError as exc:
@@ -126,7 +126,7 @@ def get_rule(rule_id: int) -> AlertRuleItem:
     summary="Update alert rule",
 )
 def update_rule(rule_id: int, request: AlertRuleUpdateRequest) -> AlertRuleItem:
-    service = AlertService()
+    service = build_alert_service()
     try:
         payload = request.model_dump(exclude_unset=True)
         return AlertRuleItem(**service.update_rule(rule_id, payload))
@@ -147,7 +147,7 @@ def update_rule(rule_id: int, request: AlertRuleUpdateRequest) -> AlertRuleItem:
     summary="Delete alert rule",
 )
 def delete_rule(rule_id: int) -> AlertDeleteResponse:
-    service = AlertService()
+    service = build_alert_service()
     try:
         if not service.delete_rule(rule_id):
             raise AlertNotFoundError(f"Alert rule not found: {rule_id}")
@@ -165,7 +165,7 @@ def delete_rule(rule_id: int) -> AlertDeleteResponse:
     summary="Enable alert rule",
 )
 def enable_rule(rule_id: int) -> AlertRuleItem:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleItem(**service.enable_rule(rule_id, True))
     except AlertNotFoundError as exc:
@@ -181,7 +181,7 @@ def enable_rule(rule_id: int) -> AlertRuleItem:
     summary="Disable alert rule",
 )
 def disable_rule(rule_id: int) -> AlertRuleItem:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleItem(**service.enable_rule(rule_id, False))
     except AlertNotFoundError as exc:
@@ -197,7 +197,7 @@ def disable_rule(rule_id: int) -> AlertRuleItem:
     summary="Dry-run alert rule",
 )
 def test_rule(rule_id: int) -> AlertRuleTestResponse:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertRuleTestResponse(**service.test_rule(rule_id))
     except AlertNotFoundError as exc:
@@ -219,7 +219,7 @@ def list_triggers(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> AlertTriggerListResponse:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertTriggerListResponse(
             **service.list_triggers(
@@ -247,7 +247,7 @@ def list_notifications(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> AlertNotificationListResponse:
-    service = AlertService()
+    service = build_alert_service()
     try:
         return AlertNotificationListResponse(
             **service.list_notifications(

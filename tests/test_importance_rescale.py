@@ -7,7 +7,7 @@
 3. 迁移幂等性（连续执行两次 / 重启后结果不变）；
 4. 「重要」判定迁移前后等价（阈值 2 vs 3）。
 
-本文件仅依赖 ``src.storage`` / ``src.services.intelligence_service``，不触网、
+本文件仅依赖 ``src.storage`` / ``src.application.intelligence.intelligence_service``，不触网、
 不依赖完整后端依赖链（litellm 等），可离线运行。
 """
 
@@ -18,7 +18,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from src.services.intelligence_service import IntelligenceService
+from src.application.intelligence.intelligence_service import IntelligenceService
 
 
 class NormalizeImportanceTest(unittest.TestCase):
@@ -70,7 +70,7 @@ class _MigrationHarness(unittest.TestCase):
         self._tmp.cleanup()
 
     def _seed(self) -> None:
-        from src.storage import IntelligenceItem
+        from src.infrastructure.persistence.models.intelligence import IntelligenceItem
 
         rows = [
             ("channel", "global", 1, "news_score_1"),
@@ -95,10 +95,8 @@ class _MigrationHarness(unittest.TestCase):
             session.commit()
 
     def _remove_migration_marker(self) -> None:
-        from src.storage import (
-            LIVE_NEWS_IMPORTANCE_RESCALE_VERSION,
-            DatabaseSchemaMigration,
-        )
+        from src.infrastructure.persistence.base import LIVE_NEWS_IMPORTANCE_RESCALE_VERSION
+        from src.infrastructure.persistence.models.schema import DatabaseSchemaMigration
 
         with self._db.get_session() as session:
             session.query(DatabaseSchemaMigration).filter_by(
@@ -107,7 +105,7 @@ class _MigrationHarness(unittest.TestCase):
             session.commit()
 
     def _dump(self) -> dict:
-        from src.storage import IntelligenceItem
+        from src.infrastructure.persistence.models.intelligence import IntelligenceItem
 
         with self._db.get_session() as session:
             return {

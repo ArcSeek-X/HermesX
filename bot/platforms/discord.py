@@ -20,7 +20,8 @@ from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 
 from bot.platforms.base import BotPlatform
-from bot.models import BotMessage, WebhookResponse, ChatType
+from bot.models import WebhookResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
 
 
 logger = logging.getLogger(__name__)
@@ -245,7 +246,7 @@ class DiscordPlatform(BotPlatform):
 
         content = response.text if hasattr(response, "text") else str(response)
 
-        from src.formatters import chunk_content_by_max_words
+        from src.domain.shared.text_chunking import chunk_content_by_max_words
 
         try:
             chunks = chunk_content_by_max_words(

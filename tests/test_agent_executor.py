@@ -29,20 +29,22 @@ try:
 except ModuleNotFoundError:
     sys.modules["litellm"] = MagicMock()
 
-from src.agent.executor import (
+from src.application.agent.executor import (
     AGENT_SYSTEM_PROMPT,
     LEGACY_DEFAULT_AGENT_SYSTEM_PROMPT,
     AgentExecutor,
     AgentResult,
 )
-from src.agent.llm_adapter import LLMResponse, ToolCall
-from src.agent.runner import parse_dashboard_json, run_agent_loop, serialize_tool_result
-from src.agent.stock_scope import StockScope, resolve_stock_scope
-from src.agent.tools.registry import ToolRegistry, ToolDefinition, ToolParameter
-from src.analysis_context_pack_prompt import format_analysis_context_pack_prompt_section
+from src.infrastructure.agent_runtime.llm_adapter import LLMResponse, ToolCall
+from src.application.agent.runner import parse_dashboard_json, run_agent_loop, serialize_tool_result
+from src.application.agent.stock_scope import StockScope, resolve_stock_scope
+from src.application.agent.tools.registry import ToolRegistry, ToolDefinition, ToolParameter
+from src.application.reporting.context_pack_prompt import format_analysis_context_pack_prompt_section
 from src.config import Config
-from src.llm.usage import normalize_litellm_usage
-from src.services.analysis_context_builder import (
+from src.infrastructure.agent_runtime.usage_telemetry_provider import UsageTelemetryAdapter
+from src.infrastructure.generation.usage import normalize_litellm_usage
+from src.infrastructure.persistence.repositories.conversation_repo import ConversationRepository
+from src.application.analysis.analysis_context_builder import (
     AnalysisContextBuilder,
     PipelineAnalysisArtifacts,
 )
@@ -244,11 +246,11 @@ class TestAgentExecutor(unittest.TestCase):
 
         with patch.object(executor, "_run_loop", side_effect=fake_run_loop):
             with patch(
-                "src.agent.executor.build_agent_chat_context_bundle",
+                "src.application.agent.executor.build_agent_chat_context_bundle",
                 return_value=SimpleNamespace(context_messages=compressed_history, diagnostics={}),
             ):
-                with patch("src.agent.conversation.conversation_manager.get_or_create"):
-                    with patch("src.agent.conversation.conversation_manager.add_message"):
+                with patch("src.application.agent.conversation.conversation_manager.get_or_create"):
+                    with patch("src.application.agent.conversation.conversation_manager.add_message"):
                         executor.chat(
                             "当前问题",
                             "session-1",
@@ -316,11 +318,11 @@ class TestAgentExecutor(unittest.TestCase):
 
         with patch.object(executor, "_run_loop", side_effect=fake_run_loop):
             with patch(
-                "src.agent.executor.build_agent_chat_context_bundle",
+                "src.application.agent.executor.build_agent_chat_context_bundle",
                 return_value=SimpleNamespace(context_messages=[], diagnostics={}),
             ):
-                with patch("src.agent.conversation.conversation_manager.get_or_create"):
-                    with patch("src.agent.conversation.conversation_manager.add_message"):
+                with patch("src.application.agent.conversation.conversation_manager.get_or_create"):
+                    with patch("src.application.agent.conversation.conversation_manager.add_message"):
                         executor.chat("换成 AAPL 看看，不考虑 600519", "session-1", context=stale_context)
 
         history_context = "\n".join(
@@ -349,11 +351,11 @@ class TestAgentExecutor(unittest.TestCase):
 
         with patch.object(executor, "_run_loop", side_effect=fake_run_loop):
             with patch(
-                "src.agent.executor.build_agent_chat_context_bundle",
+                "src.application.agent.executor.build_agent_chat_context_bundle",
                 return_value=SimpleNamespace(context_messages=[], diagnostics={}),
             ):
-                with patch("src.agent.conversation.conversation_manager.get_or_create"):
-                    with patch("src.agent.conversation.conversation_manager.add_message"):
+                with patch("src.application.agent.conversation.conversation_manager.get_or_create"):
+                    with patch("src.application.agent.conversation.conversation_manager.add_message"):
                         executor.chat(
                             "继续看",
                             "session-1",
@@ -434,7 +436,7 @@ class TestAgentExecutor(unittest.TestCase):
             model="openai/gpt-test",
         )
 
-        with patch("src.agent.runner._persist_usage") as persist_usage:
+        with patch("src.application.agent.runner._usage_telemetry_port", UsageTelemetryAdapter()) as usage_port, patch.object(usage_port, "persist") as persist_usage:
             result = run_agent_loop(
                 messages=[{"role": "user", "content": "Analyze"}],
                 tool_registry=registry,
@@ -460,7 +462,7 @@ class TestAgentExecutor(unittest.TestCase):
             model="openai/gpt-test",
         )
 
-        with patch("src.agent.runner._persist_usage") as persist_usage:
+        with patch("src.application.agent.runner._usage_telemetry_port", UsageTelemetryAdapter()) as usage_port, patch.object(usage_port, "persist") as persist_usage:
             result = run_agent_loop(
                 messages=[{"role": "user", "content": "Analyze"}],
                 tool_registry=registry,
@@ -484,7 +486,7 @@ class TestAgentExecutor(unittest.TestCase):
             model="openai/gpt-test",
         )
 
-        with patch("src.agent.runner._persist_usage") as persist_usage:
+        with patch("src.application.agent.runner._usage_telemetry_port", UsageTelemetryAdapter()) as usage_port, patch.object(usage_port, "persist") as persist_usage:
             result = run_agent_loop(
                 messages=[{"role": "user", "content": "Analyze"}],
                 tool_registry=registry,
@@ -509,7 +511,7 @@ class TestAgentExecutor(unittest.TestCase):
             model="openai/gpt-test",
         )
 
-        with patch("src.agent.runner._persist_usage") as persist_usage:
+        with patch("src.application.agent.runner._usage_telemetry_port", UsageTelemetryAdapter()) as usage_port, patch.object(usage_port, "persist") as persist_usage:
             result = run_agent_loop(
                 messages=[{"role": "user", "content": "Analyze"}],
                 tool_registry=registry,
@@ -520,6 +522,32 @@ class TestAgentExecutor(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertEqual(result.total_tokens, 5)
         persist_usage.assert_called_once_with(usage, "openai/gpt-test", call_type="agent")
+
+    def test_run_agent_loop_skips_usage_persist_when_telemetry_port_unwired(self):
+        """W4.2: 用量端口未装配时静默跳过，不得回退直连 storage，也不得抛错。"""
+        registry = _make_registry_with_echo()
+        adapter = _make_mock_adapter()
+        adapter.call_with_tools.return_value = LLMResponse(
+            content="Done.",
+            tool_calls=[],
+            usage={"total_tokens": 5},
+            provider="openai",
+            model="openai/gpt-test",
+        )
+
+        with patch("src.application.agent.runner._usage_telemetry_port", None), patch(
+            "src.storage.persist_llm_usage"
+        ) as storage_persist:
+            result = run_agent_loop(
+                messages=[{"role": "user", "content": "Analyze"}],
+                tool_registry=registry,
+                llm_adapter=adapter,
+                max_steps=1,
+            )
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.total_tokens, 5)
+        storage_persist.assert_not_called()
 
     def test_run_agent_loop_blocks_conflicting_stock_scoped_tool_and_keeps_tool_result(self):
         executed_calls = []
@@ -1046,11 +1074,11 @@ class TestAgentExecutor(unittest.TestCase):
 
         with patch.object(executor, "_run_loop", side_effect=fake_run_loop):
             with patch(
-                "src.agent.executor.build_agent_chat_context_bundle",
+                "src.application.agent.executor.build_agent_chat_context_bundle",
                 return_value=SimpleNamespace(context_messages=[], diagnostics={}),
             ):
-                with patch("src.agent.conversation.conversation_manager.get_or_create"):
-                    with patch("src.agent.conversation.conversation_manager.add_message"):
+                with patch("src.application.agent.conversation.conversation_manager.get_or_create"):
+                    with patch("src.application.agent.conversation.conversation_manager.add_message"):
                         executor.chat(
                             "当前问题",
                             "session-market-context",
@@ -1282,8 +1310,18 @@ class TestAgentExecutor(unittest.TestCase):
 
         executor = AgentExecutor(registry, adapter, max_steps=3)
 
-        first = executor.chat("first question", "executor-trace")
-        second = executor.chat("second question", "executor-trace")
+        with patch(
+            "src.application.agent.provider_trace._get_default_db_factory",
+            return_value=lambda: db,
+        ), patch(
+            "src.application.agent.conversation._conversation_port",
+            ConversationRepository(db),
+        ), patch(
+            "src.application.agent.chat_context._chat_context_port",
+            ConversationRepository(db),
+        ):
+            first = executor.chat("first question", "executor-trace")
+            second = executor.chat("second question", "executor-trace")
 
         self.assertTrue(first.success)
         self.assertTrue(second.success)
@@ -1317,8 +1355,11 @@ class TestAgentExecutor(unittest.TestCase):
         ]
         db = SimpleNamespace(save_agent_provider_turn=MagicMock(side_effect=RuntimeError("db down")))
 
-        with patch("src.agent.executor.get_db", return_value=db):
-            with self.assertLogs("src.agent.executor", level="WARNING") as logs:
+        with patch(
+            "src.application.agent.provider_trace._get_default_db_factory",
+            return_value=lambda: db,
+        ):
+            with self.assertLogs("src.application.agent.executor", level="WARNING") as logs:
                 executor._persist_provider_trace(
                     session_id="executor-trace-fail-open",
                     run_id="run-1",
@@ -1731,7 +1772,7 @@ class TestAgentExecutor(unittest.TestCase):
         adapter.call_with_tools.side_effect = _capture_timeout
 
         executor = AgentExecutor(registry, adapter, max_steps=2, timeout_seconds=1.0)
-        with patch("src.agent.runner.time.time", return_value=1000.0):
+        with patch("src.application.agent.runner.time.time", return_value=1000.0):
             result = executor.run("Analyze 600519")
 
         self.assertTrue(result.success)
@@ -1751,7 +1792,7 @@ class TestAgentExecutor(unittest.TestCase):
         )
 
         with patch(
-            "src.agent.runner._remaining_timeout_seconds",
+            "src.application.agent.runner._remaining_timeout_seconds",
             side_effect=[9.0, 9.0, 7.5, 7.5],
         ):
             result = run_agent_loop(

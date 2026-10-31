@@ -15,20 +15,24 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from src.config import Config
-from src.core.skill_opinion_outcome_evaluator import SkillOpinionOutcomeEvaluator
-from src.repositories import SkillOpinionOutcomeRepository
-from src.services.skill_opinion_outcome_service import (
+from src.domain.decision.skill_opinion_outcome import SkillOpinionOutcomeEvaluator
+from src.infrastructure.persistence.repositories.skill_opinion_outcome_repository import (
+    SkillOpinionOutcomeRepository,
+)
+from src.application.decision.skill_opinion_outcome_service import (
     SKILL_OPINION_OUTCOME_ENGINE_VERSION,
     SkillOpinionOutcomeService,
 )
-from src.storage import (
-    AnalysisHistory,
-    Base,
-    DatabaseManager,
-    SkillOpinionOutcomeRecord,
-    SkillOpinionSampleRecord,
-    StockDaily,
-)
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.base import Base
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
+from src.infrastructure.persistence.models.decision import SkillOpinionOutcomeRecord, SkillOpinionSampleRecord
+from src.infrastructure.persistence.models.market_data import StockDaily
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.quote import configure_stock_repository
+
+configure_decision_repositories()
+configure_stock_repository()
 
 
 @pytest.fixture()

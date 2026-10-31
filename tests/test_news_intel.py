@@ -20,8 +20,9 @@ from unittest.mock import patch
 from sqlalchemy.exc import OperationalError
 
 from src.config import Config
-from src.storage import DatabaseManager, NewsIntel
-from src.search_service import SearchResponse, SearchResult
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.models.intelligence import NewsIntel
+from src.application.intelligence.search_service import SearchResponse, SearchResult
 
 
 class NewsIntelStorageTestCase(unittest.TestCase):
@@ -180,9 +181,13 @@ class NewsIntelStorageTestCase(unittest.TestCase):
             sqlite3.OperationalError("database is locked"),
         )
 
-        with patch.object(self.db, "get_session", side_effect=[first_session, second_session]):
+        # 写事务重试在 persistence.session.DatabaseSession 内完成，
+        # 这里 patch 它取 session 的入口，而不是 DatabaseManager.get_session
+        with patch.object(
+            self.db._session, "create_session", side_effect=[first_session, second_session]
+        ):
             with patch.object(first_session, "execute", side_effect=stmt_exc):
-                with patch("src.storage.time.sleep") as mock_sleep:
+                with patch("src.infrastructure.persistence.session.time.sleep") as mock_sleep:
                     saved_count = self.db.save_news_intel(
                         code="600519",
                         name="贵州茅台",

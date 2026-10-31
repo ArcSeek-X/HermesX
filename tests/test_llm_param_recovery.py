@@ -3,11 +3,11 @@
 测试llm参数恢复相关功能测试
 """
 
-from src.llm.errors import (
+from src.infrastructure.generation.errors import (
     call_litellm_with_param_recovery,
     classify_litellm_generation_param_error,
 )
-from src.llm.generation_params import (
+from src.infrastructure.generation.generation_params import (
     apply_litellm_generation_params,
     clear_litellm_generation_param_recovery_cache,
 )

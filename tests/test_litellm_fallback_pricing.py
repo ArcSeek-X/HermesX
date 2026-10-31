@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 
     ensure_litellm_stub()
 
-from src.agent import llm_adapter
+from src.infrastructure.agent_runtime import llm_adapter
 
 
 def _fake_litellm_response(content: str = "agent ok") -> SimpleNamespace:

@@ -22,9 +22,9 @@ except ModuleNotFoundError:
 
     ensure_litellm_stub()
 
-from src.notification import NotificationService
-from src.report_language import get_report_labels
-from src.analyzer import GeminiAnalyzer
+from src.application.notification.notification import NotificationService
+from src.domain.shared.report_language import get_report_labels
+from src.application.analysis.analyzer import GeminiAnalyzer
 
 # real 2330.TW 三大法人 net figures (shares)
 _INST_REC = {

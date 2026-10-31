@@ -5,7 +5,8 @@
 
 from types import SimpleNamespace
 
-from src.analyzer import AnalysisResult, _capital_flow_bias, stabilize_decision_with_structure
+from src.application.analysis.analyzer import AnalysisResult, stabilize_decision_with_structure
+from src.domain.decision.stability_rules import capital_flow_bias as _capital_flow_bias
 
 
 def _result(

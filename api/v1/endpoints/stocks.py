@@ -32,21 +32,21 @@ from api.v1.schemas.stocks import (
 )
 from api.v1.schemas.history import WatchlistRequest, WatchlistResponse
 from api.v1.schemas.common import ErrorResponse
-from src.services.image_stock_extractor import (
+from src.application.analysis.image_stock_extractor import (
     ALLOWED_MIME,
     MAX_SIZE_BYTES,
     extract_stock_codes_from_image,
 )
-from src.services.import_parser import (
+from src.application.quote.import_parser import (
     MAX_FILE_BYTES,
     parse_import_from_bytes,
     parse_import_from_text,
 )
-from src.services.intraday_timeline_service import fetch_intraday_timeline
-from src.services.stock_service import StockService
-from src.services.stock_list_parser import split_stock_list
-from src.services.system_config_service import SystemConfigService
-from data_provider.base import normalize_stock_code
+from src.application.quote.intraday_timeline_service import fetch_intraday_timeline
+from src.application.quote.stock_code_utils import normalize_stock_code_for_stock_list
+from src.domain.market.stock_list_parser import split_stock_list
+from src.bootstrap.quote import build_stock_service
+from src.application.runtime.system_config_service import SystemConfigService
 
 logger = logging.getLogger(__name__)
 
@@ -124,12 +124,12 @@ def _validate_and_normalize_stock_code(code: str) -> str:
                 "message": f"'{stripped}' 不是合法的股票代码格式",
             },
         )
-    return normalize_stock_code(stripped)
+    return normalize_stock_code_for_stock_list(stripped)
 
 
 def _watchlist_match_key(code: str) -> str:
     """Return the equivalence key used for watchlist add/remove matching."""
-    normalized = normalize_stock_code(code.strip())
+    normalized = normalize_stock_code_for_stock_list(code.strip())
     if re.fullmatch(r"\d{5}", normalized):
         return f"HK{normalized}"
     return normalized.upper()
@@ -449,7 +449,7 @@ def get_stock_quote(stock_code: str) -> StockQuote:
         HTTPException: 404 - 股票不存在
     """
     try:
-        service = StockService()
+        service = build_stock_service()
         
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
         result = service.get_realtime_quote(stock_code)
@@ -523,7 +523,7 @@ def get_stock_history(
         StockHistoryResponse: 历史行情数据
     """
     try:
-        service = StockService()
+        service = build_stock_service()
         
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
         result = service.get_history_data(

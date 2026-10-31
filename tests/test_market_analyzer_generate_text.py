@@ -23,6 +23,22 @@ for _mod in ("litellm", "google.generativeai", "google.genai", "anthropic"):
 
 import pytest
 
+from src.application.analysis import analyzer as analyzer_module
+from src.bootstrap.analyzer import configure_analyzer_runtime
+from src.bootstrap.generation import configure_generation_runtime
+
+# 顶层装配 Analyzer LLM 运行时端口（§4.3 A2；T5f configure_system_config_runtime 同型）：
+# litellm Router/completion/no-proxy 外调簇已下沉 infra 适配器，用例经 seam 消费，未装配即 fail-fast。
+configure_analyzer_runtime()
+# 生成链路端口（R2-A3）：后端工厂 / 参数归一 / usage / provider cache 外调簇同型下沉。
+configure_generation_runtime()
+
+
+def _usage_port():
+    """返回已装配的生成链路用量遥测端口（用例统一 patch 其 ``persist``）。"""
+
+    return analyzer_module._get_generation_usage_port()
+
 
 @pytest.fixture(autouse=True)
 def _llm_usage_hmac_env(monkeypatch):
@@ -115,7 +131,7 @@ _OPENAI_COMPATIBILITY_PAYLOAD_FIXTURES = [
 class TestAnalyzerGenerateText:
     def _make_analyzer(self):
         """Return a minimally configured GeminiAnalyzer with _call_litellm mocked."""
-        with patch("src.analyzer.get_config") as mock_cfg:
+        with patch("src.application.analysis.analyzer.get_config") as mock_cfg:
             cfg = MagicMock()
             cfg.litellm_model = "gemini/gemini-2.0-flash"
             cfg.litellm_fallback_models = []
@@ -128,7 +144,7 @@ class TestAnalyzerGenerateText:
             cfg.generation_backend = "litellm"
             cfg.generation_fallback_backend = "litellm"
             mock_cfg.return_value = cfg
-            from src.analyzer import GeminiAnalyzer
+            from src.application.analysis.analyzer import GeminiAnalyzer
             analyzer = GeminiAnalyzer.__new__(GeminiAnalyzer)
             analyzer._router = None
             analyzer._litellm_available = True
@@ -136,7 +152,7 @@ class TestAnalyzerGenerateText:
             return analyzer
 
     def test_legacy_market_group_normalizes_supported_markets(self):
-        from src.analyzer import _legacy_market_group
+        from src.application.analysis.analyzer import _legacy_market_group
 
         assert _legacy_market_group("") == "unknown"
         assert _legacy_market_group("unknown") == "unknown"
@@ -145,7 +161,7 @@ class TestAnalyzerGenerateText:
         assert _legacy_market_group("AAPL") == "us"
 
     def test_legacy_audit_marker_specs_use_language_and_optional_context(self):
-        from src.analyzer import _legacy_audit_marker_specs
+        from src.application.analysis.analyzer import _legacy_audit_marker_specs
 
         zh_markers = _legacy_audit_marker_specs(
             {"date": "2026-06-19"},
@@ -201,7 +217,7 @@ class TestAnalyzerGenerateText:
             "backend": "codex_cli",
         }
         with patch.object(analyzer, "_call_litellm", return_value=("复盘", "codex_cli", usage)), \
-             patch("src.analyzer.persist_llm_usage") as mock_persist:
+             patch.object(_usage_port(), "persist") as mock_persist:
             result = analyzer.generate_text("写一份复盘")
 
         assert result == "复盘"
@@ -228,14 +244,14 @@ class TestAnalyzerGenerateText:
             local_cli_backend_max_concurrency=1,
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value=f"/usr/bin/{executable_name}"), \
-             patch("src.llm.local_cli_backend.os.access", return_value=True):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=f"/usr/bin/{executable_name}"), \
+             patch("src.infrastructure.generation.local_cli_backend.os.access", return_value=True):
             assert analyzer.get_generation_backend_config_error() is None
             assert analyzer.is_available() is True
 
     def test_analyze_uses_litellm_fallback_when_codex_cli_config_error_is_fallbackable(self):
-        from src.llm.generation_backend import GenerationBackend, GenerationError, GenerationErrorCode
-        from src.llm.local_cli_backend import LocalCliGenerationBackend
+        from src.application.generation.ports import GenerationBackend, GenerationError, GenerationErrorCode
+        from src.infrastructure.generation.local_cli_backend import LocalCliGenerationBackend
 
         analyzer = self._make_analyzer()
         analyzer._litellm_available = True
@@ -282,7 +298,7 @@ class TestAnalyzerGenerateText:
         def _backend_for(backend_id=None):
             return primary_backend if backend_id == "codex_cli" else fallback_backend
 
-        with patch.object(analyzer, "_get_generation_backend", side_effect=_backend_for), \
+        with patch.object(analyzer, "get_generation_backend", side_effect=_backend_for), \
              patch.object(analyzer, "_get_analysis_system_prompt", return_value="system"), \
              patch.object(analyzer, "_get_skill_prompt_sections", return_value=(None, None, True)), \
              patch.object(analyzer, "_format_prompt", return_value="prompt"), \
@@ -296,8 +312,8 @@ class TestAnalyzerGenerateText:
         fallback_backend.generate.assert_called()
 
     def test_analyze_preserves_litellm_text_fallback_after_codex_cli_primary_failure(self):
-        from src.analyzer import AnalysisResult, _AllModelsFailedError
-        from src.llm.generation_backend import GenerationBackend, GenerationError, GenerationErrorCode
+        from src.application.analysis.analyzer import AnalysisResult, _AllModelsFailedError
+        from src.application.generation.ports import GenerationBackend, GenerationError, GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._litellm_available = True
@@ -348,13 +364,13 @@ class TestAnalyzerGenerateText:
 
         with patch.object(analyzer, "get_generation_backend_config_error", return_value=None), \
              patch.object(analyzer, "is_available", return_value=True), \
-             patch.object(analyzer, "_get_generation_backend", side_effect=_backend_for), \
+             patch.object(analyzer, "get_generation_backend", side_effect=_backend_for), \
              patch.object(analyzer, "_get_analysis_system_prompt", return_value="system"), \
              patch.object(analyzer, "_get_skill_prompt_sections", return_value=(None, None, True)), \
              patch.object(analyzer, "_format_prompt", return_value="prompt"), \
              patch.object(analyzer, "_parse_response", return_value=text_fallback_result) as mock_parse, \
              patch.object(analyzer, "_build_market_snapshot", return_value={}), \
-             patch("src.analyzer.persist_llm_usage") as mock_persist:
+             patch.object(_usage_port(), "persist") as mock_persist:
             result = analyzer.analyze({"code": "600519", "stock_name": "贵州茅台"})
 
         assert result.analysis_summary == "纯文本兜底摘要"
@@ -409,7 +425,7 @@ class TestAnalyzerGenerateText:
              patch.object(analyzer, "_format_prompt", return_value="prompt"), \
              patch.object(analyzer, "_call_litellm", return_value=(response_text, "codex_cli", usage)), \
              patch.object(analyzer, "_build_market_snapshot", return_value={}), \
-             patch("src.analyzer.persist_llm_usage") as mock_persist:
+             patch.object(_usage_port(), "persist") as mock_persist:
             result = analyzer.analyze({"code": "600519", "stock_name": "贵州茅台"})
 
         assert result.success is True
@@ -422,7 +438,7 @@ class TestAnalyzerGenerateText:
             assert result is None  # must not raise
 
     def test_generate_text_raises_generation_error_for_unsupported_backend(self):
-        from src.llm.generation_backend import GenerationError
+        from src.application.generation.ports import GenerationError
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -446,7 +462,7 @@ class TestAnalyzerGenerateText:
             assert gen_cfg["temperature"] == 0.7
 
     def test_call_litellm_wrapper_uses_generation_backend_tuple_contract(self):
-        from src.llm.generation_backend import GenerationBackend
+        from src.application.generation.ports import GenerationBackend
 
         analyzer = self._make_analyzer()
         backend = MagicMock(spec=GenerationBackend)
@@ -456,7 +472,7 @@ class TestAnalyzerGenerateText:
             usage={"provider": "gemini", "total_tokens": 9},
         )
 
-        with patch.object(analyzer, "_get_generation_backend", return_value=backend):
+        with patch.object(analyzer, "get_generation_backend", return_value=backend):
             result = analyzer._call_litellm(
                 "prompt",
                 {"max_tokens": 128, "temperature": 0.2},
@@ -482,7 +498,7 @@ class TestAnalyzerGenerateText:
         assert backend.generate.call_args.kwargs["audit_context"] == {"call_type": "analysis"}
 
     def test_call_litellm_wraps_fallback_generation_error_with_primary_context(self):
-        from src.llm.generation_backend import GenerationBackend, GenerationError, GenerationErrorCode
+        from src.application.generation.ports import GenerationBackend, GenerationError, GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._config_override.generation_backend = "codex_cli"
@@ -513,7 +529,7 @@ class TestAnalyzerGenerateText:
         def _backend_for(backend_id):
             return primary_backend if backend_id == "codex_cli" else fallback_backend
 
-        with patch.object(analyzer, "_get_generation_backend", side_effect=_backend_for):
+        with patch.object(analyzer, "get_generation_backend", side_effect=_backend_for):
             with pytest.raises(GenerationError) as exc_info:
                 analyzer._call_litellm("prompt", {"max_tokens": 128})
 
@@ -527,7 +543,7 @@ class TestAnalyzerGenerateText:
         assert error.details["fallback_error"]["details"]["reason"] == "invalid_json"
 
     def test_call_litellm_rejects_unknown_generation_backend_without_litellm_fallback(self):
-        from src.llm.generation_backend import GenerationError
+        from src.application.generation.ports import GenerationError
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -541,7 +557,7 @@ class TestAnalyzerGenerateText:
         assert exc_info.value.details["requested_backend"] == "codex"
 
     def test_call_litellm_rejects_unknown_generation_fallback_backend(self):
-        from src.llm.generation_backend import GenerationError
+        from src.application.generation.ports import GenerationError
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -688,7 +704,7 @@ class TestAnalyzerGenerateText:
         assert "600519" not in usage["known_dynamic_marker_positions"]
 
     def test_call_litellm_legacy_path_uses_legacy_model_list_for_param_recovery(self):
-        with patch("src.analyzer.get_config") as mock_cfg:
+        with patch("src.application.analysis.analyzer.get_config") as mock_cfg:
             cfg = MagicMock()
             cfg.litellm_model = "openai/gpt-4o-mini"
             cfg.litellm_fallback_models = []
@@ -720,7 +736,7 @@ class TestAnalyzerGenerateText:
             cfg.llm_temperature = 0.7
             mock_cfg.return_value = cfg
 
-            from src.analyzer import GeminiAnalyzer
+            from src.application.analysis.analyzer import GeminiAnalyzer
 
             analyzer = GeminiAnalyzer()
             analyzer._config_override = cfg
@@ -734,7 +750,7 @@ class TestAnalyzerGenerateText:
                 usage=None,
             )
 
-        with patch("src.analyzer.call_litellm_with_param_recovery", side_effect=_fake_call_litellm_with_param_recovery):
+        with patch("src.application.analysis.analyzer.call_litellm_with_param_recovery", side_effect=_fake_call_litellm_with_param_recovery):
             text, _, _ = analyzer._call_litellm("回归用例", {"max_tokens": 128, "temperature": 0.7})
 
         assert text == "ok"
@@ -751,11 +767,11 @@ class TestAnalyzerGenerateText:
             {"x-tenant": "legacy-b"},
         ]
 
-    @patch("src.analyzer.Router")
+    @patch("src.infrastructure.providers.analyzer_runtime.litellm.Router")
     def test_analyzer_legacy_router_recovery_cache_is_scoped_by_api_base(self, mock_router):
         """Analyzer legacy recovery should not leak across same model different api_base."""
-        from src.analyzer import call_litellm_with_param_recovery as real_call
-        from src.llm.generation_params import clear_litellm_generation_param_recovery_cache
+        from src.application.analysis.analyzer import call_litellm_with_param_recovery as real_call
+        from src.infrastructure.generation.generation_params import clear_litellm_generation_param_recovery_cache
 
         clear_litellm_generation_param_recovery_cache()
         response = SimpleNamespace(
@@ -800,8 +816,8 @@ class TestAnalyzerGenerateText:
             captured_model_lists.append(kwargs.get("model_list"))
             return real_call(call, **kwargs)
 
-        import src.analyzer as analyzer_module
-        from src.analyzer import GeminiAnalyzer
+        import src.application.analysis.analyzer as analyzer_module
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         with patch.object(analyzer_module, "call_litellm_with_param_recovery", side_effect=_fake_recovery):
             GeminiAnalyzer(config=strict_cfg)._call_litellm(
@@ -831,7 +847,7 @@ class TestAnalyzerGenerateText:
         assert flex_router.completion.call_args.kwargs["temperature"] == 0.2
 
     def test_prompt_cache_hints_disabled_does_not_change_analyzer_request_shape(self):
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         cfg = SimpleNamespace(
             litellm_model="openai/gpt-4o",
@@ -857,7 +873,7 @@ class TestAnalyzerGenerateText:
                 usage={"prompt_tokens": 10, "completion_tokens": 1, "total_tokens": 11},
             )
 
-        with patch("src.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
+        with patch("src.application.analysis.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
             text, _, _ = analyzer._call_litellm("dynamic prompt", {"max_tokens": 128, "temperature": 0.7})
 
         assert text == "ok"
@@ -869,7 +885,7 @@ class TestAnalyzerGenerateText:
         ]
 
     def test_prompt_cache_telemetry_disabled_filters_cache_fields_from_analyzer_usage(self):
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         cfg = SimpleNamespace(
             litellm_model="openai/gpt-4o",
@@ -898,7 +914,7 @@ class TestAnalyzerGenerateText:
                 },
             )
 
-        with patch("src.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
+        with patch("src.application.analysis.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
             _, _, usage = analyzer._call_litellm("dynamic prompt", {"max_tokens": 128, "temperature": 0.7})
 
         assert usage["prompt_tokens"] == 1200
@@ -910,7 +926,7 @@ class TestAnalyzerGenerateText:
         assert usage["messages_hmac"]
 
     def test_prompt_cache_telemetry_disabled_marks_no_usage_response_for_storage(self):
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         cfg = SimpleNamespace(
             litellm_model="openai/gpt-4o",
@@ -934,7 +950,7 @@ class TestAnalyzerGenerateText:
                 usage=None,
             )
 
-        with patch("src.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
+        with patch("src.application.analysis.analyzer.call_litellm_with_param_recovery", side_effect=_fake_recovery):
             text, _, usage = analyzer._call_litellm("dynamic prompt", {"max_tokens": 128, "temperature": 0.7})
 
         assert text == "ok"
@@ -1019,8 +1035,8 @@ class TestAnalyzerGenerateText:
             seen_kwargs.update(kwargs)
             return response
 
-        with patch("src.analyzer.open_hermes_no_proxy_client", side_effect=fake_no_proxy_client), \
-             patch("src.analyzer.litellm.completion", side_effect=fake_completion):
+        with patch("src.infrastructure.generation.hermes.open_hermes_no_proxy_client", side_effect=fake_no_proxy_client), \
+             patch("src.infrastructure.providers.analyzer_runtime.litellm.completion", side_effect=fake_completion):
             text, model, _usage = analyzer._call_litellm(
                 "prompt",
                 {"max_tokens": 128, "temperature": 0.0},
@@ -1036,7 +1052,7 @@ class TestAnalyzerGenerateText:
         assert "client" in seen_kwargs
 
     def test_call_litellm_hermes_failure_redacts_secret_from_logs_and_error(self, caplog):
-        from src.analyzer import _AllModelsFailedError
+        from src.application.analysis.analyzer import _AllModelsFailedError
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -1064,9 +1080,9 @@ class TestAnalyzerGenerateText:
         def fake_no_proxy_client(**_kwargs):
             yield object()
 
-        caplog.set_level("WARNING", logger="src.analyzer")
-        with patch("src.analyzer.open_hermes_no_proxy_client", side_effect=fake_no_proxy_client), \
-             patch("src.analyzer.litellm.completion", side_effect=RuntimeError("upstream saw saved-secret-token")):
+        caplog.set_level("WARNING", logger="src.application.analysis.analyzer")
+        with patch("src.infrastructure.generation.hermes.open_hermes_no_proxy_client", side_effect=fake_no_proxy_client), \
+             patch("src.infrastructure.providers.analyzer_runtime.litellm.completion", side_effect=RuntimeError("upstream saw saved-secret-token")):
             with pytest.raises(_AllModelsFailedError) as exc_info:
                 analyzer._call_litellm("prompt", {"max_tokens": 4})
 
@@ -1102,7 +1118,7 @@ class TestAnalyzerGenerateText:
         )
         context = {"code": "600519", "stock_name": "贵州茅台"}
 
-        caplog.set_level("ERROR", logger="src.analyzer")
+        caplog.set_level("ERROR", logger="src.application.analysis.analyzer")
         with patch.object(analyzer, "get_generation_backend_config_error", return_value=None), \
              patch.object(analyzer, "is_available", return_value=True), \
              patch.object(analyzer, "_get_analysis_system_prompt", return_value="system"), \
@@ -1119,7 +1135,7 @@ class TestAnalyzerGenerateText:
         assert "[REDACTED]" in result.error_message
 
     def test_generation_config_error_rejects_mixed_hermes_route(self):
-        from src.llm.generation_backend import GenerationErrorCode
+        from src.application.generation.ports import GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._router = None
@@ -1158,7 +1174,7 @@ class TestAnalyzerGenerateText:
         assert error.details["code"] == "mixed_hermes_route_unsupported"
 
     def test_generation_config_error_rejects_bare_mixed_hermes_route(self):
-        from src.llm.generation_backend import GenerationErrorCode
+        from src.application.generation.ports import GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -1195,7 +1211,7 @@ class TestAnalyzerGenerateText:
         assert error.details["code"] == "mixed_hermes_route_unsupported"
 
     def test_generation_config_error_rejects_mixed_hermes_fallback_route(self):
-        from src.llm.generation_backend import GenerationErrorCode
+        from src.application.generation.ports import GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -1233,7 +1249,7 @@ class TestAnalyzerGenerateText:
         assert error.details["route_name"] == "shared-route"
 
     def test_generation_config_error_rejects_bare_mixed_hermes_fallback_route(self):
-        from src.llm.generation_backend import GenerationErrorCode
+        from src.application.generation.ports import GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -1271,7 +1287,7 @@ class TestAnalyzerGenerateText:
 
     def test_invalid_hermes_with_valid_sibling_keeps_analyzer_available(self):
         from src.config import Config
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         env = {
             "LLM_CHANNELS": "hermes,primary",
@@ -1282,8 +1298,8 @@ class TestAnalyzerGenerateText:
             "OPENAI_API_KEY": "sk-openai-test-value",
         }
 
-        with patch("src.config.setup_env"), \
-             patch.object(Config, "_parse_litellm_yaml", return_value=[]), \
+        with patch("src.config.settings.setup_env"), \
+             patch.object(Config, "parse_litellm_yaml", return_value=[]), \
              patch.dict("os.environ", env, clear=True):
             config = Config._load_from_env()
             analyzer = GeminiAnalyzer(config=config)
@@ -1296,8 +1312,8 @@ class TestAnalyzerGenerateText:
 
     def test_explicit_invalid_hermes_primary_with_valid_sibling_is_blocked_before_completion(self):
         from src.config import Config
-        from src.analyzer import GeminiAnalyzer
-        from src.llm.generation_backend import GenerationError, GenerationErrorCode
+        from src.application.analysis.analyzer import GeminiAnalyzer
+        from src.application.generation.ports import GenerationError, GenerationErrorCode
 
         env = {
             "LLM_CHANNELS": "hermes,primary",
@@ -1311,8 +1327,8 @@ class TestAnalyzerGenerateText:
             "LITELLM_MODEL": "bad model",
         }
 
-        with patch("src.config.setup_env"), \
-             patch.object(Config, "_parse_litellm_yaml", return_value=[]), \
+        with patch("src.config.settings.setup_env"), \
+             patch.object(Config, "parse_litellm_yaml", return_value=[]), \
              patch.dict("os.environ", env, clear=True):
             config = Config._load_from_env()
             analyzer = GeminiAnalyzer(config=config)
@@ -1327,15 +1343,15 @@ class TestAnalyzerGenerateText:
         assert error.details["field"] == "LITELLM_MODEL"
         assert analyzer.is_available() is False
 
-        with patch("src.analyzer.litellm.completion") as completion:
+        with patch("src.infrastructure.providers.analyzer_runtime.litellm.completion") as completion:
             with pytest.raises(GenerationError):
                 analyzer._call_litellm("prompt", {"max_tokens": 4})
         completion.assert_not_called()
 
     def test_explicit_invalid_hermes_fallback_with_valid_sibling_is_blocked_before_loop(self):
         from src.config import Config
-        from src.analyzer import GeminiAnalyzer
-        from src.llm.generation_backend import GenerationError, GenerationErrorCode
+        from src.application.analysis.analyzer import GeminiAnalyzer
+        from src.application.generation.ports import GenerationError, GenerationErrorCode
 
         env = {
             "LLM_CHANNELS": "hermes,primary",
@@ -1350,8 +1366,8 @@ class TestAnalyzerGenerateText:
             "LITELLM_FALLBACK_MODELS": "bad model",
         }
 
-        with patch("src.config.setup_env"), \
-             patch.object(Config, "_parse_litellm_yaml", return_value=[]), \
+        with patch("src.config.settings.setup_env"), \
+             patch.object(Config, "parse_litellm_yaml", return_value=[]), \
              patch.dict("os.environ", env, clear=True):
             config = Config._load_from_env()
             analyzer = GeminiAnalyzer(config=config)
@@ -1363,7 +1379,7 @@ class TestAnalyzerGenerateText:
         assert error.details["field"] == "LITELLM_FALLBACK_MODELS"
         assert analyzer.is_available() is False
 
-        with patch("src.analyzer.litellm.completion") as completion:
+        with patch("src.infrastructure.providers.analyzer_runtime.litellm.completion") as completion:
             with pytest.raises(GenerationError):
                 analyzer._call_litellm("prompt", {"max_tokens": 4})
         completion.assert_not_called()
@@ -1371,8 +1387,8 @@ class TestAnalyzerGenerateText:
     @pytest.mark.parametrize("selected_model", ["anthropic/foo bad", "openai/anthropic/foo bad"])
     def test_provider_looking_malformed_hermes_model_is_not_reinterpreted_as_direct_provider(self, selected_model):
         from src.config import Config
-        from src.analyzer import GeminiAnalyzer
-        from src.llm.generation_backend import GenerationError
+        from src.application.analysis.analyzer import GeminiAnalyzer
+        from src.application.generation.ports import GenerationError
 
         env = {
             "LLM_CHANNELS": "hermes,primary",
@@ -1386,8 +1402,8 @@ class TestAnalyzerGenerateText:
             "LITELLM_MODEL": selected_model,
         }
 
-        with patch("src.config.setup_env"), \
-             patch.object(Config, "_parse_litellm_yaml", return_value=[]), \
+        with patch("src.config.settings.setup_env"), \
+             patch.object(Config, "parse_litellm_yaml", return_value=[]), \
              patch.dict("os.environ", env, clear=True):
             config = Config._load_from_env()
             analyzer = GeminiAnalyzer(config=config)
@@ -1397,13 +1413,13 @@ class TestAnalyzerGenerateText:
         assert error.details["code"] == "explicit_hermes_route_invalid"
         assert error.details["field"] == "LITELLM_MODEL"
 
-        with patch("src.analyzer.litellm.completion") as completion:
+        with patch("src.infrastructure.providers.analyzer_runtime.litellm.completion") as completion:
             with pytest.raises(GenerationError):
                 analyzer._call_litellm("prompt", {"max_tokens": 4})
         completion.assert_not_called()
 
     def test_invalid_hermes_config_error_handles_canonicalize_value_error(self):
-        from src.llm.generation_backend import GenerationErrorCode
+        from src.application.generation.ports import GenerationErrorCode
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -1423,8 +1439,8 @@ class TestAnalyzerGenerateText:
             llm_blocked_hermes_routes=["openai/hermes-agent"],
         )
 
-        with patch("src.analyzer.canonicalize_hermes_model_ref", side_effect=ValueError("bad model")), \
-             patch("src.analyzer.litellm.completion") as completion:
+        with patch("src.application.analysis.analyzer.canonicalize_hermes_model_ref", side_effect=ValueError("bad model")), \
+             patch("src.infrastructure.providers.analyzer_runtime.litellm.completion") as completion:
             error = analyzer.get_generation_backend_config_error()
 
         assert error is not None
@@ -2050,7 +2066,7 @@ class TestAnalyzerGenerateText:
         assert "temperature" not in call_kwargs
 
     def test_call_litellm_recovers_from_temperature_default_error(self):
-        from src.llm.generation_params import clear_litellm_generation_param_recovery_cache
+        from src.infrastructure.generation.generation_params import clear_litellm_generation_param_recovery_cache
 
         clear_litellm_generation_param_recovery_cache()
         analyzer = self._make_analyzer()
@@ -2183,7 +2199,7 @@ class TestAnalyzerGenerateText:
             report_integrity_retry=1,
         )
 
-        from src.analyzer import AnalysisResult
+        from src.application.analysis.analyzer import AnalysisResult
 
         progress_updates = []
         first_result = AnalysisResult(
@@ -2222,7 +2238,7 @@ class TestAnalyzerGenerateText:
                  side_effect=[(False, ["analysis_summary"]), (True, [])],
              ), \
              patch.object(analyzer, "_build_integrity_retry_prompt", return_value="retry prompt"), \
-             patch("src.analyzer.persist_llm_usage"):
+             patch.object(_usage_port(), "persist"):
             result = analyzer.analyze(
                 {"code": "600519", "stock_name": "贵州茅台"},
                 progress_callback=lambda progress, message: progress_updates.append((progress, message)),
@@ -2246,7 +2262,7 @@ class TestAnalyzerGenerateText:
             report_integrity_retry=0,
         )
 
-        from src.analyzer import AnalysisResult
+        from src.application.analysis.analyzer import AnalysisResult
 
         parsed_result = AnalysisResult(
             code="600519",
@@ -2278,7 +2294,7 @@ class TestAnalyzerGenerateText:
              patch.object(analyzer, "_dispatch_litellm_completion", return_value=stream_response()), \
              patch.object(analyzer, "_parse_response", return_value=parsed_result), \
              patch.object(analyzer, "_build_market_snapshot", return_value={}), \
-             patch("src.analyzer.persist_llm_usage") as mock_usage:
+             patch.object(_usage_port(), "persist") as mock_usage:
             result = analyzer.analyze({"code": "600519", "stock_name": "贵州茅台"})
 
         assert result.analysis_summary == "分析结果"
@@ -2312,7 +2328,7 @@ class TestAnalyzerGenerateText:
             news_strategy_profile="short",
         )
 
-        from src.analyzer import AnalysisResult
+        from src.application.analysis.analyzer import AnalysisResult
 
         parsed_result = AnalysisResult(
             code="600519",
@@ -2360,7 +2376,7 @@ class TestAnalyzerGenerateText:
              patch.object(analyzer, "_dispatch_litellm_completion", return_value=stream_response()), \
              patch.object(analyzer, "_parse_response", return_value=parsed_result), \
              patch.object(analyzer, "_build_market_snapshot", return_value={}), \
-             patch("src.analyzer.persist_llm_usage") as mock_usage:
+             patch.object(_usage_port(), "persist") as mock_usage:
             result = analyzer.analyze(
                 context,
                 news_context="2026-06-18 贵州茅台发布经营公告。",
@@ -2399,7 +2415,7 @@ class TestAnalyzerGenerateText:
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(report_language="zh")
 
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         result = GeminiAnalyzer._parse_response(analyzer, "这是一段纯文本分析，没有 JSON。", "600519", "贵州茅台")
         assert result.success is False
@@ -2411,7 +2427,7 @@ class TestAnalyzerGenerateText:
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(report_language="zh")
 
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
 
         malformed = "Here is the analysis: {broken json content without closing"
         result = GeminiAnalyzer._parse_response(analyzer, malformed, "AAPL", "Apple")
@@ -2423,7 +2439,7 @@ class TestAnalyzerGenerateText:
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(report_language="zh")
 
-        from src.analyzer import GeminiAnalyzer
+        from src.application.analysis.analyzer import GeminiAnalyzer
         import json
 
         valid_response = json.dumps({
@@ -2482,7 +2498,7 @@ class TestAnalyzerGenerateText:
             llm_model_list=[],
         )
 
-        from src.analyzer import _AllModelsFailedError
+        from src.application.analysis.analyzer import _AllModelsFailedError
 
         def fake_dispatch(model, call_kwargs, **kwargs):
             return SimpleNamespace(
@@ -2508,7 +2524,7 @@ class TestAnalyzerGenerateText:
         with complement instructions); when that also yields invalid JSON the
         exhausted-retries path fires placeholder fill.
         """
-        from src.analyzer import AnalysisResult, _AllModelsFailedError
+        from src.application.analysis.analyzer import AnalysisResult, _AllModelsFailedError
 
         analyzer = self._make_analyzer()
         analyzer._config_override = SimpleNamespace(
@@ -2554,7 +2570,7 @@ class TestAnalyzerGenerateText:
              patch.object(analyzer, "_check_content_integrity", return_value=(False, ["dashboard.core_conclusion.one_sentence"])), \
              patch.object(analyzer, "_build_integrity_retry_prompt", return_value="retry prompt"), \
              patch.object(analyzer, "_apply_placeholder_fill") as mock_fill, \
-             patch("src.analyzer.persist_llm_usage") as mock_usage:
+             patch.object(_usage_port(), "persist") as mock_usage:
 
             result = analyzer.analyze(
                 {"code": "600519", "stock_name": "贵州茅台"},
@@ -2572,7 +2588,7 @@ class TestAnalyzerGenerateText:
         mock_fill.assert_called_once()
         assert "dashboard.core_conclusion.one_sentence" in mock_fill.call_args[0][1]
 
-        # persist_llm_usage was called with the last model and usage
+        # 用量经过已装配的遥测端口 persist 写入（最后一次模型与 usage）
         mock_usage.assert_called_once()
         usage_args = mock_usage.call_args
         assert usage_args[0][0] == {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
@@ -2593,11 +2609,11 @@ class TestAnalyzerGenerateText:
 class TestMarketAnalyzerBypassFix:
     def _make_market_analyzer_with_mock_generate_text(self, return_value="复盘报告"):
         """Return a MarketAnalyzer whose embedded Analyzer.generate_text is mocked."""
-        from src.core.market_profile import CN_PROFILE
-        from src.core.market_strategy import get_market_strategy_blueprint
+        from src.domain.market.profile import CN_PROFILE
+        from src.domain.market.strategy import get_market_strategy_blueprint
 
-        with patch("src.analyzer.get_config") as mock_cfg, \
-             patch("src.market_analyzer.get_config") as mock_cfg2:
+        with patch("src.application.analysis.analyzer.get_config") as mock_cfg, \
+             patch("src.application.market.market_analyzer.get_config") as mock_cfg2:
             cfg = MagicMock()
             cfg.litellm_model = "gemini/gemini-2.0-flash"
             cfg.litellm_fallback_models = []
@@ -2615,8 +2631,8 @@ class TestMarketAnalyzerBypassFix:
             mock_cfg.return_value = cfg
             mock_cfg2.return_value = cfg
 
-            from src.analyzer import GeminiAnalyzer
-            from src.market_analyzer import MarketAnalyzer
+            from src.application.analysis.analyzer import GeminiAnalyzer
+            from src.application.market.market_analyzer import MarketAnalyzer
 
             analyzer = GeminiAnalyzer.__new__(GeminiAnalyzer)
             analyzer._router = None
@@ -2646,7 +2662,7 @@ class TestMarketAnalyzerBypassFix:
 
     def test_generate_text_none_falls_back_to_template(self):
         """generate_market_review() falls back to template when generate_text returns None."""
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         overview = MarketOverview(
@@ -2666,8 +2682,8 @@ class TestMarketAnalyzerBypassFix:
         ma.analyzer.generate_text.assert_called_once()
 
     def test_generation_backend_config_error_does_not_template_fallback(self):
-        from src.llm.generation_backend import GenerationError
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.generation.ports import GenerationError
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.analyzer._config_override.generation_backend = "codex"
@@ -2685,7 +2701,7 @@ class TestMarketAnalyzerBypassFix:
         )
 
         with patch.object(ma, "_generate_template_review", wraps=ma._generate_template_review) as template_review, \
-             patch("src.market_analyzer.record_llm_run") as mock_record_llm_run:
+             patch("src.application.market.market_analyzer.record_llm_run") as mock_record_llm_run:
             with pytest.raises(GenerationError) as exc_info:
                 ma.generate_market_review(overview, [])
 
@@ -2701,8 +2717,8 @@ class TestMarketAnalyzerBypassFix:
         assert "backend_not_configured" in str(diagnostic["error_message"])
 
     def test_local_backend_execution_error_does_not_template_fallback(self):
-        from src.llm.generation_backend import GenerationError, GenerationErrorCode
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.generation.ports import GenerationError, GenerationErrorCode
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.analyzer.generate_text.side_effect = GenerationError(
@@ -2735,8 +2751,8 @@ class TestMarketAnalyzerBypassFix:
         template_review.assert_not_called()
 
     def test_generation_backend_config_error_without_analyzer_does_not_template_fallback(self):
-        from src.llm.generation_backend import GenerationError
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.generation.ports import GenerationError
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         overview = MarketOverview(
             date="2026-03-05",
@@ -2763,7 +2779,7 @@ class TestMarketAnalyzerBypassFix:
             setattr(ma.config, attr_name, "codex")
 
             with patch.object(ma, "_generate_template_review", wraps=ma._generate_template_review) as template_review, \
-                 patch("src.market_analyzer.record_llm_run") as mock_record_llm_run:
+                 patch("src.application.market.market_analyzer.record_llm_run") as mock_record_llm_run:
                 with pytest.raises(GenerationError) as exc_info:
                     ma.generate_market_review(overview, [])
 
@@ -2774,7 +2790,7 @@ class TestMarketAnalyzerBypassFix:
 
     def test_market_review_uses_8192_max_tokens(self):
         """generate_market_review() should request a larger output budget to avoid truncation."""
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="复盘结果")
         overview = MarketOverview(
@@ -2799,7 +2815,7 @@ class TestMarketAnalyzerBypassFix:
         assert kwargs["temperature"] == 0.7
 
     def test_generate_template_review_uses_english_shell_for_cn_when_report_language_is_en(self):
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.config.report_language = "en"
@@ -2834,9 +2850,9 @@ class TestMarketAnalyzerBypassFix:
         assert "### 一、市场总结" not in result
 
     def test_generate_template_review_uses_jp_title_for_english_fallback(self):
-        from src.core.market_profile import JP_PROFILE
-        from src.core.market_strategy import get_market_strategy_blueprint
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.domain.market.profile import JP_PROFILE
+        from src.domain.market.strategy import get_market_strategy_blueprint
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.region = "jp"
@@ -2863,9 +2879,9 @@ class TestMarketAnalyzerBypassFix:
         assert "A-share Market Recap" not in result
 
     def test_generate_template_review_keeps_chinese_shell_for_us_when_report_language_is_default(self):
-        from src.core.market_profile import US_PROFILE
-        from src.core.market_strategy import get_market_strategy_blueprint
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.domain.market.profile import US_PROFILE
+        from src.domain.market.strategy import get_market_strategy_blueprint
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.region = "us"
@@ -2904,9 +2920,9 @@ class TestMarketAnalyzerBypassFix:
     def test_generate_template_review_uses_jp_kr_labels_for_no_llm_fallback(
         self, region, profile_name, index_code, index_name, english_title, zh_label
     ):
-        import src.core.market_profile as market_profile
-        from src.core.market_strategy import get_market_strategy_blueprint
-        from src.market_analyzer import MarketOverview, MarketIndex
+        import src.domain.market.profile as market_profile
+        from src.domain.market.strategy import get_market_strategy_blueprint
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.region = region
@@ -2936,7 +2952,7 @@ class TestMarketAnalyzerBypassFix:
         assert "今日A股市场整体呈现" not in zh_result
 
     def test_inject_data_into_review_matches_english_headings(self):
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         ma.config.report_language = "en"
@@ -2985,7 +3001,7 @@ Sector text.
         assert "| 1 | 煤炭 | -1.12% |" in result
 
     def test_inject_data_into_review_matches_reference_style_chinese_headings(self):
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         overview = MarketOverview(
@@ -3057,7 +3073,7 @@ Sector text.
         assert "算力产业链延续活跃" not in result
 
     def test_inject_data_into_review_appends_sector_block_when_heading_drifts(self):
-        from src.market_analyzer import MarketOverview
+        from src.application.market.market_analyzer import MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         overview = MarketOverview(
@@ -3080,7 +3096,7 @@ Sector text.
         assert "| 1 | 煤炭 | -1.12% |" in result
 
     def test_market_review_payload_sections_skip_top_report_title(self):
-        from src.market_analyzer import MarketAnalyzer
+        from src.application.market.market_analyzer import MarketAnalyzer
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         sections = ma._split_report_sections("""## 2026-06-03 大盘复盘
@@ -3096,7 +3112,7 @@ Sector text.
         assert all(section["title"] != "2026-06-03 大盘复盘" for section in sections)
 
     def test_news_block_renders_title_source_and_link_only(self):
-        from src.market_analyzer import MarketAnalyzer
+        from src.application.market.market_analyzer import MarketAnalyzer
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         ma.config = SimpleNamespace(report_language="zh")
@@ -3127,7 +3143,7 @@ Sector text.
         ) in result
 
     def test_news_block_uses_dash_when_source_metadata_missing(self):
-        from src.market_analyzer import MarketAnalyzer
+        from src.application.market.market_analyzer import MarketAnalyzer
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         ma.config = SimpleNamespace(report_language="zh")
@@ -3145,7 +3161,7 @@ Sector text.
         assert "| 1 | 政策利好带动板块活跃 |" not in result
 
     def test_news_block_uses_english_metadata_punctuation(self):
-        from src.market_analyzer import MarketAnalyzer
+        from src.application.market.market_analyzer import MarketAnalyzer
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         ma.config = SimpleNamespace(report_language="en")
@@ -3168,7 +3184,7 @@ Sector text.
         assert "（Reuters" not in result
 
     def test_review_prompt_caps_news_url_context(self):
-        from src.market_analyzer import MarketOverview
+        from src.application.market.market_analyzer import MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         long_url = "https://example.com/redirect?" + "utm_campaign=" + ("x" * 420)
@@ -3191,7 +3207,7 @@ Sector text.
         assert ("x" * 220) not in prompt
 
     def test_market_light_snapshot_marks_defensive_market_red(self):
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         overview = MarketOverview(
@@ -3221,7 +3237,7 @@ Sector text.
         assert any("亏钱效应" in reason for reason in snapshot["reasons"])
 
     def test_market_light_snapshot_uses_english_labels_and_reasons(self):
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         ma.config.report_language = "en"
@@ -3252,8 +3268,8 @@ Sector text.
         )
 
     def test_market_light_snapshot_marks_us_without_breadth_as_partial(self):
-        from src.core.market_profile import US_PROFILE
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.domain.market.profile import US_PROFILE
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         ma.region = "us"
@@ -3282,8 +3298,8 @@ Sector text.
     def test_market_light_snapshot_accepts_jp_kr_regions(
         self, region, profile_name, index_code, index_name
     ):
-        import src.core.market_profile as market_profile
-        from src.market_analyzer import MarketIndex, MarketOverview
+        import src.domain.market.profile as market_profile
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="review")
         ma.region = region
@@ -3303,8 +3319,8 @@ Sector text.
         assert snapshot["dimensions"]["limit"] == {"score": 50, "available": False}
 
     def test_market_review_payload_omits_breadth_for_markets_without_stats(self):
-        from src.core.market_profile import US_PROFILE
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.domain.market.profile import US_PROFILE
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="复盘结果")
         ma.region = "us"
@@ -3331,7 +3347,7 @@ Sector text.
         assert payload["indices"][0]["code"] == "SPX"
 
     def test_market_review_payload_omits_breadth_for_cn_market_without_available_stats(self):
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="复盘结果")
         payload = ma.build_market_review_payload(
@@ -3356,7 +3372,7 @@ Sector text.
         assert payload["indices"][0]["name"] == "上证指数"
 
     def test_market_review_payload_includes_breadth_only_when_stats_available(self):
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="复盘结果")
         payload = ma.build_market_review_payload(
@@ -3384,7 +3400,7 @@ Sector text.
         assert payload["breadth"]["total_amount"] == 12345.0
 
     def test_market_review_includes_concept_rankings_in_prompt_payload_and_tables(self):
-        from src.market_analyzer import MarketIndex, MarketOverview
+        from src.application.market.market_analyzer import MarketIndex, MarketOverview
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value="复盘结果")
         overview = MarketOverview(
@@ -3415,9 +3431,9 @@ Sector text.
         assert payload["concepts"]["top"][0]["name"] == "机器人概念"
 
     def test_us_english_indices_do_not_label_turnover_as_cny(self):
-        from src.core.market_profile import US_PROFILE
-        from src.core.market_strategy import get_market_strategy_blueprint
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.domain.market.profile import US_PROFILE
+        from src.domain.market.strategy import get_market_strategy_blueprint
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.config.report_language = "en"
@@ -3445,7 +3461,7 @@ Sector text.
         assert "| S&P 500 | 5200.00 |" in result
 
     def test_indices_block_uses_configured_red_up_color_scheme(self):
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         ma.config.market_review_color_scheme = "red_up"
@@ -3465,7 +3481,7 @@ Sector text.
         assert "| 创业板指 | 2100.00 | ⚪ +0.00% |" in result
 
     def test_indices_block_keeps_green_up_default_color_scheme(self):
-        from src.market_analyzer import MarketOverview, MarketIndex
+        from src.application.market.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
         overview = MarketOverview(
@@ -3486,7 +3502,9 @@ Sector text.
         import ast
         import pathlib
 
-        src = pathlib.Path("src/market_analyzer.py").read_text(encoding="utf-8")
+        import src.application.market.market_analyzer as market_analyzer_module
+
+        src = pathlib.Path(market_analyzer_module.__file__).read_text(encoding="utf-8")
         tree = ast.parse(src)
         forbidden = {
             "_model", "_router", "_use_openai", "_use_anthropic",  # historical
@@ -3503,3 +3521,65 @@ Sector text.
         assert violations == [], (
             f"market_analyzer.py still accesses private Analyzer attributes: {violations}"
         )
+
+
+class AnalyzerRuntimePortWiringTestCase:
+    """§4.3 拆分 A2 后的端口装配链路回归：bootstrap 绑定 seam、None 幂等、未装配 fail-fast。"""
+
+    def test_configure_analyzer_runtime_binds_adapter_idempotently(self) -> None:
+        import src.application.analysis.analyzer as analyzer_module
+        from src.application.analysis.analyzer_runtime_ports import AnalyzerLLMPort  # noqa: F401  契约锚点
+        from src.infrastructure.providers.analyzer_runtime import AnalyzerLLMAdapter
+
+        original = analyzer_module._analyzer_llm_port
+        try:
+            # None 不覆盖：幂等语义保持不变。
+            analyzer_module.set_analyzer_llm_port(None)
+            assert isinstance(analyzer_module._get_analyzer_llm_port(), AnalyzerLLMAdapter)
+            configure_analyzer_runtime()
+            configure_analyzer_runtime()
+            assert isinstance(analyzer_module._get_analyzer_llm_port(), AnalyzerLLMAdapter)
+        finally:
+            analyzer_module._analyzer_llm_port = original
+
+    def test_get_analyzer_llm_port_fail_fast_when_unbound(self) -> None:
+        import src.application.analysis.analyzer as analyzer_module
+
+        original = analyzer_module._analyzer_llm_port
+        try:
+            analyzer_module._analyzer_llm_port = None
+            with pytest.raises(RuntimeError):
+                analyzer_module._get_analyzer_llm_port()
+        finally:
+            analyzer_module._analyzer_llm_port = original
+
+
+class TestGenerationUsagePersistPort:
+    """用量遥测写侧端口回归：adapter 委托 ``src.storage``，标签参数逐字透传。"""
+
+    def test_adapter_persist_delegates_to_storage(self) -> None:
+        from src.infrastructure.generation.adapters.port_usage import GenerationUsageAdapter
+
+        usage = {"prompt_tokens": 3, "completion_tokens": 5, "total_tokens": 8}
+        with patch("src.storage.persist_llm_usage") as mock_persist:
+            GenerationUsageAdapter().persist(
+                usage,
+                "openai/gpt-4o-mini",
+                call_type="analysis",
+                stock_code="600519",
+            )
+
+        mock_persist.assert_called_once_with(
+            usage,
+            "openai/gpt-4o-mini",
+            call_type="analysis",
+            stock_code="600519",
+        )
+
+    def test_analyzer_usage_write_has_no_storage_import(self) -> None:
+        """分析器写用量必须走生成链路端口，不得回退为 application→storage 直连。"""
+        from pathlib import Path
+
+        source = Path(analyzer_module.__file__).read_text(encoding="utf-8")
+        assert "from src.storage" not in source
+        assert not hasattr(analyzer_module, "persist_llm_usage")

@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from src.core import trading_calendar
+from src.domain.market import trading_calendar
 
 
 class _FakeCalendar:

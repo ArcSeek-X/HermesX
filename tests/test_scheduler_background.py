@@ -52,7 +52,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_background_task_runs_when_interval_elapsed(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(schedule_time="18:00")
             calls = []
@@ -63,7 +63,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
                 fake_thread.start.side_effect = target
                 return fake_thread
 
-            with patch("src.scheduler.threading.Thread", side_effect=_make_thread):
+            with patch("src.application.runtime.scheduler.threading.Thread", side_effect=_make_thread):
                 scheduler.add_background_task(lambda: calls.append("ran"), interval_seconds=1, run_immediately=True, name="test")
 
         self.assertEqual(calls, ["ran"])
@@ -71,13 +71,13 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_background_task_waits_for_interval(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(schedule_time="18:00")
             calls = []
             scheduler.add_background_task(lambda: calls.append("ran"), interval_seconds=60, run_immediately=False, name="test")
 
-            with patch("src.scheduler.time.time", return_value=scheduler._background_tasks[0]["last_run"] + 10):
+            with patch("src.application.runtime.scheduler.time.time", return_value=scheduler._background_tasks[0]["last_run"] + 10):
                 scheduler._run_background_tasks()
 
         self.assertEqual(calls, [])
@@ -85,7 +85,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_run_with_schedule_registers_background_tasks_before_immediate_daily_task(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src import scheduler as scheduler_module
+            from src.application.runtime import scheduler as scheduler_module
 
             order = []
 
@@ -120,7 +120,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_reloads_daily_job_when_schedule_time_changes(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(
                 schedule_time="18:00",
@@ -140,7 +140,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_registers_multiple_daily_jobs(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(
                 schedule_time="18:00",
@@ -154,7 +154,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_stop_cancels_registered_daily_jobs(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(
                 schedule_time="18:00",
@@ -172,7 +172,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_keeps_existing_daily_job_when_schedule_time_invalid(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(
                 schedule_time="18:00",
@@ -189,7 +189,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_keeps_current_daily_job_when_schedule_time_provider_fails(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             provider_calls = {"count": 0}
 
@@ -215,7 +215,7 @@ class SchedulerBackgroundTaskTestCase(unittest.TestCase):
     def test_scheduler_rejects_invalid_initial_schedule_time(self):
         fake_schedule = _FakeScheduleModule()
         with patch.dict(sys.modules, {"schedule": fake_schedule}):
-            from src.scheduler import Scheduler
+            from src.application.runtime.scheduler import Scheduler
 
             scheduler = Scheduler(schedule_time="25:99")
             calls = []

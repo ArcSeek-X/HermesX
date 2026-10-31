@@ -9,8 +9,8 @@ import datetime
 
 import pytest
 
-from src.services import scanner_indicators as ind
-from src.services import signal_scanner_service as svc
+from src.domain.analysis import scanner_indicators as ind
+from src.application.decision import signal_scanner_service as svc
 
 
 # ----------------------------- 测试数据构造 -----------------------------
@@ -144,7 +144,7 @@ def test_resolve_watchlist_pool_dedup():
 def test_resolve_ranking_pool_sorted_by_amount(monkeypatch):
     import pandas as pd
 
-    from src.services import eod_picker_service
+    from src.application.analysis import eod_picker_service
 
     frame = pd.DataFrame(
         [
@@ -168,60 +168,55 @@ def test_resolve_ranking_pool_sorted_by_amount(monkeypatch):
 
 
 def test_resolve_limit_up_pool(monkeypatch):
-    # 涨跌停池统一入口在 data_provider/limit_pool 包上，mock 包属性才能被延迟导入命中
-    from data_provider import limit_pool as limit_pool_pkg
+    # 涨停池取数已端口化（LimitPoolProviderPort.fetch_board 返回 list[dict]），直接装配模块端口全局
+    class _FakeLimitPoolProvider:
+        def fetch_board(self, *, pool_type, date, limit):
+            assert pool_type == "limit_up"
+            return [
+                {"code": "600519", "name": "贵州茅台"},
+                {"code": "600519", "name": "贵州茅台"},  # 重复代码应去重
+                {"code": "", "name": "空代码"},  # 空代码应丢弃
+            ]
 
-    def _fake(pool_type=None, date=None, n=20):
-        return limit_pool_pkg.LimitPoolResult(
-            entries=[
-                limit_pool_pkg.LimitPoolEntry(code="600519", name="贵州茅台"),
-                limit_pool_pkg.LimitPoolEntry(code="600519", name="贵州茅台"),  # 重复代码应去重
-                limit_pool_pkg.LimitPoolEntry(code="", name="空代码"),  # 空代码应丢弃
-            ],
-            source="fake",
-            pool_type=pool_type or limit_pool_pkg.LIMIT_UP,
-        )
-
-    monkeypatch.setattr(limit_pool_pkg, "get_limit_pool", _fake)
+    monkeypatch.setattr(svc, "_limit_pool_provider", _FakeLimitPoolProvider())
     pool = svc.resolve_stock_pool({"pool_source": "limit_up", "top_n": 20})
     assert pool == [{"code": "600519", "name": "贵州茅台"}]
 
 
 def test_resolve_limit_up_pool_source_failure_degrades(monkeypatch):
-    from data_provider import limit_pool as limit_pool_pkg
+    class _BoomProvider:
+        def fetch_board(self, *, pool_type, date, limit):
+            raise RuntimeError("data source down")
 
-    def _boom(pool_type=None, date=None, n=20):
-        raise RuntimeError("data source down")
-
-    monkeypatch.setattr(limit_pool_pkg, "get_limit_pool", _boom)
+    monkeypatch.setattr(svc, "_limit_pool_provider", _BoomProvider())
     # 数据源异常降级为空池，由上层提示，不向上抛
     assert svc.resolve_stock_pool({"pool_source": "limit_up", "top_n": 20}) == []
 
 
 # ----------------------------- 扫描执行 -----------------------------
 
-def _fake_kline(bars_by_code):
-    """构造 get_kline_data 的替身：按代码返回 KLineResult（未知代码返回空数据）。"""
+def _fake_kline_provider(bars_by_code):
+    """构造 K 线取数端口替身：按代码返回 fetch_kline 结果 dict（未知代码返回空数据）。
 
-    def _get(request):
-        bars = bars_by_code.get(request.stock_code, [])
-        return type(
-            "FakeResult",
-            (),
-            {
+    取数已端口化（QuoteProviderPort），用例层以 kwargs 调用、消费 dict 的 data/stock_name。
+    """
+
+    class _Provider:
+        def fetch_kline(self, *, stock_code, period, limit, fqt, before_date):
+            bars = bars_by_code.get(stock_code, [])
+            return {
                 "data": bars,
-                "stock_name": bars_by_code.get(f"{request.stock_code}__name", ""),
-            },
-        )()
+                "stock_name": bars_by_code.get(f"{stock_code}__name", ""),
+            }
 
-    return _get
+    return _Provider()
 
 
 def test_run_scan_matches_and_reports_progress(monkeypatch):
     monkeypatch.setattr(
         svc,
-        "get_kline_data",
-        _fake_kline({"600519": _shock_up_bars(), "000001": _flat_bars(40, 100.0)}),
+        "_kline_provider",
+        _fake_kline_provider({"600519": _shock_up_bars(), "000001": _flat_bars(40, 100.0)}),
     )
 
     progress = []
@@ -251,7 +246,7 @@ def test_run_scan_matches_and_reports_progress(monkeypatch):
 
 
 def test_run_scan_empty_pool(monkeypatch):
-    monkeypatch.setattr(svc, "get_kline_data", _fake_kline({}))
+    monkeypatch.setattr(svc, "_kline_provider", _fake_kline_provider({}))
     result = svc.run_signal_scan(
         {"pool_source": "watchlist", "signals": ["ma_golden"], "watchlist": []},
         task_id="unit-run-empty",
@@ -263,12 +258,15 @@ def test_run_scan_empty_pool(monkeypatch):
 
 
 def test_run_scan_single_stock_failure_does_not_break_batch(monkeypatch):
-    def _get(request):
-        if request.stock_code == "000001":
-            raise RuntimeError("kline source down")
-        return _fake_kline({"600519": _shock_up_bars()})(request)
+    base = {"600519": _shock_up_bars()}
 
-    monkeypatch.setattr(svc, "get_kline_data", _get)
+    class _P:
+        def fetch_kline(self, *, stock_code, period, limit, fqt, before_date):
+            if stock_code == "000001":
+                raise RuntimeError("kline source down")
+            return {"data": base.get(stock_code, []), "stock_name": ""}
+
+    monkeypatch.setattr(svc, "_kline_provider", _P())
     result = svc.run_signal_scan(
         {
             "pool_source": "watchlist",
@@ -289,8 +287,8 @@ def test_run_scan_single_stock_failure_does_not_break_batch(monkeypatch):
 def test_run_scan_cancelled_raises_and_keeps_partial(monkeypatch):
     monkeypatch.setattr(
         svc,
-        "get_kline_data",
-        _fake_kline({"600519": _shock_up_bars(), "000001": _shock_up_bars()}),
+        "_kline_provider",
+        _fake_kline_provider({"600519": _shock_up_bars(), "000001": _shock_up_bars()}),
     )
 
     svc.register_run("unit-run-cancel")

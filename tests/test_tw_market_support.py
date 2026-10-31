@@ -12,9 +12,9 @@ from unittest.mock import patch
 import pandas as pd
 from data_provider.base import BaseFetcher, DataFetchError, DataFetcherManager, normalize_stock_code
 from data_provider.yfinance_fetcher import YfinanceFetcher
-from src.core.trading_calendar import MARKET_EXCHANGE, MARKET_TIMEZONE, get_market_for_stock
-from src.market_context import detect_market, get_market_guidelines
-from src.services.stock_code_utils import is_code_like, normalize_code
+from src.domain.market.trading_calendar import MARKET_EXCHANGE, MARKET_TIMEZONE, get_market_for_stock
+from src.domain.market.context import detect_market, get_market_guidelines
+from src.application.quote.stock_code_utils import is_code_like, normalize_code
 
 
 class _FakeFetcher(BaseFetcher):
@@ -142,9 +142,9 @@ def test_tw_is_first_class_on_write_paths() -> None:
     on that main path and the signal would be silently dropped — making tw the
     only yfinance-supported market that can be analyzed but never produces a signal.
     """
-    from src.services.decision_signal_service import DecisionSignalService
-    from src.services.portfolio_service import VALID_MARKETS
-    from src.services.intelligence_service import _ALLOWED_MARKETS
+    from src.application.decision.decision_signal_service import DecisionSignalService
+    from src.application.portfolio.portfolio_service import VALID_MARKETS
+    from src.application.intelligence.intelligence_service import _ALLOWED_MARKETS
 
     assert get_market_for_stock("2330.TW") == "tw"  # data layer recognizes tw
     assert DecisionSignalService._normalize_market("tw") == "tw"

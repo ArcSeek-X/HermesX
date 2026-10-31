@@ -5,7 +5,7 @@
 
 import pytest
 
-from src.schemas.decision_action import (
+from src.domain.decision.action import (
     build_action_fields,
     display_action_fields_for_result,
     display_decision_type_for_result,
@@ -13,7 +13,7 @@ from src.schemas.decision_action import (
     localize_action_label,
     normalize_decision_action,
 )
-from src.schemas.decision_scale import action_for_score, decision_type_for_score, signal_key_for_score
+from src.domain.decision.scale import action_for_score, decision_type_for_score, signal_key_for_score
 
 
 @pytest.mark.parametrize(

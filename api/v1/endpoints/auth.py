@@ -32,7 +32,7 @@ from src.auth import (
     verify_session,
 )
 from src.config import Config, setup_env
-from src.core.config_manager import ConfigManager
+from src.config.env_file import ConfigManager
 
 logger = logging.getLogger(__name__)
 

@@ -12,9 +12,13 @@ import pytest
 from sqlalchemy import inspect
 
 from src.config import Config
-from src.repositories import DecisionSignalRepository
-from src.schemas.decision_profile import normalize_decision_profile_filter
-from src.storage import Base, DatabaseManager, DecisionSignalRecord, utc_naive_now
+from src.infrastructure.persistence.repositories.decision_signal_repository import (
+    DecisionSignalRepository,
+)
+from src.domain.decision.profile import normalize_decision_profile_filter
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.base import Base, utc_naive_now
+from src.infrastructure.persistence.models.decision import DecisionSignalRecord
 
 
 @pytest.fixture()

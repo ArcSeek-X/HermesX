@@ -10,13 +10,15 @@ import threading
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
+from api.deps import get_agent_conversation_service
 from api.v1.schemas.system_config import AgentBackendStatusResponse
+from src.application.agent import AgentConversationService
 from src.config import get_config
-from src.services.agent_model_service import list_agent_model_deployments
+from src.application.runtime.agent_model import list_agent_model_deployments
 
 # Tool name -> Chinese display name mapping
 TOOL_DISPLAY_NAMES: Dict[str, str] = {
@@ -115,7 +117,7 @@ class AgentModelsResponse(BaseModel):
 async def get_agent_models():
     """Get configured Agent model deployments for frontend selection."""
     config = get_config()
-    from src.agent.agent_backend import AgentBackendConfigError, resolve_agent_backend_id
+    from src.application.agent.agent_backend import AgentBackendConfigError, resolve_agent_backend_id
 
     try:
         selected_backend = resolve_agent_backend_id(config)
@@ -147,8 +149,8 @@ def _agent_status_response(payload: Dict[str, Any]) -> AgentBackendStatusRespons
 
 
 def _build_skills_response(config) -> SkillsResponse:
-    from src.agent.factory import get_skill_manager
-    from src.agent.skills.defaults import get_primary_default_skill_id
+    from src.application.agent.factory import get_skill_manager
+    from src.application.agent.skills.defaults import get_primary_default_skill_id
 
     skill_manager = get_skill_manager(config)
     available_skills = sorted(
@@ -255,7 +257,11 @@ class SessionMessagesResponse(BaseModel):
 
 
 @router.get("/chat/sessions", response_model=SessionsResponse)
-async def list_chat_sessions(limit: int = 50, user_id: Optional[str] = None):
+async def list_chat_sessions(
+    limit: int = 50,
+    user_id: Optional[str] = None,
+    service: AgentConversationService = Depends(get_agent_conversation_service),
+):
     """获取聊天会话列表
 
     Args:
@@ -266,28 +272,28 @@ async def list_chat_sessions(limit: int = 50, user_id: Optional[str] = None):
             include the platform prefix, e.g. ``telegram_12345``,
             ``feishu_ou_abc``.
     """
-    from src.storage import get_db
-    sessions = get_db().get_chat_sessions(
-        limit=limit,
-        session_prefix=user_id,
-        extra_session_ids=[user_id] if user_id else None,
-    )
+    sessions = service.list_sessions(limit=limit, user_id=user_id)
     return SessionsResponse(sessions=sessions)
 
 
 @router.get("/chat/sessions/{session_id}", response_model=SessionMessagesResponse)
-async def get_chat_session_messages(session_id: str, limit: int = 100):
+async def get_chat_session_messages(
+    session_id: str,
+    limit: int = 100,
+    service: AgentConversationService = Depends(get_agent_conversation_service),
+):
     """获取单个会话的完整消息"""
-    from src.storage import get_db
-    messages = get_db().get_conversation_messages(session_id, limit=limit)
+    messages = service.get_messages(session_id, limit=limit)
     return SessionMessagesResponse(session_id=session_id, messages=messages)
 
 
 @router.delete("/chat/sessions/{session_id}")
-async def delete_chat_session(session_id: str):
+async def delete_chat_session(
+    session_id: str,
+    service: AgentConversationService = Depends(get_agent_conversation_service),
+):
     """删除指定会话"""
-    from src.storage import get_db
-    count = get_db().delete_conversation_session(session_id)
+    count = service.delete_session(session_id)
     return {"deleted": count}
 
 
@@ -304,7 +310,7 @@ async def send_chat_to_notification(request: SendChatRequest):
     Send chat session content to configured notification channels.
     Uses run_in_executor to avoid blocking the event loop.
     """
-    from src.notification import NotificationService
+    from src.application.notification.notification import NotificationService
 
     loop = asyncio.get_running_loop()
     success = await loop.run_in_executor(
@@ -322,20 +328,20 @@ async def send_chat_to_notification(request: SendChatRequest):
 
 def _build_executor(config, skills: Optional[List[str]] = None):
     """Build and return the backend-neutral Chat executor (sync helper)."""
-    from src.agent.factory import build_agent_chat_executor
+    from src.bootstrap.agent import build_agent_chat_executor
 
     return build_agent_chat_executor(config, skills=skills)
 
 
 def _get_agent_chat_status(config) -> Dict[str, Any]:
-    from src.services.agent_backend_status_service import AgentBackendStatusService
+    from src.application.runtime.agent_backend_status import AgentBackendStatusService
 
     return AgentBackendStatusService(config=config).get_status()
 
 
 def _select_agent_chat_backend(config) -> str:
     """Select the runtime backend without repeating the compatibility probe."""
-    from src.services.agent_backend_status_service import evaluate_agent_backend_config
+    from src.application.runtime.agent_backend_status import evaluate_agent_backend_config
 
     evaluation = evaluate_agent_backend_config(config)
     if not evaluation["available"]:
@@ -398,12 +404,12 @@ async def agent_research(request: ResearchRequest):
         context = {"stock_code": request.stock_code}
 
     try:
-        from src.agent.research import ResearchAgent
-        from src.agent.factory import get_tool_registry
-        from src.agent.llm_adapter import LLMToolAdapter
+        from src.application.agent.research import ResearchAgent
+        from src.application.agent.factory import get_tool_registry
+        from src.bootstrap.agent import build_agent_llm_adapter
 
         registry = get_tool_registry()
-        llm_adapter = LLMToolAdapter(config)
+        llm_adapter = build_agent_llm_adapter(config)
         budget = getattr(config, "agent_deep_research_budget", 30000)
 
         agent = ResearchAgent(

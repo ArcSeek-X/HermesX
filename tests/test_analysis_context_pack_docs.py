@@ -130,7 +130,7 @@ def test_analysis_context_pack_doc_defines_p1_schema_contract() -> None:
     section = _section(_read_doc(), "P1 内部契约")
 
     for token in (
-        "`src/schemas/analysis_context_pack.py`",
+        "`src/domain/analysis/context_pack.py`",
         "`PACK_VERSION = \"1.0\"`",
         "`ContextFieldStatus`",
         "`AnalysisSubject`",
@@ -402,22 +402,23 @@ def test_analysis_context_pack_doc_lists_source_anchors() -> None:
     section = _section(_read_doc(), "源码锚点")
 
     for path in (
-        "src/core/pipeline.py",
+        "src/application/analysis/pipeline.py",
         "src/storage.py",
-        "src/analyzer.py",
-        "src/agent/orchestrator.py",
-        "src/agent/executor.py",
-        "src/agent/tools/data_tools.py",
-        "src/services/alert_worker.py",
-        "src/services/portfolio_service.py",
-        "src/services/backtest_service.py",
-        "src/repositories/backtest_repo.py",
-        "src/services/history_service.py",
+        "src/infrastructure/persistence/repositories/market_data_repo.py",
+        "src/application/analysis/analyzer.py",
+        "src/application/agent/orchestrator.py",
+        "src/application/agent/executor.py",
+        "src/application/agent/tools/data_tools.py",
+        "src/application/alert/worker.py",
+        "src/application/portfolio/portfolio_service.py",
+        "src/application/backtest/service.py",
+        "src/infrastructure/persistence/repositories/backtest_repository.py",
+        "src/application/history/read_model.py",
         "api/v1/endpoints/history.py",
         "api/v1/endpoints/analysis.py",
         "api/v1/schemas/history.py",
         "api/v1/schemas/portfolio.py",
-        "src/notification.py",
+        "src/application/notification/notification.py",
         "documents/product/实时告警中心/alerts.md",
         "docs/notifications.md",
     ):

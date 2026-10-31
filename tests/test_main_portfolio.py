@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, call, patch
 
 import main
 from src.brokers.futu.portfolio import FutuPortfolioError
-from src.services.runtime_scheduler import RuntimeSchedulerService
+from src.application.runtime.runtime_scheduler import RuntimeSchedulerService
 
 
 class MainPortfolioTest(unittest.TestCase):
@@ -123,12 +123,12 @@ class MainPortfolioTest(unittest.TestCase):
             "src.brokers.futu.portfolio.load_futu_stock_codes",
             return_value=["AAPL", "HK00700"],
         ) as loader, patch(
-            "src.core.pipeline.StockAnalysisPipeline",
+            "src.application.analysis.pipeline.StockAnalysisPipeline",
             return_value=pipeline,
         ), patch(
-            "src.core.market_review.run_market_review",
+            "src.application.market.market_review.run_market_review",
         ), patch(
-            "src.feishu_doc.FeishuDocManager",
+            "src.infrastructure.reporting.feishu_doc.FeishuDocManager",
         ) as feishu_manager:
             feishu_manager.return_value.is_configured.return_value = False
             first_result = main.run_full_analysis(config, args, ["600519"])
@@ -174,7 +174,7 @@ class MainPortfolioTest(unittest.TestCase):
         real_import = builtins.__import__
 
         def reject_pipeline_import(name, *args, **kwargs):
-            if name in {"src.core.market_review", "src.core.pipeline"}:
+            if name in {"src.application.market.market_review", "src.application.analysis.pipeline"}:
                 raise AssertionError(f"empty portfolio must not import {name}")
             return real_import(name, *args, **kwargs)
 
@@ -255,7 +255,7 @@ class MainPortfolioTest(unittest.TestCase):
         real_import = builtins.__import__
 
         def reject_pipeline_import(name, *args, **kwargs):
-            if name in {"src.core.market_review", "src.core.pipeline"}:
+            if name in {"src.application.market.market_review", "src.application.analysis.pipeline"}:
                 raise AssertionError(f"empty portfolio must not import {name}")
             return real_import(name, *args, **kwargs)
 
@@ -263,9 +263,9 @@ class MainPortfolioTest(unittest.TestCase):
             "src.brokers.futu.portfolio.load_futu_stock_codes",
             return_value=[],
         ), patch(
-            "src.services.backtest_service.BacktestService",
+            "src.bootstrap.backtest.build_backtest_service",
             return_value=backtest_service,
-        ) as backtest_class, patch.object(
+        ) as backtest_factory, patch.object(
             builtins,
             "__import__",
             side_effect=reject_pipeline_import,
@@ -273,7 +273,7 @@ class MainPortfolioTest(unittest.TestCase):
             result = main.run_full_analysis(config, args)
 
         self.assertTrue(result)
-        backtest_class.assert_called_once_with()
+        backtest_factory.assert_called_once_with()
         backtest_service.run_backtest.assert_called_once_with(
             force=False,
             eval_window_days=10,
@@ -293,9 +293,9 @@ class MainPortfolioTest(unittest.TestCase):
             "src.brokers.futu.portfolio.load_futu_stock_codes",
             return_value=[],
         ), patch(
-            "src.core.pipeline.StockAnalysisPipeline",
+            "src.application.analysis.pipeline.StockAnalysisPipeline",
         ) as pipeline_class, patch(
-            "src.core.market_review.run_market_review",
+            "src.application.market.market_review.run_market_review",
         ), self.assertLogs(main.logger, level="INFO") as captured:
             result = main.run_full_analysis(config, args)
 
@@ -342,17 +342,17 @@ class MainPortfolioTest(unittest.TestCase):
                     "src.brokers.futu.portfolio.load_futu_stock_codes",
                     return_value=holdings,
                 ), patch(
-                    "src.core.pipeline.StockAnalysisPipeline",
+                    "src.application.analysis.pipeline.StockAnalysisPipeline",
                     return_value=pipeline,
                 ), patch(
-                    "src.core.market_review.run_market_review",
+                    "src.application.market.market_review.run_market_review",
                     run_market_review,
                 ), patch.object(
                     main,
                     "_run_market_review_with_shared_lock",
                     return_value=SimpleNamespace(report="market review"),
                 ) as run_with_lock, patch(
-                    "src.feishu_doc.FeishuDocManager",
+                    "src.infrastructure.reporting.feishu_doc.FeishuDocManager",
                 ) as feishu_manager:
                     feishu_manager.return_value.is_configured.return_value = False
                     result = main.run_full_analysis(config, args)

@@ -31,9 +31,17 @@ from api.v1.endpoints.intelligence import (
 )
 from api.v1.schemas.intelligence import LiveNewsRefreshRequest
 from src.config import Config
-from src.repositories import IntelligenceRepository
-from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
+from src.infrastructure.persistence.repositories.intelligence_repository import (
+    IntelligenceRepository,
+)
+from src.application.intelligence.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.storage import DatabaseManager
+
+# 资讯源/仓储端口装配（live_news/calendar 用例经 NewsSourcePort + IntelligenceRepositoryPort；seam 幂等，模块级一次即可）
+from src.bootstrap.intelligence import configure_intelligence_repository, configure_news_source
+
+configure_news_source()
+configure_intelligence_repository()
 
 # 上游成功响应样例：两条快讯，一条跨多频道且为重要级
 OFFICIAL_PAYLOAD: Dict[str, Any] = {
@@ -522,7 +530,7 @@ class LiveNewsServiceTestCase(unittest.TestCase):
     @staticmethod
     def _make_feed_entry(item: Dict[str, Any]):
         """把 NewsNow 条目构造成 FeedEntry（模拟服务层内部解析结果）。"""
-        from src.services.intelligence_service import FeedEntry
+        from src.application.intelligence.intelligence_service import FeedEntry
 
         return FeedEntry(
             title=str(item.get("title") or ""),
@@ -695,6 +703,94 @@ class LiveNewsEndpointTestCase(unittest.TestCase):
         self.assertEqual(response.fetched_count, 3)
         self.assertFalse(response.degraded)
         self.assertEqual(response.errors, [])
+
+
+
+class NewsSourcePortWiringTest(unittest.TestCase):
+    """资讯源端口装配契约：seam 幂等、未装配 fail-fast、适配器异常转换。"""
+
+    def test_unset_port_fail_fast(self) -> None:
+        import src.application.intelligence.intelligence_service as svc_mod
+
+        with patch.object(svc_mod, "_news_source_port", None):
+            service = IntelligenceService()
+            with self.assertRaises(IntelligenceServiceError) as ctx:
+                service.live_news_channels()
+        self.assertIn("not configured", str(ctx.exception))
+
+    def test_setter_idempotent_keeps_existing(self) -> None:
+        from src.application.intelligence import intelligence_service as svc_mod
+
+        sentinel = svc_mod._news_source_port
+        try:
+            svc_mod.set_news_source_port(None)
+            self.assertIs(svc_mod._news_source_port, sentinel)
+        finally:
+            svc_mod._news_source_port = sentinel
+
+    def test_adapter_exception_conversion(self) -> None:
+        from data_provider.news.wallstreetcn_source import (
+            CalendarFetchError,
+            LiveNewsFetchError,
+        )
+        from src.application.intelligence.ports import (
+            NewsCalendarFetchError,
+            NewsLiveFetchError,
+            NewsQuery,
+        )
+        from src.infrastructure.providers.wallstreetcn_news_port import (
+            _WallstreetcnNewsHandle,
+        )
+
+        class _BoomSource:
+            def __init__(self, exc):
+                self._exc = exc
+
+            def fetch(self, request):
+                raise self._exc
+
+        live_handle = _WallstreetcnNewsHandle(_BoomSource(LiveNewsFetchError("upstream down")))
+        with self.assertRaises(NewsLiveFetchError) as ctx:
+            live_handle.fetch(NewsQuery(mode="live"))
+        self.assertIn("upstream down", str(ctx.exception))
+        self.assertIsInstance(ctx.exception.__cause__, LiveNewsFetchError)
+
+        cal_handle = _WallstreetcnNewsHandle(_BoomSource(CalendarFetchError("cal boom")))
+        with self.assertRaises(NewsCalendarFetchError):
+            cal_handle.fetch(NewsQuery(mode="calendar", start_ts=1, end_ts=2))
+
+    def test_adapter_metadata_passthrough(self) -> None:
+        from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
+        from src.infrastructure.providers.wallstreetcn_news_port import WallstreetcnNewsPort
+
+        port = WallstreetcnNewsPort()
+        self.assertEqual(port.list_channels(), WallstreetcnNewsSource.list_live_news_channels())
+        self.assertEqual(
+            port.is_known_channel("global-channel"),
+            WallstreetcnNewsSource.is_known_live_news_channel("global-channel"),
+        )
+        self.assertEqual(
+            port.channel_scope_value("a-stock-channel"),
+            WallstreetcnNewsSource.live_news_scope_value("a-stock-channel"),
+        )
+
+    def test_service_news_source_handle_forwards_runtime_params(self) -> None:
+        from src.application.intelligence import intelligence_service as svc_mod
+
+        captured = {}
+
+        class _RecordingPort:
+            def create_handle(self, **kwargs):
+                captured.update(kwargs)
+                return "handle"
+
+        with patch.object(svc_mod, "_news_source_port", _RecordingPort()):
+            service = IntelligenceService()
+            handle = service._news_source()
+        self.assertEqual(handle, "handle")
+        self.assertTrue(callable(captured["request_get"]))
+        for key in ("live_base_url", "live_timeout", "calendar_base_url", "calendar_timeout"):
+            self.assertIn(key, captured)
 
 
 if __name__ == "__main__":

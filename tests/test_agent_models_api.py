@@ -11,8 +11,10 @@ from unittest.mock import MagicMock, patch
 
 from api.v1.endpoints import agent
 from src.config import Config
-from src.llm.backend_registry import GENERATION_ONLY_BACKEND_IDS
-from src.services.agent_model_service import list_agent_model_deployments
+from src.domain.generation.backend_identity import (
+    GENERATION_ONLY_BACKEND_IDS,
+)
+from src.application.runtime.agent_model import list_agent_model_deployments
 
 
 def _build_config(**overrides):
@@ -302,7 +304,7 @@ class AgentSkillsEndpointTestCase(unittest.TestCase):
         )
 
         with patch("api.v1.endpoints.agent.get_config", return_value=config), patch(
-            "src.agent.factory.get_skill_manager",
+            "src.application.agent.factory.get_skill_manager",
             return_value=skill_manager,
         ):
             payload = asyncio.run(agent.get_skills()).model_dump()
@@ -326,7 +328,7 @@ class AgentSkillsEndpointTestCase(unittest.TestCase):
         )
 
         with patch("api.v1.endpoints.agent.get_config", return_value=config), patch(
-            "src.agent.factory.get_skill_manager",
+            "src.application.agent.factory.get_skill_manager",
             return_value=skill_manager,
         ):
             payload = asyncio.run(agent.get_strategies()).model_dump()
@@ -377,8 +379,8 @@ class AgentSkillsEndpointTestCase(unittest.TestCase):
         self.assertEqual(executor.chat.call_args.kwargs["context"]["skills"], [])
         self.assertEqual(payload["content"], "ok")
 class AgentModelsSourceDetectionTestCase(unittest.TestCase):
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_load_from_env_marks_channels_as_actual_source_after_yaml_fallback(
         self,
         _mock_parse_yaml,
@@ -402,8 +404,8 @@ class AgentModelsSourceDetectionTestCase(unittest.TestCase):
         self.assertEqual(config.llm_models_source, "llm_channels")
         self.assertEqual(config.llm_model_list[0]["litellm_params"]["model"], "openai/gpt-4o-mini")
 
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_load_from_env_marks_legacy_as_actual_source_after_yaml_fallback(
         self,
         _mock_parse_yaml,

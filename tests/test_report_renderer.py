@@ -17,8 +17,8 @@ try:
 except ModuleNotFoundError:
     sys.modules["litellm"] = MagicMock()
 
-from src.analyzer import AnalysisResult
-from src.services.report_renderer import render
+from src.application.analysis.analyzer import AnalysisResult
+from src.application.reporting.report_renderer import render
 
 
 def _make_result(
@@ -238,9 +238,9 @@ class TestReportRenderer(unittest.TestCase):
     def test_render_brief_respects_model_visibility_toggle(self) -> None:
         r = _make_result(model_used="gemini/gemini-2.5-flash")
 
-        with patch("src.services.report_renderer.get_config", return_value=_make_renderer_config(True)):
+        with patch("src.application.reporting.report_renderer.get_config", return_value=_make_renderer_config(True)):
             visible = render("brief", [r])
-        with patch("src.services.report_renderer.get_config", return_value=_make_renderer_config(False)):
+        with patch("src.application.reporting.report_renderer.get_config", return_value=_make_renderer_config(False)):
             hidden = render("brief", [r])
 
         self.assertIsNotNone(visible)
@@ -309,7 +309,7 @@ class TestReportRenderer(unittest.TestCase):
     def test_render_markdown_footer_uses_consistent_separator(self) -> None:
         r = _make_result(model_used="gemini/gemini-2.5-flash")
 
-        with patch("src.services.report_renderer.get_config", return_value=_make_renderer_config(True)):
+        with patch("src.application.reporting.report_renderer.get_config", return_value=_make_renderer_config(True)):
             out = render("markdown", [r], summary_only=True)
 
         self.assertIsNotNone(out)

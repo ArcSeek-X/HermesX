@@ -28,14 +28,20 @@ except ModuleNotFoundError:
 
 from api.v1.endpoints import alphasift as alphasift_endpoint
 from src.config import Config, DEFAULT_ALPHASIFT_INSTALL_SPEC
-from src.services import alphasift_service
-from src.services.task_queue import TaskInfo, TaskStatus as QueueTaskStatus
+from src.application.analysis import alphasift_service
+from src.application.runtime.task_queue import TaskInfo, TaskStatus as QueueTaskStatus
+from src.infrastructure.providers import hrs_alphasift_bridge
+from src.bootstrap.alphasift import configure_alphasift_runtime
+
+# 顶层装配 AlphaSift 运行时端口（test_live_news configure_news_source 同型）：
+# service 的 IO 簇已下沉 infra 适配器，用例经 seam 消费，未装配即 fail-fast。
+configure_alphasift_runtime()
 
 DEFAULT_ALPHASIFT_TEST_SPEC = DEFAULT_ALPHASIFT_INSTALL_SPEC
 
 
-def _alphasift_unavailable() -> HTTPException:
-    return HTTPException(
+def _alphasift_unavailable() -> alphasift_service.AlphaSiftServiceError:
+    return alphasift_service.AlphaSiftServiceError(
         status_code=424,
         detail={"error": "alphasift_unavailable", "message": "AlphaSift is unavailable"},
     )
@@ -92,7 +98,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 config=config,
             )
         with patch(
-            "src.services.alphasift_service._enrich_candidates_with_hrs",
+            "src.infrastructure.providers.hrs_alphasift_bridge._enrich_candidates_with_hrs",
             side_effect=lambda candidates: (
                 candidates,
                 {
@@ -132,7 +138,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_status_defaults_to_disabled(self) -> None:
         config = self._config(enabled=False)
 
-        with patch("src.services.alphasift_service._call_alphasift_status", side_effect=_raise_alphasift_unavailable):
+        with patch("src.application.analysis.alphasift_service._call_alphasift_status", side_effect=_raise_alphasift_unavailable):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
         self.assertEqual(payload["enabled"], False)
@@ -144,7 +150,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_status_marks_custom_install_source(self) -> None:
         config = self._config(enabled=False, install_spec="git+https://example.com/private/alphasift.git")
 
-        with patch("src.services.alphasift_service._call_alphasift_status", side_effect=_raise_alphasift_unavailable):
+        with patch("src.application.analysis.alphasift_service._call_alphasift_status", side_effect=_raise_alphasift_unavailable):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
         self.assertEqual(payload["install_spec_is_default"], False)
@@ -154,7 +160,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         config = self._config(enabled=True)
 
         with patch(
-            "src.services.alphasift_service._call_alphasift_status",
+            "src.application.analysis.alphasift_service._call_alphasift_status",
             return_value={"available": True, "contract_version": "1", "version": "0.2.0", "strategy_count": 8},
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
@@ -169,11 +175,11 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch(
-                "src.services.alphasift_service._call_alphasift_status",
+                "src.application.analysis.alphasift_service._call_alphasift_status",
                 return_value={"available": True, "contract_version": "1", "version": "0.2.0", "strategy_count": 8},
             ),
             patch(
-                "src.services.alphasift_service._get_alphasift_source_health_snapshot",
+                "src.application.analysis.alphasift_service._get_alphasift_source_health_snapshot",
                 return_value={"snapshot": {"sina": {"failures": 2, "disabled": False}}},
             ),
         ):
@@ -185,7 +191,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         config = self._config(enabled=False)
 
         with patch(
-            "src.services.alphasift_service._call_alphasift_status",
+            "src.application.analysis.alphasift_service._call_alphasift_status",
             return_value={"available": False, "contract_version": "1", "version": "0.2.0", "strategy_count": 0},
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
@@ -199,8 +205,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         fake_module = _make_adapter_module(get_status=MagicMock(side_effect=RuntimeError("get_status failed")))
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            self.assertLogs("src.services.alphasift_service", level="WARNING") as captured,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            self.assertLogs("src.application.analysis.alphasift_service", level="WARNING") as captured,
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
@@ -215,9 +221,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         missing_sub_dependency = ModuleNotFoundError("No module named 'optional_dep'", name="optional_dep")
 
         with (
-            patch("src.services.alphasift_service._prepare_alphasift_runtime_env"),
-            patch("src.services.alphasift_service.importlib.import_module", side_effect=missing_sub_dependency),
-            self.assertLogs("src.services.alphasift_service", level="WARNING") as captured,
+            patch("src.application.analysis.alphasift_service._prepare_alphasift_runtime_env"),
+            patch("src.application.analysis.alphasift_service.importlib.import_module", side_effect=missing_sub_dependency),
+            self.assertLogs("src.application.analysis.alphasift_service", level="WARNING") as captured,
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
@@ -232,8 +238,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         missing_module_exc = ModuleNotFoundError("No module named 'alphasift.dsa_adapter'", name="alphasift.dsa_adapter")
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", side_effect=missing_module_exc),
-            self.assertLogs("src.services.alphasift_service", level="WARNING"),
+            patch("src.application.analysis.alphasift_service._import_alphasift", side_effect=missing_module_exc),
+            self.assertLogs("src.application.analysis.alphasift_service", level="WARNING"),
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
@@ -247,8 +253,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         fake_module = _make_adapter_module(get_status=lambda: ["not", "a", "dict"])
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            self.assertLogs("src.services.alphasift_service", level="WARNING") as captured,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            self.assertLogs("src.application.analysis.alphasift_service", level="WARNING") as captured,
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
@@ -263,15 +269,15 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         fake_module = SimpleNamespace(list_strategies=lambda: [], screen=MagicMock(return_value=[]))
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            self.assertLogs("src.services.alphasift_service", level="WARNING") as captured,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            self.assertLogs("src.application.analysis.alphasift_service", level="WARNING") as captured,
         ):
             payload = alphasift_endpoint.alphasift_status(config=config)
 
         self.assertFalse(payload["available"])
         self.assertEqual(payload["diagnostics"]["reason"], "unexpected_exception")
         self.assertEqual(payload["diagnostics"]["stage"], "get_status_callable")
-        self.assertEqual(payload["diagnostics"]["error_type"], "HTTPException")
+        self.assertEqual(payload["diagnostics"]["error_type"], "AlphaSiftServiceError")
         self.assertIn("Unexpected AlphaSift get_status_callable failure", "\n".join(captured.output))
 
     def test_strategies_returns_adapter_strategies(self) -> None:
@@ -283,7 +289,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             ],
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._strategies(config=config)
 
         self.assertEqual(payload["enabled"], True)
@@ -317,9 +323,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "hotspots.json"
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=1, refresh=True)
 
@@ -339,7 +345,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         provider_name, provider = alphasift_service._resolve_hotspot_provider("")
 
         self.assertEqual(provider_name, "akshare")
-        self.assertIsInstance(provider, alphasift_service.HrsEastMoneyHotspotProvider)
+        self.assertIsInstance(provider, hrs_alphasift_bridge.HrsEastMoneyHotspotProvider)
 
     def test_hotspots_refresh_uses_hrs_direct_rows_when_alphasift_rows_are_thin(self) -> None:
         config = self._config(enabled=True)
@@ -351,7 +357,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             stale = False
             stale_age_hours = None
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def hotspot_rows(self, *, top: int = 12) -> List[Dict[str, Any]]:
                 return [
                     {"topic": "钼", "name": "钼", "heat_score": 96.0, "change_pct": 10.0, "leaders": ["盛龙股份"]},
@@ -367,10 +373,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             cache_path = Path(tmpdir) / "hotspots.json"
             provider = FakeProvider()
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=6, refresh=True)
 
@@ -389,7 +395,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             stale = False
             stale_age_hours = None
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def hotspot_rows(self, *, top: int = 12) -> List[Dict[str, Any]]:
                 return [{
                     "topic": "铜",
@@ -413,10 +419,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "hotspots.json"
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=1, refresh=True)
 
@@ -434,9 +440,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             cache_path = Path(tmpdir) / "missing-hotspots.json"
             import_hotspot = MagicMock(side_effect=AssertionError("default cache read must not import live hotspot module"))
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", import_hotspot),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", import_hotspot),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=6, refresh=False)
 
@@ -467,9 +473,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             )
             import_hotspot = MagicMock(side_effect=AssertionError("default cache read must not import live hotspot module"))
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", import_hotspot),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", import_hotspot),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=12, refresh=False)
 
@@ -505,9 +511,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             )
             discover = MagicMock()
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=1, refresh=False)
 
@@ -551,13 +557,13 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 }),
                 encoding="utf-8",
             )
-            provider = alphasift_service.HrsEastMoneyHotspotProvider()
+            provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
             provider.hotspot_rows = MagicMock(return_value=[])
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=1, refresh=True)
 
@@ -574,12 +580,12 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "missing-hotspots.json"
-            provider = alphasift_service.HrsEastMoneyHotspotProvider()
+            provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 payload = self._hotspots(config=config, provider="akshare", top=1, refresh=True)
 
@@ -609,10 +615,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             app.dependency_overrides[alphasift_endpoint.get_config_dep] = lambda: config
             with (
                 patch.dict(os.environ, {"INDUSTRY_PROVIDER": ""}, clear=False),
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service.HrsEastMoneyHotspotProvider.hotspot_rows", return_value=[]),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.infrastructure.providers.hrs_alphasift_bridge.HrsEastMoneyHotspotProvider.hotspot_rows", return_value=[]),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 response = TestClient(app).get("/api/v1/alphasift/hotspots?refresh=true&top=1")
 
@@ -634,12 +640,12 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "missing-hotspots.json"
-            provider = alphasift_service.HrsEastMoneyHotspotProvider()
+            provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 with self.assertRaises(HTTPException) as caught:
                     self._hotspots(config=config, provider="akshare", top=1, refresh=True)
@@ -656,10 +662,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "missing-hotspots.json"
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("custom", "custom")),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("custom", "custom")),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 with self.assertRaises(HTTPException) as caught:
                     self._hotspots(config=config, provider="custom", top=1, refresh=True)
@@ -672,7 +678,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_provider_retries_transient_eastmoney_failure(self) -> None:
         import requests
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
 
         class FakeResponse:
             def raise_for_status(self) -> None:
@@ -690,7 +696,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         get_mock = MagicMock(side_effect=[requests.exceptions.ConnectionError("Connection aborted"), FakeResponse()])
         provider._last_request_ts = time.monotonic()
         with (
-            patch("src.services.alphasift_service.time.sleep") as sleep_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.time.sleep") as sleep_mock,
             patch.object(provider._session, "get", get_mock),
             patch("requests.get", side_effect=AssertionError("bare requests.get should not be used for EastMoney hotspots")) as bare_get,
         ):
@@ -731,9 +737,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             history_path = data_dir / "hotspot.history.jsonl"
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(data_dir)}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
                 patch(
-                    "src.services.alphasift_service._import_alphasift_hotspot",
+                    "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                     return_value=SimpleNamespace(discover_hotspots=discover),
                 ),
             ):
@@ -747,9 +753,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             discover_again = MagicMock()
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(data_dir)}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
                 patch(
-                    "src.services.alphasift_service._import_alphasift_hotspot",
+                    "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                     return_value=SimpleNamespace(discover_hotspots=discover_again),
                 ),
             ):
@@ -788,9 +794,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             )
             discover = MagicMock()
             with (
-                patch("src.services.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
+                patch("src.application.analysis.alphasift_service.HRS_ALPHASIFT_HOTSPOT_CACHE_PATH", cache_path),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace(discover_hotspots=discover)),
             ):
                 cached = self._hotspots(config=config, provider="akshare", top=1, refresh=False)
 
@@ -831,9 +837,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             data_dir = Path(tmpdir) / "alphasift"
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(data_dir)}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
                 patch(
-                    "src.services.alphasift_service._import_alphasift_hotspot",
+                    "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                     return_value=SimpleNamespace(discover_hotspots=MagicMock(return_value=rows)),
                 ),
                 patch.object(alphasift_service.AlphaSiftService, "hotspot_detail", side_effect=detail_side_effect) as detail_mock,
@@ -898,13 +904,13 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir) / "alphasift"
-            provider = alphasift_service.HrsEastMoneyHotspotProvider()
+            provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(data_dir)}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
                 patch(
-                    "src.services.alphasift_service._import_alphasift_hotspot",
+                    "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                     return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
                 ),
             ):
@@ -941,13 +947,13 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 "route": [{"title": "盘中发酵", "description": "真实新闻催化", "source": "news"}],
             }
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(side_effect=AssertionError("provider route fallback should not be used"))
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
             patch(
-                "src.services.alphasift_service._import_alphasift_hotspot",
+                "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                 return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
             ),
         ):
@@ -991,13 +997,13 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 "route": [{"title": "盘中发酵", "description": "真实新闻催化", "source": "news"}],
             }
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(side_effect=AssertionError("provider route fallback should not be used"))
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
             patch(
-                "src.services.alphasift_service._import_alphasift_hotspot",
+                "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                 return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
             ),
         ):
@@ -1010,7 +1016,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_uses_hrs_detail_cache_after_first_fetch(self) -> None:
         config = self._config(enabled=True)
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(return_value={
             "topic": "钼",
             "name": "小金属 · 钼",
@@ -1024,9 +1030,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(Path(tmpdir) / "alphasift")}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
             ):
                 first = self._hotspot_detail(config=config, provider="akshare", topic="钼")
                 second = self._hotspot_detail(config=config, provider="akshare", topic="钼")
@@ -1039,7 +1045,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_refresh_bypasses_hrs_detail_cache(self) -> None:
         config = self._config(enabled=True)
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(side_effect=[
             {
                 "topic": "钼",
@@ -1062,9 +1068,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(Path(tmpdir) / "alphasift")}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
             ):
                 first = self._hotspot_detail(config=config, provider="akshare", topic="钼")
                 cached = self._hotspot_detail(config=config, provider="akshare", topic="钼")
@@ -1079,7 +1085,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_adds_real_search_event_when_configured(self) -> None:
         config = Config(alphasift_enabled=True, bocha_api_keys=["test-key"])
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(return_value={
             "topic": "钼",
             "summary": "钼 当前涨跌幅 10.00%。",
@@ -1110,10 +1116,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             with (
                 patch.dict(os.environ, {"ALPHASIFT_DATA_DIR": str(Path(tmpdir) / "alphasift")}, clear=False),
-                patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-                patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
-                patch("src.services.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
-                patch("src.search_service.SearchService", return_value=search_service),
+                patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+                patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+                patch("src.application.analysis.alphasift_service._import_alphasift_hotspot", return_value=SimpleNamespace()),
+                patch("src.application.intelligence.search_service.SearchService", return_value=search_service),
             ):
                 payload = self._hotspot_detail(config=config, provider="akshare", topic="钼")
 
@@ -1127,7 +1133,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_prefers_timeline_when_contract_route_is_empty(self) -> None:
         config = self._config(enabled=True)
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(side_effect=RuntimeError("provider fallback should not be used"))
 
         def get_hotspot_detail(topic: str, **_kwargs: Any) -> Dict[str, Any]:
@@ -1147,10 +1153,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             }
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
             patch(
-                "src.services.alphasift_service._import_alphasift_hotspot",
+                "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                 return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
             ),
         ):
@@ -1162,7 +1168,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_falls_back_to_provider_when_contract_helper_fails(self) -> None:
         config = self._config(enabled=True)
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(return_value={
             "topic": "机器人执行器",
             "summary": "机器人执行器 盘中发酵。",
@@ -1176,10 +1182,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             raise RuntimeError("contract parser broken")
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
             patch(
-                "src.services.alphasift_service._import_alphasift_hotspot",
+                "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                 return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
             ),
         ):
@@ -1196,7 +1202,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_hotspot_detail_preserves_provider_route_when_contract_detail_has_no_timeline(self) -> None:
         config = self._config(enabled=True)
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider.hotspot_detail = MagicMock(return_value={
             "topic": "机器人执行器",
             "summary": "机器人执行器 盘中发酵。",
@@ -1226,10 +1232,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             }
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
             patch(
-                "src.services.alphasift_service._import_alphasift_hotspot",
+                "src.application.analysis.alphasift_service._import_alphasift_hotspot",
                 return_value=SimpleNamespace(get_hotspot_detail=get_hotspot_detail),
             ),
         ):
@@ -1243,7 +1249,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_detail_returns_route_and_concept_stocks(self) -> None:
         config = self._config(enabled=True)
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def hotspot_detail(self, topic: str) -> Dict[str, Any]:
                 return {
                     "topic": topic,
@@ -1255,8 +1261,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 }
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
         ):
             payload = self._hotspot_detail(config=config, provider="akshare", topic="玻璃基板")
 
@@ -1294,7 +1300,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         config = self._config(enabled=True)
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def _fetch_ths_constituents(self, topic: str) -> Any:
                 raise TimeoutError("ths timeout")
 
@@ -1319,8 +1325,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 return {}
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
         ):
             payload = self._hotspot_detail(config=config, provider="akshare", topic="AI算力")
 
@@ -1333,7 +1339,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_provider_merges_constituent_sources_before_single_leader_fallback(self) -> None:
         import pandas as pd
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def _fetch_eastmoney_constituents(self, topic: str, *, source: str) -> Any:
                 return pd.DataFrame([
                     {"代码": "000001", "名称": "平安银行", "涨跌幅": 1.2},
@@ -1362,7 +1368,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_provider_adds_related_metal_leaders_for_narrow_topic(self) -> None:
         import pandas as pd
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         raw = pd.DataFrame([
             {
                 "板块名称": "钼",
@@ -1390,7 +1396,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         self.assertEqual(frame.iloc[0]["role"], "小金属活跃股")
 
     def test_hotspot_route_is_grouped_by_daily_markers(self) -> None:
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider._fetch_ths_summary_event = MagicMock(return_value="2026-06-12：政策催化")
         summary = {
             "板块名称": "AI算力",
@@ -1409,7 +1415,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         self.assertEqual(route[1]["date"], "2026-06-12")
 
     def test_hotspot_route_does_not_invent_metal_catalyst_hint(self) -> None:
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         provider._fetch_ths_summary_event = MagicMock(return_value="")
 
         route = provider._build_hotspot_route("钼", {})
@@ -1422,7 +1428,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         config = self._config(enabled=True)
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def _find_board_change(self, topic: str) -> Dict[str, Any]:
                 raise TimeoutError("board change timeout")
 
@@ -1443,8 +1449,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 return {}
 
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", FakeProvider())),
         ):
             payload = self._hotspot_detail(config=config, provider="akshare", topic="MLCC")
 
@@ -1459,7 +1465,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         config = self._config(enabled=True)
 
-        class FakeProvider(alphasift_service.HrsEastMoneyHotspotProvider):
+        class FakeProvider(hrs_alphasift_bridge.HrsEastMoneyHotspotProvider):
             def __init__(self) -> None:
                 self.constituent_sources = []
 
@@ -1490,8 +1496,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         provider = FakeProvider()
         with (
-            patch("src.services.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
-            patch("src.services.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
+            patch("src.application.analysis.alphasift_service._get_alphasift_status_snapshot", return_value=({}, True, {})),
+            patch("src.application.analysis.alphasift_service._resolve_hotspot_provider", return_value=("akshare", provider)),
         ):
             payload = self._hotspot_detail(config=config, provider="akshare", topic="电池")
 
@@ -1503,7 +1509,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_provider_uses_board_name_fallback_when_rankings_fail(self) -> None:
         import pandas as pd
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         fallback = pd.DataFrame([{"板块名称": "玻璃基板", "涨跌幅": 1.8, "序号": 1}])
         with (
             patch.object(provider, "_fetch_board_changes", return_value=pd.DataFrame()),
@@ -1521,7 +1527,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_hotspot_provider_continues_fallback_when_board_change_fails(self) -> None:
         import pandas as pd
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         rankings = pd.DataFrame([{"name": "减速器", "change_pct": 2.2, "rank": 1}])
         with (
             patch.object(provider, "_fetch_board_changes", side_effect=RuntimeError("akshare timeout")),
@@ -1552,7 +1558,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 _MockAkshare.calls += 1
                 return board_changes
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         with patch.dict("sys.modules", {"akshare": _MockAkshare()}):
             frame = provider._fetch_board_changes()
             summary = provider._find_board_change("AI算力")
@@ -1569,7 +1575,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_fetch_ths_summary_event_ignores_missing_concept_name_column(self) -> None:
         import pandas as pd
 
-        provider = alphasift_service.HrsEastMoneyHotspotProvider()
+        provider = hrs_alphasift_bridge.HrsEastMoneyHotspotProvider()
         summary = pd.DataFrame([
             {"日期": "2026-06-07", "驱动事件": "行业政策利好"},
         ])
@@ -1589,10 +1595,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch(
-                "src.services.alphasift_service._get_alphasift_status_snapshot",
+                "src.application.analysis.alphasift_service._get_alphasift_status_snapshot",
                 return_value=({}, False, _missing_alphasift_module_diagnostics()),
             ),
-            patch("src.services.alphasift_service._install_alphasift") as install_mock,
+            patch("src.application.analysis.alphasift_service._install_alphasift") as install_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 self._strategies(config=config)
@@ -1616,10 +1622,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch(
-                "src.services.alphasift_service._get_alphasift_status_snapshot",
+                "src.application.analysis.alphasift_service._get_alphasift_status_snapshot",
                 return_value=({}, False, _missing_alphasift_module_diagnostics()),
             ),
-            patch("src.services.alphasift_service._install_alphasift") as install_mock,
+            patch("src.application.analysis.alphasift_service._install_alphasift") as install_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 self._screen(config)
@@ -1712,14 +1718,14 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "true"}, clear=False),
             patch(
-                "src.services.alphasift_service._get_alphasift_status_snapshot",
+                "src.application.analysis.alphasift_service._get_alphasift_status_snapshot",
                 return_value=(
                     {},
                     False,
                     {"reason": "unexpected_exception", "stage": "get_status", "error_type": "RuntimeError"},
                 ),
             ),
-            patch("src.services.alphasift_service._install_alphasift") as install_mock,
+            patch("src.application.analysis.alphasift_service._install_alphasift") as install_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 self._screen(config)
@@ -1736,17 +1742,17 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
     def test_install_rejects_spoofed_localhost_without_admin_session(self) -> None:
         config = self._config(enabled=True)
         request = SimpleNamespace(
-            cookies={alphasift_service.COOKIE_NAME: "invalid-session"},
+            cookies={alphasift_endpoint.COOKIE_NAME: "invalid-session"},
             url=SimpleNamespace(hostname="localhost"),
             client=SimpleNamespace(host="127.0.0.1"),
         )
 
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "false"}, clear=False),
-            patch("src.services.alphasift_service.refresh_auth_state") as refresh_mock,
-            patch("src.services.alphasift_service.is_auth_enabled", return_value=True),
-            patch("src.services.alphasift_service.verify_session", return_value=False) as verify_session_mock,
-            patch("src.services.alphasift_service.subprocess.run") as run_mock,
+            patch("api.v1.endpoints.alphasift.refresh_auth_state") as refresh_mock,
+            patch("api.v1.endpoints.alphasift.is_auth_enabled", return_value=True),
+            patch("api.v1.endpoints.alphasift.verify_session", return_value=False) as verify_session_mock,
+            patch("src.application.analysis.alphasift_service.subprocess.run") as run_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 alphasift_endpoint.alphasift_install(request=request, config=config)
@@ -1759,14 +1765,14 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
     def test_install_allows_valid_admin_session_outside_desktop_mode(self) -> None:
         config = self._config(enabled=True)
-        request = self._request({alphasift_service.COOKIE_NAME: "valid-session"})
+        request = self._request({alphasift_endpoint.COOKIE_NAME: "valid-session"})
 
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "false"}, clear=False),
-            patch("src.services.alphasift_service.refresh_auth_state") as refresh_mock,
-            patch("src.services.alphasift_service.is_auth_enabled", return_value=True),
-            patch("src.services.alphasift_service.verify_session", return_value=True) as verify_session_mock,
-            patch("src.services.alphasift_service._install_alphasift", return_value={"installed": True}) as install_mock,
+            patch("api.v1.endpoints.alphasift.refresh_auth_state") as refresh_mock,
+            patch("api.v1.endpoints.alphasift.is_auth_enabled", return_value=True),
+            patch("api.v1.endpoints.alphasift.verify_session", return_value=True) as verify_session_mock,
+            patch("src.application.analysis.alphasift_service._install_alphasift", return_value={"installed": True}) as install_mock,
         ):
             payload = alphasift_endpoint.alphasift_install(request=request, config=config)
 
@@ -1780,8 +1786,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "true"}, clear=False),
-            patch("src.services.alphasift_service.subprocess.run") as run_mock,
-            patch("src.services.alphasift_service._import_alphasift") as import_mock,
+            patch("src.application.analysis.alphasift_service.subprocess.run") as run_mock,
+            patch("src.application.analysis.alphasift_service._import_alphasift") as import_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 alphasift_endpoint.alphasift_install(request=self._request(), config=config)
@@ -1797,13 +1803,13 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "true"}, clear=False),
-            patch("src.services.alphasift_service._is_alphasift_available", side_effect=[False, True]),
+            patch("src.application.analysis.alphasift_service._is_alphasift_available", side_effect=[False, True]),
             patch(
-                "src.services.alphasift_service._call_alphasift_status",
+                "src.application.analysis.alphasift_service._call_alphasift_status",
                 return_value={"available": True, "supported_markets": ["cn"], "contract_version": "1", "version": "0.2.0", "strategy_count": 1},
             ),
-            patch("src.services.alphasift_service.subprocess.run", return_value=completed) as run_mock,
-            patch("src.services.alphasift_service._get_hrs_adapter", return_value=_make_adapter_module()),
+            patch("src.application.analysis.alphasift_service.subprocess.run", return_value=completed) as run_mock,
+            patch("src.application.analysis.alphasift_service._get_hrs_adapter", return_value=_make_adapter_module()),
         ):
             payload = alphasift_endpoint.alphasift_install(request=self._request(), config=config)
 
@@ -1824,14 +1830,14 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "true"}, clear=False),
             patch(
-                "src.services.alphasift_service._call_alphasift_status",
+                "src.application.analysis.alphasift_service._call_alphasift_status",
                 side_effect=[
                     {"available": False},
                     {"available": False},
                 ],
             ),
-            patch("src.services.alphasift_service.subprocess.run", return_value=completed) as run_mock,
-            patch("src.services.alphasift_service._get_hrs_adapter") as get_adapter_mock,
+            patch("src.application.analysis.alphasift_service.subprocess.run", return_value=completed) as run_mock,
+            patch("src.application.analysis.alphasift_service._get_hrs_adapter") as get_adapter_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 alphasift_endpoint.alphasift_install(request=self._request(), config=config)
@@ -1846,8 +1852,8 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(os.environ, {"HRS_DESKTOP_MODE": "true"}, clear=False),
-            patch("src.services.alphasift_service._is_alphasift_available", return_value=False),
-            patch("src.services.alphasift_service.subprocess.run") as run_mock,
+            patch("src.application.analysis.alphasift_service._is_alphasift_available", return_value=False),
+            patch("src.application.analysis.alphasift_service.subprocess.run") as run_mock,
         ):
             with self.assertRaises(HTTPException) as caught:
                 alphasift_endpoint.alphasift_install(request=self._request(), config=config)
@@ -1897,7 +1903,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             ),
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
         fake_module.screen.assert_called_once_with(
@@ -1956,9 +1962,9 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"alphasift": parent_module, "alphasift.daily": daily_module}),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
             patch(
-                "src.services.alphasift_service.get_hrs_daily_history",
+                "src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_daily_history",
                 return_value=(
                     [
                         {
@@ -2003,18 +2009,18 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         )
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            patch("src.services.alphasift_service._get_hrs_fetcher_manager", return_value=fake_manager),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge._get_hrs_fetcher_manager", return_value=fake_manager),
             patch(
-                "src.services.alphasift_service.get_hrs_realtime_quote",
+                "src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_realtime_quote",
                 return_value={"price": 1688.0, "change_pct": 1.2, "amount": 100000000.0},
             ),
             patch(
-                "src.services.alphasift_service.get_hrs_fundamental_context",
+                "src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_fundamental_context",
                 return_value={"market": "cn", "coverage": {"valuation": "available"}},
             ),
             patch(
-                "src.services.alphasift_service.search_hrs_stock_news",
+                "src.infrastructure.providers.hrs_alphasift_bridge.search_hrs_stock_news",
                 return_value={
                     "success": True,
                     "provider": "test",
@@ -2062,10 +2068,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         )
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            patch("src.services.alphasift_service.get_hrs_realtime_quote") as quote_mock,
-            patch("src.services.alphasift_service.get_hrs_fundamental_context") as fundamentals_mock,
-            patch("src.services.alphasift_service.search_hrs_stock_news") as news_mock,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_realtime_quote") as quote_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_fundamental_context") as fundamentals_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.search_hrs_stock_news") as news_mock,
         ):
             payload = self._screen(
                 config,
@@ -2113,10 +2119,10 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         )
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            patch("src.services.alphasift_service.get_hrs_realtime_quote") as quote_mock,
-            patch("src.services.alphasift_service.get_hrs_fundamental_context") as fundamentals_mock,
-            patch("src.services.alphasift_service.search_hrs_stock_news") as news_mock,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_realtime_quote") as quote_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_fundamental_context") as fundamentals_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.search_hrs_stock_news") as news_mock,
         ):
             payload = self._screen(
                 config,
@@ -2168,12 +2174,12 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         fake_manager = SimpleNamespace(get_stock_name=MagicMock(return_value="贵州茅台"))
 
         with (
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
-            patch("src.services.alphasift_service._get_hrs_fetcher_manager", return_value=fake_manager),
-            patch("src.services.alphasift_service.get_hrs_realtime_quote") as quote_mock,
-            patch("src.services.alphasift_service.get_hrs_fundamental_context") as fundamentals_mock,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge._get_hrs_fetcher_manager", return_value=fake_manager),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_realtime_quote") as quote_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_fundamental_context") as fundamentals_mock,
             patch(
-                "src.services.alphasift_service.search_hrs_stock_news",
+                "src.infrastructure.providers.hrs_alphasift_bridge.search_hrs_stock_news",
                 return_value={
                     "success": True,
                     "provider": "test",
@@ -2203,18 +2209,18 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         fake_manager = SimpleNamespace(get_stock_name=MagicMock(return_value="贵州茅台"))
 
         with (
-            patch("src.services.alphasift_service._get_hrs_fetcher_manager", return_value=fake_manager),
+            patch("src.infrastructure.providers.hrs_alphasift_bridge._get_hrs_fetcher_manager", return_value=fake_manager),
             patch(
-                "src.services.alphasift_service.get_hrs_realtime_quote",
+                "src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_realtime_quote",
                 return_value={"price": 1688.0, "change_pct": 1.2, "amount": 100000000.0},
             ),
             patch(
-                "src.services.alphasift_service.get_hrs_fundamental_context",
+                "src.infrastructure.providers.hrs_alphasift_bridge.get_hrs_fundamental_context",
                 return_value={"market": "cn", "coverage": {"valuation": "available"}},
             ),
-            patch("src.services.alphasift_service.search_hrs_stock_news") as news_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge.search_hrs_stock_news") as news_mock,
         ):
-            context = alphasift_service.get_hrs_candidate_context("600519", "贵州茅台")
+            context = hrs_alphasift_bridge.get_hrs_candidate_context("600519", "贵州茅台")
 
         self.assertEqual(context["profile"], "pre_rank_light")
         self.assertFalse(context["news_included"])
@@ -2284,7 +2290,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 },
                 clear=False,
             ),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
             self.assertEqual(alphasift_service.os.environ.get("GEMINI_API_KEY"), "outer-key")
@@ -2371,7 +2377,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"litellm": fake_litellm}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2413,7 +2419,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 },
                 clear=False,
             ),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
             self.assertEqual(alphasift_service.os.environ.get("OPENAI_API_KEY"), "outer-openai-key")
@@ -2471,7 +2477,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"litellm": fake_litellm}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2542,7 +2548,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"litellm": fake_litellm}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2618,7 +2624,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"litellm": fake_litellm}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2705,7 +2711,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(sys.modules, {"litellm": fake_litellm}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             thread_a = threading.Thread(target=_run_screen, args=(config_a,))
             thread_b = threading.Thread(target=_run_screen, args=(config_b,))
@@ -2734,7 +2740,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(alphasift_service.os.environ, baseline_env, clear=False),
-            patch("src.services.alphasift_service._build_alphasift_runtime_env") as runtime_env_mock,
+            patch("src.infrastructure.providers.hrs_alphasift_bridge._build_alphasift_runtime_env") as runtime_env_mock,
             self.assertRaises(HTTPException) as caught,
         ):
             self._screen(config, market="cn", strategy="dual_low", max_results=5)
@@ -2759,7 +2765,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(alphasift_service.os.environ, {"SNAPSHOT_SOURCE_PRIORITY": "tushare,em_datacenter"}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2778,7 +2784,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(alphasift_service.os.environ, {"DAILY_SOURCE": "akshare"}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2821,7 +2827,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 },
                 clear=False,
             ),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2835,7 +2841,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
         config.tushare_token = "token-1"
 
         with patch.dict(alphasift_service.os.environ, {"SNAPSHOT_SOURCE_PRIORITY": ""}, clear=False):
-            env = alphasift_service._build_alphasift_runtime_env(config)
+            env = hrs_alphasift_bridge._build_alphasift_runtime_env(config)
 
         self.assertEqual(env["SNAPSHOT_SOURCE_PRIORITY"], "tushare,sina,efinance,akshare_em,em_datacenter")
 
@@ -2851,7 +2857,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch.dict(alphasift_service.os.environ, {"LLM_CANDIDATE_CONTEXT_PROVIDERS": "news,announcement"}, clear=False),
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -2913,7 +2919,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         fake_module = _make_adapter_module(screen=MagicMock(side_effect=screen_impl))
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
         runtime_env = captured["env"]
@@ -2936,7 +2942,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         fake_module = _make_adapter_module(screen=MagicMock(side_effect=screen_impl))
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
         self.assertEqual(fake_module.screen.call_count, 2)
@@ -2955,11 +2961,11 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
 
         with (
             patch(
-                "src.services.alphasift_service._get_alphasift_status_snapshot",
+                "src.application.analysis.alphasift_service._get_alphasift_status_snapshot",
                 return_value=({}, False, _missing_alphasift_module_diagnostics()),
             ),
-            patch("src.services.alphasift_service._install_alphasift") as install_mock,
-            patch("src.services.alphasift_service._import_alphasift", return_value=fake_module),
+            patch("src.application.analysis.alphasift_service._install_alphasift") as install_mock,
+            patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module),
         ):
             with self.assertRaises(HTTPException) as caught:
                 self._screen(config, market="cn", strategy="dual_low", max_results=5)
@@ -2987,7 +2993,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             ),
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
         self.assertIsNone(payload["candidates"][0]["score"])
@@ -3002,7 +3008,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             screen=MagicMock(return_value={"candidates": []}),
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             payload = self._screen(config, market="cn", strategy="custom_alpha", max_results=5)
 
         fake_module.screen.assert_called_once_with(
@@ -3022,7 +3028,7 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             screen=MagicMock(return_value=[]),
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             with self.assertRaises(HTTPException) as caught:
                 self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
@@ -3035,12 +3041,41 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
             screen=MagicMock(side_effect=ValueError("Only market='cn' is currently supported")),
         )
 
-        with patch("src.services.alphasift_service._import_alphasift", return_value=fake_module):
+        with patch("src.application.analysis.alphasift_service._import_alphasift", return_value=fake_module):
             with self.assertRaises(HTTPException) as caught:
                 self._screen(config, market="cn", strategy="dual_low", max_results=5)
 
         self.assertEqual(caught.exception.status_code, 400)
         self.assertEqual(caught.exception.detail["error"], "alphasift_screen_rejected")
+
+
+class AlphaSiftRuntimePortWiringTestCase(unittest.TestCase):
+    """§4.3 拆分后的端口装配链路回归：bootstrap 绑定 seam、未装配 fail-fast。"""
+
+    def test_configure_alphasift_runtime_binds_adapter_idempotently(self) -> None:
+        from src.application.analysis.alphasift_ports import AlphaSiftRuntimePort  # noqa: F401  契约锚点
+        from src.infrastructure.providers.hrs_alphasift_bridge import AlphaSiftRuntimeAdapter
+
+        original = alphasift_service._alphasift_runtime_port
+        try:
+            alphasift_service.set_alphasift_runtime_port(None)  # None 不覆盖：幂等语义
+            self.assertIsInstance(alphasift_service._get_alphasift_runtime_port(), AlphaSiftRuntimeAdapter)
+            configure_alphasift_runtime()
+            configure_alphasift_runtime()
+            self.assertIsInstance(alphasift_service._get_alphasift_runtime_port(), AlphaSiftRuntimeAdapter)
+        finally:
+            alphasift_service._alphasift_runtime_port = original
+
+    def test_unconfigured_port_fails_fast(self) -> None:
+        original = alphasift_service._alphasift_runtime_port
+        try:
+            alphasift_service._alphasift_runtime_port = None
+            with self.assertRaises(alphasift_service.AlphaSiftServiceError) as caught:
+                alphasift_service._get_alphasift_runtime_port()
+            self.assertEqual(caught.exception.status_code, 503)
+            self.assertEqual(caught.exception.detail["error"], "alphasift_runtime_port_not_configured")
+        finally:
+            alphasift_service._alphasift_runtime_port = original
 
 
 if __name__ == "__main__":

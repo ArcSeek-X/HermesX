@@ -10,8 +10,8 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from src.agent.tools.registry import ToolDefinition, ToolRegistry
-from src.services.history_loader import (
+from src.application.agent.tools.registry import ToolDefinition, ToolRegistry
+from src.application.history.loader import (
     get_frozen_target_date,
     reset_frozen_target_date,
     set_frozen_target_date,
@@ -46,7 +46,7 @@ class ExecuteToolsFrozenContextTestCase(unittest.TestCase):
 
     def test_contextvar_propagates_to_single_tool_thread(self):
         """Single-tool path with timeout uses copy_context().run()."""
-        from src.agent.runner import _execute_tools
+        from src.application.agent.runner import _execute_tools
 
         frozen_date = date(2026, 4, 15)
         observed: list[date | None] = []
@@ -76,7 +76,7 @@ class ExecuteToolsFrozenContextTestCase(unittest.TestCase):
         until all workers have entered ctx.run(), so if a shared Context
         were reused the second enter would raise RuntimeError.
         """
-        from src.agent.runner import _execute_tools
+        from src.application.agent.runner import _execute_tools
 
         frozen_date = date(2026, 4, 16)
         num_tools = 3

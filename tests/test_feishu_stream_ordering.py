@@ -8,7 +8,8 @@ import time
 import unittest
 from datetime import datetime
 
-from bot.models import BotMessage, BotResponse, ChatType
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
 from bot.platforms.feishu_stream import FeishuStreamHandler
 
 

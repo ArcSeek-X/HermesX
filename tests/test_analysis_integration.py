@@ -16,7 +16,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from api.app import create_app
-from src.services.task_queue import AnalysisTaskQueue, TaskStatus
+from src.application.runtime.task_queue import AnalysisTaskQueue, TaskStatus
 from src.config import Config
 import src.auth as auth
 

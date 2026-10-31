@@ -8,7 +8,10 @@ import time
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.services.social_sentiment_service import SocialSentimentService
+from src.application.intelligence.social_sentiment_service import (
+    SocialSentimentService,
+    _coalesce,
+)
 
 
 class TestServiceAvailability(unittest.TestCase):
@@ -33,7 +36,7 @@ class TestFetchRedditReport(unittest.TestCase):
     def setUp(self):
         self.svc = SocialSentimentService(api_key="sk_live_test", api_url="https://api.example.com")
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_success(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -55,7 +58,7 @@ class TestFetchRedditReport(unittest.TestCase):
         call_args = mock_get.call_args
         self.assertIn("/reddit/stocks/v1/report/TSLA", call_args[0][0])
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_http_error_returns_none(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 404
@@ -64,7 +67,7 @@ class TestFetchRedditReport(unittest.TestCase):
         result = self.svc.fetch_reddit_report("UNKNOWN")
         self.assertIsNone(result)
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_timeout_returns_none(self, mock_get):
         import requests
         mock_get.side_effect = requests.exceptions.Timeout("timed out")
@@ -79,7 +82,7 @@ class TestFetchTrending(unittest.TestCase):
     def setUp(self):
         self.svc = SocialSentimentService(api_key="sk_live_test", api_url="https://api.example.com")
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_x_trending_returns_list(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -95,7 +98,7 @@ class TestFetchTrending(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result), 2)
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_trending_cache_prevents_duplicate_calls(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -170,7 +173,7 @@ class TestGetSocialContext(unittest.TestCase):
         result = svc.get_social_context("AAPL")
         self.assertIsNone(result)
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_returns_none_when_no_data(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 404
@@ -180,7 +183,7 @@ class TestGetSocialContext(unittest.TestCase):
         result = svc.get_social_context("XYZZY")
         self.assertIsNone(result)
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_formats_reddit_data(self, mock_get):
         def side_effect(url, **kwargs):
             resp = MagicMock()
@@ -215,7 +218,7 @@ class TestGetSocialContext(unittest.TestCase):
         self.assertIn("342", result)
         self.assertIn("TSLA looking strong", result)
 
-    @patch("src.services.social_sentiment_service._get_with_retry")
+    @patch("src.application.intelligence.social_sentiment_service._get_with_retry")
     def test_includes_all_platforms(self, mock_get):
         def side_effect(url, **kwargs):
             resp = MagicMock()
@@ -269,10 +272,10 @@ class TestZeroValueHandling(unittest.TestCase):
         self.assertIn("Mentions: 0", result)
 
     def test_coalesce_preserves_zero(self):
-        self.assertEqual(SocialSentimentService._coalesce(0, 5), 0)
-        self.assertEqual(SocialSentimentService._coalesce(0.0, 1.0), 0.0)
-        self.assertEqual(SocialSentimentService._coalesce(None, 0), 0)
-        self.assertIsNone(SocialSentimentService._coalesce(None, None))
+        self.assertEqual(_coalesce(0, 5), 0)
+        self.assertEqual(_coalesce(0.0, 1.0), 0.0)
+        self.assertEqual(_coalesce(None, 0), 0)
+        self.assertIsNone(_coalesce(None, None))
 
 
 class TestFindTickerInTrending(unittest.TestCase):

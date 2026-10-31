@@ -16,10 +16,11 @@ import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse
-from data_provider.base import canonical_stock_code
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage
+from src.bootstrap.database import get_database_manager
 from src.config import get_config
-from src.storage import get_db
+from src.application.quote.stock_code_utils import canonical_stock_code_for_input
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class AskCommand(BotCommand):
     def _parse_stock_codes(self, raw: str) -> List[str]:
         """Parse one or more stock codes from the first argument."""
         parts = [p.strip().upper() for p in raw.replace("，", ",").split(",") if p.strip()]
-        return [canonical_stock_code(part) for part in parts]
+        return [canonical_stock_code_for_input(part) for part in parts]
 
     def _validate_single_code(self, code: str) -> Optional[str]:
         """Validate a single stock code format."""
@@ -124,7 +125,7 @@ class AskCommand(BotCommand):
     @staticmethod
     def _load_skills() -> List[object]:
         try:
-            from src.agent.factory import get_skill_manager
+            from src.application.agent.factory import get_skill_manager
 
             sm = get_skill_manager()
             return list(sm.list_skills())
@@ -135,7 +136,7 @@ class AskCommand(BotCommand):
     @classmethod
     def _get_default_skill_id(cls) -> str:
         try:
-            from src.agent.skills.defaults import get_primary_default_skill_id
+            from src.application.agent.skills.defaults import get_primary_default_skill_id
 
             return get_primary_default_skill_id(cls._load_skills())
         except Exception as e:
@@ -234,7 +235,7 @@ class AskCommand(BotCommand):
     ) -> BotResponse:
         """Analyze a single stock."""
         try:
-            from src.agent.factory import build_agent_executor
+            from src.bootstrap.agent import build_agent_executor
 
             executor = build_agent_executor(config, skills=[skill_id] if skill_id else None)
             user_msg = self._build_user_message(code, skill_id, skill_text)
@@ -278,8 +279,8 @@ class AskCommand(BotCommand):
 
         def _run_one(stock_code: str) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
             try:
-                from src.agent.conversation import conversation_manager
-                from src.agent.factory import build_agent_executor
+                from src.application.agent.conversation import conversation_manager
+                from src.bootstrap.agent import build_agent_executor
 
                 executor = build_agent_executor(config, skills=[skill_id] if skill_id else None)
                 user_msg = self._build_user_message(stock_code, skill_id, skill_text)
@@ -316,7 +317,7 @@ class AskCommand(BotCommand):
                 return (stock_code, None, str(exc))
 
         # Warm up DB connections before parallel history writes.
-        get_db()
+        get_database_manager()
         pool = ThreadPoolExecutor(max_workers=min(len(codes), 5))
         future_map = {pool.submit(_run_one, code): code for code in codes}
         try:
@@ -575,10 +576,10 @@ class AskCommand(BotCommand):
             return ""
 
         def _render_overlay() -> str:
-            from src.agent.agents.portfolio_agent import PortfolioAgent
-            from src.agent.factory import get_tool_registry
-            from src.agent.llm_adapter import LLMToolAdapter
-            from src.agent.protocols import AgentContext
+            from src.application.agent.agents.portfolio_agent import PortfolioAgent
+            from src.application.agent.factory import get_tool_registry
+            from src.bootstrap.agent import build_agent_llm_adapter
+            from src.application.agent.protocols import AgentContext
 
             stock_opinions: Dict[str, Dict[str, Any]] = {}
             risk_flags: List[Dict[str, str]] = []
@@ -603,7 +604,7 @@ class AskCommand(BotCommand):
 
             agent = PortfolioAgent(
                 tool_registry=get_tool_registry(),
-                llm_adapter=LLMToolAdapter(config),
+                llm_adapter=build_agent_llm_adapter(config),
             )
             stage_result = agent.run(ctx)
             if not stage_result.success:

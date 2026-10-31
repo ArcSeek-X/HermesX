@@ -14,7 +14,8 @@ import time
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage
 from src.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -88,12 +89,12 @@ class ResearchCommand(BotCommand):
 
         # Run the research agent
         try:
-            from src.agent.research import ResearchAgent
-            from src.agent.factory import get_tool_registry
-            from src.agent.llm_adapter import LLMToolAdapter
+            from src.application.agent.research import ResearchAgent
+            from src.application.agent.factory import get_tool_registry
+            from src.bootstrap.agent import build_agent_llm_adapter
 
             registry = get_tool_registry()
-            llm_adapter = LLMToolAdapter(config)
+            llm_adapter = build_agent_llm_adapter(config)
             budget = getattr(config, "agent_deep_research_budget", 30000)
 
             agent = ResearchAgent(

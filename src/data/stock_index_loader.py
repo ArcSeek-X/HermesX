@@ -8,8 +8,8 @@ from threading import RLock
 from typing import Dict, Iterable, Optional
 
 from src.data.stock_mapping import is_meaningful_stock_name
-from src.services.market_symbol_utils import get_suffix_market, suffix_base_lookup_allowed
-from src.services.stock_index_remote_service import (
+from src.domain.market.market_symbol_utils import get_suffix_market, suffix_base_lookup_allowed
+from src.application.quote.stock_index_remote_service import (
     get_remote_stock_index_cache_path,
     is_valid_remote_stock_index_file,
     validate_stock_index_payload,

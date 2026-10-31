@@ -10,7 +10,9 @@ import logging
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
-from bot.models import BotMessage, BotResponse, ChatType
+from bot.models import BotResponse
+from src.domain.notification.bot_message import BotMessage, ChatType
+from src.bootstrap.agent import build_agent_conversation_service
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +69,7 @@ class HistoryCommand(BotCommand):
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
         """Execute the history command."""
         try:
-            from src.storage import get_db
-            db = get_db()
+            service = build_agent_conversation_service()
         except Exception as e:
             logger.error(f"History: storage unavailable: {e}")
             return BotResponse.text_response("⚠️ 存储模块不可用，无法查询对话历史。")
@@ -80,9 +81,9 @@ class HistoryCommand(BotCommand):
         # /history clear — clear current user's chat session
         if args and args[0].lower() in ("clear", "清除"):
             try:
-                deleted = db.delete_conversation_session(current_chat_session_id)
+                deleted = service.delete_session(current_chat_session_id)
                 if current_chat_session_id == f"{prefix}chat":
-                    deleted += db.delete_conversation_session(legacy_chat_session_id)
+                    deleted += service.delete_session(legacy_chat_session_id)
                 return BotResponse.text_response(
                     f"✅ 已清除当前会话 ({deleted} 条消息)"
                 )
@@ -97,7 +98,7 @@ class HistoryCommand(BotCommand):
             if not (session_id.startswith(prefix) or session_id == legacy_chat_session_id):
                 return BotResponse.text_response("⚠️ 你只能查看自己的会话记录。")
             try:
-                messages_list = db.get_conversation_messages(session_id, limit=20)
+                messages_list = service.get_messages(session_id, limit=20)
                 if not messages_list:
                     return BotResponse.text_response(f"📭 会话 `{session_id}` 无消息记录")
 
@@ -123,9 +124,9 @@ class HistoryCommand(BotCommand):
             limit = min(int(args[0]), 50)
 
         try:
-            sessions = db.get_chat_sessions(
+            sessions = service.list_sessions(
                 limit=limit,
-                session_prefix=prefix,
+                user_id=prefix,
                 extra_session_ids=[legacy_chat_session_id],
             )
             if not sessions:

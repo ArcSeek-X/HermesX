@@ -11,9 +11,11 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.core.market_review_runtime import build_market_review_runtime, has_configured_llm_runtime
-from src.llm.generation_backend import GenerationError, GenerationErrorCode
-from src.llm.backend_registry import LOCAL_CLI_GENERATION_BACKEND_IDS
+from src.application.market.market_review_runtime import build_market_review_runtime, has_configured_llm_runtime
+from src.application.generation.ports import GenerationError, GenerationErrorCode
+from src.domain.generation.backend_identity import (
+    LOCAL_CLI_GENERATION_BACKEND_IDS,
+)
 
 
 class _FakeAnalyzer:
@@ -68,9 +70,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
         analyzer = MagicMock()
         analyzer.is_available.return_value = True
 
-        with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
-             patch("src.notification.NotificationService", return_value=notifier) as notifier_cls, \
-             patch("src.search_service.SearchService") as search_cls:
+        with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
+             patch("src.application.notification.notification.NotificationService", return_value=notifier) as notifier_cls, \
+             patch("src.application.intelligence.search_service.SearchService") as search_cls:
             runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
         notifier_cls.assert_called_once_with(source_message=None)
@@ -97,9 +99,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
         analyzer = MagicMock()
         analyzer.is_available.return_value = True
 
-        with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
-             patch("src.notification.NotificationService", return_value=notifier) as notifier_cls, \
-             patch("src.search_service.SearchService") as search_cls:
+        with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
+             patch("src.application.notification.notification.NotificationService", return_value=notifier) as notifier_cls, \
+             patch("src.application.intelligence.search_service.SearchService") as search_cls:
             runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
         notifier_cls.assert_called_once_with(source_message=None)
@@ -117,9 +119,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
         analyzer = MagicMock()
         analyzer.is_available.return_value = True
 
-        with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
-             patch("src.notification.NotificationService", return_value=notifier) as notifier_cls, \
-             patch("src.search_service.SearchService") as search_cls:
+        with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer) as analyzer_cls, \
+             patch("src.application.notification.notification.NotificationService", return_value=notifier) as notifier_cls, \
+             patch("src.application.intelligence.search_service.SearchService") as search_cls:
             runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
         notifier_cls.assert_called_once_with(source_message=None)
@@ -146,9 +148,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
         notifier = MagicMock()
         analyzer = _FakeAnalyzer(backend_error=backend_error, available=False)
 
-        with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer), \
-             patch("src.notification.NotificationService", return_value=notifier), \
-             patch("src.search_service.SearchService") as search_cls:
+        with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer), \
+             patch("src.application.notification.notification.NotificationService", return_value=notifier), \
+             patch("src.application.intelligence.search_service.SearchService") as search_cls:
             runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
         self.assertIs(runtime_notifier, notifier)
@@ -176,9 +178,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
                 notifier = MagicMock()
                 analyzer = _FakeAnalyzer(backend_error=backend_error, available=False)
 
-                with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer), \
-                     patch("src.notification.NotificationService", return_value=notifier), \
-                     patch("src.search_service.SearchService") as search_cls:
+                with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer), \
+                     patch("src.application.notification.notification.NotificationService", return_value=notifier), \
+                     patch("src.application.intelligence.search_service.SearchService") as search_cls:
                     runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
                 self.assertIs(runtime_notifier, notifier)
@@ -194,9 +196,9 @@ class TestMarketReviewRuntimeCompatibility(unittest.TestCase):
         notifier = MagicMock()
         analyzer = _FakeAnalyzer(backend_error=None, available=False)
 
-        with patch("src.analyzer.GeminiAnalyzer", return_value=analyzer), \
-             patch("src.notification.NotificationService", return_value=notifier), \
-             patch("src.search_service.SearchService") as search_cls:
+        with patch("src.application.analysis.analyzer.GeminiAnalyzer", return_value=analyzer), \
+             patch("src.application.notification.notification.NotificationService", return_value=notifier), \
+             patch("src.application.intelligence.search_service.SearchService") as search_cls:
             runtime_notifier, runtime_analyzer, runtime_search = build_market_review_runtime(config)
 
         self.assertIs(runtime_notifier, notifier)

@@ -6,8 +6,8 @@
 import math
 
 import pytest
-from src.schemas.report_schema import SignalAttribution, Dashboard
-from src.report_language import _REPORT_LABELS
+from src.application.analysis.report_schema import SignalAttribution, Dashboard
+from src.domain.shared.report_language import _REPORT_LABELS
 
 
 class TestSignalAttributionSchema:

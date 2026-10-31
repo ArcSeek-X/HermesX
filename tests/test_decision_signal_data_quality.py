@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.services.decision_signal_data_quality import normalize_decision_signal_data_quality
+from src.domain.decision.decision_signal_data_quality import normalize_decision_signal_data_quality
 
 
 @pytest.mark.parametrize(

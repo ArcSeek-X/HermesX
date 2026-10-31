@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.services.system_config_service import SystemConfigService
+from src.application.runtime.system_config_service import SystemConfigService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,7 +112,7 @@ def test_decision_signal_topic_source_anchors_exist() -> None:
     for source_path in (
         "api/v1/schemas/decision_signals.py",
         "api/v1/endpoints/decision_signals.py",
-        "src/services/decision_signal_service.py",
+        "src/application/decision/decision_signal_service.py",
         "src/utils/sanitize.py",
     ):
         assert source_path in topic

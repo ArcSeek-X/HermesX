@@ -215,7 +215,13 @@ class TestFundamentalContext(unittest.TestCase):
             rankings=([{"name": "地产", "change_pct": 2.0}], [{"name": "煤炭", "change_pct": -2.0}]),
         )
         manager = DataFetcherManager(fetchers=[efinance, tushare, akshare])
-        top, bottom = manager.get_sector_rankings(1)
+        # get_sector_rankings 现在优先走 data_provider/sector provider（真实网络：东财失败
+        # 后新浪兜底），只有在它失败时才会按 priority 遍历注入的 fetchers。本用例断言的是
+        # fetcher 维度的优先级回退顺序，因此让 provider 层确定性失败，避免依赖外网返回内容。
+        with patch.object(
+            manager, "_get_sector_manager", side_effect=RuntimeError("sector provider disabled in test")
+        ):
+            top, bottom = manager.get_sector_rankings(1)
         self.assertEqual(top[0]["name"], "地产")
         self.assertEqual(bottom[0]["name"], "煤炭")
 

@@ -6,8 +6,8 @@
 import unittest
 
 from src.config import Config
-from src.notification import NotificationChannel
-from src.services.notification_diagnostics import (
+from src.application.notification.notification import NotificationChannel
+from src.application.alert.notification_diagnostics import (
     CHANNEL_SPECS,
     KEY_SPECS,
     NotificationDiagnosticResult,

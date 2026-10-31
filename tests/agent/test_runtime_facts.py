@@ -9,23 +9,23 @@ from unittest.mock import MagicMock, patch
 
 sys.modules.setdefault("litellm", MagicMock())
 
-from src.agent.agents.base_agent import BaseAgent
-from src.agent.executor import AgentExecutor
-from src.agent.orchestrator import AgentOrchestrator
-from src.agent.protocols import (
+from src.application.agent.agents.base_agent import BaseAgent
+from src.application.agent.executor import AgentExecutor
+from src.application.agent.orchestrator import AgentOrchestrator
+from src.application.agent.protocols import (
     AgentContext,
     AgentOpinion,
     StageFailureReason,
     StageResult,
     StageStatus,
 )
-from src.agent.runner import (
+from src.application.agent.runner import (
     RunLoopResult,
     _build_budget_guard_result,
     _build_timeout_result,
     run_agent_loop,
 )
-from src.agent.runtime_facts import (
+from src.application.agent.runtime_facts import (
     BaseAgentOpinionFact,
     DegradationBoundary,
     DegradedEvent,
@@ -201,7 +201,7 @@ def test_legacy_executor_content_canonicalizes_escaped_reserved_field():
     loop_result = RunLoopResult(success=True, content=raw_content)
     executor = AgentExecutor(MagicMock(), MagicMock())
 
-    with patch("src.agent.executor.run_agent_loop", return_value=loop_result):
+    with patch("src.application.agent.executor.run_agent_loop", return_value=loop_result):
         result = executor._run_loop([], [], parse_dashboard=True)
 
     assert result.success is True
@@ -397,7 +397,7 @@ def test_pipeline_budget_guard_records_skipped_real_stage():
 
     with patch.object(orchestrator, "_build_agent_chain", return_value=stages):
         with patch(
-            "src.agent.orchestrator.time",
+            "src.application.agent.orchestrator.time",
             SimpleNamespace(
                 time=_clock([0.0, 0.1, 0.2, 14.6], 14.7),
             ),
@@ -429,7 +429,7 @@ def test_pipeline_timeout_before_stage_records_that_unstarted_stage():
 
     with patch.object(orchestrator, "_build_agent_chain", return_value=stages):
         with patch(
-            "src.agent.orchestrator.time",
+            "src.application.agent.orchestrator.time",
             SimpleNamespace(
                 time=_clock([0.0, 0.1, 0.2, 1.2], 1.3),
             ),
@@ -463,7 +463,7 @@ def test_pipeline_timeout_after_completed_stage_does_not_degrade_that_stage():
 
     with patch.object(orchestrator, "_build_agent_chain", return_value=stages):
         with patch(
-            "src.agent.orchestrator.time",
+            "src.application.agent.orchestrator.time",
             SimpleNamespace(
                 # intel starts with 19s remaining (above the 15s budget
                 # guard), completes, and only then crosses the pipeline
@@ -510,7 +510,7 @@ def test_pipeline_timeout_after_failed_stage_keeps_previous_completed_attributio
 
     with patch.object(orchestrator, "_build_agent_chain", return_value=stages):
         with patch(
-            "src.agent.orchestrator.time",
+            "src.application.agent.orchestrator.time",
             SimpleNamespace(
                 time=_clock([0.0, 0.1, 0.2, 1.0, 20.2], 20.3),
             ),
@@ -606,13 +606,13 @@ def test_runner_failure_sources_propagate_through_base_agent():
         (budget_result, StageFailureReason.BUDGET_SKIP),
         (max_steps_result, StageFailureReason.STAGE_FAILURE),
     ):
-        with patch("src.agent.agents.base_agent.run_agent_loop", return_value=loop_result):
+        with patch("src.application.agent.agents.base_agent.run_agent_loop", return_value=loop_result):
             stage_result = agent.run(AgentContext())
 
         assert stage_result.status == StageStatus.FAILED
         assert stage_result.failure_reason == expected_reason
 
-    with patch("src.agent.agents.base_agent.run_agent_loop", side_effect=RuntimeError("opaque")):
+    with patch("src.application.agent.agents.base_agent.run_agent_loop", side_effect=RuntimeError("opaque")):
         stage_result = agent.run(AgentContext())
 
     assert stage_result.status == StageStatus.FAILED

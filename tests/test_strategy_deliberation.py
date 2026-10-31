@@ -6,14 +6,14 @@
 import json
 import unittest
 
-from src.agent.protocols import StrategyConflict, StrategyOpinion
-from src.agent.skills.deliberation import (
+from src.application.agent.protocols import StrategyConflict, StrategyOpinion
+from src.application.agent.skills.deliberation import (
     DeliberationMediator,
     LLMDeliberationMediator,
     MultiRoundDeliberationMediator,
     StrategySelfReviewMediator,
 )
-from src.agent.skills.synthesis import (
+from src.application.agent.skills.synthesis import (
     ConflictDetector,
     StrategySynthesizer,
 )

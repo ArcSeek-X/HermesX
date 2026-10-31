@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.v1.schemas.market_phase import MarketPhaseValue
-from src.schemas.decision_action import DecisionAction
-from src.schemas.decision_profile import DecisionProfile
+from src.domain.decision.action import DecisionAction
+from src.domain.decision.profile import DecisionProfile
 
 
 DecisionSignalSourceType = Literal["analysis", "agent", "alert", "market_review", "manual"]

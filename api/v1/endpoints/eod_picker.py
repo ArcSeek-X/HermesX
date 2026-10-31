@@ -19,9 +19,9 @@ from pydantic import BaseModel, Field
 
 from api.deps import get_config_dep
 from src.config import Config
-from src.services import eod_picker_service
-from src.services.task_queue import TaskStatus as QueueTaskStatus
-from src.services.task_queue import get_task_queue
+from src.application.analysis import eod_picker_service
+from src.application.runtime.task_queue import TaskStatus as QueueTaskStatus
+from src.application.runtime.task_queue import get_task_queue
 
 router = APIRouter()
 

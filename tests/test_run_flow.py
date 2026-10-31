@@ -19,11 +19,13 @@ ensure_litellm_stub()
 
 from api.v1.endpoints.analysis import get_task_run_flow
 from api.v1.endpoints.history import get_history_run_flow
-from src.services.run_flow import (
+from src.application.history import HistoryQueryService
+from src.infrastructure.indexing.stock_code_normalizer import DataProviderStockCodeNormalizer
+from src.application.runtime.run_flow import (
     build_history_run_flow_snapshot,
     build_task_run_flow_snapshot,
 )
-from src.services.run_diagnostics import (
+from src.application.runtime.run_diagnostics import (
     activate_run_diagnostic_context,
     current_diagnostic_snapshot,
     record_llm_run,
@@ -33,7 +35,7 @@ from src.services.run_diagnostics import (
     record_provider_run_started,
     reset_run_diagnostic_context,
 )
-from src.services.task_queue import AnalysisTaskQueue, TaskInfo, TaskStatus
+from src.application.runtime.task_queue import AnalysisTaskQueue, TaskInfo, TaskStatus
 
 
 def _overview(*, blocks: list[dict]) -> dict:
@@ -935,7 +937,7 @@ class RunFlowTestCase(unittest.TestCase):
         record = _history_record(context_snapshot=context_snapshot)
 
         with patch(
-            "src.services.run_flow._local_timezone",
+            "src.application.runtime.run_flow._local_timezone",
             return_value=timezone(timedelta(hours=8)),
         ):
             snapshot = build_history_run_flow_snapshot(record)
@@ -1174,7 +1176,8 @@ class RunFlowTestCase(unittest.TestCase):
         self.assertEqual(notification.attempts, 0)
 
     def test_market_review_persist_records_diagnostics_with_saved_history_id(self) -> None:
-        from src.core.market_review import _persist_market_review_history
+        from src.application.market import market_review as market_review_module
+        from src.application.market.market_review import _persist_market_review_history
 
         fake_db = _FakeMarketReviewDb(save_result=42)
         config = SimpleNamespace(report_language="zh")
@@ -1186,7 +1189,9 @@ class RunFlowTestCase(unittest.TestCase):
             trigger_source="api",
         )
         try:
-            with patch("src.storage.DatabaseManager.get_instance", return_value=fake_db):
+            with patch.object(
+                market_review_module, "_get_history_repo", return_value=fake_db
+            ):
                 saved = _persist_market_review_history(
                     review_report="大盘复盘报告",
                     markdown_report="# 大盘复盘报告",
@@ -1208,7 +1213,13 @@ class RunFlowTestCase(unittest.TestCase):
 
     def test_flow_endpoints_return_404_for_missing_records(self) -> None:
         with self.assertRaises(HTTPException) as history_ctx:
-            get_history_run_flow("404", db_manager=_FakeHistoryDb(None))
+            get_history_run_flow(
+                "404",
+                service=HistoryQueryService(
+                    repository=_FakeHistoryDb(None),
+                    code_normalizer=DataProviderStockCodeNormalizer(),
+                ),
+            )
         self.assertEqual(history_ctx.exception.status_code, 404)
 
         queue = SimpleNamespace(get_task=lambda task_id: None)
@@ -1230,16 +1241,21 @@ class RunFlowTestCase(unittest.TestCase):
             report_type="detailed",
         )
         queue = SimpleNamespace(get_task=lambda task_id: task)
+        service = HistoryQueryService(
+            repository=_FakeHistoryDb(None),
+            code_normalizer=DataProviderStockCodeNormalizer(),
+        )
 
         with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), patch(
             "api.v1.endpoints.analysis._load_history_run_flow_by_query_id",
             return_value=None,
         ) as load_history:
-            snapshot = get_task_run_flow("query-flow")
+            snapshot = get_task_run_flow("query-flow", history_service=service)
 
         self.assertEqual(snapshot.task_id, "query-flow")
         load_history.assert_called_once_with(
             "query-flow",
+            history_service=service,
             code="600519",
             report_type="full",
             fail_open=True,
@@ -1255,16 +1271,21 @@ class RunFlowTestCase(unittest.TestCase):
             report_type="market-review",
         )
         queue = SimpleNamespace(get_task=lambda task_id: task)
+        service = HistoryQueryService(
+            repository=_FakeHistoryDb(None),
+            code_normalizer=DataProviderStockCodeNormalizer(),
+        )
 
         with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), patch(
             "api.v1.endpoints.analysis._load_history_run_flow_by_query_id",
             return_value=None,
         ) as load_history:
-            snapshot = get_task_run_flow("market-query-flow")
+            snapshot = get_task_run_flow("market-query-flow", history_service=service)
 
         self.assertEqual(snapshot.task_id, "market-query-flow")
         load_history.assert_called_once_with(
             "market-query-flow",
+            history_service=service,
             code="MARKET",
             report_type="market_review",
             fail_open=True,

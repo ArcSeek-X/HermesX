@@ -33,8 +33,8 @@ from api.v1.schemas.system_config import (
 )
 import src.auth as auth
 from src.config import Config
-from src.core.config_manager import ConfigManager
-from src.services.system_config_service import SystemConfigService
+from src.config.env_file import ConfigManager
+from src.application.runtime.system_config_service import SystemConfigService
 
 
 class SystemConfigApiTestCase(unittest.TestCase):
@@ -233,7 +233,7 @@ class SystemConfigApiTestCase(unittest.TestCase):
             "GEMINI_API_KEY=secret-key-value",
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value=None):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=None):
             payload = system_config.preview_generation_backend_status(
                 request=GenerationBackendStatusPreviewRequest(
                     items=[
@@ -258,7 +258,7 @@ class SystemConfigApiTestCase(unittest.TestCase):
             "GENERATION_FALLBACK_BACKEND=",
         )
 
-        with patch("src.llm.local_cli_backend.shutil.which", return_value=None):
+        with patch("src.infrastructure.generation.local_cli_backend.shutil.which", return_value=None):
             payload = system_config.test_generation_backend(
                 request=TestGenerationBackendRequest(backend_id="codex_cli"),
                 service=self.service,
@@ -322,10 +322,10 @@ class SystemConfigApiTestCase(unittest.TestCase):
 
         with (
             patch(
-                "src.services.agent_backend_status_service.resolve_command",
+                "src.application.runtime.agent_backend_status.resolve_command",
                 return_value=["/test/codex"],
             ),
-            patch("src.services.agent_backend_status_service._run_codex_probe", side_effect=fake_run),
+            patch("src.application.runtime.agent_backend_status._run_codex_probe", side_effect=fake_run),
         ):
             payload = system_config.preview_agent_backend_status(
                 request=AgentBackendStatusPreviewRequest(

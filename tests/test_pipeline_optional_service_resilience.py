@@ -7,7 +7,7 @@ import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.core.pipeline import StockAnalysisPipeline
+from src.application.analysis.pipeline import StockAnalysisPipeline
 
 
 def _make_config() -> SimpleNamespace:
@@ -32,11 +32,11 @@ def _make_config() -> SimpleNamespace:
 
 
 def _build_pipeline(config: SimpleNamespace) -> StockAnalysisPipeline:
-    with patch("src.core.pipeline.get_db", return_value=MagicMock()), \
-         patch("src.core.pipeline.DataFetcherManager", return_value=MagicMock()), \
-         patch("src.core.pipeline.StockTrendAnalyzer", return_value=MagicMock()), \
-         patch("src.core.pipeline.GeminiAnalyzer", return_value=MagicMock()), \
-         patch("src.core.pipeline.NotificationService", return_value=MagicMock()):
+    with patch("src.application.analysis.pipeline.build_pipeline_persistence_port", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.build_stock_data_port", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.StockTrendAnalyzer", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.GeminiAnalyzer", return_value=MagicMock()), \
+         patch("src.application.analysis.pipeline.NotificationService", return_value=MagicMock()):
         return StockAnalysisPipeline(config=config)
 
 
@@ -45,9 +45,9 @@ def test_search_service_init_failure_logs_traceback_and_failure_state(caplog):
     social_service = MagicMock()
     social_service.is_available = False
 
-    with patch("src.core.pipeline.SearchService", side_effect=RuntimeError("search init boom")), \
-         patch("src.core.pipeline.SocialSentimentService", return_value=social_service), \
-         caplog.at_level(logging.WARNING, logger="src.core.pipeline"):
+    with patch("src.application.analysis.pipeline.SearchService", side_effect=RuntimeError("search init boom")), \
+         patch("src.application.analysis.pipeline.SocialSentimentService", return_value=social_service), \
+         caplog.at_level(logging.WARNING, logger="src.application.analysis.pipeline"):
         pipeline = _build_pipeline(config)
 
     assert pipeline.search_service is None
@@ -66,9 +66,9 @@ def test_social_sentiment_init_failure_logs_traceback(caplog):
     search_service = MagicMock()
     search_service.is_available = False
 
-    with patch("src.core.pipeline.SearchService", return_value=search_service), \
-         patch("src.core.pipeline.SocialSentimentService", side_effect=RuntimeError("social init boom")), \
-         caplog.at_level(logging.WARNING, logger="src.core.pipeline"):
+    with patch("src.application.analysis.pipeline.SearchService", return_value=search_service), \
+         patch("src.application.analysis.pipeline.SocialSentimentService", side_effect=RuntimeError("social init boom")), \
+         caplog.at_level(logging.WARNING, logger="src.application.analysis.pipeline"):
         pipeline = _build_pipeline(config)
 
     assert pipeline.social_sentiment_service is None
@@ -89,7 +89,7 @@ def test_emit_progress_logs_context_when_callback_fails(caplog):
 
     pipeline.progress_callback = _fail_callback
 
-    with caplog.at_level(logging.WARNING, logger="src.core.pipeline"):
+    with caplog.at_level(logging.WARNING, logger="src.application.analysis.pipeline"):
         pipeline._emit_progress(55, "fetching news")
 
     records = [record for record in caplog.records if "progress callback failed" in record.message]

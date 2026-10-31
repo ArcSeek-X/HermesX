@@ -46,12 +46,16 @@ if "newspaper" not in sys.modules:
     sys.modules["newspaper"] = mock_np
 
 from src.config import Config, get_config
-from src.search_service import (
-    AnspireSearchProvider,
+from src.application.intelligence.search_service import (
     SearchService,
     get_search_service,
     reset_search_service,
 )
+from src.infrastructure.search import AnspireSearchProvider
+from src.bootstrap.intelligence import configure_search
+
+# SA2-3b：Provider 已下沉 infrastructure，测试顶层显式装配 hook（沿用 analyzer 先例）。
+configure_search()
 
 
 class _FakeResponse:
@@ -184,7 +188,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
             result = AnspireSearchProvider._extract_domain(url)
             self.assertEqual(result, expected, f"Failed for URL: {url}")
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_success_response(self, mock_requests):
         """测试成功响应处理"""
         # 设置 mock exceptions
@@ -236,7 +240,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
         self.assertIn("params", call_args[1])
         self.assertNotIn("json", call_args[1])
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_invalid_api_key(self, mock_requests):
         """测试无效 API Key 的错误处理"""
         try:
@@ -261,7 +265,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
         # 错误消息可能因实现而异，这里做宽松检查
         self.assertTrue("API" in response.error_message or "KEY" in response.error_message or "无效" in response.error_message)
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_timeout_error(self, mock_requests):
         """测试超时错误处理"""
         try:
@@ -282,7 +286,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
         # 错误消息检查
         self.assertTrue("超时" in response.error_message or "Timeout" in response.error_message)
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_network_error(self, mock_requests):
         """测试网络错误处理"""
         try:
@@ -302,7 +306,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
         self.assertEqual(len(response.results), 0)
         self.assertTrue("网络" in response.error_message or "Connection" in response.error_message)
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_empty_results(self, mock_requests):
         """测试空结果处理"""
         try:
@@ -324,7 +328,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
         self.assertEqual(response.provider, "Anspire")
         self.assertEqual(len(response.results), 0)
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_content_truncation(self, mock_requests):
         """测试长内容截断功能"""
         try:
@@ -359,7 +363,7 @@ class TestAnspireSearchProvider(unittest.TestCase):
             self.assertLessEqual(len(response.results[0].snippet), 503)  # 500 + "..."
             self.assertTrue(response.results[0].snippet.endswith("..."))
     
-    @patch('src.search_service.requests')
+    @patch('src.infrastructure.search.providers.requests')
     def test_search_time_range(self, mock_requests):
         """测试时间范围参数"""
         try:

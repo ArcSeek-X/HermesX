@@ -25,11 +25,18 @@ except ModuleNotFoundError:
 import src.auth as auth
 from api.app import create_app
 from src.config import Config
-from src.services.decision_signal_service import DecisionSignalService
-from src.services.portfolio_import_service import PortfolioImportService
-from src.services.portfolio_risk_service import PortfolioRiskService
-from src.services.portfolio_service import PortfolioBusyError, PortfolioService
+from src.application.decision.decision_signal_service import DecisionSignalService
+from src.application.portfolio.portfolio_import_service import PortfolioImportService
+from src.application.portfolio.portfolio_risk_service import PortfolioRiskService
+from src.application.portfolio.portfolio_service import PortfolioBusyError, PortfolioService
 from src.storage import DatabaseManager
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.portfolio import configure_portfolio_repository
+from src.bootstrap.quote import configure_stock_repository
+
+configure_portfolio_repository()
+configure_decision_repositories()
+configure_stock_repository()
 
 
 def _reset_auth_globals() -> None:
@@ -759,7 +766,7 @@ class PortfolioPr2TestCase(unittest.TestCase):
         )
 
         disabled_config = SimpleNamespace(portfolio_fx_update_enabled=False)
-        with patch("src.services.portfolio_service.get_config", return_value=disabled_config) as get_config_mock, patch.object(
+        with patch("src.application.portfolio.portfolio_service.get_config", return_value=disabled_config) as get_config_mock, patch.object(
             PortfolioService,
             "_fetch_fx_rate_from_yfinance",
             side_effect=AssertionError("should not call"),
@@ -782,7 +789,7 @@ class PortfolioPr2TestCase(unittest.TestCase):
         disabled_config = SimpleNamespace(portfolio_fx_update_enabled=False)
         invalid_row = SimpleNamespace(currency="")
         valid_row = SimpleNamespace(currency="USD")
-        with patch("src.services.portfolio_service.get_config", return_value=disabled_config), patch.object(
+        with patch("src.application.portfolio.portfolio_service.get_config", return_value=disabled_config), patch.object(
             self.service.repo,
             "list_trades",
             return_value=[invalid_row, valid_row],
@@ -815,7 +822,7 @@ class PortfolioPr2TestCase(unittest.TestCase):
         )
 
         disabled_config = SimpleNamespace(portfolio_fx_update_enabled=False)
-        with patch("src.services.portfolio_service.get_config", return_value=disabled_config), patch.object(
+        with patch("src.application.portfolio.portfolio_service.get_config", return_value=disabled_config), patch.object(
             PortfolioService,
             "_fetch_fx_rate_from_yfinance",
             side_effect=AssertionError("should not call"),

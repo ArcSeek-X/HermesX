@@ -5,7 +5,7 @@
 
 import unittest
 
-from src.report_language import (
+from src.domain.shared.report_language import (
     SUPPORTED_REPORT_LANGUAGES,
     get_bias_status_emoji,
     get_localized_stock_name,

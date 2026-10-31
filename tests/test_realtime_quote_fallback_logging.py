@@ -25,8 +25,8 @@ if not json_repair_available and "json_repair" not in sys.modules:
 
 from data_provider.base import DataFetcherManager
 from data_provider.realtime_types import RealtimeSource, UnifiedRealtimeQuote
-from src.core.pipeline import StockAnalysisPipeline
-from src.enums import ReportType
+from src.application.analysis.pipeline import StockAnalysisPipeline
+from src.domain.shared.enums import ReportType
 
 
 class _DummyFetcher:
@@ -209,32 +209,40 @@ def test_pipeline_warns_once_when_all_realtime_sources_fail(caplog):
     assert downgrade_logs == ["贵州茅台(600519) 所有实时行情数据源均不可用，已降级为历史收盘价继续分析"]
 
 
-@patch("src.config.get_config")
-def test_event_monitor_keeps_manager_failure_summary_for_direct_quote_call(mock_get_config, caplog):
-    from src.agent.events import EventMonitor, PriceAlert
+def test_event_monitor_keeps_manager_failure_summary_for_direct_quote_call(caplog):
+    """EventMonitor 经端口取数时，全部数据源失败的汇总日志不得被默默吞掉。
 
-    mock_get_config.return_value = SimpleNamespace(
-        enable_realtime_quote=True,
-        realtime_source_priority="efinance",
-    )
-    manager = DataFetcherManager(
-        fetchers=[
-            _DummyFetcher("EfinanceFetcher", 0, error=RuntimeError("efinance timeout")),
-        ]
-    )
+    实时行情能力层（``data_provider.realtime.base``）在全部 source 失败时抛
+    ``LookupError``；适配器 ``DataProviderRealtimeQuote`` 按端口契约收敛为 ``None``，
+    同时保留旧 manager 的失败汇总日志。本用例锁定这个「降级但有日志」语义。
+    """
+    from src.application.alert import events as events_module
+    from src.application.alert.events import EventMonitor, PriceAlert
+    from src.infrastructure.providers.alert_realtime_quote import DataProviderRealtimeQuote
+
+    def _raise_lookup_error(stock_code):
+        raise LookupError("[efinance] 失败: efinance timeout")
+
     monitor = EventMonitor()
     rule = PriceAlert(stock_code="600519", direction="above", price=1800.0)
 
     async def _run_inline(func, *args, **kwargs):
         return func(*args, **kwargs)
 
-    with patch("data_provider.DataFetcherManager", return_value=manager), patch(
-        "src.agent.events.asyncio.to_thread", new=_run_inline
-    ), caplog.at_level(logging.INFO):
+    with patch.object(
+        events_module, "_realtime_quote_port", DataProviderRealtimeQuote()
+    ), patch(
+        "data_provider.realtime.base.get_realtime_quote", side_effect=_raise_lookup_error
+    ), patch(
+        "src.application.alert.events.asyncio.to_thread", new=_run_inline
+    ), caplog.at_level(
+        logging.INFO
+    ):
         result = asyncio.run(monitor._check_price(rule))
 
     assert result is None
-    assert "[实时行情] 600519 所有数据源均失败: [efinance] 失败: efinance timeout" in caplog.text
+    assert "[实时行情] 600519 所有数据源均失败" in caplog.text
+    assert "efinance timeout" in caplog.text
 
 
 def test_pipeline_logs_disabled_realtime_once_without_fetching_quote(caplog):

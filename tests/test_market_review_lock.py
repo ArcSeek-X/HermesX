@@ -11,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import src.core.market_review_lock as market_review_lock
+import src.application.market.market_review_lock as market_review_lock
 
 
 class MarketReviewNoFcntlLockTestCase(unittest.TestCase):

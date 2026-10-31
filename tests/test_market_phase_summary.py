@@ -5,7 +5,7 @@
 
 import json
 
-from src.market_phase_summary import (
+from src.application.market.phase_summary import (
     MARKET_PHASE_SUMMARY_KEY,
     extract_market_phase_summary,
     format_public_market_status_line,
@@ -146,7 +146,7 @@ def test_rebuild_market_phase_summary_uses_auto_for_result_only_phases(monkeypat
         return FakeContext()
 
     monkeypatch.setattr(
-        "src.market_phase_summary.build_market_phase_context",
+        "src.application.market.phase_summary.build_market_phase_context",
         fake_build_market_phase_context,
     )
 

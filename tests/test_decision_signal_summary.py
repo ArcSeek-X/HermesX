@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from src.services.decision_signal_summary import (
+from src.domain.decision.decision_signal_summary import (
     format_decision_signal_excerpt,
     summarize_decision_signal,
 )

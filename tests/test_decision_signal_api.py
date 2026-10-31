@@ -24,11 +24,22 @@ except ModuleNotFoundError:
 
 import src.auth as auth
 from api.app import create_app
-from src.analyzer import AnalysisResult
+from src.application.analysis.analyzer import AnalysisResult
 from src.config import Config
-from src.services.decision_signal_extractor import extract_and_persist_from_analysis_result
-from src.services.decision_signal_service import DecisionSignalService
-from src.storage import AnalysisHistory, DatabaseManager, DecisionSignalRecord, PortfolioAccount, PortfolioPosition, utc_naive_now
+from src.application.decision.decision_signal_extractor import extract_and_persist_from_analysis_result
+from src.application.decision.decision_signal_service import DecisionSignalService
+from src.storage import DatabaseManager
+from src.infrastructure.persistence.base import utc_naive_now
+from src.infrastructure.persistence.models.analysis import AnalysisHistory
+from src.infrastructure.persistence.models.decision import DecisionSignalRecord
+from src.infrastructure.persistence.models.portfolio import PortfolioAccount, PortfolioPosition
+from src.bootstrap.decision import configure_decision_repositories
+from src.bootstrap.portfolio import configure_portfolio_repository
+from src.bootstrap.quote import configure_stock_repository
+
+configure_portfolio_repository()
+configure_decision_repositories()
+configure_stock_repository()
 
 
 @contextmanager
@@ -831,7 +842,7 @@ def test_holding_only_uses_cached_positions_and_stock_code_variants(client_and_d
         )
 
     with patch(
-        "src.services.portfolio_service.PortfolioService.get_portfolio_snapshot",
+        "src.application.portfolio.portfolio_service.PortfolioService.get_portfolio_snapshot",
         side_effect=AssertionError("holding_only must not replay portfolio snapshots"),
     ):
         holding_resp = client.get(
@@ -848,7 +859,7 @@ def test_holding_only_uses_cached_positions_and_stock_code_variants(client_and_d
     }
 
     with patch(
-        "src.services.portfolio_service.PortfolioService.get_portfolio_snapshot",
+        "src.application.portfolio.portfolio_service.PortfolioService.get_portfolio_snapshot",
         side_effect=AssertionError("holding_only must not replay portfolio snapshots"),
     ):
         all_active_resp = client.get(
@@ -865,7 +876,7 @@ def test_holding_only_uses_cached_positions_and_stock_code_variants(client_and_d
     }
 
     with patch(
-        "src.services.portfolio_service.PortfolioService.get_portfolio_snapshot",
+        "src.application.portfolio.portfolio_service.PortfolioService.get_portfolio_snapshot",
         side_effect=AssertionError("holding_only must not replay portfolio snapshots"),
     ):
         inactive_holding_resp = client.get(
@@ -1143,7 +1154,7 @@ def test_dedup_distinguishes_source_type_for_weak_report_ids(client_and_db) -> N
 
 
 def test_stock_filter_codes_cover_market_optional_hk_without_widening_other_markets() -> None:
-    from src.services.decision_signal_service import DecisionSignalService
+    from src.application.decision.decision_signal_service import DecisionSignalService
 
     cases = [
         ("00700", None, ["00700", "HK00700"]),
@@ -1155,7 +1166,7 @@ def test_stock_filter_codes_cover_market_optional_hk_without_widening_other_mark
         ("AAPL", None, ["AAPL"]),
     ]
     for raw_code, market, expected_codes in cases:
-        assert DecisionSignalService._stock_filter_codes(raw_code, market=market) == expected_codes
+        assert DecisionSignalService.stock_filter_codes(raw_code, market=market) == expected_codes
 
 
 def test_hk_stock_identity_variants_deduplicate_and_latest_matches(client_and_db) -> None:
@@ -1563,23 +1574,23 @@ def test_reassess_success_preview_is_read_only_and_uses_opaque_metadata(client_a
         context_snapshot=_valid_reassess_context(),
     )
     monkeypatch.setattr(
-        "src.services.decision_signal_service.DecisionSignalService.create_signal_with_outcome",
+        "src.application.decision.decision_signal_service.DecisionSignalService.create_signal_with_outcome",
         lambda *_args, **_kwargs: (
             _ for _ in ()
         ).throw(AssertionError("create_signal_with_outcome must not be called")),
     )
     monkeypatch.setattr(
-        "src.services.decision_signal_service.DecisionSignalService.create_history_bound_signal_with_outcome",
+        "src.application.decision.decision_signal_service.DecisionSignalService.create_history_bound_signal_with_outcome",
         lambda *_args, **_kwargs: (
             _ for _ in ()
         ).throw(AssertionError("create_history_bound_signal_with_outcome must not be called")),
     )
     monkeypatch.setattr(
-        "src.services.decision_signal_service.DecisionSignalService.list_signals",
+        "src.application.decision.decision_signal_service.DecisionSignalService.list_signals",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("list_signals must not be called")),
     )
     monkeypatch.setattr(
-        "src.services.analysis_context_builder._build_quote_block",
+        "src.application.analysis.analysis_context_builder._build_quote_block",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("reassess must not rebuild quote context")),
     )
     before = _decision_signal_count(db)
@@ -1641,7 +1652,7 @@ def test_reassess_preview_prefers_stability_adjusted_score(client_and_db) -> Non
 
 
 def test_reassess_service_has_no_live_market_provider_imports() -> None:
-    source = (Path(__file__).resolve().parents[1] / "src/services/decision_signal_reassess_service.py").read_text(
+    source = (Path(__file__).resolve().parents[1] / "src/application/decision/decision_signal_reassess_service.py").read_text(
         encoding="utf-8"
     )
     assert "data_provider" not in source

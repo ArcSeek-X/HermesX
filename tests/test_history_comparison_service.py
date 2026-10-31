@@ -2,7 +2,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 
-from src.services.history_comparison_service import _record_to_signal
+from src.application.history.comparison import _record_to_signal
 
 
 def _record(**overrides):

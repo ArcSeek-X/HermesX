@@ -12,9 +12,11 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.agent.llm_adapter import LLMToolAdapter
-from src.agent.litellm_route_resolution import resolve_agent_litellm_route
-from src.llm.backend_registry import LOCAL_CLI_GENERATION_BACKEND_IDS
+from src.infrastructure.agent_runtime.llm_adapter import LLMToolAdapter
+from src.application.agent.litellm_route_resolution import resolve_agent_litellm_route
+from src.domain.generation.backend_identity import (
+    LOCAL_CLI_GENERATION_BACKEND_IDS,
+)
 
 LOCAL_CLI_BACKENDS = sorted(LOCAL_CLI_GENERATION_BACKEND_IDS)
 
@@ -119,7 +121,7 @@ def test_agent_resolver_reports_no_safe_models_after_filtering_fallbacks() -> No
 
 def test_agent_resolver_reports_no_safe_models_when_only_fallback_is_hermes() -> None:
     with patch(
-        "src.agent.litellm_route_resolution.get_effective_agent_models_to_try",
+        "src.application.agent.litellm_route_resolution.get_effective_agent_models_to_try",
         return_value=["openai/hermes-fallback"],
     ):
         resolution = resolve_agent_litellm_route(
@@ -245,7 +247,7 @@ def test_llm_tool_adapter_unavailable_when_channel_deployments_filter_to_empty()
     )
 
     with patch(
-        "src.agent.litellm_route_resolution.get_effective_agent_models_to_try",
+        "src.application.agent.litellm_route_resolution.get_effective_agent_models_to_try",
         return_value=["openai/remote-primary"],
     ):
         adapter = LLMToolAdapter(config)
@@ -297,7 +299,7 @@ def test_call_completion_does_not_overwrite_adapter_route_resolution() -> None:
         reason="no_safe_agent_models",
     )
 
-    with patch("src.agent.llm_adapter.resolve_agent_litellm_route", return_value=dynamic_resolution):
+    with patch("src.infrastructure.agent_runtime.llm_adapter.resolve_agent_litellm_route", return_value=dynamic_resolution):
         response = adapter.call_completion([{"role": "user", "content": "hello"}])
 
     assert response.provider == "error"

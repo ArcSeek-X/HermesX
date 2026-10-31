@@ -14,12 +14,12 @@ except ModuleNotFoundError:
 
     ensure_litellm_stub()
 
-from src.analyzer import (
-    GeminiAnalyzer,
-    _BULLISH_TREND_HINTS,
-    _contains_trend_hint,
-    _infer_trend_direction,
-    _sanitize_trend_analysis_for_prompt,
+from src.application.analysis.analyzer import GeminiAnalyzer
+from src.domain.analysis.prompt_sanitizer import (
+    BULLISH_TREND_HINTS as _BULLISH_TREND_HINTS,
+    contains_trend_hint as _contains_trend_hint,
+    infer_trend_direction as _infer_trend_direction,
+    sanitize_trend_analysis_for_prompt as _sanitize_trend_analysis_for_prompt,
 )
 
 
@@ -88,7 +88,7 @@ class AnalyzerNewsPromptTestCase(unittest.TestCase):
             skill_instructions="### 技能 1: 波段低吸\n- 关注支撑确认",
             default_skill_policy="",
         )
-        with patch("src.agent.factory.resolve_skill_prompt_state", return_value=fake_state):
+        with patch("src.application.agent.factory.resolve_skill_prompt_state", return_value=fake_state):
             prompt = analyzer._get_analysis_system_prompt("zh", stock_code="600519")
 
         self.assertIn("### 技能 1: 波段低吸", prompt)
@@ -189,7 +189,7 @@ class AnalyzerNewsPromptTestCase(unittest.TestCase):
             news_max_age_days=30,
             news_strategy_profile="medium",  # 7 days
         )
-        with patch("src.analyzer.get_config", return_value=fake_cfg):
+        with patch("src.application.analysis.analyzer.get_config", return_value=fake_cfg):
             prompt = analyzer._format_prompt(context, "贵州茅台", news_context="news")
 
         self.assertIn("近7日的新闻搜索结果", prompt)
@@ -249,7 +249,7 @@ class AnalyzerNewsPromptTestCase(unittest.TestCase):
             news_max_age_days=30,
             news_strategy_profile="long",  # 30 days if fallback is used
         )
-        with patch("src.analyzer.get_config", return_value=fake_cfg):
+        with patch("src.application.analysis.analyzer.get_config", return_value=fake_cfg):
             prompt = analyzer._format_prompt(context, "贵州茅台", news_context="news")
 
         self.assertIn("近1日的新闻搜索结果", prompt)

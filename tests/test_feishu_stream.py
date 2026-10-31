@@ -1,6 +1,7 @@
 # 本文件主要测试：测试飞书流相关功能
-from bot.platforms.feishu_stream import FeishuReplyClient
-from src.formatters import format_feishu_markdown
+# R2-B4：bot 不再持有 sender 符号，测试直接从真实实现路径 import
+from src.infrastructure.notification.senders.feishu_reply_client import FeishuReplyClient
+from src.infrastructure.reporting.markdown_render import format_feishu_markdown
 
 
 class DummyFeishuReplyClient(FeishuReplyClient):

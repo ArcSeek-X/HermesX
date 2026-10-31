@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.agent.tools.data_tools import _handle_get_stock_info
+from src.application.agent.tools.data_tools import _handle_get_stock_info
 
 
 class _DummyManager:
@@ -68,7 +68,7 @@ class _DummyManager:
 class TestGetStockInfoContract(unittest.TestCase):
     def test_get_stock_info_preserves_board_semantics(self) -> None:
         manager = _DummyManager()
-        with patch("src.agent.tools.data_tools._get_fetcher_manager", return_value=manager):
+        with patch("src.application.agent.tools.data_tools._get_market_data_port", return_value=manager):
             result = _handle_get_stock_info("600519")
 
         self.assertEqual(result["name"], "贵州茅台")

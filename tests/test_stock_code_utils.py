@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tests for src/services/stock_code_utils.py
+Tests for src/application/quote/stock_code_utils.py
 Covers: is_code_like, normalize_code - including exchange prefix handling.
 测试stockcode工具函数相关功能测试
 """
@@ -9,13 +9,60 @@ import pytest
 
 from unittest.mock import patch
 
-from src.services.stock_code_utils import (
+from src.application.quote.stock_code_utils import (
     build_daily_code_candidates,
+    normalize_stock_code_for_backtest_summary,
     is_code_like,
     normalize_code,
     resolve_daily_stock_identity,
     resolve_index_stock_code_for_analysis,
 )
+
+
+from data_provider.base import canonical_stock_code, normalize_stock_code
+
+
+class TestNormalizeStockCodeForBacktestSummary:
+    """锁定搬迁自 ``BacktestService._normalize_summary_code`` 的逐值等价性。"""
+
+    @staticmethod
+    def _reference(code):
+        # 搬迁前原实现（data_provider 两个符号 + stock_code_utils.normalize_code 组合）
+        if not code:
+            return None
+        raw_code = str(code).strip()
+        normalized = normalize_stock_code(raw_code)
+        backtest_normalized = normalize_code(raw_code)
+        if raw_code.upper().startswith("SS") and backtest_normalized and backtest_normalized != normalized:
+            normalized = backtest_normalized
+        return canonical_stock_code(normalized or raw_code)
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            None, "", "  ", "600519", "600519.SH", "600519.SS", "SS600519", "ss600519",
+            "SH600519", "SZ000001", "000001", "00700", "HK00700", "hk00700", "0700.HK",
+            "AAPL", "BRK.B", "920493.BJ", "ABCDEFG", "600519.XX",
+        ],
+    )
+    def test_matches_pre_move_reference_implementation(self, code):
+        assert normalize_stock_code_for_backtest_summary(code) == self._reference(code)
+
+    def test_empty_and_none_return_none(self):
+        assert normalize_stock_code_for_backtest_summary(None) is None
+        assert normalize_stock_code_for_backtest_summary("") is None
+
+    def test_backtest_service_module_level_import_is_retired(self):
+        # 归口锁定：backtest_service 不得再模块级直接 import data_provider 的归一符号
+        # （``_try_fill_daily_data`` 函数内的 DataFetcherManager 惰性导入不在此约束内）
+        import inspect
+
+        import src.application.backtest.service as bs
+
+        source = inspect.getsource(bs)
+        assert "from data_provider.base import canonical_stock_code" not in source
+        assert "normalize_backtest_code" not in source
+        assert "_normalize_summary_code" not in source
 
 
 class TestBuildDailyCodeCandidates:

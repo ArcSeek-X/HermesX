@@ -3,7 +3,7 @@
 测试stock列表解析器相关功能测试
 """
 
-from src.services.stock_list_parser import serialize_stock_list, split_stock_list
+from src.domain.market.stock_list_parser import serialize_stock_list, split_stock_list
 
 
 def test_split_stock_list_accepts_common_copy_paste_separators() -> None:

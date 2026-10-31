@@ -14,7 +14,7 @@ Test backend data contract extensions:
 
 from api.v1.schemas.analysis import AnalyzeRequest
 from concurrent.futures import Future
-from src.services.task_queue import TaskInfo, get_task_queue, DuplicateTaskError, AnalysisTaskQueue
+from src.application.runtime.task_queue import TaskInfo, get_task_queue, DuplicateTaskError, AnalysisTaskQueue
 
 
 class TestAnalyzeRequest:

@@ -4,7 +4,7 @@
 作用
 ----
 本文件是「本地资讯池 / 情报源」能力的 FastAPI 路由层，把 HTTP 请求转发给
-``src/services/intelligence_service.py`` 中的 ``IntelligenceService``，并负责：
+``src/application/intelligence/intelligence_service.py`` 中的 ``IntelligenceService``，并负责：
 
 1. 请求 -> 服务层：把 Pydantic 请求模型转成普通 dict（``model_dump``）传入服务层；
 2. 异常 -> HTTP 错误：将 ``IntelligenceServiceError`` 映射为 400（校验失败）或
@@ -65,8 +65,8 @@ from api.v1.schemas.intelligence import (
     CalendarRefreshResponse,
     CalendarTabsResponse,
 )
-from src.services.intelligence_service import IntelligenceService, IntelligenceServiceError
-from src.services.run_diagnostics import sanitize_diagnostic_text
+from src.application.intelligence.intelligence_service import IntelligenceService, IntelligenceServiceError
+from src.application.runtime.run_diagnostics import sanitize_diagnostic_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -138,7 +138,7 @@ def list_source_templates(
         raise _internal_error("List intelligence source templates failed", exc)
 
 
-@router.post("/sources/template/{template_id}", response_model=IntelligenceSourceItem, responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}}, summary="Create intelligence source from a built-in template")
+@router.post("/sources/templates/{template_id}", response_model=IntelligenceSourceItem, responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}}, summary="Create intelligence source from a built-in template")
 def create_source_from_template(
     template_id: str,  # 内置模板标识（如 cctv-finance）
     request: IntelligenceSourceTemplateCreateRequest = IntelligenceSourceTemplateCreateRequest(),

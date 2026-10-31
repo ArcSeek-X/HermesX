@@ -35,13 +35,13 @@ from api.v1.schemas.system_config import (
     ValidateSystemConfigResponse,
 )
 from src.auth import COOKIE_NAME, is_auth_enabled, refresh_auth_state, verify_session
-from src.services.system_config_service import (
+from src.application.runtime.system_config_service import (
     ConfigConflictError,
     ConfigImportError,
     ConfigValidationError,
     SystemConfigService,
 )
-from src.services.runtime_scheduler import RuntimeSchedulerService
+from src.application.runtime.runtime_scheduler import RuntimeSchedulerService
 
 logger = logging.getLogger(__name__)
 

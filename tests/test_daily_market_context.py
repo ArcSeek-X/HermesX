@@ -10,9 +10,9 @@ from datetime import date, datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.core.market_review import MarketReviewRunResult
-from src.services import daily_market_context as daily_market_context_module
-from src.services.daily_market_context import (
+from src.application.market.market_review import MarketReviewRunResult
+from src.application.market import daily_market_context as daily_market_context_module
+from src.application.market.daily_market_context import (
     DailyMarketContextService,
     format_daily_market_context_prompt_section,
 )
@@ -75,11 +75,11 @@ def test_query_scoped_cache_can_skip_stale_analysis_history_context() -> None:
         ],
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         first = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -92,7 +92,7 @@ def test_query_scoped_cache_can_skip_stale_analysis_history_context() -> None:
     assert first is not None
     assert first.summary == "旧复盘"
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         second = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -116,11 +116,11 @@ def test_reuses_same_day_market_review_history_without_running_review() -> None:
         _history_record(created_at=datetime(2026, 6, 6, 9, 30))
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -148,11 +148,11 @@ def test_reuses_jp_market_review_history_without_normalizing_to_cn() -> None:
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="jp",
             config=SimpleNamespace(report_language="zh"),
@@ -180,12 +180,12 @@ def test_jp_kr_request_does_not_reuse_legacy_both_history() -> None:
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
     for region in ("jp", "kr"):
-        with patch("src.services.daily_market_context.run_market_review") as run_review:
+        with patch("src.application.market.daily_market_context.run_market_review") as run_review:
             context = service.get_context(
                 region=region,
                 config=SimpleNamespace(report_language="zh"),
@@ -205,11 +205,11 @@ def test_multi_market_region_does_not_fallback_to_cn_history() -> None:
         _history_record(created_at=datetime(2026, 6, 6, 9, 30), region="cn")
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="jp,kr",
             config=SimpleNamespace(report_language="zh"),
@@ -234,7 +234,7 @@ def test_does_not_reuse_same_day_history_on_report_language_mismatch() -> None:
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -253,7 +253,7 @@ def test_does_not_reuse_same_day_history_on_report_language_mismatch() -> None:
     )
 
     with patch(
-        "src.services.daily_market_context.run_market_review",
+        "src.application.market.daily_market_context.run_market_review",
         return_value=result,
     ) as run_review:
         context = service.get_context(
@@ -274,7 +274,7 @@ def test_query_scoped_fallback_reuses_current_run_runtime_cache() -> None:
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -293,7 +293,7 @@ def test_query_scoped_fallback_reuses_current_run_runtime_cache() -> None:
     )
 
     with patch(
-        "src.services.daily_market_context.run_market_review",
+        "src.application.market.daily_market_context.run_market_review",
         return_value=result,
     ):
         generated = service.get_context(
@@ -305,7 +305,7 @@ def test_query_scoped_fallback_reuses_current_run_runtime_cache() -> None:
             current_query_id="query-1381",
         )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         fallback = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -328,7 +328,7 @@ def test_query_scoped_runtime_cache_is_reused_without_key_scope_match() -> None:
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -347,7 +347,7 @@ def test_query_scoped_runtime_cache_is_reused_without_key_scope_match() -> None:
     )
 
     with patch(
-        "src.services.daily_market_context.run_market_review",
+        "src.application.market.daily_market_context.run_market_review",
         return_value=result,
     ):
         generated = service.get_context(
@@ -364,7 +364,7 @@ def test_query_scoped_runtime_cache_is_reused_without_key_scope_match() -> None:
     assert generated.source == "market_review_runtime"
     assert generated.query_id == "query-1381"
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         fallback = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -399,11 +399,11 @@ def test_force_refresh_reads_latest_same_day_history_after_stale_cache() -> None
         ],
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         first = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -412,7 +412,7 @@ def test_force_refresh_reads_latest_same_day_history_after_stale_cache() -> None
             search_service=MagicMock(),
             allow_generate=False,
         )
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         refreshed = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -440,11 +440,11 @@ def test_reuses_same_day_market_review_history_with_full_report_payload() -> Non
     )
     db.get_analysis_history.return_value = [record]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -464,11 +464,11 @@ def test_reuses_previous_trading_day_history_after_weekend() -> None:
         _history_record(created_at=datetime(2026, 6, 5, 15, 30))
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 8),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -497,11 +497,11 @@ def test_reuses_history_by_payload_trade_date_when_created_at_is_wall_clock_date
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -528,11 +528,11 @@ def test_reuses_same_run_history_when_saved_under_different_wall_clock_date() ->
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -555,7 +555,7 @@ def test_get_context_uses_isolated_market_context_query_id_when_generating() -> 
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -575,11 +575,11 @@ def test_get_context_uses_isolated_market_context_query_id_when_generating() -> 
     lock_token = object()
 
     with patch(
-        "src.services.daily_market_context.try_acquire_market_review_lock",
+        "src.application.market.daily_market_context.try_acquire_market_review_lock",
         return_value=lock_token,
     ) as acquire_lock, \
-         patch("src.services.daily_market_context.release_market_review_lock") as release_lock, \
-         patch("src.services.daily_market_context.run_market_review", return_value=result) as run_review:
+         patch("src.application.market.daily_market_context.release_market_review_lock") as release_lock, \
+         patch("src.application.market.daily_market_context.run_market_review", return_value=result) as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -609,11 +609,11 @@ def test_does_not_reuse_history_for_different_query_when_query_match_required() 
         )
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -634,7 +634,7 @@ def test_get_context_acquires_market_review_lock_before_generating() -> None:
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     config = SimpleNamespace(report_language="zh")
@@ -655,11 +655,11 @@ def test_get_context_acquires_market_review_lock_before_generating() -> None:
     )
 
     with patch(
-        "src.services.daily_market_context.try_acquire_market_review_lock",
+        "src.application.market.daily_market_context.try_acquire_market_review_lock",
         return_value=lock_token,
     ) as acquire_lock, \
-         patch("src.services.daily_market_context.release_market_review_lock") as release_lock, \
-        patch("src.services.daily_market_context.run_market_review", return_value=result) as run_review:
+         patch("src.application.market.daily_market_context.release_market_review_lock") as release_lock, \
+        patch("src.application.market.daily_market_context.run_market_review", return_value=result) as run_review:
         context = service.get_context(
             region="cn",
             config=config,
@@ -682,17 +682,17 @@ def test_get_context_skips_generation_when_market_review_lock_is_held() -> None:
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
     with patch(
-        "src.services.daily_market_context.try_acquire_market_review_lock",
+        "src.application.market.daily_market_context.try_acquire_market_review_lock",
         return_value=None,
     ) as acquire_lock, \
-         patch("src.services.daily_market_context.time.sleep") as sleep_mock, \
-         patch("src.services.daily_market_context.release_market_review_lock") as release_lock, \
-         patch("src.services.daily_market_context.run_market_review") as run_review:
+         patch("src.application.market.daily_market_context.time.sleep") as sleep_mock, \
+         patch("src.application.market.daily_market_context.release_market_review_lock") as release_lock, \
+         patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -724,19 +724,19 @@ def test_get_context_waits_for_market_review_generation_when_lock_is_held() -> N
         [_history_record(created_at=datetime(2026, 6, 6, 9, 30))],
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
     with patch(
-        "src.services.daily_market_context.time.sleep",
+        "src.application.market.daily_market_context.time.sleep",
     ) as sleep_mock, \
          patch(
-            "src.services.daily_market_context.try_acquire_market_review_lock",
+            "src.application.market.daily_market_context.try_acquire_market_review_lock",
             return_value=None,
         ) as acquire_lock, \
-         patch("src.services.daily_market_context.release_market_review_lock") as release_lock, \
-         patch("src.services.daily_market_context.run_market_review") as run_review:
+         patch("src.application.market.daily_market_context.release_market_review_lock") as release_lock, \
+         patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -760,7 +760,7 @@ def test_get_context_generates_context_when_lock_is_released_without_matching_hi
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     released_lock = object()
@@ -769,15 +769,15 @@ def test_get_context_generates_context_when_lock_is_released_without_matching_hi
     analyzer = MagicMock()
     search_service = MagicMock()
     with patch(
-        "src.services.daily_market_context.time.sleep",
+        "src.application.market.daily_market_context.time.sleep",
     ) as sleep_mock, \
          patch(
-            "src.services.daily_market_context.try_acquire_market_review_lock",
+            "src.application.market.daily_market_context.try_acquire_market_review_lock",
             side_effect=[None, None, released_lock],
         ) as acquire_lock, \
-         patch("src.services.daily_market_context.release_market_review_lock") as release_lock, \
+         patch("src.application.market.daily_market_context.release_market_review_lock") as release_lock, \
          patch(
-            "src.services.daily_market_context.run_market_review",
+            "src.application.market.daily_market_context.run_market_review",
             return_value="市场偏弱，结构性震荡，建议回避",
          ) as run_review:
         context = service.get_context(
@@ -809,11 +809,11 @@ def test_readonly_mode_can_still_use_cached_history_without_generation() -> None
         _history_record(created_at=datetime(2026, 6, 6, 9, 30))
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
 
-    with patch("src.services.daily_market_context.run_market_review") as run_review:
+    with patch("src.application.market.daily_market_context.run_market_review") as run_review:
         context = service.get_context(
             region="cn",
             config=SimpleNamespace(report_language="zh"),
@@ -833,7 +833,7 @@ def test_prewarm_generation_does_not_persist_market_review_history() -> None:
     db = MagicMock()
     db.get_analysis_history.return_value = []
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -855,7 +855,7 @@ def test_prewarm_generation_does_not_persist_market_review_history() -> None:
     analyzer = MagicMock()
     search_service = MagicMock()
     with patch(
-        "src.services.daily_market_context.run_market_review",
+        "src.application.market.daily_market_context.run_market_review",
         return_value=result,
     ) as run_review:
         context = service.get_context(
@@ -881,7 +881,7 @@ def test_force_refresh_runs_market_review_without_notification() -> None:
         _history_record(created_at=datetime(2026, 6, 6, 9, 30))
     ]
     service = DailyMarketContextService(
-        db_manager=db,
+        history_repo=db,
         today_fn=lambda: date(2026, 6, 6),
     )
     result = MarketReviewRunResult(
@@ -904,7 +904,7 @@ def test_force_refresh_runs_market_review_without_notification() -> None:
     search_service = MagicMock()
     config = SimpleNamespace(report_language="zh")
     with patch(
-        "src.services.daily_market_context.run_market_review",
+        "src.application.market.daily_market_context.run_market_review",
         return_value=result,
     ) as run_review:
         context = service.get_context(
@@ -933,7 +933,7 @@ def test_force_refresh_runs_market_review_without_notification() -> None:
 
 def test_prompt_section_is_low_sensitivity_and_region_scoped() -> None:
     context = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )._build_context_from_payload(
         region="cn",
@@ -966,7 +966,7 @@ def test_prompt_section_is_low_sensitivity_and_region_scoped() -> None:
 
 def test_safe_dict_excludes_internal_history_identifiers() -> None:
     context = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )._build_context_from_payload(
         region="cn",
@@ -1057,7 +1057,7 @@ def test_prompt_section_labels_jp_kr_regions_without_cn_fallback() -> None:
 
 def test_extract_summary_prefers_region_scoped_section_over_generic_fallback_title() -> None:
     context = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )._build_context_from_payload(
         region="cn",
@@ -1089,7 +1089,7 @@ def test_extract_summary_prefers_region_scoped_section_over_generic_fallback_tit
 
 def test_region_scoped_market_light_risk_signals_survive_neutral_summary() -> None:
     context = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )._build_context_from_payload(
         region="cn",
@@ -1125,7 +1125,7 @@ def test_region_scoped_market_light_risk_signals_survive_neutral_summary() -> No
 
 def test_yellow_market_light_status_marks_context_conservative() -> None:
     context = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )._build_context_from_payload(
         region="us",
@@ -1146,7 +1146,7 @@ def test_yellow_market_light_status_marks_context_conservative() -> None:
 
 def test_daily_market_context_keeps_jp_kr_regions_and_labels() -> None:
     service = DailyMarketContextService(
-        db_manager=MagicMock(),
+        history_repo=MagicMock(),
         today_fn=lambda: date(2026, 6, 6),
     )
 

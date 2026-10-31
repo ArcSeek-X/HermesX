@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from nacl.signing import SigningKey
 
-from bot.models import ChatType
+from src.domain.notification.bot_message import ChatType
 from bot.platforms.discord import DiscordPlatform
 
 
@@ -184,7 +184,8 @@ def test_expired_timestamp_is_rejected():
 
 def test_format_response_wraps_interaction_callback():
     """type=2 交互响应应使用 Interaction Response 回调格式（type=4 + data）。"""
-    from bot.models import BotMessage, BotResponse, ChatType
+    from bot.models import BotResponse
+    from src.domain.notification.bot_message import BotMessage, ChatType
 
     platform = _make_platform("00" * 32)
     message = BotMessage(
@@ -210,7 +211,8 @@ def test_format_response_wraps_interaction_callback():
 
 def test_send_followup_patches_original_message():
     """send_followup 应 PATCH Discord follow-up webhook。"""
-    from bot.models import BotMessage, BotResponse, ChatType
+    from bot.models import BotResponse
+    from src.domain.notification.bot_message import BotMessage, ChatType
 
     platform = _make_platform("00" * 32)
     message = BotMessage(
@@ -243,7 +245,8 @@ def test_send_followup_patches_original_message():
 
 def test_send_followup_chunks_long_content():
     """超过 2000 字符的 follow-up 应被分块：首块 PATCH，后续 POST。"""
-    from bot.models import BotMessage, BotResponse, ChatType
+    from bot.models import BotResponse
+    from src.domain.notification.bot_message import BotMessage, ChatType
 
     platform = _make_platform("00" * 32)
     message = BotMessage(
@@ -283,7 +286,8 @@ def test_send_followup_chunks_long_content():
 
 def test_send_followup_missing_token_returns_false():
     """缺少 interaction token 时 send_followup 应返回 False。"""
-    from bot.models import BotMessage, BotResponse, ChatType
+    from bot.models import BotResponse
+    from src.domain.notification.bot_message import BotMessage, ChatType
 
     platform = _make_platform("00" * 32)
     message = BotMessage(

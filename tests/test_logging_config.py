@@ -7,7 +7,7 @@ import logging
 
 import pytest
 
-from src.logging_config import LITELLM_LOGGERS, setup_logging
+from src.infrastructure.observability.logging_config import LITELLM_LOGGERS, setup_logging
 
 
 @pytest.fixture(autouse=True)

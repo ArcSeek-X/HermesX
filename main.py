@@ -24,27 +24,19 @@ HermesX - A股自选股智能分析系统 - 主调度程序
 """
 from __future__ import annotations
 
-import json
 import multiprocessing
 import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from dotenv import dotenv_values
-from src.config import setup_env
+from src.bootstrap.environment import (
+    bootstrap_environment,
+    warn_if_public_webui_without_auth,
+)
 
 _INITIAL_PROCESS_ENV = dict(os.environ)
-setup_env()
-
-# 代理配置 - 通过 USE_PROXY 环境变量控制，默认关闭
-# GitHub Actions 环境自动跳过代理配置
-if os.getenv("GITHUB_ACTIONS") != "true" and os.getenv("USE_PROXY", "false").lower() == "true":
-    # 本地开发环境，启用代理（可在 .env 中配置 PROXY_HOST 和 PROXY_PORT）
-    proxy_host = os.getenv("PROXY_HOST", "127.0.0.1")
-    proxy_port = os.getenv("PROXY_PORT", "10809")
-    proxy_url = f"http://{proxy_host}:{proxy_port}"
-    os.environ["http_proxy"] = proxy_url
-    os.environ["https_proxy"] = proxy_url
+bootstrap_environment()
 
 _packaged_import_probe = os.getenv("HRS_PACKAGED_IMPORT_PROBE")
 if _packaged_import_probe:
@@ -72,16 +64,14 @@ from datetime import date, datetime, timezone, timedelta
 
 from src.webui_frontend import prepare_webui_frontend_assets
 from src.config import get_config, Config
-from src.logging_config import setup_logging
 from src.brokers.futu.portfolio import FutuPortfolioError
 from data_provider.base import canonical_stock_code
-from src.services.stock_list_parser import split_stock_list
-from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
+from src.domain.market.stock_list_parser import split_stock_list
+from src.application.quote.stock_code_utils import resolve_index_stock_code_for_analysis
 
 
 logger = logging.getLogger(__name__)
 _RUNTIME_ENV_FILE_KEYS = set()
-_PUBLIC_BIND_HOSTS = frozenset({"0.0.0.0", "::", "[::]", "*"})
 
 
 def _get_active_env_path() -> Path:
@@ -91,24 +81,8 @@ def _get_active_env_path() -> Path:
     return Path(__file__).resolve().parent / ".env"
 
 
-def _is_public_bind_host(host: str) -> bool:
-    return (host or "").strip().lower() in _PUBLIC_BIND_HOSTS
-
-
 def _warn_if_public_webui_without_auth(host: str) -> None:
-    if not _is_public_bind_host(host):
-        return
-
-    from src.auth import is_auth_enabled
-
-    if is_auth_enabled():
-        return
-    logger.warning(
-        "WEBUI_HOST=%s binds the Web UI to a public interface while "
-        "ADMIN_AUTH_ENABLED=false. Keep this service behind a trusted network "
-        "boundary or enable admin authentication before exposing it.",
-        host,
-    )
+    warn_if_public_webui_without_auth(host)
 
 
 def _resolve_web_service_bind(args: argparse.Namespace, config: Config) -> Tuple[str, int]:
@@ -142,70 +116,28 @@ _RUNTIME_ENV_FILE_KEYS = {
     if key not in _INITIAL_PROCESS_ENV
 }
 
-# setup_env() already ran at import time above.
-_env_bootstrapped = True
-
-
 def _bootstrap_environment() -> None:
     """Load .env and apply optional local proxy settings.
 
-    Guarded to be idempotent so it can safely be called from lazy-import
-    paths used by API / bot consumers.
+    Kept as a thin wrapper because lazy consumers (API / Bot) call it through
+    this module. The idempotency guard now lives in
+    :func:`src.bootstrap.environment.bootstrap_environment`.
     """
-    global _env_bootstrapped
-    if _env_bootstrapped:
-        return
-
-    from src.config import setup_env
-
-    setup_env()
-
-    if os.getenv("GITHUB_ACTIONS") != "true" and os.getenv("USE_PROXY", "false").lower() == "true":
-        proxy_host = os.getenv("PROXY_HOST", "127.0.0.1")
-        proxy_port = os.getenv("PROXY_PORT", "10809")
-        proxy_url = f"http://{proxy_host}:{proxy_port}"
-        os.environ["http_proxy"] = proxy_url
-        os.environ["https_proxy"] = proxy_url
-
-    _env_bootstrapped = True
+    bootstrap_environment()
 
 
 def _setup_bootstrap_logging(debug: bool = False) -> None:
-    """Initialize stderr-only logging before config is loaded.
+    """Initialize stderr-only logging before config is loaded."""
+    from src.bootstrap.logging_setup import setup_bootstrap_logging
 
-    File handlers are deferred until ``config.log_dir`` is known (via the
-    subsequent ``setup_logging()`` call) so that healthy runs never create
-    log files in a hard-coded directory.
-    """
-    level = logging.DEBUG if debug else logging.INFO
-    root = logging.getLogger()
-    root.setLevel(level)
-    if not any(
-        isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is sys.stderr
-        for h in root.handlers
-    ):
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setLevel(level)
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-        )
-        root.addHandler(handler)
+    setup_bootstrap_logging(debug=debug)
 
 
 def _setup_runtime_logging(log_dir: str, debug: bool = False) -> bool:
     """Switch to configured logging, falling back to console on file I/O errors."""
-    try:
-        setup_logging(log_prefix="stock_analysis", debug=debug, log_dir=log_dir)
-        return True
-    except OSError as exc:
-        logger.warning(
-            "文件日志初始化失败，已降级为控制台日志输出；日志目录 %r 当前不可写或不可创建: %s。"
-            "官方 Docker 镜像启动入口会自动修复默认挂载目录权限；若仍失败，"
-            "请检查是否使用了 --user、只读挂载、rootless Docker 或 NFS 等限制写入的环境。",
-            log_dir,
-            exc,
-        )
-        return False
+    from src.bootstrap.logging_setup import setup_runtime_logging
+
+    return setup_runtime_logging(log_dir, debug=debug)
 
 
 def _get_stock_analysis_pipeline():
@@ -215,7 +147,7 @@ def _get_stock_analysis_pipeline():
     that never call ``main()`` still get ``USE_PROXY`` applied.
     """
     _bootstrap_environment()
-    from src.core.pipeline import StockAnalysisPipeline as _Pipeline
+    from src.application.analysis.pipeline import StockAnalysisPipeline as _Pipeline
 
     return _Pipeline
 
@@ -461,7 +393,7 @@ def _compute_trading_day_filter(
     if force_run or not getattr(config, 'trading_day_check_enabled', True):
         return (stock_codes, None, False)
 
-    from src.core.trading_calendar import (
+    from src.domain.market.trading_calendar import (
         get_market_for_stock,
         get_open_markets_today,
         compute_effective_region,
@@ -490,7 +422,7 @@ def _run_market_review_with_shared_lock(
     run_market_review_func: Callable[..., Any],
     **kwargs: Any,
 ) -> Any:
-    from src.core.market_review_lock import (
+    from src.application.market.market_review_lock import (
         release_market_review_lock,
         try_acquire_market_review_lock,
     )
@@ -521,7 +453,7 @@ def _is_multi_market_region(region: str) -> bool:
 def _refresh_stock_index_cache_for_analysis(config: Config) -> None:
     """Best-effort stock-index refresh for CLI/scheduled analysis paths."""
     try:
-        from src.services.stock_index_remote_service import (
+        from src.application.quote.stock_index_remote_service import (
             refresh_remote_stock_index_cache,
             settings_from_config,
         )
@@ -570,15 +502,15 @@ def _prime_daily_market_context(
     if no_market_review or not region:
         return ("", "") if return_full_report else ""
 
-    from src.services.daily_market_context import DailyMarketContextService
+    from src.application.market.daily_market_context import DailyMarketContextService
 
     if not _is_multi_market_region(region):
         service = getattr(pipeline, "_daily_market_context_service", None)
         if service is None:
-            service = DailyMarketContextService(db_manager=pipeline.db)
+            service = DailyMarketContextService(history_repo=pipeline.db)
             pipeline._daily_market_context_service = service
     else:
-        service = DailyMarketContextService(db_manager=pipeline.db)
+        service = DailyMarketContextService(history_repo=pipeline.db)
 
     get_context_kwargs = {
         "region": region,
@@ -640,7 +572,7 @@ def _resolve_daily_market_context_target_date(
     normalized_region = str(region or "cn").strip().lower()
     market = normalized_region if normalized_region in {"cn", "hk", "us", "jp", "kr"} else "cn"
 
-    from src.core.trading_calendar import get_effective_trading_date
+    from src.domain.market.trading_calendar import get_effective_trading_date
 
     return get_effective_trading_date(
         _resolve_daily_market_context_market(market, normalized_region),
@@ -697,10 +629,10 @@ def _run_auto_backtest(config: Config) -> None:
         if not getattr(config, 'backtest_enabled', False):
             return
 
-        from src.services.backtest_service import BacktestService
+        from src.bootstrap.backtest import build_backtest_service
 
         logger.info("开始自动回测...")
-        service = BacktestService()
+        service = build_backtest_service()
         stats = service.run_backtest(
             force=False,
             eval_window_days=getattr(config, 'backtest_eval_window_days', 10),
@@ -748,8 +680,8 @@ def run_full_analysis(
 
     # Import pipeline modules outside the broad try/except so that import-time
     # failures propagate to the caller instead of being silently swallowed.
-    from src.core.market_review import run_market_review
-    from src.core.pipeline import StockAnalysisPipeline
+    from src.application.market.market_review import run_market_review
+    from src.application.analysis.pipeline import StockAnalysisPipeline
 
     try:
         _refresh_stock_index_cache_for_analysis(config)
@@ -1024,7 +956,7 @@ def run_full_analysis(
 
         # === 新增：生成飞书云文档 ===
         try:
-            from src.feishu_doc import FeishuDocManager
+            from src.infrastructure.reporting.feishu_doc import FeishuDocManager
 
             feishu_doc = FeishuDocManager()
             if feishu_doc.is_configured() and (results or market_report):
@@ -1090,7 +1022,7 @@ def _run_analysis_with_runtime_scheduler_lock(
     args: argparse.Namespace,
     stock_codes: Optional[List[str]] = None,
 ) -> None:
-    from src.services.runtime_scheduler import run_with_global_analysis_lock
+    from src.application.runtime.runtime_scheduler import run_with_global_analysis_lock
 
     # Keep startup/triggered analysis in sync with API runtime scheduler and
     # run-now entrypoint. Blocking is expected here because startup paths should
@@ -1113,26 +1045,6 @@ def start_api_server(host: str, port: int, config: Config) -> None:
         port: 监听端口
         config: 配置对象
     """
-    import socket
-    import threading
-    import uvicorn
-
-    probe = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        probe.bind((host, port))
-    except OSError as exc:
-        raise RuntimeError(f"FastAPI port is not available: {host}:{port}") from exc
-    finally:
-        probe.close()
-
-    level_name = (config.log_level or "INFO").lower()
-    use_config_signal_handlers = True
-    uvicorn_kwargs = {
-        "host": host,
-        "port": port,
-        "log_level": level_name,
-        "log_config": None,
-    }
     # Import the ASGI app object in the calling thread instead of handing uvicorn
     # the "api.app:app" import string. With the string, uvicorn imports the app
     # lazily inside the server thread, and that import (litellm + the full app
@@ -1141,62 +1053,9 @@ def start_api_server(host: str, port: int, config: Config) -> None:
     # machines. Importing first keeps the heavy work out of the probe window;
     # genuine import failures still surface immediately to the caller.
     from api.app import app as fastapi_app
+    from src.bootstrap.serve import serve_api_in_thread
 
-    try:
-        uvicorn_config = uvicorn.Config(
-            fastapi_app,
-            install_signal_handlers=False,
-            **uvicorn_kwargs,
-        )
-    except TypeError:
-        # Older uvicorn versions do not accept install_signal_handlers in
-        # Config; fall back and only disable signal handling via Server attribute
-        # when it's a boolean flag.
-        use_config_signal_handlers = False
-        uvicorn_config = uvicorn.Config(
-            fastapi_app,
-            **uvicorn_kwargs,
-        )
-    uvicorn_server = uvicorn.Server(config=uvicorn_config)
-    if not use_config_signal_handlers:
-        install_signal_handlers = getattr(uvicorn_server, "install_signal_handlers", None)
-        if isinstance(install_signal_handlers, bool):
-            uvicorn_server.install_signal_handlers = False
-
-    startup_error: list[BaseException] = []
-
-    def run_server():
-        try:
-            uvicorn_server.run()
-        except Exception as exc:  # noqa: BLE001 - surface startup issues to caller promptly
-            startup_error.append(exc)
-
-    thread = threading.Thread(target=run_server, daemon=True)
-    thread.start()
-
-    timeout_seconds = 3.0
-    wait_deadline = time.time() + timeout_seconds
-    while time.time() < wait_deadline:
-        if startup_error:
-            raise RuntimeError(
-                f"FastAPI server failed to start: {host}:{port}; {startup_error[0]}"
-            )
-        if uvicorn_server.started:
-            logger.info(f"FastAPI 服务已启动: http://{host}:{port}")
-            return
-        if not thread.is_alive():
-            break
-        time.sleep(0.05)
-
-    if startup_error:
-        raise RuntimeError(f"FastAPI server failed to start: {host}:{port}; {startup_error[0]}")
-    if uvicorn_server.started:
-        logger.info(f"FastAPI 服务已启动: http://{host}:{port}")
-        return
-    if not thread.is_alive():
-        raise RuntimeError(f"FastAPI 服务器启动后立即退出: {host}:{port}")
-
-    raise RuntimeError(f"FastAPI 服务在 {timeout_seconds:.1f}s 内未完成启动: {host}:{port}")
+    serve_api_in_thread(fastapi_app, host=host, port=port, config=config)
 
 
 def _is_truthy_env(var_name: str, default: str = "true") -> bool:
@@ -1225,6 +1084,11 @@ def start_bot_stream_clients(config: Config) -> None:
     # 启动飞书 Stream 客户端
     if getattr(config, 'feishu_stream_enabled', False):
         try:
+            # 回执具体实现由入口注入：bot 驱动层不再直接 import sender，
+            # 避免 sender 搬入基础设施层后命中 bot 禁入面（R2-B4）。
+            from bot.platforms.feishu_stream import set_reply_client_factory
+            from src.infrastructure.notification.senders.feishu_reply_client import FeishuReplyClient
+            set_reply_client_factory(FeishuReplyClient)
             from bot.platforms import start_feishu_stream_background, FEISHU_SDK_AVAILABLE
             if FEISHU_SDK_AVAILABLE:
                 if start_feishu_stream_background():
@@ -1263,7 +1127,7 @@ def _build_schedule_time_provider(default_schedule_time: str):
     3. Documented system default ``"18:00"`` → always fall back here so
        that clearing SCHEDULE_TIME in WebUI correctly resets the schedule.
     """
-    from src.core.config_manager import ConfigManager
+    from src.config.env_file import ConfigManager
 
     _SYSTEM_DEFAULT_SCHEDULE_TIME = "18:00"
     manager = ConfigManager()
@@ -1283,8 +1147,8 @@ def _build_schedule_time_provider(default_schedule_time: str):
 
 def _build_schedule_times_provider(default_schedule_time: str):
     """Read the latest SCHEDULE_TIMES with SCHEDULE_TIME fallback."""
-    from src.core.config_manager import ConfigManager
-    from src.scheduler import normalize_schedule_times
+    from src.config.env_file import ConfigManager
+    from src.domain.shared.schedule_times import normalize_schedule_times
 
     _SYSTEM_DEFAULT_SCHEDULE_TIME = "18:00"
     manager = ConfigManager()
@@ -1357,7 +1221,7 @@ def main() -> int:
         logger.warning(warning)
 
     if getattr(args, "check_notify", False):
-        from src.services.notification_diagnostics import (
+        from src.application.alert.notification_diagnostics import (
             format_notification_diagnostics,
             run_notification_diagnostics,
         )
@@ -1388,6 +1252,120 @@ def main() -> int:
     if config.webui_enabled and not (args.serve or args.serve_only):
         args.serve = True
 
+    # 进程级装配 history_loader 日线取数网络回退端口（覆盖 CLI 分析/调度路径；
+    # serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    from src.bootstrap.history import configure_history_loader
+
+    configure_history_loader()
+
+    # 进程级装配 TaskService 历史查询用例的历史仓储默认端口（DatabaseManager 门面
+    # 作适配器；serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    from src.bootstrap.runtime import configure_task_service
+
+    configure_task_service()
+
+    # 进程级装配市场热点用例的板块排行默认端口（覆盖无注入的独立构造兜底；
+    # serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    # 同时装配大盘复盘用例的取数默认工厂（MarketReviewDataPort）。
+    from src.bootstrap.market import configure_market_hotspot, configure_market_review
+
+    configure_market_hotspot()
+    configure_market_review()
+
+    # 进程级装配技术信号扫描用例的取数默认端口（K 线/涨停池；复用既有 quote/market
+    # 端口实现；serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    # 同时装配 decision 域四个仓储端口与日线仓储端口的缺省工厂（PP-5），两步均为幂等。
+    from src.bootstrap.decision import (
+        configure_decision_repositories,
+        configure_signal_scanner,
+    )
+
+    configure_signal_scanner()
+    configure_decision_repositories()
+
+    # 进程级装配名称→代码解析用例的 code-search 在线 fallback 端口（复用既有 quote
+    # 端口实现；serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    from src.bootstrap.intelligence import (
+        configure_intelligence_repository,
+        configure_news_source,
+        configure_search,
+    )
+    from src.bootstrap.alphasift import configure_alphasift_runtime
+    from src.bootstrap.system_config import configure_system_config_runtime
+    from src.bootstrap.analysis import (
+        configure_analysis_pipeline_persistence,
+        configure_stock_data_port,
+        configure_vision_completion_port,
+    )
+    from src.bootstrap.analyzer import configure_analyzer_runtime
+    from src.bootstrap.generation import configure_generation_runtime
+    from src.bootstrap.quote import (
+        configure_intraday_timeline_bridge,
+        configure_market_snapshot,
+        configure_name_to_code_resolver,
+        configure_stock_repository,
+    )
+    from src.bootstrap.notification import (
+        configure_image_render_port,
+        configure_notification_send_port,
+    )
+
+    configure_name_to_code_resolver()
+    configure_intraday_timeline_bridge()
+    configure_market_snapshot()
+    configure_stock_repository()
+    configure_news_source()
+    configure_intelligence_repository()
+    configure_search()
+    configure_alphasift_runtime()
+    configure_system_config_runtime()
+    configure_analyzer_runtime()
+    configure_generation_runtime()
+    # 进程级装配通知发送端口工厂（内置组合适配器；serve 路径另在 app_lifespan
+    # 再装配一次，setter 幂等）；未装配时 NotificationService 发送才要求装配。
+    configure_notification_send_port()
+    # 进程级装配 Markdown 转图片端口（内置 md2img 适配器；同样幂等）；未装配时
+    # 通知发送自动回退为文本，不阻断主流程。
+    configure_image_render_port()
+    # 进程级装配个股分析取数端口（内置 DataFetcherManager 适配器；serve 路径另在
+    # app_lifespan 再装配一次，setter 幂等）。取数是主流程必需能力，未装配时构造
+    # StockAnalysisPipeline 直接报错，不做空数据降级。
+    configure_stock_data_port()
+    # W4.2：进程级装配个股分析持久化端口（DatabaseManager 适配器；幂等）。与取数端口
+    # 一致属主流程必需能力，未装配时构造 StockAnalysisPipeline 直接报错，不静默不落库。
+    configure_analysis_pipeline_persistence()
+    # W5.5：进程级装配图片识别（Vision）LLM 调用端口（litellm 适配器；幂等）。
+    # 与取数/持久化端口一致不做 None 降级：未装配时识别接口显式报错。
+    configure_vision_completion_port()
+    # 进程级装配持仓风险用例的板块归属取数默认端口（复用既有 data_provider
+    # DataFetcherManager；serve 路径另在 app_lifespan 再装配一次，setter 幂等）。
+    # 同时装配持仓快照用例的实时行情取数默认端口（复用既有 DataFetcherManager）。
+    from src.bootstrap.portfolio import (
+        configure_portfolio_repository,
+        configure_portfolio_risk_belong_boards,
+        configure_portfolio_service_realtime,
+    )
+
+    configure_portfolio_repository()
+    configure_portfolio_risk_belong_boards()
+    configure_portfolio_service_realtime()
+
+    # 进程级装配 Agent 工具层 MarketDataPort / UsageTelemetryPort（幂等，serve 路径另在 app_lifespan 再装一次）。
+    from src.bootstrap.agent import (
+    configure_agent_conversation,
+    configure_agent_memory,
+    configure_market_data,
+    configure_provider_trace,
+    configure_usage_telemetry,
+    configure_tools_db,
+)
+    configure_market_data()
+    configure_usage_telemetry()
+    configure_agent_memory()
+    configure_provider_trace()
+    configure_tools_db()
+    configure_agent_conversation()
+
     # === 启动 Web 服务 (如果启用) ===
     start_serve = (args.serve or args.serve_only) and os.getenv("GITHUB_ACTIONS") != "true"
 
@@ -1397,50 +1375,12 @@ def main() -> int:
 
     bot_clients_started = False
     if start_serve:
-        from src.services.runtime_scheduler import (
-            CLI_SCHEDULER_OWNER_ENV,
-            RUNTIME_SCHEDULER_ARGS_ENV,
-            RUNTIME_SCHEDULER_FORCE_ENABLED_ENV,
-            RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV,
-            RUNTIME_SCHEDULER_SUPPRESS_START_ENV,
-        )
-
         # The API runtime scheduler owns schedules once the Web/API service starts.
         # This keeps Web settings, status, and run-now actions attached to the real
         # scheduler instead of a separate CLI loop.
-        os.environ.pop(CLI_SCHEDULER_OWNER_ENV, None)
-        if args.serve_only:
-            os.environ[RUNTIME_SCHEDULER_SUPPRESS_START_ENV] = "true"
-        else:
-            os.environ.pop(RUNTIME_SCHEDULER_SUPPRESS_START_ENV, None)
-        runtime_schedule_requested = not args.serve_only and (
-            args.schedule or config.schedule_enabled
-        )
-        if not args.serve_only and args.schedule:
-            os.environ[RUNTIME_SCHEDULER_FORCE_ENABLED_ENV] = "true"
-        else:
-            os.environ.pop(RUNTIME_SCHEDULER_FORCE_ENABLED_ENV, None)
-        if runtime_schedule_requested:
-            runtime_run_immediately = config.schedule_run_immediately
-            if getattr(args, 'no_run_immediately', False):
-                runtime_run_immediately = False
-            os.environ[RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV] = (
-                "true" if runtime_run_immediately else "false"
-            )
-        else:
-            os.environ.pop(RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV, None)
-        runtime_scheduler_args = {
-            "no_notify": bool(getattr(args, "no_notify", False)),
-            "no_market_review": bool(getattr(args, "no_market_review", False)),
-            "dry_run": bool(getattr(args, "dry_run", False)),
-            "force_run": bool(getattr(args, "force_run", False)),
-            "single_notify": bool(getattr(args, "single_notify", False)),
-            "no_context_snapshot": bool(getattr(args, "no_context_snapshot", False)),
-            "workers": getattr(args, "workers", None),
-        }
-        if getattr(args, "portfolio", None):
-            runtime_scheduler_args["portfolio"] = args.portfolio
-        os.environ[RUNTIME_SCHEDULER_ARGS_ENV] = json.dumps(runtime_scheduler_args)
+        from src.bootstrap.scheduling import configure_runtime_scheduler_env
+
+        configure_runtime_scheduler_env(args, config)
         if not prepare_webui_frontend_assets():
             logger.warning("前端静态资源未就绪，继续启动 FastAPI 服务（Web 页面可能不可用）")
         try:
@@ -1473,9 +1413,9 @@ def main() -> int:
         # 模式0: 回测
         if getattr(args, 'backtest', False):
             logger.info("模式: 回测")
-            from src.services.backtest_service import BacktestService
+            from src.bootstrap.backtest import build_backtest_service
 
-            service = BacktestService()
+            service = build_backtest_service()
             stats = service.run_backtest(
                 code=getattr(args, 'backtest_code', None),
                 force=getattr(args, 'backtest_force', False),
@@ -1489,8 +1429,8 @@ def main() -> int:
 
         # 模式1: 仅大盘复盘
         if args.market_review:
-            from src.core.market_review import run_market_review
-            from src.core.market_review_runtime import build_market_review_runtime
+            from src.application.market.market_review import run_market_review
+            from src.application.market.market_review_runtime import build_market_review_runtime
 
             # Issue #373: Trading day check for market-review-only mode.
             # Do NOT use _compute_trading_day_filter here: that helper checks
@@ -1498,7 +1438,7 @@ def main() -> int:
             # explicit --market-review invocation when the flag is disabled.
             effective_region = None
             if not getattr(args, 'force_run', False) and getattr(config, 'trading_day_check_enabled', True):
-                from src.core.trading_calendar import get_open_markets_today, compute_effective_region as _compute_region
+                from src.domain.market.trading_calendar import get_open_markets_today, compute_effective_region as _compute_region
                 open_markets = get_open_markets_today()
                 effective_region = _compute_region(
                     getattr(config, 'market_review_region', 'cn') or 'cn', open_markets
@@ -1548,7 +1488,7 @@ def main() -> int:
 
             logger.info(f"启动时立即执行: {should_run_immediately}")
 
-            from src.scheduler import run_with_schedule
+            from src.application.runtime.scheduler import run_with_schedule
             scheduled_stock_codes = _resolve_scheduled_stock_codes(stock_codes)
             schedule_time_provider = _build_schedule_time_provider(config.schedule_time)
             schedule_times_provider = _build_schedule_times_provider(config.schedule_time)
@@ -1559,10 +1499,10 @@ def main() -> int:
 
             background_tasks = []
             if getattr(config, 'agent_event_monitor_enabled', False):
-                from src.services.alert_worker import AlertWorker
+                from src.bootstrap.alert import build_alert_worker
 
                 interval_minutes = max(1, getattr(config, 'agent_event_monitor_interval_minutes', 5))
-                alert_worker = AlertWorker(config_provider=_reload_runtime_config)
+                alert_worker = build_alert_worker(config_provider=_reload_runtime_config)
 
                 def event_monitor_task():
                     stats = alert_worker.run_once()

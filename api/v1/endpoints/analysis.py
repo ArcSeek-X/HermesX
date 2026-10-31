@@ -29,7 +29,7 @@ from typing import Optional, Union, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from api.deps import get_config_dep
+from api.deps import get_config_dep, get_history_query_service
 from api.v1.errors import api_error
 from api.v1.schemas.analysis import (
     AnalyzeRequest,
@@ -53,38 +53,43 @@ from api.v1.schemas.history import (
     ReportStrategy,
     ReportDetails,
 )
-from api.v1.schemas.run_flow import RunFlowSnapshot
-from data_provider.base import canonical_stock_code, normalize_stock_code
+from src.domain.analysis.flow_snapshot import RunFlowSnapshot
+from src.application.history import HistoryQueryService
 from src.data.stock_index_loader import resolve_index_stock_code
 from src.config import Config
-from src.core.market_review_lock import (
+from src.application.market.market_review_lock import (
     MarketReviewExecutionLock as _MarketReviewExecutionLock,
     market_review_lock_path,
     release_market_review_lock as _release_market_review_lock,
     try_acquire_market_review_lock as _try_acquire_market_review_lock,
 )
-from src.core.market_review_runtime import (
+from src.application.market.market_review_runtime import (
     build_market_review_runtime as _runtime_build_market_review_runtime,
 )
-from src.analysis_context_pack_overview import (
+from src.application.analysis.context_pack_overview import (
     extract_analysis_context_pack_overview,
     sanitize_context_snapshot_for_api,
 )
-from src.market_phase_summary import (
+from src.application.market.phase_summary import (
     extract_market_phase_summary,
     rebuild_market_phase_summary_for_stock_code,
 )
-from src.services.stock_code_utils import is_code_like, resolve_index_stock_code_for_analysis
-from src.report_language import get_localized_stock_name, normalize_report_language
-from src.schemas.decision_action import build_action_fields
-from src.services.name_to_code_resolver import resolve_name_to_code
-from src.services.task_queue import (
+from src.application.quote.stock_code_utils import (
+    canonical_stock_code_for_analysis,
+    is_code_like,
+    normalize_stock_code_for_analysis,
+    resolve_index_stock_code_for_analysis,
+)
+from src.domain.shared.report_language import get_localized_stock_name, normalize_report_language
+from src.domain.decision.action import build_action_fields
+from src.application.quote.name_to_code_resolver import resolve_name_to_code
+from src.application.runtime.task_queue import (
     get_task_queue,
     DuplicateTaskError,
     TaskStatus as TaskStatusEnum,
 )
-from src.services.run_diagnostics import build_run_diagnostic_summary
-from src.services.run_flow import build_task_run_flow_snapshot
+from src.application.runtime.run_diagnostics import build_run_diagnostic_summary
+from src.application.runtime.run_flow import build_task_run_flow_snapshot
 from src.utils.data_processing import (
     normalize_model_used,
     parse_json_field,
@@ -139,7 +144,7 @@ def _run_market_review_background(
     query_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run market review after the API response has been accepted."""
-    from src.core.market_review import run_market_review
+    from src.application.market.market_review import run_market_review
 
     runtime_config = config or get_config_dep()
     try:
@@ -242,7 +247,7 @@ def _resolve_and_normalize_input(raw_value: str) -> str:
 
     if text.isdigit() and len(text) == 4:
         resolved_index_code = resolve_index_stock_code_for_analysis(text)
-        if resolved_index_code != canonical_stock_code(text):
+        if resolved_index_code != canonical_stock_code_for_analysis(text):
             return resolved_index_code
 
     if _is_obviously_invalid_analysis_input(text):
@@ -250,7 +255,7 @@ def _resolve_and_normalize_input(raw_value: str) -> str:
 
     resolved = resolve_name_to_code(text)
     if resolved:
-        return canonical_stock_code(resolved)
+        return canonical_stock_code_for_analysis(resolved)
 
     raise _invalid_analysis_input_error()
 
@@ -277,7 +282,8 @@ def _resolve_and_normalize_input(raw_value: str) -> str:
 )
 def trigger_analysis(
         request: AnalyzeRequest,
-        config: Config = Depends(get_config_dep)
+        config: Config = Depends(get_config_dep),
+        history_service: HistoryQueryService = Depends(get_history_query_service),
 ) -> Union[AnalysisResultResponse, JSONResponse]:
     """
     触发股票分析
@@ -292,6 +298,7 @@ def trigger_analysis(
     Args:
         request: 分析请求参数
         config: 配置依赖
+        history_service: 分析历史用例（同步模式回填上下文与基本面快照）
         
     Returns:
         AnalysisResultResponse: 分析结果（同步模式）
@@ -321,7 +328,7 @@ def trigger_analysis(
         if not code:
             continue
         # Use normalize_stock_code to ensure '600519' and '600519.SH' are merged
-        norm = normalize_stock_code(code)
+        norm = normalize_stock_code_for_analysis(code)
         if norm not in seen:
             seen.add(norm)
             unique_codes.append(code)
@@ -344,7 +351,7 @@ def trigger_analysis(
                 "validation_error",
                 "同步模式仅支持单只股票分析，请使用 async_mode=true 进行批量分析",
             )
-        return _handle_sync_analysis(stock_codes[0], request)
+        return _handle_sync_analysis(stock_codes[0], request, history_service)
 
     # Async mode submits one task per stock.
     return _handle_async_analysis_batch(stock_codes, request)
@@ -452,7 +459,8 @@ def _handle_async_analysis_batch(
 
 def _handle_sync_analysis(
     stock_code: str,
-    request: AnalyzeRequest
+    request: AnalyzeRequest,
+    history_service: HistoryQueryService,
 ) -> AnalysisResultResponse:
     """
     处理同步分析请求
@@ -460,7 +468,7 @@ def _handle_sync_analysis(
     直接执行分析，等待完成后返回结果
     """
     import uuid
-    from src.services.analysis_service import AnalysisService
+    from src.application.analysis.analysis_service import AnalysisService
     
     query_id = uuid.uuid4().hex
     
@@ -486,6 +494,7 @@ def _handle_sync_analysis(
         context_snapshot, fundamental_snapshot, raw_result_snapshot = _load_sync_fundamental_sources(
             query_id=query_id,
             stock_code=result.get("stock_code", stock_code),
+            history_service=history_service,
         )
         report = _build_analysis_report(
             report_data,
@@ -746,16 +755,13 @@ def _format_sse_event(event_type: str, data: Dict[str, Any]) -> str:
 def _load_history_run_flow_by_query_id(
     query_id: str,
     *,
+    history_service: HistoryQueryService,
     code: Optional[str] = None,
     report_type: Optional[str] = None,
     fail_open: bool = False,
 ) -> Optional[RunFlowSnapshot]:
     try:
-        from src.storage import DatabaseManager
-        from src.services.history_service import HistoryService
-
-        service = HistoryService(DatabaseManager.get_instance())
-        return service.resolve_and_get_run_flow(
+        return history_service.get_run_flow(
             query_id,
             code=code,
             report_type=report_type,
@@ -782,7 +788,10 @@ def _load_history_run_flow_by_query_id(
     summary="获取分析任务运行流",
     description="根据 task_id 查询任务数据流/信息流快照；活跃任务缺少诊断时返回骨架流。",
 )
-def get_task_run_flow(task_id: str) -> RunFlowSnapshot:
+def get_task_run_flow(
+    task_id: str,
+    history_service: HistoryQueryService = Depends(get_history_query_service),
+) -> RunFlowSnapshot:
     """
     查询分析任务运行流。
 
@@ -802,6 +811,7 @@ def get_task_run_flow(task_id: str) -> RunFlowSnapshot:
                 task_stock_code = "MARKET"
             history_snapshot = _load_history_run_flow_by_query_id(
                 task_id,
+                history_service=history_service,
                 code=task_stock_code,
                 report_type=task_report_type,
                 fail_open=True,
@@ -811,7 +821,10 @@ def get_task_run_flow(task_id: str) -> RunFlowSnapshot:
         return build_task_run_flow_snapshot(task)
 
     try:
-        history_snapshot = _load_history_run_flow_by_query_id(task_id)
+        history_snapshot = _load_history_run_flow_by_query_id(
+            task_id,
+            history_service=history_service,
+        )
         if history_snapshot is not None:
             return history_snapshot
     except Exception as e:
@@ -929,7 +942,11 @@ def _ensure_report_action_fields(report_data: Dict[str, Any]) -> Dict[str, Any]:
     return enriched_report
 
 
-def _build_task_analysis_result(task: Any) -> AnalysisResultResponse:
+def _build_task_analysis_result(
+    task: Any,
+    *,
+    history_service: HistoryQueryService,
+) -> AnalysisResultResponse:
     """
     Normalize an in-memory completed task result to the public API contract.
 
@@ -968,6 +985,7 @@ def _build_task_analysis_result(task: Any) -> AnalysisResultResponse:
         context_snapshot, fundamental_snapshot, raw_result_snapshot = _load_sync_fundamental_sources(
             query_id=query_id,
             stock_code=stock_code,
+            history_service=history_service,
         )
         report_task_details = report_data.get("details")
         report_task_raw_result = (
@@ -1032,7 +1050,10 @@ def _build_task_analysis_result(task: Any) -> AnalysisResultResponse:
     summary="查询分析任务状态",
     description="根据 task_id 查询单个任务的状态"
 )
-def get_analysis_status(task_id: str) -> TaskStatus:
+def get_analysis_status(
+    task_id: str,
+    history_service: HistoryQueryService = Depends(get_history_query_service),
+) -> TaskStatus:
     """
     查询分析任务状态
     
@@ -1066,7 +1087,7 @@ def get_analysis_status(task_id: str) -> TaskStatus:
                     market_review_payload = payload
             else:
                 try:
-                    result = _build_task_analysis_result(task)
+                    result = _build_task_analysis_result(task, history_service=history_service)
                 except Exception:
                     logger.warning(
                         "解析任务结果失败，回退为空返回: task_id=%s",
@@ -1092,12 +1113,9 @@ def get_analysis_status(task_id: str) -> TaskStatus:
     
     # 2. 从数据库查询已完成的记录
     try:
-        from src.storage import DatabaseManager
-        db = DatabaseManager.get_instance()
-        records = db.get_analysis_history(query_id=task_id, limit=1)
+        record = history_service.get_latest_by_query_id(task_id)
 
-        if records:
-            record = records[0]
+        if record:
             raw_result = parse_json_field(record.raw_result)
             if getattr(record, "report_type", None) == "market_review":
                 market_review_report = None
@@ -1157,7 +1175,7 @@ def get_analysis_status(task_id: str) -> TaskStatus:
             realtime_fields = extract_realtime_detail_fields(context_snapshot)
             current_price = realtime_fields.get("current_price")
             change_pct = realtime_fields.get("change_pct")
-            fallback_fundamental = db.get_latest_fundamental_snapshot(
+            fallback_fundamental = history_service.get_latest_fundamental_snapshot(
                 query_id=task_id,
                 code=record.code,
             )
@@ -1280,23 +1298,21 @@ def get_analysis_status(task_id: str) -> TaskStatus:
 def _load_sync_fundamental_sources(
     query_id: str,
     stock_code: str,
+    *,
+    history_service: HistoryQueryService,
 ) -> tuple[Optional[Any], Optional[Dict[str, Any]], Optional[Any]]:
     """
     Load report enrichment payloads for sync analyze response.
     """
     try:
-        from src.storage import DatabaseManager
-
-        db = DatabaseManager.get_instance()
-        records = db.get_analysis_history(query_id=query_id, code=stock_code, limit=1)
+        latest_record = history_service.get_latest_by_query_id(query_id, code=stock_code)
         context_snapshot = None
         raw_result_snapshot = None
-        if records:
-            latest_record = records[0]
+        if latest_record is not None:
             context_snapshot = parse_json_field(getattr(latest_record, "context_snapshot", None))
             raw_result_snapshot = parse_json_field(getattr(latest_record, "raw_result", None))
 
-        fallback_fundamental = db.get_latest_fundamental_snapshot(
+        fallback_fundamental = history_service.get_latest_fundamental_snapshot(
             query_id=query_id,
             code=stock_code,
         )

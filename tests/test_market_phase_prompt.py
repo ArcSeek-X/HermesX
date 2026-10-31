@@ -5,7 +5,7 @@
 
 import unittest
 
-from src.market_phase_prompt import format_market_phase_prompt_section
+from src.application.reporting.market_phase_prompt import format_market_phase_prompt_section
 
 
 def _ctx(**overrides):

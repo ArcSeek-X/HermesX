@@ -35,6 +35,19 @@ def _build_mock_ticker(
     return ticker
 
 
+def _ttm_quarterly_dividend_index(tz: str = "America/New_York") -> pd.DatetimeIndex:
+    """相对「今天」生成的 4 个季度除息日（由远及近）。
+
+    适配器的 TTM 窗口是 ``pd.Timestamp.now() - 365d``（生产语义如此），固定绝对
+    日期会随时间流逝滑出窗口，使 ``ttm_event_count`` 等断言在几个月后必然失败。
+    最早一个事件距窗口边界仍有 ~78 天余量，最近一个为 14 天前，不依赖冻结时间。
+    """
+    anchor = pd.Timestamp.now(tz=tz).normalize()
+    return pd.DatetimeIndex(
+        [anchor - pd.Timedelta(days=days) for days in (287, 196, 105, 14)], tz=tz
+    )
+
+
 class TestYfinanceSymbolConversion(unittest.TestCase):
     def test_us_passthrough(self) -> None:
         self.assertEqual(_convert_to_yf_symbol("AAPL"), "AAPL")
@@ -96,10 +109,7 @@ class TestYfinanceFundamentalAdapter(unittest.TestCase):
         )
         dividends = pd.Series(
             [0.26, 0.26, 0.26, 0.27],
-            index=pd.DatetimeIndex(
-                ["2025-08-11", "2025-11-10", "2026-02-09", "2026-05-11"],
-                tz="America/New_York",
-            ),
+            index=_ttm_quarterly_dividend_index(),
             name="Dividends",
         )
         ticker = _build_mock_ticker(info, income_df_with_yoy, cashflow_df, dividends)
@@ -127,7 +137,8 @@ class TestYfinanceFundamentalAdapter(unittest.TestCase):
         # info.dividendYield (0.36) is intentionally ignored when TTM cash exists.
         self.assertAlmostEqual(div["ttm_dividend_yield_pct"], 0.5, places=2)
         self.assertEqual(div["currency"], "USD")
-        self.assertEqual(div["events"][0]["ex_dividend_date"], "2026-05-11")
+        # events 按日期降序（生产侧 ``events.sort(..., reverse=True)``），首位为最近一个除息日。
+        self.assertEqual(div["events"][0]["ex_dividend_date"], dividends.index[-1].date().isoformat())
 
         self.assertEqual(
             bundle["belong_boards"],
@@ -142,10 +153,7 @@ class TestYfinanceFundamentalAdapter(unittest.TestCase):
         # Series. Without coercion, `.items()` yields (column_name, Series), every event
         # is dropped, and TTM silently falls back to the annual-rate estimate — the real
         # bug seen on live US/HK/JP/KR/TW reports (24.0 / "0 次" instead of the true sum).
-        idx = pd.DatetimeIndex(
-            ["2025-08-11", "2025-11-10", "2026-02-09", "2026-05-11"],
-            tz="America/New_York",
-        )
+        idx = _ttm_quarterly_dividend_index()
         dividends_df = pd.DataFrame({"Dividends": [0.26, 0.26, 0.26, 0.27]}, index=idx)
         info = {
             "currency": "USD",

@@ -244,6 +244,26 @@ const fieldTitleMap: Record<string, string> = {
   BACKTEST_MIN_AGE_DAYS: '回测最小历史天数',
   BACKTEST_ENGINE_VERSION: '回测引擎版本',
   BACKTEST_NEUTRAL_BAND_PCT: '回测中性区间阈值（%）',
+  BOT_ENABLED: '机器人命令入口',
+  BOT_COMMAND_PREFIX: '机器人命令前缀',
+  BOT_ADMIN_USERS: '机器人管理员名单',
+  FEISHU_VERIFICATION_TOKEN: '飞书事件订阅 Verification Token',
+  FEISHU_ENCRYPT_KEY: '飞书事件加密 Key',
+  FEISHU_MAX_BYTES: '飞书消息分段阈值（字节）',
+  FEISHU_SEND_AS_FILE: '飞书以文件形式发送报告',
+  FEISHU_FOLDER_TOKEN: '飞书云文档目标文件夹 Token',
+  EMAIL_SENDER_NAME: '邮件发件人显示名称',
+  PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT: '持仓集中度告警阈值 (%)',
+  PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT: '组合回撤告警阈值 (%)',
+  PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT: '个股止损线 (%)',
+  PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO: '止损预警接近比例',
+  PORTFOLIO_RISK_LOOKBACK_DAYS: '回撤统计窗口 (天)',
+  PORTFOLIO_FX_UPDATE_ENABLED: '汇率在线刷新',
+  WECHAT_MSG_TYPE: '企业微信消息类型',
+  WECHAT_MAX_BYTES: '企业微信单条消息上限（字节）',
+  MARKDOWN_TO_IMAGE_CHANNELS: '报告转图片的渠道',
+  MARKDOWN_TO_IMAGE_MAX_CHARS: '报告转图片字符上限',
+  MD2IMG_ENGINE: '报告转图片引擎',
 };
 
 const fieldDescriptionMap: Record<string, string> = {
@@ -413,6 +433,26 @@ const fieldDescriptionMap: Record<string, string> = {
   BACKTEST_MIN_AGE_DAYS: '仅回测早于该天数的分析记录。',
   BACKTEST_ENGINE_VERSION: '回测引擎版本标识，用于区分结果版本。',
   BACKTEST_NEUTRAL_BAND_PCT: '中性区间阈值百分比，例如 2 表示 -2%~+2%。',
+  BOT_ENABLED: 'Webhook 命令入口总开关；关闭后平台回调只被确认、不执行命令，也不会断开已启动的飞书 / 钉钉 Stream 长连接。保存后下一次回调即生效。',
+  BOT_COMMAND_PREFIX: '识别机器人命令的前缀，默认 /。命令分发器单例首次构建时读取，修改后需重启服务。',
+  BOT_ADMIN_USERS: '逗号分隔的平台用户 ID 名单，用于仅管理员可用的命令。当前没有命令声明仅管理员可用，因此暂不影响命令可用性；名单在分发器首次构建时读取，修改后需重启。',
+  FEISHU_VERIFICATION_TOKEN: '飞书事件订阅的 Verification Token，Stream 客户端建连时读取，修改后需重启；与群 Webhook 的签名密钥是两套配置。',
+  FEISHU_ENCRYPT_KEY: '飞书事件加密 Key，仅在应用开启加密推送时需要；留空时以空字符串传给 SDK，修改后需重启。',
+  FEISHU_MAX_BYTES: '飞书单条消息的分段阈值（字节），默认 20000；只设下限 1，低于 1 在设置页保存会被拒绝（.env 里的值则收敛到 1）。下一次通知发送时生效。',
+  FEISHU_SEND_AS_FILE: '让飞书应用机器人以文件形式发送报告，仅影响报告路由，告警仍为文本。下一次通知发送时生效。',
+  FEISHU_FOLDER_TOKEN: '飞书云盘目标文件夹 Token，配合 App ID / App Secret 把超长报告发布为云文档。下一次通知发送时生效。',
+  EMAIL_SENDER_NAME: '邮件发件人显示名称，只改展示名，不改 SMTP 登录账号。下一次通知发送时生效。',
+  PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT: '单票市值占比超过该百分比时，风险报告标记集中度告警，板块集中度也按同一阈值判断；阈值越低告警越灵敏。保存后下一次风险报告即生效。',
+  PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT: '组合净值从峰值回撤超过该百分比时标记回撤告警。只设下限不设上限，填大只会让告警更难触发；低于 0 在设置页保存会被拒绝，写在 .env 里的负数则加载时收敛到 0。保存后下一次风险报告即生效。',
+  PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT: '相对成本价亏损达到该百分比的持仓视为跌破止损线，breach 模式的持仓告警据此触发。保存后下一次风险报告即生效。',
+  PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO: '止损预警线为止损百分比乘以该比例，默认 0.8 表示亏到止损线的 80% 就列入预警名单；调高会延后预警。保存后下一次风险报告即生效。',
+  PORTFOLIO_RISK_LOOKBACK_DAYS: '回撤统计用的自然日窗口，窗口内缺失的每日快照会先回填再计算：窗口越大首次报告越慢，回撤统计周期越长。最低 1 天，低于 1 在设置页保存会被拒绝（.env 里的值则收敛到 1）。',
+  PORTFOLIO_FX_UPDATE_ENABLED: '控制持仓页手动刷新汇率时是否访问在线数据源。关闭后仍用已缓存汇率计算，接口会返回明确的“已禁用”状态。只有字面 true（大小写不敏感）算开启。',
+  WECHAT_MSG_TYPE: '企业微信群机器人推送用的消息形式。markdown 会渲染格式，但在微信客户端里常常展示不佳；text 发纯文本，兼容性最好。选 text 时单条上限会被额外压到 2000 字节。下一次通知发送时生效。',
+  WECHAT_MAX_BYTES: '企业微信单条消息的字节阈值，超过后分批发送而非截断；官方上限 markdown 4096、text 2048。不填时默认值跟随消息类型（text 2048、其余 4000）。只设下限 1，低于 1 在设置页保存会被拒绝（.env 里的值则收敛到 1）。',
+  MARKDOWN_TO_IMAGE_CHANNELS: '逗号分隔的渠道列表，列出的已配置渠道会把报告转成 PNG 图片发送（如 telegram,wechat,custom,email,slack）。留空即关闭该特性（默认）。下一次通知发送时生效。',
+  MARKDOWN_TO_IMAGE_MAX_CHARS: '允许转图的正文字符上限（默认 15000）。它是“跳过开关”而非截断长度：超过就完全不转图、只发文字。只设下限 1，低于 1 在设置页保存会被拒绝（.env 里的值则收敛到 1）。',
+  MD2IMG_ENGINE: '把报告渲染成 PNG 的外部引擎：wkhtmltoimage（默认，需装 wkhtmltopdf）或 markdown-to-file（emoji 支持更好，需 npm i -g markdown-to-file）。引擎缺失或转换失败时降级为文字发送，不会中断通知。',
 };
 
 const fieldOptionLabelMap: Record<string, Record<string, string>> = {
@@ -497,6 +537,14 @@ const fieldOptionLabelMap: Record<string, Record<string, string>> = {
     'auto (regime-based)': '自动（按市场状态）',
     'manual (use agent_skills)': '手动（使用 AGENT_SKILLS）',
   },
+  WECHAT_MSG_TYPE: {
+    markdown: 'markdown（富文本）',
+    text: 'text（纯文本，微信客户端内可看）',
+  },
+  MD2IMG_ENGINE: {
+    wkhtmltoimage: 'wkhtmltoimage（默认）',
+    'markdown-to-file': 'markdown-to-file（emoji 支持更好）',
+  },
 };
 
 const fieldOptionLabelMapEn: Record<string, Record<string, string>> = {
@@ -580,6 +628,14 @@ const fieldOptionLabelMapEn: Record<string, Record<string, string>> = {
     manual: 'Manual (use AGENT_SKILLS)',
     'auto (regime-based)': 'Auto (regime-based)',
     'manual (use agent_skills)': 'Manual (use AGENT_SKILLS)',
+  },
+  WECHAT_MSG_TYPE: {
+    markdown: 'markdown (rich text)',
+    text: 'text (plain, works inside WeChat app)',
+  },
+  MD2IMG_ENGINE: {
+    wkhtmltoimage: 'wkhtmltoimage (default)',
+    'markdown-to-file': 'markdown-to-file (better emoji)',
   },
 };
 

@@ -7,7 +7,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from src.agent.conversation import ConversationManager
+from src.application.agent.conversation import ConversationManager
 
 
 class ConversationManagerThreadSafetyTestCase(unittest.TestCase):
@@ -29,7 +29,7 @@ class ConversationManagerThreadSafetyTestCase(unittest.TestCase):
             for idx in range(6)
         ]
 
-        with patch("src.agent.conversation.ConversationSession.add_message", autospec=True):
+        with patch("src.application.agent.conversation.ConversationSession.add_message", autospec=True):
             for thread in threads:
                 thread.start()
             start.set()

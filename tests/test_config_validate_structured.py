@@ -13,7 +13,9 @@ import pytest
 from unittest.mock import patch
 
 from src.config import Config, ConfigIssue
-from src.llm.backend_registry import LOCAL_CLI_GENERATION_BACKEND_IDS
+from src.domain.generation.backend_identity import (
+    LOCAL_CLI_GENERATION_BACKEND_IDS,
+)
 
 LOCAL_CLI_BACKENDS = sorted(LOCAL_CLI_GENERATION_BACKEND_IDS)
 
@@ -335,8 +337,8 @@ class TestValidateStructuredLLM:
         assert "ANSPIRE_API_KEYS" in error.message
         assert "DEEPSEEK_API_KEY" in error.message
 
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_declared_llm_channels_without_models_reports_channel_error(
         self,
         _mock_parse_yaml,
@@ -748,7 +750,7 @@ class TestDeprecatedFieldHints:
                 return None
             return real_getenv(key, default)
 
-        with patch("src.config.os.getenv", side_effect=mock_getenv):
+        with patch("src.config.settings.os.getenv", side_effect=mock_getenv):
             issues = cfg.validate_structured()
         deprec = [i for i in issues if i.field == "OPENAI_VISION_MODEL"]
         assert not deprec, "Should not report deprecation when OPENAI_VISION_MODEL is unset"
@@ -824,8 +826,8 @@ class TestVisionKeyValidation:
 # ---------------------------------------------------------------------------
 
 class TestEnvAliasCompatibility:
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_discord_channel_id_legacy_alias_is_still_loaded(
         self,
         _mock_parse_yaml,
@@ -844,8 +846,8 @@ class TestEnvAliasCompatibility:
         assert config.discord_bot_token == "token"
         assert config.discord_main_channel_id == "legacy-channel"
 
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_discord_main_channel_id_takes_precedence_over_legacy_alias(
         self,
         _mock_parse_yaml,
@@ -864,8 +866,8 @@ class TestEnvAliasCompatibility:
 
         assert config.discord_main_channel_id == "main-channel"
 
-    @patch("src.config.setup_env")
-    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    @patch("src.config.settings.setup_env")
+    @patch.object(Config, "parse_litellm_yaml", return_value=[])
     def test_discord_interactions_public_key_is_loaded(
         self,
         _mock_parse_yaml,

@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.services.stock_daily_window_resolver import resolve_stock_daily_window
+from src.application.quote.stock_daily_window_resolver import resolve_stock_daily_window
 
 
 def _bar(day: date, close: float = 100.0):

@@ -11,29 +11,29 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.agent.agent_backend import (
+from src.application.agent.agent_backend import (
     AgentRunRequest,
     AgentRunResult,
-    LiteLLMAgentBackend,
     resolve_agent_backend_id,
 )
-from src.agent.chat_executor import AgentChatExecutor
-from src.agent.codex_agent_backend import CodexAgentBackend
-from src.agent.codex_app_server_transport import (
+from src.infrastructure.agent_runtime.litellm_agent_backend import LiteLLMAgentBackend
+from src.application.agent.chat_executor import AgentChatExecutor
+from src.infrastructure.agent_runtime.codex_agent_backend import CodexAgentBackend
+from src.infrastructure.agent_runtime.codex_app_server_transport import (
     CodexAppServerError,
     ToolCallRecord,
     TurnResult,
     normalize_token_usage_notification,
     resolve_command,
 )
-from src.agent.factory import get_tool_registry
-from src.agent.llm_adapter import LLMResponse
-from src.agent.runner import run_agent_loop
-from src.agent.stock_scope import StockScope
-from src.agent.tool_surface import ToolSurface
-from src.agent.tools.execution import ToolAccessContext
-from src.agent.tools.registry import ToolDefinition, ToolPolicy, ToolRegistry
-from src.llm.backend_registry import resolve_generation_backend_id
+from src.application.agent.factory import get_tool_registry
+from src.infrastructure.agent_runtime.llm_adapter import LLMResponse
+from src.application.agent.runner import run_agent_loop
+from src.application.agent.stock_scope import StockScope
+from src.infrastructure.agent_runtime.tool_surface import ToolSurface
+from src.application.agent.tools.execution import ToolAccessContext
+from src.application.agent.tools.registry import ToolDefinition, ToolPolicy, ToolRegistry
+from src.application.generation.catalog import resolve_generation_backend_id
 
 
 class _FinalAnswerAdapter:
@@ -99,8 +99,9 @@ def test_agent_run_result_contains_only_consumed_terminal_state() -> None:
 def test_codex_backend_and_transport_do_not_import_tool_registry() -> None:
     root = Path(__file__).resolve().parents[1]
     for relative_path in (
-        "src/agent/codex_agent_backend.py",
-        "src/agent/codex_app_server_transport.py",
+        "src/infrastructure/agent_runtime/codex_agent_backend.py",
+        "src/infrastructure/agent_runtime/codex_app_server_transport.py",
+        "src/application/runtime/codex_contract.py",
     ):
         source = (root / relative_path).read_text(encoding="utf-8")
         imported_modules = {
@@ -108,16 +109,16 @@ def test_codex_backend_and_transport_do_not_import_tool_registry() -> None:
             for node in ast.walk(ast.parse(source))
             if isinstance(node, ast.ImportFrom)
         }
-        assert "src.agent.tools.registry" not in imported_modules
+        assert "src.application.agent.tools.registry" not in imported_modules
 
 
 def test_native_windows_transport_is_rejected_before_executable_lookup(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_app_server_transport.is_native_windows",
+        "src.application.runtime.codex_contract.is_native_windows",
         lambda: True,
     )
     monkeypatch.setattr(
-        "src.agent.codex_app_server_transport.shutil.which",
+        "src.application.runtime.codex_contract.shutil.which",
         lambda _name: (_ for _ in ()).throw(AssertionError("executable lookup must not run")),
     )
 
@@ -150,10 +151,10 @@ def test_codex_chat_factory_does_not_construct_litellm_context_adapter() -> None
         agent_orchestrator_timeout_s=600,
     )
 
-    with patch("src.agent.factory.resolve_skill_prompt_state", return_value=prompt_state), \
-         patch("src.agent.factory.get_tool_registry", return_value=ToolRegistry()), \
-         patch("src.agent.llm_adapter.LLMToolAdapter", side_effect=AssertionError("LiteLLM must not be constructed")):
-        from src.agent.factory import build_agent_chat_executor
+    with patch("src.application.agent.factory.resolve_skill_prompt_state", return_value=prompt_state), \
+         patch("src.application.agent.factory.get_tool_registry", return_value=ToolRegistry()), \
+         patch("src.infrastructure.agent_runtime.llm_adapter.LLMToolAdapter", side_effect=AssertionError("LiteLLM must not be constructed")):
+        from src.bootstrap.agent import build_agent_chat_executor
 
         executor = build_agent_chat_executor(config)
 
@@ -172,8 +173,8 @@ def test_generation_codex_cli_and_agent_codex_app_server_routes_remain_independe
 
 def test_litellm_multi_chat_keeps_existing_orchestrator_factory() -> None:
     sentinel = object()
-    with patch("src.agent.factory.build_agent_executor", return_value=sentinel) as build_existing:
-        from src.agent.factory import build_agent_chat_executor
+    with patch("src.bootstrap.agent.build_agent_executor", return_value=sentinel) as build_existing:
+        from src.bootstrap.agent import build_agent_chat_executor
 
         result = build_agent_chat_executor(
             SimpleNamespace(agent_backend="auto", agent_arch="multi"),
@@ -268,7 +269,7 @@ class _FakeTransport:
 
 def test_codex_backend_uses_tool_surface_and_ephemeral_transport(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     surface = _codex_surface()
@@ -296,11 +297,11 @@ def test_codex_backend_uses_tool_surface_and_ephemeral_transport(monkeypatch) ->
 
 def test_production_codex_preparation_matches_the_three_phase6_tools(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     monkeypatch.setattr(
-        "src.agent.executor.build_visible_chat_history",
+        "src.application.agent.executor.build_visible_chat_history",
         lambda *_args, **_kwargs: [],
     )
     config = SimpleNamespace(agent_orchestrator_timeout_s=30)
@@ -319,8 +320,8 @@ def test_production_codex_preparation_matches_the_three_phase6_tools(monkeypatch
         timeout_seconds=30,
     )
 
-    with patch("src.agent.chat_executor.conversation_manager.get_or_create"), patch(
-        "src.agent.chat_executor.conversation_manager.add_message",
+    with patch("src.application.agent.chat_executor.conversation_manager.get_or_create"), patch(
+        "src.application.agent.chat_executor.conversation_manager.add_message",
         side_effect=[1, 2],
     ):
         result = executor.chat(
@@ -366,10 +367,10 @@ def test_litellm_preparation_keeps_the_existing_chat_workflow() -> None:
         context_llm_adapter=object(),
     )
 
-    with patch("src.agent.executor.build_agent_chat_context_bundle") as build_context, patch(
-        "src.agent.chat_executor.conversation_manager.get_or_create"
+    with patch("src.application.agent.executor.build_agent_chat_context_bundle") as build_context, patch(
+        "src.application.agent.chat_executor.conversation_manager.get_or_create"
     ), patch(
-        "src.agent.chat_executor.conversation_manager.add_message",
+        "src.application.agent.chat_executor.conversation_manager.add_message",
         return_value=1,
     ):
         build_context.return_value.context_messages = []
@@ -388,7 +389,7 @@ def test_litellm_preparation_keeps_the_existing_chat_workflow() -> None:
 
 def test_codex_backend_rejects_disabled_timeout_without_starting_transport(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **_kwargs: (_ for _ in ()).throw(AssertionError("transport must not start")),
     )
     backend = CodexAgentBackend(
@@ -406,7 +407,7 @@ def test_codex_backend_rejects_disabled_timeout_without_starting_transport(monke
 
 def test_codex_backend_does_not_add_unscoped_instruction_when_scope_exists(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     backend = CodexAgentBackend(
@@ -435,7 +436,7 @@ class _EmptyFinalTransport(_FakeTransport):
 
 def test_codex_backend_does_not_mark_empty_terminal_answer_as_success(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     backend = CodexAgentBackend(
@@ -453,7 +454,7 @@ def test_codex_backend_does_not_mark_empty_terminal_answer_as_success(monkeypatc
 
 def test_codex_backend_counts_a_started_failed_turn(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     backend = CodexAgentBackend(
@@ -476,7 +477,7 @@ class _TurnStartFailureTransport(_FakeTransport):
 
 def test_codex_backend_keeps_pre_turn_failure_at_zero_steps(monkeypatch) -> None:
     monkeypatch.setattr(
-        "src.agent.codex_agent_backend.build_hardened_command",
+        "src.infrastructure.agent_runtime.codex_agent_backend.build_hardened_command",
         lambda **kwargs: ["codex", "app-server", "--stdio"],
     )
     backend = CodexAgentBackend(

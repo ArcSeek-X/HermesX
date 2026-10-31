@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.core.config_manager import ConfigManager
+from src.config.env_file import ConfigManager
 
 
 class ConfigManagerTestCase(unittest.TestCase):
@@ -79,7 +79,7 @@ class ConfigManagerTestCase(unittest.TestCase):
     def test_apply_updates_falls_back_to_in_place_rewrite(self) -> None:
         self.env_path.write_text("STOCK_LIST=600519\n", encoding="utf-8")
 
-        with patch("src.core.config_manager.os.replace", side_effect=OSError(errno.EXDEV, "cross-device")):
+        with patch("src.config.env_file.os.replace", side_effect=OSError(errno.EXDEV, "cross-device")):
             self.manager.apply_updates(
                 updates=[("STOCK_LIST", "000001")],
                 sensitive_keys=set(),

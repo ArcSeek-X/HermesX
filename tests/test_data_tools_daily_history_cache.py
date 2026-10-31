@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.agent.tools.data_tools import _handle_get_daily_history
-from src.services.history_loader import reset_frozen_target_date, set_frozen_target_date
+from src.application.agent.tools.data_tools import _handle_get_daily_history
+from src.application.history.loader import reset_frozen_target_date, set_frozen_target_date
 
 
 class _DailyRow:
@@ -91,8 +91,8 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         db = _FakeDb({"600519": _rows("600519", target, 30)})
         manager = SimpleNamespace(get_daily_data=MagicMock())
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=60)
 
         self.assertEqual(result["source"], "db_cache")
@@ -114,8 +114,8 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         )
         manager = SimpleNamespace(get_daily_data=MagicMock())
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "1810.HK", days=60)
 
         self.assertEqual(result["code"], "1810.HK")
@@ -132,8 +132,8 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         )
         manager = SimpleNamespace(get_daily_data=MagicMock())
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "1810.HK", days=60)
 
         self.assertEqual(result["code"], "HK01810")
@@ -150,9 +150,9 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         )
         manager = SimpleNamespace(get_daily_data=MagicMock(return_value=(df, "Fetcher")))
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.agent.tools.data_tools._get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.agent.tools.data_tools._get_db", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=60)
 
         manager.get_daily_data.assert_called_once_with("600519", days=60)
@@ -170,9 +170,9 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         )
         manager = SimpleNamespace(get_daily_data=MagicMock(return_value=(df, "Fetcher")))
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.agent.tools.data_tools._get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.agent.tools.data_tools._get_db", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=60)
 
         self.assertEqual(result["total_records"], 1)
@@ -188,9 +188,9 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         broken_db.get_data_range.side_effect = RuntimeError("db corrupted")
         broken_db.save_daily_data.return_value = 1
 
-        with patch("src.storage.get_db", return_value=broken_db), \
-             patch("src.agent.tools.data_tools._get_db", return_value=broken_db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=broken_db), \
+             patch("src.application.agent.tools.data_tools._get_db", return_value=broken_db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=60)
 
         manager.get_daily_data.assert_called_once_with("600519", days=60)
@@ -202,8 +202,8 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         db = _FakeDb({"600519": _rows("600519", target, 1)})
         manager = SimpleNamespace(get_daily_data=MagicMock())
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=1)
 
         self.assertTrue(result["cache_hit"])
@@ -217,9 +217,9 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         df = pd.DataFrame([{"date": target, "close": 1.5}])
         manager = SimpleNamespace(get_daily_data=MagicMock(return_value=(df, "Fetcher")))
 
-        with patch("src.storage.get_db", return_value=db), \
-             patch("src.agent.tools.data_tools._get_db", return_value=db), \
-             patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
+        with patch("src.application.history.loader._get_kline_repo", return_value=db), \
+             patch("src.application.agent.tools.data_tools._get_db", return_value=db), \
+             patch("src.application.history.loader._get_daily_bar_fetcher", return_value=manager):
             result = self._run_with_frozen_date(target, "600519", days=999)
 
         manager.get_daily_data.assert_called_once_with("600519", days=365)

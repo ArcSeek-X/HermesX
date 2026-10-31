@@ -7,7 +7,7 @@ import types
 
 import pandas as pd
 
-from src.services import eod_picker_service as svc
+from src.application.analysis import eod_picker_service as svc
 
 
 def _make_snapshot() -> pd.DataFrame:
@@ -38,7 +38,7 @@ def _make_trends(code: str):
     """构造东财 trends2 形态的分时点：返回 (points, preClose, name)。
 
     每点含 date/open/close/high/low/volume/amount/avg_price，
-    与 _fetch_intraday_trends 的输出契约一致。
+    与 fetch_intraday_trends 的输出契约一致。
     """
     if code == "600003":  # 弱强度：一半的点价格低于均价线 -> 50%
         closes = [10, 9, 10, 9, 10, 9, 10, 9, 10, 9]
@@ -115,7 +115,7 @@ def test_build_timeline_points_kline_shape():
 def test_basic_filter_and_run(monkeypatch):
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
-        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+        svc, "fetch_intraday_trends", lambda code: _make_trends(code)
     )
 
     result = svc.run_eod_picker({})
@@ -133,7 +133,7 @@ def test_basic_filter_and_run(monkeypatch):
 def test_custom_filter_excludes_all(monkeypatch):
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
-        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+        svc, "fetch_intraday_trends", lambda code: _make_trends(code)
     )
 
     # 把涨幅上限压到 3%，则 A(4%) 也被排除
@@ -149,7 +149,7 @@ def test_run_reports_step_snapshots(monkeypatch):
     """
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
-        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+        svc, "fetch_intraday_trends", lambda code: _make_trends(code)
     )
 
     snapshots: list[list[dict]] = []
@@ -181,7 +181,7 @@ def test_run_reports_empty_steps_when_no_candidates(monkeypatch):
     """基础过滤 0 候选时也下发两步 done 快照（空列表），前端不残留旧步骤。"""
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
-        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+        svc, "fetch_intraday_trends", lambda code: _make_trends(code)
     )
 
     snapshots: list[list[dict]] = []
@@ -198,7 +198,7 @@ def test_run_reports_empty_steps_when_no_candidates(monkeypatch):
 def test_null_upper_bound_means_unlimited(monkeypatch):
     monkeypatch.setattr(svc, "get_realtime_quote_snapshot", lambda: _make_snapshot())
     monkeypatch.setattr(
-        svc, "_fetch_intraday_trends", lambda code: _make_trends(code)
+        svc, "fetch_intraday_trends", lambda code: _make_trends(code)
     )
 
     # 上限传 None 表示不限制：涨幅 4% / 换手率 7% 仍应通过
@@ -229,7 +229,7 @@ def test_run_uses_previous_trade_date_when_market_closed(monkeypatch):
         seen["called"] = True
         return _make_trends(code)
 
-    monkeypatch.setattr(svc, "_fetch_intraday_trends", fake_intraday)
+    monkeypatch.setattr(svc, "fetch_intraday_trends", fake_intraday)
 
     result = svc.run_eod_picker({})
     assert result["trade_date"] == friday.isoformat()
@@ -300,39 +300,31 @@ def test_eastmoney_quote_snapshot_parse_and_paginate(monkeypatch):
 
 
 def test_get_realtime_quote_snapshot_prefers_eastmoney_clist(monkeypatch):
-    """优先级：东财 clist 直连可用时优先采用，不触碰腾讯 / akshare。"""
-    from data_provider import eastmoney_quote_snapshot as em
-    from data_provider import tencent_quote_snapshot as tc
-
-    monkeypatch.setattr(em, "fetch_eastmoney_market_snapshot", lambda **k: _em_clist_df())
-    monkeypatch.setattr(
-        tc, "fetch_tencent_market_snapshot",
-        lambda **k: pd.DataFrame([{"代码": "TENCENT"}]),
+    """优先级：快照端口东财源可用时优先采用，不触碰腾讯 / akshare（T5b 假端口）。"""
+    port = _FakeSnapshotPort(
+        east=_em_clist_df(),
+        tencent=pd.DataFrame([{"代码": "TENCENT"}]),
+        ak=pd.DataFrame([{"代码": "AKSHARE"}]),
     )
-    monkeypatch.setattr(
-        svc, "_get_fetcher",
-        lambda: types.SimpleNamespace(
-            get_realtime_quote_snapshot=lambda: pd.DataFrame([{"代码": "AKSHARE"}])
-        ),
-    )
+    monkeypatch.setattr(svc, "_market_snapshot_port", port)
 
     df = svc.get_realtime_quote_snapshot()
     assert df is not None and df.iloc[0]["代码"] == "600000"
+    assert port.calls == ["east"]
 
 
 def test_get_realtime_quote_snapshot_falls_back_to_tencent(monkeypatch):
-    """东财 clist 失败（返回 None）时回退腾讯批量行情。"""
-    from data_provider import eastmoney_quote_snapshot as em
-    from data_provider import tencent_quote_snapshot as tc
-
-    monkeypatch.setattr(em, "fetch_eastmoney_market_snapshot", lambda **k: None)
-    monkeypatch.setattr(
-        tc, "fetch_tencent_market_snapshot",
-        lambda **k: pd.DataFrame([{"代码": "TENCENT"}]),
+    """东财源失败（返回 None）时回退腾讯批量行情（T5b 假端口）。"""
+    port = _FakeSnapshotPort(
+        east=None,
+        tencent=pd.DataFrame([{"代码": "TENCENT"}]),
+        ak=pd.DataFrame([{"代码": "AKSHARE"}]),
     )
+    monkeypatch.setattr(svc, "_market_snapshot_port", port)
 
     df = svc.get_realtime_quote_snapshot()
     assert df is not None and df.iloc[0]["代码"] == "TENCENT"
+    assert port.calls == ["east", "tencent"]
 
 
 def test_eastmoney_quote_snapshot_paginates_past_first_page(monkeypatch):
@@ -390,5 +382,130 @@ def test_fetch_intraday_timeline_delegates_to_shared_service(monkeypatch):
     assert set(data["points"][0].keys()) == {
         "date", "open", "close", "high", "low", "volume", "amount"
     }
+
+
+# --------------------------------------------------------------------------- #
+# T5b 端口化：MarketSnapshotPort seam / 回退链 / 未装配降级 / data_provider 适配器
+# --------------------------------------------------------------------------- #
+class _FakeSnapshotPort:
+    """可编程的三源假端口：按调用顺序返回预设结果或抛预设异常。"""
+
+    def __init__(self, east=None, tencent=None, ak=None, east_exc=None):
+        self.calls: list[str] = []
+        self._east, self._tencent, self._ak = east, tencent, ak
+        self._east_exc = east_exc
+
+    def fetch_eastmoney_snapshot(self):
+        self.calls.append("east")
+        if self._east_exc is not None:
+            raise self._east_exc
+        return self._east
+
+    def fetch_tencent_snapshot(self):
+        self.calls.append("tencent")
+        return self._tencent
+
+    def fetch_akshare_snapshot(self):
+        self.calls.append("akshare")
+        return self._ak
+
+
+def test_snapshot_unassembled_returns_none(monkeypatch):
+    """未装配端口时快照优雅降级为 None（与迁移前三源全部失败语义一致）。"""
+    monkeypatch.setattr(svc, "_market_snapshot_port", None)
+    assert svc.get_realtime_quote_snapshot() is None
+
+
+def test_run_eod_picker_unassembled_raises_runtime_error(monkeypatch):
+    """未装配→主流程报“数据源暂不可用”RuntimeError，不静默返回空结果。"""
+    monkeypatch.setattr(svc, "_market_snapshot_port", None)
+    monkeypatch.setattr(svc, "resolve_trade_date", lambda: (datetime.date(2026, 10, 23), False))
+    try:
+        svc.run_eod_picker({})
+        raise AssertionError("应抛 RuntimeError")
+    except RuntimeError as exc:
+        assert "数据源暂不可用" in str(exc)
+
+
+def test_set_market_snapshot_port_idempotent(monkeypatch):
+    """setter 幂等：仅非 None 覆盖，重复装配不重置（双挂点安全）。"""
+    monkeypatch.setattr(svc, "_market_snapshot_port", None)
+    port = _FakeSnapshotPort()
+    svc.set_market_snapshot_port(port)
+    assert svc._market_snapshot_port is port
+    svc.set_market_snapshot_port(None)
+    assert svc._market_snapshot_port is port
+
+
+def test_snapshot_fallback_chain_east_none_tencent_empty_falls_to_akshare(monkeypatch):
+    """东财 None→腾讯空表→akshare 非空：按序回退命中第三源。"""
+    frame = _make_snapshot()
+    port = _FakeSnapshotPort(east=None, tencent=pd.DataFrame(), ak=frame)
+    monkeypatch.setattr(svc, "_market_snapshot_port", port)
+    out = svc.get_realtime_quote_snapshot()
+    assert out is frame
+    assert port.calls == ["east", "tencent", "akshare"]
+
+
+def test_snapshot_eastmoney_exception_falls_back_to_tencent(monkeypatch):
+    """东财抛异常→回退腾讯命中，异常不拖垮取数（与迁移前逐源 catch 一致）。"""
+    frame = _make_snapshot()
+    port = _FakeSnapshotPort(east_exc=RuntimeError("push2 不可达"), tencent=frame)
+    monkeypatch.setattr(svc, "_market_snapshot_port", port)
+    out = svc.get_realtime_quote_snapshot()
+    assert out is frame
+    assert port.calls == ["east", "tencent"]
+
+
+def test_all_sources_empty_returns_none(monkeypatch):
+    """三源均空/None → 返回 None（与迁移前终态一致）。"""
+    port = _FakeSnapshotPort(east=None, tencent=None, ak=pd.DataFrame())
+    monkeypatch.setattr(svc, "_market_snapshot_port", port)
+    assert svc.get_realtime_quote_snapshot() is None
+
+
+def test_adapter_snapshot_sources_passthrough(monkeypatch):
+    """适配器东财/腾讯两源透传 data_provider 模块函数返回值，不做字段加工。"""
+    from src.infrastructure.providers.market_snapshot_provider import (
+        DataProviderMarketSnapshotSource,
+    )
+
+    frame_e = pd.DataFrame([{"代码": "600000"}])
+    frame_t = pd.DataFrame([{"代码": "600001"}])
+    import data_provider.eastmoney_quote_snapshot as em_mod
+    import data_provider.tencent_quote_snapshot as tx_mod
+
+    monkeypatch.setattr(em_mod, "fetch_eastmoney_market_snapshot", lambda: frame_e)
+    monkeypatch.setattr(tx_mod, "fetch_tencent_market_snapshot", lambda: frame_t)
+
+    adapter = DataProviderMarketSnapshotSource()
+    assert adapter.fetch_eastmoney_snapshot() is frame_e
+    assert adapter.fetch_tencent_snapshot() is frame_t
+
+
+def test_adapter_akshare_fetcher_singleton_reuse(monkeypatch):
+    """适配器内 AkshareFetcher 单例复用（与迁移前模块级 _fetcher 缓存共享语义一致）。"""
+    from src.infrastructure.providers.market_snapshot_provider import (
+        DataProviderMarketSnapshotSource,
+    )
+
+    created: list[int] = []
+
+    class _FakeFetcher:
+        def __init__(self):
+            created.append(1)
+
+        def get_realtime_quote_snapshot(self):
+            return pd.DataFrame([{"代码": "600000"}])
+
+    fake_mod = types.SimpleNamespace(AkshareFetcher=_FakeFetcher)
+    monkeypatch.setitem(__import__("sys").modules, "data_provider.akshare_fetcher", fake_mod)
+
+    adapter = DataProviderMarketSnapshotSource()
+    df1 = adapter.fetch_akshare_snapshot()
+    df2 = adapter.fetch_akshare_snapshot()
+    assert df1 is not None and df2 is not None
+    assert len(created) == 1  # 只实例化一次
+
 
 

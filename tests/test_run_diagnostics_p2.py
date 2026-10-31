@@ -17,8 +17,10 @@ from fastapi import HTTPException
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from api.v1.endpoints.history import get_history_diagnostics
-from src.services.history_service import HistoryService
-from src.services.run_diagnostics import build_run_diagnostic_summary, sanitize_diagnostic_text
+from src.application.history import HistoryQueryService
+from src.infrastructure.indexing.stock_code_normalizer import DataProviderStockCodeNormalizer
+from src.application.history.read_model import HistoryService
+from src.application.runtime.run_diagnostics import build_run_diagnostic_summary, sanitize_diagnostic_text
 
 
 def _diagnostic_snapshot() -> dict:
@@ -161,6 +163,14 @@ class _FailingHistoryDb:
 
     def get_latest_analysis_by_query_id(self, query_id: str):
         raise RuntimeError("database unavailable")
+
+
+def _history_query_service(db) -> HistoryQueryService:
+    """把假仓储包成端点需要的用例对象。"""
+    return HistoryQueryService(
+        repository=db,
+        code_normalizer=DataProviderStockCodeNormalizer(),
+    )
 
 
 class RunDiagnosticsP2TestCase(unittest.TestCase):
@@ -504,7 +514,7 @@ class RunDiagnosticsP2TestCase(unittest.TestCase):
         db = _FakeHistoryDb(_history_record(context_snapshot=context_snapshot))
 
         service_summary = HistoryService(db).resolve_and_get_diagnostics("1")
-        endpoint_summary = get_history_diagnostics("1", db_manager=db)
+        endpoint_summary = get_history_diagnostics("1", service=_history_query_service(db))
 
         self.assertIsNotNone(service_summary)
         self.assertEqual(service_summary["trace_id"], "trace-p2")
@@ -522,7 +532,7 @@ class RunDiagnosticsP2TestCase(unittest.TestCase):
 
     def test_history_diagnostics_endpoint_surfaces_lookup_errors(self) -> None:
         with self.assertRaises(HTTPException) as ctx:
-            get_history_diagnostics("1", db_manager=_FailingHistoryDb())
+            get_history_diagnostics("1", service=_history_query_service(_FailingHistoryDb()))
 
         self.assertEqual(ctx.exception.status_code, 500)
 
@@ -534,7 +544,7 @@ class RunDiagnosticsP2TestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             HistoryService(db).resolve_and_get_diagnostics("1")
         with self.assertRaises(HTTPException) as ctx:
-            get_history_diagnostics("1", db_manager=db)
+            get_history_diagnostics("1", service=_history_query_service(db))
 
         self.assertEqual(ctx.exception.status_code, 500)
 

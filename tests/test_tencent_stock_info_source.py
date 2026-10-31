@@ -29,7 +29,7 @@ def _build_payload(symbol: str) -> bytes:
     fields[43] = "3.82"   # 振幅(%)
     fields[44] = "120.38" # 总市值(亿元)
     fields[52] = "19.2"   # 市盈率(TTM)
-    return f'v_{symbol}="' + "~".join(fields) + '";\n'.encode("gbk")
+    return (f'v_{symbol}="' + "~".join(fields) + '";\n').encode("gbk")
 
 
 @pytest.fixture

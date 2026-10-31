@@ -26,8 +26,11 @@ except ModuleNotFoundError:
 import src.auth as auth
 from api.app import create_app
 from src.config import Config
-from src.services.portfolio_service import PortfolioBusyError
+from src.application.portfolio.portfolio_service import PortfolioBusyError
 from src.storage import DatabaseManager
+from src.bootstrap.portfolio import configure_portfolio_repository
+
+configure_portfolio_repository()
 
 
 def _reset_auth_globals() -> None:
@@ -209,7 +212,7 @@ class PortfolioApiTestCase(unittest.TestCase):
         self._save_close("600519", today, 118.0)
 
         with patch(
-            "src.services.portfolio_service.PortfolioService._fetch_realtime_position_price",
+            "src.application.portfolio.portfolio_service.PortfolioService._fetch_realtime_position_price",
             side_effect=AssertionError("include_realtime=false should not fetch realtime quote"),
         ):
             snapshot_resp = self.client.get(
@@ -441,7 +444,7 @@ class PortfolioApiTestCase(unittest.TestCase):
         queue.submit_tasks_batch.return_value = ([accepted_task], [])
 
         with patch(
-            "src.services.portfolio_service.PortfolioService._fetch_realtime_position_price",
+            "src.application.portfolio.portfolio_service.PortfolioService._fetch_realtime_position_price",
             return_value=(None, None),
         ), patch("api.v1.endpoints.portfolio.get_task_queue", return_value=queue):
             resp = self.client.post(
@@ -477,7 +480,7 @@ class PortfolioApiTestCase(unittest.TestCase):
         queue.submit_tasks_batch.return_value = ([accepted_task], [])
 
         with patch(
-            "src.services.portfolio_service.PortfolioService._fetch_realtime_position_price",
+            "src.application.portfolio.portfolio_service.PortfolioService._fetch_realtime_position_price",
             return_value=(None, None),
         ), patch("api.v1.endpoints.portfolio.get_task_queue", return_value=queue):
             resp = self.client.post(
@@ -507,7 +510,7 @@ class PortfolioApiTestCase(unittest.TestCase):
         queue.submit_tasks_batch.return_value = ([accepted_task], [])
 
         with patch(
-            "src.services.portfolio_service.PortfolioService._fetch_realtime_position_price",
+            "src.application.portfolio.portfolio_service.PortfolioService._fetch_realtime_position_price",
             return_value=(None, None),
         ), patch("api.v1.endpoints.portfolio.get_task_queue", return_value=queue):
             resp = self.client.post(
@@ -544,7 +547,7 @@ class PortfolioApiTestCase(unittest.TestCase):
         queue.submit_tasks_batch.return_value = ([], [duplicate])
 
         with patch(
-            "src.services.portfolio_service.PortfolioService._fetch_realtime_position_price",
+            "src.application.portfolio.portfolio_service.PortfolioService._fetch_realtime_position_price",
             return_value=(None, None),
         ), patch("api.v1.endpoints.portfolio.get_task_queue", return_value=queue):
             resp = self.client.post(

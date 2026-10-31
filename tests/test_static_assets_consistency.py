@@ -333,7 +333,7 @@ def test_stock_index_route_serves_newer_remote_cache(tmp_path: Path) -> None:
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh") as schedule:
+         patch.object(app_module, "schedule_stock_index_background_refresh") as schedule:
         response = client.get("/stocks.index.json")
 
     assert response.status_code == 200
@@ -361,7 +361,7 @@ def test_stock_index_route_prefers_newer_static_index_over_older_remote_cache(tm
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh"):
+         patch.object(app_module, "schedule_stock_index_background_refresh"):
         response = client.get("/stocks.index.json")
 
     assert response.status_code == 200
@@ -384,7 +384,7 @@ def test_stock_index_route_falls_back_to_static_index(tmp_path: Path) -> None:
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh"):
+         patch.object(app_module, "schedule_stock_index_background_refresh"):
         response = client.get("/stocks.index.json")
 
     assert response.status_code == 200
@@ -408,7 +408,7 @@ def test_stock_index_route_does_not_parse_bundled_candidates_on_hot_path(tmp_pat
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh"), \
+         patch.object(app_module, "schedule_stock_index_background_refresh"), \
          patch.object(stock_index_loader, "_load_stock_index_file", side_effect=AssertionError("unexpected parse")):
         response = client.get("/stocks.index.json")
 
@@ -435,7 +435,7 @@ def test_stock_index_route_skips_invalid_remote_cache(tmp_path: Path) -> None:
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh"):
+         patch.object(app_module, "schedule_stock_index_background_refresh"):
         response = client.get("/stocks.index.json")
 
     assert response.status_code == 200
@@ -454,7 +454,7 @@ def test_stock_index_route_returns_404_when_all_candidates_missing(tmp_path: Pat
 
     with patch.object(app_module, "get_remote_stock_index_cache_path", return_value=cache_path), \
          patch.object(app_module, "_bundled_stock_index_path", return_value=bundled_path), \
-         patch.object(app_module, "_schedule_stock_index_background_refresh"):
+         patch.object(app_module, "schedule_stock_index_background_refresh"):
         response = client.get("/stocks.index.json")
 
     assert response.status_code == 404
@@ -464,14 +464,20 @@ def test_stock_index_route_returns_404_when_all_candidates_missing(tmp_path: Pat
 def test_app_startup_schedules_stock_index_background_refresh(tmp_path: Path) -> None:
     from api import app as app_module
     from api.app import create_app
+    from src.bootstrap import api_lifecycle
 
     static_dir = tmp_path / "static"
 
-    with patch.object(app_module, "_schedule_stock_index_background_refresh") as schedule:
+    # The lifespan lives in src.bootstrap.api_lifecycle, so that is the single
+    # patch seam for the startup hook.
+    with patch.object(
+        api_lifecycle, "schedule_stock_index_background_refresh"
+    ) as schedule:
         with TestClient(create_app(static_dir=static_dir)):
             pass
 
     schedule.assert_called_once_with(ANY, "startup")
+    assert app_module.schedule_stock_index_background_refresh is api_lifecycle.schedule_stock_index_background_refresh
 
 
 @pytest.mark.parametrize(

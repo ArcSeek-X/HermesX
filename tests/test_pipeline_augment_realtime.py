@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from src.core.pipeline import StockAnalysisPipeline
+from src.application.analysis.pipeline import StockAnalysisPipeline
 
 
 def _make_pipeline():
@@ -30,9 +30,9 @@ def _make_df(dates_and_closes):
 class AugmentRealtimeMarketDateTestCase(unittest.TestCase):
     """Verify _augment_historical_with_realtime uses market-local date, not server date."""
 
-    @patch("src.core.pipeline.is_market_open", return_value=True)
-    @patch("src.core.pipeline.get_market_now")
-    @patch("src.core.pipeline.get_market_for_stock", return_value="us")
+    @patch("src.application.analysis.pipeline.is_market_open", return_value=True)
+    @patch("src.application.analysis.pipeline.get_market_now")
+    @patch("src.application.analysis.pipeline.get_market_for_stock", return_value="us")
     def test_appends_virtual_row_with_market_local_date(
         self, _mock_market, mock_now, _mock_open
     ):
@@ -53,9 +53,9 @@ class AugmentRealtimeMarketDateTestCase(unittest.TestCase):
             appended_date = appended_date.date()
         self.assertEqual(appended_date, date(2026, 3, 27))
 
-    @patch("src.core.pipeline.is_market_open", return_value=True)
-    @patch("src.core.pipeline.get_market_now")
-    @patch("src.core.pipeline.get_market_for_stock", return_value="us")
+    @patch("src.application.analysis.pipeline.is_market_open", return_value=True)
+    @patch("src.application.analysis.pipeline.get_market_now")
+    @patch("src.application.analysis.pipeline.get_market_for_stock", return_value="us")
     def test_updates_existing_row_when_data_matches_market_date(
         self, _mock_market, mock_now, _mock_open
     ):
@@ -71,9 +71,9 @@ class AugmentRealtimeMarketDateTestCase(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result.iloc[-1]["close"], 155.0)
 
-    @patch("src.core.pipeline.is_market_open", return_value=False)
-    @patch("src.core.pipeline.get_market_now")
-    @patch("src.core.pipeline.get_market_for_stock", return_value="cn")
+    @patch("src.application.analysis.pipeline.is_market_open", return_value=False)
+    @patch("src.application.analysis.pipeline.get_market_now")
+    @patch("src.application.analysis.pipeline.get_market_for_stock", return_value="cn")
     def test_skips_augmentation_on_non_trading_day(
         self, _mock_market, mock_now, _mock_open
     ):

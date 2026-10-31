@@ -15,13 +15,13 @@ from tests.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from src.agent.agents.base_agent import BaseAgent
-from src.agent.llm_adapter import LLMResponse
-from src.agent.orchestrator import AgentOrchestrator
-from src.agent.protocols import AgentContext, StageResult, StageStatus
-from src.agent.runner import run_agent_loop
-from src.agent.stream_events import stream_event
-from src.agent.tools.registry import ToolDefinition, ToolParameter, ToolRegistry
+from src.application.agent.agents.base_agent import BaseAgent
+from src.infrastructure.agent_runtime.llm_adapter import LLMResponse
+from src.application.agent.orchestrator import AgentOrchestrator
+from src.application.agent.protocols import AgentContext, StageResult, StageStatus
+from src.application.agent.runner import run_agent_loop
+from src.application.agent.stream_events import stream_event
+from src.application.agent.tools.registry import ToolDefinition, ToolParameter, ToolRegistry
 
 
 def _make_registry() -> ToolRegistry:
@@ -273,7 +273,7 @@ def test_orchestrator_emits_stage_done_before_timeout_after_stage() -> None:
         orch,
         "_run_stage_agent",
         side_effect=_run_stage,
-    ), patch("src.agent.orchestrator.time.time", side_effect=_time):
+    ), patch("src.application.agent.orchestrator.time.time", side_effect=_time):
         result = orch._execute_pipeline(
             ctx,
             parse_dashboard=False,
@@ -336,7 +336,7 @@ def test_orchestrator_emits_budget_skipped_before_unstarted_stage() -> None:
         orch,
         "_run_stage_agent",
         side_effect=_run_stage,
-    ), patch("src.agent.orchestrator.time.time", side_effect=_time):
+    ), patch("src.application.agent.orchestrator.time.time", side_effect=_time):
         result = orch._execute_pipeline(
             ctx,
             parse_dashboard=False,
