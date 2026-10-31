@@ -3,7 +3,7 @@
 > 状态：**已接受（Accepted）** ｜ 建立时间：2026-10-30 ｜ 维护：随迁移推进增补，不回改已接受条目
 > 前序：`documents/framework/backend_architecture_adr.md`（ADR-001，后端分层架构与统一数据源策略）
 > 判据来源：`ARCHITECTURE_TARGET.md` §2 依赖规则、§4 归属表、§4.5 留存项、§8 确认点、§9.2 决策状态
-> 实施流水：`documents/framework/architecture_migration_progress.md`（161 条切片交接记录）
+> 实施流水：`documents/framework/refactoring/architecture_migration_progress.md`（161 条切片交接记录）
 
 本文件沉淀**分层迁移过程中作出的、影响长期演进的决策**，使这些结论不只留在会话记录或切片流水里（`ARCHITECTURE_TARGET.md` §9.2 末尾要求「后续有明确决策时同步更新本文与对应 ADR」）。
 
