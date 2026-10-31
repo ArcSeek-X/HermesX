@@ -62,7 +62,6 @@ HermesX/
 ├── LOCAL_RUN_GUIDE.md                     KEEP
 ├── stock_data_view.md  数据源管理.md         KEEP
 ├── switch-node.js  switch-node.sh         KEEP
-├── portfolio-redesign-prototype.html     KEEP，本地现有原型
 │
 ├── src/                                   REWORK，保留 src 包及 from src... 命名空间
 │   ├── __init__.py
