@@ -114,7 +114,7 @@ if _receive_id:
     if _project_root not in sys.path:
         sys.path.insert(0, _project_root)
 
-    from src.notification_sender.feishu_sender import FeishuSender
+    from src.infrastructure.notification.senders.feishu_sender import FeishuSender
     from src.config import Config
 
     config = Config()

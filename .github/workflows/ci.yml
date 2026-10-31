@@ -84,6 +84,8 @@ jobs:
         run: python -c "import futu; print('✅ futu SDK import OK')"
       - name: ✅ Python syntax check
         run: ./scripts/ci_gate.sh syntax
+      - name: ✅ Architecture import guard
+        run: ./scripts/ci_gate.sh architecture
       - name: ✅ Flake8 critical checks
         run: ./scripts/ci_gate.sh flake8
       - name: ✅ Local deterministic checks
@@ -116,9 +118,9 @@ jobs:
           docker run --rm stock-analysis:test python -c "
           from src.config import get_config; print('✅ config')
           from src.storage import DatabaseManager; print('✅ storage')
-          from src.notification import NotificationService; print('✅ notification')
+          from src.application.notification.notification import NotificationService; print('✅ notification')
           from data_provider import DataFetcherManager; print('✅ data_provider')
-          from src.analyzer import GeminiAnalyzer; print('✅ analyzer')
+          from src.application.analysis.analyzer import GeminiAnalyzer; print('✅ analyzer')
           from src.patches.eastmoney_patch import eastmoney_patch; print('✅ patch')
           from bot.dispatcher import CommandDispatcher; print('✅ bot')
           from api.app import app; print('✅ api')

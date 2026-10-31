@@ -242,7 +242,7 @@ def check_llm():
     """测试 LLM 调用"""
     print_header("4. LLM (Gemini) 调用测试")
     
-    from src.analyzer import GeminiAnalyzer
+    from src.application.analysis.analyzer import GeminiAnalyzer
     from src.config import get_config
     import time
     
@@ -345,7 +345,7 @@ def check_notification():
     """测试通知推送"""
     print_header("5. 通知推送测试")
     
-    from src.notification import NotificationService
+    from src.application.notification.notification import NotificationService
     from src.config import get_config
     
     config = get_config()
@@ -464,6 +464,14 @@ def query_stock_data(stock_code: str, days: int = 10):
 
 def main():
     configure_console_encoding()
+
+    # 独立进程入口：本脚本不经 main.py 的 CLI bootstrap 链，而 Analyzer 的 Router
+    # 构造与生成链路外调均已端口化（未装配即 fail-fast），故在此显式装配。
+    from src.bootstrap.analyzer import configure_analyzer_runtime
+    from src.bootstrap.generation import configure_generation_runtime
+
+    configure_analyzer_runtime()
+    configure_generation_runtime()
 
     parser = argparse.ArgumentParser(
         description='HermesX - A股自选股智能分析系统 - 环境验证测试',

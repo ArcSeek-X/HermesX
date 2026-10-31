@@ -136,8 +136,8 @@ python -m pytest -m "not network"
 
 ## EXTRACT_PROMPT Change (if applicable)
 
-若本 PR 修改了 `src/services/image_stock_extractor.py` 中的 `EXTRACT_PROMPT`，请在此处粘贴完整变更后的 prompt。  
-*If this PR changes `EXTRACT_PROMPT` in `src/services/image_stock_extractor.py`, paste the full updated prompt here:*
+若本 PR 修改了 `src/application/analysis/image_stock_extractor.py` 中的 `EXTRACT_PROMPT`，请在此处粘贴完整变更后的 prompt。  
+*If this PR changes `EXTRACT_PROMPT` in `src/application/analysis/image_stock_extractor.py`, paste the full updated prompt here:*
 
 <details>
 <summary>展开 / Expand: Full EXTRACT_PROMPT</summary>

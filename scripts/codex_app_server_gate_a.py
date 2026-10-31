@@ -30,7 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.agent.codex_app_server_transport import (  # noqa: E402
+from src.infrastructure.agent_runtime.codex_app_server_transport import (  # noqa: E402
     MAX_STDERR_BYTES,
     MAX_STDOUT_FRAME_BYTES,
     MAX_TOOL_RESULT_BYTES,
@@ -43,12 +43,12 @@ from src.agent.codex_app_server_transport import (  # noqa: E402
     harden_command_against_configured_mcp as _harden_command_against_configured_mcp,
     resolve_command as _resolve_command,
 )
-from src.agent.codex_tool_process import CodexToolProcessRunner  # noqa: E402
-from src.agent.factory import get_tool_registry  # noqa: E402
-from src.agent.stock_scope import StockScope  # noqa: E402
-from src.agent.tool_surface import ToolSurface  # noqa: E402
-from src.agent.tools.execution import ToolAccessContext, redact_diagnostic_value  # noqa: E402
-from src.agent.tools.registry import (  # noqa: E402
+from src.infrastructure.agent_runtime.codex_tool_process import CodexToolProcessRunner  # noqa: E402
+from src.application.agent.factory import get_tool_registry  # noqa: E402
+from src.application.agent.stock_scope import StockScope  # noqa: E402
+from src.infrastructure.agent_runtime.tool_surface import ToolSurface  # noqa: E402
+from src.application.agent.tools.execution import ToolAccessContext, redact_diagnostic_value  # noqa: E402
+from src.application.agent.tools.registry import (  # noqa: E402
     ToolDefinition,
     ToolParameter,
     ToolPolicy,

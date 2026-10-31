@@ -249,7 +249,8 @@ test_syntax() {
     header "测试场景: Python 语法检查"
     info "检查所有Python文件语法..."
 
-    python3 -m py_compile main.py src/config.py src/notification.py \
+    python3 -m py_compile main.py src/config/__init__.py src/config/settings.py \
+        src/config/env_file.py src/config/registry.py src/application/notification/notification.py \
         data_provider/akshare_fetcher.py \
         data_provider/yfinance_fetcher.py \
         bot/commands/analyze.py
@@ -263,7 +264,7 @@ test_flake8() {
     info "运行 Flake8 检查严重错误..."
 
     if command -v flake8 &> /dev/null; then
-        flake8 main.py src/config.py src/notification.py --select=F821,E999 --max-line-length=120
+        flake8 main.py src/config/ src/application/notification/notification.py --select=F821,E999 --max-line-length=120
         success "Flake8 检查通过"
     else
         warn "Flake8 未安装，跳过检查"
