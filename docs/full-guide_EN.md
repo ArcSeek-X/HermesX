@@ -315,6 +315,30 @@ For the notification baseline, diagnostics, and deployment notes, see [Notificat
 >
 > Supplement: When `FEISHU_APP_ID`, `FEISHU_APP_SECRET`, and `FEISHU_CHAT_ID` are all configured, they enable the Feishu App Bot active notification channel without relying on group webhooks. `FEISHU_RECEIVE_ID_TYPE` defaults to `chat_id`; set it to `open_id` for P2P delivery. This uses the Feishu OpenAPI Bot session route, which is independent of the group webhook path.
 
+### Bot And Event Callback Configuration
+
+Inbound bot commands (Feishu / DingTalk callbacks and Stream connections) and outbound notifications are separate paths. The fields below can be edited in the Web settings page under the Notification category, or set in `.env`.
+
+| Variable | Description | Required |
+|--------|------|:----:|
+| `BOT_ENABLED` | Master switch for the webhook command entry (default `true`). When off, platform callbacks are acknowledged but no command runs; it does not drop established Stream connections | Optional |
+| `BOT_COMMAND_PREFIX` | Command prefix (default `/`). Read when the command dispatcher singleton is first built, so a restart is required | Optional |
+| `BOT_ADMIN_USERS` | Comma-separated admin user IDs. No command declares itself admin-only today, so this list has no effect yet; once one exists, users outside it are rejected. Restart required as well | Optional |
+| `FEISHU_VERIFICATION_TOKEN` | Feishu event-subscription verification token. Read when the Stream client connects, so a restart is required | Optional |
+| `FEISHU_ENCRYPT_KEY` | Feishu event encrypt key (only needed when the app pushes encrypted events; an empty value is passed to the SDK as an empty string) | Optional |
+| `FEISHU_MAX_BYTES` | Byte threshold for splitting one Feishu message (default 20000; only the lower bound 1 is declared - a value below it is rejected when saving on the settings page, while a value below 1 in `.env` or the process environment is clamped to 1 on load) | Optional |
+| `FEISHU_SEND_AS_FILE` | Sends reports to a Feishu App Bot chat as a file (default `false`; report route only, alerts stay inline) | Optional |
+| `FEISHU_FOLDER_TOKEN` | Target Feishu Drive folder token; with `FEISHU_APP_ID` / `FEISHU_APP_SECRET` it publishes long reports as a document | Optional |
+| `EMAIL_SENDER_NAME` | Email sender display name (only the shown name changes, not the SMTP account) | Optional |
+
+> Notes:
+> - Boolean parsing differs between switches: `BOT_ENABLED` uses `.lower() == 'true'` (case-insensitive, so `TRUE` works, but `1` or `yes` keeps it off), while `FEISHU_SEND_AS_FILE` uses `in ('true', '1', 'yes')` and accepts `1` / `yes`.
+> - `BOT_ENABLED` does not touch Stream connections: Feishu / DingTalk clients are started by `FEISHU_STREAM_ENABLED` / `DINGTALK_STREAM_ENABLED` at process startup.
+> - `FEISHU_VERIFICATION_TOKEN` / `FEISHU_ENCRYPT_KEY` belong to the event subscription path. They are a different mechanism from the group webhook signing key `FEISHU_WEBHOOK_SECRET`; do not mix them.
+> - After saving from the settings page, `FEISHU_MAX_BYTES` / `FEISHU_SEND_AS_FILE` / `FEISHU_FOLDER_TOKEN` / `EMAIL_SENDER_NAME` take effect on the next delivery (they are read when the notification service instance is built) with no restart; fields marked "restart required" above still need a process restart.
+> - That "takes effect on save" only applies to the running service process. Under the GitHub Actions daily-analysis deployment, `FEISHU_FOLDER_TOKEN` / `FEISHU_SEND_AS_FILE` / `EMAIL_SENDER_NAME` are injected as process environment variables by `.github/workflows/00-daily-analysis.yml`; every run starts from a clean environment and never reads the file the settings page writes, so editing the settings page does not change the daily job — to change those values there, edit the repository Variables / Secrets. The same applies to containers: if `environment:` / `env_file` still carries an old value with the same name, it overrides the saved runtime file again on restart (see the Docker section).
+> - The WeCom (`WECOM_CORPID` / `WECOM_TOKEN` / `WECOM_ENCODING_AES_KEY` / `WECOM_AGENT_ID`) and Telegram (`TELEGRAM_WEBHOOK_SECRET`) adapters are not implemented, and `DISCORD_BOT_STATUS` currently has no consumer. Those keys stay `.env`-only and are not exposed in the settings page.
+
 ### Search Service Configuration
 
 | Variable | Description | Required |
@@ -422,7 +446,7 @@ For the notification baseline, diagnostics, and deployment notes, see [Notificat
 > - In scheduler mode, if runtime env explicitly sets `RUN_IMMEDIATELY` but does not set `SCHEDULE_RUN_IMMEDIATELY`, the scheduler keeps inheriting the legacy runtime override instead of being pulled back to a persisted `.env` alias value.
 
 > Compatibility note (Issue #1815): `MARKET_REVIEW_REGION=cn|hk|us|jp|kr|both` only expands the market set used by market review; `jp`/`kr` are for recap scope and do not open JP/KR for Market Light alerts.
-> - Changes in `src/config.py`, `src/core/config_registry.py`, and `src/services/system_config_service.py` are configuration-contract updates only, and do not alter runtime provider/model/base URL routing semantics or trigger provider migration/cleanup logic.
+> - Changes in `src/config/settings.py`, `src/config/registry.py`, and `src/application/runtime/system_config_service.py` are configuration-contract updates only, and do not alter runtime provider/model/base URL routing semantics or trigger provider migration/cleanup logic.
 > - Affected config keys are `MARKET_REVIEW_REGION` and `MARKET_REVIEW_COLOR_SCHEME`; existing model/runtime keys (`LITELLM_MODEL`, `AGENT_LITELLM_MODEL`, `LITELLM_FALLBACK_MODELS`, `VISION_MODEL`, `OPENAI_BASE_URL`, etc.) remain unchanged under the existing atomic upsert semantics and are not silently cleared when this scope is changed.
 > - Verifiable evidence summary: official provider / Base URL / model-name sources remain the [LLM Config Guide](LLM_CONFIG_GUIDE_EN.md#official-references-for-provider-presets--base-urls--model-naming), and the locked runtime dependency window remains `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` in `requirements.txt`; this scope adds no migration script or cleanup branch, and save/import still writes only submitted keys. `tests/test_system_config_service.py::SystemConfigServiceTestCase::test_update_market_review_region_does_not_trigger_runtime_model_cleanup` covers saving `MARKET_REVIEW_REGION` without clearing or rewriting existing `LITELLM_CONFIG`, `LLM_CHANNELS`, `LLM_OPENAI_*`, `LITELLM_MODEL`, `AGENT_LITELLM_MODEL`, `LITELLM_FALLBACK_MODELS`, `VISION_MODEL`, `OPENAI_*`, and related runtime settings.
 > - Rollback is a restore-and-recover path: apply pre-PR `.env` / config backup for the above keys, restore `MARKET_REVIEW_REGION`, and restart the runtime; or revert this PR directly.
@@ -903,6 +927,19 @@ The notification channel matrix and `--check-notify` CLI details are documented 
 2. Copy Webhook URL
 3. Set `WECHAT_WEBHOOK_URL`
 
+**Message form (optional, exposed under the Web settings "Notification" category):**
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `WECHAT_MSG_TYPE` | `markdown` renders formatting (but often displays poorly inside the WeChat app); `text` sends plain text with the best compatibility | `markdown` |
+| `WECHAT_MAX_BYTES` | Byte threshold per message; over-threshold content is split into several sends rather than truncated. WeChat Work itself caps one message at 4096 bytes for markdown and 2048 for text | Follows the message type when unset: 2048 for `text`, 4000 otherwise |
+
+> - In `text` mode the sender additionally holds each message at 2000 bytes (the smaller of `WECHAT_MAX_BYTES` and 2000), so raising `WECHAT_MAX_BYTES` has no effect while the type is `text`.
+> - Two paths for out-of-range values: saving below 1 on the Web settings page is rejected outright (`out_of_range` / HTTP 400), while a value below 1 in `.env` or the process environment is clamped up to 1 on load. Only the lower bound is declared; there is no upper bound.
+> - `WECHAT_MSG_TYPE` is a dropdown on the settings page and accepts only `markdown` / `text`. The runtime itself does no enum validation: anything other than `text` (case-insensitive) behaves as `markdown`.
+> - The GitHub Actions daily job injects `WECHAT_MSG_TYPE` into the run environment (`markdown` when no vars / secrets are set), and the injected value takes precedence over `.env`, so the effective form in Actions comes from Actions variables rather than the repository `.env`.
+> - Both are read when the notification service instance is built, so a saved change applies to the next delivery without a restart.
+
 ### Feishu
 
 > ⚠️ **Key distinction**: `FEISHU_WEBHOOK_SECRET` (webhook signing secret) and `FEISHU_APP_SECRET` (Feishu App Secret) are two completely different configuration variables and cannot be used interchangeably.
@@ -1135,6 +1172,24 @@ Features:
 - Free quota sufficient for personal use (10,000 messages/month)
 - Messages retained for 7 days
 
+### Markdown To Image (Optional)
+
+`MARKDOWN_TO_IMAGE_CHANNELS` turns the report into a PNG for channels that do not render Markdown (telegram, wechat, custom, email, slack). These keys are exposed under the Web settings "Notification" category.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `MARKDOWN_TO_IMAGE_CHANNELS` | Comma-separated channel list; only listed channels that are already configured receive the image form | Empty, which disables the feature |
+| `MARKDOWN_TO_IMAGE_MAX_CHARS` | Maximum body length allowed for conversion. It is a skip switch, not a truncation length: a longer report is not converted at all and stays plain text | `15000` |
+| `MD2IMG_ENGINE` | Renderer: `wkhtmltoimage` (default, requires wkhtmltopdf) or `markdown-to-file` (better emoji, requires `npm i -g markdown-to-file`) | `wkhtmltoimage` |
+
+The official Docker image already ships `wkhtmltopdf` (including `wkhtmltoimage`, pinned to a bookworm base), so the default engine needs no extra install inside the container; `markdown-to-file` is not preinstalled and has to be added to the image yourself.
+
+> - Channel values must match a notification channel identifier whose configuration exists; the runtime strips blanks, drops empty entries and lowercases the list.
+> - `MARKDOWN_TO_IMAGE_MAX_CHARS` declares only the lower bound 1: saving below 1 on the Web settings page is rejected (`out_of_range` / HTTP 400), while a value below 1 in `.env` or the process environment is clamped up to 1 on load. Raising it lets long reports become images too, at the cost of larger images and slower renders.
+> - `MD2IMG_ENGINE` is a dropdown on the settings page and accepts only the two enum values. An invalid value in `.env` or the process environment falls back to `wkhtmltoimage` with a warning instead of failing the analysis.
+> - If the selected engine is missing from PATH or the conversion fails, image generation returns nothing and the report is sent as Markdown text; check `which wkhtmltoimage` or `which m2f` when the log says the conversion failed.
+> - The values are read when the notification service instance is built and the engine again at each conversion call, so a saved change applies to the next delivery without a restart.
+
 ---
 
 ## Data Source Configuration
@@ -1168,6 +1223,89 @@ System defaults to AkShare (free), also supports other data sources:
 - Optional knobs: `LONGBRIDGE_STATIC_INFO_TTL_SECONDS` (default `86400`) and `LONGBRIDGE_CONNECTION_COOLDOWN_SECONDS` (default `15`)
 - If credentials are absent, the optional Longbridge fetcher is not instantiated
 - When runtime errors such as `client is closed`, `context closed`, or `connection closed` occur, Longbridge enters a short cooldown window and US/HK daily or realtime requests automatically fall back to YFinance / AkShare instead of reconnecting on every request
+
+### Data Source Routing and Optional Bridges
+
+K-line, stock info, code search, sector rankings, and limit pools each have their own routing controls that decide which source is tried first and whether a failure falls through to the next source:
+
+| Variable | Purpose |
+| --- | --- |
+| `KLINE_DATA_SOURCE` / `STOCKINFO_DATA_SOURCE` / `CODESEARCH_DATA_SOURCE` | Primary source. `auto` follows the matching priority chain; a single source name also works |
+| `KLINE_FALLBACK_ENABLED` / `STOCKINFO_FALLBACK_ENABLED` / `CODESEARCH_FALLBACK_ENABLED` | Whether to keep trying lower-priority sources after a failure; defaults to `true` |
+| `KLINE_SOURCE_PRIORITY` / `STOCKINFO_SOURCE_PRIORITY` / `CODESEARCH_SOURCE_PRIORITY` | Comma-separated fallback order, highest first |
+| `SECTOR_DATA_SOURCE` / `LIMITPOOL_DATA_SOURCE` | Primary source for sector rankings / limit pools. `auto` follows the priority chain |
+| `SECTOR_FALLBACK_ENABLED` / `LIMITPOOL_FALLBACK_ENABLED` | Whether to keep trying lower-priority sources after a failure; defaults to `true` |
+| `SECTOR_SOURCE_PRIORITY` / `LIMITPOOL_SOURCE_PRIORITY` | Comma-separated fallback order; defaults to `eastmoney` |
+
+Available sources differ by request type: K-line supports `local,sina,eastmoney,tencent,stocksdk`, stock info supports `local,eastmoney,tencent,stocksdk`, and code search supports `local,eastmoney,stocksdk`. Sector rankings currently register only `eastmoney`, while limit pools support `eastmoney,stocksdk` (StockSDK requires `STOCKSDK_ENABLED`).
+
+**StockSDK (optional)**: provides these request types through a Node.js bridge process. Make sure `node` is executable before enabling it:
+
+```env
+STOCKSDK_ENABLED=true
+STOCKSDK_NODE_BIN=node
+STOCKSDK_BRIDGE_ENTRY=scripts/stocksdk_bridge/bridge.mjs
+```
+
+`STOCKSDK_TIMEOUT_MS` (default `8000`) bounds one bridge request, `STOCKSDK_RATE_LIMIT_RPS` (default `3`) limits request frequency, and `STOCKSDK_KLINE_FALLBACK` (default `true`) lets the bridge apply its own K-line fallback.
+
+**StockDB (optional)**: a local HTTP quote service that you deploy yourself:
+
+```env
+STOCKDB_ENABLED=true
+STOCKDB_BASE_URL=http://127.0.0.1:7899
+```
+
+`STOCKDB_TIMEOUT_MS` (default `5000`), `STOCKDB_MAX_ROWS` (default `5000`), `STOCKDB_CACHE_TTL_SEC` (default `60`), and `STOCKDB_COOLDOWN_SEC` (default `10`, the temporary skip after a connection failure) control request behavior. Both optional sources follow the same rule: no request while disabled, and failures fall through to other sources instead of blocking the main analysis flow.
+
+**External market-data credentials (optional)**: the sources below require your own credentials. Leaving a value empty disables that capability without affecting the others:
+
+| Variable | Purpose |
+| --- | --- |
+| `LONGBRIDGE_OAUTH_CLIENT_ID` | Longbridge OAuth 2.0 client id (recommended); the SDK maintains the access token cache |
+| `LONGBRIDGE_APP_KEY` / `LONGBRIDGE_APP_SECRET` / `LONGBRIDGE_ACCESS_TOKEN` | Legacy Longbridge API-key triplet; use either this or OAuth, not both |
+| `ALPHAVANTAGE_API_KEY` | Alpha Vantage quote and fundamental data |
+| `FINNHUB_API_KEY` | Finnhub market data |
+| `SOCIAL_SENTIMENT_API_KEY` / `SOCIAL_SENTIMENT_API_URL` | Social sentiment provider; default URL is `https://api.adanos.org` |
+
+These fields can be edited directly in the **Data Sources** category of the Web settings page: saved values are written to `.env` and reloaded immediately, so the next request uses them. Startup precedence needs separate attention — if the container already provides a same-named environment variable at process start, that value still wins; to keep a settings-page value effective after a restart, update or remove the same-named override in the container (consistent with Q6, "configuration changes do not take effect", in `docs/FAQ.md`).
+
+### News Source Configuration
+
+Live news, the economic calendar, and the local news intelligence pool under **Market News** share one set of news source settings. They can also be edited in the **Data Sources** category of the Web settings page; saved values apply to the next request without a process restart.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `WSCN_LIVE_NEWS_ENABLED` | `true` | Master switch for live news; when off, every endpoint returns an empty list and no fetch is made |
+| `WSCN_LIVE_NEWS_BASE_URL` | `https://api-one.wallstcn.com` | Live news base URL; trailing slashes are stripped |
+| `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` | `300` | Throttle for on-demand refresh (seconds, 0–86400); `0` keeps manual refresh only |
+| `WSCN_LIVE_NEWS_IMPORTANT_SCORE` | `3` | Importance threshold (1–10); items at or above the upstream score are marked important |
+| `WSCN_LIVE_NEWS_DEFAULT_LIMIT` | `30` | Default page size for live news lists (1–100) |
+| `WSCN_LIVE_NEWS_TIMEOUT_SEC` | `8` | Per-channel request timeout (1–30 seconds) |
+| `WSCN_LIVE_NEWS_FALLBACK_NEWSNOW` | `true` | Fall back to the NewsNow aggregation source when the official endpoint fails |
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `WALLSTREETCN_CALENDAR_ENABLED` | `true` | Master switch for the economic calendar; when off, endpoints return no events and stop fetching |
+| `WALLSTREETCN_CALENDAR_BASE_URL` | `https://api-one-wscn.awtmt.com` | Calendar base URL (different host from live news) |
+| `WALLSTREETCN_CALENDAR_TIMEOUT` | `8` | Per-request timeout (1–30 seconds) |
+| `WALLSTREETCN_CALENDAR_IMPORTANT_SCORE` | `3` | Importance threshold (0–10), sharing the live news scale |
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `NEWS_INTEL_AUTO_FETCH_ENABLED` | `false` | Initialize and fetch enabled local sources before analysis |
+| `NEWS_INTEL_RETENTION_DAYS` | `30` | Retention for the local intelligence pool (1–365); only `intelligence_items` is cleaned |
+| `NEWS_INTEL_MAX_ITEMS_PER_SOURCE` | `50` | Maximum items collected per source per fetch (1–200) |
+| `NEWS_INTEL_FETCH_TIMEOUT_SEC` | `8` | Timeout for one RSS/Atom source fetch (1–30 seconds) |
+| `NEWSNOW_BASE_URL` | `https://newsnow.busiyi.world` | NewsNow API base URL used by aggregation sources and the live-news fallback; self-host it in production |
+
+Notes:
+
+- The live news upstream is a rolling window (about 100 items cover 1–3 hours); an interval that is too large loses items, so keep `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` at or below `1800`.
+- The default `NEWSNOW_BASE_URL` is a public demo instance without stability guarantees. Changing it only affects news requests; it does not change LLM or provider base URLs.
+- The default `.github/workflows/00-daily-analysis.yml` does not pass `NEWS_INTEL_AUTO_FETCH_ENABLED` through; add the `env:` mapping yourself when running on GitHub Actions.
+- Numeric values are clamped on load by `parse_env_int` / `parse_env_float` to the ranges above, and the settings page uses the same validation bounds.
+- Startup precedence matches the data-source credentials above: a same-named container environment variable wins at process start; a saved settings-page value applies immediately through `.env`, but the next restart may be shadowed again by that container variable.
 
 ---
 
@@ -1253,7 +1391,7 @@ You can tune the behavior in `.env`:
 Single-stock reports calibrate operation advice with support/resistance, volume/chip context, main-force capital flow, and risk events. This reduces direct buy/sell flips caused only by one-day price movement or score thresholds. When price is between support and resistance and capital flow is unclear, the report prefers neutral actionable wording such as hold, range-bound watch, or shakeout watch. Buy calls require support confirmation or a valid resistance breakout with volume/capital-flow confirmation; sell/reduce calls require support failure, sustained outflow, or clearly elevated risk.
 This post-processing update only adjusts advisory wording and stability logic and does not change the configured LLM model/provider routing semantics (including LiteLLM, providers, or API model settings).
 Compatibility check result: decision operability and runtime post-processing paths are changed, while model/provider/API configuration and persistence semantics remain unchanged; the compatibility boundary is now in analysis/pipeline/agent intent inference and stabilization mapping.
-Verification trail: the runtime behavior is implemented in `src/analyzer.py`, `src/core/pipeline.py`, `src/core/backtest_engine.py`, `src/report_language.py`, and `src/agent` decision-path modules (with corresponding tests in `tests/test_backtest_engine.py`, `tests/test_analyzer_news_prompt.py`, `tests/test_decision_stability.py`, and `tests/test_agent_pipeline.py`); it does not add/remove runtime config fields or config-cleanup logic in `src/config.py` or persistence code paths.
+Verification trail: the runtime behavior is implemented in `src/application/analysis/analyzer.py`, `src/application/analysis/pipeline.py`, `src/domain/backtest/engine.py`, `src/report_language.py`, and `src/agent` decision-path modules (with corresponding tests in `tests/test_backtest_engine.py`, `tests/test_analyzer_news_prompt.py`, `tests/test_decision_stability.py`, and `tests/test_agent_pipeline.py`); it does not add/remove runtime config fields or config-cleanup logic in `src/config/settings.py` or persistence code paths.
 
 ### Decision Action Taxonomy (#1390 P0)
 
@@ -1465,7 +1603,7 @@ For this feature, the product behavior is:
 > Note: `POST /api/v1/analysis/market-review` accepts one optional 1–64 character string field, `region`. Valid inputs are `cn`, `hk`, `us`, `jp`, `kr`, `both`, or a non-empty comma-separated subset such as `cn,us`. The request layer canonicalizes case, whitespace, duplicates, and ordering. Empty strings/tokens, unknown tokens, and mixing `both` with other markets reject the whole request with 4xx; they are never partially executed or silently defaulted. Omitting `region` continues to use global `MARKET_REVIEW_REGION`.
 > Note: the Home selector is a one-run override only. It does not call the config read/save API or write LocalStorage. “Server default” omits `region` from the request, and the UI does not guess the effective runtime market from the saved/display value exposed by Web Settings. The backend resolves one canonical effective value at task submission; the accepted response, pending/processing/completed status, task list, `task_created`/`task_started`/`task_progress`/`task_completed` SSE events, completed structured payload, and both the History list item's `region` and `context_snapshot.market_review_region` reuse that value. Persistent `MARKET_REVIEW_REGION` keeps its existing lenient compatibility behavior; CLI, Bot, schedule, and the default `cn` semantics are unchanged.
 > Note: `POST /api/v1/analysis/market-review` is the explicit Web/desktop trigger and submits a market-review task directly. It does not short-circuit because `TRADING_DAY_CHECK_ENABLED=true` or the configured markets are closed that day; scheduled jobs, GitHub Actions manual runs, and CLI defaults still follow the trading-day gate unless `--force-run` or workflow `force_run` is used.
-> Audit note: priority and fallback are defined by `Config._load_from_env()` in `src/config.py` (`LITELLM_CONFIG` > `LLM_CHANNELS` > legacy). Regression coverage is in `tests/test_llm_channel_config.py` (configuration source parsing) and `tests/test_market_review_runtime.py` (shared runtime assembly). The endpoint lock is process/host-level only; multi-instance deployments still need external distributed idempotency controls.
+> Audit note: priority and fallback are defined by `Config._load_from_env()` in `src/config/settings.py` (`LITELLM_CONFIG` > `LLM_CHANNELS` > legacy). Regression coverage is in `tests/test_llm_channel_config.py` (configuration source parsing) and `tests/test_market_review_runtime.py` (shared runtime assembly). The endpoint lock is process/host-level only; multi-instance deployments still need external distributed idempotency controls.
 > Note: Once `/api/v1/analysis/market-review` completes, the report is persisted with `report_type=market_review`; open `/api/v1/history` and `/api/v1/history/{record_id}` (or Markdown history endpoints) to view it directly without re-running analysis.
 > Note: `/api/v1/analysis/market-review` task status and persisted history include a structured `market_review_payload`; `region` is the canonical market scope actually executed, alongside fields such as `market_scope`, `sections`, `sectors`, `concepts`, `news`, `market_light`, and `indices`. Web rendering and history detail use the same structure and fall back to raw `markdown_report` only if the structure is unavailable.
 > Note: `market_review_payload.breadth` is emitted only when breadth data is truly available. For markets/feeds without usable breadth, the field is omitted and UI should display `No data` (not a misleading zero value).
@@ -1598,6 +1736,27 @@ A: Check if Actions is enabled, and if cron expression is correct (note it's UTC
 - When `PORTFOLIO_FX_UPDATE_ENABLED=false`, the refresh API returns an explicit disabled status and the page shows that online FX refresh is disabled instead of implying that no refreshable pairs exist.
 - Portfolio snapshot `positions[]` includes price metadata such as `price_source`, `price_date`, `price_stale`, and `price_available`. Today's snapshot tries realtime quotes by default, then falls back to the latest historical close on or before `as_of` when the realtime quote is unavailable or non-positive. Passing `include_realtime=false` skips realtime quotes and uses the local historical-close fallback path directly; the Web portfolio page uses this mode to render holdings before slow external realtime quote sources can block the first screen. Historical `as_of` snapshots stay on historical-close semantics and no longer silently treat cost basis as the current price. Missing-price positions are marked with `price_available=false` and excluded from market value / unrealized PnL totals.
 
+### Portfolio risk configuration
+
+The six variables below are editable in the Web settings page under the **System** category and can also be set in `.env`. They are not display-only defaults: the thresholds are written into the risk report `thresholds` and feed portfolio alert-rule evaluation.
+
+| Variable | Description | Required |
+|----------|-------------|:--------:|
+| `PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT` | Single-position concentration alert threshold (default `35.0`, percentage). Sector concentration uses the same threshold | Optional |
+| `PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT` | Equity drawdown alert threshold (default `15.0`, percentage) | Optional |
+| `PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT` | Per-position stop-loss line (default `10.0`, percentage); a holding that loses this much from average cost counts as a breach | Optional |
+| `PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO` | Stop-loss proximity ratio (default `0.8`); the early-warning line is the stop-loss line × this ratio | Optional |
+| `PORTFOLIO_RISK_LOOKBACK_DAYS` | Calendar-day window for the drawdown series (default `180`); missing daily snapshots inside the window are backfilled before the calculation | Optional |
+| `PORTFOLIO_FX_UPDATE_ENABLED` | Whether the manual rate refresh may call online sources (default `true`) | Optional |
+
+> Notes:
+> - The five numeric fields declare a lower bound only, so raising a threshold simply makes alerts harder to fire. Out-of-range values take two different paths: saving a value below the bound on the settings page is rejected (`out_of_range`) and never written, while a value below it in `.env` or the process environment is silently clamped on load (the percentages and the ratio to `0`, `PORTFOLIO_RISK_LOOKBACK_DAYS` to `1`). Values that cannot be parsed as numbers fall back to the default instead of failing.
+> - Alert sensitivity is coupled: `breach`-mode portfolio alert rules compare against the stop-loss line, while the default `near` mode compares against "stop-loss line × proximity ratio", so lowering the ratio lists more holdings as warnings.
+> - Boolean parsing: `PORTFOLIO_FX_UPDATE_ENABLED` uses `.lower() == 'true'` (case-insensitive, but `1` / `yes` are read as disabled). When disabled, positions and risk still use cached rates and `POST /api/v1/portfolio/fx/refresh` returns an explicit `refresh_enabled=false` with `disabled_reason`.
+> - Effective timing: the risk service is built per request and the FX refresh reads config per call, so a saved change applies to the next risk report or refresh request without a restart; CLI and scheduler processes still use the configuration snapshot read at startup.
+> - Deployment exception: if the GitHub Actions daily run or the container `environment:` injects the same variable names, those scenarios follow the injected values and the settings page has no effect there (same caveat as the notification channel section).
+> - A larger drawdown window means more daily snapshots to backfill on the first risk report, hence longer generation; the `sector_concentration` fallback behavior is unaffected by these thresholds.
+
 ## Agent Tool Data Cache And Persistence
 
 - `get_daily_history` first tries to reuse local `stock_daily` daily-bar cache; when the cache is fresh and contains at least the dashboard default of 30 records, it avoids another external data-source request.
@@ -1640,7 +1799,7 @@ AGENT_EVENT_MONITOR_INTERVAL_MINUTES=5
 AGENT_EVENT_ALERT_RULES_JSON=[{"stock_code":"600519","alert_type":"price_cross","direction":"above","price":1800},{"stock_code":"300750","alert_type":"price_change_percent","direction":"down","change_pct":3.0},{"stock_code":"000858","alert_type":"volume_spike","multiplier":2.5}]
 ```
 
-The worker writes `triggered`, `skipped`, `degraded`, and `failed` rows to `alert_triggers` as evaluation history; normal non-triggered checks do not write history. For DB-persisted rules, `triggered` history is best-effort deduplicated by `rule_id + target + data_source + data_timestamp`: repeated hits for the same data point reuse the earliest trigger row, while records without `data_timestamp` are not deduplicated. Real triggers write per-channel attempts to `alert_notifications`, and Alert API persisted rules write business cooldown state to `alert_cooldowns`; if the persisted cooldown read fails, the worker temporarily falls back to the in-process fingerprint guard to avoid repeated notifications during the DB failure. Legacy `AGENT_EVENT_ALERT_RULES_JSON` rules continue to use the in-process fingerprint suppressor and do not write persisted cooldown state; the notification infrastructure `notification_noise.py` guard remains independent. The Web rule list uses the backend-provided `cooldown_active` flag instead of browser-local timezone parsing to decide whether a rule is cooling down.
+The worker writes `triggered`, `skipped`, `degraded`, and `failed` rows to `alert_triggers` as evaluation history; normal non-triggered checks do not write history. For DB-persisted rules, `triggered` history is best-effort deduplicated by `rule_id + target + data_source + data_timestamp`: repeated hits for the same data point reuse the earliest trigger row, while records without `data_timestamp` are not deduplicated. Real triggers write per-channel attempts to `alert_notifications`, and Alert API persisted rules write business cooldown state to `alert_cooldowns`; if the persisted cooldown read fails, the worker temporarily falls back to the in-process fingerprint guard to avoid repeated notifications during the DB failure. Legacy `AGENT_EVENT_ALERT_RULES_JSON` rules continue to use the in-process fingerprint suppressor and do not write persisted cooldown state; the notification infrastructure noise guard (`src/application/notification/noise.py`, formerly `notification_noise.py`) remains independent. The Web rule list uses the backend-provided `cooldown_active` flag instead of browser-local timezone parsing to decide whether a rule is cooling down.
 
 Technical indicator rules use daily-close edge triggers only. Partial-bar handling is a server-local-time + 16:00 heuristic and does not implement market-calendar precision. `watchlist` rules refresh and expand `STOCK_LIST` each worker run, `portfolio_holdings` expands non-zero snapshot positions with symbol de-duplication, and `portfolio_account` reuses the portfolio risk service for account-level aggregate evaluation. `market` rules accept only `cn|hk|us|jp|kr` targets and use structured `MarketLightSnapshot` data; `trade_date` comes from the current market overview, `data_quality=unavailable` skips triggering, non-trading days are skipped by the trading-day gate, and `market_light_score_drop` compares score across trading days only. The WebUI "Alerts" page can manage persisted rules, run one-shot dry-run tests, and view trigger history, notification attempts, and read-only cooldown state; cooldown on batch rules is a parent-rule summary, while child-target cooldown details are visible through trigger history. See [Real-Time Alert Center](../documents/product/实时告警中心/alerts.md) for detailed boundaries.
 

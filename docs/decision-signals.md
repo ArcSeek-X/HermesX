@@ -52,7 +52,7 @@ Web 展示必须把这些 wire value 映射为当前 UI 语言的用户可读标
 
 ## 生命周期、去重与状态
 
-`src/services/decision_signal_service.py` 是信号生命周期的主入口：
+`src/application/decision/decision_signal_service.py` 是信号生命周期的主入口：
 
 - `horizon` 和 `expires_at` 显式传入时优先。
 - 未传 `horizon` 时，`alert` 或盘前/盘中/午间休市/集合竞价阶段默认 `intraday`，盘后、非交易时段、未知阶段或缺少阶段时默认 `3d`。
@@ -203,7 +203,7 @@ Web 入口位于 `/decision-signals`：
 
 这些字段只用于解释信号所处题材背景，不参与 `action`、`score`、`horizon`、同源去重键或生命周期计算。它们也不是题材龙头证明；当 `market_structure_risk_tags` 或缺失证据显示成分股、leader stocks 不完整时，客户端和后验分析应按降级题材证据处理。
 
-快照字段中的 `provider` / `dataset` 来自市场结构抽取链路元数据，属于运行后持久化证据，不参与 LLM provider/model 路由、`base URL` 解析、`.env` 写回或配置迁移；可核验范围见 `src/schemas/market_structure.py`。
+快照字段中的 `provider` / `dataset` 来自市场结构抽取链路元数据，属于运行后持久化证据，不参与 LLM provider/model 路由、`base URL` 解析、`.env` 写回或配置迁移；可核验范围见 `src/application/market/market_structure.py`。
 
 ## 告警、通知与组合风险
 

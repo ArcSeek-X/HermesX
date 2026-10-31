@@ -65,12 +65,13 @@ python scripts/check_ai_assets.py
   - `apps/hrs-web/`：Web 前端
   - `apps/hrs-desktop/`：Electron 桌面端
   - `.github/workflows/`：CI、发布、每日任务
-- 核心职责：
-  - `src/core/`：主流程编排
-  - `src/services/`：业务服务层
-  - `src/infrastructure/persistence/repositories/`：数据访问层（仓储实现，经 `src/application/*/ports.py` 端口消费）
-  - `src/reports/`：报告生成
-  - `src/schemas/`：Schema / 数据结构
+- 核心职责（五层目标结构见 `ARCHITECTURE_TARGET.md` §2）：
+  - `src/domain/`：领域模型与厂商无关的纯规则（零 IO）
+  - `src/application/`：用例编排、端口契约与业务服务（按业务域分包）
+  - `src/infrastructure/`：持久化（`persistence/repositories/`）、数据源、生成、通知、报告等适配器
+  - `src/bootstrap/`：装配与入口接线（`configure_*` seam）
+  - `src/config/`：运行时配置（只依赖 domain）
+  - `src/utils/`：遗留共享工具（保留，不计入五层）
   - `data_provider/`：多数据源适配与 fallback
   - `api/`：FastAPI API
   - `bot/`：机器人接入
@@ -179,7 +180,7 @@ gh run view <run_id> --log-failed
   - 如受平台限制未能完整验证，需要明确说明是否验证了 Web 构建产物、Electron 构建以及 Release 工作流影响。
 
 - API / Schema / 认证联动改动：
-  - 适用范围：`api/**`、`src/schemas/**`、`src/services/**`、`apps/hrs-web/**`、`apps/hrs-desktop/**`
+  - 适用范围：`api/**`、`src/domain/**`、`src/application/**`、`src/infrastructure/**`、`src/bootstrap/**`、`src/config/**`、`apps/hrs-web/**`、`apps/hrs-desktop/**`
   - 至少覆盖对应后端验证 + 受影响客户端构建验证。
   - 若涉及登录、Cookie、会话、轮询状态、字段增删或枚举变化，必须明确写出兼容性影响。
 

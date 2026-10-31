@@ -48,12 +48,12 @@
 
 ## <a id="当前基线"></a>当前基线
 
-当前运行时告警由 `src/application/alert/worker.py` 中的后台 worker 统一调度，底层规则评估复用 `src/application/alert/service.py` 与 `src/agent/events.py` 中的 EventMonitor 规则模型。
+当前运行时告警由 `src/application/alert/worker.py` 中的后台 worker 统一调度，底层规则评估复用 `src/application/alert/service.py` 与 `src/application/alert/events.py` 中的 EventMonitor 规则模型。
 
 - 配置入口：`AGENT_EVENT_MONITOR_ENABLED`、`AGENT_EVENT_MONITOR_INTERVAL_MINUTES`、`AGENT_EVENT_ALERT_RULES_JSON`。
 - 运行入口：`main.py` 在 schedule 模式中注册 `agent_event_monitor` 后台任务；后台 worker 每轮读取持久化 active rules，并继续兼容 legacy `AGENT_EVENT_ALERT_RULES_JSON`。
 - 通知投递：触发后复用 `NotificationService.send(..., route_type="alert")`，继续遵守通知网关的 alert 路由配置。
-- Web/System 配置校验：`src/services/system_config_service.py` 会对 `AGENT_EVENT_ALERT_RULES_JSON` 做 JSON 与规则语义校验。
+- Web/System 配置校验：`src/application/runtime/system_config_service.py` 会对 `AGENT_EVENT_ALERT_RULES_JSON` 做 JSON 与规则语义校验。
 
 当前 runtime 支持三类规则：
 
@@ -152,8 +152,8 @@
 当前仓库已有 SQLite 存储层和 repository/service 分层：
 
 - `src/storage.py` 保留 `DatabaseManager` 单例装配与会话入口，业务查询/写入以同名薄委托转发到 `src/infrastructure/persistence/repositories/`；引擎、PRAGMA 与写事务重试在 `src/infrastructure/persistence/session.py`，启动期 schema 升级在 `schema_compat.py`；ORM 模型按业务域放在 `src/infrastructure/persistence/models/`（告警表见 `models/alert.py`）。
-- `src/repositories/` 放置数据访问层，例如 `PortfolioRepository`。
-- `src/services/` 放置业务服务层，例如 `PortfolioService`、`PortfolioRiskService`。
+- `src/infrastructure/persistence/repositories/` 放置数据访问层，例如 `PortfolioRepository`。
+- `src/application/` 放置业务服务层（按业务域分包），例如 `PortfolioService`、`PortfolioRiskService`。
 - 默认数据库路径跟随现有配置，通常落在 `data/stock_analysis.db`。
 
 P1/P2 实现告警持久化时，推荐优先复用以上模式：在 storage 层定义 alert ORM 模型，在 repository 层封装 CRUD 和查询，在 service 层处理规则校验、评估状态、通知结果和冷却语义。P0 不新建表，不改变现有数据库。
@@ -251,7 +251,7 @@ P4 让真实告警触发具备可排障的通知结果，并让通过 Alert API 
 - cooldown 分层：
   - DB 持久化规则正常路径使用 `alert_cooldowns` 作为告警业务冷却，不再由 worker 进程内 fingerprint 决定；仅当读取持久化冷却状态失败时，临时使用进程内 fingerprint 防止同一规则在 DB 异常期间每轮重复推送。
   - legacy `AGENT_EVENT_ALERT_RULES_JSON` 规则继续使用 worker 进程内 fingerprint，不写 `alert_cooldowns`。
-  - `notification_noise.py` 仍作为通知基础设施层的全局安全网；它不是告警业务 cooldown，且被其抑制时不会写入或延长 `alert_cooldowns`。
+  - 通知降噪模块（架构迁移 D-03 后现为 `src/application/notification/noise.py`，原 `notification_noise.py`）仍作为通知基础设施层的全局安全网；它不是告警业务 cooldown，且被其抑制时不会写入或延长 `alert_cooldowns`。
 - DB 规则的 `cooldown_policy.cooldown_seconds` 归一为非负整数；缺失时使用默认 24 小时业务冷却，`0` 表示关闭 DB 业务冷却。
 - `GET /api/v1/alerts/rules` 会返回只读 `last_triggered_at` / `cooldown_until` / `cooldown_active` 摘要；`cooldown_active` 由后端按同一冷却时间语义计算，Web 不在浏览器本地解析 naive ISO 字符串来推断状态。
 - Web 告警中心只读展示冷却状态和通知结果，不提供 cooldown policy 编辑表单。
@@ -295,7 +295,7 @@ P5 支持的 `alert_type` 与 `parameters`：
 兼容边界：
 
 - `AGENT_EVENT_ALERT_RULES_JSON` 仍是 legacy JSON 路径，只支持 `price_cross`、`price_change_percent`、`volume_spike` 三类规则；P5 技术指标只通过 Alert API / Web 创建。
-- 不扩展 `src/agent/events.py` 的 legacy `AlertType` 或 `_RUNTIME_SUPPORTED_ALERT_TYPES`。
+- 不扩展 `src/application/alert/events.py` 的 legacy `AlertType` 或 `_RUNTIME_SUPPORTED_ALERT_TYPES`。
 - P5 创建/更新参数错误沿用现有 Alert API 错误契约：HTTP 400 + `validation_error`；unsupported 类型返回 HTTP 400 + `unsupported_alert_type`。
 - Web 告警中心只扩展现有创建表单、列表展示、类型筛选和 dry-run 测试，不新增规则编辑器；dry-run 测试不写触发历史，且 API 响应仍沿用 `triggered` / `not_triggered` / `evaluation_error` 三态，worker 写入的 `degraded` 状态通过触发历史查看。
 - 回滚 P5 PR 后，数据库中已创建的技术指标规则记录会保留；旧代码在 worker 加载阶段遇到 unsupported `alert_type` 会 skip，不影响 legacy 三类规则继续执行。如需清理，需要维护者确认后手动删除相关 `alert_rules` 记录。

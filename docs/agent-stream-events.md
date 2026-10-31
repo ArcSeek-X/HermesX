@@ -105,9 +105,9 @@ The focused tests should confirm that:
 
 To roll back this event-contract change, revert the commit that introduced:
 
-- `src/agent/stream_events.py`
-- the event-helper wiring in `src/agent/runner.py`
-- the stage-event wiring in `src/agent/orchestrator.py`
+- `src/application/agent/stream_events.py`
+- the event-helper wiring in `src/application/agent/runner.py`
+- the stage-event wiring in `src/application/agent/orchestrator.py`
 - the Web `ProgressStep` and Chat page rendering updates
 
 Because the change is additive and keeps `done` / `error` semantics unchanged,

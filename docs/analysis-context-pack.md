@@ -8,8 +8,8 @@
 
 | 术语 | 当前含义 | 当前主要消费方 | P0 边界 |
 | --- | --- | --- | --- |
-| `storage.get_analysis_context()` | `src/storage.py` 中从数据库最近两天 OHLCV 生成的技术面简上下文，包含 `today`、`yesterday`、`volume_change_ratio`、`price_change_ratio`、`ma_status` 等。当前实现接收 `target_date`，但实际仍取最新两天数据。 | 普通分析主链路、Agent 工具 `get_analysis_context` | 记录为历史技术面输入来源，不把它直接等同于未来 pack。 |
-| `enhanced_context` | 普通分析中由 `src/core/pipeline.py` 基于 DB 简上下文、实时行情、筹码、趋势、基本面和语言信息增强后的 prompt 上下文。 | `src/analyzer.py` prompt 渲染、`_build_context_snapshot()` | 记录当前 prompt 输入面；P0 不改变字段名或结构。 |
+| `storage.get_analysis_context()` | `src/infrastructure/persistence/repositories/market_data_repo.py` 中从数据库最近两天 OHLCV  生成的技术面简上下文（`DatabaseManager` 上只是同名薄委托），包含 `today`、`yesterday`、`volume_change_ratio`、`price_change_ratio`、`ma_status` 等。当前实现接收 `target_date`，但实际仍取最新两天数据。 | 普通分析主链路、Agent 工具 `get_analysis_context` | 记录为历史技术面输入来 源，不把它直接等同于未来 pack。 |
+| `enhanced_context` | 普通分析中由 `src/application/analysis/pipeline.py` 基于 DB 简上下文、实时行情、筹码、趋势、基本面和语言信息增强后的 prompt 上下文。 | `src/application/analysis/analyzer.py` prompt 渲染、`_build_context_snapshot()` | 记录当前 prompt 输入面；P0 不改变字段名或结构。 |
 | `analysis_history.context_snapshot` | 分析完成后写入历史表的持久化快照。普通分析通常包含 `enhanced_context`、`news_content`、`realtime_quote_raw`、`chip_distribution_raw`；Agent 路径保存 `initial_context`。 | 历史详情、同步 analysis/status 响应、回测、部分基本面 fallback 展示 | 记录为持久化消费面；必须保留 `context_snapshot.enhanced_context.date` 兼容。 |
 | Agent executor message context | `AgentExecutor._build_user_message()` 注入首轮用户消息的上下文，适用于 `AGENT_ARCH=single` 路径，目前包含股票代码、报告类型、输出语言、`realtime_quote`、`chip_distribution`、`news_context`。 | 单 Agent 首轮 LLM 消息 | 记录当前首轮可见字段；P0 不补 runtime 注入。 |
 | Agent orchestrator `AgentContext` | `AgentOrchestrator._build_context()` 写入多 Agent 共享上下文，适用于 `AGENT_ARCH=multi` 路径，可预注入 `realtime_quote`、`daily_history`、`chip_distribution`、`trend_result`、`news_context`。 | Technical / Intel / Risk / Decision 多 Agent 链路 | 记录为 orchestrator 内部共享数据面；不预注入 `fundamental_context`，`trend_result` 是否存在取决于 caller 是否传入。 |
@@ -28,7 +28,7 @@ P0 的目标是让后续 P1/P2/P3 可以基于真实仓库边界设计 `Analysis
 
 ## P1 内部契约
 
-P1 落地 `src/schemas/analysis_context_pack.py`，只定义内部 schema/envelope，方便 P2 builder 和 P3 runtime 消费时复用同一结构。P1 不填充运行时数据、不新增 fetcher、不改变 Prompt、不写入 history/task/report metadata，也不把完整 pack 暴露到 API、Web、Bot、Desktop 或通知。
+P1 落地 `src/domain/analysis/context_pack.py`，只定义内部 schema/envelope，方便 P2 builder 和 P3 runtime 消费时复用同一结构。P1 不填充运行时数据、不新增 fetcher、不改变 Prompt、不写入 history/task/report metadata，也不把完整 pack 暴露到 API、Web、Bot、Desktop 或通知。
 
 P1 schema 包含：
 
@@ -108,11 +108,11 @@ P3 当时不持久化完整 pack，不新增 API/Web/Bot/Desktop 字段，不改
 #1381 在 AnalysisContextPack 之外新增一个小型每日大盘环境摘要通道，避免把 `market_review` / `market_light` 直接 pack 化。`DAILY_MARKET_CONTEXT_ENABLED` 默认开启；当 `MARKET_REVIEW_ENABLED=true` 且 `DAILY_MARKET_CONTEXT_ENABLED=true` 时，`StockAnalysisPipeline` 会按个股市场（`cn` / `hk` / `us`）加载当日大盘上下文：优先复用 `analysis_history(code=MARKET, report_type=market_review)` 中同日同市场记录；没有同日记录时才调用 `run_market_review(..., return_structured=True, send_notification=False)` 生成本次上下文，且通过进程内 cache 避免同一 Pipeline 重复生成，并在 CLI/定时任务并发路径上通过 market review lock 串行化生成。`DAILY_MARKET_CONTEXT_ENABLED=false` 只关闭个股分析的低敏摘要注入与保守护栏，不关闭大盘复盘本身。
 
 **Background：**`#1381` 聚焦单股分析的当日大盘上下文复用与回退控制，不改变现有日内阶段、日报或状态建模架构。该段与 `documents/CHANGELOG.md` [Unreleased] 的 #1381 条目保持一致，可作为本轮变更说明的收敛边界。
-**Scope（本轮实现范围）：**`#1381` 仅覆盖后端 runtime 的大盘上下文注入、当日/目标交易日复用控制与保守护栏；不包含独立 API、Web 阶段结果独立展示、四阶段日报结构化持久化或新增日报状态表。涉及主要入口为 `main.py`（调度与 `--no-market-review`）、`src/core/pipeline.py`、`src/core/market_review.py`、`src/services/daily_market_context.py`、`src/analyzer.py`、`src/analysis_context_pack_overview.py`、`src/agent/executor.py`、`src/agent/orchestrator.py`、`src/agent/agents/base_agent.py`、`src/daily_market_context_guardrail.py`；Web 侧仅同步 `DAILY_MARKET_CONTEXT_ENABLED` 设置项文案/帮助，不新增阶段结果展示。
+**Scope（本轮实现范围）：**`#1381` 仅覆盖后端 runtime 的大盘上下文注入、当日/目标交易日复用控制与保守护栏；不包含独立 API、Web 阶段结果独立展示、四阶段日报结构化持久化或新增日报状态表。涉及主要入口为 `main.py`（调度与 `--no-market-review`）、`src/application/analysis/pipeline.py`、`src/application/market/market_review.py`、`src/application/market/daily_market_context.py`、`src/application/analysis/analyzer.py`、`src/application/analysis/context_pack_overview.py`、`src/application/agent/executor.py`、`src/application/agent/orchestrator.py`、`src/application/agent/agents/base_agent.py`、`src/domain/market/daily_context_guardrail.py`；Web 侧仅同步 `DAILY_MARKET_CONTEXT_ENABLED` 设置项文案/帮助，不新增阶段结果展示。
 **验收闭环边界：**本 PR 仅对应 `#1381` 的 runtime 接入与护栏子目标；除非独立 API、Web 阶段展示、四阶段日报持久化和日报状态表已在后续变更中落地并验证，否则不得把 Issue #1381 标记为完整验收通过。
 **Acceptance Criteria（验收边界）：**本轮仅按 runtime 与配置入口验收，不纳入 PR 过程中的 API/Web UI 独立阶段展示验收。当前验收路径限制为 `tests/test_main_schedule_mode.py`、`tests/test_pipeline_daily_market_context.py`、`tests/test_daily_market_context.py`、`tests/test_daily_market_context_guardrail.py`、`tests/test_agent_executor.py`、`tests/test_config_env_compat.py`、`tests/test_config_registry.py` 和 `apps/hrs-web/tests/system_config_i18n.test.ts`。重点覆盖项为：`--no-market-review` 禁止触发大盘复盘生成、`DAILY_MARKET_CONTEXT_ENABLED=false` 关闭个股上下文注入但保留大盘复盘、单次 schedule 复用同一 `target_date`、多市场上下文加载（`cn,us`）、`daily_market_context` 只在同一次分析主链路注入一次、普通分析与 Agent 路径应用护栏且不泄漏原始 `market_review_payload`。
-**Compatibility/Risk（兼容与风险）：**`#1381` 不改变 `provider/model/base_url`、默认模型或配置清理/回填/迁移语义；不新增数据库或运行时配置表变更。`main.py::_bootstrap_environment`、`src/core/pipeline.py`、`src/analyzer.py`、`src/agent/executor.py`、`src/agent/orchestrator.py`、`src/agent/agents/base_agent.py`、`src/services/daily_market_context.py`、`src/daily_market_context_guardrail.py` 只在既有读取链路消费 LLM 与市场复盘上下文，不新增 `SystemConfig` 保存或回写分支。官方兼容依据沿用 `LiteLLM OpenAI-compatible` 与 `OpenAI Chat Completion`（见后文“兼容性证据与核验边界”）；回滚方式为常规发布回滚（撤销相关提交），如必要可配合重启并清理 `env_file` / `--env-file` / 进程级同名环境覆盖项，恢复用户历史持久化配置。
-**兼容性证据与核验边界：**本轮仅复用既有 LLM 配置链路读取配置，不新增 `.env` 写入分支，不新增配置迁移/清理/回写入口。官方依据沿用：`LiteLLM OpenAI-compatible` <https://docs.litellm.ai/docs/providers/openai_compatible>、`OpenAI Chat Completion` <https://platform.openai.com/docs/api-reference/chat/create>；版本约束见 `requirements.txt`（`litellm`、`openai`）当前窗口。可回溯代码路径：`main.py::_bootstrap_environment`、`src/analyzer.py::_init_litellm`、`src/agent/agents/base_agent.py::_get_analyzer_config`（仅读取）、`src/agent/executor.py`、`src/agent/orchestrator.py`、`src/core/pipeline.py`、`src/services/daily_market_context.py`、`src/daily_market_context_guardrail.py`。回归核验点为 `tests/test_config_env_compat.py`、`tests/test_config_registry.py`、`tests/test_system_config_service.py`、`tests/test_system_config_api.py`、`tests/test_llm_channel_config.py`、`tests/test_market_review_runtime.py`。
+**Compatibility/Risk（兼容与风险）：**`#1381` 不改变 `provider/model/base_url`、默认模型或配置清理/回填/迁移语义；不新增数据库或运行时配置表变更。`main.py::_bootstrap_environment`、`src/application/analysis/pipeline.py`、`src/application/analysis/analyzer.py`、`src/application/agent/executor.py`、`src/application/agent/orchestrator.py`、`src/application/agent/agents/base_agent.py`、`src/application/market/daily_market_context.py`、`src/domain/market/daily_context_guardrail.py` 只在既有读取链路消费 LLM 与市场复盘上下文，不新增 `SystemConfig` 保存或回写分支。官方兼容依据沿用 `LiteLLM OpenAI-compatible` 与 `OpenAI Chat Completion`（见后文“兼容性证据与核验边界”）；回滚方式为常规发布回滚（撤销相关提交），如必要可配合重启并清理 `env_file` / `--env-file` / 进程级同名环境覆盖项，恢复用户历史持久化配置。
+**兼容性证据与核验边界：**本轮仅复用既有 LLM 配置链路读取配置，不新增 `.env` 写入分支，不新增配置迁移/清理/回写入口。官方依据沿用：`LiteLLM OpenAI-compatible` <https://docs.litellm.ai/docs/providers/openai_compatible>、`OpenAI Chat Completion` <https://platform.openai.com/docs/api-reference/chat/create>；版本约束见 `requirements.txt`（`litellm`、`openai`）当前窗口。可回溯代码路径：`main.py::_bootstrap_environment`、`src/application/analysis/analyzer.py::_init_litellm`、`src/application/agent/agents/base_agent.py::_get_analyzer_config`（仅读取）、`src/application/agent/executor.py`、`src/application/agent/orchestrator.py`、`src/application/analysis/pipeline.py`、`src/application/market/daily_market_context.py`、`src/domain/market/daily_context_guardrail.py`。回归核验点为 `tests/test_config_env_compat.py`、`tests/test_config_registry.py`、`tests/test_system_config_service.py`、`tests/test_system_config_api.py`、`tests/test_llm_channel_config.py`、`tests/test_market_review_runtime.py`。
 
 普通分析与 Agent 分析只接收低敏字段：`daily_market_context`（region、trade_date、summary、risk_tags、source、可选 position_cap）和 `daily_market_context_summary` Prompt 段，不传递完整 `market_review_payload`、原始新闻、密钥或通知配置。普通分析 Prompt 在市场阶段段落后、技术面数据前插入大盘摘要；Agent 单体与多 Agent 路径在 market phase 后、pre-fetched 数据前插入同一摘要。Agent 自由聊天只在调用方已经提供 `daily_market_context` / `daily_market_context_summary` 时注入，不为每次聊天自动触发大盘复盘。
 
@@ -256,43 +256,43 @@ P6 不改变 P1-P5 的运行时行为，只把已经落地的契约、可见性�
 
 ### 普通分析
 
-普通分析主链路在 `src/core/pipeline.py` 中组装输入：先读取 `storage.get_analysis_context()`，再按可用性补充实时行情、筹码、趋势分析、新闻、基本面和报告语言，最后交给 `src/analyzer.py` 渲染 prompt。当前重复点主要是实时字段同时存在于 `enhanced_context.realtime`、`realtime_quote_raw` 和报告 meta；命名上存在 `source`、`data_source`、`realtime_source` 等多种来源字段。
+普通分析主链路在 `src/application/analysis/pipeline.py` 中组装输入：先读取 `storage.get_analysis_context()`，再按可用性补充实时行情、筹码、趋势分析、新闻、基本面和报告语言，最后交给 `src/application/analysis/analyzer.py` 渲染 prompt。当前重复点主要是实时字段同时存在于 `enhanced_context.realtime`、`realtime_quote_raw` 和报告 meta；命名上存在 `source`、`data_source`、`realtime_source` 等多种来源字段。
 
 首版 pack 可从普通分析路径抽取单股核心身份、行情、日线、技术、新闻、基本面和数据质量摘要；P0 不改变 `_enhance_context()`、`_build_context_snapshot()` 或 analyzer prompt。
 
 ### Agent
 
-Agent 有三层需要分开记录的数据面。`src/core/pipeline.py` 的 Agent 路径会构造 `initial_context`，固定包含 `fundamental_context`，并在可用时加入 `trend_result`，最终作为 Agent 路径的 `context_snapshot` 持久化。`AgentExecutor._build_user_message()` 只适用于 `AGENT_ARCH=single`，首轮消息只显式注入 `realtime_quote`、`chip_distribution`、`news_context` 等已取上下文，不显式注入 `fundamental_context` 或 `trend_result`。`AgentOrchestrator._build_context()` 适用于 `AGENT_ARCH=multi`，可预注入 `realtime_quote`、`daily_history`、`chip_distribution`、`trend_result`、`news_context`，这些进入 `AgentContext` 的字段会作为 pre-fetched data 注入 stage agent 消息；但 orchestrator 不预注入 `fundamental_context`。`trend_result` 不是天然存在，取决于 caller 是否传入。
+Agent 有三层需要分开记录的数据面。`src/application/analysis/pipeline.py` 的 Agent 路径会构造 `initial_context`，固定包含 `fundamental_context`，并在可用时加入 `trend_result`，最终作为 Agent 路径的 `context_snapshot` 持久化。`AgentExecutor._build_user_message()` 只适用于 `AGENT_ARCH=single`，首轮消息只显式注入 `realtime_quote`、`chip_distribution`、`news_context` 等已取上下文，不显式注入 `fundamental_context` 或 `trend_result`。`AgentOrchestrator._build_context()` 适用于 `AGENT_ARCH=multi`，可预注入 `realtime_quote`、`daily_history`、`chip_distribution`、`trend_result`、`news_context`，这些进入 `AgentContext` 的字段会作为 pre-fetched data 注入 stage agent 消息；但 orchestrator 不预注入 `fundamental_context`。`trend_result` 不是天然存在，取决于 caller 是否传入。
 
 Agent 工具还会独立调用 `get_realtime_quote`、`get_daily_history`、`get_chip_distribution`、`get_analysis_context`、`get_stock_info` 等工具，容易与普通分析前置获取产生重复请求。当前 pack 生成只在 Agent 历史预取后复用 `storage.get_analysis_context()` 的日线可用性状态，不复用或暴露完整工具级 pack cache；P5 再决定是否做更深的数据质量评分与工具缓存复用。
 
 ### 告警
 
-告警链路在 `src/services/alert_worker.py` 中评估规则、记录触发历史并分发通知，具体字段语义见 [实时告警中心](../documents/product/实时告警中心/alerts.md)。告警状态如 `triggered`、`skipped`、`degraded`、`failed` 是规则评估或记录状态，不能直接写入字段质量枚举。
+告警链路在 `src/application/alert/worker.py` 中评估规则、记录触发历史并分发通知，具体字段语义见 [实时告警中心](../documents/product/实时告警中心/alerts.md)。告警状态如 `triggered`、`skipped`、`degraded`、`failed` 是规则评估或记录状态，不能直接写入字段质量枚举。
 
 首版 pack 不把告警规则评估作为输入数据块；告警后续只消费 pack 的字段质量摘要，例如核心行情是否 fallback、是否 stale、是否 partial。
 
 ### 持仓
 
-持仓快照在 `src/services/portfolio_service.py` 中聚合账户、仓位、成本、价格、汇率和风险输入，API 输出结构在 `api/v1/schemas/portfolio.py`。当前已有 `price_source`、`price_provider`、`price_date`、`price_stale`、`price_available`、`fx_stale` 等字段。
+持仓快照在 `src/application/portfolio/portfolio_service.py` 中聚合账户、仓位、成本、价格、汇率和风险输入，API 输出结构在 `api/v1/schemas/portfolio.py`。当前已有 `price_source`、`price_provider`、`price_date`、`price_stale`、`price_available`、`fx_stale` 等字段。
 
 首版 pack 可记录“是否持仓、账户摘要、成本、数量、仓位、浮盈浮亏、价格/汇率 stale 摘要”，但不纳入交易流水、现金流水、公司行动或完整账户隐私数据。
 
 ### 回测
 
-回测服务在 `src/services/backtest_service.py` 和 `src/repositories/backtest_repo.py` 中消费历史分析记录与日线数据。现有 `parse_analysis_date_from_snapshot()` 依赖 `analysis_history.context_snapshot.enhanced_context.date` 解析分析日期。
+回测服务在 `src/application/backtest/service.py` 和 `src/infrastructure/persistence/repositories/backtest_repository.py` 中消费历史分析记录与日线数据。现有 `parse_analysis_date_from_snapshot()`（实现已下沉 `src/domain/analysis/analysis_context_snapshot.py`）依赖 `analysis_history.context_snapshot.enhanced_context.date` 解析分析日期。
 
 P0 必须把 `enhanced_context.date` 标为兼容边界。后续 pack 可以新增更清晰的日期字段，但不能无迁移地删除或改名当前历史快照中的日期位置。
 
 ### 历史
 
-历史详情在 `src/services/history_service.py`、`api/v1/endpoints/history.py`、`api/v1/schemas/history.py` 中返回 `raw_result`、`news_content`、`context_snapshot` 等字段。同步 analysis/status 响应也会在 `api/v1/endpoints/analysis.py` 中读取 `context_snapshot.enhanced_context`、`realtime_quote_raw` 和基本面 fallback。
+历史详情在 `src/application/history/read_model.py`、`api/v1/endpoints/history.py`、`api/v1/schemas/history.py` 中返回 `raw_result`、`news_content`、`context_snapshot` 等字段。同步 analysis/status 响应也会在 `api/v1/endpoints/analysis.py` 中读取 `context_snapshot.enhanced_context`、`realtime_quote_raw` 和基本面 fallback。
 
 P0 只记录历史消费面。完整 pack 不应默认公开到历史详情或公共 API；后续 P4 如需展示，应优先暴露摘要、来源和降级说明。
 
 ### 通知
 
-通知链路在 `src/notification.py` 中消费 `AnalysisResult`、dashboard、market snapshot、data_sources 等输出，并记录 `sent`、`no_channel`、`partial_failed`、`all_failed` 等投递状态；渠道配置与边界见 [通知能力基线](notifications.md)。
+通知链路在 `src/application/notification/notification.py` 中消费 `AnalysisResult`、dashboard、market snapshot、data_sources 等输出，并记录 `sent`、`no_channel`、`partial_failed`、`all_failed` 等投递状态；渠道配置与边界见 [通知能力基线](notifications.md)。
 
 通知不是事实数据层，不能把投递失败误写成输入质量失败。后续只应在必要时消费 pack 摘要，例如“实时行情已降级”“基本面缺失”“新闻源不足”。
 
@@ -300,13 +300,13 @@ P0 只记录历史消费面。完整 pack 不应默认公开到历史详情或�
 
 | 域 | 锚点 |
 | --- | --- |
-| 普通分析 | `src/core/pipeline.py`, `src/storage.py`, `src/analyzer.py` |
-| Agent | `src/agent/orchestrator.py`, `src/agent/executor.py`, `src/agent/tools/data_tools.py` |
-| 告警 | `src/services/alert_worker.py`, `documents/product/实时告警中心/alerts.md` |
-| 持仓 | `src/services/portfolio_service.py`, `api/v1/schemas/portfolio.py` |
-| 回测 | `src/services/backtest_service.py`, `src/repositories/backtest_repo.py` |
-| 历史 | `src/services/history_service.py`, `api/v1/endpoints/history.py`, `api/v1/endpoints/analysis.py`, `api/v1/schemas/history.py` |
-| 通知 | `src/notification.py`, `docs/notifications.md` |
+| 普通分析 | `src/application/analysis/pipeline.py`, `src/storage.py`, `src/infrastructure/persistence/repositories/market_data_repo.py`, `src/application/analysis/analyzer.py` |
+| Agent | `src/application/agent/orchestrator.py`, `src/application/agent/executor.py`, `src/application/agent/tools/data_tools.py` |
+| 告警 | `src/application/alert/worker.py`, `documents/product/实时告警中心/alerts.md` |
+| 持仓 | `src/application/portfolio/portfolio_service.py`, `api/v1/schemas/portfolio.py` |
+| 回测 | `src/application/backtest/service.py`, `src/infrastructure/persistence/repositories/backtest_repository.py` |
+| 历史 | `src/application/history/read_model.py`, `api/v1/endpoints/history.py`, `api/v1/endpoints/analysis.py`, `api/v1/schemas/history.py` |
+| 通知 | `src/application/notification/notification.py`, `docs/notifications.md` |
 
 ## 兼容与安全边界
 

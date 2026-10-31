@@ -5,7 +5,7 @@ description: "分析股票和市场。当用户想要分析单个或多个股票
 
 # 股票分析器
 
-本技能基于 `src/services/analyzer_service.py` 的逻辑，提供分析股票和整体市场的功能。
+本技能基于 `src/application/analysis/analyzer_service.py` 的逻辑，提供分析股票和整体市场的功能。
 
 ## 输出结构 (`AnalysisResult`)
 
@@ -23,7 +23,7 @@ description: "分析股票和市场。当用户想要分析单个或多个股票
 
 如果未提供 `config` 对象，函数将自动使用从 `.env` 文件加载的全局单例实例。
 
-**参考:** [`Config`](src/config.py)
+**参考:** [`Config`](src/config/settings.py)
 
 ## 函数
 
@@ -45,7 +45,7 @@ description: "分析股票和市场。当用户想要分析单个或多个股票
 **示例:**
 
 ```python
-from src.services.analyzer_service import analyze_stock
+from src.application.analysis.analyzer_service import analyze_stock
 
 # 分析单只股票
 result = analyze_stock("600989")
@@ -55,7 +55,7 @@ if result:
     print(f"操作建议: {result.operation_advice}")
 ```
 
-**参考:** [`analyze_stock`](src/services/analyzer_service.py)
+**参考:** [`analyze_stock`](src/application/analysis/analyzer_service.py)
 
 ### 2. 分析多只股票
 
@@ -75,7 +75,7 @@ if result:
 **示例:**
 
 ```python
-from src.services.analyzer_service import analyze_stocks
+from src.application.analysis.analyzer_service import analyze_stocks
 
 # 分析多只股票
 results = analyze_stocks(["600989", "000001"])
@@ -83,7 +83,7 @@ for result in results:
     print(f"股票: {result.name}, 操作建议: {result.operation_advice}")
 ```
 
-**参考:** [`analyze_stocks`](src/services/analyzer_service.py)
+**参考:** [`analyze_stocks`](src/application/analysis/analyzer_service.py)
 
 
 ### 3. 执行大盘复盘
@@ -102,7 +102,7 @@ for result in results:
 **示例:**
 
 ```python
-from src.services.analyzer_service import perform_market_review
+from src.application.analysis.analyzer_service import perform_market_review
 
 # 执行大盘复盘
 report = perform_market_review()
@@ -110,4 +110,4 @@ if report:
     print(report)
 ```
 
-**参考:** [`perform_market_review`](src/services/analyzer_service.py)
+**参考:** [`perform_market_review`](src/application/analysis/analyzer_service.py)

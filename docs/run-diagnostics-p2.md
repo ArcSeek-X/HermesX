@@ -50,11 +50,11 @@ GET /api/v1/history/{record_id}/diagnostics
 
 ### 结构化检测告警澄清
 
-- 自动化检测命中的“模型/provider/base URL 兼容风险”来源是：`src/agent/factory.py` 新增了 `agent_max_steps` 与 `agent_orchestrator_timeout_s` 的 **数字安全兜底**（`_coerce_config_int`），因此扫描可能将其误识别为配置敏感路径；该命中属于测试与路由保护触发，不是运行时配置或兼容语义变更。
+- 自动化检测命中的“模型/provider/base URL 兼容风险”来源是：`src/application/agent/factory.py` 新增了 `agent_max_steps` 与 `agent_orchestrator_timeout_s` 的 **数字安全兜底**（`_coerce_config_int`），因此扫描可能将其误识别为配置敏感路径；该命中属于测试与路由保护触发，不是运行时配置或兼容语义变更。
 - 当数值配置存在非法值时，系统会记录 `warning` 到 `src.agent.factory` 日志（示例：`[AgentFactory] Invalid value for agent_max_steps...`），并回退到默认值；日志用于定位“参数未生效”类问题，与模型/provider/base URL 兼容性独立。
 - 本轮确认无静默迁移/清空/改写：
-  - `src/core/pipeline.py` 与 `src/services/analysis_service.py` 仅新增诊断记录，不修改 `Config` 中任何 `litellm_model`、`agent_litellm_model`、`openai_base_url` 或 channel `LLM_*` 字段。
-  - `src/agent/factory.py` 的 `_coerce_config_int` 只在构建执行参数时计算 `max_steps` 与 `timeout_seconds`，并且不写回到 `config` 对象；`litellm_model`、`agent_litellm_model`、`openai_base_url` 原值在构造链路中完整透传。
+  - `src/application/analysis/pipeline.py` 与 `src/application/analysis/analysis_service.py` 仅新增诊断记录，不修改 `Config` 中任何 `litellm_model`、`agent_litellm_model`、`openai_base_url` 或 channel `LLM_*` 字段。
+  - `src/application/agent/factory.py` 的 `_coerce_config_int` 只在构建执行参数时计算 `max_steps` 与 `timeout_seconds`，并且不写回到 `config` 对象；`litellm_model`、`agent_litellm_model`、`openai_base_url` 原值在构造链路中完整透传。
   - 本轮不触发 `Config` 的运行时清理、持久化回写或迁移流程，因此不存在写回导致运行时配置被重写的风险。
 - 回归验证：`tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_does_not_mutate_llm_route_config` 与 `tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_multi_arch_does_not_mutate_llm_route_config` 明确断言上述字段在 `build_agent_executor` 后保持原值。
 - 回退路径：如需恢复到旧行为，移除本轮相关提交；或将 `diag_*` 字段从 `context_snapshot`/`RunDiagnosticSummary` 的反序列化链路中移除。主链路与模型/provider 配置无需额外迁移或修复。
@@ -63,5 +63,5 @@ GET /api/v1/history/{record_id}/diagnostics
 
 ```bash
 python -m pytest tests/test_run_diagnostics_p2.py tests/test_run_diagnostics_p1.py
-python -m py_compile src/services/run_diagnostics.py src/services/history_service.py api/v1/endpoints/history.py api/v1/schemas/history.py
+python -m py_compile src/application/runtime/run_diagnostics.py src/application/history/read_model.py api/v1/endpoints/history.py api/v1/schemas/history.py
 ```

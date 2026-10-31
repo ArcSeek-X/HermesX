@@ -51,7 +51,7 @@ flowchart TB
 ```
 bot/
 ├── __init__.py             # Module entry, exports main classes
-├── models.py               # Unified message/response models
+├── models.py               # Outbound response models (inbound model: src/domain/notification/bot_message.py)
 ├── dispatcher.py           # Command dispatcher (core)
 ├── handler.py              # Webhook handler functions (one per platform)
 ├── commands/               # Command handlers
@@ -76,7 +76,9 @@ bot/
 
 ## 3. Core Abstractions
 
-### 3.1 Unified Message Model (`bot/models.py`)
+### 3.1 Unified Message Model (inbound `src/domain/notification/bot_message.py` / outbound `bot/models.py`)
+
+The inbound model `BotMessage` / `ChatType` / `Platform` is consumed by platform adapters, application orchestration (`src/application/analysis/pipeline.py`, `src/application/runtime/task_service.py`) and notification code (`src/application/notification/notification.py`). As a pure `dataclass`/`Enum` data contract it has been pushed down to the domain layer at `src/domain/notification/bot_message.py` (kept neutral: it depends on neither the `bot` driver layer nor the application layer). `bot/models.py` keeps only the outbound response models (`BotResponse` / `WebhookResponse`); `from bot import BotMessage, ChatType` still works.
 
 ```python
 @dataclass
@@ -244,6 +246,14 @@ WECOM_ENCODING_AES_KEY=
 TELEGRAM_BOT_TOKEN=           # Get from @BotFather
 TELEGRAM_WEBHOOK_SECRET=      # Webhook secret token
 ```
+
+> Settings page: `BOT_ENABLED`, `BOT_COMMAND_PREFIX`, `BOT_ADMIN_USERS`, `FEISHU_VERIFICATION_TOKEN`, `FEISHU_ENCRYPT_KEY`, the Feishu delivery fields, and `EMAIL_SENDER_NAME` are now editable in the Web settings page under the Notification category. See [Environment variables](full-guide_EN.md#bot-and-event-callback-configuration) for the full field list.
+>
+> Effective boundary: `BOT_ENABLED` is read per request, so a saved change applies to the next callback. `BOT_COMMAND_PREFIX` and `BOT_ADMIN_USERS` are captured when the command dispatcher singleton is first built and the save path does not reset it, so they need a process restart. The Feishu event token and encrypt key are read when the Stream client connects, which also needs a restart.
+>
+> `BOT_ENABLED` only gates the webhook command entry; it does not drop established Feishu / DingTalk Stream connections, which are started by `FEISHU_STREAM_ENABLED` / `DINGTALK_STREAM_ENABLED` at startup.
+>
+> `BOT_ADMIN_USERS` has no visible effect yet: the dispatcher enforces `admin_only`, but no built-in command declares it (`bot/commands/batch.py` returns `False`).
 
 ---
 

@@ -47,7 +47,7 @@ flowchart TB
 ```
 bot/
 ├── __init__.py             # 模块入口，导出主要类
-├── models.py               # 统一的消息/响应模型
+├── models.py               # 出站响应模型（入站消息模型见 src/domain/notification/bot_message.py）
 ├── dispatcher.py           # 命令分发器（核心）
 ├── commands/               # 命令处理器
 │   ├── __init__.py
@@ -68,7 +68,9 @@ bot/
 
 ## 三、核心抽象设计
 
-### 3.1 统一消息模型 (`bot/models.py`)
+### 3.1 统一消息模型（入站 `src/domain/notification/bot_message.py` / 出站 `bot/models.py`）
+
+入站消息模型 `BotMessage` / `ChatType` / `Platform` 被平台适配器、应用编排（`src/application/analysis/pipeline.py`、`src/application/runtime/task_service.py`）与通知实现（`src/application/notification/notification.py`）共同消费，作为纯 `dataclass`/`Enum` 数据契约已下沉到领域层 `src/domain/notification/bot_message.py`（保持中立、既不依赖 `bot` 驱动层也不依赖应用层）。`bot/models.py` 只保留驱动层返回的出站响应模型（`BotResponse` / `WebhookResponse`）；`from bot import BotMessage, ChatType` 仍可用。
 
 ```python
 @dataclass
@@ -236,11 +238,11 @@ class CommandDispatcher:
 
 ## 配置
 
-在 [config.py](../src/config.py) 中新增机器人配置：
+在 [settings.py](../src/config/settings.py) 中新增机器人配置：
 
 ```python
 # === 机器人配置 ===
-bot_enabled: bool = False              # 是否启用机器人
+bot_enabled: bool = True               # 是否启用机器人（Webhook 命令入口）
 bot_command_prefix: str = "/"          # 命令前缀
 
 # 飞书机器人（事件订阅）
@@ -262,6 +264,12 @@ telegram_bot_token: str                # 已有
 telegram_webhook_secret: str           # 新增：Webhook 密钥
 ```
 
+> 设置页入口：`BOT_ENABLED` / `BOT_COMMAND_PREFIX` / `BOT_ADMIN_USERS` / `FEISHU_VERIFICATION_TOKEN` / `FEISHU_ENCRYPT_KEY` 以及飞书发送形态与 `EMAIL_SENDER_NAME` 已在 Web 设置页「通知」分类开放，完整字段说明见[环境变量完整列表](full-guide.md#机器人与事件回调配置)。
+>
+> 生效边界：`BOT_ENABLED` 按请求读取（通过 `Config` 单例），保存后下一次回调即生效；`BOT_COMMAND_PREFIX` 与 `BOT_ADMIN_USERS` 在命令分发器单例首次构建时读取，且保存链路不会重置分发器，因此需重启进程；飞书事件 Token / 密钥在 Stream 客户端建连时读取，同样需重启。
+>
+> `BOT_ENABLED` 只控制 Webhook 命令入口，不断开已启动的飞书 / 钉钉 Stream 长连接；长连接由 `FEISHU_STREAM_ENABLED` / `DINGTALK_STREAM_ENABLED` 在启动时决定。
+
 ## 扩展说明
 ### 怎样新增一个通知平台
 
@@ -282,10 +290,14 @@ telegram_webhook_secret: str           # 新增：Webhook 密钥
 - 支持命令频率限制（防刷）
 - 敏感操作（如批量分析）可设置权限白名单
 
-在 [config.py](../src/config.py) 中新增机器人安全配置：
+在 [settings.py](../src/config/settings.py) 中新增机器人安全配置：
 
 ```python
     bot_rate_limit_requests: int = 10     # 频率限制：窗口内最大请求数
     bot_rate_limit_window: int = 60       # 频率限制：窗口时间（秒）
     bot_admin_users: List[str] = field(default_factory=list)  # 管理员用户 ID 列表，限制敏感操作
 ```
+
+> 当前状态：分发器已实现 `admin_only` 校验，但内置命令均未声明 `admin_only`（`bot/commands/batch.py` 返回 `False`），因此 `BOT_ADMIN_USERS` 现在不会拦住任何命令，也不会放开任何新能力。它是为后续敏感命令预留的名单，一旦有命令返回 `True`，未列入的用户会被拒绝。
+>
+> `BOT_RATE_LIMIT_REQUESTS` / `BOT_RATE_LIMIT_WINDOW` 属于内部防刷参数，与 `DISCORD_MAX_WORDS` 一起列在 `WEB_SETTINGS_HIDDEN_FROM_UI`，只在部署侧通过 `.env` 调整。

@@ -144,7 +144,7 @@ Web 入口：
 ## 兼容性边界
 
 - 本轮不新增 `.env` 配置项，不修改数据库结构，不引入数据迁移。
-- Web 只消费 Phase 1/2 已追加的可选字段和只读诊断接口；后端补齐 `src/core/pipeline.py`、`src/services/run_diagnostics.py`、`src/storage.py` 与 `src/services/history_service.py` 的诊断持久化与刷新逻辑，并通过 `api/v1/endpoints/history.py` 提供可读端点。
+- Web 只消费 Phase 1/2 已追加的可选字段和只读诊断接口；后端补齐 `src/application/analysis/pipeline.py`、`src/application/runtime/run_diagnostics.py`、`src/storage.py` 与 `src/application/history/read_model.py` 的诊断持久化与刷新逻辑，并通过 `api/v1/endpoints/history.py` 提供可读端点。
 - 后端变更范围包含任务编排、历史保存后补写、历史诊断查询与通知结果诊断记录；这些链路只追加 `context_snapshot.diagnostics` 诊断快照和摘要，不改变分析主流程、通知发送成败语义或历史报告主体字段。
 - 复制文本由后端生成并脱敏；前端只负责展示和复制。
 - Desktop 复用 Web 构建产物，未单独改动 Electron 主进程或打包脚本。
@@ -197,7 +197,7 @@ npm test -- --run src/components/report/__tests__/ReportDiagnostics.test.tsx src
 可补充确定性脚本校验：
 
 ```bash
-python -m py_compile api/v1/endpoints/analysis.py api/v1/endpoints/history.py api/v1/schemas/analysis.py api/v1/schemas/history.py src/core/pipeline.py src/services/run_diagnostics.py src/storage.py
+python -m py_compile api/v1/endpoints/analysis.py api/v1/endpoints/history.py api/v1/schemas/analysis.py api/v1/schemas/history.py src/application/analysis/pipeline.py src/application/runtime/run_diagnostics.py src/storage.py
 ```
 
 ## 回滚

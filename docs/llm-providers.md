@@ -199,7 +199,7 @@ Phase 3 只支持普通分析 / JSON generation，不支持 stream/SSE、tools�
 | `capability_unsupported` | JSON / tools / stream / vision smoke 参数不被当前模型或 endpoint 支持。 | 换支持该能力的模型，或把结果视为当前账号、模型和 endpoint 的一次能力诊断，不代表 provider 全局不支持。 |
 | `unknown_error` | 服务商或客户端抛出未能细分的异常。 | 先查看 `details.message` / 日志中的原始错误，再按网络、鉴权、模型名和额度逐项排查。 |
 
-完整分类逻辑以 `src/services/system_config_service.py` 中的错误分类实现为准。
+完整分类逻辑以 `src/application/runtime/system_config_service.py` 中的错误分类实现为准。
 
 `model_access_denied` 不是跨 provider 的官方错误码映射。该分类的可复核依据包括：
 

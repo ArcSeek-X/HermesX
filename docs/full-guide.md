@@ -228,7 +228,7 @@ HermesX/
 
 > 完整说明见 [LLM 配置指南](LLM_CONFIG_GUIDE.md)（三层配置、渠道模式、Vision、Agent、排错）；常用服务商预设、Actions 变量对照和错误排障见 [LLM 服务商配置指南](llm-providers.md)。
 > 兼容性说明（Issue #1306/#1391，顺带确认 #1381）：本节相关改动只复用已有历史写入链路展示大盘复盘结果，不新增 API/API 参数、Web 阶段结果独立展示、日报四阶段结构化持久化或日报状态表，不修改 `provider` / `model` / `base_url` 运行时路由与默认模型行为；#1381 同样仅为后端 runtime 复用，不新增配置迁移/清理/回写分支。若 Issue #1381 的 API/Web/日报结构化验收未同步落地，本 PR 不应作为完整交付收口，需留待后续 PR 继续交付。回退路径为发布回滚（可直接 revert 当前提交，或按现有配置回退链路）。兼容验证主要沿用既有约束检查（`requirements.txt`：`litellm` 版本约束）与既有配置回归测试：`tests/test_system_config_service.py`、`tests/test_system_config_api.py`、`tests/test_llm_channel_config.py`、`tests/test_market_review_runtime.py`；官方源参考：[LiteLLM OpenAI-compatible](https://docs.litellm.ai/docs/providers/openai_compatible)、[OpenAI Chat Completion API](https://platform.openai.com/docs/api-reference/chat)。
-> #1391 Phase 2 的结构化检测风险来自 `src/agent/factory.py` 的 `agent_max_steps` / `agent_orchestrator_timeout_s` int 安全兜底，属于配置读取侧的类型兼容增强，不会改写 `litellm_model`、`agent_litellm_model`、`openai_base_url` 或 `LLM_*` 路由状态；回归可复核 `tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_does_not_mutate_llm_route_config` 与 `tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_multi_arch_does_not_mutate_llm_route_config`。当配置值非法（如非数字）时，`src.agent.factory` 会记录 warning 并回退到默认值，便于排障与避免误判配置已生效。
+> #1391 Phase 2 的结构化检测风险来自 `src/application/agent/factory.py` 的 `agent_max_steps` / `agent_orchestrator_timeout_s` int 安全兜底，属于配置读取侧的类型兼容增强，不会改写 `litellm_model`、`agent_litellm_model`、`openai_base_url` 或 `LLM_*` 路由状态；回归可复核 `tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_does_not_mutate_llm_route_config` 与 `tests/test_agent_pipeline.py::TestAgentConfig::test_build_agent_executor_multi_arch_does_not_mutate_llm_route_config`。当配置值非法（如非数字）时，`src.agent.factory` 会记录 warning 并回退到默认值，便于排障与避免误判配置已生效。
 > #1815 Phase 3 的兼容边界说明：本轮仅收敛 JP/KR 与 Market Light 的服务边界，不新增 LLM provider/model/base_url 迁移逻辑，不改写 `.env` 主路由模型持久化语义。`MarketSymbol`、告警枚举与快照 `data_quality/limitations` 调整按已有 `.env` 原子 upsert 语义写入保存配置；未显示提交的键不会被清空。
 > 本节仅同步模型/渠道配置清单，不额外引入新的外部 provider / Base URL 兼容约定；兼容语义以当前仓库 `requirements.txt` 依赖约束和相关测试为准，历史回退路径见上述两份文档中“回退/恢复”说明。
 
@@ -354,6 +354,30 @@ HermesX/
 > 说明：`FEISHU_APP_ID` / `FEISHU_APP_SECRET` 用于飞书应用、云文档或 Stream Bot 模式，不会直接启用群 Webhook 推送。只想简单收群通知时，请优先配置 `FEISHU_WEBHOOK_URL`。
 >
 > 补充：若同时配置 `FEISHU_APP_ID`、`FEISHU_APP_SECRET` 和 `FEISHU_CHAT_ID`，则可启用飞书 App Bot 主动通知渠道，无需 Webhook 即可主动向指定 chat 或用户推送；`FEISHU_RECEIVE_ID_TYPE` 默认 `chat_id`，私聊时改为 `open_id`。该方式走飞书 OpenAPI Bot 会话，与群 Webhook 是两条独立链路。
+
+### 机器人与事件回调配置
+
+机器人入站命令（飞书 / 钉钉回调与 Stream 长连接）和出站通知是两条独立链路。下表字段即可在 Web 设置页「通知」分类修改，也可写在 `.env`。
+
+| 变量名 | 说明 | 必填 |
+|--------|------|:----:|
+| `BOT_ENABLED` | Webhook 命令入口总开关（默认 `true`）。关闭后平台回调仅被确认、不执行命令；不会断开已启动的 Stream 长连接 | 可选 |
+| `BOT_COMMAND_PREFIX` | 命令前缀（默认 `/`）。命令分发器单例首次构建时读取，修改后需重启服务 | 可选 |
+| `BOT_ADMIN_USERS` | 管理员用户 ID 列表（逗号分隔）。当前没有命令声明仅管理员可用，因此暂不影响命令可用性；一旦新增此类命令，未列入的用户会被拒绝。同样需重启 | 可选 |
+| `FEISHU_VERIFICATION_TOKEN` | 飞书事件订阅 Verification Token。Stream 客户端建连时读取，修改后需重启 | 可选 |
+| `FEISHU_ENCRYPT_KEY` | 飞书事件加密 Key（仅在应用开启加密推送时需要；留空时以空字符串传给 SDK） | 可选 |
+| `FEISHU_MAX_BYTES` | 飞书单条消息分段阈值（默认 20000 字节；只设下限 1，低于 1 在设置页保存会被拒绝，`.env` / 环境变量里的值加载时收敛到 1） | 可选 |
+| `FEISHU_SEND_AS_FILE` | 飞书 App Bot 以文件形式发送报告（默认 `false`；仅影响 report 路由，告警仍为文本） | 可选 |
+| `FEISHU_FOLDER_TOKEN` | 飞书云盘目标文件夹 Token，配合 `FEISHU_APP_ID` / `FEISHU_APP_SECRET` 把超长报告发布为云文档 | 可选 |
+| `EMAIL_SENDER_NAME` | 邮件发件人显示名称（只改显示名，不改 SMTP 登录账号） | 可选 |
+
+> 注意事项：
+> - 布尔解析口径不同：`BOT_ENABLED` 走 `.lower() == 'true'`（大小写不敏感，`TRUE` 有效，但写 `1` / `yes` 等同关闭）；`FEISHU_SEND_AS_FILE` 走 `in ('true', '1', 'yes')`，接受 `1` / `yes`。
+> - `BOT_ENABLED` 不影响 Stream 长连接：飞书 / 钉钉 Stream 客户端由 `FEISHU_STREAM_ENABLED` / `DINGTALK_STREAM_ENABLED` 在进程启动时决定是否建连。
+> - `FEISHU_VERIFICATION_TOKEN` / `FEISHU_ENCRYPT_KEY` 属于事件订阅链路，与群 Webhook 的 `FEISHU_WEBHOOK_SECRET` 签名机制是两套独立配置，不要混填。
+> - 设置页保存后，`FEISHU_MAX_BYTES` / `FEISHU_SEND_AS_FILE` / `FEISHU_FOLDER_TOKEN` / `EMAIL_SENDER_NAME` 在下一次通知发送时生效（通知服务实例构建时读取），无需重启；上表标注“需重启”的字段仍要重启进程。
+> - 上述“保存即生效”只作用于当前服务进程。若部署方式是 GitHub Actions 每日任务，`FEISHU_FOLDER_TOKEN` / `FEISHU_SEND_AS_FILE` / `EMAIL_SENDER_NAME` 由 `.github/workflows/00-daily-analysis.yml` 作为进程环境变量注入，每次运行都是全新环境且不读设置页写入的配置文件，因此修改设置页不会影响每日任务——要改每日任务的取值，请改仓库的 Variables / Secrets。同理，若容器 `environment:` / `env_file` 里保留了同名旧值，容器重启后仍会覆盖运行时文件中的保存值（见 Docker 章节说明）。
+> - 企业微信（`WECOM_CORPID` / `WECOM_TOKEN` / `WECOM_ENCODING_AES_KEY` / `WECOM_AGENT_ID`）与 Telegram（`TELEGRAM_WEBHOOK_SECRET`）适配器尚未实现，`DISCORD_BOT_STATUS` 当前无读取方；这些键仍只能写在 `.env`，未在设置页开放。
 
 ### 搜索服务配置
 
@@ -816,7 +840,7 @@ docker run -e SCHEDULE_ENABLED=true -e SCHEDULE_RUN_IMMEDIATELY=false ...
 > 兼容说明：如果运行时显式传入 `RUN_IMMEDIATELY`，但没有单独传 `SCHEDULE_RUN_IMMEDIATELY`，内置调度模式会继续继承前者，避免被 `.env` 中持久化的 `SCHEDULE_RUN_IMMEDIATELY` 旧值反向覆盖。
 
 > 兼容说明（Issue #1815）：`MARKET_REVIEW_REGION=cn|hk|us|jp|kr|both` 仅扩展大盘复盘输入集合；JP/KR 仅供复盘上下文消费，不会放开 Market Light 告警。
-> - `src/config.py`、`src/core/config_registry.py`、`src/services/system_config_service.py` 的改动仅是配置语义扩展，不改 `provider`/`model`/`base_url` 的运行时路由，也不触发 provider/model/base URL 迁移或清理逻辑。
+> - `src/config/settings.py`、`src/config/registry.py`、`src/application/runtime/system_config_service.py` 的改动仅是配置语义扩展，不改 `provider`/`model`/`base_url` 的运行时路由，也不触发 provider/model/base URL 迁移或清理逻辑。
 > - 本轮实际受控配置项：`MARKET_REVIEW_REGION`、`MARKET_REVIEW_COLOR_SCHEME`；`LITELLM_MODEL`、`AGENT_LITELLM_MODEL`、`LITELLM_FALLBACK_MODELS`、`VISION_MODEL`、`OPENAI_BASE_URL` 等旧值保持原子 upsert 语义，不会在更新其他字段时被静默清空或覆盖。
 > - 可核验证据摘要：官方 provider / Base URL / 模型命名来源沿用 [LLM 配置指南](LLM_CONFIG_GUIDE.md#常用官方文档来源用于核对预设-provider--base-url--模型命名)，当前运行时依赖窗口沿用 `requirements.txt` 中的 `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0`；本轮不新增配置迁移脚本或清理分支，保存/导入仍只写本次提交键。`tests/test_system_config_service.py::SystemConfigServiceTestCase::test_update_market_review_region_does_not_trigger_runtime_model_cleanup` 覆盖只保存 `MARKET_REVIEW_REGION` 时不清空或改写 `LITELLM_CONFIG`、`LLM_CHANNELS`、`LLM_OPENAI_*`、`LITELLM_MODEL`、`AGENT_LITELLM_MODEL`、`LITELLM_FALLBACK_MODELS`、`VISION_MODEL`、`OPENAI_*` 等旧配置。
 > - 旧值回退策略：先恢复备份 `MARKET_REVIEW_REGION` 与配置文件即可回到旧边界，未提交的模型/路由键保留原值；必要时 `revert` PR 并按 `.env` 备份完成回退。
@@ -1041,6 +1065,19 @@ crontab -e
 2. 复制 Webhook URL
 3. 设置 `WECHAT_WEBHOOK_URL`
 
+**消息形态（可选，已开放到 Web 设置页「通知」分类）**：
+
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `WECHAT_MSG_TYPE` | `markdown` 渲染格式（但在微信客户端内常展示不佳）；`text` 发纯文本、兼容性最好 | `markdown` |
+| `WECHAT_MAX_BYTES` | 单条消息字节阈值，超过后分批发送而非截断；官方上限 markdown 4096 / text 2048 | 未填时跟随消息类型：`text` 为 2048，其余 4000 |
+
+> - `text` 模式下发送侧会把单条上限再压到 2000 字节（取 `WECHAT_MAX_BYTES` 与 2000 的较小值），因此在 `text` 下调大 `WECHAT_MAX_BYTES` 没有效果。
+> - 区间的两条路径：Web 设置页保存低于 1 的值会被直接拒写（`out_of_range` / HTTP 400），而写在 `.env` 或进程环境变量里的低于 1 的值会在加载时被收敛到 1；两项都只声明下限、不设上限。
+> - `WECHAT_MSG_TYPE` 在设置页是下拉框，只接受 `markdown` / `text`；运行时本身不做枚举校验，除 `text`（大小写不敏感）以外的值一律按 `markdown` 处理。
+> - GitHub Actions 每日任务会向运行环境注入 `WECHAT_MSG_TYPE`（未配 vars / secrets 时为 `markdown`），注入值优先于 `.env`，因此 Actions 上的实际形态取决于 Actions 变量，而不是仓库里的 `.env`。
+> - 两项都在通知服务实例构建时读取，保存后下一次通知即生效，不需要重启服务。
+
 ### 飞书
 
 > ⚠️ **关键区分**：`FEISHU_WEBHOOK_SECRET`（Webhook 签名密钥）和 `FEISHU_APP_SECRET`（飞书应用 Secret）是两个完全不同的配置，不能互换。
@@ -1262,7 +1299,22 @@ PUSHOVER_API_TOKEN=your_api_token
    - **Debian/Ubuntu**：`apt install wkhtmltopdf`
 3. **markdown-to-file**（可选，emoji 支持更好）：`npm i -g markdown-to-file`，并设置 `MD2IMG_ENGINE=markdown-to-file`
 
+官方 Docker 镜像已预装 `wkhtmltopdf`（含 `wkhtmltoimage`，钉住 bookworm 基镜），因此容器内用默认引擎无需额外安装；`markdown-to-file` 未预装，需自行在镜像内安装。
+
 未安装或安装失败时，将自动回退为 Markdown 文本发送。
+
+**可调参数（已开放到 Web 设置页「通知」分类）**：
+
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `MARKDOWN_TO_IMAGE_CHANNELS` | 逗号分隔的渠道列表，只有列出的已配置渠道会把报告转成 PNG 发送 | 留空，即关闭该特性 |
+| `MARKDOWN_TO_IMAGE_MAX_CHARS` | 允许转图的正文字符上限。它是“跳过开关”而不是截断长度：超过就完全不转图、只发文字 | `15000` |
+| `MD2IMG_ENGINE` | 渲染引擎：`wkhtmltoimage`（默认）或 `markdown-to-file`（emoji 更好） | `wkhtmltoimage` |
+
+> - 渠道值需与通知渠道标识一致且该渠道已配置；运行时会对列表去空白、去空项并转小写。
+> - `MARKDOWN_TO_IMAGE_MAX_CHARS` 只声明下限 1：Web 设置页保存低于 1 的值会被直接拒写（`out_of_range` / HTTP 400），`.env` 或进程环境变量里的低于 1 的值则在加载时被收敛到 1。调大它可让长报告也出图，代价是图片更大、渲染更慢。
+> - `MD2IMG_ENGINE` 在设置页是下拉框，只接受两个枚举值；`.env` / 进程环境变量里的非法值会回落 `wkhtmltoimage` 并打一条 warning，不会中断分析。
+> - 引擎与阈值在通知服务实例构建时读取，引擎另外在每次转图调用时读取，因此保存后下一次通知即生效，不需要重启服务。
 
 **单股推送 + 图片发送**（Issue #455）：
 
@@ -1305,6 +1357,89 @@ PUSHOVER_API_TOKEN=your_api_token
 - 其余可选参数见官方 [环境变量说明](https://open.longbridge.com/zh-CN/docs/getting-started#环境变量)
 - 仅在 YFinance（美股）或 AkShare（港股）返回数据不完整时自动触发，不影响 A 股链路
 - 未配置凭据时不会实例化该可选数据源；若运行时出现连接关闭类异常，会在冷却期内临时跳过 Longbridge，避免请求级频繁重连
+
+### 数据源路由与本地桥接
+
+K 线、股票信息、代码搜索、板块排行、涨跌停池五类请求各自有一套路由开关，决定优先用哪个源、失败后是否继续降级：
+
+| 变量 | 作用 |
+| --- | --- |
+| `KLINE_DATA_SOURCE` / `STOCKINFO_DATA_SOURCE` / `CODESEARCH_DATA_SOURCE` | 主数据源。`auto` 表示按对应的优先级链尝试，也可以填单个源名 |
+| `KLINE_FALLBACK_ENABLED` / `STOCKINFO_FALLBACK_ENABLED` / `CODESEARCH_FALLBACK_ENABLED` | 主源失败后是否继续尝试后续源，默认 `true` |
+| `KLINE_SOURCE_PRIORITY` / `STOCKINFO_SOURCE_PRIORITY` / `CODESEARCH_SOURCE_PRIORITY` | 逗号分隔的降级顺序，从高到低 |
+| `SECTOR_DATA_SOURCE` / `LIMITPOOL_DATA_SOURCE` | 板块排行 / 涨跌停池的主数据源。`auto` 表示按优先级链尝试 |
+| `SECTOR_FALLBACK_ENABLED` / `LIMITPOOL_FALLBACK_ENABLED` | 主源失败后是否继续尝试后续源，默认 `true` |
+| `SECTOR_SOURCE_PRIORITY` / `LIMITPOOL_SOURCE_PRIORITY` | 逗号分隔的降级顺序，默认 `eastmoney` |
+
+各请求可用的源不完全相同：K 线支持 `local,sina,eastmoney,tencent,stocksdk`，股票信息支持 `local,eastmoney,tencent,stocksdk`，代码搜索支持 `local,eastmoney,stocksdk`；板块排行当前默认注册表只接入 `eastmoney`，涨跌停池支持 `eastmoney,stocksdk`（stocksdk 需同时启用 `STOCKSDK_ENABLED`）。
+
+**StockSDK（可选）**：通过 Node.js 桥接进程提供上述三类数据。启用前确认运行环境可执行 `node`：
+
+```env
+STOCKSDK_ENABLED=true
+STOCKSDK_NODE_BIN=node
+STOCKSDK_BRIDGE_ENTRY=scripts/stocksdk_bridge/bridge.mjs
+```
+
+`STOCKSDK_TIMEOUT_MS`（默认 8000）限制单次桥接请求，`STOCKSDK_RATE_LIMIT_RPS`（默认 3）限制请求频率，`STOCKSDK_KLINE_FALLBACK`（默认 `true`）允许桥接内部再做一层 K 线降级。
+
+**StockDB（可选）**：本地 HTTP 行情服务，需自行部署后填写地址：
+
+```env
+STOCKDB_ENABLED=true
+STOCKDB_BASE_URL=http://127.0.0.1:7899
+```
+
+`STOCKDB_TIMEOUT_MS`（默认 5000）、`STOCKDB_MAX_ROWS`（默认 5000）、`STOCKDB_CACHE_TTL_SEC`（默认 60）和 `STOCKDB_COOLDOWN_SEC`（默认 10，连接失败后的临时跳过时长）控制请求行为。两个可选源遵循同一原则：未启用时不发起请求，失败时交给 fallback，不阻断主分析流程。
+
+**外部行情凭证（可选）**：以下数据源需要自行申请凭据，留空即禁用对应能力，不影响其它源：
+
+| 变量 | 用途 |
+| --- | --- |
+| `LONGBRIDGE_OAUTH_CLIENT_ID` | 长桥 OAuth 2.0 客户端 ID（推荐），access token 由 SDK 缓存维护 |
+| `LONGBRIDGE_APP_KEY` / `LONGBRIDGE_APP_SECRET` / `LONGBRIDGE_ACCESS_TOKEN` | 长桥旧版 API Key 三件套，与 OAuth 方式二选一 |
+| `ALPHAVANTAGE_API_KEY` | Alpha Vantage 行情与基本面数据 |
+| `FINNHUB_API_KEY` | Finnhub 行情数据 |
+| `SOCIAL_SENTIMENT_API_KEY` / `SOCIAL_SENTIMENT_API_URL` | 社交情绪数据源，默认地址 `https://api.adanos.org` |
+
+以上字段可以在 Web 设置页的「数据源」分类中直接编辑：保存后写入 `.env` 并立即重新加载，下一次请求即按新值执行。启动期的优先级需要单独注意——进程启动时若容器里已有同名环境变量，仍以容器值为准；要让设置页保存的值在重启后继续生效，需要同步移除或更新容器里的同名 override（与 `docs/FAQ.md` 中「修改 .env 文件后配置没有生效？」的说明一致）。
+
+### 资讯源配置
+
+「行情资讯」下的快讯、财经日历与本地资讯池共用一组资讯源配置。这些字段也可以在 Web 设置页的「数据源」分类中直接编辑，保存后下一次请求即按新值执行，无需重启进程。
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `WSCN_LIVE_NEWS_ENABLED` | `true` | 快讯能力总开关；关闭后所有快讯接口返回空列表且不再抓取 |
+| `WSCN_LIVE_NEWS_BASE_URL` | `https://api-one.wallstcn.com` | 快讯接口基址，末尾斜杠会自动去掉 |
+| `WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` | `300` | 按需刷新节流间隔（秒，0–86400）；`0` 只保留手动刷新 |
+| `WSCN_LIVE_NEWS_IMPORTANT_SCORE` | `3` | 重要级阈值（1–10），上游 score 达到该值即标记为重要 |
+| `WSCN_LIVE_NEWS_DEFAULT_LIMIT` | `30` | 快讯列表默认每页条数（1–100） |
+| `WSCN_LIVE_NEWS_TIMEOUT_SEC` | `8` | 单频道请求超时（1–30 秒） |
+| `WSCN_LIVE_NEWS_FALLBACK_NEWSNOW` | `true` | 官方源失败时降级到 NewsNow 聚合源 |
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `WALLSTREETCN_CALENDAR_ENABLED` | `true` | 财经日历总开关；关闭后接口返回空且不再抓取 |
+| `WALLSTREETCN_CALENDAR_BASE_URL` | `https://api-one-wscn.awtmt.com` | 日历接口基址（与快讯域名不同） |
+| `WALLSTREETCN_CALENDAR_TIMEOUT` | `8` | 单请求超时（1–30 秒） |
+| `WALLSTREETCN_CALENDAR_IMPORTANT_SCORE` | `3` | 「重要」阈值（0–10），与快讯共用业务量纲 |
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `NEWS_INTEL_AUTO_FETCH_ENABLED` | `false` | 分析前是否自动初始化并拉取启用的本地资讯源 |
+| `NEWS_INTEL_RETENTION_DAYS` | `30` | 资讯池保留天数（1–365），只清理 `intelligence_items` |
+| `NEWS_INTEL_MAX_ITEMS_PER_SOURCE` | `50` | 单次每个资讯源最多采集条数（1–200） |
+| `NEWS_INTEL_FETCH_TIMEOUT_SEC` | `8` | 单个 RSS/Atom 源拉取超时（1–30 秒） |
+| `NEWSNOW_BASE_URL` | `https://newsnow.busiyi.world` | NewsNow API 基址，用于聚合源与快讯降级；生产环境建议自建 |
+
+注意：
+
+- 快讯上游是滚动窗口（约 100 条约覆盖 1~3 小时），`WSCN_LIVE_NEWS_FETCH_INTERVAL_SEC` 过大会丢数据，建议不超过 `1800`。
+- `NEWSNOW_BASE_URL` 默认值是不保证稳定性的公开示例实例；更换它只影响资讯侧请求，不会改变 LLM / provider 的 base URL。
+- 仓库默认的 `.github/workflows/00-daily-analysis.yml` 未透传 `NEWS_INTEL_AUTO_FETCH_ENABLED`，在 GitHub Actions 上使用时需要自行补齐 `env:` 映射。
+- 数值字段在加载时会被 `parse_env_int` / `parse_env_float` 收敛到上表区间，设置页的校验区间与之保持一致。
+- 启动期优先级与上一节的数据源凭证相同：进程启动时容器环境变量存在同名键则以容器值为准；设置页保存后立即按 `.env` 新值执行，但下一次重启仍可能被同名容器环境变量覆盖。
 
 ### 东财接口频繁失败时的处理
 
@@ -1386,7 +1521,8 @@ LITELLM_FALLBACK_MODELS=anthropic/claude-sonnet-4-6,openai/gpt-5.4-mini
 - **常见解析失败**：文件过大（>2MB）、编码非 UTF-8/GBK、Excel 工作表为空或损坏、CSV 分隔符/列数不一致时，API 会返回具体错误提示。
 
 - **模型优先级**：`VISION_MODEL` > `LITELLM_MODEL` > 根据已有 API Key 推断（`OPENAI_VISION_MODEL` 已废弃，请改用 `VISION_MODEL`）
-- **Provider 回退**：主模型失败时，按 `VISION_PROVIDER_PRIORITY`（默认 `gemini,anthropic,openai`）自动切换到下一个可用 provider
+- **推断顺序与重试范围**：当未显式配置 `VISION_MODEL`/`LITELLM_MODEL` 而需要靠 API Key 推断备用视觉模型时，顺序是硬编码的 `gemini → anthropic → openai`（取首个已配 Key 的 provider），不受 `VISION_PROVIDER_PRIORITY` 影响；调用失败时只对同一个已解析出的模型重试（最多 3 次，指数退避，在同一 provider 的多把 Key 之间轮换），不会自动切换到下一个 provider
+- **`VISION_PROVIDER_PRIORITY` 的实际作用**：该配置项（默认 `gemini,anthropic,openai`）目前只用于配置校验阶段，决定除主模型自身 provider 之外还要额外提醒哪些 provider 缺少 API Key；它不改变模型解析顺序、调用顺序或重试行为，且主模型自身的 provider Key 始终会被校验，不受该列表是否包含它的影响。当前不暴露在 Web 设置页，详见 `docs/settings-help.md`
 - **主模型不支持 Vision 时**：若主模型为 DeepSeek 等非 Vision 模型，可显式配置 `VISION_MODEL=openai/gpt-5.5` 或 `gemini/gemini-3.1-pro-preview` 供图片提取使用
 - **配置校验**：若配置了 `VISION_MODEL` 但未配置对应 provider 的 API Key，启动时会输出 warning，图片提取功能将不可用
 
@@ -1421,8 +1557,8 @@ python main.py --debug
 
 个股报告的操作建议会结合支撑位、压力位、量能/筹码、主力资金流向和风险事件进行校准，避免仅因单日涨跌或评分跨线在“买入/卖出”之间剧烈切换。若价格处在支撑与压力之间且资金流不明确，报告会优先给出“持有、震荡观望、洗盘观察”等中性可执行建议；只有接近支撑确认、有效突破压力且量价/资金配合时才给出买入，跌破关键支撑或主力资金持续流出时才给出卖出/减仓。
 该项调整会影响可操作决策的运行时落盘与提示词约束链路，但不变更 LLM 模型、LiteLLM 路由、Provider/Key 及其兼容边界，不影响配置保存/清理语义。
-兼容性核验结论：除配置和模型侧语义外，该决策稳定性链路覆盖 `src/analyzer.py`、`src/core/pipeline.py`、`src/core/backtest_engine.py`、`src/report_language.py` 及 `src/agent` 决策路径的运行时行为，建议复核报告决策类型映射与回测入口联动。
-核验路径：相关逻辑在上述运行时路径与对应测试（`tests/test_backtest_engine.py`、`tests/test_analyzer_news_prompt.py`、`tests/test_decision_stability.py`、`tests/test_agent_pipeline.py` 等）中生效；未在 `src/config.py`、`src/report.py`、存储/持久化链路新增配置字段或清理逻辑。
+兼容性核验结论：除配置和模型侧语义外，该决策稳定性链路覆盖 `src/application/analysis/analyzer.py`、`src/application/analysis/pipeline.py`、`src/domain/backtest/engine.py`、`src/report_language.py` 及 `src/agent` 决策路径的运行时行为，建议复核报告决策类型映射与回测入口联动。
+核验路径：相关逻辑在上述运行时路径与对应测试（`tests/test_backtest_engine.py`、`tests/test_analyzer_news_prompt.py`、`tests/test_decision_stability.py`、`tests/test_agent_pipeline.py` 等）中生效；未在 `src/config/settings.py`、`src/report.py`、存储/持久化链路新增配置字段或清理逻辑。
 
 ### 建议动作 Taxonomy（#1390 P0）
 
@@ -1632,7 +1768,7 @@ FastAPI 提供 RESTful API 服务，支持配置管理和触发分析。
 > 说明：`POST /api/v1/analysis/market-review` 可选传入长度为 1–64 的字符串字段 `region`，支持 `cn`、`hk`、`us`、`jp`、`kr`、`both` 或逗号分隔的合法非空子集（如 `cn,us`）。请求层会规范大小写、空格、重复项和市场顺序；空字符串、空 token、未知 token、`both` 与其他市场混用会整体返回 4xx，不会部分执行或回退。省略字段时继续读取全局 `MARKET_REVIEW_REGION`。
 > 说明：首页市场选择器只覆盖本次 Web 触发，不调用配置读取/保存接口，也不写入 LocalStorage；选择“服务器默认”时请求会省略 `region`，UI 不会用 Web Settings 的 saved/display 值猜测运行时实际市场。后端会在任务提交边界解析唯一的 canonical 实际执行值；accepted 响应、pending/processing/completed 状态、任务列表、`task_created`/`task_started`/`task_progress`/`task_completed` SSE、完成态结构化 payload，以及 History 列表项的 `region` 与 `context_snapshot.market_review_region` 都复用该值。长期 `MARKET_REVIEW_REGION` 配置仍保留历史宽松过滤/回退语义，CLI、Bot、schedule 与默认 `cn` 语义不变。
 > 说明：`POST /api/v1/analysis/market-review` 是 Web / 桌面端的人工触发入口，点击后会直接提交大盘复盘任务，不会因 `TRADING_DAY_CHECK_ENABLED=true` 或当日相关市场休市而短路跳过；定时任务、GitHub Actions 手动运行和 CLI 默认入口仍遵循交易日检查，可用 `--force-run` 或 workflow `force_run` 覆盖。
-> 审计依据：优先级与回退语义以 `src/config.py` 的 `Config._load_from_env()` 为准（`LITELLM_CONFIG` > `LLM_CHANNELS` > legacy）。配套回归见 `tests/test_llm_channel_config.py`（配置源解析）与 `tests/test_market_review_runtime.py`（共享装配路径）。该接口当前仅提供单进程/单机级防重复能力，若为多实例部署需通过外部任务队列或分布式锁补齐全局幂等。
+> 审计依据：优先级与回退语义以 `src/config/settings.py` 的 `Config._load_from_env()` 为准（`LITELLM_CONFIG` > `LLM_CHANNELS` > legacy）。配套回归见 `tests/test_llm_channel_config.py`（配置源解析）与 `tests/test_market_review_runtime.py`（共享装配路径）。该接口当前仅提供单进程/单机级防重复能力，若为多实例部署需通过外部任务队列或分布式锁补齐全局幂等。
 > 说明：`POST /api/v1/analysis/market-review` 触发后，报告会以 `report_type=market_review` 写入历史库；你可直接查询 `/api/v1/history` 或 `/api/v1/history/{record_id}` 获取历史 Markdown，避免再次触发分析重算。
 > 说明：历史列表新增 `report_type` 查询参数；通过 `stock_code=MARKET&report_type=market_review` 可单独读取大盘复盘历史集合，与普通个股历史逻辑完全隔离。
 > 说明：`POST /api/v1/analysis/market-review` 的任务状态与历史持久化都会包含 `market_review_payload`：其中 `region` 是本次实际执行的 canonical 市场字符串，另含 `market_scope`、`sections`、`sectors`、`concepts`、`news`、`market_light`、`indices` 等结构化字段。Web 端 Markdown 渲染与历史详情会复用该结构化字段；若结构化字段为空则回退到原始 Markdown。
@@ -1804,7 +1940,7 @@ AGENT_EVENT_MONITOR_INTERVAL_MINUTES=5
 AGENT_EVENT_ALERT_RULES_JSON=[{"stock_code":"600519","alert_type":"price_cross","direction":"above","price":1800},{"stock_code":"300750","alert_type":"price_change_percent","direction":"down","change_pct":3.0},{"stock_code":"000858","alert_type":"volume_spike","multiplier":2.5}]
 ```
 
-worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_triggers` 作为评估历史；正常未触发不写历史。DB 持久化规则的 `triggered` 历史按 `rule_id + target + data_source + data_timestamp` 对同一数据点做 best-effort 去重，重复命中会复用最早一条触发记录，`data_timestamp` 缺失时不去重。真实触发后会把每个通知渠道的 attempt 写入 `alert_notifications`，并为 Alert API 创建的持久化规则写入 `alert_cooldowns` 业务冷却状态；若读取持久化冷却失败，worker 会临时使用进程内 fingerprint 防止 DB 异常期间重复推送。legacy `AGENT_EVENT_ALERT_RULES_JSON` 规则继续使用进程内 fingerprint 抑制，不写持久化冷却；通知基础设施的 `notification_noise.py` 降噪仍独立生效。Web 规则列表使用后端返回的 `cooldown_active` 判断冷却状态，避免浏览器本地时区解析影响展示。
+worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_triggers` 作为评估历史；正常未触发不写历史。DB 持久化规则的 `triggered` 历史按 `rule_id + target + data_source + data_timestamp` 对同一数据点做 best-effort 去重，重复命中会复用最早一条触发记录，`data_timestamp` 缺失时不去重。真实触发后会把每个通知渠道的 attempt 写入 `alert_notifications`，并为 Alert API 创建的持久化规则写入 `alert_cooldowns` 业务冷却状态；若读取持久化冷却失败，worker 会临时使用进程内 fingerprint 防止 DB 异常期间重复推送。legacy `AGENT_EVENT_ALERT_RULES_JSON` 规则继续使用进程内 fingerprint 抑制，不写持久化冷却；通知基础设施的降噪（现为 `src/application/notification/noise.py`，原 `notification_noise.py`）仍独立生效。Web 规则列表使用后端返回的 `cooldown_active` 判断冷却状态，避免浏览器本地时区解析影响展示。
 
 技术指标规则只使用日线 close 的边缘触发，partial bar 处理是服务器本地时区 + 16:00 的启发式，不做市场日历精确判定。`watchlist` 每轮刷新 `STOCK_LIST` 后展开，`portfolio_holdings` 从持仓快照的非零持仓按 symbol 去重展开，`portfolio_account` 复用持仓风险服务做账户级聚合评估。`market` 规则的 target 仅支持 `cn|hk|us|jp|kr`，使用结构化 `MarketLightSnapshot`；`trade_date` 来自当次 market overview，`data_quality=unavailable` 会跳过触发，非交易日会被交易日 gate 跳过，`market_light_score_drop` 只比较跨交易日 score。WebUI 的“告警”页面可以管理持久化规则、执行一次性 dry-run 测试，并查看触发历史、通知尝试结果和只读冷却状态；批量规则的列表冷却状态是父规则摘要，子目标冷却以触发历史为准。详细边界见 [实时告警中心](../documents/product/实时告警中心/alerts.md)。
 
@@ -1835,6 +1971,27 @@ worker 会把 `triggered`、`skipped`、`degraded`、`failed` 写入 `alert_trig
 | `/api/v1/portfolio/corporate-actions/{action_id}` | DELETE | 删除公司行动 |
 
 > 查询类接口统一支持 `account_id`、`date_from`、`date_to`、`page`、`page_size` 等常见筛选参数；事件列表会返回统一的 `items`、`total`、`page`、`page_size` 结构。
+
+### 组合与风险配置
+
+下列 6 个字段即可在 Web 设置页「系统」分类修改，也可写在 `.env`。它们不只是页面默认值：阈值会写入风险报告的 `thresholds`，并参与持仓告警规则的触发判定。
+
+| 变量名 | 说明 | 必填 |
+|--------|------|:----:|
+| `PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT` | 单票集中度告警阈值（默认 `35.0`，百分比）。板块集中度使用同一阈值判断 | 可选 |
+| `PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT` | 组合净值回撤告警阈值（默认 `15.0`，百分比） | 可选 |
+| `PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT` | 个股止损线（默认 `10.0`，百分比），相对成本价亏损达到该值视为跌破 | 可选 |
+| `PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO` | 止损预警接近比例（默认 `0.8`）；预警线 = 止损线 × 该比例 | 可选 |
+| `PORTFOLIO_RISK_LOOKBACK_DAYS` | 回撤统计的自然日窗口（默认 `180`），窗口内缺失的每日快照会先回填再计算 | 可选 |
+| `PORTFOLIO_FX_UPDATE_ENABLED` | 是否允许手动刷新汇率访问在线数据源（默认 `true`） | 可选 |
+
+> 注意事项：
+> - 5 个数值字段只有下限、没有上限：把阈值填大只会让告警更难触发。越界值的处理分两条路径——设置页保存低于下限的值会被拒绝（`out_of_range`，不写入），而 `.env` / 进程环境变量里的越界值会在加载时静默收敛（百分比与比例收敛到 `0`，`PORTFOLIO_RISK_LOOKBACK_DAYS` 收敛到 `1`）；非法数值（无法解析为数字）回退默认值，不会报错。
+> - 告警灵敏度联动：`breach` 模式的持仓告警直接比较止损线；默认的 `near` 模式比较的是“止损线 × 接近比例”，因此调低比例会让更多持仓进入预警名单。
+> - 布尔解析口径：`PORTFOLIO_FX_UPDATE_ENABLED` 走 `.lower() == 'true'`（大小写不敏感，但写 `1` / `yes` 等同关闭）。关闭后持仓与风险仍按已缓存汇率计算，`POST /api/v1/portfolio/fx/refresh` 返回显式 `refresh_enabled=false` 与 `disabled_reason`。
+> - 生效时机：风险服务按请求构建、汇率刷新按调用读取配置，因此设置页保存后下一次风险报告或刷新请求就使用新值，不需要重启；CLI / 定时任务进程仍使用启动时读取的配置快照。
+> - 部署形态例外：若 GitHub Actions 每日任务或容器 `environment:` 注入了同名变量，那些场景以注入值为准，设置页保存不影响它们（与“通知渠道详细配置”章节的同类说明一致）。
+> - 回撤窗口越大，首次生成风险报告时需要回填的每日快照越多、耗时越长；`sector_concentration` 归类失败时的降级行为不受这些阈值影响。
 
 ### 使用行为说明
 

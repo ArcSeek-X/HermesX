@@ -182,7 +182,7 @@ LITELLM_MODEL=ollama/qwen3:8b
 - 运行时能力检测会产生真实 LLM 请求，可能带来 token / 图像输入费用、RPM/TPM 限流、余额不足或超时。检测失败可能来自账号权限、模型未开通、endpoint 区域、余额、服务商兼容层或 LiteLLM 转换路径，不等于该 provider 全局不支持对应能力。P3 未对所有真实 provider 做在线 smoke；兼容依据来自当前依赖约束 `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` 下的 LiteLLM `completion()` / OpenAI I/O format / streaming / exception mapping，以及 OpenAI Chat Completions 的 JSON mode、tool calling、streaming 和 vision input 形状。
 - 相关外部来源：LiteLLM Python SDK / OpenAI I/O format / streaming / exception mapping：<https://docs.litellm.ai/>；LiteLLM OpenAI-compatible 路由：<https://docs.litellm.ai/docs/providers/openai_compatible>；OpenAI Chat Completions：<https://platform.openai.com/docs/api-reference/chat/create>；JSON mode：<https://platform.openai.com/docs/guides/structured-outputs?api-mode=chat>；tool calling：<https://platform.openai.com/docs/guides/function-calling?api-mode=chat>；streaming：<https://platform.openai.com/docs/guides/streaming-responses?api-mode=chat>；vision input：<https://platform.openai.com/docs/guides/images-vision?api-mode=chat>。
 - 保存渠道时，只会更新这次提交的 key；不会因为切换渠道模式而静默迁移整个旧配置。唯一会被**同步清理**的是运行时模型引用：如果 `LITELLM_MODEL`、`AGENT_LITELLM_MODEL`、`VISION_MODEL` 或 `LITELLM_FALLBACK_MODELS` 指向了当前已启用渠道里已经不存在的模型，设置页会在保存前把这些失效引用清空/移除，避免运行时继续指向无效模型；即使当前启用渠道没有任何可选模型，也会清理缺少 legacy Key 支撑的托管 provider 旧值。`cohere/*`、`google/*`、`xai/*` 这类直连模型仅用于说明历史 `direct-env` 兼容保留语义，不等于可用性承诺，是否可用请按各厂商官方模型/API 文档再做实际验证。
-- 后端一致性依据：配置校验链路在 `SystemConfigService._validate_llm_runtime_selection`（`src/services/system_config_service.py`）中通过 `_uses_direct_env_provider`（`src/config.py`）判断运行时来源；当前仅 `gemini`、`vertex_ai`、`anthropic`、`openai`、`deepseek` 属于托管 key provider，`cohere`、`google`、`xai` 不在该白名单中，因此会保留为直连模型。
+- 后端一致性依据：配置校验链路在 `SystemConfigService._validate_llm_runtime_selection`（`src/application/runtime/system_config_service.py`）中通过 `_uses_direct_env_provider`（`src/config/settings.py`）判断运行时来源；当前仅 `gemini`、`vertex_ai`、`anthropic`、`openai`、`deepseek` 属于托管 key provider，`cohere`、`google`、`xai` 不在该白名单中，因此会保留为直连模型。
 - 回退方式也保持最小：把对应渠道模型列表改回去后重新选择主模型 / fallback，或直接用桌面端导出备份 / 手动 `.env` 还原之前的 `LLM_*`、`LITELLM_MODEL`、`AGENT_LITELLM_MODEL`、`VISION_MODEL`、`LLM_TEMPERATURE`、`LLM_USAGE_HMAC_*` 即可，不需要额外跑迁移脚本。Web 端如需恢复配置，也可在启用管理员鉴权（`ADMIN_AUTH_ENABLED=true`）后通过 `POST /api/v1/system/config/import` 回滚。
 - 当前仓库对此链路的依赖约束是 `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0`（见 `requirements.txt`）；回归覆盖包括 `tests/test_system_config_service.py`、`tests/test_system_config_api.py` 和 `apps/hrs-web/src/components/settings/__tests__/LLMChannelEditor.test.tsx`。
 
@@ -382,7 +382,7 @@ LLM_PROMPT_CACHE_DIAGNOSTICS_LEVEL=off
 - `LLM_PROMPT_CACHE_TELEMETRY_ENABLED=false` 时，不持久化 provider raw usage JSON、normalized cache fields 和 cache decision diagnostics；基础 token usage 记录保持兼容。
 - `LLM_PROMPT_CACHE_HINTS_ENABLED=true` 只允许主分析 / analyzer LiteLLM 路径向 registry 中已验证或 smoke-tested 的 provider / route 发送 `prompt_cache_key`、`cache_control`、`user_id` 等 hint。问股 Agent 路径当前只记录 capability / usage diagnostics，不主动发送 provider-specific hints。未知 OpenAI-compatible gateway 默认 telemetry only。
 - `LLM_PROMPT_CACHE_DIAGNOSTICS_LEVEL=basic` 只在 debug 日志和测试可观察对象中提供 provider、api surface、verification status、hint applied / disabled reason 等非敏感枚举。`debug` 在同一范围内额外提供 HMAC-derived route/cache diagnostics 和 matched caps id，但仍禁止 raw prompt、request body、message content、股票/用户原文、webhook 或 API key；这些诊断不是公开 Usage API 或普通设置页输出。
-- Provider Cache Capability Registry 是 `src/llm/provider_cache.py` 中的 code-level 手工能力表。条目带 `doc_sources`、`last_verified_at` 和 `verification_status`；新增 provider 或升级 LiteLLM 后应同步更新条目与测试。
+- Provider Cache Capability Registry 是 `src/infrastructure/generation/provider_cache.py` 中的 code-level 手工能力表。条目带 `doc_sources`、`last_verified_at` 和 `verification_status`；新增 provider 或升级 LiteLLM 后应同步更新条目与测试。
 - Prompt cache key、route key 和 DeepSeek session isolation 复用 `LLM_USAGE_HMAC_SECRET` / `.llm_usage_hmac_secret` 做 domain-separated HMAC，不新增 prompt-cache 专用 secret。
 
 ### Legacy message stability audit（P0.5a）
@@ -471,9 +471,11 @@ VISION_MODEL=openai/gpt-5.5
 # OPENAI_API_KEY=xxx
 ```
 
-**备用看图机制：** 为了防止偶尔罢工，系统内置了切换策略。如果主视觉模型调用失败，它会按照下方的顺位尝试寻找是否有其他看图模型的 Key：
+**推断备用看图模型的顺序：** 当未显式配置 `VISION_MODEL`/`LITELLM_MODEL` 时，系统会按硬编码的顺位推断看图模型：先查 Gemini Key，再查 Anthropic Key，最后查 OpenAI Key（取首个已配置的）。这个推断顺序写死在代码里，无法通过配置修改。
+
+**关于 `VISION_PROVIDER_PRIORITY`：** 下方这个配置项目前只影响“配置校验/告警”阶段——它决定除了主模型自身 provider 外，还要额外提醒哪些 provider 缺少 API Key；它不会改变上面描述的推断顺序，也不会让主模型调用失败时自动切换到下一个 provider（失败时只对同一个已解析出的模型重试）。因此调整它不会带来实际的调用行为变化，当前也未暴露在 Web 设置页。
 ```env
-# 默认的备用顺序：
+# 仅影响配置校验的提醒范围，不改变真实调用顺序：
 VISION_PROVIDER_PRIORITY=gemini,anthropic,openai
 ```
 

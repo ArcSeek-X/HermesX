@@ -143,14 +143,14 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 <a id="sec-c"></a>
 ## <a id="c-后端为前端提供数据算法层面对齐参考-analysists"></a>C. 后端：为前端提供数据（算法层面对齐参考 analysis.ts）
 
-- `src/services/eod_picker_service.py`：复刻参考 `calculateTimelineStrength` + `filterBasicQuotes` + 两阶段筛选 + 有界并发（默认并发 4，可配置）。
+- `src/application/analysis/eod_picker_service.py`：复刻参考 `calculateTimelineStrength` + `filterBasicQuotes` + 两阶段筛选 + 有界并发（默认并发 4，可配置）。
   - 阶段1 全市场快照：复用 `AkshareFetcher` 全市场缓存（`ak.stock_zh_a_spot_em`，含流通市值 / 量比 / 换手率 / 涨幅，见 `data_provider/akshare_fetcher.py`）。
   - 阶段2 分时：复用 `data_provider/kline/` 1 分钟源（tencent/sina/eastmoney），**均价线 = 累计成交额 / 累计成交量（VWAP）**；需验证分钟源是否带 amount，无则 price×volume 累计近似。
   - **前端分时可视化复用现有 `KLineChart`**：`components/kline/KLineChart.tsx` 已内置「分时模式」（`period === '1m'`），用 `close` 画价格线、用 `amount/volume` 累计算均价线、`prevClose` 画昨收基准线，红涨绿跌 + 双 Y 轴；其消费契约为 `api/kline.ts` 的 `KLinePoint`。因此**卡片分时图直接复用 `KLineChart` + 现有 `GET /api/v1/kline/{code}?period=1m`**，无需自造 SVG、无需新增图表组件。eod-picker 后端只负责用同一 1m 源在筛选阶段算出「分时强度」指标值。
   - 快照短 TTL 缓存（默认 ~30s），避免重复拉全市场。
 - `api/v1/endpoints/eod_picker.py` + `api/v1/schemas/eod_picker.py`（薄端点 + 固定契约）：
   - `GET /api/v1/eod-picker/defaults`：返回默认筛选条件（市值 50~200 亿 / 量比 ≥1.2 / 涨幅 3~5% / 换手率 5~10% / 过滤ST=true / 分时强度 ≥80%）。
-  - `POST /api/v1/eod-picker/tasks` → 202 + `task_id`（复用 `src/services/task_queue.py` 后台任务）。
+  - `POST /api/v1/eod-picker/tasks` → 202 + `task_id`（复用 `src/application/runtime/task_queue.py` 后台任务）。
   - `GET /api/v1/eod-picker/tasks/{id}` → `{ completed, total, stage }` + **结果摘要**：每只股票含 code/name/price/changePercent/change/volume/amount/turnoverRate/volumeRatio/circulatingMarketCap/totalMarketCap/pe/pb/high/low/open/prevClose/timelineAboveAvgRatio（**不含分时明细**，避免巨型 payload）。
 - **分时明细懒加载（已确认）**：前端点卡片展开分时图时，调用**现有** `GET /api/v1/kline/{code}?period=1m`（复用 `data_provider/kline` + `KLineChart` 分时模式），**不新增专用 timeline 端点**。eod-picker 后端仅在筛选阶段用同一 1m 源计算 `timelineAboveAvgRatio`，不回传点阵。
 - 注册进 `api/v1/router.py`。
@@ -162,7 +162,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 
 | 参考项目 | HermesX 落点 |
 |---|---|
-| `src/services/analysis.ts` | `src/services/eod_picker_service.py`（Python 复刻算法） |
+| `src/services/analysis.ts` | `src/application/analysis/eod_picker_service.py`（Python 复刻算法） |
 | `src/pages/EndOfDayPicker/EndOfDayPicker.tsx` | `src/pages/Discover/EodPickerPage.tsx` + 子组件 |
 | `src/components/charts/LazyEChart`（分时） | **复用现有 `KLineChart`（`period='1m'` 分时模式）+ `GET /api/v1/kline`**（懒加载，非照搬 SVG） |
 | stock-sdk 直连 | HermesX `apiClient` + eod-picker 任务 API（结果摘要），分时明细走现有 kline API |
@@ -202,7 +202,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 
 | ADR-001 条款 | 本方案对应设计 | 合规 |
 |---|---|---|
-| §2.1 四层架构：③ 功能接口层 = 端点(瘦) + 服务(编排)，② 数据源对接层 = 唯一脏活层 | 端点 `api/v1/endpoints/eod_picker.py` 只做路由 + 任务编排；`src/services/eod_picker_service.py` 做业务编排；**所有外部取数一律走 `data_provider/`**（AkshareFetcher 全市场 spot、`data_provider/kline` 1m），端点/服务层不直接 `requests` | ✅ |
+| §2.1 四层架构：③ 功能接口层 = 端点(瘦) + 服务(编排)，② 数据源对接层 = 唯一脏活层 | 端点 `api/v1/endpoints/eod_picker.py` 只做路由 + 任务编排；`src/application/analysis/eod_picker_service.py` 做业务编排；**所有外部取数经取数端口（`MarketSnapshotPort` 全市场快照三源回退 / 分时经 `application/quote` 分时服务），适配器绑定 `data_provider/`、由 bootstrap 装配**，端点/服务层不直接 `requests`、不直接 import `data_provider` | ✅ |
 | §2.2 `data_provider` 为唯一脏活层，禁止在 services/endpoints 直连源 | 全市场快照复用 `akshare_fetcher.py` 既有 `stock_zh_a_spot_em` 通道；分时复用 `data_provider/kline/*_source.py`，**均不新增 fetcher、不平行实现** | ✅ |
 | §2.4 / §4.4 多源平等 + 自动回退（仅强约束 K线/基础信息/代码搜索三类基础能力） | eod-picker 不属于上述三类能力，但其取数**完全复用**已具备多源回退的既有能力（spot/kline），不引入新的单源硬编码 | ✅ |
 | §3 ① 数据库层铁律：外部 API 只做进程内 TTL 缓存、不落表 | 全市场快照采用进程内 TTL 缓存（~30s）；eod-picker 结果为**瞬时计算产物**，仅存于异步任务对象内（内存），**不落任何表**，符合「外部 API 不落表」原则 | ✅ |

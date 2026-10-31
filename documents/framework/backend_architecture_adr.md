@@ -20,7 +20,7 @@
   - [2.6 kline.py 瘦身为瘦端点〔D6〕](#26-klinepy-瘦身为瘦端点d6)
   - [2.7 设计前提：项目未上线，无历史包袱，按正确做法落地](#27-设计前提项目未上线无历史包袱按正确做法落地)
 - [3. 数据库层设计](#3-数据库层设计)
-  - [3.1 src/repositories/ 落表文件清单与职责](#31-srcrepositories-落表文件清单与职责)
+  - [3.1 仓储落表文件清单与职责（现 `src/infrastructure/persistence/repositories/`）](#31-srcrepositories-落表文件清单与职责)
   - [3.2 storage.py —— 落表基座（连接 + 模型 + 原语）](#32-storagepy-落表基座连接-模型-原语)
   - [3.3 数据库层在四层架构中的定位](#33-数据库层在四层架构中的定位)
 - [4. 数据源对接层设计](#4-数据源对接层设计)
@@ -82,7 +82,7 @@
   - [2.6 kline.py 瘦身为瘦端点](#26-klinepy-瘦身为瘦端点)
   - [2.7 设计前提：未上线、无历史包袱、按正确做法](#27-设计前提未上线无历史包袱按正确做法)
 - [3. 数据库层设计](#3-数据库层设计)
-  - [3.1 src/repositories/ 落表文件清单与职责](#31-srcrepositories-落表文件清单与职责)
+  - [3.1 仓储落表文件清单与职责（现 `src/infrastructure/persistence/repositories/`）](#31-srcrepositories-落表文件清单与职责)
   - [3.2 storage.py —— 落表基座（连接 + 模型 + 原语）](#32-storagepy-落表基座-连接-模型-原语)
   - [3.3 数据库层在四层架构中的定位](#33-数据库层在四层架构中的定位)
 - [4. 数据源对接层设计](#4-数据源对接层设计)
@@ -144,7 +144,7 @@
 
 | 层 | 职责 | 工程现状 / 落点 |
 |---|---|---|
-| ① **数据库层** | 本地数据源、本地配置、**数据字典**落表；外部 API 拉取只做进程内 TTL 缓存、不落表 | 已有 `storage.py` + `src/repositories/`；StockDB 数据由 StockDB 进程独占管理，HermesX **不直读文件**，只走其 HTTP 接口 |
+| ① **数据库层** | 本地数据源、本地配置、**数据字典**落表；外部 API 拉取只做进程内 TTL 缓存、不落表 | 已有 `storage.py` + `src/infrastructure/persistence/repositories/`；StockDB 数据由 StockDB 进程独占管理，HermesX **不直读文件**，只走其 HTTP 接口 |
 | ② **数据源对接层（脏活层）** | **唯一**与外部源 / 本地源对接的封装层——所有 `requests` / 协议对接 / 本地库查询全封装于此 | `data_provider/`：保留既有 15+ fetcher；新增 StockDB 接入 |
 | ③ **功能接口层** | 面向功能 / UI 的 HTTP 端点（固定契约，不随数据源变）+ 功能编排（组合数据源与业务规则） | `api/v1/endpoints/`（瘦端点）+ `src/services/`（功能编排） |
 | ④ **横切基础辅助层** | `config.py` + `system_config_service` + 【应建，O1】数据字典模块，被以上各层读取 | `config.py` + `system_config_service`；数据字典暂无独立表，按 §2.7 本期应建为独立表（不再以 config 顶替） |
@@ -155,10 +155,10 @@
 
 | 层级 | 干什么（职责） | 作用 | 对应目录地址（只到目录） |
 |---|---|---|---|
-| **① 数据库层** | 本地数据源 / 配置 / 字典落表；外部 API 仅 TTL 缓存、不落表 | 本地存储读写边界；StockDB 由其自身进程独占，HermesX 不直读文件 | `src/repositories/`（+ 根 `storage.py`） |
+| **① 数据库层** | 本地数据源 / 配置 / 字典落表；外部 API 仅 TTL 缓存、不落表 | 本地存储读写边界；StockDB  由其自身进程独占，HermesX 不直读文件 | `src/infrastructure/persistence/repositories/`（+ 根 `storage.py`） |
 | **② 数据源对接层**（脏活层） | 唯一对接外部 / 本地源的封装层：`requests` / 协议 / 本地库查询全在此；选源 / 回退 / TTL 在 Manager 内 | 屏蔽多源差异，对上层给统一契约；加源只写一份 `_normalize_*` 映射 | `data_provider/` |
 | **③ 功能接口层**（面向功能与 UI） | 面向功能与 UI 的 HTTP 端点（固定契约，不随源变）+ 功能编排 | 唯一对外、面向 UI 的接口边界；换源对 UI 透明，前端零改 | `api/v1/endpoints/`（+ `src/services/`） |
-| **④ 横切基础辅助层** | `config.py` + 运行时配置服务 + 数据字典，被各层读取 | 横切全局可读（配置 / 白名单 / 字典），不属竖向流程 | `src/config.py`（横切配置，全局读取） |
+| **④ 横切基础辅助层** | `config.py` + 运行时配置服务 + 数据字典，被各层读取 | 横切全局可读（配置 / 白名单 / 字典），不属竖向流程 | `src/config/settings.py`（横切配置，全局读取） |
 
 ### <a id="22-dataprovider-为唯一脏活层数据源下沉d2"></a>2.2 data_provider 为唯一脏活层（数据源下沉）〔D2〕
 
@@ -192,7 +192,7 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 
 - `/settings` 下新增「数据源」Tab（不另起独立菜单），每组能力含：主源下拉 + 回退链排序 + 开关 + 连接测试。
 - 持久化调用既有 `POST /api/v1/config`（写 `.env` + `reload_now`）；选源逻辑每次请求读 `config.*_data_source`，无需重启即切换。
-- 新增配置键须登记进 `system_config` 运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；`StockSDK` 相关桥接配置（如 `STOCKSDK_ENABLED`、`STOCKSDK_NODE_BIN`、`STOCKSDK_BRIDGE_ENTRY`、`STOCKSDK_TIMEOUT_MS`、`STOCKSDK_RATE_LIMIT_RPS`、`STOCKSDK_KLINE_FALLBACK`）同样属于 ④ 层统一配置。
+- 新增配置键须登记进 `system_config` 运行时白名单（参考 `src/config/settings.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；`StockSDK` 相关桥接配置（如 `STOCKSDK_ENABLED`、`STOCKSDK_NODE_BIN`、`STOCKSDK_BRIDGE_ENTRY`、`STOCKSDK_TIMEOUT_MS`、`STOCKSDK_RATE_LIMIT_RPS`、`STOCKSDK_KLINE_FALLBACK`）同样属于 ④ 层统一配置。
 
 ### <a id="26-klinepy-瘦身为瘦端点d6"></a>2.6 kline.py 瘦身为瘦端点〔D6〕
 
@@ -216,36 +216,40 @@ K 线（kline）/ 基础信息（stock_info）/ 代码搜索（code_search）各
 > 本章对应「① 数据库层」：本地数据源、本地配置、数据字典落表；外部 API 拉取只做进程内 TTL 缓存、不落表。整体决策见 §2.1 四层架构总览；本 ADR 重构范围内**不借机扩张无关表**，其中数据字典（O1）按 §2.7「正确做法」建为独立表，属本层既有职责、不视为妥协性扩张。
 
 - **StockDB 由进程独占管理**：本地 StockDB 数据（`127.0.0.1:7899`）由 StockDB 自身进程独占，HermesX **不直读文件**，只走其 HTTP 接口（`data_provider/stockdb_fetcher.py` 封装）。
-- **本地存储边界**：`src/repositories/`（+ 根 `storage.py`）承载 HermesX 自身本地数据源 / 配置 / 字典落表；外部 API 拉取只做进程内 TTL 缓存、不落表，避免重复落盘。
+- **本地存储边界**：`src/infrastructure/persistence/repositories/`（+ 根 `storage.py`）承载 HermesX 自身本地数据源 / 配置 / 字典落表；外部 API 拉取只做进程内 TTL 缓存、不落表，避免重复落盘。
 - **数据字典（应为独立表，不再用 config 顶替）**：承载跨能力字典，是 ① 数据库层本就属于的职责。因项目未上线（§2.7），**不应长期以 `config.py` 常量顶替**，应建为独立表 + 对应 Repository，作为正确结构落地；具体建模与落地排期见 §6 横切基础辅助层设计 / 开放项 O1（O1 由"可选"上调为"应建独立表"，执行排期见 §6 落地说明）。
-- **对应目录**：`src/repositories/`（+ 根 `storage.py`）；本期数据库层**落表导出已收口（§3.1 / §10.5 D1）、数据字典 O1 按 §2.7 上调为应建独立表（执行见 §6 落地说明）**，除上述外不改动既有模型契约、不新增无关表。
+- **对应目录**：`src/infrastructure/persistence/repositories/`（+ 根 `storage.py`）；本期数据库层**落表导出已收口（§3.1 / §10.5 D1）、数据字典 O1 按 §2.7 上调为应建独立表（执行见 §6 落地说明）**，除上述外不改动既有模型契约、不新增无关表。
 
-### <a id="31-srcrepositories-落表文件清单与职责"></a>3.1 src/repositories/ 落表文件清单与职责
+### <a id="31-srcrepositories-落表文件清单与职责"></a>3.1 仓储落表文件清单与职责（现 `src/infrastructure/persistence/repositories/`）
 
-数据库层（①）的本地落表由根 `storage.py`（连接/会话单例 + 全部 ORM 模型/数据字典）与 `src/repositories/` 下的 10 个 Repository（薄 DAO）共同承载。各 Repository **统一只依赖 `storage` 的导出 `DatabaseManager` + 对应 ORM 模型**，封装某几张表的 CRUD/查询，**不含业务编排**，被 ③ 功能接口层（`api/v1/endpoints/` + `src/services/`）调用。
+数据库层（①）的本地落表由根 `storage.py`（连接/会话单例 + 全部 ORM 模型/数据字典）与 Repository（薄 DAO）共同承载。各 Repository **统一只依赖 `storage` 的导出 `DatabaseManager` + 对应 ORM 模型**，封装某几张表的 CRUD/查询，**不含业务编排**，由 bootstrap 装配后经端口注入 ③ 应用层用例。
+
+> **迁移状态（2026-10-28，P3/P4 持久化收口 Epic PP-1~PP-7 已完成）**：intelligence / analysis / alert / portfolio / decision / backtest / quote 七个业务域的仓储已全部物理下沉到 `src/infrastructure/persistence/repositories/` 并由 application 端口收敛（`src/application/*/ports.py` 的 `*RepositoryPort` + 工厂 seam）；根 `src/repositories/` 在 git 中已无任何文件（克隆后不存在），守卫已把 `src.repositories` 列为 application 层禁入前缀。下表“文件”列均为当前实际落点。
 
 | 文件 | 主表（ORM 模型） | 作用 | 业务域 |
 |---|---|---|---|
-| `stock_repo.py` | `StockDaily` | 日线本地缓存：`get_latest` / `get_range` / `save_dataframe` / `has_today_data`，以及回测用 `get_start_daily` / `get_daily_on_date` / `get_forward_bars` | 行情缓存 |
-| `portfolio_repo.py` | `PortfolioAccount` / `PortfolioTrade` / `PortfolioCashLedger` / `PortfolioCorporateAction` / `PortfolioPosition` / `PortfolioPositionLot` / `PortfolioDailySnapshot` / `PortfolioFxRate` | 组合 P0 核心：账户 CRUD、交易/资金/公司行动事件写入（带 `BEGIN IMMEDIATE` 锁 + `trade_uid` / `dedup_hash` 去重）、持仓与批次缓存、日快照、汇率；`_invalidate_account_cache_in_session` 失效 | 组合 / 持仓 |
-| `alert_repo.py` | `AlertRuleRecord` / `AlertTriggerRecord` / `AlertNotificationRecord` / `AlertCooldownRecord` | 告警中心：规则 CRUD/分页、触发历史（`create_trigger_if_absent` 去重）、通知记录、冷却 `upsert_cooldown` | 告警 |
-| `analysis_repo.py` | `AnalysisHistory` | 分析历史：`get_by_query_id` / `get_list` / `save` / `count_by_code`，防御式吞异常返回空 | 分析历史 |
-| `decision_signal_repo.py` | `DecisionSignalRecord` | AI 决策信号：`create_if_absent` 幂等合并（含 horizon/phase 松弛回填）、多维 `list`、`expire_due_signals` 过期 | 决策信号 |
-| `decision_signal_outcome_repo.py` | `DecisionSignalOutcomeRecord` / `DecisionSignalFeedbackRecord` | 信号的"前向结果 + 人工反馈"侧车表：`upsert_outcome` / `upsert_feedback`、`list_stats_rows`（用于 profile 校准） | 信号结果 |
-| `skill_opinion_sample_repo.py` | `SkillOpinionSampleRecord` | 技能意见不可变样本：`insert_missing`（`on_conflict_do_nothing` 按 history+skill+版本），只插不更新 | 技能样本 |
-| `skill_opinion_outcome_repo.py` | `SkillOpinionOutcomeRecord` | 样本前向结果：`list_candidate_keys`（缺失/待评估候选）、`persist_outcome`（终态不覆盖） | 样本结果 |
-| `intelligence_repo.py` | `IntelligenceSource` / `IntelligenceItem` | 资讯情报：`IntelligenceItem` 借 `scope_type` / `scope_value` 区分通用资讯 / 实时快讯 / 消息日历；源 CRUD、items 只补空不覆盖、`list_live_news_items` keyset 游标、保留期清理 | 资讯情报 |
-| `backtest_repo.py` | `BacktestResult` / `BacktestSummary`（关联 `AnalysisHistory`） | 回测：从 `AnalysisHistory` 选候选、`save_results_batch`、`get_results_*`、`upsert_summary`（胜率 / 方向准确率聚合）、`align_existing_result_dates` | 回测 |
+| `src/infrastructure/persistence/repositories/stock_repository.py` | `StockDaily` | 日线本地缓存：`get_latest` / `get_range` / `save_dataframe` / `has_today_data`，以及回测用 `get_start_daily` / `get_daily_on_date` / `get_forward_bars`；后两者满足 `application/backtest/ports.py::StockRepositoryPort`（回测窗口解析、决策结果/技能观点评估共用） | 行情缓存 |
+| `src/infrastructure/persistence/repositories/portfolio_repository.py` | `PortfolioAccount` / `PortfolioTrade` / `PortfolioCashLedger` / `PortfolioCorporateAction` / `PortfolioPosition` / `PortfolioPositionLot` / `PortfolioDailySnapshot` / `PortfolioFxRate` | 组合 P0 核心：账户 CRUD、交易/资金/公司行动事件写入（带 `BEGIN IMMEDIATE` 锁 + `trade_uid` / `dedup_hash` 去重）、持仓与批次缓存、日快照、汇率；`_invalidate_account_cache_in_session` 失效；3 个跨层异常上收 `application/portfolio/ports.py` | 组合 / 持仓 |
+| `src/infrastructure/persistence/repositories/alert_repository.py` | `AlertRuleRecord` / `AlertTriggerRecord` / `AlertNotificationRecord` / `AlertCooldownRecord` | 告警中心：规则 CRUD/分页、触发历史（`create_trigger_if_absent` 去重）、通知记录、冷却 `upsert_cooldown` | 告警 |
+| `src/infrastructure/persistence/repositories/analysis_repository.py` | `AnalysisHistory` | 分析历史：`get_by_query_id` / `get_list` / `save` / `count_by_code`，防御式吞异常返回空 | 分析历史 |
+| `src/infrastructure/persistence/repositories/decision_signal_repository.py` | `DecisionSignalRecord` | AI 决策信号：`create_if_absent` 幂等合并（含 horizon/phase 松弛回填）、多维 `list`、`expire_due_signals` 过期；DTO `DecisionSignalCreateResult` 归 `application/decision/ports.py` | 决策信号 |
+| `src/infrastructure/persistence/repositories/decision_signal_outcome_repository.py` | `DecisionSignalOutcomeRecord` / `DecisionSignalFeedbackRecord` | 信号的"前向结果 + 人工反馈"侧车表：`upsert_outcome` / `upsert_feedback`、`list_stats_rows`（用于 profile 校准）；DTO `OutcomeStatsRow` 归 ports | 信号结果 |
+| `src/infrastructure/persistence/repositories/skill_opinion_sample_repository.py` | `SkillOpinionSampleRecord` | 技能意见不可变样本：`insert_missing`（`on_conflict_do_nothing` 按 history+skill+版本），只插不更新 | 技能样本 |
+| `src/infrastructure/persistence/repositories/skill_opinion_outcome_repository.py` | `SkillOpinionOutcomeRecord` | 样本前向结果：`list_candidate_keys`（缺失/待评估候选）、`persist_outcome`（终态不覆盖）；DTO `SkillOpinionOutcomeCandidate` 归 ports | 样本结果 |
+| `src/infrastructure/persistence/repositories/intelligence_repository.py` | `IntelligenceSource` / `IntelligenceItem` | 资讯情报：`IntelligenceItem` 借 `scope_type` / `scope_value` 区分通用资讯 / 实时快讯 / 消息日历；源 CRUD、items 只补空不覆盖、`list_live_news_items` keyset 游标、保留期清理 | 资讯情报 |
+| `src/infrastructure/persistence/repositories/backtest_repository.py` | `BacktestResult` / `BacktestSummary`（关联 `AnalysisHistory`） | 回测：从 `AnalysisHistory` 选候选、`save_results_batch`、`get_results_*`、`upsert_summary`（胜率 / 方向准确率聚合）、`align_existing_result_dates`；纯函数 `parse_analysis_date_from_snapshot` 已下沉 `src/domain/analysis/analysis_context_snapshot.py`（同名静态方法仅作一行委托） | 回测 |
 
-> **导出约定**：`src/repositories/__init__.py` 作为该层唯一一致入口，barrel 导出全部 10 个 Repository 类（`AnalysisRepository` / `BacktestRepository` / `DecisionSignalRepository` / `DecisionSignalOutcomeRepository` / `StockRepository` / `SkillOpinionSampleRepository` / `AlertRepository` / `PortfolioRepository` / `IntelligenceRepository` / `SkillOpinionOutcomeRepository`）。
+> **导出约定**：application 侧只依赖 `src/application/*/ports.py` 的端口与 ``get_*_repository()`` 工厂，bootstrap 负责注册 infra 实现；根 `src/repositories/` 与 `__init__` 已在 PP-7 删除，不再提供任何 barrel。
 
 ### <a id="32-storagepy-落表基座连接-模型-原语"></a>3.2 storage.py —— 落表基座（连接 + 模型 + 原语）
+
+> **门面归位决策（2026-10-28，PP-7）**：ORM `Base` / 模型 / 会话 / schema 兼容 / 仓储实现均已下沉 `src/infrastructure/persistence/`，根 `src/storage.py` **保留为 `DatabaseManager` 门面**（单例装配 + `get_session()` + `write_transaction` + 同名薄委托）并作为**已批准例外**：application 已零依赖它（守卫禁止 `src.infrastructure`，不含 `src.storage` 前缀），搬门面需同时改全仓 import 且无分层收益，故本轮不动；若后续要让 application 也禁止 `src.storage`，应在独立切片中整体搬迁。
 
 - **`DatabaseManager`（进程内单例，metaclass 控制）**：管理 SQLite 连接、`get_session()` 会话、`_run_write_transaction()` 写事务、`BEGIN IMMEDIATE` 锁重试；是所有 Repository 的唯一连接/会话来源，是依赖终点，不依赖任何上层。
 - **34 个 ORM 模型（即"数据字典 / 落表 schema"）**：`StockDaily`、`IntelligenceSource` / `IntelligenceItem`、`NewsIntel`、`FundamentalSnapshot`、`AnalysisHistory`、`BacktestResult` / `BacktestSummary`、`Portfolio*`(9 张)、`ConversationMessage` / `ConversationSummary` / `AgentProviderTurn`、`LLMUsage`、`Alert*`(4 张)、`DecisionSignal*`(3 张)、`SkillOpinion*`(2 张)、`WatchlistGroup` / `WatchlistItem`、`DatabaseSchemaMigration`。
   - 其中多数模型已有对应 Repository（见 §3.1）；`NewsIntel` / `FundamentalSnapshot` / `Conversation*` / `LLMUsage` / `Watchlist*` / `DatabaseSchemaMigration` 目前直接经 `DatabaseManager` 原语或别的入口访问，未设专属 Repository（非必需；属稳定期外可选项，可按需补，不计入本 ADR 新增范围）。
 - **存储铁律（文件 docstring 强制）**：时间统一 UTC-naive、金额统一元 / 涨跌幅为百分比数值、股票代码纯代码字符串、JSON 列以 `Text` 存字符串、流水表软删除 + 保留期清理；Schema 增量迁移经 `_ensure_*` 幂等补列/补索引。
-- **边界**：只做"连接管理 + ORM 模型 + 通用存取原语"，**不含业务编排**；业务在 `src/services/` 与 `src/repositories/`。
+- **边界**：只做"连接管理 + ORM 模型 + 通用存取原语"，**不含业务编排**；业务在 `src/application/` 与 `src/domain/`。
 
 ### <a id="33-数据库层在四层架构中的定位"></a>3.3 数据库层在四层架构中的定位
 
@@ -342,7 +346,7 @@ data_provider/
 | | | `stocksdk_source.py` | 源 = StockSDK，桥接行业 / 概念板块 / 资金流 / 北向资金等标准板块接口；主要作为 eastmoney 的桥接型补充源，不承接时到量化云图专属接口 | 同上 | 第二维=源 stocksdk | 阶段3 |
 | | | `market_cards_source.py` | 功能包内共享能力：统一组装 `/api/v1/sector/market-cards?market=<tab-key>` 卡片列表（B1 已落地，此前漏登记本表，本次补登记） | 同上 | 功能包内共享能力（非数据源维度） | 阶段3 |
 | | `limit_pool/` | `__init__.py` | 包标识 | **涨跌停榜单（涨停池 / 跌停池；后续扩炸板池 / 昨日涨停池 / 连板梯队）** | 目录标识 | 阶段3 |
-| | | `base.py` | `LimitPoolDataSource(ABC)` + `LimitPoolDataSourceManager`；统一 `LimitPoolEntry` 契约（`code / name / price / change_pct / amount / turnover_rate / seal_amount / first_limit_time / last_limit_time / break_count / limit_stat / consecutive_boards / industry`），以 `pool_type`（`limit_up` / `limit_down`）区分涨跌停；选源 / 回退 / TTL / 健康冷却复用 `common/base.py`（配置键 `limit_pool_data_source` / `limit_pool_source_priority` / `limit_pool_fallback_enabled`，随 B2 落进 `src/config.py` 与运行时白名单） | 涨跌停榜单 | 第一维=功能 涨跌停（功能包核心） | 阶段3 |
+| | | `base.py` | `LimitPoolDataSource(ABC)` + `LimitPoolDataSourceManager`；统一 `LimitPoolEntry` 契约（`code / name / price / change_pct / amount / turnover_rate / seal_amount / first_limit_time / last_limit_time / break_count / limit_stat / consecutive_boards / industry`），以 `pool_type`（`limit_up` / `limit_down`）区分涨跌停；选源 / 回退 / TTL / 健康冷却复用 `common/base.py`（配置键 `limit_pool_data_source` / `limit_pool_source_priority` / `limit_pool_fallback_enabled`，随 B2 落进 `src/config/settings.py` 与运行时白名单） | 涨跌停榜单 | 第一维=功能 涨跌停（功能包核心） | 阶段3 |
 | | | `eastmoney_source.py` | 源 = 东财，承接涨停股池 / 跌停股池取数；**复用既有 akshare 东财通道（`stock_zt_pool_em` / `stock_zt_pool_dtgc_em`），不重写**；**承接 B2：涨跌停池从 `BaseFetcher` 巨类下沉** | 同上 | 第二维=源 eastmoney | 阶段3 |
 | | | `stocksdk_source.py` | 源 = StockSDK，经 `stocksdk_bridge.py` 桥接涨跌停 / 封板类接口，作为 eastmoney 的桥接型补充源；**用于补齐涨跌停第二源，使回退链真正成立** | 同上 | 第二维=源 stocksdk | 阶段3 |
 | | `fundamentals/` | `__init__.py` | 包标识 | **财务基本面（财报 / 估值）** | 目录标识 | 阶段3 |
@@ -463,12 +467,12 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 > 本章对应「④ 横切基础辅助层」：被以上各层读取的全局可读基础设施。整体决策见 §2.5（UI 配置页复用运行时改配置）；数据字典建议见开放项 O1。
 
-- **配置与白名单**：`src/config.py` + `system_config_service`。配置键（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `SECTOR_*` / `LIMITPOOL_*`）须登记进 `system_config` 运行时白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），新增键须注册；其中 `KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 已落地，**`SECTOR_*` / `LIMITPOOL_*` 尚未落进 `src/config.py` 与白名单**（分别随 B1 收尾与 B2 建包补齐，见 §10.2）。
+- **配置与白名单**：`src/config/settings.py` + `system_config_service`。配置键（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` / `REALTIME_*` / `SECTOR_*` / `LIMITPOOL_*`）须登记进 `system_config` 运行时白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），新增键须注册；其中 `KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 已落地，**`SECTOR_*` / `LIMITPOOL_*` 尚未落进 `src/config/settings.py` 与白名单**（分别随 B1 收尾与 B2 建包补齐，见 §10.2）。
 - **数据字典模块（应建为独立表，不再以 config 顶替）**：承载跨能力字典，按 §2.7 正确做法本期建表；具体表结构与落点见开放项 O1。
 
 > **落地说明（暂不行执行，后续再修改）**：本节对「横切基础辅助层」中数据字典（O1）的调整——由"建议新增 / 先用 `config.py` 常量顶替"改为"应建为独立表、不再 config 顶替"——**仅作设计立场记录（与 §2.7 正确做法一致）；对应代码落地（新建数据字典表 + Repository、移除 `config.py` 常量顶替）暂不在本期执行，后续再修改 / 排期**。本期实际不动 `config.py`、不新增数据字典表；O1 维持"设计已定、执行待排"状态。
 - **UI 配置页**：`/settings` 下「数据源」Tab 复用既有 `POST /api/v1/config` 运行时写 `.env` + `reload_now`，选源逻辑每次请求读 `config.*_data_source`，无需重启即切换。
-- **对应目录**：`src/config.py`（横切配置，全局读取）。
+- **对应目录**：`src/config/settings.py`（横切配置，全局读取）。
 
 ---
 
@@ -537,7 +541,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | ③ 功能接口层 | `api/v1/endpoints/sector.py` | **修改（已瘦身）**：板块相关取数与缓存已下沉到 `data_provider/sector/{eastmoney_source,shidaotec_source,stocksdk_source,market_cards_source}.py`，其中 `stocksdk_source.py` 用于总览页标准市场接口与板块资金接口的优先桥接源，`market_cards_source.py` 用于 `/market/index` 的统一卡片列表聚合 | B1 |
 | ③ 功能接口层 | `api/v1/endpoints/emotion.py` → `limit_pool.py`（路由 `/api/v1/emotion` → `/api/v1/limit-pool`） | **修改（按服务端能力域重命名）**：端点不完全绑定前端「情绪」菜单分组；前端封装 `apps/hrs-web/src/api/emotionData.ts` → `limitPoolData.ts` 同步；**不兼容变更**（无兼容层，依据 §2.7）。前端页面目录 `pages/Emotion/` 与路由 `/emotion/boardlist` 属 UI 呈现层，保持不动 | §5.3 命名公约 |
 | ③ 功能接口层 | `src/services/` 其余 SaaS 外联（alphasift / intelligence / social_sentiment / stock_index_remote） | **不改** | C1 |
-| ④ 横切基础辅助层 | `src/config.py` + `.env.example` | **修改**（新增 `KLINE_*` 等切换键） | 2.4/2.5、A7 |
+| ④ 横切基础辅助层 | `src/config/settings.py` + `.env.example` | **修改**（新增 `KLINE_*` 等切换键） | 2.4/2.5、A7 |
 | ④ 横切基础辅助层 | `system_config` 运行时白名单 | **修改**（注册新键） | 2.5、A7 |
 | 前端 | `apps/hrs-web/` 新增「数据源配置」Tab（挂 `/settings` 下） | **新建** | 2.5、A8 |
 
@@ -553,7 +557,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 - [ ] **A4. 新建 `data_provider/kline/{eastmoney,sina,tencent,stocksdk}_source.py`**：把 kline.py 现有三源取数**平移**进对应源文件，并新增 `stocksdk_source.py` 经 bridge 调用 `stock-sdk`；各自完成 `_normalize_kline()` 映射；禁止保留副本，消除重复实现。`[2.2][2.3]`｜前端：❌
 - [ ] **A5. 新建 `data_provider/kline/transform.py`**：共享时间桶聚合（5m~年）+ `pct_chg` 层内统一计算（派生字段，非各源重复）。`[2.4]`｜前端：❌
 - [ ] **A6. 新建 / 确认 `data_provider/stockdb_fetcher.py`**：沉淀独立 StockDB 客户端（连接/鉴权/TTL/异常），供 kline / stock_info / code_search 复用，不进端点层。`[2.2]`｜前端：❌
-- [ ] **A7. `src/config.py` + `.env.example` + `system_config` 白名单**：新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ `STOCKINFO_*` / `CODESEARCH_*`）并注册进运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；若引入 `StockSDK`，同时补 `STOCKSDK_ENABLED` / `STOCKSDK_NODE_BIN` / `STOCKSDK_BRIDGE_ENTRY` / `STOCKSDK_TIMEOUT_MS` / `STOCKSDK_RATE_LIMIT_RPS` / `STOCKSDK_KLINE_FALLBACK`。`[2.4][2.5]`｜前端：⚠️ 需 A8 配套
+- [ ] **A7. `src/config/settings.py` + `.env.example` + `system_config` 白名单**：新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ `STOCKINFO_*` / `CODESEARCH_*`）并注册进运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）；若引入 `StockSDK`，同时补 `STOCKSDK_ENABLED` / `STOCKSDK_NODE_BIN` / `STOCKSDK_BRIDGE_ENTRY` / `STOCKSDK_TIMEOUT_MS` / `STOCKSDK_RATE_LIMIT_RPS` / `STOCKSDK_KLINE_FALLBACK`。`[2.4][2.5]`｜前端：⚠️ 需 A8 配套
 - [ ] **A8. 前端新增「数据源配置」Tab（挂 `/settings`）**：复用 `POST /api/v1/config` 运行时写 `.env`，把 `KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 与 `STOCKSDK_*` 纳入可写白名单；选项来自枚举（`local/eastmoney/sina/tencent/stocksdk/auto` + 回退链排序 UI）。`[2.5]`｜前端：✅ 需新增页面
 - [ ] **A9. `data_provider/stock_info/`、`data_provider/code_search/` 同模式占位**：各建 `base.py`（`ABC` + `Manager`）+ 契约（`StockInfo` / `CodeSearchResult`）+ 至少 1 个 source；优先复用 `get_stock_name` / `get_stock_list` 加薄适配壳，本地 StockDB 与 `stocksdk_source.py` 接入走同一壳。`[2.3]`｜前端：❌
 - [ ] **A10. 取数下沉**：`src/services/name_to_code_resolver.py` 取数迁至 `data_provider/code_search/eastmoney_source.py` / `data_provider/code_search/stocksdk_source.py`（功能接口层不再直接 `import akshare` 取数，解析/缓存留薄壳）；`stock_service.get_stock_name` 从 `BaseFetcher` 巨类迁至 `data_provider/stock_info/eastmoney_source.py` / `data_provider/stock_info/stocksdk_source.py`。`[2.2][2.3]`｜前端：❌
@@ -564,7 +568,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 
 - [x] **B1. `api/v1/endpoints/sector.py` 瘦化与取数下沉**：原内联东财主链路已下沉到 `data_provider/sector/eastmoney_source.py`，行业 / 个股 / ETF / 概念云图已下沉到 `data_provider/sector/shidaotec_source.py`，总览页标准市场接口与板块资金接口新增 `data_provider/sector/stocksdk_source.py` 作为 StockSDK 优先桥接源，并通过 `data_provider/sector/market_cards_source.py` 统一组装 `/api/v1/sector/market-cards?market=<tab-key>` 卡片列表；`sector.py` 当前仅保留路由参数校验、异常映射与响应编排。`[2.2][2.6]`｜前端：❌｜**已完成（文档同步更新）**
 
-- [x] **B2. 涨跌停池下沉到 `data_provider/limit_pool/`，收口为涨跌停数据的唯一入口**（**已完成 2026-10-19**，仅 ⑤ 第二源待 bridge 支持后启用）：① 把 `get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/akshare_fetcher.py`（`BaseFetcher` 巨类）与 `data_provider/base.py`（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）下沉到 `data_provider/limit_pool/eastmoney_source.py`，内部**复用既有 akshare 东财通道**（`stock_zt_pool_em` / `stock_zt_pool_dtgc_em`），不重写；② 由 `limit_pool/base.py` 的 `LimitPoolDataSourceManager` 统一供给，选源 / 回退 / TTL / 健康冷却复用 `common/base.py`，并固化 `LimitPoolEntry` 契约（涨停 / 跌停以 `pool_type` 区分，后续炸板池 / 昨日涨停池同构扩展）；③ 消费方 `api/v1/endpoints/limit_pool.py`（原 `emotion.py`）与 `src/services/signal_scanner_service.py` 改调新 Manager，删除端点自建的 `_BOARD_CACHE`（含"取数失败也把空结果缓存 60s"的缺陷）；④ 同步迁移 `tests/test_signal_scanner_service.py` / `tests/test_akshare_realtime_logging.py` 的 mock 点，避免测试绕过真实取数层；⑤ 补 `limit_pool/stocksdk_source.py` 作为第二源——**文件已建**，但 StockSDK bridge（`scripts/stocksdk_bridge/bridge.mjs`）的 action 白名单尚无涨跌停池能力，故 `is_available()` **显式返回 False**：回退链结构上就绪、实际仍为东财单源，待 bridge 扩展后启用（启用步骤见该文件 docstring）；⑥ 把 `LIMITPOOL_DATA_SOURCE` / `LIMITPOOL_FALLBACK_ENABLED` / `LIMITPOOL_SOURCE_PRIORITY` 落进 `src/config.py` 并登记运行时白名单——**注意 `sector` 包当前同样未落地 `SECTOR_*`（`getattr` 兜底走默认单源、不可在 UI 配置），可一并补齐**。`[2.2][2.3][2.5][2.7][§4.4]`｜前端：❌｜**已完成（2026-10-19）**：①②③④⑥ 已落地，⑤ 待 StockSDK bridge 提供涨跌停池 action 后启用
+- [x] **B2. 涨跌停池下沉到 `data_provider/limit_pool/`，收口为涨跌停数据的唯一入口**（**已完成 2026-10-19**，仅 ⑤ 第二源待 bridge 支持后启用）：① 把 `get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/akshare_fetcher.py`（`BaseFetcher` 巨类）与 `data_provider/base.py`（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）下沉到 `data_provider/limit_pool/eastmoney_source.py`，内部**复用既有 akshare 东财通道**（`stock_zt_pool_em` / `stock_zt_pool_dtgc_em`），不重写；② 由 `limit_pool/base.py` 的 `LimitPoolDataSourceManager` 统一供给，选源 / 回退 / TTL / 健康冷却复用 `common/base.py`，并固化 `LimitPoolEntry` 契约（涨停 / 跌停以 `pool_type` 区分，后续炸板池 / 昨日涨停池同构扩展）；③ 消费方 `api/v1/endpoints/limit_pool.py`（原 `emotion.py`）与 `src/services/signal_scanner_service.py` 改调新 Manager，删除端点自建的 `_BOARD_CACHE`（含"取数失败也把空结果缓存 60s"的缺陷）；④ 同步迁移 `tests/test_signal_scanner_service.py` / `tests/test_akshare_realtime_logging.py` 的 mock 点，避免测试绕过真实取数层；⑤ 补 `limit_pool/stocksdk_source.py` 作为第二源——**文件已建**，但 StockSDK bridge（`scripts/stocksdk_bridge/bridge.mjs`）的 action 白名单尚无涨跌停池能力，故 `is_available()` **显式返回 False**：回退链结构上就绪、实际仍为东财单源，待 bridge 扩展后启用（启用步骤见该文件 docstring）；⑥ 把 `LIMITPOOL_DATA_SOURCE` / `LIMITPOOL_FALLBACK_ENABLED` / `LIMITPOOL_SOURCE_PRIORITY` 落进 `src/config/settings.py` 并登记运行时白名单——**注意 `sector` 包当前同样未落地 `SECTOR_*`（`getattr` 兜底走默认单源、不可在 UI 配置），可一并补齐**。`[2.2][2.3][2.5][2.7][§4.4]`｜前端：❌｜**已完成（2026-10-19）**：①②③④⑥ 已落地，⑤ 待 StockSDK bridge 提供涨跌停池 action 后启用
 
 **Tier C — 不纳入（仅记录，不改动）**
 
@@ -651,7 +655,7 @@ src/services/          # ③ 功能编排层：组合数据源与业务规则（
 | 修订 F（2026-10-09） | 新增 `StockSDK` 可行性分析与分层接入方案：将其定义为 **Node 18 桥接型物理后端**，补充 `data_provider/stocksdk_bridge.py` 与各能力 `stocksdk_source.py` 的目录铺排、配置键、执行顺序、验证项与功能接口层边界说明 |
 | 修订 G（2026-10-19） | **涨跌停从 `sector/` 剥离，单列 `data_provider/limit_pool/` 功能包**：按「第一维按功能/用途分目录」总则，板块 / 概念（标的维度聚合）与涨跌停榜单（状态维度筛选）属两种不同能力，不应同包；`sector/` 职责收敛为「板块 / 概念 / 热门榜单」，`limit_pool/` 承接涨停池 / 跌停池并预留炸板池 / 昨日涨停池 / 连板梯队，固化 `LimitPoolEntry` 契约（`pool_type` 区分涨跌停）。新增 Tier B 代办 B2（下沉 + 消费方收口 + 第二源）与对应验证项；§5.3 端点铺排表补登记 `emotion.py` / `eod_picker.py` / `scanner.py`（17 → 20；其中 `emotion.py` 于修订 H 改名 `limit_pool.py`）；配置键前缀补登记 `SECTOR_*` / `LIMITPOOL_*` |
 | 修订 H（2026-10-19） | **确立端点命名公约，并把涨跌停端点按能力域重命名**：§5.3 新增「登记与命名公约」——端点文件名与路由前缀**建议按照服务端能力域**命名，**不得完全绑定前端菜单分组**（因为菜单会重组、页面会迁移，能力域不会；前端页面只是消费方）。据此 `api/v1/endpoints/emotion.py` / `/api/v1/emotion/*` → `limit_pool.py` / `/api/v1/limit-pool/*`，前端接口封装 `emotionData.ts` → `limitPoolData.ts`；§5.2 目录树补 `eod_picker.py` / `scanner.py` / `limit_pool.py`，§10.1 修改范围登记该重命名。**范围边界**：前端页面目录 `pages/Emotion/`、前端路由 `/emotion/boardlist`、i18n 键 `emotion.board.*` 属 UI 呈现层，不在本次改名范围 |
-| 修订 I（2026-10-19） | **B2 落地：涨跌停池下沉到 `data_provider/limit_pool/`**：新建 `limit_pool/{__init__,base,eastmoney_source,stocksdk_source}.py`，固化 `LimitPoolEntry` 契约（13 字段，`pool_type` 区分 `limit_up` / `limit_down`）；`get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/base.py` 巨类（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）**移除**，`akshare_fetcher.py` 按 §4.4「既有文件处置」**保留为物理后端**并由 `eastmoney_source.py` 复用；消费方 `endpoints/limit_pool.py` 与 `signal_scanner_service.py` 改调 `LimitPoolDataSourceManager`（涨跌停数据收口为唯一入口），端点自建 `_BOARD_CACHE` 删除，**"取数失败也把空结果缓存 60s"缺陷由 Manager「仅在成功时写缓存」的语义修复**；测试 mock 点迁至 `data_provider.limit_pool.get_limit_pool`；`LIMITPOOL_*` 与 `SECTOR_*` 配置键落进 `src/config.py`、运行时白名单与 `.env.example`。**剩余**：`stocksdk_source.py` 因 bridge 无涨跌停 action 而 `is_available()` 返回 False，涨跌停实际仍为东财单源 |
+| 修订 I（2026-10-19） | **B2 落地：涨跌停池下沉到 `data_provider/limit_pool/`**：新建 `limit_pool/{__init__,base,eastmoney_source,stocksdk_source}.py`，固化 `LimitPoolEntry` 契约（13 字段，`pool_type` 区分 `limit_up` / `limit_down`）；`get_limit_up_pool` / `get_limit_down_pool` 从 `data_provider/base.py` 巨类（`BaseFetcher` 抽象方法 + `DataFetcherManager` 遍历）**移除**，`akshare_fetcher.py` 按 §4.4「既有文件处置」**保留为物理后端**并由 `eastmoney_source.py` 复用；消费方 `endpoints/limit_pool.py` 与 `signal_scanner_service.py` 改调 `LimitPoolDataSourceManager`（涨跌停数据收口为唯一入口），端点自建 `_BOARD_CACHE` 删除，**"取数失败也把空结果缓存 60s"缺陷由 Manager「仅在成功时写缓存」的语义修复**；测试 mock 点迁至 `data_provider.limit_pool.get_limit_pool`；`LIMITPOOL_*` 与 `SECTOR_*` 配置键落进 `src/config/settings.py`、运行时白名单与 `.env.example`。**剩余**：`stocksdk_source.py` 因 bridge 无涨跌停 action 而 `is_available()` 返回 False，涨跌停实际仍为东财单源 |
 
 ### <a id="122-adr-方案-章节映射"></a>12.2 ADR ↔ 方案 章节映射
 

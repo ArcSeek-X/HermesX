@@ -330,7 +330,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 | **协议** | 只复用 §2.2 的 HTTP 文本协议 | 不用 `gp.js`：混淆不可维护，且是浏览器直连形态 |
 | **路由** | 复用既有 `api/v1/kline` 端点（瘦端点化），新增 `api/v1/stock-info`、`api/v1/code-search` 同属 `/api/v1` | 不再另立 `/api/stockdb` 独立前缀；统一继承 `ADMIN_AUTH`（属管理后台能力，合理），且前端零改动 |
 | **数据** | HermesX 主库**零新增表**，只做进程内 TTL 缓存 | 行情体量大（单股日K 实测 5444 条，全市场 GB 级）；StockDB 数据有独立许可边界 |
-| **依赖** | 各 source 只依赖 `data_provider` 基类与 `config`，不 import 业务 `src/services/*`、`src/repositories/*`、`src/core/*` | 保证能力可独立增删、不污染既有分析层（stock_service / 组合风险 / 预警 / 回测等） |
+| **依赖** | 各 source 只依赖 `data_provider` 基类与 `config`，不 import 业务 `src/application/*`、`src/infrastructure/persistence/*`、`src/domain/*` | 保证能力可独立增删、不污染 既有分析层（stock_service / 组合风险 / 预警 / 回测等） |
 | **故障** | `STOCKDB_ENABLED=false` 或本地源失败 → 按 `KLINE_SOURCE_PRIORITY` 自动回退其他源 / 返回空态 | StockDB 不可用不得影响主流程、调度、报告、通知 |
 | **切换** | 数据源由配置 `KLINE_DATA_SOURCE` 等驱动，「设置 → 数据源」Tab 可改、无需重启 | 消除原 `kline.py` 硬编码三级降级（东财→腾讯→新浪）的不可配置问题 |
 
@@ -340,7 +340,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 **后端**
 1. `api/app.py`：无需新增 `include_router`（复用既有 `api/v1/kline` 路由）；若新增 `stock-info` / `code-search` 端点，则各加 1 处 `include_router`。
-2. `src/config.py`：新增数据源切换配置（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 等，§9）+ StockDB 连接配置（§9，沿用 `_FALSEY_ENV_VALUES`）。
+2. `src/config/settings.py`：新增数据源切换配置（`KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY` 等，§9）+ StockDB 连接配置（§9，沿用 `_FALSEY_ENV_VALUES`）。
 3. `data_provider/`：新增 `stockdb_fetcher.py` 与 `kline/`、`stockinfo/`、`codesearch/` 三套能力子包（base + N source + transform）。
 4. `api/v1/endpoints/kline.py`：瘦端点化，删除内联 `_fetch_from_*`，改调 `KlineDataSourceManager`。
 5. `.env.example`：新增配置块（§9）。
@@ -354,7 +354,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 ### <a id="34-与既有外部-http-服务对接范式的一致性"></a>3.4 与既有"外部 HTTP 服务对接"范式的一致性
 
-`src/services/stock_index_remote_service.py` 是仓库内对接外部 HTTP 的既有范式：`@dataclass(frozen=True) Settings` + `settings_from_config(config)` + `requests.get(url, timeout=...)` + 失败计数/熔断 + 原子写缓存。本方案的 `data_provider` 各 source 沿用同一形状（ADR-001 D2/D3），并复用 `DataFetcherManager` 思想（能力过滤 + 优先级 + 健康度故障转移），但针对 K 线多周期与 UI 契约做独立抽象，避免与日线分析层耦合。
+`src/application/quote/stock_index_remote_service.py` 是仓库内对接外部 HTTP 的既有范式：`@dataclass(frozen=True) Settings` + `settings_from_config(config)` + `requests.get(url, timeout=...)` + 失败计数/熔断 + 原子写缓存。本方案的 `data_provider` 各 source 沿用同一形状（ADR-001 D2/D3），并复用 `DataFetcherManager` 思想（能力过滤 + 优先级 + 健康度故障转移），但针对 K 线多周期与 UI 契约做独立抽象，避免与日线分析层耦合。
 
 ---
 
@@ -374,8 +374,8 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 #### <a id="352-契约dto落点"></a>3.5.2 契约（DTO）落点
 
 - `KLinePoint` / `StockInfo` / `CodeSearchResult` 统一契约：定义在各自能力 `base.py`（与 `STANDARD_COLUMNS` 同处，现状已如此）——契约即该能力的抽象一部分，端点与 service 由此导入。
-- 端点对外响应模型（Pydantic）按 HermesX 惯例放 `src/schemas/` 或端点文件内；`KLinePoint` 作为 data_provider 内部产出契约，端点按需映射为响应模型。
-- 跨能力共用增多时，再抽到 `src/schemas/`；当前阶段不前置抽象。
+- 端点对外响应模型（Pydantic）按 HermesX 惯例放 `api/v1/schemas/` 或端点文件内；`KLinePoint` 作为 data_provider 内部产出契约，端点按需映射为响应模型。
+- 跨能力共用增多时，再抽到 `api/v1/schemas/`；当前阶段不前置抽象。
 
 ### <a id="36-后端代码合规性审计与改造范围基于-adr-001-设计规则"></a>3.6 后端代码合规性审计与改造范围（基于 ADR-001 设计规则）
 
@@ -419,7 +419,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
   - 动作：沉淀独立的 StockDB 客户端（连接/鉴权/TTL/异常），供 `kline` 与后续 `stockinfo`/`codesearch` 复用，不进端点层。
   - 档位：A｜前端：❌ 零改
 
-- [ ] **A7. `src/config.py` + `.env.example` + `system_config` 白名单**
+- [ ] **A7. `src/config/settings.py` + `.env.example` + `system_config` 白名单**
   - 当前：无 `KLINE_DATA_SOURCE` 等切换键，回退无法配置。`[D4][D5]`
   - 动作：在 `@dataclass Config` 与 `.env.example` 新增 `KLINE_DATA_SOURCE` / `KLINE_FALLBACK_ENABLED` / `KLINE_SOURCE_PRIORITY`（+ 预留 `STOCKINFO_*` / `CODESEARCH_*`），并将这些键注册进 `system_config` 运行时可写白名单（`_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`）。
   - 档位：A｜前端：⚠️ 需 A8 配套
@@ -430,7 +430,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
   - 档位：A｜前端：✅ 需新增页面
 
 - [ ] **A9. `data_provider/stockinfo/`、`data_provider/codesearch/` 同模式占位**
-- [ ] **A10.** 迁移 `src/services/name_to_code_resolver.py` 的取数到 `data_provider/code_search/eastmoney_source.py`：③ 层不再直接 `import akshare` 取数，解析/缓存留薄壳；`stock_service.py` 的 `get_stock_name` 随矩阵迁至 `stock_info/eastmoney_source.py` `[D2][D3]`
+- [ ] **A10.** 迁移 `src/application/quote/name_to_code_resolver.py` 的取数到 `data_provider/code_search/eastmoney_source.py`：③ 层不再直接 `import akshare` 取数，解析/缓存留薄壳；`stock_service.py` 的 `get_stock_name` 随矩阵迁至 `stock_info/eastmoney_source.py` `[D2][D3]`
   - 当前：基础信息/代码搜索未统一，仍散落端点层与 data_provider 既有 `get_stock_name` 等。`[D3][3.5.1]`
   - 动作：各建 `base.py`（`ABC` + `Manager`）+ 契约（`StockInfo` / `CodeSearchResult`）+ 至少 1 个 source 适配器；优先复用 data_provider 既有 `get_stock_name/get_stock_list` 加薄适配壳，本地 StockDB 接入走同一壳。
   - 档位：A｜前端：❌ 零改（首期可仅 base + 接口契约占位）
@@ -444,7 +444,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 #### <a id="373-tier-c-不纳入仅记录不改动"></a>3.7.3 Tier C — 不纳入（仅记录，不改动）
 
-- [ ] **C1. `src/services/` 直连外部 SaaS**（alphasift / intelligence / social_sentiment / stock_index_remote）
+- [ ] **C1. `src/application/` 直连外部 SaaS**（alphasift / intelligence / social_sentiment / stock_index_remote）
   - 当前：直接 `requests.get` 外部 SaaS/LLM。`[不同边界上下文]`
   - 动作：**本期不纳入**。属 SaaS/通知/LLM 边界，与"行情数据源脏活层"不同上下文；其集成范式（settings + 熔断 + 原子缓存）可由 data_provider 后续统一借鉴，但不与本次改造耦合。
   - 档位：C｜前端：❌｜**显式标注：不改动**
@@ -517,8 +517,8 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 | 既有功能 | 语义 | 归入功能包 | 源适配器 | 当前实况（违规 / 待迁移） |
 |---|---|---|---|---|
-| 输入 6 位股票编码 / 名称，解析出这只股票（含联想） | 编码↔股票解析、候选列表 | `data_provider/code_search/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | 现有 `src/services/name_to_code_resolver.py` 在 **③ 服务层直接 `import akshare` 取数**，违反 D2（脏活层唯一）；取数须下沉到 `code_search/eastmoney_source.py`，解析/缓存留 ③ 做薄壳 |
-| 查该股票的信息（名称 / 行业 / 板块 / 列表） | 基础信息详情 | `data_provider/stock_info/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | `src/services/stock_service.py` 调 `manager.get_stock_name()` 已走 data_provider（合规），但 `get_stock_name` 仍躺在巨型 `BaseFetcher` 内，应随矩阵迁至 `stock_info/eastmoney_source.py` |
+| 输入 6 位股票编码 / 名称，解析出这只股票（含联想） | 编码↔股票解析、候选列表 | `data_provider/code_search/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | 现有 `src/application/quote/name_to_code_resolver.py` 在 **③ 服务层直接 `import akshare` 取数**，违反 D2（脏活层唯一）；取数须下沉到 `code_search/eastmoney_source.py`，解析/缓存留 ③ 做薄壳 |
+| 查该股票的信息（名称 / 行业 / 板块 / 列表） | 基础信息详情 | `data_provider/stock_info/` | `eastmoney_source.py`（+ `local_stockdb_source.py`） | `src/application/quote/stock_service.py` 调 `manager.get_stock_name()` 已走 data_provider（合规），但 `get_stock_name` 仍躺在巨型 `BaseFetcher` 内，应随矩阵迁至 `stock_info/eastmoney_source.py` |
 
 **合并原则**：两者**不合并为一个包**——契约不同（`CodeSearchResult` vs `StockInfo`）。但底层"股票总表 / 名称↔编码"抓取可共享：两个包的 `eastmoney_source.py` 统一复用既有 `get_stock_name` / `get_stock_list` / `get_stock_membership_boards`（即 ADR 定义的"物理后端"），不在各源重写。本归类与 ADR-001 §4.4 目录表一一对应（`code_search/`、`stock_info/` 两包均已列出 `eastmoney_source.py` + `local_stockdb_source.py`，阶段 1）。
 
@@ -536,7 +536,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 ### <a id="392-端点目录结构详见-adr-52"></a>3.9.2 端点目录结构（详见 ADR §5.2）
 
-- `api/v1/endpoints/`：③ 端点（路由 + 编排，不取数）；`api/v1/schemas/`：契约 Pydantic 模型；`src/services/`：③ 编排层（组合 ② 层取数 + 本地 DB）。两层同属 ③，均不直连第三方源。
+- `api/v1/endpoints/`：③ 端点（路由 + 编排，不取数）；`api/v1/schemas/`：契约 Pydantic 模型；`src/application/`：③ 编排层（组合 ② 层取数 + 本地 DB）。两层同属 ③，均不直连第三方源。
 
 ### <a id="393-铺排总表权威见-adr-53"></a>3.9.3 铺排总表（权威见 ADR §5.3）
 
@@ -571,7 +571,7 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 | 代码全集 | 进程内长缓存（默认 TTL 6h） | 变化频率低 |
 | 个股交易日列表 | 进程内 LRU 缓存（按 code 分片，上限 500） | 与官方示例页同款设计 |
 | 用户查询偏好 | 前端 `localStorage` | 属 UI 状态，不入后端 |
-| 后端配置 | `src/config.py` + `.env` | 与仓库既有配置机制一致 |
+| 后端配置 | `src/config/settings.py` + `.env` | 与仓库既有配置机制一致 |
 
 **缓存键**
 
@@ -882,7 +882,7 @@ idle ──点击/Enter──▶ loading ──成功──▶ success(rows)
 
 ## <a id="9-配置项"></a>9. 配置项
 
-新增于 `src/config.py`（`os.getenv`，`_FALSEY_ENV_VALUES = {"0","false","no","off"}`）并同步 `.env.example`。
+新增于 `src/config/settings.py`（`os.getenv`，`_FALSEY_ENV_VALUES = {"0","false","no","off"}`）并同步 `.env.example`。
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
@@ -929,7 +929,7 @@ STOCKDB_COOLDOWN_SEC=30
 | `CODESEARCH_DATA_SOURCE` | `local` | 代码搜索主源（同枚举） |
 | `CODESEARCH_FALLBACK_ENABLED` | `true` | 同上 |
 
-> 注：以上键须登记进 `system_config` 的运行时白名单（参考 `src/config.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），方可在 Web「设置 → 数据源」Tab 中读写。
+> 注：以上键须登记进 `system_config` 的运行时白名单（参考 `src/config/settings.py:_WEBUI_RUNTIME_ENV_FILE_PRIORITY_KEYS`），方可在 Web「设置 → 数据源」Tab 中读写。
 
 `.env.example` 追加块：
 
@@ -1123,7 +1123,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 |---|---|---|
 | 后端集成层 | 7 个（含 2 个包 `__init__.py`） | — |
 | 后端路由层 | 2 个（含 1 个包 `__init__.py`） | `api/app.py` |
-| 后端配置 | — | `src/config.py`、`.env.example` |
+| 后端配置 | — | `src/config/settings.py`、`.env.example` |
 | 前端 | 3 个（页面 + API + 子组件） | `src/router/manifest.ts`、3 个 `i18n/uiText-*.ts` |
 | 测试 | 4 个 | — |
 | 文档 | — | `documents/CHANGELOG.md`（`[Unreleased]` 加一行） |
@@ -1156,8 +1156,8 @@ CODESEARCH_FALLBACK_ENABLED=true
 |---|---|---|---|
 | `api/v1/endpoints/kline.py` | 删除内联 `_fetch_kline_from_*`，改调 `KlineDataSourceManager.get_kline(...)`；端点签名（period/fqt/limit/before_date）不变 | §3.3 / ADR-001 D6 | 仅删取数细节、保留路由与契约，前端零改动 |
 | `api/app.py` | 若新增 `stock-info` / `code-search` 端点，各加 1 处 `include_router`（复用 `/api/v1`）；K 线无需改动 | §3.3 | 不影响既有 `/api/v1` 与 `ADMIN_AUTH` |
-| `src/config.py` | 新增 StockDB 连接配置（8 个 `os.getenv`，沿用 `_FALSEY_ENV_VALUES`）+ 数据源切换配置（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 见 §9.1） | §3.3 / §9 | §3.3 旧写"6 个"、§9 实际 8 个连接项，落地以 §9 为准；切换键须登记 `system_config` 白名单 |
-| `.env.example` | 追加"本地 StockDB 行情数据源"块（§9）+ "行情基础能力统一层（数据源切换）"块（§9.1） | §3.3 / §9 | 键名须与 `src/config.py` 一致 |
+| `src/config/settings.py` | 新增 StockDB 连接配置（8 个 `os.getenv`，沿用 `_FALSEY_ENV_VALUES`）+ 数据源切换配置（`KLINE_*` / `STOCKINFO_*` / `CODESEARCH_*` 见 §9.1） | §3.3 / §9 | §3.3 旧写"6 个"、§9 实际 8 个连接项，落地以 §9 为准；切换键须登记 `system_config` 白名单 |
+| `.env.example` | 追加"本地 StockDB 行情数据源"块（§9）+ "行情基础能力统一层（数据源切换）"块（§9.1） | §3.3 / §9 | 键名须与 `src/config/settings.py` 一致 |
 
 > **执行台账**：上表后端改动项逐项对应 **§3.7《代码改造代办清单（TODO）》**（A1–A7 / A9）。落地时按 §3.7.4 顺序勾选执行，全部完成后端项即满足 ADR-001 D2/D3/D4/D5/D6。
 
@@ -1213,7 +1213,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 
 ### <a id="149-影响面与回归风险供评估"></a>14.9 影响面与回归风险（供评估）
 
-- **对既有功能零侵入**：所有新增代码在 `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/` 与可选 `api/v1/endpoints/{stock_info,code_search}.py` 内；`kline.py` 仅删取数细节、保留路由与契约；`src/config.py` 仅追加只读环境变量；前端仅在 manifest 追加「数据源」Tab 与 i18n 追加 key。无既有文件语义被改、无主库新增表。
+- **对既有功能零侵入**：所有新增代码在 `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/` 与可选 `api/v1/endpoints/{stock_info,code_search}.py` 内；`kline.py` 仅删取数细节、保留路由与契约；`src/config/settings.py` 仅追加只读环境变量；前端仅在 manifest 追加「数据源」Tab 与 i18n 追加 key。无既有文件语义被改、无主库新增表。
 - **可整体开关 / 摘除**：`STOCKDB_ENABLED=false` 或本地源失败 → 按 `KLINE_SOURCE_PRIORITY` 回退其他源 / 返回空态（L0）；删 `data_provider/kline/` 等子包 + 前端新增（L3）。因各 source 经 `data_provider` 基类与 `config` 解耦，删除无悬挂引用。
 - **最高风险项**：复权公式与官方 `gp.js` 对账（AC-3，§6.2 / §12.3）尚未执行，是上线硬阻断，落地排期须把"对账 + 修正公式"单列里程碑。
 - **未验证环境**：Docker / 桌面端 `127.0.0.1:7899` 可达性、Windows 平台 StockDB 行为未验证；默认 `STOCKDB_ENABLED=false` 部署，不影响既有发布。

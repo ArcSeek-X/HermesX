@@ -19,8 +19,8 @@
 > 1. 数据库表字段（`stock_watchlist_group`、`stock_watchlist_item`）
 > 2. 服务端接口 / 前端 API / 前端 Hook / 功能说明 的四方对照
 >
-> 核对日期：2026-10-13（已按当前代码实现核对）。代码依据：
-> `src/storage.py`（ORM 模型）、`api/v1/endpoints/watchlist.py`（路由）、`api/v1/schemas/watchlist.py`（Schema）、
+> 核对日期：2026-10-25（已按当前代码实现核对）。代码依据：
+> `src/infrastructure/persistence/models/watchlist.py`（ORM 模型）、`api/v1/endpoints/watchlist.py`（路由/传输层）、`src/application/watchlist/service.py`（用例：入参校验、分页与业务错误）、`src/infrastructure/persistence/repositories/watchlist_repo.py`（SQL 与事务）、`api/v1/schemas/watchlist.py`（Schema）、
 > `apps/hrs-web/src/api/watchlist.ts`（前端 API）、`apps/hrs-web/src/hooks/useWatchlistManager.ts`（前端 Hook）。
 
 ***

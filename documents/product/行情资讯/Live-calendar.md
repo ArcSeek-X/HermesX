@@ -79,9 +79,9 @@
 - [17. 接口设计要点（统一）](#17-接口设计要点统一)
 - [18. 核心实现代码（前后端）](#18-核心实现代码前后端)
   - [18.1 抓取器 `data_provider/wallstreetcn_calendar_fetcher.py`](#181-抓取器-dataproviderwallstreetcncalendarfetcherpy)
-  - [18.2 服务层打标与落库 `src/services/intelligence_service.py`](#182-服务层打标与落库-srcservicesintelligenceservicepy)
-  - [18.3 聚合与过滤 `src/services/intelligence_service.py`](#183-聚合与过滤-srcservicesintelligenceservicepy)
-  - [18.4 仓储查询 `src/repositories/intelligence_repo.py`](#184-仓储查询-srcrepositoriesintelligencerepopy)
+  - [18.2 服务层打标与落库 `src/application/intelligence/intelligence_service.py`](#182-服务层打标与落库-srcapplicationintelligenceintelligenceservicepy)
+  - [18.3 聚合与过滤 `src/application/intelligence/intelligence_service.py`](#183-聚合与过滤-srcapplicationintelligenceintelligenceservicepy)
+  - [18.4 仓储查询 `src/infrastructure/persistence/repositories/intelligence_repo.py`](#184-仓储查询-srcrepositoriesintelligencerepopy)
   - [18.5 API 端点与 Schema `api/v1/endpoints/intelligence.py` + `schemas/intelligence.py`](#185-api-端点与-schema-apiv1endpointsintelligencepy-schemasintelligencepy)
   - [18.6 前端类型与 API 层 `apps/hrs-web/src`](#186-前端类型与-api-层-appshrs-websrc)
   - [18.7 Hook 核心 `hooks/useLiveCalendar.ts`](#187-hook-核心-hooksuselivecalendarts)
@@ -170,8 +170,8 @@
 | 能力       | 位置                                       | 状态                          |
 | -------- | ---------------------------------------- | --------------------------- |
 | 日历抓取器    | `data_provider/wallstreetcn_calendar_fetcher.py` | ✅ 已实现（HTTP + 解析，注入安全请求）       |
-| 日历服务层    | `src/services/intelligence_service.py`    | ✅ 已实现（打标 / 落库 / 聚合 / 过滤 / 惰性拉取） |
-| 日历仓储层    | `src/repositories/intelligence_repo.py`  | ✅ 已实现（复用 `intelligence_items`）    |
+| 日历服务层    | `src/application/intelligence/intelligence_service.py`    | ✅ 已实现（打标 / 落库 / 聚合 / 过滤 / 惰性拉取） |
+| 日历仓储层    | `src/infrastructure/persistence/repositories/intelligence_repo.py`  | ✅ 已实现（复用 `intelligence_items`）    |
 | 日历 API   | `api/v1/endpoints/intelligence.py`        | ✅ 已注册 `/api/v1/intelligence/live-calendar/*` |
 | 日历 Schema | `api/v1/schemas/intelligence.py`          | ✅ 已实现                        |
 | 前端路由     | `apps/hrs-web/src/router/manifest.ts`     | ✅ `live-calendar` 菜单项 + 懒加载页面     |
@@ -285,7 +285,7 @@
                   └───────────────┬─────────────────────────────┘
                                   │
                   ┌───────────────┴─────────────────────────────┐
-                  │  src/services/intelligence_service.py         │
+                  │  src/application/intelligence/intelligence_service.py         │
                   │   · list_calendar_tabs / list_calendar_countries │
                   │   · refresh_calendar / list_calendar          │
                   │   · _tag_calendar_event / _calendar_entry_to_rows │
@@ -294,7 +294,7 @@
                   └───────┬───────────────────────┬───────────────┘
                           │                       │
             ┌─────────────┴──────┐   ┌─────────────┴──────────────┐
-            │ wallstreetcn_      │   │ src/repositories/            │
+            │ wallstreetcn_      │   │ src/infrastructure/         │
             │ calendar.py        │   │ intelligence_repo.py        │
             │ (fetcher)          │   │ · list_calendar_events       │
             │ 注入 _get_with_    │   │ · upsert_items (复用)         │
@@ -310,8 +310,8 @@
 ### <a id="31-各层职责边界"></a>3.1 各层职责边界
 
 - **`data_provider/wallstreetcn_calendar_fetcher.py`**：仅做 HTTP 与解析，定义 `CalendarCountryEntry` / `CalendarEventEntry` 中间结构；不含分类、落库、降级、SSRF 校验。
-- **`src/services/intelligence_service.py`（日历段落）**：打标规则、落库行展开、聚合去重、过滤、惰性抓取、精简标题、国家字典进程内缓存 TTL。
-- **`src/repositories/intelligence_repo.py`**：`list_calendar_events` 按 `scope_type='calendar'` + 时间闭区间查询；写入复用 `upsert_items`。
+- **`src/application/intelligence/intelligence_service.py`（日历段落）**：打标规则、落库行展开、聚合去重、过滤、惰性抓取、精简标题、国家字典进程内缓存 TTL。
+- **`src/infrastructure/persistence/repositories/intelligence_repo.py`**：`list_calendar_events` 按 `scope_type='calendar'` + 时间闭区间查询；写入复用 `upsert_items`。
 - **`api/v1/endpoints/intelligence.py`**：路由编排，错误统一收敛为 500 `ErrorResponse`。
 
 ### <a id="32-复用-intelligenceitems-表"></a>3.2 复用 intelligence_items 表
@@ -848,7 +848,7 @@ type LiveCalendarRangeRequest = {
 
 ## <a id="13-配置项"></a>13. 配置项
 
-配置入口：`src/config.py` + 环境变量（`.env`）。
+配置入口：`src/config/settings.py` + 环境变量（`.env`）。
 
 | 配置键                                    | 默认值                              | 说明                       |
 | -------------------------------------- | -------------------------------- | ------------------------ |
@@ -907,7 +907,7 @@ type LiveCalendarRangeRequest = {
 
 ***
 
-> 本文档与 `data_provider/wallstreetcn_calendar_fetcher.py`、`src/services/intelligence_service.py`（日历段落）、`src/repositories/intelligence_repo.py`、`api/v1/endpoints/intelligence.py`、`api/v1/schemas/intelligence.py` 及 `apps/hrs-web` 日历前端保持同步；任何契约变更须同步更新本章节。
+> 本文档与 `data_provider/wallstreetcn_calendar_fetcher.py`、`src/application/intelligence/intelligence_service.py`（日历段落）、`src/infrastructure/persistence/repositories/intelligence_repo.py`、`api/v1/endpoints/intelligence.py`、`api/v1/schemas/intelligence.py` 及 `apps/hrs-web` 日历前端保持同步；任何契约变更须同步更新本章节。
 
 ***
 
@@ -993,7 +993,7 @@ class WallstreetcnCalendarFetcher:
         )
 ```
 
-### <a id="182-服务层打标与落库-srcservicesintelligenceservicepy"></a>18.2 服务层打标与落库 `src/services/intelligence_service.py`
+### <a id="182-服务层打标与落库-srcapplicationintelligenceintelligenceservicepy"></a>18.2 服务层打标与落库 `src/application/intelligence/intelligence_service.py`
 
 分类 Tab 与打标规则（单一真源）：
 
@@ -1088,7 +1088,7 @@ def _shorten_calendar_title(title: str) -> str:
     return value
 ```
 
-### <a id="183-聚合与过滤-srcservicesintelligenceservicepy"></a>18.3 聚合与过滤 `src/services/intelligence_service.py`
+### <a id="183-聚合与过滤-srcapplicationintelligenceintelligenceservicepy"></a>18.3 聚合与过滤 `src/application/intelligence/intelligence_service.py`
 
 同一事件多行合并为一条，拼出 `tab_keys`（剔除 `economic_data`）：
 
@@ -1148,7 +1148,7 @@ def _filter_calendar(self, events, *, tab, country_id, importance_min, include_e
     return result
 ```
 
-### <a id="184-仓储查询-srcrepositoriesintelligencerepopy"></a>18.4 仓储查询 `src/repositories/intelligence_repo.py`
+### <a id="184-仓储查询-srcrepositoriesintelligencerepopy"></a>18.4 仓储查询 `src/infrastructure/persistence/repositories/intelligence_repo.py`
 
 ```python
 def list_calendar_events(self, *, published_from: datetime, published_to: datetime) -> List[IntelligenceItem]:

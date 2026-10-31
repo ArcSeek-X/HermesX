@@ -28,8 +28,8 @@
 
 | 术语 | 当前含义 | 当前主要消费方 | Baseline 边界 |
 | --- | --- | --- | --- |
-| `AgentOpinion` | `src/agent/protocols.py` 中所有 Agent（含 SkillAgent、TechnicalAgent、IntelAgent、RiskAgent、DecisionAgent）产出的观点数据类，含 `agent_name` / `signal` / `confidence` / `reasoning` / `key_levels` / `raw_data`。 | Orchestrator、Aggregator、DecisionAgent、Disagreement、Renderer | 记录为原始观点承载体；Baseline 不新增字段，也不把 `AgentOpinion` 分裂成两类。 |
-| `StrategyOpinion` | `src/agent/protocols.py` 中的内部规范化视图，含 `skill_id` / `signal` / `original_signal` / `invalid_signal`；只在 Aggregator/Synthesizer 内部使用。 | `SkillAggregator`、`ConflictDetector`、`StrategySynthesizer` | 记录为内部计算的规范化视图，不进入 `ctx.opinions`、不进入公共 payload、不进入 DecisionAgent prompt。 |
+| `AgentOpinion` | `src/application/agent/protocols.py` 中所有 Agent（含 SkillAgent、TechnicalAgent、IntelAgent、RiskAgent、DecisionAgent）产出的观点数据类，含 `agent_name` / `signal` / `confidence` / `reasoning` / `key_levels` / `raw_data`。 | Orchestrator、Aggregator、DecisionAgent、Disagreement、Renderer | 记录为原始观点承载体；Baseline 不新增字段，也不把 `AgentOpinion` 分裂成两类。 |
+| `StrategyOpinion` | `src/application/agent/protocols.py` 中的内部规范化视图，含 `skill_id` / `signal` / `original_signal` / `invalid_signal`；只在 Aggregator/Synthesizer 内部使用。 | `SkillAggregator`、`ConflictDetector`、`StrategySynthesizer` | 记录为内部计算的规范化视图，不进入 `ctx.opinions`、不进入公共 payload、不进入 DecisionAgent prompt。 |
 | Signal / Canonical Signal | 交易信号规范化标签，Canonical 取值仅限 `strong_buy` / `buy` / `hold` / `sell` / `strong_sell` 五个小写字符串。 | 全链路 | 记录为下游所有计算的唯一允许输入形式；大写别名、`"strong buy"`、Signal 枚举原值都必须先经 `normalize_strategy_signal()` 转成 canonical 再参与计算。 |
 | Valid Opinion / Invalid Opinion | 通过 `is_valid_strategy_signal(signal) == True` 且未标记 `invalid_signal=True` 的观点为 Valid，其余为 Invalid。 | Orchestrator 分拣、Aggregator、DecisionAgent | 记录为契约层的合法/非法判定；Baseline 只定义判定函数与语义，不预设分拣位置。 |
 | Evidence Chain | 进入 DecisionAgent prompt 与 `strategy_synthesis` 数值计算的**有效观点集合**。 | DecisionAgent、Aggregator | 记录为决策输入面；Baseline 规定 Evidence Chain 只由 Valid Opinion 组成，Invalid 不得混入。 |
@@ -52,7 +52,7 @@ Baseline 的目标是让 Phase 1/2/3/4 都基于同一份语义契约设计运�
 
 ### Canonical Signal 与 Valid 判定
 
-Canonical Signal 是 Baseline 允许的**唯一评分/加权/分组输入形式**。规范化入口是 `src/agent/protocols.py` 中的两个函数：
+Canonical Signal 是 Baseline 允许的**唯一评分/加权/分组输入形式**。规范化入口是 `src/application/agent/protocols.py` 中的两个函数：
 
 - `normalize_strategy_signal(signal)` 返回 `(canonical, invalid, original)` 三元组。它接受 `Signal` 枚举、大小写字符串、`"strong buy"` / `"strong-buy"` 别名，统一映射到 canonical 集合。无法映射时 `invalid=True`，`canonical` 退化为 `default`（默认 `"hold"`）但**必须**配合 `invalid=True` 一并传递到下游，不得被单独使用。
 - `is_valid_strategy_signal(signal)` 是 Baseline 全链路合法性判定的**单一真源**：任何模块判断“这条 opinion 是否有资格进入 Evidence Chain”都必须调用此函数。
@@ -336,15 +336,15 @@ Phase 1 是 Baseline 契约的第一版代码化实现。Phase 1 **不新增契�
 
 Phase 1 涉及的入口：
 
-- `src/agent/protocols.py`：新增 `is_valid_strategy_signal()` 单一真源，`normalize_strategy_signal()` 保留 invalid 状态位。
-- `src/agent/skills/engine.py`：`StrategyEngine.process()` 通过 `partition_only()` 完成唯一权威分拣，再由 `process_partition()` 驱动聚合与合成；Valid 保留在 Evidence Chain，Invalid 写入 Diagnostics。
-- `src/agent/orchestrator.py`：在 DecisionAgent 运行前调用 `_run_strategy_engine(ctx)`；timeout / budget-skip 早退路径调用 `_apply_partition_fallback(ctx)`，只分拣、不合成，避免 Invalid 回流证据链。
-- `src/agent/skills/aggregator.py`：`StrategyEngine` 把 `valid_skill_opinions` 交给 `SkillAggregator.calculate()`；数学计算只使用 valid opinion，对 `valid_weight_sum == 0` 显式走 `insufficient` 分支。
-- `src/agent/skills/synthesis.py`：`ConflictDetector` / `StrategySynthesizer` 使用 canonical signal 计算；`_group_opinions()` 按 §"动态二分阵营" 实现；`_consensus_level()` 按 §"共识度门槛" 实现；`summary_params` 补齐 `invalid_opinion_count` / `total_opinion_count`。
-- `src/agent/agents/decision_agent.py`：`build_user_message()` 直接消费 `ctx.opinions`，不再二次过滤；在 prompt 中如实展示 `ctx.meta["invalid_opinions"]` 数量。
-- `src/agent/disagreement.py`：`build_agent_disagreement_summary()` 直接消费 `ctx.opinions`（因 StrategyEngine 已完成分拣并由 Orchestrator 写回），Invalid 完全不出现在 `bullish_agents` / `bearish_agents` / `neutral_agents` 三桶中。
-- `src/services/report_renderer.py`、`templates/report_markdown.j2`、`templates/report_wechat.j2`、`src/notification.py`、`src/services/history_service.py`：读取 `strategy_synthesis.supporting_skills` / `opposing_skills` / `consensus_level` / `summary_params.invalid_opinion_count`；空列表通过 `labels.none_label` 输出；不再消费 `neutral_skills`。
-- `src/report_language.py`：`labels.none_label` 在 zh/en/ko 三语中完备；共识度、诊断计数文案完备。
+- `src/application/agent/protocols.py`：新增 `is_valid_strategy_signal()` 单一真源，`normalize_strategy_signal()` 保留 invalid 状态位。
+- `src/application/agent/skills/engine.py`：`StrategyEngine.process()` 通过 `partition_only()` 完成唯一权威分拣，再由 `process_partition()` 驱动聚合与合成；Valid 保留在 Evidence Chain，Invalid 写入 Diagnostics。
+- `src/application/agent/orchestrator.py`：在 DecisionAgent 运行前调用 `_run_strategy_engine(ctx)`；timeout / budget-skip 早退路径调用 `_apply_partition_fallback(ctx)`，只分拣、不合成，避免 Invalid 回流证据链。
+- `src/application/agent/skills/aggregator.py`：`StrategyEngine` 把 `valid_skill_opinions` 交给 `SkillAggregator.calculate()`；数学计算只使用 valid opinion，对 `valid_weight_sum == 0` 显式走 `insufficient` 分支。
+- `src/application/agent/skills/synthesis.py`：`ConflictDetector` / `StrategySynthesizer` 使用 canonical signal 计算；`_group_opinions()` 按 §"动态二分阵营" 实现；`_consensus_level()` 按 §"共识度门槛" 实现；`summary_params` 补齐 `invalid_opinion_count` / `total_opinion_count`。
+- `src/application/agent/agents/decision_agent.py`：`build_user_message()` 直接消费 `ctx.opinions`，不再二次过滤；在 prompt 中如实展示 `ctx.meta["invalid_opinions"]` 数量。
+- `src/application/agent/disagreement.py`：`build_agent_disagreement_summary()` 直接消费 `ctx.opinions`（因 StrategyEngine 已完成分拣并由 Orchestrator 写回），Invalid 完全不出现在 `bullish_agents` / `bearish_agents` / `neutral_agents` 三桶中。
+- `src/application/reporting/report_renderer.py`、`templates/report_markdown.j2`、`templates/report_wechat.j2`、`src/application/notification/notification.py`、`src/application/history/read_model.py`：读取 `strategy_synthesis.supporting_skills` / `opposing_skills` / `consensus_level` / `summary_params.invalid_opinion_count`；空列表通过 `labels.none_label` 输出；不再消费 `neutral_skills`。
+- `src/domain/shared/report_language.py`：`labels.none_label` 在 zh/en/ko 三语中完备；共识度、诊断计数文案完备。
 - `tests/test_multi_agent.py`：新增 E2E-A..G 反例矩阵，从 SkillAgent 输入 → StrategyEngine 分拣/聚合 → DecisionAgent prompt → dashboard payload → renderer 实际文本全链路断言。
 
 Phase 1 不改变 `AgentOpinion` 字段、不改变 API 返回结构、不改变数据库 schema、不新增配置项、不改变现有 skill 的执行方式。
@@ -353,7 +353,7 @@ Phase 1 不改变 `AgentOpinion` 字段、不改变 API 返回结构、不改变
 
 Phase 2 只在 Phase 1/1.5/1.6/1.7/1.8/1.9 契约下新增 2–4 策略并发调度与阶段调度：
 
-- `src/agent/skills/scheduler.py::AgentSkillScheduler` 使用 thread pool 并发执行 specialist skill agents；每个 skill 使用 `AgentContext` 副本运行，并通过独立的 `copy_context()` 把主管线冻结的 target date 等 `ContextVar` 状态传播到 worker，主线程按路由顺序合并结构化 opinion，避免多个 skill 同时写共享 `ctx.opinions`。
+- `src/application/agent/skills/scheduler.py::AgentSkillScheduler` 使用 thread pool 并发执行 specialist skill agents；每个 skill 使用 `AgentContext` 副本运行，并通过独立的 `copy_context()` 把主管线冻结的 target date 等 `ContextVar` 状态传播到 worker，主线程按路由顺序合并结构化 opinion，避免多个 skill 同时写共享 `ctx.opinions`。
 - specialist 最终入口最多选择 4 个策略；`AGENT_SKILL_CONCURRENCY` 控制同时运行的 worker 数，默认 `3`，范围 `1–4`。默认值下第 4 个策略进入下一 concurrency wave，不会被路由层静默丢弃。
 - `AGENT_SKILL_AGENT_TIMEOUT_S` 继续作为单个 skill 的独立超时上限；Pipeline 总预算开启时，`_run_stage_agent()` 仍取 Pipeline 剩余预算与 skill 独立上限的较小值。
 - 单个 skill 超时或异常，走 Diagnostics 路径（`reason="skill_timeout"` / `"skill_error"`），进入 `ctx.meta["invalid_opinions"]`，不阻塞其他 skill 与主流程。
@@ -367,7 +367,7 @@ Phase 3 只在 Phase 2 之上补前端（`apps/hrs-web/`、`apps/hrs-desktop/`�
 
 - Web 报告详情页展示 `final_signal` / `consensus_level` / `supporting_skills` / `opposing_skills` / `conflicts` / `invalid_opinion_count`。
 - 桌面端复用 Web 展示逻辑。
-- 多语言 label 表复用 `src/report_language.py` 已有的 zh/en/ko 三语；前端只做投影，不重新定义。
+- 多语言 label 表复用 `src/domain/shared/report_language.py` 已有的 zh/en/ko 三语；前端只做投影，不重新定义。
 - Phase 3 不改变 Baseline 契约、不新增 payload 字段、不新增 API 端点。
 
 ## Phase 4 权重回测反馈闭环（本 PR 不做）
@@ -383,7 +383,7 @@ Baseline 的七条消费面必须严格按下表分工，不得越界互相消�
 
 ### SkillAgent
 
-各 skill 通过 `src/agent/skills/skill_agent.py` 产出 `AgentOpinion`。Baseline 允许 skill 输出任意 signal 字面量（含大写、别名、`Signal` 枚举），也允许 skill 因数据不足产出 `signal=None` / 缺失字段——这些情况由下游分拣处理，skill 本身不做自我过滤。
+各 skill 通过 `src/application/agent/skills/skill_agent.py` 产出 `AgentOpinion`。Baseline 允许 skill 输出任意 signal 字面量（含大写、别名、`Signal` 枚举），也允许 skill 因数据不足产出 `signal=None` / 缺失字段——这些情况由下游分拣处理，skill 本身不做自我过滤。
 
 ### StrategyEngine / Orchestrator（分拣与接线）
 
@@ -458,19 +458,19 @@ Phase 1 必须提供如下 E2E 反例覆盖。E2E 定义为：从 SkillAgent 输
 
 | 域 | 锚点 |
 | --- | --- |
-| Signal 规范化与 Valid 判定 | `src/agent/protocols.py::normalize_strategy_signal`, `is_valid_strategy_signal`, `strategy_signal_score` |
-| StrategyEngine 分拣与合成门面 | `src/agent/skills/engine.py::StrategyEngine.partition_only`, `process`, `process_partition` |
-| Orchestrator 接线与早退分拣 | `src/agent/orchestrator.py::_run_strategy_engine`, `_apply_partition_fallback` |
-| SkillAggregator | `src/agent/skills/aggregator.py::SkillAggregator.calculate`, `aggregate`（兼容入口） |
-| ConflictDetector / StrategySynthesizer | `src/agent/skills/synthesis.py::ConflictDetector`, `StrategySynthesizer` |
-| DecisionAgent prompt | `src/agent/agents/decision_agent.py::build_user_message` |
-| Disagreement | `src/agent/disagreement.py::build_agent_disagreement_summary` |
-| Dashboard 合成挂载 | `src/agent/orchestrator.py::_collect_strategy_synthesis` |
-| Renderer · Markdown | `src/services/report_renderer.py::render`, `templates/report_markdown.j2` |
+| Signal 规范化与 Valid 判定 | `src/application/agent/protocols.py::normalize_strategy_signal`, `is_valid_strategy_signal`, `strategy_signal_score` |
+| StrategyEngine 分拣与合成门面 | `src/application/agent/skills/engine.py::StrategyEngine.partition_only`, `process`, `process_partition` |
+| Orchestrator 接线与早退分拣 | `src/application/agent/orchestrator.py::_run_strategy_engine`, `_apply_partition_fallback` |
+| SkillAggregator | `src/application/agent/skills/aggregator.py::SkillAggregator.calculate`, `aggregate`（兼容入口） |
+| ConflictDetector / StrategySynthesizer | `src/application/agent/skills/synthesis.py::ConflictDetector`, `StrategySynthesizer` |
+| DecisionAgent prompt | `src/application/agent/agents/decision_agent.py::build_user_message` |
+| Disagreement | `src/application/agent/disagreement.py::build_agent_disagreement_summary` |
+| Dashboard 合成挂载 | `src/application/agent/orchestrator.py::_collect_strategy_synthesis` |
+| Renderer · Markdown | `src/application/reporting/report_renderer.py::render`, `templates/report_markdown.j2` |
 | Renderer · WeChat | `templates/report_wechat.j2` |
-| Renderer · Notification | `src/notification.py`（策略综合行渲染） |
-| Renderer · History | `src/services/history_service.py`（历史详情策略综合块） |
-| 多语言与宽松 payload 防腐 | `src/report_language.py::_REPORT_LABELS`, `normalize_strategy_synthesis_payload`, `strategy_invalid_opinion_count`, `localize_strategy_synthesis_summary`, `labels.none_label` |
+| Renderer · Notification | `src/application/notification/notification.py`（策略综合行渲染） |
+| Renderer · History | `src/application/history/read_model.py`（历史详情策略综合块） |
+| 多语言与宽松 payload 防腐 | `src/domain/shared/report_language.py::_REPORT_LABELS`, `normalize_strategy_synthesis_payload`, `strategy_invalid_opinion_count`, `localize_strategy_synthesis_summary`, `labels.none_label` |
 | E2E 反例矩阵 | `tests/test_multi_agent.py::TestP1SemanticConvergence`, `TestStrategyEngineE2E` |
 
 ## 兼容与回滚

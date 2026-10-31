@@ -376,21 +376,24 @@ HermesX/
 
 ### 9.2 尚未决定，接手者不得自行当成既定结论
 
-> **状态回写（2026-10-30，第一批收口）**：下列 5 项中 **2/3/4 已由实施过程中的既成事实与已确认决策定稿**，转为「9.2.1 已决」；**1/5 仍为开放决策**，需用户/维护者拍板。
+> **状态回写（2026-10-30，第一批收口）**：下列 5 项中 **2/3/4 已由实施过程中的既成事实与已确认决策定稿**，转为「9.2.1 已决」。
+> **状态回写（2026-10-31，W6/W7 切片）**：**1 与 5 已收口**——1 按保守路线定稿（schema 维持 `create_all` + 幂等迁移链、不引入版本化框架，现有开发库/Desktop 库采用保留 + 备份重建，见 ADR-008）；5 已建立认证/Cookie/CORS 防护清单与性能/启动基线。至此下列 5 项**全部转为「9.2.1 已决」**。
 
 #### 9.2.1 已决（依据与证据）
 
 | 原编号 | 结论 | 依据 |
 | --- | --- | --- |
+| 1 | 现有开发库与 Desktop 本地 SQLite **采用「保留 + 备份重建」**：维持 `Base.metadata.create_all()` + `apply_startup_migrations()` 幂等链（15 个 `ensure_*`/`backfill_*`），不引入 Alembic 等版本化框架；非 `_ensure_*` 白名单的列不自动补回，破坏性变更时按备份重建，`CURRENT_SCHEMA_VERSION` 仅在破坏性重建时递增 | ADR-008；W1.4 旧库升级实测（24.8 MB 副本重跑幂等：表/索引/列/行数零变化，删表可自动重建，删非白名单列 14→13 不自动补回）；`tests/test_schema_migration_guard.py`（无孤儿迁移/顺序/`db_session` 首参/基线常量引用） |
 | 2 | `data_provider/` **不物理迁入** `src/infrastructure/providers/`，保留原路径并明确登记为基础设施例外；新能力适配层落 `src/infrastructure/providers/` | 本文 §4 目标表与 §4.5 留存项表已写明；守卫已禁止 `src/application` → `data_provider`；ADR-003 |
 | 3 | 架构守卫采用仓内自研 `scripts/check_architecture.py`（静态 AST + 前缀首个匹配规则表），基线归零**已完成**：`scripts/architecture_baseline.json` 的 `entries` 为 `[]`，并由 `scripts/ci_gate.sh:11,17` 纳入 CI 阻断 | R3 收口守卫复核（本文 §4.5）；`tests/test_check_architecture.py` 合成工作区自测 |
 | 4 | 本轮进程模型按**单进程假设**执行：任务队列/SSE 订阅者/调度器的进程内状态不做跨进程去重与送达保证；水平扩展属单独设计，不在迁移范围 | `documents/framework/architecture_migration_progress.md` §1 已确认决策 **D5**；入口与调度所有权见同文件 §2 运行矩阵 |
+| 5 | **认证/Cookie/CORS 防护清单与性能/启动基线已建立**，据此维持 `src/auth.py` 落法 A（不端口化） | `documents/framework/security_performance_baseline.md`（认证/Cookie/CORS 取证、实测耗时与验收阈值）；`tests/test_security_baseline.py`（15 条不变量）、`scripts/measure_performance_baseline.py`（可复现基线）；ADR-005 复核结论 |
 
-1. 现有开发库与 Desktop 本地 SQLite 的保留、备份重建或版本化迁移路径（第 5.1、8 节）。
+1. 【已决 → 见 9.2.1】现有开发库与 Desktop 本地 SQLite 的保留、备份重建或版本化迁移路径（第 5.1、8 节）。
 2. 【已决 → 见 9.2.1】`data_provider/` 是否实际迁入 `src/infrastructure/providers/`，以及相应 ADR、Docker、PyInstaller 和全仓 import 的同步范围（第 8 节）。
 3. 【已决 → 见 9.2.1】架构守卫采用何种实际可执行工具，以及 P0 违规基线如何逐步归零（第 8 节）。
 4. 【已决 → 见 9.2.1】目标部署进程模型：当前任务队列/SSE 订阅者和调度器有进程内状态；在确认单进程运行还是支持多 worker/多实例前，不得声称共享 bootstrap 已解决跨进程任务归属、去重与事件送达。需先给出运行约束或单独设计。
-5. 对公网/桌面两种运行场景的认证、Cookie、CORS 与修改类请求防护，以及性能/启动时间的基线和验收阈值，须在相关切片开始前记录；不得凭目录设计推断现状已安全或性能不变。
+5. 【已决 → 见 9.2.1】对公网/桌面两种运行场景的认证、Cookie、CORS 与修改类请求防护，以及性能/启动时间的基线和验收阈值（已记录于 `documents/framework/security_performance_baseline.md`）。
 
 这些问题若影响实施结果，应列出选项、现状证据、影响面和建议，请用户/维护者确认后再落地。后续有明确决策时同步更新本文与对应 ADR，避免只留在聊天记录里。
 

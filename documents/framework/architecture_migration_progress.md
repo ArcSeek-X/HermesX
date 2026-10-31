@@ -4393,6 +4393,367 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 
 **下一步**：agent 域余 1 件——`runner.py`（`from src.storage import persist_llm_usage as _persist_usage` 单点，L483 `_persist_usage(response.usage, model_for_usage, call_type="agent")`；本片已把 `UsageTelemetryPort.persist` 与 `UsageTelemetryAdapter` 写侧就绪、`configure_usage_telemetry` 已装配同一适配器，故只需删 import + 改调端口 + re-point 相关测试 patch，agent 域即可整域归零）。之后依次 decision 5（需新增仓储端口）/ analysis 2（`analyzer.py` 的 `persist_llm_usage`、`pipeline.py` 的 `get_db`）/ market 1（`market_review.py` 2 处函数内 `DatabaseManager` 写路径），全部收敛后收紧守卫 `src.storage` 禁入清单。
 
+## 0.165 第 4 批 W4.2 第十二域切片：agent/runner 用量遥测改走 `UsageTelemetryPort.persist`（**agent 域整域归零 8/8**、真实代码、零回归）
+
+**开工快照**：内容清单快照 `/tmp/hermesx_before_runner.json`（sha256 + readlink，3681 条目）；改后 `/tmp/hermesx_after_runner.json`（3681）逐条目比对——`ADDED = 0`、`REMOVED = 0`、`MODIFIED = 14`，其中真实改动仅 2 个目标文件（`src/application/agent/runner.py`、`tests/test_agent_executor.py`），其余 12 条为 `logs/**`、`data/**`、`vibe-template/zentrade/**` 运行时噪声，无越界源码改动。
+
+**基线变更（非本片操作，必须记录）**：开工取证时实测 HEAD 已由 `8d98792d` 前进到 **`fe7410bb`**，新增 3 个提交（`c43009b9 Create architecture_migration_adr.md`／`dd581d25 Create architecture_migration_progress.md`／`fe7410bb Update ARCHITECTURE_TARGET.md`，作者 `gaocangxiong`，时间 23:33–23:34，且 `origin/main` 已同步）。本片未执行任何 `git commit/tag/push`；该三提交把此前仅存于工作树的 ADR、progress 与 AT 回写版纳入版本控制，工作树计数随之由 `196 D / 288 M / 40 ??` 变为 `196 D / 287 M / 38 ??`。后续回滚基线以 `fe7410bb` 为准。
+
+**切片前实测选型**：`runner.py` 顶层 `from src.storage import persist_llm_usage as _persist_usage`，唯一使用点为 agent 主循环单步 LLM 调用后的 L482–483：`if model_for_usage and model_for_usage != "error" and _should_persist_usage_telemetry(response.usage): _persist_usage(response.usage, model_for_usage, call_type="agent")`。该文件在 D-01 阶段已有 `_usage_telemetry_port` seam（`set_usage_telemetry_port` / `_should_persist_usage_telemetry`），且上一片已把 `UsageTelemetryPort` 扩为「判定 + 写入」（新增 `persist()`，`UsageTelemetryAdapter.persist` 委托 `src.storage`）→ 本片属**消费者追平**：删 storage import，把 `_persist_usage(...)` 换成 `_usage_telemetry_port.persist(...)`，位置参数与关键字形态逐字不变，故 `patch.object(port, "persist")` 的调用断言无需改。
+
+**改动**：
+1. `application/agent/runner.py`：删顶层 `from src.storage import persist_llm_usage as _persist_usage`；L482 调用改为 `_usage_telemetry_port.persist(response.usage, model_for_usage, call_type="agent")`。NPE 安全性由既有前置条件保证——`_should_persist_usage_telemetry()` 在 `port is None` 时返回 `False` 并 `logger.debug` 跳过，故不会进入 `persist` 分支。
+2. `tests/test_agent_executor.py`：4 处 `patch("...runner._usage_telemetry_port", UsageTelemetryAdapter())` 改为 `as usage_port` + `patch.object(usage_port, "persist") as persist_usage`（原 `patch("...runner._persist_usage")` 目标随符号删除而失效）；新增 1 条回归用例 `test_run_agent_loop_skips_usage_persist_when_telemetry_port_unwired`：`port=None` 时不崩溃、`total_tokens` 正常累计、且 `src.storage.persist_llm_usage` **零调用**（锁住“不回退直连 storage”契约）。
+3. 未改 `bootstrap/agent.py`、未新增 `configure_*`、未改 `main.py`/`api_lifecycle.py`——`configure_usage_telemetry()` 早已把同一 `UsageTelemetryAdapter` 实例同时注入 runner 与 chat_context 两个 seam，bootstrap 仍 25 件 / 31 seam。
+
+**关键取证 / 陷阱**：
+- 全仓扫 `_persist_usage|persist_llm_usage` 确认消费面：除 `runner.py` 自身外，测试侧仅 `tests/test_agent_executor.py` 4 处 patch（已 re-point）；其余为 `test_llm_usage.py` 直测 `src.storage` 函数（不受影响）、`test_market_analyzer_generate_text.py` patch `analyzer.persist_llm_usage`（属下一片 decision/analysis 范围）、`test_agent_conversation_port_seam.py` patch `src.storage.persist_llm_usage`（验适配器委托，行为不变）、infra `codex_agent_backend.py` 直连（infra→storage 守卫允许）。
+- **不采用**「在 runner 内保留 storage 兜底 import 以防 seam 未装配」的写法：那会把依赖方向重新拉回 application→storage，与 W4.2 目标相反；正确语义是未装配即静默跳过（与 chat_context 一致），并补测试锁住。
+- 基线文件 `/tmp/s12_norm.txt` 存的是**无 `FAILED ` 前缀**的 nodeid，而 `pytest -q` 输出行含前缀且会截断追加 ` - <reason>`；比对必须先 `awk -F' - '` 切分再 `sed 's/^FAILED //'`，否则得到 31 vs 31 的全量假差异。
+
+**验证**：`py_compile` 两件 OK；守卫 `scripts/check_architecture.py --check` RC=0（无违规）；严格 flake8（`E9,F63,F7,F82`）RC=0；`runner.py` 行首锚定 storage import 计数 **0**；targeted agent 执行链 9 文件 **334 passed / 1 failed**（唯一失败 `test_realtime_rules_create_fetcher_manager_per_quote_check` 命中基线）；usage 子集 7 passed；全量离线 `pytest -m "not network" --continue-on-collection-errors -q` → **31 failed / 5559 passed / 4 deselected / 11 errors（249.86s）**，FAILED 集合去 reason 后缀后与基线 `diff` 为空 → **IDENTICAL，0 新增回归**；passed 5558 → **5559**（+1 新用例）。
+
+**回写**：STATUS（W4.2 14/22 余 8、agent 域 8/8 整域归零、D2 85%→**86%**（85.8）、综合 83.25→**83.45%**、切片 168→169、header/§7/§5 同步）；ADR-004 补 ⑫ agent/runner 证据 + 「余 9」→「余 8」+ `agent 余 1`→`agent 整域归零`；CHANGELOG 顶部 `[改进]` 扁平条目 1 条。
+
+**口径澄清（本片终检新增）**：“距 84% 差 0.05 点 ≈ 再收敛 2 文件”指的是**显示取整口径**（加权值 83.5 即显示 84%）；若以**真实 84.0** 为目标，需 D2 = **88.75%**（超出 D2 上限 88%），单靠 W4.2/W4.5 不可达，必需叠加 D3/D4 小幅提升。已在 STATUS §0.0/§0.3/§5/§7 同步标注，避免后续片按错误口径追指标。
+
+**下一步**：agent 域已整域归零（8/8，继 alert／history／runtime 后第四个域）。余 8 文件＝decision 5（`decision_signal_service`／`skill_opinion_sample_service`／`decision_signal_reassess_service`／`skill_opinion_outcome_service`／`decision_signal_outcome_service`）／analysis 2（`analyzer.py` 的 `persist_llm_usage` ×2、`pipeline.py` 的 `get_db`）／market 1（`market_review.py` 2 处函数内 `DatabaseManager`）。decision 域需新增仓储端口（5 件共用），建议作为下一片（体量大于 agent  单件）。
+
+## 0.166 第 4 批 W4.2 第十三域切片：decision 域 5 件历史读取改走 `HistoryRepositoryPort` + 域级默认来源 seam（**decision 域 storage 直连归零**、真实代码、零回归）
+
+**开工快照**：内容清单快照 `/tmp/hermesx_before_decision.json`（sha256 + readlink，3681 条目）；改后 `/tmp/hermesx_after_decision.json`（3683）逐条目比对——`ADDED = 2`（`logs/api_server_20261031.log`、`logs/api_server_debug_20261031.log` 当日运行时产物）、`REMOVED = 0`、`MODIFIED = 18`，其中真实改动 8 个文件（`src/application/decision/{ports,decision_signal_service,decision_signal_reassess_service,skill_opinion_sample_service,skill_opinion_outcome_service,decision_signal_outcome_service}.py`、`src/bootstrap/decision.py`、`tests/test_decision_signal_service.py`），其余 10 条为 `data/**`、`vibe-template/zentrade/**` 运行时噪声，无越界源码改动。HEAD 仍 `fe7410bb`、零提交。
+
+**切片前实测选型**（行首锚定 `^\s*(from|import)\s+src\.storage`，5 件共 6 行）：
+- `decision_signal_service.py`：`from src.storage import DatabaseManager`，仅用于 `self.db = db_manager or getattr(self.repo, "db", None) or DatabaseManager.get_instance()`，全文唯一消费点为 `_backfill_analysis_signal_from_history` 里的 `self.db.get_analysis_history_by_id(source_report_id)`（单读方法）。
+- `decision_signal_reassess_service.py`：同一 import，仅用于 `self.db = db or DatabaseManager.get_instance()`，唯一消费点 `self.db.get_analysis_history_by_id(...)`（单读方法、无 try/except）。
+- `skill_opinion_sample_service.py` / `skill_opinion_outcome_service.py` / `decision_signal_outcome_service.py`：import 仅为类型注解 `Optional[DatabaseManager]` 服务，`db_manager` 形参全部直接喂给既有仓储工厂（`get_skill_opinion_*_repository` / `get_decision_signal_*_repository` / `get_stock_repository`），**无任何属性访问**。
+
+**改动**：
+1. `application/decision/ports.py`：新增 domain 级默认来源 seam（与 PP-1/PP-4 同型，持可调用工厂以适配 `DatabaseManager.reset_instance()`）：`_default_history_repo_factory` + `set_default_history_repo_factory(factory)` + `get_default_history_repo()`；未装配即返回 `None`。
+2. `bootstrap/decision.py`：在既有 `configure_decision_repositories()`（main 启动块 + api_lifespan 双入口已在）末尾追加 `set_default_history_repo_factory(DatabaseManager.get_instance)`，**未新增文件、未新增 `configure_*`（仍 25 件 / 31 seam）**。
+3. `decision_signal_service.py`：删 storage import；`self.db` → `self.history_repo`，取值链逐字保留（显式 `history_repo` → `db_manager` → 仓储自带 `db` → bootstrap 默认来源）；`_backfill_analysis_signal_from_history` 先取局部 `history_repo`，为 `None` 时 `logger.debug` 后 `return`（不让 `AttributeError` 落到既有宽 `except`，避免伪装成“回填失败”噪声告警）。
+4. `decision_signal_reassess_service.py`：删 storage import；`self.db` → `self.history_repo`（链：显式 `history_repo` → `db` → bootstrap 默认来源）；**并把显式 `db` 一并下传内层服务** `DecisionSignalService(db_manager=db, history_repo=self.history_repo)`，与收敛前 `DecisionSignalService(db_manager=self.db)` 的传递面一致。
+5. 另三件：删 storage import，`db_manager: Optional[DatabaseManager]` → `Optional[Any]`（与同域既有端口化写法一致），运行时零变化。
+6. `tests/test_decision_signal_service.py`：追加 7 条用例（+97 行）——默认 seam 未装配＝`None`／已装配生效、显式 `history_repo` 优先、仓储 `db` 优先于默认源、无 `db` 仓储回落默认源、无源时回填跳过且不抛异常（`caplog` 校验 debug 文案）、reassess 向内层 `db`/`history_repo`/`repo.db` 三处透传。
+
+**关键取证 / 陷阱**：
+- **自查发现并修正一处真实语义漂移（重要）**：首版把 reassess 的内层构造写成 `DecisionSignalService(history_repo=self.history_repo)`，丢掉了收敛前 `db_manager=self.db` 的传递面——当调用方显式传 `db` 时，内层仓储会退回 `DatabaseManager.get_instance()` 而非该 `db`。比对 `git show HEAD:src/services/decision_signal_reassess_service.py` 原文后补回 `db_manager=db`，并以用例 `test_reassess_service_propagates_db_to_inner_signal_service` 断言 `signal_service.repo.db is isolated_db` 锁死。
+- **不可用宽松 grep 统计残留**：`grep -rln "src\.storage" src/application/` 会同时命中 docstring 提及与 `__pycache__/*.pyc`，本片首测得到 27 个“命中”（真实 3 个），必须行首锚定 `^\s*(from|import)\s+src\.storage` 且 `--include=*.py`。
+- **NPE 面收敛**：默认来源未装配时 `self.history_repo` 可能为 `None`（真实仓储恒有 `.db`，仅窄端口替身/未装配组合可达）；read 侧已显式降级，write 侧不受影响。
+- **不采用**“在 application 内回退 `DatabaseManager.get_instance()`”写法：那会把依赖方向拉回 application→storage，与 W4.2 目标相反；正确语义＝未装配则无源可读。
+
+**验证**：`py_compile` 7 件 OK；守卫 `scripts/check_architecture.py --check` RC=0；严格 flake8（`E9,F63,F7,F82`）RC=0；decision 域行首锚定 storage import **0**；application 真实 import 面由 8 文件/9 行降至 **3 文件/4 行**（`analysis/analyzer.py`、`analysis/pipeline.py`、`market/market_review.py`×2）；decision 相关 8 个测试文件首轮 **329 passed**，追加用例后 `test_decision_signal_service.py` **64 passed**；全量离线 `pytest -m "not network" --continue-on-collection-errors -q` → **31 failed / 5566 passed / 4 deselected / 11 errors（266.66s）**，FAILED 集合去 reason 后缀后与基线 `diff` 为空 → **IDENTICAL，0 新增回归**；passed 5559 → **5566**（+7 新用例，自洽）。
+
+**回写**：STATUS（W4.2 19/22 余 3、decision 域归零、D2 86%→**87%**（87.18）、综合 83.45→**83.65%**（显示 **84%**）、切片 169→170、header/§0.0/§0.2/§0.3/§0.4/§4/§5/§7/§8 同步）；ADR-004 补 ⑬ decision 域证据 + 「余 8」→「余 3」+ 引用面 14/22→19/22；CHANGELOG 顶部 `[改进]` 扁平条目 1 条。
+
+**口径提醒**：本片后加权 83.65% 已跨过**显示档** 84% 门槛（≥83.5）；但**真实 84.0** 仍差 0.35 点，且 W4.2 余 3 文件 + W4.5 全部完成后 D2 上限 88% → 综合天花板 **83.85%**，即“显示 84%”是真、“实算 84%”仍需 D3/D4 小幅提升。
+
+**下一步**：余 3 文件——analysis 2（`analyzer.py` 的 `persist_llm_usage`×2 需 `UsageTelemetryPort` 写侧复用；`pipeline.py` 的 `get_db` 需确认消费面）+ market 1（`market_review.py` 两处函数内 `DatabaseManager`，写路径需新端口）。按体量建议 analysis 与 market 各独立成片；全部收敛后再把 `src.storage` 加入 application 禁入清单（届时守卫才会真正拦截回退）。
+
+## 0.167 第 4 批 W4.2 第十四域切片：analysis/analyzer 用量遥测写侧改走 `GenerationUsagePort.persist`（**analysis 域 1/2 收敛**、真实代码、零回归）
+
+**开工快照**：`/tmp/hermesx_before_analysis.json`（sha256 + readlink，3688 条目）；改后 `/tmp/hermesx_after_analysis.json`（3688）逐条比对——`ADDED = 0`、`REMOVED = 0`、`MODIFIED = 16`，其中真实改动 4 个文件（`src/application/generation/runtime_ports.py`、`src/infrastructure/generation/adapters/port_usage.py`、`src/application/analysis/analyzer.py`、`tests/test_market_analyzer_generate_text.py`），其余 12 条为 `data/**`、`logs/**`、`vibe-template/**` 运行时噪声，无越界源码改动。HEAD 仍 `fe7410bb`、staged 0、零提交。
+
+**口径纠偏（重要）**：首版快照脚本用 `git ls-files`（1937 条目），与上片 3683 不可比；核对旧快照含 gitignored 的 `vibe-template/` 后，改为与上片一致的**文件系统遍历**（剪枝 `.git` / `.venv` / `node_modules` / `__pycache__`），得 3688（= 上片 3683 + 5 个当日日志），此后前后可比。
+
+**切片前实测**（行首锚定 `^\s*(from|import)\s+src\.storage`）：`application/analysis/analyzer.py` L61 `from src.storage import persist_llm_usage`，消费点 2 处——`call_type="market_review"`（行情复盘文本生成后）与 `call_type="analysis"` + `stock_code=code`（个股分析完成时），两处均在 `should_persist` 守卫之后。文件已有 D-01 / R2-A3 阶段的 `_generation_usage_port` seam（`GenerationUsagePort`，含 `normalize` / `attach_hmacs` / `attach_legacy_audit` / `extract_payload` / `should_persist` 5 方法），`GenerationUsageAdapter` 位于 `src/infrastructure/generation/adapters/port_usage.py`，由既有 `configure_generation_runtime()` 装配。
+
+**选型：端口扩容 + 消费者追平（不新增端口、不新增装配点）**。理由：同一 seam 已持有同一 adapter 实例，`src.storage.persist_llm_usage` 签名 `(usage, model, call_type, stock_code=None)` 与端口可一一映射；另起独立写端口会让同一域出现两条装配路径。故：
+1. `application/generation/runtime_ports.py`：`GenerationUsagePort` 追加 `persist(usage, model, *, call_type, stock_code=None)`，docstring 明示「调用方须先经 `should_persist` 判定」。
+2. `infrastructure/generation/adapters/port_usage.py`：`GenerationUsageAdapter.persist` 委托 `from src.storage import persist_llm_usage`，关键字参数逐字透传。
+3. `application/analysis/analyzer.py`：删 storage import；两处调用改 `usage_port.persist(...)`，`should_persist` 守卫与 `call_type` / `stock_code` 取值逐字不变。
+4. `tests/test_market_analyzer_generate_text.py`：7 处 `patch("src.application.analysis.analyzer.persist_llm_usage")` re-point 为 `patch.object(_usage_port(), "persist")`（保留真实 `should_persist`，不弱化守卫路径）；新增 `TestGenerationUsagePersistPort` 2 条回归——adapter `persist` 委托 `src.storage` 且标签参数逐字透传、analyzer 源码不含 `from src.storage` 且模块无 `persist_llm_usage` 属性（防回退）。
+
+**关键取证 / 陷阱**：
+- **`SearchReplace` 吞字符**：本片 re-point 中，当 `original_text` 结束于行尾前（如 `patch("...")` 后紧跟 `:`），替换后该行尾字符被吞、甚至换行被合并、缩进错乱；共 3 轮修复（补冒号 → 用含下一行的唯一上下文拆行 → 单独修正缩进）。**教训：行中片段替换须让 `original_text` 覆盖到行尾完整 token；长文档批量替换改用 python 脚本 + `assert text.count(old) == expected`。**
+- **pytest 类名收集**：新类首版命名 `GenerationUsagePersistPortTestCase` 未被收集（`setup.cfg` 未配 `python_classes`，默认 `Test*`），用例数仍 104；改名 `TestGenerationUsagePersistPort` 后 106。**教训：`*TestCase` 是 unittest 习惯，pytest 默认规则下不收集。**
+- **FAILED 集合比对**：`/tmp/runner_failed_norm.txt` 实际保留 `FAILED ` 前缀，直接 `diff` 全行不等；`sed 's/^FAILED //' | sort` 归一再比才为空。
+- **终端渲染假空格**：`sed` 输出里看似带空格的片段，`repr()` 证明无空格；判断字节必须用 `repr()`。
+- **`replace_all` 误伤历史行**：STATUS 批量替换把 slice 13 历史行的「真实 84.0 差 0.35 点」一并改成 0.26 → 已回滚该行为 0.35。
+
+**验证**：`py_compile` 4 件 OK；守卫 `scripts/check_architecture.py --check` RC=0；严格 flake8（`E9,F63,F7,F82`）RC=0；analyzer 行首锚定 storage import **0**；application 真实 import 面由 3 文件/4 行降至 **2 文件/3 行**（`analysis/pipeline.py` 1、`market/market_review.py` 2）；analysis / generation 7 文件簇 **500 passed**；`test_market_analyzer_generate_text.py` **106 passed**（+2）；全量离线 `pytest -m "not network" --continue-on-collection-errors -q` → **31 failed / 5568 passed / 4 deselected / 11 errors（252.74s）**，FAILED 集合归一后与基线 `diff` 为空 → **IDENTICAL，0 新增回归**；passed 5566 → **5568**（+2 新用例，自洽）。快照 3688 → 3688。
+
+**回写**：STATUS（W4.2 20/22 余 2、D2 87.18→**87.45**（显示 87%）、综合 83.65→**83.74%**（显示 84%）、切片 170→171、header / §0.0 / §0.2 / §0.3 / §0.4 / §4 / §5 / §7 / §8 同步）；ADR-004 补 ⑭ + 引用面 19/22→20/22 + 尾句「余 2 文件」并写明各自收敛路径；CHANGELOG 顶部 `[改进]` 扁平条目 1 条。
+
+**口径提醒**：D2 = 82 + 6×n/22，n=20 → 87.45；加权 = 66.25 + 0.2×87.45 = **83.74%**（显示 **84%**，真实 84.0 仍差 0.26 点）；D2 在 W4.2 全部收敛后上限 88% → 综合天花板 **83.85%**。
+
+**下一步**：余 2 文件——① `analysis/pipeline.py`：`self.db` 消费面含 `has_today_data` / `save_daily_data` / `save_fundamental_snapshot` / `get_data_range` / `save_news_intel` / `save_analysis_history` / `get_analysis_context` / `analyze_ma_status` 等多方法，需按读 / 写聚合新端口（不可单点复用）；② `market/market_review.py`：两处函数内 `DatabaseManager` 均只命中分析历史仓储（`save_analysis_history` + `update_analysis_history_diagnostics`），可直接复用现成仓储。两者收敛后再把 `src.storage` 加入 application 禁入清单（届时守卫才会真正拦截回退）。
+
+## 0.168 第 4 批 W4.2 第十五域切片：market/market_review 复盘历史落库改走 `MarketReviewHistoryPort`（**market 域 storage 直连归零 2/2**、真实代码、零回归）
+
+**开工快照**：`/tmp/hermesx_before_market.json`（sha256 + readlink、文件系统遍历口径，3693 条目）；改后 `/tmp/hermesx_after_market.json`（3693）逐条比对——`ADDED = 0`、`REMOVED = 0`、`MODIFIED = 16`，其中真实改动 5 个文件（`src/application/market/ports.py`、`src/application/market/market_review.py`、`src/bootstrap/market.py`、`tests/test_market_review.py`、`tests/test_run_flow.py`），其余 11 条为 `.pytest_cache` / `data/**` / `logs/**` / `vibe-template/**` 运行时噪声，无越界源码改动。HEAD 仍 `fe7410bb`、staged 0、零提交。
+
+**切片前实测**（行首锚定 `^\s*(from|import)\s+src\.storage`）：`application/market/market_review.py` 仅 2 行，均为函数内懒加载 `from src.storage import DatabaseManager`——① `_refresh_market_review_history_diagnostics`：`db = DatabaseManager.get_instance()` + `getattr(db, "update_analysis_history_diagnostics", None)`（callable 判定后回写诊断，整段在 fail-open `try/except` 内）；② `_persist_market_review_history`：`db = DatabaseManager.get_instance()` + `db.save_analysis_history(result=..., query_id=..., report_type=..., news_content=..., context_snapshot=..., save_snapshot=True)`（整段 fail-open，异常时 `record_history_run(report_saved=False)` 并返回 0）。两方法在现成 `src/infrastructure/persistence/repositories/analysis_history_repo.py::AnalysisHistoryRepository` 中签名与默认值逐字一致（`inspect.signature` 实测）。
+
+**选型：新增窄端口 + 模块级工厂 seam（不新增 bootstrap 文件、不新增 `configure_*`）**。`market_review.py` 是模块级函数集合（无类可注入构造参数），故沿用同域 `market_analyzer` / `market_hotspot` 的模块 seam 范式；注册**工厂**而非实例，仓储每次写入时按当前 `DatabaseManager` 单例现建，从而对 `DatabaseManager.reset_instance()`（测试切换临时库 / 长驻进程重建引擎）保持敏感。改动：
+1. `application/market/ports.py`：新增 `MarketReviewHistoryPort`（2 方法：`save_analysis_history` / `update_analysis_history_diagnostics`，参数集与仓储同名方法逐项对齐），并登记到模块 docstring 的实现方清单。
+2. `application/market/market_review.py`：删两处 `from src.storage import DatabaseManager`；新增模块级 `_default_history_repo_factory` + `set_default_history_repo_factory()` + `_get_history_repo()`；`_refresh_...` 改取端口（`None` 即静默返回，保留 `getattr` callable 判定以兼容窄替身）；`_persist_...` 改取端口，未装配时在既有 `try` 内 `raise RuntimeError("... not configured; call src.bootstrap.market.configure_market_review()")`，由原 `except Exception` 分支统一落 fail-open（`record_history_run(report_saved=False)` + warning + `return 0`），不新增异常类型。
+3. `bootstrap/market.py`：既有 `configure_market_review()`（main 启动块 + api_lifespan 双入口已在）追加 `set_default_history_repo_factory(lambda: AnalysisHistoryRepository(DatabaseManager.get_instance()))`，并补 `AnalysisHistoryRepository` 顶层 import；docstring 拆为「取数端口 / 历史落库端口」两段。**bootstrap 文件数与 `configure_*` seam 数（25 件 / 31 seam）不变**。
+4. 测试：`tests/test_market_review.py` 在 `MarketReviewLocalizationTestCase.setUp` 注册同域仓储工厂、`tearDown` 复位（3 个真实落库用例使用临时 `DATABASE_PATH`，懒解析保证仍指向当前临时库）；`tests/test_run_flow.py` 的 fake-db 用例由 `patch("src.storage.DatabaseManager.get_instance", return_value=fake_db)` re-point 为 `patch.object(market_review_module, "_get_history_repo", return_value=fake_db)`；新增 `TestMarketReviewHistoryPort` 3 条回归（未装配返回 0 且日志含 `not configured`、`AnalysisHistoryRepository` 参数集覆盖端口声明、模块源码 0 `from src.storage` 且无 `DatabaseManager` 符号）。
+
+**关键取证 / 陷阱**：
+- **端口声明必须覆盖全部真实调用点**：本片两处调用点参数形态不同（一处全关键字、一处 `getattr` 探测），端口按仓储完整签名声明而非只写最小子集，避免出现「端口声明落后于调用点」的契约漂移。
+- **测试不能再 patch storage 符号**：把 `DatabaseManager.get_instance` 的 patch 保留会静默失效（模块已无该符号），fake-db 必须接到 seam 层——否则用例会真实建库、断言假通过或直接失败。
+- **全局 seam 需要 setUp/tearDown 成对复位**：工厂是模块级全局状态，`tearDown` 置 `None` 才能让「未装配」语义用例在任意执行顺序下稳定。
+- **终端渲染会插入假空格**：`grep`/`sed` 输出里 `文件 （5 域` 看似带空格，`repr()` 与码点比对证明无空格；STATUS 批量替换改用「短锚点 + count 断言」后一次通过。
+- **`SearchReplace` 行中片段替换仍须覆盖到行尾完整 token**（本片在两个文件上均按整块上下文替换，未再触发吞字符）。
+
+**验证**：`py_compile` 5 件 OK；守卫 `scripts/check_architecture.py --check` RC=0；严格 flake8（`E9,F63,F7,F82`）RC=0；application 行首锚定 storage import 由 **2 文件 / 3 行降至 1 文件 / 1 行**（仅余 `analysis/pipeline.py` 的 `get_db`）；`market_review.py` 现 0 storage import；market / bootstrap / run_flow 簇 9 个测试文件 **213 passed**（`test_market_review.py` 26 = 23 + 3、`test_run_flow.py` 25）；全量离线 `pytest -m "not network" --continue-on-collection-errors -q` → **31 failed / 5571 passed / 4 deselected / 11 errors（253.86s）**，FAILED 集合归一后与基线 `diff` 为空 → **IDENTICAL，0 新增回归**；passed 5568 → **5571**（+3 新用例，自洽）。快照 3693 → 3693。
+
+**回写**：STATUS（W4.2 21/22 余 1、market 整域归零、D2 87.45→**87.73**（显示 87%）、综合 83.74→**83.80%**（显示 84%）、切片 171→172、header / §0.0 / §0.2 / §0.3 / §0.4 / §4 / §5 / §7 / §8 同步）；ADR-004 补 ⑮ + 引用面 20/22→21/22 + 增补「已收敛 19/22→21/22」并改写尾句（余 1 文件）；CHANGELOG 顶部 `[改进]` 扁平条目 1 条。
+
+**口径提醒**：D2 = 82 + 6×n/22，n=21 → **87.73**；加权 = 66.25 + 0.2×87.73 = **83.80%**（显示 **84%**，真实 84.0 仍差 0.20 点）；D2 在 W4.2 全部收敛后上限 88% → 综合天花板 **83.85%**（本片后再收敛 1 文件仅 +0.05 点）。
+
+**下一步**：W4.2 仅余 **1 文件**——`analysis/pipeline.py`（`self.db` 消费面含 `has_today_data` / `save_daily_data` / `save_fundamental_snapshot` / `get_data_range` / `save_news_intel` / `save_analysis_history` / `get_analysis_context` / `analyze_ma_status` / `update_analysis_history_diagnostics` 等多方法，需按读 / 写聚合新端口，不能单点复用）。该片收敛后把 `src.storage` 加入 application 禁入清单（守卫才会真正拦截回退），D2 → 88%、综合 83.85%。
+
+## 0.169 第 4 批 W4.2 第 16 片：analysis/pipeline 持久化端口化（W4.2 收官 + application 禁入 src.storage）
+
+- **时间 / 范围**：2026-10-31。目标文件 `src/application/analysis/pipeline.py`（W4.2 最后 1 件）；新增
+  `src/application/analysis/persistence_port.py`、`src/infrastructure/persistence/repositories/pipeline_persistence_adapter.py`、
+  `tests/test_pipeline_persistence_port.py`；联动 `src/bootstrap/analysis.py`、`main.py`、`src/bootstrap/api_lifecycle.py`、
+  `tests/conftest.py`、`tests/test_agent_pipeline.py`、`tests/test_stock_data_port.py`、
+  `tests/test_pipeline_optional_service_resilience.py`、`tests/test_pipeline_daily_market_context.py`、
+  `tests/test_skill_opinion_samples.py`、`scripts/check_architecture.py`。
+- **开工快照**：`/tmp/hermesx_before_pipeline.json`（文件系统遍历 3693 条目，sha256 + readlink，剪枝
+  `.git`/`.venv`/`node_modules`/`__pycache__`）；`HEAD fe7410bb`、staged 0、零提交。
+- **切片前实测取证**：`pipeline.py` 唯一 storage 耦合为 L27 `from src.storage import get_db`、L234
+  `self.db = get_db()`；`self.db` 共 17 行命中（1 处赋值 + 16 处消费），去重后 9 个方法：
+  `has_today_data`（L363/L3246）、`save_daily_data`（L377/L1288/L1760）、`save_fundamental_snapshot`（L536）、
+  `get_data_range`（L554/L1281）、`save_news_intel`（L619/L1630）、`save_analysis_history`（L835/L1658）、
+  `get_analysis_context`（L1741/L1761）、`analyze_ma_status`（L1812）、`update_analysis_history_diagnostics`
+  （诊断回写处 `getattr(db, ...)`）。另有两处把 `self.db` 以依赖形式传入服务：`DailyMarketContextService(history_repo=self.db)`
+  需要 `get_analysis_history`（第 10 个方法面），`SkillOpinionSampleService(db_manager=self.db)` 需要宿主
+  `get_session` / `_run_write_transaction`。
+- **选型**：新增 `AnalysisPipelinePersistencePort`（Protocol，10 方法）+ infra
+  `DatabaseManagerPipelinePersistenceAdapter` 逐方法委托 `DatabaseManager` 公开面，而不是重新聚合
+  `MarketDataRepository` / `IntelligenceRepository` / `AnalysisHistoryRepository`。理由：① 宿主同名方法本身已是
+  仓储薄委托，再聚合会引入双重装配点；② `analyze_ma_status` 仅存在于宿主公开面（仓储层只在
+  `get_analysis_context` 内部复用私有 `_analyze_ma_status`），另拼会让均线判定口径漂移；③ 逐字委托可保证
+  行为等价优先于“形式更漂亮”。
+- **改动**：① `persistence_port.py` 定义端口 + `_persistence_port_factory` seam（
+  `set_analysis_pipeline_persistence_port_factory` / `build_pipeline_persistence_port`，未装配显式报错，不静默降级为
+  不落库）；② `DatabaseManagerPipelinePersistenceAdapter` 逐方法委托（含 kwargs 透传）；③ pipeline 删 storage import、
+  `self.db: AnalysisPipelinePersistencePort = build_pipeline_persistence_port()`；④ `SkillOpinionSampleService` 由
+  `db_manager=self.db` 改为 `repo=get_skill_opinion_sample_repository()`（`DailyMarketContextService` 直接复用端口对象，
+  端口已含 `get_analysis_history`）；⑤ 新增 `configure_analysis_pipeline_persistence()`，在 `main.py`、`api_lifecycle`
+  与 conftest 会话夹具里与 `configure_stock_data_port()` 同批调用（bootstrap 文件数 25 不变、`configure_*` 31→32）；
+  ⑥ 守卫 `scripts/check_architecture.py` 的 `src/application/` 禁入清单加入 `src.storage`，把过渡豁免转为强制拦截。
+- **测试影响面**：① 16 处 `patch('...pipeline.get_db')` + 1 处 `patch.object(pipeline_module, "get_db", ...)`
+  改指 `build_pipeline_persistence_port`（语义保持“构造期不触真库”）；② `test_skill_opinion_samples` 的
+  `assert_called_once_with(db_manager=pipeline.db)` 改为断言 `repo` 为 `SkillOpinionSampleRepository` 实例；
+  ③ 新增 `tests/test_pipeline_persistence_port.py` 6 条：适配器逐方法委托（含 `update_analysis_history_diagnostics`
+  kwargs）、`isinstance(adapter, Port)`、端口/适配器/宿主三方参数面一致、未装配 RuntimeError 含 bootstrap 提示、
+  工厂每管线现建（不缓存单例）、pipeline 源码 0 storage import。
+- **踩坑**：① `SearchReplace` 当 `original_text` 结束于行尾之前会吞掉其后的 `, \` 续行符，首轮 13 处 `with` 链断行
+  直接 SyntaxError —— 改用「两行整体」锚点补回续行符；② 端口声明必须覆盖全部真实调用点：`DailyMarketContextService`
+  经 `history_repo=self.db` 间接触发 `get_analysis_history`，若漏声明会在 `_load_daily_market_context` 运行时才暴露，
+  故在切片前用 `grep self.db` + 逐个调用点核对收敛方法面；③ 新 seam 的测试 `tearDown` 若把全局工厂置 `None`，
+  会污染同进程后续 pipeline 构造（首轮全量 +14 回归全部落在 `test_pipeline_realtime_indicators`）——改为
+  复位为 `configure_analysis_pipeline_persistence()` 的生产等价装配后归零；④ `SkillOpinionSampleService` 的
+  `db_manager` 形参需要宿主 `get_session`/`_run_write_transaction`，不能把端口对象当 db manager 传，必须改走
+  决策层已有仓储工厂。
+- **验证**：py_compile 10 件 OK；`scripts/check_architecture.py --check` RC=0（**已含 `src.storage` 禁入 application**）；
+  严格 flake8 `E9,F63,F7,F82` RC=0；pipeline/market/run_flow 簇 73 passed；agent pipeline 85 passed；
+  pipeline 相关 19 文件簇 355 passed；全量离线 `--continue-on-collection-errors`
+  **31 failed / 5577 passed / 4 deselected / 11 errors（257.04s）**——passed 5571→5577（+6 新用例）、
+  FAILED 集合归一后与基线 `diff` 为空 → IDENTICAL，0 新增回归。
+- **快照比对**：`/tmp/hermesx_before_pipeline.json` → `/tmp/hermesx_after_pipeline.json`，条目数 3693→3694（+1 新测试
+  文件）；逐条比对 ADDED 1（`tests/test_pipeline_persistence_port.py`）/ REMOVED 0 / MODIFIED 为 12 个目标文件 +
+  运行时噪声（logs/data），无越界源码改动。
+- **口径更新**：W4.2 **22/22 收敛、余 0**（application 域 0 `src.storage` import）；D2 87.73→**88.00**（达上限，
+  显示 **88%**）；六维综合 83.80→**83.85%**（显示 84% 保持；真实 84.0 差 0.15 点，W4 段天花板即 83.85%）；
+  切片 172→**173**；bootstrap `configure_*` seam 31→**32**（文件数 25 不变）。
+- **下一步**：W4.5（`src/config/` 专入守卫规则）→ 第 5 批 W8 提交（任务闭环）；W5（D3 拆分）/W6/W7 属长期或需拍板项。
+
+## 0.170 第 4 批 W4.5：`src/config/` 专入守卫 + 5 条外层边物理收敛（config 只依赖 domain、真实代码、零回归）
+
+- **时间 / 范围**：2026-10-31。目标 `src/config/`（4 件）；新增 `src/domain/generation/wire_models.py`；联动
+  `src/infrastructure/generation/generation_params.py`、`src/application/generation/runtime_ports.py`、
+  `src/infrastructure/generation/adapters/port_runtime.py`、`src/application/analysis/analyzer.py`、
+  `src/application/agent/provider_trace.py`、`src/config/settings.py`、`src/config/__init__.py`、
+  `tests/test_llm_channel_config.py`、`scripts/check_architecture.py`。
+- **开工快照**：`/tmp/hermesx_before_w45.json`（文件系统遍历 3696 条目，sha256 + readlink，剪枝
+  `.git`/`.venv`/`node_modules`/`__pycache__`）；`HEAD fe7410bb`、staged 0、零提交。
+- **切片前实测取证**：`src/config` 外层边共 5 条 —— ① `settings.py` 模块级
+  `from src.infrastructure.generation import generation_params`；②③ `settings.py` 函数体内懒加载
+  `llm_adapter`（thinking `extra_body` / fallback wire models）；④⑤ 两处
+  `from data_provider.base import normalize_stock_code`（函数内）。其余 import 均为 domain / config 内部 /
+  `src.utils`。消费者矩阵：`get_thinking_extra_body`、`resolve_fallback_litellm_wire_models` 仅 `analyzer`
+  两处（+ config 导出）；`resolve_litellm_wire_model` 仅 `provider_trace`（+ config 导出）；
+  `get_fixed_litellm_temperature`/`normalize_litellm_temperature` 仅测试（+ config 导出）；
+  `resolve_litellm_thinking_enabled` 无外部消费者。另实测 `src/domain/market/stock_codes.py:18` 即
+  `normalize_stock_code` 真源（`data_provider/base.py:34` 本就是 re-export）；
+  `src/infrastructure/agent_runtime/generation_params.py` 实测**不存在**（STATUS W10.1 记录路径陈旧）。
+- **选型**：**不采用** baseline 豁免（AT §2 明文「`src/config` 只依赖 domain」），按 W4.1/R2-A3 先例做
+  物理收敛；**也不把厂商参数表整体下沉 domain**（`src/domain/generation/__init__.py` 约定只放与厂商无关
+  纯规则，thinking 表 / kimi 固定温度属 vendor 语义）→ 纯解析下沉 + 厂商规则走既有 `GenerationRuntimePort`。
+- **改动**：① 新建 `src/domain/generation/wire_models.py`（`find_model_list_entries` / `find_model_list_entry` /
+  `resolve_litellm_wire_model` 逐字平移，无厂商表、零 IO）；`generation_params` 删原 3 函数、改同名 re-import，
+  内部 `_resolve_litellm_model_list_entry(ies)` 调用改 `find_model_list_entry(ies)`；`provider_trace` 改直连
+  domain。② `GenerationRuntimePort` 新增 `thinking_extra_body(model)` 与
+  `resolve_fallback_wire_models(model, model_list)`；`GenerationRuntimeAdapter` 两方法内延迟 import
+  `llm_adapter`（避免把 litellm 拉进端口构造）；`analyzer` 两处调用改经 `_get_generation_runtime_port()`。
+  ③ `config/settings.py` 两处 `normalize_stock_code` 改由 `src.domain.market.stock_codes` 取。
+  ④ `config/settings.py` 删模块级 infra import 与 6 个薄委托（wire model / thinking / fallback / 固定温度×2 /
+  温度归一），`config/__init__.py` 删同名 re-export。⑤ `scripts/check_architecture.py` 新增 `src/config/` 专入
+  规则（禁 `fastapi`/`sqlalchemy`/`data_provider`/`src.services`/`src.core`/`src.repositories`/
+  `src.infrastructure`/`src.storage`/`src.application`/`api.`/`bot.`；`src.utils` 作为遗留共享 helper 保持允许）。
+- **测试影响面**：唯一外部消费者 `tests/test_llm_channel_config.py` 的
+  `get_fixed_litellm_temperature` / `normalize_litellm_temperature` 改为从
+  `src.infrastructure.generation.generation_params` 导入（与同文件已用的 `apply_litellm_generation_params`、
+  `resolve_litellm_temperature_directive` 同块）；其余用例零改动（analyzer 两条路径本就要求
+  `configure_generation_runtime()` 已装配，与同函数内既有 `apply_params` 一致，未新增装配点）。
+- **踩坑 / 边界确认**：① 守卫 `ast.walk` 会统计函数体内 import，因此「懒加载」也算边，必须一并收敛；
+  ② `GenerationRuntimePort` 是 `Protocol`，新增方法属结构扩展，`sys_config_runtime.py` 从 `llm_adapter`
+  （非 config）取 fallback 函数，不属 config 边、不改；③ 端口未装配时 `_get_generation_runtime_port()` 显式
+  `RuntimeError`（不静默降级），与既有取数/用量端口同语义。
+- **验证**：py_compile 10 件 OK；严格 flake8 `E9,F63,F7,F82` RC=0；`scripts/check_architecture.py --check` RC=0；
+  `scan()` 实测 `src/config` 违规 **0**，规则自测对 `src.infrastructure`/`data_provider`/`src.application` 命中、
+  对 `src.domain`/`src.utils` 放行；运行时取证 `import src.config` 后 `sys.modules` 中
+  infra/application/services/core/repositories/storage/data_provider/fastapi/sqlalchemy/api./bot. 前缀模块 **0 个**；
+  适配器功能实测 `thinking_extra_body('deepseek-chat') → {'thinking': {'type': 'enabled'}}`、
+  `thinking_extra_body('gpt-4o') → None`、`resolve_fallback_wire_models('kimi_router', ml) → ['openai/moonshot/kimi-k2.6']`、
+  `domain.resolve_litellm_wire_model is infra.resolve_litellm_wire_model → True`；定向簇 10 文件 **587 passed**
+  （test_llm_channel_config / test_llm_param_recovery / test_provider_trace / test_llm_adapter_provider_trace /
+  test_market_analyzer_generate_text / test_system_config_service / test_system_config_api /
+  test_generation_backend / test_generation_backend_status_service / test_agent_pipeline）；全量离线
+  `--continue-on-collection-errors` **31 failed / 5577 passed / 4 deselected / 11 errors（253.86s）**——
+  FAILED 集合归一后与基线 `diff` 为空 → IDENTICAL，0 新增回归；ERROR 11 条仍全部为既有三处
+  （`apps/hrs-web/scripts/test_wt/*`、`vibe-template/zentrade/backend/tests`）。
+- **快照比对**：`/tmp/hermesx_before_w45.json`（3696）→ `/tmp/hermesx_after_w45.json`；逐条比对见交付说明。
+- **口径更新**：`src/config` 外层边 5→**0**；守卫新增 1 条专入规则（`src/config/`），其余规则不变；
+  W10.1「`resolve_litellm_wire_model` 双入口」随之闭环（单实现、单入口，原记录真源路径已陈旧）；
+  D2 保持 **88.00**（已触顶）、六维综合保持 **83.85%**（显示 84%）；切片 173→**174**；
+  bootstrap 25 件 / 32 seam 不变；`src/` Python 文件 379→**382**（domain 59→**60**）。
+- **下一步**：第 5 批 W8 提交（任务闭环，需授权）；W5（D3 拆分）/W6/W7 属长期或需拍板项。
+
+## 0.171 第 5 批：W9 旧路径漂移清零 + W5 §4.3 大件拆分 + W6 schema 决策 + W7 安全/性能基线（真实代码、零回归）
+
+- **时间 / 范围**：2026-10-31。四条线合并推进：W9（文档 / 测试旧路径漂移）、W5.1–W5.7（§4.3 文件内部职责拆分）、
+  W6（schema 演进决策 + 装配守卫）、W7（认证 / Cookie / CORS 取证 + 启动与接口性能基线）。零提交，HEAD 仍
+  `fe7410bb`，工作树 539 条状态。
+- **W9.1 文档漂移**：`docs/*.md` 与 `AGENTS.md` 中指向 `src/{core,schemas,agent,llm,repositories,notification_sender}/`
+  的 18 处具体文件路径全部改指五层新落点（`analysis-context-pack.md`（9）、`agent-stream-events.md`（3）、
+  `run-diagnostics-p2.md`（2）、`full-guide.md`（2）、`full-guide_EN.md`（1）、`decision-signals.md`（1）；
+  `notifications.md` / `AGENTS.md` 的目录级提及改为「旧路径 → 新落点」叙述）。复核命令与结果：
+  `grep -rn "src/core/\|src/schemas/\|src/agent/\|src/llm/\|src/repositories/\|src/notification_sender/" docs/*.md AGENTS.md`
+  → 仅剩 1 处**刻意保留的历史叙述**（`docs/notifications.md:49` 明写「已于 R2-B5 从旧 `src/notification_sender/`
+  物理下沉至 `src/infrastructure/notification/senders/`」）。
+- **W9.2 标题 token 耦合**：`tests/test_alerts_docs.py` 断言裸 token `## 存储方案评估`，而
+  `documents/product/实时告警中心/alerts.md:150` 为锚点式标题 `## <a id="存储方案评估"></a>存储方案评估`
+  （9508e62b 于 2026-10-27 引入锚点风格）→ 8 条既有失败（HEAD 同样 0 匹配，非本迁移回归）改为锚点感知断言，
+  现 `pytest tests/test_alerts_docs.py` **19 passed**。
+- **W5.1 analyzer 纯函数下沉**：`application/analysis/analyzer.py` **4849 → 4379 行**；新建
+  `src/domain/analysis/chip_rules.py`（119 行，筹码取值 / 健康度 / 可用性判定）与
+  `src/domain/analysis/prompt_sanitizer.py`（244 行，趋势方向推断 + 送 Prompt 前一致性清洗），
+  analyzer 侧只留编排与 IO；回归 `tests/test_analyzer_domain_rules.py`（242 行）。
+- **W5.2 pipeline 编排 / 业务计算分离**：`application/analysis/pipeline.py` **3947 → 3732 行**；新建
+  `src/domain/analysis/pipeline_rules.py`（334 行，Agent 字段占位判定与建议提取、趋势/摘要兜底、
+  股票名占位、整数解析、量比与均线描述、持久化上下文清洗、日期归一），pipeline 以
+  `from src.domain.analysis import pipeline_rules as _pipeline_rules` 单点消费；回归 `tests/test_pipeline_domain_rules.py`（313 行）。
+- **W5.3 config registry / settings 拆分**：`src/config/registry.py` **6954 → 372 行**（只留分类元数据、可见性表与
+  schema 装配查询逻辑）；声明数据与帮助文案拆到 `src/config/field_definitions.py`（5457 行）、
+  `src/config/field_help.py`（1157 行）；`src/config/settings.py` **3802 → 3254 行**，低层解析下沉
+  `src/config/env_parsers.py`（273 行：布尔/整型/浮点钳制、TickFlow 复权、新闻窗口策略、上下文压缩档位）、
+  `.env` 原子读写独立为 `src/config/env_file.py`（289 行）、LLM 渠道归一化归 `src/config/llm_channels.py`（279 行）。
+  回归 `tests/test_config_module_split.py`（111 行）+ `tests/test_llm_config_validation.py`（140 行）。
+- **W5.4 `system_config_service` 模块级校验迁出**：`application/runtime/system_config_service.py`
+  **5242 → 4328 行**；新增 `application/runtime/llm_config_validation.py`（972 行）承载「effective_map → LLM
+  渠道 / 模型选择」的纯校验与结构化 issue 列表（不持 service 状态、不做网络外调），渠道探测、通知试发、
+  单例重置仍留在 service / 端口 seam 内。
+- **W5.5 `image_stock_extractor` Vision 端口化**：`image_stock_extractor.py` 收敛为 330 行的**识别用例**
+  （输入校验、模型/Key 选择、Prompt、重试退避、结果解析）；新增 `application/analysis/vision_ports.py`（68 行，
+  `VisionCompletionPort`）+ `infrastructure/generation/vision_litellm.py`（73 行，`LitellmVisionAdapter`）+
+  bootstrap 装配 seam（`configure_*` 32 → **33**，bootstrap 文件数仍 25）；应用层不再直接 `import litellm`。
+  回归 `tests/test_image_stock_extractor_vision_port.py`（219 行）。
+- **W5.6 notification 渲染助手下沉**：`application/notification/notification.py` **3063 → 2863 行**；
+  新建 `src/domain/notification/rendering.py`（325 行：数值/金额/百分比/股数格式化、股票名 Markdown 转义、
+  狙击点前缀剥离、阶段决策与策略综合区块拼装、数据源显示名映射），`notification.py` 只留意图 / 发送编排。
+  回归 `tests/test_notification_rendering.py`（172 行）。
+- **W5.7 建 `domain/portfolio/`**：新建 `src/domain/portfolio/risk_rules.py`（139 行：占比、集中度排序与告警
+  判定、回撤序列指标、止损接近度告警、主板块挑选）+ 包 `__init__.py`；`application/portfolio/portfolio_risk_service.py`
+  改消费纯规则，货币换算与快照取数仍留 application（调用方先折算统一币种再交给纯规则聚合）。
+  回归 `tests/test_portfolio_risk_rules.py`（138 行）。
+- **W6.1 schema 演进决策（ADR-008）**：**不引入 Alembic / 版本化迁移框架** —— 会与既有
+  `Base.metadata.create_all()` + 幂等 `apply_startup_migrations` 形成平行实现，且桌面端 SQLite 无迁移编排入口。
+  改为用 AST 守卫锁死装配契约：新增 `tests/test_schema_migration_guard.py`（111 行）校验 ① 模块内每个
+  `ensure_*` / `backfill_*` 都从 `apply_startup_migrations` 可达、② 有依赖顺序的迁移保持先后（补列早于量纲迁移、
+  基线标记早于依赖基线的索引迁移）、③ 迁移函数首参恒为 `db_session`（禁止隐式全局状态）。决策与推翻条件写入
+  `documents/framework/architecture_migration_adr.md` **ADR-008**，`ARCHITECTURE_TARGET.md` §9.2-1 与 §9.2.1 同步转「已决」。
+- **W7.1 安全不变量守卫**：取证 `src/auth.py`（32B secret + `0600` + 长度异常重建；`pbkdf2_hmac(sha256, 100_000)` +
+  `hmac.compare_digest`；`nonce.ts.sig` 三段式与超龄失效；`X-Forwarded-For` 取**最右值**；5 次/300s 进程内限流）、
+  `api/v1/endpoints/auth.py::_cookie_params`（`httponly` / `samesite=lax` / HTTPS 下 `secure`）、
+  `api/middlewares/auth.py`（8 条精确白名单、前缀不放行）、`api/app.py` CORS（默认 4 源 + `credentials=True`；
+  `CORS_ALLOW_ALL` 时 `["*"]` 且 `credentials=False`，二者互斥）。固化为 `tests/test_security_baseline.py` **15 条**
+  （276 行，含 `hmac.compare_digest` 静态断言与 CORS 互斥断言）。**决策**：`src/auth.py` 维持 ADR-005 落法 A
+  （不端口化）—— 当前无「可替换驱动」；重评条件=多用户/OAuth、跨进程会话、部署单元拆分。
+- **W7.2 性能基线**：新增可复现脚本 `scripts/measure_performance_baseline.py`（隔离子进程 + `DATABASE_PATH`
+  指临时库 + `HRS_RUNTIME_SCHEDULER_SUPPRESS_START=true`，ASGITransport 不进 lifespan）。实测（3 次）：
+  `import api.app` min **1427–1450ms** / median **1461–1480ms**；lifespan **4421–4547ms**（32 表）；
+  `create_app()` **0.88–0.94ms**；OpenAPI **153 paths**，首次生成 **637–658ms**；`/api/health` p50 0.61–0.74 /
+  p95 0.91–0.94；`/api/v1/health` p50 0.91–1.00 / p95 1.16–2.63；`/api/v1/auth/status` p50 0.53–0.61 / p95 0.71–1.03。
+  基线、阈值（import ≤3000ms、lifespan ≤10000ms、create_app ≤50ms、openapi ≤2000ms、健康/状态 p95 ≤20ms、
+  搜索 20/100/200ms）与未覆盖项写入 `documents/framework/security_performance_baseline.md`（103 行）。
+- **顺带修复的既有失败（同类漂移，非扩范围）**：① `tests/test_search_performance.py` 2 处 +`tests/test_bot_dispatcher_async.py` 1 处仍
+  patch 已下线的 `_get_akshare_name_to_code` → 改走 `_code_search_port` seam / `_search_remote_name_to_code`；
+  ② `tests/test_analysis_context_pack_docs.py` 2 处断言旧路径 → 改新落点；③ `tests/test_realtime_quote_fallback_logging.py`
+  暴露端口契约缺口：能力层全源失败抛 `LookupError`，适配器未收敛 → `src/infrastructure/providers/alert_realtime_quote.py`
+  捕获后记汇总日志并返回 `None`（对齐 `RealtimeQuotePort` docstring）；④ `tests/test_intelligence_api.py` 10 条 +
+  `tests/test_usage_api.py` 1 条三层根因（本机 `.env` 的 `ADMIN_AUTH_ENABLED=true` → 401；TestClient 不进 lifespan → 端口未装配 400；
+  **真实契约 bug**：装饰器写单数 `/sources/template/{id}` 而文档/docstring/测试均为复数）→ 分别按既有约定 patch
+  `is_auth_enabled`、显式调用 `configure_intelligence_repository()`、**把装饰器改为 `/sources/templates/{template_id}`**。
+  另在 `setup.cfg` 注册 `benchmark` marker（消除 3 条 `PytestUnknownMarkWarning`）。
+- **验证**：`scripts/check_architecture.py --check` **RC=0**（`No architecture violations found.`）；严格 flake8
+  `E9,F63,F7,F82`（`src/ api/ bot/ data_provider/ tests/ scripts/`）**RC=0**；新增 9 个测试文件定向 **103 passed**
+  （analyzer_domain_rules / pipeline_domain_rules / config_module_split / llm_config_validation /
+  image_stock_extractor_vision_port / notification_rendering / portfolio_risk_rules / schema_migration_guard /
+  security_baseline）；`test_alerts_docs` **19 passed**；全量离线 `-m "not network"` **6 failed / 5706 passed /
+  4 deselected（260.56s）**——上一基线 20 failed / 5692 passed，修好 14 条后数量严格守恒（5692+14=5706、20−14=6）。
+- **仍未修（既有失败，逐条归因、未擅自改绿）**：`test_check_env_encoding::test_requirements_file_is_ascii_decodable`
+  （`requirements.txt` 注释含中文，第 59 字节 0xef）；`test_fundamental_context::test_sector_rankings_use_ordered_fallback`
+  （东财失败后新浪兜底返回真实数据，断言依赖上游）；`test_tencent_stock_info_source::test_fetch_strips_suffix_and_converts_units`
+  （`tencent_source.py` 内 `str + bytes` 真实缺陷）；`test_yfinance_fundamental_adapter` 2 条（`ttm_event_count` 3≠4，
+  与 TTM 窗口随日期漂移有关）；`test_intelligence_service::test_fetch_enabled_sources_is_fail_open`
+  （**顺序依赖**：单跑 / 与 `test_intelligence_api.py` 同跑均通过，前置 `tests/test_agent_pipeline.py` 后必现，
+  属跨测试全局状态串扰，非本批引入）。
+- **口径更新**：D3 50% → **75%**（W5 七项全部落地）、D5 85% → **100%**（W6 ADR-008 + W7 决策与基线 + AT §9.2 全回写）、
+  D6 95% → **100%**（W9 清零 + 新增两份框架文档）；六维加权 83.85% → **89.60%**（23.75 + 17.60 + 11.25 + 17.00 + 10.00 + 10.00）；
+  切片 174 → **175**；`src/` Python 文件 382 → **396**（domain 60→**67**／application 166→**168**／infrastructure 108→**109**／
+  config 4→**8**／bootstrap 25 不变）；bootstrap `configure_*` seam 32 → **33**；根级 `src/*.py` 仍 **4**。
+- **下一步**：W8 提交与 PR（需用户授权）；剩余可选＝W1.5 Docker 真实 build（daemon 未启）、W11 前端 lint/build 债务。
+
+## 0.172 第 5 批收官后 · 提交前审计（完成度实测 + 2 处既有缺陷修复，真实代码、零提交）
+
+**动机**：用户要求「先不要提交，核对改代码／改架构是否全部完成」。**本片不做任何架构改造**，只做逐条实测复核、清零可确定的既有缺陷，并纠正 §0.171 的一处错误归因。
+
+- **架构面复核（全部现场实测，不引用台账）**：`scripts/check_architecture.py --check` **RC=0**（`No architecture violations found.`）。旧目录物理状态：`src/schemas`／`src/agent`／`src/llm`／`src/repositories`／`src/notification_sender` **GONE**；`src/core` 仅余 `__pycache__/` **9 个 .pyc**（gitignore 内、无任何源码）；`src/services` 仅余 ADR-006 批准的兼容门面 `__init__.py` **1 件**。**行首锚定的旧路径 import 全仓命中 0**（`from|import src.{core,schemas,agent,llm,repositories,notification_sender}` 扫 `src api bot data_provider tests scripts`）——宽松匹配出的 25 处命中逐条核对后全部是注释／docstring／守卫规则字符串／测试断言，不是运行时引用。非 py 层（`*.sh *.yml *.yaml Dockerfile *.spec *.json *.ps1 *.toml *.cfg`）旧路径残留 **0**。`src/application` 直连 `src.storage|data_provider|fastapi|sqlalchemy` **0 文件**；`src/config` 外层边 **0**（守卫实测）。W5 七件拆分产物**实存且行数与台账逐一对齐**：`domain/analysis/chip_rules` 119／`domain/analysis/prompt_sanitizer` 244／`domain/analysis/pipeline_rules` **334**／`application/analysis/vision_ports` **68**／`infrastructure/generation/vision_litellm` **73**／`domain/notification/rendering` 325／`domain/portfolio/risk_rules` 139。**审计过程中的自我纠正**：我一度按 `application/analysis/pipeline_rules.py` 与 `infrastructure/vision/vision_litellm.py` 探测并报「文件缺失」，实为**探测路径写错**，台账记载的落点始终正确。
+- **代码级 AST 体检（本片新增取证手段）**：对 `src/` 全量扫「同名重复定义」，命中 3 处 —— 2 处是 `@property` + `@setter` 合法对（`Config.agent_mode_explicit`、`AgentOpinion.confidence_input_valid`）；**1 处是真实缺陷**：`src/application/runtime/scheduler.py` 的 `Scheduler._refresh_daily_schedule_if_needed` 在 **178 与 232 行重复定义**，Python 类体内后定义静默覆盖前定义，178 版（单时间点、内部调 `_configure_daily_task`）是**永远不可能被执行的死代码**，且其存在会让读者误判调度刷新只支持单时间。本片删除 178 版 —— **运行时行为零变化**（本来就只可能走 232 版；`tests/test_scheduler_background.py` 的 3 处调用全部落在 232 版，复跑 **9 passed**）。单数 `_configure_daily_task`（152 行）予以保留：它仍是类的可调用面，删它属扩范围。`api/`、`bot/`、`data_provider/` 同名重复定义 **0**。
+- **纠正 §0.171 的一处错误归因（重要）**：`test_tencent_stock_info_source::test_fetch_strips_suffix_and_converts_units` 报 `can only concatenate str (not "bytes") to str`，§0.171 记为「`tencent_source.py` 内 `str + bytes` **真实缺陷**」——**该归因错误**。生产件 `data_provider/stock_info/tencent_source.py` 是正确的（`_parse_fields(content: bytes)` 内先 `content.decode("gbk", errors="replace")`）；缺陷在**测试 helper** `tests/test_tencent_stock_info_source.py:32`：`f'v_{symbol}="' + "~".join(fields) + '";\n'.encode("gbk")` 受运算符优先级影响，`.encode()` 只作用于末段字面量，导致 `str + bytes`。本片补括号 → 该用例转绿（`test_tencent_stock_info_source.py` **3 passed**），**离线基线 6 failed → 5 failed、5706 → 5707 passed**。
+- **余 5 条既有失败（判定不修，理由逐条给全）**：① `test_check_env_encoding::test_requirements_file_is_ascii_decodable` —— `requirements.txt:2` 的中文注释「HermesX（赫尔墨斯）- FOR AI交易量化 - dependencies」与测试的 ASCII 可解码断言**契约冲突**；AGENTS.md 明确「注释不强制英文」，改文件还是改断言属产品决策，不由审计片擅自定；② `test_fundamental_context::test_sector_rankings_use_ordered_fallback` —— 东财 `RemoteDisconnected` 后新浪兜底返回真实行业 `'研究和试验发展'`，断言写死 `'地产'`，**依赖上游真实返回**；③④ `test_yfinance_fundamental_adapter` 2 条 `ttm_event_count` **3≠4** —— TTM 窗口随日期漂移；⑤ `test_intelligence_service::test_fetch_enabled_sources_is_fail_open` —— **顺序依赖**（本片用 `-k` 定向跑时通过、全量跑必现），跨测试全局状态串扰。5 条均与分层迁移无关，**不通过改断言「改绿」**。
+- **git 状态事实澄清（此前对外沟通未讲清，必须入档）**：reflog 显示 10-31 **12:25–12:27 曾产生三笔 W8.1 收尾提交**（`a65181a8` 代码／`e69d9816` 文档／`911b4c34` 状态回写），**12:28 被 `git reset` 退回 `fe7410bb`**，内容整体回到工作树。本片做**逐 blob 内容校验**（非 `git diff` 口径）：`911b4c34` 树内 **1744** 条目 → **磁盘缺失 0**、内容一致 **1691**、内容差异 **53**（**31 代码 + 20 文档 + 2 其他**）。差异全部产生于 reset **之后**——`src/domain/analysis/chip_rules.py`、`src/domain/portfolio/risk_rules.py`、`src/config/field_definitions.py`、`tests/test_schema_migration_guard.py`、`tests/test_security_baseline.py`、`documents/framework/security_performance_baseline.md` 实测**均不在 `911b4c34` 树内**，可证第 5 批（W5/W6/W7/W9）是本片之前的独立增量。**结论：`reset` 未丢任何内容，当前仍 HEAD `fe7410bb`、零提交**，工作树 **196 D / 293 M / 50 ??**。⚠️ 提交面提醒：`scripts/check_architecture.py`、`scripts/architecture_baseline.json`、`scripts/measure_performance_baseline.py` 以及整个 `src/{domain,application,infrastructure,bootstrap,config}/`、`src/utils/time.py`、`documents/framework/refactoring/`、37 个新测试文件现为**未跟踪**态 —— 任何「只提交已跟踪文件」的做法都会把架构守卫与五层实现留在仓库外；根目录 `build的问题清单.md` 按范围继续排除、不入库。（另记一次取证踩坑：`git diff --name-only` 输出对非 ASCII 路径做八进制转义并加引号，直接 `[ -e "$f" ]` 会误报 5 个「缺失」，须用 `-c core.quotepath=off` + `-z` 复核，复核后真缺失 **0**。）
+- **前端债务复测（W11，本批 0 触碰前端）**：`cd apps/hrs-web && npm run lint` → **64 problems（58 errors / 6 warnings）**；`npm run build` → **26 个 `error TS`**（`HrsButton` variant 枚举 `danger-soft` 不匹配、`InlineToast`/`DecisionSignalTimeline` props 契约、`engine/beyond/main.js` 无类型声明、TS6133 未使用变量）。**两项与第 2 批 W1.1 实测值完全一致 → 未恶化、未修复。**
+- **完成度结论（回答「还有哪些没完成」）**：**代码与架构改造本身已全部收口** —— W1–W7／W9／W10 收官，分层归位口径 **95%**、全量验收口径 **90%（实算 89.60%，本审计不增值）**。未完成项只有 4 类，且**没有一类是「还没写的迁移改造」**：**W8 提交/PR**（用户明确暂缓）；**W11 前端 lint/build 既有债务**（58 err + 26 TS，独立领域、需另开专项）；**W1.5 Docker 真实 build**（本机 daemon 未启，已以 CI 同款 8 条 import smoke 替代取证）；**D3 深层拆分第二轮**（`analyzer` 4379／`system_config_service` 4328／`pipeline` 3732／`settings` 3254／`notification` 2863，另有 `search_service` 2530／`orchestrator` 2143／`infrastructure/search/providers` 2127／`intelligence_service` 2007／`market_analyzer` 1953 —— `src/` 内 ≥1800 行共 **10 件**（不计纯声明数据 `config/field_definitions` 5457））。口径侧余量：D1 的 5% 是「非 py 残留复核」，**本片已实测为 0**，下次口径复核可收口；D2 已触顶 88%，`src/storage.py` 1049／`src/auth.py` 500 为 ADR-004／005 批准例外，本体不迁则不再增值。
+- **验证**：guard **RC=0**；严格 flake8 `E9,F63,F7,F82`（`src api bot data_provider tests scripts`）**RC=0**；`py_compile` 2 件 **OK**；定向 `test_tencent_stock_info_source.py` + `test_scheduler_background.py` **12 passed**；全量离线 `-m "not network"` **5 failed / 5707 passed / 4 deselected（257.22s）**。**未验证项**：Docker 真实 build、`npm run build` 产物可用性、5 条既有失败按原样保留、桌面端打包（W1.7 已按约定砍掉）。
+- **CHANGELOG 判定**：本片 2 处改动**均不触及用户可见行为**（死代码删除 + 测试 helper 修正），按 AGENTS.md「用户可见能力／CLI/API 行为／部署／通知／报告结构变化才必须同步」的口径不新增功能条目；仅在 `[Unreleased]` 追加一行 `[修复]` 记录缺陷清零与基线变化，避免台账与事实脱节。
+- **回滚**：`src/application/runtime/scheduler.py`（该目录现为未跟踪态，无法 `git checkout --`，按逆向编辑或 `~/hermesx_*` 快照复原）与 `tests/test_tencent_stock_info_source.py`（已跟踪，可 `git checkout --`）—— 两片互不相干，可独立回滚。
+- **下一步**：仍＝**W8 提交与 PR（等你授权）**；提交前须把未跟踪的守卫脚本、五层目录、新测试与 `documents/framework/refactoring/` 一并纳入（建议按「后端分层／守卫与 CI／文档」拆 3–5 笔）。W11 与 D3 深层拆分属后续专项。
+
+## 0.173 W13：W12 遗留 5 条既有失败清零（含 1 处 SSRF 代理边界生产缺陷，真实代码、零提交）
+
+**动机**：用户「处理那 5 条既有失败（按你的方向定 requirements.txt 那条）」并追问「具体是哪 5 条」。本片不做分层改造，只做逐条根因取证 + 清零；`requirements.txt` 一条由用户授权我定方向。
+
+- **5 条清单（node-ID）**：① `tests/test_check_env_encoding.py::test_requirements_file_is_ascii_decodable`；② `tests/test_fundamental_context.py::TestFundamentalContext::test_sector_rankings_use_ordered_fallback`；③④ `tests/test_yfinance_fundamental_adapter.py::TestYfinanceFundamentalAdapter::test_populates_growth_earnings_dividend_boards_for_us_stock` 与 `::test_dividends_parsed_from_single_column_dataframe`；⑤ `tests/test_intelligence_service.py::IntelligenceServiceTestCase::test_fetch_enabled_sources_is_fail_open`。
+- **⑤ 的真实根因＝生产缺陷（不是测试写法问题，也不是「跨测试串扰」可以解释到底）**：该用例断言 `saved_count == 2` 实得 **0**，两条源都被 `_sanitize_error` 归一成 `fetch failed: upstream request failed`。用一个临时 spy 用例抓到交给 `requests.get` 的实参为 `proxies={'http': None, 'https': None, 'use': 'false'}`，再用把常量替换成 `dict` 子类的 Watch 探针拿到**污染时刻的完整调用栈**：`tests/test_agent_pipeline.py:1648 test_legacy_mode_does_not_call_agent` → `src/application/analysis/pipeline.py:530 analyze_stock` → `:2563 _load_persisted_intelligence_context` → `intelligence_service.py:524 refresh_auto_sources` → `:474 fetch_enabled_sources` → `:439 fetch_source` → `:658 _fetch_feed_entries` → `:798 _get_with_validated_dns` → `requests/api.py:87 get` → `requests/sessions.py:641 request` → **`sessions.py:851 proxies.setdefault(k, v)`**。即：`_DISABLE_REQUEST_PROXIES` 是模块级可变 dict，代码**按引用**交给 `requests`，而 `requests` 在 `trust_env=True`（默认）下会对调用方传入的 proxies **就地写入**环境代理探测结果（本机系统代理注入 `'use': 'false'`）→ 常量一旦被真实请求经过就永久变形，「非受信任源显式禁用代理、避免代理侧绕过 SSRF 判定」这条安全边界失真，外部表现为难以定位的顺序依赖。**修复**：`request_kwargs.setdefault("proxies", dict(_DISABLE_REQUEST_PROXIES))`（全仓 `grep proxies=_|setdefault("proxies"` 实测仅此 1 处引用外泄，无同类点）。**回归测试**：新增 `test_fetch_passes_proxy_dict_copy_not_the_shared_constant`（在 `side_effect` 里模拟 `requests` 的就地写入并断言常量仍为 2 键、每次拿到的都是新副本、`is_shared_constant` 恒 False）；已**反向验证**：临时把生产行回退成传常量 → 新测试 FAIL，改回后 PASS，证明该用例真能抓到这个缺陷而非同义反复。
+- **① 方向判定（用户授权）**：测试 `requirements_path.read_bytes().decode("ascii")` 保护的是「非 UTF-8 locale 下 `pip install -r` 的读取安全」，与同文件 `_reconfigure_output_stream` 的编码主题一致，属**有效工程约束**，因此**按测试契约改文件**而不放宽断言：`requirements.txt:2` 「HermesX（赫尔墨斯）- FOR AI交易量化 - dependencies」→ ASCII 英文「HermesX - dependencies for AI trading / quantitative analysis」（全文件非 ASCII 实测仅此 1 行）。AGENTS.md「注释不强制英文」针对通用代码注释，与此处显式契约不冲突，已在交付说明中写明取舍。
+- **② 根因＝架构演进后测试假设过期**：`DataFetcherManager.get_sector_rankings` → `_get_sector_rankings_with_meta`（`data_provider/base.py:3494`）现**优先**走 `self._get_sector_manager()`（`data_provider/sector` provider：东财失败→新浪兜底，返回真实行业 `'研究和试验发展'`），只有它抛异常才按 priority 遍历注入的 fetchers（`:3535` 起）。用例意图是 fetcher 维度的优先级回退，故改为 `patch.object(manager, "_get_sector_manager", side_effect=RuntimeError(...))` 让 provider 层确定性 miss —— 不再依赖外网返回内容，也不动生产优先级设计。
+- **③④ 根因＝fixture 用绝对日期、生产语义正确**：`data_provider/yfinance_fundamental_adapter.py:285` 的 TTM 窗口为 `pd.Timestamp.now(tz=…) - pd.Timedelta(days=365)`，`events` 按日期降序（`:321`）。fixture 硬编码 `2025-08-11/2025-11-10/2026-02-09/2026-05-11`，写到今天最老一笔已滑出窗口 → `ttm_event_count` 3≠4。**修法**：新增 `_ttm_quarterly_dividend_index()`，以 `pd.Timestamp.now(tz).normalize()` 为锚生成 287/196/105/14 天前的 4 个季度除息日（最老一笔距窗口边界仍有 ~78 天余量），`events[0]` 期望值改由 `dividends.index[-1].date().isoformat()` 同源自算。**不引入 freezegun**（仓库现无该依赖，为两个用例加三方依赖不划算），也不改生产窗口口径。
+- **验证**：全量离线 `-m "not network"` **0 failed / 5713 passed / 4 deselected**，固定序（`-p no:randomly`）**250.86s** + pytest-randomly 默认随机序 **264.16s** 两轮均全绿（后者专门用来证明 ⑤ 的顺序依赖已根除，而非换个顺序又挂）；定向 5 文件簇（`test_check_env_encoding`／`test_fundamental_context`／`test_yfinance_fundamental_adapter`／`test_agent_pipeline`／`test_intelligence_service`，含污染序列）随机序连跑 3 轮均 **147 passed**。`scripts/check_architecture.py --check` **RC=0**；严格 flake8 `--select=E9,F63,F7,F82 --count` **0**；`py_compile` 3 件 OK。passed 数 **5707 → 5713** 差异构成：本片新增 1 条回归用例 + 此前被 5 条失败吞掉的 5 条通过路径（其余为不同收集口径，已逐条核对无跳过式假绿）。
+- **本片两次自有失误（入档避免复发）**：① **`Write` 工具返回「create file failed, reason: unknown」但文件实际已落盘** —— 我据错误信息判定未创建，改用 bash heredoc 重建 `tests/_tmp_debug_intel.py`，导致第一轮全量跑多收一个故意 FAIL 的调试用例（`1 failed / 5765 passed`）；另有一个同名残留 `tests/test_zz_tmp_debug_intel.py` 也在报错情况下静默创建，已 `git status --porcelain` 复核删除为 **0** 残留。教训：工具报错后必须用 `ls`/`git status` 实证复核，不可只看返回文案。② 回写台账时误把调试内容写入 progress 文件路径，发现后立即删除重来。
+- **未验证项**：未做真实外网资讯抓取验证（本机仅有系统代理环境态；污染路径已由 Watch 探针在真实 `requests` 代码路径上取证）；Docker 真实 build、W11 前端 lint/build 债务、桌面端打包仍未变（本片 0 触碰前端与打包）。
+- **风险与回滚**：风险面＝仅 `intelligence_service.py` 1 行为生产改动，语义为「每次调用拿到干净副本」，禁用代理的判定条件（`allow_fake_ip`）未变；回滚＝该行改回传常量即可，其余 4 处均为测试/注释层可独立回滚。快照：`~/hermesx_w13_pre_20261031_160701.tar.gz`（1742 文件，含未跟踪）。
+- **CHANGELOG 判定**：本片**触及安全语义**（SSRF 代理边界的确定性），按 AGENTS.md 必须同步 → `[Unreleased]` 新增 1 条 `[修复]`（代理常量污染）+ 1 条 `[测试]`（5 条既有失败清零与新基线），保持扁平格式（窗口内 `###` 实测 **0**、条目 **262 → 264**）。
+- **下一步**：W1–W13 全部收官，**离线测试基线首次归零**；仍＝**W8 提交与 PR（等你授权）**，提交前须把未跟踪的守卫脚本、五层目录（包含本片改的 `src/application/intelligence/intelligence_service.py`）、新测试与 `documents/framework/refactoring/` 一并纳入。W11 前端债务与 D3 深层拆分（`src/` 内 ≥1800 行 **10 件**）属后续专项。
+
 ## 1. 已确认决策
 
 | 编号 | 决策 | 依据与影响 |

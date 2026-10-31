@@ -54,7 +54,7 @@
 - `apps/hrs-web/src/router/manifest.ts`：`menuId: 'scanner'` / `routePath: '/discover/scanner'` / `menuPagePath: 'pages/Discover/ScannerPage/ScannerPage'`，`auth: 'protected'`（菜单已登记，无需改动）。
 - 页面文件：`apps/hrs-web/src/pages/Discover/ScannerPage/ScannerPage.tsx` + `components/ScannerResultRow.tsx`。
 - i18n：`scanner.*` 命名空间，三语（`uiText-zh.ts` / `uiText-zh-Hant.ts` / `uiText-en.ts`）同步；`layout.nav.scanner.title/description` 已更新为「信号扫描」。
-- 后端：`src/services/scanner_indicators.py`（信号纯函数）、`src/services/signal_scanner_service.py`（编排）、`api/v1/endpoints/scanner.py`（`/api/v1/scanner`）。
+- 后端：`src/domain/analysis/scanner_indicators.py`（信号纯函数）、`src/application/decision/signal_scanner_service.py`（编排）、`api/v1/endpoints/scanner.py`（`/api/v1/scanner`）。
 
 <a id="b-前端照搬参考项目-ui-与交互"></a>
 ## B. 前端：照搬参考项目 UI 与交互
@@ -90,8 +90,8 @@
 
 | 参考项目 | HermesX | 差异 |
 |---|---|---|
-| `services/analysis.ts: scanSignalPool` | `src/services/signal_scanner_service.py: run_signal_scan` | 前端并发 → 后端任务；并发上限同为 4 |
-| `detectSignals`（前端算） | `src/services/scanner_indicators.py: detect_signals` | 算法口径一致（MACD/RSI 对齐 `src/stock_analyzer.py`，BOLL 为本仓库新增） |
+| `services/analysis.ts: scanSignalPool` | `src/application/decision/signal_scanner_service.py: run_signal_scan` | 前端并发 → 后端任务；并发上限同为 4 |
+| `detectSignals`（前端算） | `src/domain/analysis/scanner_indicators.py: detect_signals` | 算法口径一致（MACD/RSI 对齐 `src/domain/analysis/stock_analyzer.py`，BOLL 为本仓库新增） |
 | `getAllAShareQuotes` / `getZTPool` | `eod_picker_service.get_realtime_quote_snapshot` / `DataFetcherManager.get_limit_up_pool` | 复用既有数据源与回退链 |
 | 自选股池（前端 `watchlistStore`） | 前端传入默认自选分组条目（含名称） | 后端不感知用户态，避免鉴权耦合 |
 | `AbortController` 取消 | 模块级 `threading.Event` 注册表 + cancel 端点 | 协作式：当前批次后停止，已命中结果保留 |
