@@ -8,7 +8,7 @@
 - 需要真实网络请求、SDK 或文件 IO 的渠道实现留在 ``src/infrastructure/notification/senders/``
   （物理搬层归 R2-B5）。
 - 本包 ``__init__`` **不做 eager 聚合**，避免 ``config -> domain`` 拉起重依赖
-  （见 ``documents/framework/architecture_migration_progress.md`` 历史坑 #3），
+  （见 ``documents/framework/refactoring/architecture_migration_progress.md`` 历史坑 #3），
   消费方一律按子模块精确导入：``src.domain.notification.contracts`` /
   ``src.domain.notification.routing``。
 - 旧路径 ``src/notification_contracts`` / ``src/notification_routing`` 垫片已在
