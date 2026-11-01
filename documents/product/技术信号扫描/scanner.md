@@ -124,8 +124,8 @@
 
 | 项 | 结果 |
 |---|---|
-| 离线单测 `tests/test_signal_scanner_service.py`（20 例） | 通过（指标判定 / 请求规整 / 三种池解析 / 并发与进度 / 取消保留部分结果 / 端点路径契约） |
-| 既有回归 `tests/test_eod_picker_service.py`（13 例） | 通过 |
+| 离线单测 `tests/application/decision/test_signal_scanner_service.py`（20 例） | 通过（指标判定 / 请求规整 / 三种池解析 / 并发与进度 / 取消保留部分结果 / 端点路径契约） |
+| 既有回归 `tests/application/analysis/test_eod_picker_service.py`（13 例） | 通过 |
 | 页面冒烟 `src/pages/__tests__/ScannerPage.test.tsx`（4 例） | 通过（提交 → 轮询增量 → 渲染、未选信号禁用、取消请求、加自选与跳转） |
 | 前端 lint / `vite build` | 通过（`ScannerPage` / `ScannerResultRow` 产出独立 chunk） |
 | 后端接口级联调（本地 8001 免鉴权实例） | `options` 正常；涨停池 Top20 命中 17；榜单 Top300 取消后 `scanned=115 / match_count=16 / cancelled=true` |
