@@ -1188,7 +1188,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 | 文件路径 | 覆盖点 | 对应章节 |
 |---|---|---|
 | `tests/test_stockdb_codec.py` | `test_codec_key_expr`、`test_normalize_date` | §12.2 |
-| `tests/test_stockdb_transform.py` | `test_sort_stability`、`test_resample_minute`、`test_resample_day`、`test_fq_qfq_hfq` | §12.2 |
+| `tests/infrastructure/providers/kline/test_stockdb_transform.py` | `test_sort_stability`、`test_resample_minute`、`test_resample_day`、`test_fq_qfq_hfq` | §12.2 |
 | `tests/test_stockdb_service.py` | `test_truncate_and_partial` | §12.2 |
 | `tests/test_stockdb_router.py` | `test_disabled_returns_503`、`test_router_contract`（FastAPI `TestClient`） | §12.2 |
 
