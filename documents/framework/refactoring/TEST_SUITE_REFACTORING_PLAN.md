@@ -7,9 +7,9 @@
 | 项目 | 约定 |
 | --- | --- |
 | 作者 | Codex（依据项目维护者提出的目标与讨论整理） |
-| 文档版本 | v1.1 |
+| 文档版本 | v1.2 |
 | 创建日期 | 2026-10-31 |
-| 最后更新时间 | 2026-10-31（Asia/Shanghai） |
+| 最后更新时间 | 2026-11-01（Asia/Shanghai） |
 | 状态 | 后续测试重构的设计与实施指引；本文不表示测试已经迁移 |
 | 关联架构方案 | [ARCHITECTURE_TARGET.md](./ARCHITECTURE_TARGET.md)；本方案是其测试体系整理专项补充 |
 | 基线日期 | 2026-10-31；实施前重新统计与验证 |
@@ -24,6 +24,9 @@
 - [1. 背景与事实基线](#baseline)
 - [2. 本方案采用的设计决定](#decisions)
 - [3. 目标目录与归类规则](#layout)
+  - [3.1 一、二、三级目录规划](#directory-tree)
+  - [3.2 目录归属与文件示例](#directory-ownership)
+  - [3.3 建目录与控制集中度的规则](#directory-sizing)
 - [4. 文件内部拆分与命名](#splitting)
 - [5. 公共依赖、fixture 与导入治理](#dependencies)
   - [5.1 fixture 的可见范围](#fixture-scope)
@@ -100,35 +103,146 @@
 
 ## 3. 目标目录与归类规则
 
-下树是可按需建立的结构，不要求创建空目录。顶层仅保留必要入口、公共配置和说明。
+目录层级以 `tests/` 为起点：`application/` 为一级，`application/agent/` 为二级，`application/agent/conversation/` 为三级。此前统计的 application 117 件、infrastructure 66 件是初步候选的**整层递归合计**，不是要求把这些文件平铺在一级目录；该统计尚未完成逐方法归属审查，不是最终搬迁数量。
+
+<a id="directory-tree"></a>
+
+### 3.1 一、二、三级目录规划
+
+以下覆盖当前测试涉及的职责。三级目录优先用于 Agent、分析、数据源、持久化等集中区域；文件较少的领域放在二级目录即可。候选目录有实际测试归入时才创建，叶目录内可放局部 `conftest.py`。
 
 ```text
 tests/
 ├── conftest.py
+├── __init__.py
 ├── domain/
-│   ├── analysis/  decision/  market/  portfolio/
-│   └── notification/  generation/  shared/
+│   ├── analysis/                    # 指标、上下文值对象、分析纯规则
+│   ├── decision/                    # action/profile/scale、质量与稳定性规则
+│   ├── market/                      # 股票代码、交易日、市场策略
+│   ├── backtest/                    # 引擎纯计算与领域记录
+│   ├── portfolio/                   # 持仓风险纯计算
+│   ├── notification/                # 分块、等级、路由与渲染纯规则
+│   ├── generation/                  # 厂商无关生成规则与响应解析
+│   └── shared/                      # 调度时间、语言等跨域值与规则
 ├── application/
-│   ├── analysis/  agent/  backtest/  decision/
-│   ├── portfolio/  alert/  market/  quote/
-│   └── history/  intelligence/  notification/  reporting/  runtime/  usage/  watchlist/
+│   ├── analysis/
+│   │   ├── pipeline/               # 主流程、预取、增强、失败隔离
+│   │   ├── context/                # 上下文装配、提示词与阶段信息
+│   │   └── screening/              # AlphaSift、尾盘选股
+│   ├── agent/
+│   │   ├── orchestration/          # factory、runner、executor 与协作编排
+│   │   ├── conversation/           # 会话、聊天上下文、流式用例
+│   │   ├── tools/                  # 业务工具与工具端口消费
+│   │   ├── memory/                 # 记忆读写与恢复
+│   │   └── skills/                 # 技能、注册与策略选择用例
+│   ├── runtime/
+│   │   ├── tasks/                  # 队列、任务状态、运行流与诊断
+│   │   ├── scheduling/             # 调度与运行配置同步
+│   │   └── system_config/          # 配置展示/编辑用例、探测与秘密值语义
+│   ├── backtest/
+│   ├── decision/
+│   ├── portfolio/
+│   ├── alert/
+│   ├── market/
+│   ├── quote/
+│   ├── history/
+│   ├── intelligence/
+│   ├── generation/
+│   ├── notification/
+│   ├── reporting/
+│   ├── usage/
+│   └── watchlist/
 ├── infrastructure/
-│   ├── persistence/  providers/  generation/  notification/
-│   └── search/  reporting/  indexing/  agent_runtime/  security/
+│   ├── persistence/
+│   │   ├── repositories/           # 各业务仓储与记录映射
+│   │   ├── schema/                 # 建表、升级、回填、幂等
+│   │   └── session/                # 连接、事务、锁与写入重试
+│   ├── providers/
+│   │   ├── common/                 # 选源、缓存、限速与跨能力归一
+│   │   ├── kline/                  # 日线、历史窗口、指数与复权
+│   │   ├── realtime/               # 实时报价、snapshot 与日志降级
+│   │   ├── fundamentals/           # 基本面与财务字段
+│   │   ├── institutional/          # 机构与资金流
+│   │   ├── code_search/            # 股票搜索、名称与代码匹配适配
+│   │   ├── news/
+│   │   ├── sector/
+│   │   ├── limit_pool/
+│   │   └── stock_info/
+│   ├── generation/
+│   │   ├── backends/               # 生成实现、路由与外部协议参数
+│   │   └── telemetry/              # 用量、价格与 provider trace 技术实现
+│   ├── notification/
+│   │   ├── senders/                # 飞书、钉钉、微信等渠道实现
+│   │   └── dispatch/               # 组合适配器、回执和分发技术行为
+│   ├── agent_runtime/              # Codex/本地 CLI、进程、传输和 LLM adapter
+│   ├── search/                     # Tavily/SerpAPI/SearXNG 等外部适配
+│   ├── reporting/                  # 图片和文档等具体渲染实现
+│   ├── indexing/                   # 股票索引与映射文件加载
+│   ├── observability/              # 日志技术配置
+│   ├── brokers/                    # Futu 等经纪商适配
+│   └── security/                   # 密码、会话与可信代理实现
 ├── api/
-│   ├── analysis/  agent/  portfolio/  auth/
-│   └── ...                         # 其他已有 API 能力
+│   ├── analysis/
+│   │   ├── requests/               # 触发分析、校验、响应与重复提交
+│   │   └── tasks/                  # 任务查询、运行流与 SSE 协议
+│   ├── agent/
+│   │   ├── chat/                   # 对话、会话、流与取消协议
+│   │   └── capabilities/           # 模型、技能和后端状态接口
+│   ├── portfolio/
+│   ├── auth/
+│   ├── backtest/
+│   ├── decision/
+│   ├── alert/
+│   ├── history/
+│   ├── quote/                      # stocks、kline 与 timeline HTTP 契约
+│   ├── market/                     # sector、limit_pool 接口
+│   ├── intelligence/               # 新闻、日历与情报接口
+│   ├── screening/                  # AlphaSift、尾盘选股接口
+│   ├── system_config/
+│   ├── usage/
+│   ├── watchlist/
+│   └── common/                     # 健康检查、通用错误、CORS、Schema 配置
 ├── bot/
+│   ├── commands/
+│   ├── dispatcher/
+│   └── platforms/
 ├── bootstrap/
+│   ├── entrypoints/                # CLI/server/webui 环境与启动
+│   └── lifecycle/                  # 数据库/服务装配、调度归属、关闭释放
 ├── config/
+│   ├── settings/                   # 运行值、默认值、解析与兼容
+│   ├── registry/                   # 字段元数据、帮助与校验声明
+│   └── env_file/                   # .env 读写、冲突和文件层行为
 ├── integration/                    # 多组件实际协作的完整流程
-│   ├── analysis/  agent/  reporting/
-│   └── ...
+│   ├── analysis/
+│   ├── agent/
+│   ├── reporting/
+│   ├── runtime/                    # CLI/服务启动后的业务联动
+│   └── security/                   # 跨中间件、会话与业务端点的防护行为
 ├── architecture/                   # 分层、依赖与装配边界约束
+│   ├── imports/                    # AST import 与私有成员约束
+│   └── wiring/                     # 静态接线、职责归属与来源唯一性
 ├── tooling/                        # 脚本、工作流、文档一致性、打包配置
+│   ├── scripts/
+│   ├── workflows/
+│   ├── docs/
+│   ├── packaging/                  # Docker/Desktop 产物与构建配置
+│   ├── test_runtime/               # 测试 client、兼容工具本身的回归
+│   └── manual_smoke/               # 非默认收集的在线验证脚本
 ├── support/                        # 共享 stub、构造器、必要测试兼容工具
-└── fixtures/                       # 报告、行情、响应等静态样本
+│   ├── stubs/
+│   ├── builders/
+│   ├── clients/
+│   └── paths/
+└── fixtures/                       # 有实际共享样本时创建对应目录
+    ├── notification_reports/       # 保留现有三份报告样本及目录名
+    ├── providers/
+    └── generation/
 ```
+
+<a id="directory-ownership"></a>
+
+### 3.2 目录归属与文件示例
 
 | 被验证的职责 | 目录 | 当前文件举例及判断要求 |
 | --- | --- | --- |
@@ -150,6 +264,48 @@ tests/
 - `tests/agent/` 的四个现有文件需逐项判断：纯风险/分歧规则与用例协作可以有不同落点。
 - `tw_institutional_live_smoke.py`、`longbridge_live_smoke.py` 等非默认收集脚本单独登记调用方式；不能因移动或改名而意外进入离线门禁。
 - Web 的 Vitest/Playwright 测试继续位于 `apps/hrs-web/`，Desktop 测试继续位于 `apps/hrs-desktop/`。根级 Python 测试只承接相关 Python/打包契约，不集中搬走客户端原生测试。
+
+三级归属的典型对照如下。只有验证职责清楚的部分才按此归位；混合文件先拆分，不能只凭文件名整体移动。
+
+| 当前测试/待拆职责 | 二级/三级候选落点 |
+| --- | --- |
+| `test_pipeline_fetch_error.py`、`test_pipeline_prefetch_dry_run.py` | `application/analysis/pipeline/` |
+| `test_analysis_context_builder.py`、`test_analysis_context_pack_prompt.py` | `application/analysis/context/` |
+| `test_eod_picker_service.py` | `application/analysis/screening/` |
+| `test_agent_executor.py`、`test_agent_orchestrator_sniper_fallback.py` | `application/agent/orchestration/` |
+| `test_chat_context.py`、`test_conversation_manager.py` | `application/agent/conversation/` |
+| `test_data_tools_portfolio_snapshot.py`、`test_search_tools_persistence.py` | `application/agent/tools/` |
+| `test_task_service.py`、`test_run_flow.py` | `application/runtime/tasks/` |
+| `test_runtime_scheduler_service.py`、`test_task_queue_config_sync.py` | 分别为 `application/runtime/scheduling/`、`application/runtime/tasks/`；若含 HTTP 协议测试，先拆出至 API |
+| `test_system_config_service.py` 的用例测试 | `application/runtime/system_config/`；按第 4 节进一步拆文件 |
+| `test_backtest_repo_record_mapping.py`、`test_decision_signal_repo.py` | `infrastructure/persistence/repositories/` |
+| `test_storage_schema_upgrade.py`、`test_importance_rescale.py` | `infrastructure/persistence/schema/` |
+| `test_yfinance_us_indices.py`、`test_akshare_history_timeout.py` | `infrastructure/providers/kline/` |
+| `test_hk_realtime_routing.py`、`test_realtime_quote_fallback_logging.py` | `infrastructure/providers/realtime/` |
+| `test_provider_cache.py` | `infrastructure/providers/common/` |
+| `test_tushare_fetcher_http_client.py` | 先核对覆盖能力；确属通用 HTTP 行为则放 `infrastructure/providers/common/` |
+| `test_dingtalk_sender.py`、`test_notification_sender.py` 的渠道实现部分 | `infrastructure/notification/senders/` |
+| `test_llm_param_recovery.py`、`test_llm_adapter_provider_trace.py` | 分别为 `infrastructure/generation/backends/`、`infrastructure/generation/telemetry/` |
+| `test_analysis_api_contract.py` 的 HTTP 请求/任务协议部分 | 分别为 `api/analysis/requests/`、`api/analysis/tasks/` |
+| `test_agent_models_api.py`、`test_agent_conversation_api.py` | 分别为 `api/agent/capabilities/`、`api/agent/chat/` |
+| `test_check_architecture.py`、`test_kline_endpoint_wiring.py` | 分别为 `architecture/imports/`、`architecture/wiring/` |
+| `test_daily_analysis_workflow_llm_env.py`、`test_alerts_docs.py` | 分别为 `tooling/workflows/`、`tooling/docs/` |
+| `test_futu_distribution_contract.py`、`test_desktop_packaging_assets.py` | `tooling/packaging/` |
+| `test_threadless_test_client.py` 与兼容 client 实现 | 测试放 `tooling/test_runtime/`，辅助实现按第 5 节治理后放 `support/clients/` |
+| `tests.litellm_stub` 与手动在线 smoke 脚本 | 分别为 `support/stubs/`、`tooling/manual_smoke/`，同步引用与调用命令 |
+
+<a id="directory-sizing"></a>
+
+### 3.3 建目录与控制集中度的规则
+
+- 一级区分被测边界；二级区分业务域/技术能力；三级只细分已明显集中的子职责。测试目录以三级为常规上限，再有细分优先用清晰文件名和测试类表达。
+- 根级不再新增业务 `test_*.py`；已有业务文件在各切片中逐步迁移。一级分层目录主要承担子目录入口，测试落在职责明确的二级或三级叶目录。
+- 每个叶目录约 5–15 个测试文件是便于浏览的参考，超过约 20 个时复核是否混合了不同职责；这些数值是维护提醒，不是验收硬指标，也不允许据此强拆同一行为。
+- 不要求所有二级目录都建三级。只有一两个测试文件的能力可直接放在二级目录；同理，只有一个样本的 fixtures 类别先保留有意义的最小组织。
+- 数据源按能力分类优先于按厂商分类：同一厂商覆盖 K 线和实时数据时，独立行为分别归入相应能力；跨能力缓存/HTTP/选源归 common。混合测试按行为拆分，每个用例只保留一个归属，不能复制到多个目录。
+- application 的生成/通知意图与 infrastructure 的外部协议/发送实现分别归类；API 的 SSE 线协议与 application 的任务状态推进分别归类；bootstrap 的运行期装配验证与 architecture 的静态接线约束分别归类。
+- `tooling/docs/` 中测试生产文档契约；测试体系自身的操作说明仍放本方案及实施交接文档，不能把 Markdown 文档混入 `support/` 当作可执行辅助。
+- T0 必须把每个文件的目标写到具体二级/三级路径；遇到混合文件记录每一拆分部分的目标，而非只写“application 待定”。每片收尾重新统计一级递归总量和叶目录文件数，避免把平铺压力转移到少数新目录。
 
 <a id="splitting"></a>
 
