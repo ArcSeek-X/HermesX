@@ -232,7 +232,7 @@
   - Web：设置页「数据源」分类新增 14 个字段；渲染逻辑未改，locale 补齐后无缺失文案
   - 敏感值：沿用既有契约——只有 _SERVER_MASKED_CONFIG_KEYS 的 5 个键做服务器端掩码，
     其余 is_sensitive 字段（含本批 7 个凭证）按 tests/test_system_config_api.py:113
-    与 tests/test_system_config_service.py:67 锁定的行为明文下发；本批未扩掩码范围
+    与 tests/application/runtime/test_system_config_service.py:67 锁定的行为明文下发；本批未扩掩码范围
 结论修正（撤销 §0.4 的两项前置条件）：
   - 敏感字段掩码：核实为既有刻意契约（测试名 keeps_regular_secret_value_unmasked），
     不是遗漏。若强行改成“全部 is_sensitive 都掩码”，会破坏该契约，
@@ -591,20 +591,20 @@
   - 未改 URL / Query / Schema：`limit` 仍是 `1..100`（列表/新闻）与 `1..500`（个股栏），越界 422；`detail` / `diagnostics` / `flow` / `markdown` 的 404 文案与 `{"error","message"}` 结构不变；`by-code` 空代码仍 400 `invalid_request`
   - 等价性（真实开发库，legacy 端点为 `HEAD:api/v1/endpoints/history.py`）：`list`（全量/按代码）、`stock_bar`、`detail` / `diagnostics` / `flow` / `news` × 3 条记录、`markdown` × 3 条记录 + 1 条不存在记录，共 19 组输出全等；`flow` 的 `generated_at` 为取数时刻，比对时剔除
   - 守卫：`api/v1/endpoints/history.py` 的 `src.storage` 与 `data_provider.base` 两条归零（29 → 27 处 / 25 → 23 键），`api/` 降至 17 处 / 13 键，已 `--write-baseline`
-  - 测试：`tests/test_analysis_history.py` 的 22 处直接调用改传 `service=self._history_service()`（新增 `_history_service(db=None)` helper），并去掉对 `api.v1.endpoints.history.HistoryService` 的 patch；`tests/test_run_diagnostics_p2.py` / `tests/test_run_flow.py` 同样改为构造用例对象；新增 `tests/test_history_query_service.py`（7 项）锁定分批删除、归一化去重、`fetch_limit` 与 Markdown 错误语义
+  - 测试：`tests/application/history/test_analysis_history.py` 的 22 处直接调用改传 `service=self._history_service()`（新增 `_history_service(db=None)` helper），并去掉对 `api.v1.endpoints.history.HistoryService` 的 patch；`tests/test_run_diagnostics_p2.py` / `tests/test_run_flow.py` 同样改为构造用例对象；新增 `tests/test_history_query_service.py`（7 项）锁定分批删除、归一化去重、`fetch_limit` 与 Markdown 错误语义
 关键技术结论（后续 P3 切片复用）：
   - **带删除的端点同样可以只做传输层**：入参校验留在端点（空 `record_ids` → 400），业务循环与“无进展即报错”的守卫下沉到用例，端点只做 `error_code → status_code` 映射
   - **写删除也走既有仓储**：`delete_analysis_history_records` 已在单个 `_run_write_transaction` 内完成级联，用例不新开会话、不自己重试
   - **归一化依赖用端口隔离**：`normalize_stock_code` 仍归 `data_provider.base`，应用层只依赖 `StockCodeNormalizerPort`，由 `src/infrastructure/indexing` 提供实现，守卫无需为 services 层开口子
 验证证据：
-  - `pytest tests/test_analysis_history.py tests/test_run_diagnostics_p2.py tests/test_run_flow.py` → 101 passed
+  - `pytest tests/application/history/test_analysis_history.py tests/test_run_diagnostics_p2.py tests/test_run_flow.py` → 101 passed
   - `pytest tests/test_history_query_service.py` → 7 passed
   - 裸 FastAPI + TestClient（绕开鉴权）：列表/详情/诊断/运行流/新闻/Markdown 全部 200；`limit=0` / `limit=101` / `stocks?limit=501` / `news?limit=0` → 422；不存在的 id 在 `/{id}`、`/{id}/markdown` → 404
   - `scripts/check_architecture.py --check` → `Architecture guard passed`（23 键 / 27 处，无新增）
   - 全量离线：见 §6
 风险与回滚：
   - 风险：`list_stock_bar` 的 `fetch_limit`（`limit*3`，上限 500）与逐股 `analysis_count` 是既有口径，若改成「先取满再截断」会与迁移前结果不一致；已用真实库 `stock_bar` 全等对照 + 用例测试锁定
-  - 风险（已知规范债，本切片刻意不扩 diff）：用例层为复用读模型，调用了 `HistoryService` 的 4 个辅助成员——`_history_code_filter_candidates`（2 处）、`_display_stock_code`（2 处）、`_serialize_created_at`、`_display_market_phase_summary`。迁移前这些调用发生在端点层（同属“调用方直觉”可接受），现已变成 `application → services` 跨层访问私有成员。不修的理由：把它们提升为公开会同时改动 `history_service.py` 内部引用、`tests/test_analysis_history.py` 的静态调用与三份端点测试，属独立重构；既定收敛路径是先统一公开这 4 个辅助（或把个股栏读模型整体下沉到 `HistoryService`），再让用例只调公开面，已登记到 §8 第 6 项（**已于 P3 切片 14 收口，见 §0.24**：4 个辅助提升为公开方法，`src/application/` 的私有成员访问纳入守卫）
+  - 风险（已知规范债，本切片刻意不扩 diff）：用例层为复用读模型，调用了 `HistoryService` 的 4 个辅助成员——`_history_code_filter_candidates`（2 处）、`_display_stock_code`（2 处）、`_serialize_created_at`、`_display_market_phase_summary`。迁移前这些调用发生在端点层（同属“调用方直觉”可接受），现已变成 `application → services` 跨层访问私有成员。不修的理由：把它们提升为公开会同时改动 `history_service.py` 内部引用、`tests/application/history/test_analysis_history.py` 的静态调用与三份端点测试，属独立重构；既定收敛路径是先统一公开这 4 个辅助（或把个股栏读模型整体下沉到 `HistoryService`），再让用例只调公开面，已登记到 §8 第 6 项（**已于 P3 切片 14 收口，见 §0.24**：4 个辅助提升为公开方法，`src/application/` 的私有成员访问纳入守卫）
   - 回滚：删除 `src/application/history/`、`src/bootstrap/history.py`、`src/infrastructure/indexing/stock_code_normalizer.py` 与 `api/deps.py::get_history_query_service`，恢复端点内联实现与三份测试的直接调用；无表结构或数据变更
 
 ## 0.15 交接记录：P3 切片 5（回测端点净化 + 装配归位）
@@ -656,7 +656,7 @@
   - 等价性对账（临时库造 5 条消息覆盖 `telegram_1`（2 条）/ `telegram_2` / `telegram_10` / `feishu_9`）：`HEAD:api/v1/endpoints/agent.py` 与新版端点比对 8 组读输出全等——会话列表（默认 / `limit=2`）、按 `user_id`（`telegram_1` 只回自己、不含 `telegram_10`；`feishu_9`；不存在用户返回空）、消息（默认 / `limit=1` / 不存在 session 返回空）；删除在两个独立库各跑一次，返回值均为 `{"deleted": 2}`、目标会话剩余 0、其他 3 条会话未受影响
   - 裸 FastAPI + TestClient（`dependency_overrides[get_agent_conversation_service]`）9 个用例全 200：列表 / `limit=1` / 单会话消息 / `limit=1` / 不存在 session / 删除 / 删除后消息为空 / 重复删除 `deleted=0`
   - `pytest tests/test_agent_conversation_api.py` → 10 passed
-  - `pytest tests/test_agent_conversation_api.py tests/test_agent_chat_api.py tests/test_agent_sse_cleanup.py tests/test_bootstrap_database.py tests/test_check_architecture.py tests/test_backtest_api.py` → 68 passed
+  - `pytest tests/test_agent_conversation_api.py tests/test_agent_chat_api.py tests/api/agent/test_agent_sse_cleanup.py tests/test_bootstrap_database.py tests/test_check_architecture.py tests/test_backtest_api.py` → 68 passed
   - 全量离线：见 §6
 风险与回滚：
   - 风险：路由内直接把同步用例放进 `async def` 会阻塞事件循环；这是既有行为（原实现同样在协程里同步查库），本片未改变，后续若要异步化应统一在用例层做
@@ -876,7 +876,7 @@
 ## 0.24 交接记录：P3 切片 14（读模型复用收敛：`src/application/` 跨层私有访问清零 + 守卫补私有成员规则）
 
 阶段/切片：P3；边界是收掉 §8 第 6 项登记的过渡债：`src/application/history/service.py` 为复用读模型，调用了 `src/services/history_service.py` 的 4 个下划线辅助（`_history_code_filter_candidates` 2 处、`_display_stock_code` 2 处、`_serialize_created_at`、`_display_market_phase_summary`）。这是 `application → services` 的跨层私有成员访问：方向本身被守卫允许（用例复用读模型是过渡期既定安排），但把内层实现细节变成外层的隐式契约。按 §8 第 6 项的方式① 收口（提升为公开方法并同步内部引用），不采用方式②（个股栏读模型整体下沉），两者不并行。
-代码基线：`src/services/history_service.py` 1421 → 1433 行（4 个方法改名 + 补 4 段归属说明 docstring，实现体零改动）；`src/application/history/service.py` 6 处调用改点名；`src/services/alert_worker.py` 1 处；`tests/test_analysis_history.py` 1 处静态调用；`scripts/check_architecture.py` 376 → 414 行（新增私有成员检测）；`tests/test_check_architecture.py` 15 → 19 项
+代码基线：`src/services/history_service.py` 1421 → 1433 行（4 个方法改名 + 补 4 段归属说明 docstring，实现体零改动）；`src/application/history/service.py` 6 处调用改点名；`src/services/alert_worker.py` 1 处；`tests/application/history/test_analysis_history.py` 1 处静态调用；`scripts/check_architecture.py` 376 → 414 行（新增私有成员检测）；`tests/test_check_architecture.py` 15 → 19 项
 已完成（旧职责 → 新路径）：
   - `HistoryService._serialize_created_at` → `serialize_created_at`（存储的服务端本地时间戳带显式 offset 序列化）
   - `HistoryService._history_code_filter_candidates` → `history_code_filter_candidates`（一个请求代码 → 一组入库代码变体；列表筛选、个股栏计数、告警历史可见性三处共用同一扩展规则）
@@ -896,7 +896,7 @@
 验证证据：
   - 改名等价性：`git show HEAD:src/services/history_service.py` 机械套用同一重命名后，与当前文件剥离 docstring 的 AST dump 完全一致（`rename-only equivalence: True`）
   - `python -m pytest tests/test_check_architecture.py -m "not network"` → 19 passed（15 → 19，新增 4 项：私有成员拦截、`self`/`cls`/dunder 放行、规则只作用于 `src/application/`、真实工作树 `private:` 违规为 0）
-  - `python -m pytest tests/test_analysis_history.py tests/test_history_query_service.py tests/test_run_flow.py tests/test_check_architecture.py -m "not network"` → 111 passed
+  - `python -m pytest tests/application/history/test_analysis_history.py tests/test_history_query_service.py tests/test_run_flow.py tests/test_check_architecture.py -m "not network"` → 111 passed
   - `python -m pytest tests/test_alert_worker.py tests/test_alert_api.py tests/test_signal_attribution_e2e.py tests/test_signal_attribution_real_paths.py tests/test_analysis_api_contract.py tests/test_market_light_alerts.py -m "not network"` → 211 passed
   - `python scripts/check_architecture.py --check` → 通过（5 条基线内、0 条新增）；`--report` 输出改为 “cross-layer reference(s)” 口径，仍只列 `src/services/` 5 条
   - `py_compile`：`scripts/check_architecture.py`、`src/services/history_service.py`、`src/application/history/service.py`、`src/services/alert_worker.py`、两份测试全部通过
@@ -968,7 +968,7 @@
 ## 0.26 交接记录：P3 前置条件 2 / 批次 P4（组合与风险）+ 前端中文文案覆盖守卫
 
 阶段/切片：P3 前置条件 2（第六段）。两件事：① 合规复核发现并补上批次 P1–P3 遗留的前端中文卡片文案缺口（含守卫）；② 把 pending 表 P4 组 6 个组合与风险字段全部注册到设置页「系统」分类。代码基线：承接批次 P3 工作区，HEAD 仍为 `766193be`，未执行 `git commit` / `git tag` / `git push`。
-代码基线：`src/config/registry.py` 6658 → 6806 行（6 字段 + 6 条 help 元数据 + `_DOC_FULL_GUIDE_PORTFOLIO` 常量 + pending 表注释）；`apps/hrs-web/src/locales/settingsHelp.ts` 2923 → 2979 行（中英各 2 组新帮助）；`apps/hrs-web/src/utils/systemConfigI18n.ts` 642 → 672 行（批次 P3 的 9 键 + 本批 6 键的中文标题与描述，共 30 行）；`tests/test_config_registry.py` 1497 → 1820 行（`TestWebUiFieldLocalizationCoverage` 4 项 + 68 键存量名单 + `TestP4PortfolioRiskFieldsRegistered` 8 项）；`tests/test_system_config_service.py` 4442 → 4486 行（复核后新增 3 项设置页保存校验回归）。数字核对：registered 243 → 249、help_meta 114 → 120、hidden 35 不变、pending 20 → 14（P5 7 / P6 1 / P3 遗留 6）、legacy 4 不变。
+代码基线：`src/config/registry.py` 6658 → 6806 行（6 字段 + 6 条 help 元数据 + `_DOC_FULL_GUIDE_PORTFOLIO` 常量 + pending 表注释）；`apps/hrs-web/src/locales/settingsHelp.ts` 2923 → 2979 行（中英各 2 组新帮助）；`apps/hrs-web/src/utils/systemConfigI18n.ts` 642 → 672 行（批次 P3 的 9 键 + 本批 6 键的中文标题与描述，共 30 行）；`tests/test_config_registry.py` 1497 → 1820 行（`TestWebUiFieldLocalizationCoverage` 4 项 + 68 键存量名单 + `TestP4PortfolioRiskFieldsRegistered` 8 项）；`tests/application/runtime/test_system_config_service.py` 4442 → 4486 行（复核后新增 3 项设置页保存校验回归）。数字核对：registered 243 → 249、help_meta 114 → 120、hidden 35 不变、pending 20 → 14（P5 7 / P6 1 / P3 遗留 6）、legacy 4 不变。
 批次范围（6 个字段，category `system`，display_order 60–65）：
   - 风险阈值 5：`PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT`（35.0）/ `PORTFOLIO_RISK_DRAWDOWN_ALERT_PCT`（15.0）/ `PORTFOLIO_RISK_STOP_LOSS_ALERT_PCT`（10.0）/ `PORTFOLIO_RISK_STOP_LOSS_NEAR_RATIO`（0.8）均为 number + `min: 0.0`；`PORTFOLIO_RISK_LOOKBACK_DAYS`（180）为 integer + `min: 1`
   - 汇率开关 1：`PORTFOLIO_FX_UPDATE_ENABLED`（boolean + switch，默认 `true`），单独 help 组 `settings.system.portfolio_fx`，5 个阈值共用 `settings.system.portfolio_risk`
@@ -984,7 +984,7 @@
   - 前端：`settingsHelp.ts` 中英各新增 `settings.system.portfolio_risk` / `settings.system.portfolio_fx`（含告警联动、下限-only、回填开销、布尔口径、生效时机）；`systemConfigI18n.ts` 新增 6 键中文标题 + 描述；本批未改渲染逻辑、未新增分类
   - 守卫：`TestP4PortfolioRiskFieldsRegistered` 8 项（注册形态与 pending 移除、help 分组、不新建前端分类、数值区间与运行时 clamp 双向一致、默认值与解析口径、阈值被风险报告消费的行为回归、不标重启提醒的源码断言、schema 载荷包含本批 6 键且排在 system 分类末尾）
   - 新增 `TestWebUiFieldLocalizationCoverage` 4 项 + 68 键 `_ZH_UI_LOCALIZATION_BACKLOG`：已注册字段必须同时出现在 `fieldTitleMap` / `fieldDescriptionMap`，两张表键集必须相同，存量名单只能收缩（补完中文必须移出、删字段必须移出），并为批次 P3 的 9 个键补齐中文卡片文案
-  - 合规复核（按 `ARCHITECTURE_TARGET.md` “读取→编辑→校验→保存→刷新”要求自查）发现本批文案把“运行时 clamp”当成唯一越界语义，已补 `tests/test_system_config_service.py` 3 项设置页保存校验回归（`test_validate_rejects_portfolio_risk_values_below_registry_min` 逐字段断 `out_of_range`/severity/expected、`test_validate_accepts_portfolio_risk_values_without_upper_bound`、`test_validate_rejects_non_literal_boolean_for_portfolio_fx_switch`），并同步改写 registry description（2 条）、`settingsHelp.ts` 中英 `valueNotes`（2 条）、`systemConfigI18n.ts`（2 条）、两份 full-guide 的区间注意事项，`docs/settings-help.md` 新增一段适用于所有 `number`/`integer` 字段的“两条路径”通用口径
+  - 合规复核（按 `ARCHITECTURE_TARGET.md` “读取→编辑→校验→保存→刷新”要求自查）发现本批文案把“运行时 clamp”当成唯一越界语义，已补 `tests/application/runtime/test_system_config_service.py` 3 项设置页保存校验回归（`test_validate_rejects_portfolio_risk_values_below_registry_min` 逐字段断 `out_of_range`/severity/expected、`test_validate_accepts_portfolio_risk_values_without_upper_bound`、`test_validate_rejects_non_literal_boolean_for_portfolio_fx_switch`），并同步改写 registry description（2 条）、`settingsHelp.ts` 中英 `valueNotes`（2 条）、`systemConfigI18n.ts`（2 条）、两份 full-guide 的区间注意事项，`docs/settings-help.md` 新增一段适用于所有 `number`/`integer` 字段的“两条路径”通用口径
   - 文档：`docs/full-guide.md`（1963 → 1983）与 `docs/full-guide_EN.md`（1756 → 1777）新增「组合与风险配置 / Portfolio risk configuration」小节（6 键表 + 6 条注意事项）；`docs/settings-help.md`（122 → 128）新增 3 条生效语义、一段批次 P4 补齐说明与一段“数值区间两条路径”通用口径；`.env.example` 的 6 个键已存在，只补了设置页入口、告警联动、下限-only 与布尔口径注释；`documents/CHANGELOG.md` 新增 `[新功能]` + `[测试]` 两条
 决策记录：
   - 沿用批次 P3 的入库标准“运行时存在读取方”，本批 6 键全部满足，因此整组注册、pending 清零
@@ -1016,13 +1016,13 @@
   - 本批把 5 个告警阈值开放给用户，改错会直接改变告警灵敏度（例如 `near_ratio` 置 0 会把所有亏损持仓列入预警，`lookback_days` 置很大会让首次风险报告回填大量快照而变慢）。已靠四处文案 + 行为回归测试提示；区间越界在设置页是“保存被 400 拒绝”而不是静默 clamp（初版文案描述错误，已按复核结果修正并补回归用例），但已合法的极端值（如 `near_ratio=10000`）仍无上限可拦，只能靠文案提醒
   - `.env.example` 不在 HEAD（`.gitignore` 的 `.env.*` 命中且从未强制加入，承接批次 P2/P3 已登记），本批对它的注释补全只存于本机工作区，不随 PR 提交
   - 68 键 `_ZH_UI_LOCALIZATION_BACKLOG` 是显式登记的存量飘移（中文界面看到英文卡片），不是本片引入；是否单独开一个“全量补中文卡片”的片子属维护者决策
-  - 回滚：还原 `src/config/registry.py`（6 字段 + 6 条帮助元数据 + pending 注释 + 1 个 `_DOC_*` 常量，另含复核时改写的 3 条 description）、`settingsHelp.ts` 中英各 2 组与 2 条 `FEISHU_MAX_BYTES` 口径、`systemConfigI18n.ts` 的 30 行与 1 条飞书描述、`tests/test_config_registry.py` 两个新类与存量名单、`tests/test_system_config_service.py` 的 3 项保存校验回归、两份 full-guide、`settings-help.md`、`.env.example`、CHANGELOG 与本文件即可；无数据迁移、无运行时行为改动
+  - 回滚：还原 `src/config/registry.py`（6 字段 + 6 条帮助元数据 + pending 注释 + 1 个 `_DOC_*` 常量，另含复核时改写的 3 条 description）、`settingsHelp.ts` 中英各 2 组与 2 条 `FEISHU_MAX_BYTES` 口径、`systemConfigI18n.ts` 的 30 行与 1 条飞书描述、`tests/test_config_registry.py` 两个新类与存量名单、`tests/application/runtime/test_system_config_service.py` 的 3 项保存校验回归、两份 full-guide、`settings-help.md`、`.env.example`、CHANGELOG 与本文件即可；无数据迁移、无运行时行为改动
 下一步：批次 P5（视觉与图片渲染 7 键）与 P6（LLM 渠道开关 1 键），同样先核对读取路径；P5/P6 注册时必须同步补前端中文卡片文案（守卫会阻断遗漏），且数值字段的文案必须同时写清“设置页保存越界 = 400 拒绝”与“`.env` / 进程环境变量越界 = 加载时 clamp”两条路径（本批初版只写了后者，已在复核时修正）。P3 遗留的 6 个键仍随平台接入批次处理。
 
 ## 0.27 交接记录：P3 前置条件 2 / 批次 P5（报告转图片 + 企业微信消息形态）
 
 阶段/切片：P3 前置条件 2（第七段）。把 pending 表 P5 组 7 个键按读取路径拆成“5 个入库 + 2 个继续待定”，并首次把下拉枚举的保存校验带入设置页。代码基线：承接批次 P4 工作区，HEAD 仍为 `766193be`，未执行 `git commit` / `git tag` / `git push`。
-代码基线：`src/config/registry.py` 6806 → 6941 行（5 字段 + 5 条 help 元数据 + pending 表注释改写，未新增 `_DOC_*` 常量而是复用 `_DOC_FULL_GUIDE_NOTIFICATION`）；`apps/hrs-web/src/locales/settingsHelp.ts` 2979 → 3037 行（中英各 2 组新帮助）；`apps/hrs-web/src/utils/systemConfigI18n.ts` 672 → 698 行（5 键中文标题/描述 + 2 个 select 的中英 option 标签）；`tests/test_config_registry.py` 1820 → 2084 行（`TestP5ReportImageAndWechatFormFieldsRegistered` 10 项）；`tests/test_system_config_service.py` 4486 → 4522 行（2 项保存校验回归）。数字核对：registered 249 → 254、help_meta 120 → 125、hidden 35 不变、pending 14 → 9（P5 Vision 2 / P6 1 / P3 遗留 6）、legacy 4 不变。
+代码基线：`src/config/registry.py` 6806 → 6941 行（5 字段 + 5 条 help 元数据 + pending 表注释改写，未新增 `_DOC_*` 常量而是复用 `_DOC_FULL_GUIDE_NOTIFICATION`）；`apps/hrs-web/src/locales/settingsHelp.ts` 2979 → 3037 行（中英各 2 组新帮助）；`apps/hrs-web/src/utils/systemConfigI18n.ts` 672 → 698 行（5 键中文标题/描述 + 2 个 select 的中英 option 标签）；`tests/test_config_registry.py` 1820 → 2084 行（`TestP5ReportImageAndWechatFormFieldsRegistered` 10 项）；`tests/application/runtime/test_system_config_service.py` 4486 → 4522 行（2 项保存校验回归）。数字核对：registered 249 → 254、help_meta 120 → 125、hidden 35 不变、pending 14 → 9（P5 Vision 2 / P6 1 / P3 遗留 6）、legacy 4 不变。
 批次范围（5 个字段，category `notification`，display_order 80–84，排在分类末尾）：
   - 转图三键（共用 `settings.notification.markdown_to_image`）：`MARKDOWN_TO_IMAGE_CHANNELS`（array + textarea，默认 `""` 即关闭）/ `MARKDOWN_TO_IMAGE_MAX_CHARS`（integer + number，`min: 1`，默认 15000）/ `MD2IMG_ENGINE`（select：`wkhtmltoimage` | `markdown-to-file`）
   - 企业微信两键（共用 `settings.notification.wechat_delivery`）：`WECHAT_MSG_TYPE`（select：`markdown` | `text`）/ `WECHAT_MAX_BYTES`（integer + number，`min: 1`，默认 4000）
@@ -1037,7 +1037,7 @@
   - `_FIELD_DEFINITIONS` 新增 5 条（紧接批次 P4 块之后）；`_FIELD_HELP_METADATA` 新增 5 条；`WEB_SETTINGS_PENDING_EXPOSURE` 的 P5 组 7 → 2，并把两个待定键的阻塞理由写进表内注释
   - 前端：`settingsHelp.ts` 中英各新增 `settings.notification.markdown_to_image` / `settings.notification.wechat_delivery`（含默认值跟随消息类型、text 模式 2000 字节硬压、跳过式 max_chars、引擎缺失降级、两条越界路径、Actions 注入例外）；`systemConfigI18n.ts` 新增 5 键中文标题/描述 + 两个 select 的中英文 option 标签（否则中文界面下拉会显示英文 `markdown (rich text)`）
   - 守卫：`TestP5ReportImageAndWechatFormFieldsRegistered` 10 项（注册形态与 pending 移除、help 分组、**选项集 == 运行时真正接受的值集 + enum 由 options 自动派生**、数值区间与运行时 clamp 双向一致、registry 默认值与解析默认值、四项解析行为（大小写归一 / 默认值跟随类型 / 非法引擎回落 / 渠道列表归一）、**真实 `send_to_wechat` 分片不超 2000 字节**、读取方源码断言、不标重启提醒的“每次新建实例”源码断言、schema 载荷包含本批 5 键并排在分类末尾 + 选项随 schema 下发）
-  - 守卫：`tests/test_system_config_service.py` 新增 2 项保存校验回归（`test_validate_rejects_p5_numeric_values_below_registry_min`：`out_of_range` + expected `>=1` + 极大值通过；`test_validate_rejects_p5_select_values_outside_options`：`invalid_enum` + expected 为选项串 + 合法值通过）
+  - 守卫：`tests/application/runtime/test_system_config_service.py` 新增 2 项保存校验回归（`test_validate_rejects_p5_numeric_values_below_registry_min`：`out_of_range` + expected `>=1` + 极大值通过；`test_validate_rejects_p5_select_values_outside_options`：`invalid_enum` + expected 为选项串 + 合法值通过）
   - 文档：`docs/full-guide.md`（1983 → 2011）在「企业微信」与「Markdown 转图片」两个已有子节内补键值表与注意事项（不新建平行小节，避免同一能力两处描述）；`docs/full-guide_EN.md`（1777 → 1808）镜像企业微信部分，并**新增**此前完全缺失的 `### Markdown To Image (Optional)` 小节以对齐中英；`docs/settings-help.md`（128 → 133）新增批次 P5 段、一段“下拉枚举同样分两条路径”的通用口径、5 键生效语义条目，并把 `WECHAT_MSG_TYPE` 加入 Actions 注入例外说明；`.env.example` 补 `WECHAT_MSG_TYPE` 行并修正 `WECHAT_MAX_BYTES` 注释（原有 4 键已存在）；`documents/CHANGELOG.md` 新增 1 条 `[新功能]`
 决策记录：
   - 沿用“运行时存在读取方”标准，7 键拆成 5 入库 / 2 待定，并把待定理由同时写进 registry 表内注释、`settings-help.md` 与本文件——待定不是“下次记得注册”，而是有两个真实缺陷需要先定调（一键两面 / 无行为读取方 + 文档漂移）
@@ -1057,7 +1057,7 @@
   - 下拉字段入库时会连带把 `.env` 路径与设置页路径的**宽容度差异**暴露出来：`.env` 非法值回落默认、设置页 `invalid_enum` 拒写；且枚举按字面比较（大写值 `.env` 可用、设置页被拒），已写进 `settings-help.md` 通用口径，未单独改成大小写不敏感（那会改动保存校验契约，需另开片子定调）
   - 文档核对能推翻“顺手写上的部署假设”：本批差点写入“Docker 未预装转图工具”，实际 Dockerfile 已预装默认引擎。涉及部署形态的文案必须 grep `docker/`、`.github/workflows/` 再落笔
 验证证据：
-  - 定向：`pytest tests/test_config_registry.py tests/test_system_config_service.py tests/test_system_config_api.py -q` → **358 passed**（批次 P4 收口为 346，+12 = 本批 10 项守卫 + 2 项保存校验回归）
+  - 定向：`pytest tests/test_config_registry.py tests/application/runtime/test_system_config_service.py tests/test_system_config_api.py -q` → **358 passed**（批次 P4 收口为 346，+12 = 本批 10 项守卫 + 2 项保存校验回归）
   - `pytest tests/ -q -k "notification or md2img or wechat"` → 363 passed / 1 failed，唯一失败为基线既有的 `test_alerts_docs.py::test_alerts_doc_defines_p4_notification_and_cooldown_scope`（属 §7 登记的 alerts_docs 8 项文档断言漂移），本轮未新增失败
   - 变异验证 2 次均被抓：摘掉 `WECHAT_MAX_BYTES` 的 `validation.min` → 2 failed（`test_numeric_bounds_match_runtime_clamping` + `test_validate_rejects_p5_numeric_values_below_registry_min` SUBFAILED）；摘掉 `MD2IMG_ENGINE` 的 `markdown-to-file` 选项 → 3 failed（`test_select_options_match_runtime_accepted_values` + `test_schema_response_includes_p5_fields` + `test_validate_rejects_p5_select_values_outside_options` SUBFAILED）；还原后 358 passed
   - 前端：`npx eslint src/locales/settingsHelp.ts src/utils/systemConfigI18n.ts` → 0 错误；`npx tsc -b` → 26 个既有错误、两个改动文件零命中；`npx vitest run src/components/settings` → 3 failed files / 12 failed / 98 passed（与批次 P1–P4 逐项一致）
@@ -1069,7 +1069,7 @@
   - Actions 场景下 `WECHAT_MSG_TYPE` 由 workflow 注入字面 `markdown`，设置页/`.env` 修改在该场景不生效 —— 属既有部署语义，本片只补文档，未改 workflow（改注入默认值会影响所有存量仓库，需维护者单独定调）
   - 两个 Vision 键继续 pending 意味着 `VISION_PROVIDER_PRIORITY` 的文档漂移仍未修复：已登记为待决策项，不是本片能“顺手带上”的改动
   - `.env.example` 不在 HEAD（`.gitignore` 的 `.env.*` 命中），本批对它的补全只存于本机工作区，不随 PR 提交
-  - 回滚：还原 `src/config/registry.py`（5 字段 + 5 条帮助元数据 + pending 表注释 + `MD2IMG_ENGINE` description）、`settingsHelp.ts` 中英各 2 组、`systemConfigI18n.ts` 的 26 行、`tests/test_config_registry.py` 的新类、`tests/test_system_config_service.py` 的 2 项回归、两份 full-guide、`settings-help.md`、`.env.example`、CHANGELOG 与本文件即可；无数据迁移、无运行时行为改动
+  - 回滚：还原 `src/config/registry.py`（5 字段 + 5 条帮助元数据 + pending 表注释 + `MD2IMG_ENGINE` description）、`settingsHelp.ts` 中英各 2 组、`systemConfigI18n.ts` 的 26 行、`tests/test_config_registry.py` 的新类、`tests/application/runtime/test_system_config_service.py` 的 2 项回归、两份 full-guide、`settings-help.md`、`.env.example`、CHANGELOG 与本文件即可；无数据迁移、无运行时行为改动
 下一步：批次 P6（`LLM_ANSPIRE_ENABLED` 1 键，需先与 `LLM_CHANNELS` 编辑器对齐归属，判断方式同本片）；两个 Vision 键需要维护者定调后才能入库；P3 遗留 6 键随平台接入批次处理；68 键中文卡片存量名单是否单独开片属维护者决策。（批次 P6 已完成，结论是同样不入库，依据见 §0.28。）（已完成，结论与依据见 §0.28：P6 同样不入库。）
 
 
@@ -1155,7 +1155,7 @@
 验证证据：
   - `python -m py_compile src/services/backtest_service.py src/repositories/backtest_repo.py` → 通过
   - `python -m pytest tests/test_backtest_service.py -q` → 63 passed（真实仓储与内存库，非 mock）
-  - `python -m pytest tests/test_backtest_service.py tests/test_main_portfolio.py tests/test_backtest_api.py tests/test_skill_load_warning.py tests/test_agent_tool_surface.py tests/test_agent_registry.py tests/test_analysis_context_pack_docs.py -q` → 209 passed（回测相关 7 个测试文件合计）
+  - `python -m pytest tests/test_backtest_service.py tests/test_main_portfolio.py tests/test_backtest_api.py tests/test_skill_load_warning.py tests/test_agent_tool_surface.py tests/application/agent/test_agent_registry.py tests/test_analysis_context_pack_docs.py -q` → 209 passed（回测相关 7 个测试文件合计）
   - `python scripts/check_architecture.py --report` → 违规 5 → 4，`src/services/backtest_service.py -> sqlalchemy` 已消失；`--check` 通过
   - `./scripts/ci_gate.sh syntax` + `architecture` → 通过
   - `python -m pytest -m "not network"` → **5432 passed / 31 failed / 10 errors**，与批次 P6/P7 收口时逐项完全一致，0 新增失败（本切片未新增测试）
@@ -1198,7 +1198,7 @@
   - `python -m pytest tests/test_intelligence_service.py tests/test_intelligence_api.py tests/test_intelligence_repo.py -q` → 25+10 passed（包含重名→校验错误回归测试；10 个失败为既有 `ADMIN_AUTH_ENABLED=true` 环境失败集，与基线一致）
   - `python -m py_compile src/schemas/run_flow.py src/services/run_flow.py api/v1/endpoints/analysis.py api/v1/endpoints/history.py` → 通过
   - `python -m pytest tests/test_run_flow.py tests/test_analysis_endpoint_wiring.py tests/test_check_architecture.py -q` → 54 passed
-  - `python -m pytest tests/test_history_query_service.py tests/test_analysis_history.py -q` → 67 passed
+  - `python -m pytest tests/test_history_query_service.py tests/application/history/test_analysis_history.py -q` → 67 passed
   - `python scripts/check_architecture.py --report` → 违规 4 → 1：`market_light`→`sqlalchemy`、`intelligence`→`sqlalchemy.exc`、`run_flow`→`api.v1.schemas.run_flow` 三条消失；`alphasift_service`→`fastapi` 保留（设计级，未触碰）
   - `python scripts/check_architecture.py --check` → 通过
   - `./scripts/ci_gate.sh syntax` + `architecture` → 通过
@@ -2218,7 +2218,7 @@ B1-B4 规划（简单→复杂）：
 完成：
   - `git mv src/services/history_loader.py src/application/history/loader.py`（git 态 `RM`，保留历史；模块逻辑逐字不变，无转发 shim）。
   - 生产消费方 re-point（`src.services.history_loader`→`src.application.history.loader`，共 11 处）：`src/core/pipeline.py`×3、`src/bootstrap/history.py`（configure_history_loader 的 setter import）、`src/agent/tools/analysis_tools.py`×4、`src/agent/tools/data_tools.py`×1、`src/agent/events.py`×1、`src/services/alphasift_service.py`×1。
-  - 测试消费方 re-point（4 文件，import + patch 字符串）：`tests/test_history_loader.py`（含 docstring 标题）、`tests/test_agent_frozen_context.py`、`tests/test_data_tools_daily_history_cache.py`（8 处 patch）、`tests/test_strategy_scheduler.py`。
+  - 测试消费方 re-point（4 文件，import + patch 字符串）：`tests/test_history_loader.py`（含 docstring 标题）、`tests/application/agent/test_agent_frozen_context.py`、`tests/test_data_tools_daily_history_cache.py`（8 处 patch）、`tests/test_strategy_scheduler.py`。
   - `src/application/history/__init__.py` **不改**：`load_history_df` 及各符号供消费方直接子模块 import，与先落地的 `comparison.py`/`read_model.py` 一致不纳入包公开 `__all__`；`src/services/__init__.py` **无** history_loader 惰性映射，无需除条目。
   - 守卫合成样本（`test_check_architecture.py`）与 `ARCHITECTURE_TARGET.md` 归属表 line 222（源文件名候选表）按 H1/H2b 先例保持不变。
 
@@ -4240,7 +4240,7 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 2. `bootstrap/agent.py`：新增 `configure_agent_memory()`——以 `DatabaseManager.get_instance()` 门面作 `HistoryRepositoryPort` 适配器调用 `set_history_repo`（本模块顶层已 `from src.storage import DatabaseManager`、bootstrap→storage 合法；仿同文件 `configure_usage_telemetry` 惰性 import setter 风格；setter 幂等）。
 3. `main.py` 进程级装配块：agent import 改为括号多行引入 `configure_agent_memory`，在 `configure_usage_telemetry()` 后追加 `configure_agent_memory()`。
 4. `src/bootstrap/api_lifecycle.py`：同 import 扩展 + lifespan `configure_usage_telemetry()` 后追加 `configure_agent_memory()`（覆盖 `uvicorn` 直启）。
-5. re-point `tests/test_multi_agent.py`：唯一 `@patch("src.storage.get_db")` 消费点（`test_get_stock_history_reads_orm_records` L2647）→ `@patch("src.application.agent.memory._get_history_repo")`；并新增 `test_configure_agent_memory_wires_database_manager_adapter`（断言 bootstrap 以门面装配 seam）。
+5. re-point `tests/application/agent/test_multi_agent.py`：唯一 `@patch("src.storage.get_db")` 消费点（`test_get_stock_history_reads_orm_records` L2647）→ `@patch("src.application.agent.memory._get_history_repo")`；并新增 `test_configure_agent_memory_wires_database_manager_adapter`（断言 bootstrap 以门面装配 seam）。
 
 **关键取证 / 教训**：正是上一片沉淀的「懒加载 get_db 转 seam 时测试 patch 源符号散布在下游消费者测试」教训落地——全仓扫 `patch("src.storage.get_db")` 命中 `test_multi_agent.py`（memory 的直接消费测试）与 `test_check_architecture.py`（守卫自测、无关），仅需 re-point 前者 1 处；其余 `get_stock_history` 引用是 `MagicMock` on memory 对象、不触 get_db，不受影响。re-point 后 targeted 9 passed、全量 FAILED 集合与基线 IDENTICAL，未复现上片那种 +4 盲区回归（因片前已完成全仓 patch 扫描）。
 
@@ -4294,7 +4294,7 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 **改动**：
 1. `application/agent/executor.py`：删除顶层 `from src.storage import get_db`（L30）；`_persist_provider_trace` 调用 `persist_provider_trace_turns` 删除 `db_factory=get_db,` 入参（其余 `log=logger` 等 keyword-only 参数不变）→ executor 与 chat_executor 一致复用 provider_trace 默认 seam。
 2. `bootstrap/agent.py`：`configure_provider_trace` docstring 示例校正——由「显式传入 `db_factory` 的调用方（如 executor）不受影响」改为「（如 `chat_executor` / `executor`）复用；显式传入 `db_factory` 的调用方会覆盖默认工厂、不受影响」（bootstrap 文件/seam 计数不变，无新函数）。
-3. `tests/test_agent_executor.py`：Test1（真实持久化）在两次 `executor.chat(...)` 外包 `patch("src.application.agent.provider_trace._get_default_db_factory", return_value=lambda: db)`（`db` 为测试内构造的内存单例）；Test2（fail-open）把 patch 目标从 `src.application.agent.executor.get_db` re-point 为同一 `provider_trace._get_default_db_factory`（`return_value=lambda: db`，`db.save_agent_provider_turn` 抛错）。
+3. `tests/application/agent/test_agent_executor.py`：Test1（真实持久化）在两次 `executor.chat(...)` 外包 `patch("src.application.agent.provider_trace._get_default_db_factory", return_value=lambda: db)`（`db` 为测试内构造的内存单例）；Test2（fail-open）把 patch 目标从 `src.application.agent.executor.get_db` re-point 为同一 `provider_trace._get_default_db_factory`（`return_value=lambda: db`，`db.save_agent_provider_turn` 抛错）。
 
 **等价与影响面**：`executor.py` 现 **0 storage import**（锚定 `from src.storage`/`import src.storage` 计数 0、`get_db` 计数 0）；生产路径 `persist_provider_trace_turns` 取库对象 = `_get_default_db_factory()`（装配后为 `DatabaseManager.get_instance`）= 旧 `get_db()`，**同一单例、0 行为变化**；若某入口未装配 seam（理论绕过 bootstrap），executor 与 chat_executor 同样退化为 `db = None()`→外层 try/except fail-open 告警 + 跳过 provider-trace 落库、不崩对话（与旧显式传 `get_db` 的差异仅在「未装配时不落 trace」，装配齐全的生产两入口均无此态）。agent 域 **3/8**（余 5：conversation/chat_context 混合读写、runner `persist_llm_usage`、tools/data_tools+search_tools 写路径）；累计 W4.2 收敛 **9/22 文件、余 13**（agent 5/decision 5/analysis 2/market 1，history/runtime/backtest 已整域归零）；无新增/删除跟踪文件、无新 seam。
 
@@ -4395,7 +4395,7 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 
 ## 0.165 第 4 批 W4.2 第十二域切片：agent/runner 用量遥测改走 `UsageTelemetryPort.persist`（**agent 域整域归零 8/8**、真实代码、零回归）
 
-**开工快照**：内容清单快照 `/tmp/hermesx_before_runner.json`（sha256 + readlink，3681 条目）；改后 `/tmp/hermesx_after_runner.json`（3681）逐条目比对——`ADDED = 0`、`REMOVED = 0`、`MODIFIED = 14`，其中真实改动仅 2 个目标文件（`src/application/agent/runner.py`、`tests/test_agent_executor.py`），其余 12 条为 `logs/**`、`data/**`、`vibe-template/zentrade/**` 运行时噪声，无越界源码改动。
+**开工快照**：内容清单快照 `/tmp/hermesx_before_runner.json`（sha256 + readlink，3681 条目）；改后 `/tmp/hermesx_after_runner.json`（3681）逐条目比对——`ADDED = 0`、`REMOVED = 0`、`MODIFIED = 14`，其中真实改动仅 2 个目标文件（`src/application/agent/runner.py`、`tests/application/agent/test_agent_executor.py`），其余 12 条为 `logs/**`、`data/**`、`vibe-template/zentrade/**` 运行时噪声，无越界源码改动。
 
 **基线变更（非本片操作，必须记录）**：开工取证时实测 HEAD 已由 `8d98792d` 前进到 **`fe7410bb`**，新增 3 个提交（`c43009b9 Create architecture_migration_adr.md`／`dd581d25 Create architecture_migration_progress.md`／`fe7410bb Update ARCHITECTURE_TARGET.md`，作者 `gaocangxiong`，时间 23:33–23:34，且 `origin/main` 已同步）。本片未执行任何 `git commit/tag/push`；该三提交把此前仅存于工作树的 ADR、progress 与 AT 回写版纳入版本控制，工作树计数随之由 `196 D / 288 M / 40 ??` 变为 `196 D / 287 M / 38 ??`。后续回滚基线以 `fe7410bb` 为准。
 
@@ -4403,11 +4403,11 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 
 **改动**：
 1. `application/agent/runner.py`：删顶层 `from src.storage import persist_llm_usage as _persist_usage`；L482 调用改为 `_usage_telemetry_port.persist(response.usage, model_for_usage, call_type="agent")`。NPE 安全性由既有前置条件保证——`_should_persist_usage_telemetry()` 在 `port is None` 时返回 `False` 并 `logger.debug` 跳过，故不会进入 `persist` 分支。
-2. `tests/test_agent_executor.py`：4 处 `patch("...runner._usage_telemetry_port", UsageTelemetryAdapter())` 改为 `as usage_port` + `patch.object(usage_port, "persist") as persist_usage`（原 `patch("...runner._persist_usage")` 目标随符号删除而失效）；新增 1 条回归用例 `test_run_agent_loop_skips_usage_persist_when_telemetry_port_unwired`：`port=None` 时不崩溃、`total_tokens` 正常累计、且 `src.storage.persist_llm_usage` **零调用**（锁住“不回退直连 storage”契约）。
+2. `tests/application/agent/test_agent_executor.py`：4 处 `patch("...runner._usage_telemetry_port", UsageTelemetryAdapter())` 改为 `as usage_port` + `patch.object(usage_port, "persist") as persist_usage`（原 `patch("...runner._persist_usage")` 目标随符号删除而失效）；新增 1 条回归用例 `test_run_agent_loop_skips_usage_persist_when_telemetry_port_unwired`：`port=None` 时不崩溃、`total_tokens` 正常累计、且 `src.storage.persist_llm_usage` **零调用**（锁住“不回退直连 storage”契约）。
 3. 未改 `bootstrap/agent.py`、未新增 `configure_*`、未改 `main.py`/`api_lifecycle.py`——`configure_usage_telemetry()` 早已把同一 `UsageTelemetryAdapter` 实例同时注入 runner 与 chat_context 两个 seam，bootstrap 仍 25 件 / 31 seam。
 
 **关键取证 / 陷阱**：
-- 全仓扫 `_persist_usage|persist_llm_usage` 确认消费面：除 `runner.py` 自身外，测试侧仅 `tests/test_agent_executor.py` 4 处 patch（已 re-point）；其余为 `test_llm_usage.py` 直测 `src.storage` 函数（不受影响）、`test_market_analyzer_generate_text.py` patch `analyzer.persist_llm_usage`（属下一片 decision/analysis 范围）、`test_agent_conversation_port_seam.py` patch `src.storage.persist_llm_usage`（验适配器委托，行为不变）、infra `codex_agent_backend.py` 直连（infra→storage 守卫允许）。
+- 全仓扫 `_persist_usage|persist_llm_usage` 确认消费面：除 `runner.py` 自身外，测试侧仅 `tests/application/agent/test_agent_executor.py` 4 处 patch（已 re-point）；其余为 `test_llm_usage.py` 直测 `src.storage` 函数（不受影响）、`test_market_analyzer_generate_text.py` patch `analyzer.persist_llm_usage`（属下一片 decision/analysis 范围）、`test_agent_conversation_port_seam.py` patch `src.storage.persist_llm_usage`（验适配器委托，行为不变）、infra `codex_agent_backend.py` 直连（infra→storage 守卫允许）。
 - **不采用**「在 runner 内保留 storage 兜底 import 以防 seam 未装配」的写法：那会把依赖方向重新拉回 application→storage，与 W4.2 目标相反；正确语义是未装配即静默跳过（与 chat_context 一致），并补测试锁住。
 - 基线文件 `/tmp/s12_norm.txt` 存的是**无 `FAILED ` 前缀**的 nodeid，而 `pytest -q` 输出行含前缀且会截断追加 ` - <reason>`；比对必须先 `awk -F' - '` 切分再 `sed 's/^FAILED //'`，否则得到 31 vs 31 的全量假差异。
 
@@ -4511,8 +4511,8 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 - **时间 / 范围**：2026-10-31。目标文件 `src/application/analysis/pipeline.py`（W4.2 最后 1 件）；新增
   `src/application/analysis/persistence_port.py`、`src/infrastructure/persistence/repositories/pipeline_persistence_adapter.py`、
   `tests/test_pipeline_persistence_port.py`；联动 `src/bootstrap/analysis.py`、`main.py`、`src/bootstrap/api_lifecycle.py`、
-  `tests/conftest.py`、`tests/test_agent_pipeline.py`、`tests/test_stock_data_port.py`、
-  `tests/test_pipeline_optional_service_resilience.py`、`tests/test_pipeline_daily_market_context.py`、
+  `tests/conftest.py`、`tests/application/agent/test_agent_pipeline.py`、`tests/test_stock_data_port.py`、
+  `tests/test_pipeline_optional_service_resilience.py`、`tests/application/analysis/test_pipeline_daily_market_context.py`、
   `tests/test_skill_opinion_samples.py`、`scripts/check_architecture.py`。
 - **开工快照**：`/tmp/hermesx_before_pipeline.json`（文件系统遍历 3693 条目，sha256 + readlink，剪枝
   `.git`/`.venv`/`node_modules`/`__pycache__`）；`HEAD fe7410bb`、staged 0、零提交。
@@ -4714,7 +4714,7 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
   （东财失败后新浪兜底返回真实数据，断言依赖上游）；`test_tencent_stock_info_source::test_fetch_strips_suffix_and_converts_units`
   （`tencent_source.py` 内 `str + bytes` 真实缺陷）；`test_yfinance_fundamental_adapter` 2 条（`ttm_event_count` 3≠4，
   与 TTM 窗口随日期漂移有关）；`test_intelligence_service::test_fetch_enabled_sources_is_fail_open`
-  （**顺序依赖**：单跑 / 与 `test_intelligence_api.py` 同跑均通过，前置 `tests/test_agent_pipeline.py` 后必现，
+  （**顺序依赖**：单跑 / 与 `test_intelligence_api.py` 同跑均通过，前置 `tests/application/agent/test_agent_pipeline.py` 后必现，
   属跨测试全局状态串扰，非本批引入）。
 - **口径更新**：D3 50% → **75%**（W5 七项全部落地）、D5 85% → **100%**（W6 ADR-008 + W7 决策与基线 + AT §9.2 全回写）、
   D6 95% → **100%**（W9 清零 + 新增两份框架文档）；六维加权 83.85% → **89.60%**（23.75 + 17.60 + 11.25 + 17.00 + 10.00 + 10.00）；
@@ -4743,7 +4743,7 @@ R1-A6 收尾与 A7 合并执行，使 `src/agent` 磁盘归零。零提交（HEA
 **动机**：用户「处理那 5 条既有失败（按你的方向定 requirements.txt 那条）」并追问「具体是哪 5 条」。本片不做分层改造，只做逐条根因取证 + 清零；`requirements.txt` 一条由用户授权我定方向。
 
 - **5 条清单（node-ID）**：① `tests/test_check_env_encoding.py::test_requirements_file_is_ascii_decodable`；② `tests/test_fundamental_context.py::TestFundamentalContext::test_sector_rankings_use_ordered_fallback`；③④ `tests/test_yfinance_fundamental_adapter.py::TestYfinanceFundamentalAdapter::test_populates_growth_earnings_dividend_boards_for_us_stock` 与 `::test_dividends_parsed_from_single_column_dataframe`；⑤ `tests/test_intelligence_service.py::IntelligenceServiceTestCase::test_fetch_enabled_sources_is_fail_open`。
-- **⑤ 的真实根因＝生产缺陷（不是测试写法问题，也不是「跨测试串扰」可以解释到底）**：该用例断言 `saved_count == 2` 实得 **0**，两条源都被 `_sanitize_error` 归一成 `fetch failed: upstream request failed`。用一个临时 spy 用例抓到交给 `requests.get` 的实参为 `proxies={'http': None, 'https': None, 'use': 'false'}`，再用把常量替换成 `dict` 子类的 Watch 探针拿到**污染时刻的完整调用栈**：`tests/test_agent_pipeline.py:1648 test_legacy_mode_does_not_call_agent` → `src/application/analysis/pipeline.py:530 analyze_stock` → `:2563 _load_persisted_intelligence_context` → `intelligence_service.py:524 refresh_auto_sources` → `:474 fetch_enabled_sources` → `:439 fetch_source` → `:658 _fetch_feed_entries` → `:798 _get_with_validated_dns` → `requests/api.py:87 get` → `requests/sessions.py:641 request` → **`sessions.py:851 proxies.setdefault(k, v)`**。即：`_DISABLE_REQUEST_PROXIES` 是模块级可变 dict，代码**按引用**交给 `requests`，而 `requests` 在 `trust_env=True`（默认）下会对调用方传入的 proxies **就地写入**环境代理探测结果（本机系统代理注入 `'use': 'false'`）→ 常量一旦被真实请求经过就永久变形，「非受信任源显式禁用代理、避免代理侧绕过 SSRF 判定」这条安全边界失真，外部表现为难以定位的顺序依赖。**修复**：`request_kwargs.setdefault("proxies", dict(_DISABLE_REQUEST_PROXIES))`（全仓 `grep proxies=_|setdefault("proxies"` 实测仅此 1 处引用外泄，无同类点）。**回归测试**：新增 `test_fetch_passes_proxy_dict_copy_not_the_shared_constant`（在 `side_effect` 里模拟 `requests` 的就地写入并断言常量仍为 2 键、每次拿到的都是新副本、`is_shared_constant` 恒 False）；已**反向验证**：临时把生产行回退成传常量 → 新测试 FAIL，改回后 PASS，证明该用例真能抓到这个缺陷而非同义反复。
+- **⑤ 的真实根因＝生产缺陷（不是测试写法问题，也不是「跨测试串扰」可以解释到底）**：该用例断言 `saved_count == 2` 实得 **0**，两条源都被 `_sanitize_error` 归一成 `fetch failed: upstream request failed`。用一个临时 spy 用例抓到交给 `requests.get` 的实参为 `proxies={'http': None, 'https': None, 'use': 'false'}`，再用把常量替换成 `dict` 子类的 Watch 探针拿到**污染时刻的完整调用栈**：`tests/application/agent/test_agent_pipeline.py:1648 test_legacy_mode_does_not_call_agent` → `src/application/analysis/pipeline.py:530 analyze_stock` → `:2563 _load_persisted_intelligence_context` → `intelligence_service.py:524 refresh_auto_sources` → `:474 fetch_enabled_sources` → `:439 fetch_source` → `:658 _fetch_feed_entries` → `:798 _get_with_validated_dns` → `requests/api.py:87 get` → `requests/sessions.py:641 request` → **`sessions.py:851 proxies.setdefault(k, v)`**。即：`_DISABLE_REQUEST_PROXIES` 是模块级可变 dict，代码**按引用**交给 `requests`，而 `requests` 在 `trust_env=True`（默认）下会对调用方传入的 proxies **就地写入**环境代理探测结果（本机系统代理注入 `'use': 'false'`）→ 常量一旦被真实请求经过就永久变形，「非受信任源显式禁用代理、避免代理侧绕过 SSRF 判定」这条安全边界失真，外部表现为难以定位的顺序依赖。**修复**：`request_kwargs.setdefault("proxies", dict(_DISABLE_REQUEST_PROXIES))`（全仓 `grep proxies=_|setdefault("proxies"` 实测仅此 1 处引用外泄，无同类点）。**回归测试**：新增 `test_fetch_passes_proxy_dict_copy_not_the_shared_constant`（在 `side_effect` 里模拟 `requests` 的就地写入并断言常量仍为 2 键、每次拿到的都是新副本、`is_shared_constant` 恒 False）；已**反向验证**：临时把生产行回退成传常量 → 新测试 FAIL，改回后 PASS，证明该用例真能抓到这个缺陷而非同义反复。
 - **① 方向判定（用户授权）**：测试 `requirements_path.read_bytes().decode("ascii")` 保护的是「非 UTF-8 locale 下 `pip install -r` 的读取安全」，与同文件 `_reconfigure_output_stream` 的编码主题一致，属**有效工程约束**，因此**按测试契约改文件**而不放宽断言：`requirements.txt:2` 「HermesX（赫尔墨斯）- FOR AI交易量化 - dependencies」→ ASCII 英文「HermesX - dependencies for AI trading / quantitative analysis」（全文件非 ASCII 实测仅此 1 行）。AGENTS.md「注释不强制英文」针对通用代码注释，与此处显式契约不冲突，已在交付说明中写明取舍。
 - **② 根因＝架构演进后测试假设过期**：`DataFetcherManager.get_sector_rankings` → `_get_sector_rankings_with_meta`（`data_provider/base.py:3494`）现**优先**走 `self._get_sector_manager()`（`data_provider/sector` provider：东财失败→新浪兜底，返回真实行业 `'研究和试验发展'`），只有它抛异常才按 priority 遍历注入的 fetchers（`:3535` 起）。用例意图是 fetcher 维度的优先级回退，故改为 `patch.object(manager, "_get_sector_manager", side_effect=RuntimeError(...))` 让 provider 层确定性 miss —— 不再依赖外网返回内容，也不动生产优先级设计。
 - **③④ 根因＝fixture 用绝对日期、生产语义正确**：`data_provider/yfinance_fundamental_adapter.py:285` 的 TTM 窗口为 `pd.Timestamp.now(tz=…) - pd.Timedelta(days=365)`，`events` 按日期降序（`:321`）。fixture 硬编码 `2025-08-11/2025-11-10/2026-02-09/2026-05-11`，写到今天最老一笔已滑出窗口 → `ttm_event_count` 3≠4。**修法**：新增 `_ttm_quarterly_dividend_index()`，以 `pd.Timestamp.now(tz).normalize()` 为锚生成 287/196/105/14 天前的 4 个季度除息日（最老一笔距窗口边界仍有 ~78 天余量），`events[0]` 期望值改由 `dividends.index[-1].date().isoformat()` 同源自算。**不引入 freezegun**（仓库现无该依赖，为两个用例加三方依赖不划算），也不改生产窗口口径。
@@ -4997,7 +4997,7 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | 默认值守卫变异验证（改错 `STOCKDB_TIMEOUT_MS.default_value`） | 守卫捕获到 `('STOCKDB_TIMEOUT_MS', '9999', '5000')` |
 | `python -m pytest tests/test_config_registry.py` | **63 passed**（P2 切片 4；新增 5 条未注册键声明守卫，切片前 58 passed） |
 | 未注册键守卫变异验证（从 pending 表删除 `PORTFOLIO_RISK_LOOKBACK_DAYS`） | `test_config_reads_are_registered_or_declared` 失败并精确指名该键；恢复后 63 passed 且与备份 diff 一致 |
-| `python -m pytest tests/test_config_registry.py tests/test_system_config_api.py tests/test_system_config_service.py tests/test_config_manager.py tests/test_config_env_compat.py tests/test_config_validate_structured.py` | 439 passed（P2 切片 3）；444 passed（批次 P1 当时口径，= registry 63 + 其它 381，即 P1 守卫尚未加入；**该数字不代表 P1 完成口径**，修正见 §0.6）；**453 passed**（批次 P2；逐文件 72 + 35 + 215 + 9 + 46 + 76） |
+| `python -m pytest tests/test_config_registry.py tests/test_system_config_api.py tests/application/runtime/test_system_config_service.py tests/test_config_manager.py tests/test_config_env_compat.py tests/test_config_validate_structured.py` | 439 passed（P2 切片 3）；444 passed（批次 P1 当时口径，= registry 63 + 其它 381，即 P1 守卫尚未加入；**该数字不代表 P1 完成口径**，修正见 §0.6）；**453 passed**（批次 P2；逐文件 72 + 35 + 215 + 9 + 46 + 76） |
 | `python -m pytest tests/test_config_registry.py` | **67 passed**（批次 P1；新增 4 条数据源字段守卫，切片 4 为 63 passed） |
 | P1 守卫变异验证（删除 `LIMITPOOL_DATA_SOURCE` 的 stocksdk 选项） | `test_routing_options_match_registered_sources` 失败并报“options 必须与真实注册的 source 一致”；恢复后 67 passed 且与备份 diff 一致 |
 | 批次 P1 数字核对（registry / help_meta / 三张声明表） | registered 218、help_meta 89、hidden 35、pending 45（P2 16 / P3 15 / P4 6 / P5 7 / P6 1）、legacy 4、union 84 |
@@ -5011,8 +5011,8 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `python -m pytest -m "not network"` | **5251 passed / 31 failed / 10 errors**（P2-A 配置包化后复跑；失败清单与批次 P2 逐项一致，0 新增） |
 | `./scripts/ci_gate.sh`（P2-A） | syntax check + `Architecture guard passed`；flake8 本机未安装同前 |
 | 入口与门面 smoke（P2-A） | `import api.app, server, webui` 通过；`from src.config import Config, get_config` 与三个子模块导入通过；30 个门面符号缺失集 `[]` |
-| `python -m pytest tests/test_system_config_api.py tests/test_system_config_service.py tests/test_config_manager.py tests/test_config_registry.py tests/test_config_env_compat.py tests/test_config_validate_structured.py tests/test_llm_channel_config.py` | 516 passed（首轮 2 失败为守卫仍读旧 `src/config.py`）；修正后 `test_config_registry.py` 72 passed |
-| `python -m pytest tests/test_bootstrap_environment.py tests/test_agent_models_api.py tests/test_agent_pipeline.py tests/test_market_analyzer_generate_text.py tests/test_main_schedule_mode.py tests/test_config_validate_structured.py tests/test_llm_channel_config.py` | 403 passed（首轮 1 失败为 bootstrap 的 patch 目标，修正后全绿） |
+| `python -m pytest tests/test_system_config_api.py tests/application/runtime/test_system_config_service.py tests/test_config_manager.py tests/test_config_registry.py tests/test_config_env_compat.py tests/test_config_validate_structured.py tests/test_llm_channel_config.py` | 516 passed（首轮 2 失败为守卫仍读旧 `src/config.py`）；修正后 `test_config_registry.py` 72 passed |
+| `python -m pytest tests/test_bootstrap_environment.py tests/test_agent_models_api.py tests/application/agent/test_agent_pipeline.py tests/test_market_analyzer_generate_text.py tests/test_main_schedule_mode.py tests/test_config_validate_structured.py tests/test_llm_channel_config.py` | 403 passed（首轮 1 失败为 bootstrap 的 patch 目标，修正后全绿） |
 | 模型拆分完整性（P2-B1）：HEAD `src/storage.py` vs 新 `persistence/models/*` 类名集合 | 32 vs 32，diff 为空；逐类 AST dump 比对全部一致 |
 | `python -c "import src.storage; ..."` 门面扫描（P2-B1） | 外部只取 4 个符号（`DatabaseManager` / `get_db` / `persist_llm_usage`），缺失集 `[]`；`Base.metadata` 32 表 |
 | 开发库启动 smoke（P2-B1） | `sqlite:///data/stock_analysis.db`：metadata 32 表、实际 32 表、`missing=[]`、`schema_migrations` 两条标记完好 |
@@ -5043,7 +5043,7 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `python -m pytest tests/test_bootstrap_database.py tests/test_usage_service.py tests/test_watchlist_api.py tests/test_watchlist_use_case.py` | 21 passed（P3 切片 3） |
 | 依赖身份与关闭语义（P3 切片 3） | `api.deps.get_db is src.bootstrap.database.get_db`、`api.deps.get_database_manager is ...` 均为真；`get_db` 正常退出与消费者抛异常两条路径都调用 `Session.close()` |
 | `python -m pytest -m "not network"` | 5269 passed / 31 failed / 10 errors（P3 切片 3 后复跑；相对切片 2 的 5266 仅 +3，即新增用例，失败集逐项一致，0 新增失败） |
-| `python -m pytest tests/test_analysis_history.py tests/test_run_diagnostics_p2.py tests/test_run_flow.py` | 101 passed（P3 切片 4；三份测试改为直接构造 `HistoryQueryService`） |
+| `python -m pytest tests/application/history/test_analysis_history.py tests/test_run_diagnostics_p2.py tests/test_run_flow.py` | 101 passed（P3 切片 4；三份测试改为直接构造 `HistoryQueryService`） |
 | `python -m pytest tests/test_history_query_service.py` | 7 passed（P3 切片 4；新增） |
 | 分析历史端点等价性对照（真实开发库，`list` / `stock_bar` / `detail` / `diagnostics` / `flow` / `news` / `markdown`） | 19 组输出全等（`flow.generated_at` 为取数时刻，比对时剔除；P3 切片 4） |
 | 裸 FastAPI + TestClient 跑 `/api/v1/history/*` 13 个用例 | 7 个 200、4 个 422（`limit` 越界）、2 个 404（不存在记录）（P3 切片 4） |
@@ -5055,7 +5055,7 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `python -m pytest tests/test_agent_conversation_api.py` | 10 passed（P3 切片 6；新增） |
 | Agent 会话端点等价性对账（临时库造 5 条消息：`telegram_1`（2 条）/ `telegram_2` / `telegram_10` / `feishu_9`） | 8 组读输出全等：会话列表默认 / `limit=2`、`user_id=telegram_1`（不含 `telegram_10`）/ `feishu_9` / 不存在用户、消息默认 / `limit=1` / 不存在 session；删除在两库各跑一次，均为 `{"deleted": 2}`、目标会话剩余 0、其他 3 条会话未受影响（P3 切片 6） |
 | 裸 FastAPI + TestClient（`dependency_overrides[get_agent_conversation_service]`）跑会话端点 9 个用例 | 全 200：列表 / `limit=1` / 单会话消息 / `limit=1` / 不存在 session / 删除 / 删后消息为空 / 重复删除 `deleted=0`（P3 切片 6） |
-| `python -m pytest tests/test_agent_conversation_api.py tests/test_agent_chat_api.py tests/test_agent_sse_cleanup.py tests/test_bootstrap_database.py tests/test_check_architecture.py tests/test_backtest_api.py` | 68 passed（P3 切片 6） |
+| `python -m pytest tests/test_agent_conversation_api.py tests/test_agent_chat_api.py tests/api/agent/test_agent_sse_cleanup.py tests/test_bootstrap_database.py tests/test_check_architecture.py tests/test_backtest_api.py` | 68 passed（P3 切片 6） |
 | `python -m pytest -m "not network"` | 5295 passed / 31 failed / 10 errors（P3 切片 6 后复跑；相对切片 5 的 5285 仅 +10，即新增用例，失败集数量与构成不变，0 新增失败） |
 | `python -m pytest tests/test_analysis_endpoint_wiring.py` | 10 passed（P3 切片 7；新增） |
 | 分析端点等价性对账（临时库造 6 条历史 + 2 条基本面快照，剔除 `generated_at`） | 19 组输出全等：运行流 7 组 / 状态查询 4 组 / 同步回填 8 组；并断言命中最新一条而非最早一条（P3 切片 7） |
@@ -5093,10 +5093,10 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `python -m pytest -m "not network"` | **5387 passed / 31 failed / 10 errors**（P3 切片 13 后复跑；相对切片 12 的 5385 仅 +2，即新增守卫用例，失败集数量与构成逐项一致，0 新增失败） |
 | 改名等价性（HEAD `src/services/history_service.py` 机械套用同一重命名 vs 当前文件，剥离 docstring 后的 AST dump） | 完全一致（`rename-only equivalence: True`），1421 → 1433 行增量全部为 docstring（P3 切片 14） |
 | `python -m pytest tests/test_check_architecture.py -m "not network"` | 19 passed（P3 切片 14；15 → 19，新增私有成员拦截 / `self`、`cls`、dunder 放行 / 规则作用域 / 真实工作树 `private:` 违规为 0） |
-| `python -m pytest tests/test_analysis_history.py tests/test_history_query_service.py tests/test_run_flow.py tests/test_check_architecture.py -m "not network"` | 111 passed（P3 切片 14） |
+| `python -m pytest tests/application/history/test_analysis_history.py tests/test_history_query_service.py tests/test_run_flow.py tests/test_check_architecture.py -m "not network"` | 111 passed（P3 切片 14） |
 | `python -m pytest tests/test_alert_worker.py tests/test_alert_api.py tests/test_signal_attribution_e2e.py tests/test_signal_attribution_real_paths.py tests/test_analysis_api_contract.py tests/test_market_light_alerts.py -m "not network"` | 211 passed（P3 切片 14；覆盖 `history_code_filter_candidates` 的另一个调用方与读模型下游） |
 | `python scripts/check_architecture.py --check`（P3 切片 14） | 通过；5 条基线内 / 0 条新增，`private:` 键 0 条，基线文件未重写 |
-| `python -m py_compile scripts/check_architecture.py src/services/history_service.py src/application/history/service.py src/services/alert_worker.py tests/test_check_architecture.py tests/test_analysis_history.py` | 通过（P3 切片 14） |
+| `python -m py_compile scripts/check_architecture.py src/services/history_service.py src/application/history/service.py src/services/alert_worker.py tests/test_check_architecture.py tests/application/history/test_analysis_history.py` | 通过（P3 切片 14） |
 | `python -m pytest -m "not network"` | **5391 passed / 31 failed / 10 errors**（P3 切片 14 后复跑；相对切片 13 的 5387 仅 +4，即新增守卫用例，失败集与切片 13 逐项一致（含负载敏感的 `test_multi_agent` 超时用例，单独重跑通过），0 新增失败） |
 | `python -m pytest tests/test_config_registry.py -q` | 80 passed（批次 P3；72 → 80，新增 `TestP3BotFieldsRegistered` 8 项） |
 | 守卫变异验证（批次 P3） | 4 项均被抓：`FEISHU_MAX_BYTES.validation.min` 1 → 5（`5.0 != 1.0`）；摘掉 `BOT_COMMAND_PREFIX` 的 `restart_required`；从 pending 表删除 `WECOM_CORPID`（新用例 + `test_config_reads_are_registered_or_declared` 双抓）；`help_key` 改名 `bot_runtime_v2`（locale 契约 + 分组用例双抓）；恢复后 80 passed |
@@ -5111,10 +5111,10 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `python -m py_compile src/config/registry.py tests/test_config_registry.py` | 通过（批次 P4） |
 | `python -m pytest tests/test_config_registry.py -q` | 93 passed（批次 P4；84 → 93，新增 `TestP4PortfolioRiskFieldsRegistered` 8 项 + `TestWebUiFieldLocalizationCoverage.test_batch_p4_fields_are_localized` 1 项） |
 | 守卫变异验证（批次 P4） | 4 项均被抓：registry `PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT` 默认值 35.0 → 30.0（全局默认值守卫 + 本批用例双抓）；`PORTFOLIO_FX_UPDATE_ENABLED` 的 `help_key` 并入阈值组 + 给百分比字段新增 `max`（3 failed）；删除前端中文卡片标题 + 给 FX 开关挂 `restart_required`（4 failed）；恢复后 93 passed |
-| `python -m pytest tests/test_system_config_service.py -q -k portfolio` | 3 passed（复核后新增：5 个数值字段越界拒绝 / 无上限极大值与下限边界值通过 / FX 开关拒绝 `1`、接受 `false`） |
+| `python -m pytest tests/application/runtime/test_system_config_service.py -q -k portfolio` | 3 passed（复核后新增：5 个数值字段越界拒绝 / 无上限极大值与下限边界值通过 / FX 开关拒绝 `1`、接受 `false`） |
 | 守卫变异验证（复核修正后补做） | 摘掉 `PORTFOLIO_RISK_LOOKBACK_DAYS` 的 `validation.min` → 2 failed（新增的 `test_validate_rejects_portfolio_risk_values_below_registry_min` SUBFAILED(key='PORTFOLIO_RISK_LOOKBACK_DAYS') + 既有 `test_numeric_bounds_match_runtime_clamping`），证明两条路径各自都有守卫；从 `/tmp/registry.bak` 还原后 `test_config_registry.py + test_system_config_service.py` 311 passed |
 | 越界文案修正（复核发现） | 按 `ARCHITECTURE_TARGET.md` “读取→编辑→校验→保存→刷新”自查发现初版把“运行时 clamp”当成唯一越界语义；已区分两条路径并改写 9 处文案：registry description 3 条（P4 两条 + P3 的 `FEISHU_MAX_BYTES`）、`settingsHelp.ts` 中英 4 条、`systemConfigI18n.ts` 3 条、`docs/full-guide.md` / `_EN.md` 各 2 处（P4 区间注意事项 + `FEISHU_MAX_BYTES` 行）、`docs/settings-help.md` 新增一段通用口径；CHANGELOG `[新功能]` 条目同步 |
-| `python -m pytest tests/test_config_registry.py tests/test_system_config_service.py tests/test_system_config_api.py -q -m "not network"` | 346 passed（批次 P4，复核修正后复跑；343 → 346 为新增的 3 项保存校验回归） |
+| `python -m pytest tests/test_config_registry.py tests/application/runtime/test_system_config_service.py tests/test_system_config_api.py -q -m "not network"` | 346 passed（批次 P4，复核修正后复跑；343 → 346 为新增的 3 项保存校验回归） |
 | `python -m pytest tests/test_portfolio_alerts.py tests/test_portfolio_api.py tests/test_portfolio_service.py tests/test_portfolio_pr2.py tests/test_data_tools_portfolio_snapshot.py -q -m "not network"` | 93 passed（批次 P4，0 失败；阈值参与告警判定的消费方未被本轮改动破坏） |
 | `cd apps/hrs-web && npx eslint src/locales/settingsHelp.ts src/utils/systemConfigI18n.ts` | 0 错误（批次 P4，含越界文案修正后的复跑） |
 | `cd apps/hrs-web && npx tsc -b` | 26 个既有错误，两个改动文件零命中（与批次 P1/P2/P3 一致） |
@@ -5122,12 +5122,12 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | `./scripts/ci_gate.sh syntax` + `architecture`（批次 P4） | 通过；架构守卫 5 条基线 / 0 新增；`flake8` 未执行（本机 venv 未安装，由 CI `backend-gate` 覆盖） |
 | `python scripts/check_ai_assets.py`（批次 P4） | `[ai-assets] OK` |
 | `python -m pytest -m "not network"` | **5415 passed / 31 failed / 10 errors**（批次 P4 收口后复跑；相对批次 P3 的 5399 为 +16，即 4 项中文文案守卫 + 1 项 P4 本地化守卫 + 8 项 `TestP4PortfolioRiskFieldsRegistered` + 3 项保存校验回归；失败集分布与批次 P3 逐项一致：`test_intelligence_api`（10）/ `test_alerts_docs`（8）/ `test_yfinance_fundamental_adapter`（2）/ `test_search_performance`（2）/ `test_multi_agent`（2）+ 7 项单例，10 errors 全为 `apps/hrs-web/scripts/test_wt/*`，无一项落在 config registry / system_config / portfolio 上，0 新增失败） |
-| `python -m py_compile src/config/registry.py tests/test_config_registry.py tests/test_system_config_service.py` | 通过（批次 P5） |
+| `python -m py_compile src/config/registry.py tests/test_config_registry.py tests/application/runtime/test_system_config_service.py` | 通过（批次 P5） |
 | `python -m pytest tests/test_config_registry.py -q` | 103 passed（批次 P5；93 → 103，新增 `TestP5ReportImageAndWechatFormFieldsRegistered` 10 项） |
-| `python -m pytest tests/test_config_registry.py tests/test_system_config_service.py tests/test_system_config_api.py -q -m "not network"` | **358 passed**（批次 P5；批次 P4 收口为 346，+12 = 本批 10 项守卫 + 2 项保存校验回归） |
+| `python -m pytest tests/test_config_registry.py tests/application/runtime/test_system_config_service.py tests/test_system_config_api.py -q -m "not network"` | **358 passed**（批次 P5；批次 P4 收口为 346，+12 = 本批 10 项守卫 + 2 项保存校验回归） |
 | `python -m pytest tests/ -q -k "notification or md2img or wechat"` | 363 passed / 1 failed（批次 P5；唯一失败为基线既有的 `test_alerts_docs.py::test_alerts_doc_defines_p4_notification_and_cooldown_scope`，属下方 alerts_docs 8 项文档断言漂移，本轮未新增失败） |
 | 守卫变异验证（批次 P5，2 次） | 摘掉 `WECHAT_MAX_BYTES` 的 `validation.min` → 2 failed（既有 `test_numeric_bounds_match_runtime_clamping` + 新增 `test_validate_rejects_p5_numeric_values_below_registry_min` SUBFAILED）；摘掉 `MD2IMG_ENGINE` 的 `markdown-to-file` 选项 → 3 failed（`test_select_options_match_runtime_accepted_values` + `test_schema_response_includes_p5_fields` + `test_validate_rejects_p5_select_values_outside_options` SUBFAILED）；两次均从备份还原后 358 passed |
-| `python -m pytest tests/test_system_config_service.py -q -k "p5 or validate"` | 69 passed / 151 deselected（批次 P5；包含本批新增的 2 项保存校验回归。数值越界 → `out_of_range` + expected `>=1`；枚举列表外 → `invalid_enum` + expected 为选项串；大写值在 `.env` 路径可用、设置页被拒的差异已在 `docs/settings-help.md` 口径中写明） |
+| `python -m pytest tests/application/runtime/test_system_config_service.py -q -k "p5 or validate"` | 69 passed / 151 deselected（批次 P5；包含本批新增的 2 项保存校验回归。数值越界 → `out_of_range` + expected `>=1`；枚举列表外 → `invalid_enum` + expected 为选项串；大写值在 `.env` 路径可用、设置页被拒的差异已在 `docs/settings-help.md` 口径中写明） |
 | `cd apps/hrs-web && npx eslint src/locales/settingsHelp.ts src/utils/systemConfigI18n.ts` | 0 错误（批次 P5） |
 | `cd apps/hrs-web && npx tsc -b` | 26 个既有错误，两个改动文件零命中（与批次 P1/P2/P3/P4 一致） |
 | `cd apps/hrs-web && npx vitest run src/components/settings` | 3 failed files / 12 failed / 98 passed（与批次 P1–P4 逐项一致，0 新增失败） |
@@ -5329,7 +5329,7 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 | 架构守卫基线过宽 | 基线按“文件+模块+计数”记录，新增即失败；`--report` 可随时查看剩余违规 |
 | 守卫自身误报 | `tests/test_check_architecture.py` 覆盖基线放行/新增拦截/相对导入/`from src import x`/基线写入格式 |
 | 包化后测试 patch 目标失效或“看似通过但未生效” | 门面只转发不重导出实现：`patch("src.config.X")` 只改包属性，不影响 `src/config/settings.py` 内部解析；反之亦然。已按“被测代码从哪个模块对象取符号”逐文件确认：91 处改 `settings.*`，bootstrap 的 6 处保留门面目标 |
-| 设置页 `validation` 区间与运行时 clamp 边界不一致（区间过窄会拒绝 `.env` 里本可收敛的值，过宽会把越界值推到前端可保存范围） | 已用 `test_numeric_bounds_match_runtime_clamping` 双向绑定：既比对 registry 字面区间与 `parse_env_int/parse_env_float` 的 minimum/maximum，又用越界环境变量实际构造 `Config._load_from_env()` 观察是否收敛到同一边界。越界的两条路径已分开描述：设置页保存走 `_validate_numeric_range` 返回 `out_of_range` 并 400 拒写（`tests/test_system_config_service.py::test_validate_rejects_portfolio_risk_values_below_registry_min`），`.env` / 进程环境变量才走静默 clamp |
+| 设置页 `validation` 区间与运行时 clamp 边界不一致（区间过窄会拒绝 `.env` 里本可收敛的值，过宽会把越界值推到前端可保存范围） | 已用 `test_numeric_bounds_match_runtime_clamping` 双向绑定：既比对 registry 字面区间与 `parse_env_int/parse_env_float` 的 minimum/maximum，又用越界环境变量实际构造 `Config._load_from_env()` 观察是否收敛到同一边界。越界的两条路径已分开描述：设置页保存走 `_validate_numeric_range` 返回 `out_of_range` 并 400 拒写（`tests/application/runtime/test_system_config_service.py::test_validate_rejects_portfolio_risk_values_below_registry_min`），`.env` / 进程环境变量才走静默 clamp |
 | 模型包拆分后漏导入 → `create_all()` 静默漏表 | `Base.metadata` 只收集已导入的类。已在 `src/storage.py` 顶部显式导入全部用到的模型，并用三重校验兜底：类名集合 diff、逐类 AST 比对、开发库 32/32 表对照 |
 | 架构基线只因模块改名而新增条目，可能掩盖真实分层退化 | 本次只增加 1 条，且与它成对的 `src.storage` 条目仍在（同一文件同一笔债），不是放宽而是拆名；已登记到 §8 第 4 项的归零清单 |
 | 会话/迁移拆分后，测试 patch `src.storage.*` “假装通过” | `time` / `inspect` / `create_engine` 已不在 `src.storage`，patch 会直接报 AttributeError；写重试内部改走 `DatabaseSession.create_session`，patch `db.get_session` 会静默不生效（表现为 sleep 计数 0）。已全部按真实模块对象重定向，并在 §0.9 记录映射表 |
@@ -5457,7 +5457,7 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 5. **P2-B2b（持久化收口）**：已完成（见 §0.10）。`DatabaseManager` 的 60+ 查询/写入方法已按域迁入 `persistence/repositories/`，`src/storage.py` 2180 → 1038 行，只留单例装配、会话入口与同名薄委托。
    - 范围调整：本切片**未**改 `api/v1/endpoints/watchlist.py`。第 4 项已给出更具体的结论——该端点的直连 ORM 债要等 P3 纵向用例才能归零；这里按第 4 项执行，避免在无应用服务层的情况下把 431 行端点临时改成半薄半厚的形状。
    - 下一次收紧守卫的时机：P3 引入自选股用例后，同时消掉 `watchlist.py -> persistence.models.watchlist` 与同文件的 `src.storage` 两条，再 `--write-baseline`。**已在 P3 切片 1 执行**（§0.11）。
-6. ~~**读模型复用的收敛（P3 后续切片 / P5）**~~ **已完成（P3 切片 14，见 §0.24）**：`src/application/history/` 调用的 `HistoryService` 4 个下划线辅助（`_history_code_filter_candidates` / `_display_stock_code` / `_serialize_created_at` / `_display_market_phase_summary`）已按方式① 提升为公开方法，6 处跨层调用（含 `src/services/alert_worker.py` 与 `tests/test_analysis_history.py`）全部同步改名；未采用方式②（个股栏读模型整体下沉），避免在收口切片里重启一份读模型。守卫已落地 AST 属性访问规则：`src/application/` 不得引用其他对象的 `_x` 成员（`self._x` / `cls._x` / dunder 放行，基线键 `private:<name>`），真实工作树由 `tests/test_check_architecture.py::test_repository_has_no_cross_layer_private_member_access` 锁定为 0 处。剩下的读模型归属（`HistoryService` 整体位于 `src/services/`，且 `src/application/history/` 仍依赖它）归 P4/P5 处理——`ARCHITECTURE_TARGET.md` §4 的归属表已把 `history_service.py` / `history_loader.py` / `history_comparison_service.py` 列为 `application/history/` 候选；届时若下沉到 `src/application/history/`，要同时删除这层刚刚公开的辅助，不能两边都留。
+6. ~~**读模型复用的收敛（P3 后续切片 / P5）**~~ **已完成（P3 切片 14，见 §0.24）**：`src/application/history/` 调用的 `HistoryService` 4 个下划线辅助（`_history_code_filter_candidates` / `_display_stock_code` / `_serialize_created_at` / `_display_market_phase_summary`）已按方式① 提升为公开方法，6 处跨层调用（含 `src/services/alert_worker.py` 与 `tests/application/history/test_analysis_history.py`）全部同步改名；未采用方式②（个股栏读模型整体下沉），避免在收口切片里重启一份读模型。守卫已落地 AST 属性访问规则：`src/application/` 不得引用其他对象的 `_x` 成员（`self._x` / `cls._x` / dunder 放行，基线键 `private:<name>`），真实工作树由 `tests/test_check_architecture.py::test_repository_has_no_cross_layer_private_member_access` 锁定为 0 处。剩下的读模型归属（`HistoryService` 整体位于 `src/services/`，且 `src/application/history/` 仍依赖它）归 P4/P5 处理——`ARCHITECTURE_TARGET.md` §4 的归属表已把 `history_service.py` / `history_loader.py` / `history_comparison_service.py` 列为 `application/history/` 候选；届时若下沉到 `src/application/history/`，要同时删除这层刚刚公开的辅助，不能两边都留。
 7. **回测服务分层（`src/services/backtest_service.py` → `src/application/backtest/`）**：✅ **已于 §0.36 完成实际搬包**（前置条件由 §0.30/§0.33/§0.34/§0.35a-c 逐一满足）。以下为当时列出的前置条件与逐项落地状态：
    - 先消掉搬家后会直接触发守卫的依赖：`sqlalchemy`（`and_` / `select`，用于 `_recompute_summaries` 的会话直查）、`data_provider.base`（代码归一化 + 日线取数）；同时拆掉不该进入用例层的 `src.infrastructure.persistence.models`（`BacktestResult` / `BacktestSummary`）、`src.repositories`（两个仓储）与 `src.storage`（`DatabaseManager` 类型与写入）。**守卫口径纠偏**：`src/application/` 禁令为 `fastapi`/`sqlalchemy`/`data_provider`/`src.infrastructure`/`api.`/`bot.`，`src/` 兜底只禁 `api.`/`bot.`——故三项中仅 `src.infrastructure.persistence.models` 搬家会触发守卫；`src.repositories`/`src.storage` 搬家后仍不触发守卫，属目标架构（§2「应用依赖 domain + ports」）意义上的**设计债**而非守卫债，最终以端口+DI 收敛但不阻断搬家。（前置进度：`sqlalchemy` 已于 §0.30 收敛；`data_provider.base` 两项消费点已全部消除——归一符号 §0.33 归口 `stock_code_utils`、`_try_fill_daily_data` 的 `DataFetcherManager`+`save_daily_data` 于 §0.34 收敛到 `DailyBarRefillPort`+infrastructure 适配器；剩余真实搬家阻断仅 `src.infrastructure.persistence.models`（领域 DTO 下沉 Epic **已完成**：§0.35a 新增 `src/domain/backtest/` 两记录；§0.35b 仓储读路径全部改为返回领域记录；§0.35c 写路径入参改记录（仓储内部 Record↔ORM 双向映射）并删除 service 的 `persistence.models` import——本阻断项清零，`backtest_service` 对搬家禁令涉及依赖已全部消除），`repositories`/`storage` 为非阻断设计债）
    - 把 `self.db` 的两处直用收进端口：`_try_fill_daily_data` 的 `self.db.save_daily_data(...)`（1 处）与 `_recompute_summaries` 的 `with self.db.get_session() as session:`（1 处）。（本项两个直用点**均已消除**：`_recompute_summaries` 的 `get_session` 于 §0.30 随基线归零一并下沉仓储；`_try_fill_daily_data` 的 `save_daily_data` 于 §0.34 与 `DataFetcherManager` 取数一并收敛进 `DataProviderDailyBarRefill`，`backtest_service` 不再出现 `self.db.save_daily_data`）

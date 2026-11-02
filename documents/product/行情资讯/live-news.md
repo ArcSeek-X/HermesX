@@ -321,7 +321,7 @@ def start(self, *, run_immediately=False):
 
 > ⚠️ 实现要点：读取配置时不能用 `value or 默认值` 写法。`0` 是合法配置（关闭自动抓取），
 > 但会被 `or` 判为 falsy 而错误回退到默认值，导致开关静默失效。
-> 已由 `IntelligenceService._config_int()` 统一处理，`tests/test_live_news.py` 有对应回归用例。
+> 已由 `IntelligenceService._config_int()` 统一处理，`tests/integration/intelligence/test_live_news.py` 有对应回归用例。
 
 **本期不引入 SSE 推送**。项目虽有 `/api/v1/analysis/events` SSE 通道，但新增快讯推送通道会显著增加前后端复杂度，留作后续演进。
 
@@ -965,7 +965,7 @@ NewsNow wallstreetcn-quick（项目已内置，0 改造成本）
 | **⑧ 前端类型 & API**    | 类型定义 + 4 个 API 方法                               | `src/types/liveNews.ts` 🆕、`src/api/liveNews.ts` 🆕           | ✅ 已完成  |
 | **⑨ 前端 Hook**       | 2 个 Hook（轮询、分页、防抖、分组）                           | `src/hooks/useLiveNews.ts` 🆕                                 | ✅ 已完成  |
 | **⑩ 前端页面**          | 页面 + 路由 + 侧边栏入口 + i18n（中/繁/英）                   | `src/pages/LiveNewsPage.tsx` 🆕、`App.tsx`、`SidebarNav.tsx`    | ✅ 已完成  |
-| **⑪ 测试**            | 后端单测 26 例（Fetcher / Service / 降级 / 边界）          | `tests/test_live_news.py` 🆕                                  | ✅ 已完成  |
+| **⑪ 测试**            | 后端单测 26 例（Fetcher / Service / 降级 / 边界）          | `tests/integration/intelligence/test_live_news.py` 🆕                                  | ✅ 已完成  |
 | **⑫ 文档**            | 本文档按实施结果校准 + `documents/CHANGELOG.md` 追加一行            | 见 §14.4                                                       | ⏳ 待合入时 |
 
 #### <a id="实施中的三处偏差已同步到对应章节"></a>实施中的三处偏差（已同步到对应章节）

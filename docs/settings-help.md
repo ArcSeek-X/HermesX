@@ -57,11 +57,11 @@ PR3 registered-field slice / 阶段性补齐：聚焦 Web 设置页中实际展�
 - 数据源与搜索：TickFlow、SerpAPI、Brave、Bocha、MiniMax、SearXNG 公共实例、BIAS 阈值和 Pytdx 服务器字段。
 - 通知高级字段：飞书高级安全/应用字段、Telegram topic、Discord/Slack 高级字段、Pushover、ntfy、Gotify、PushPlus、ServerChan3、AstrBot 和自定义 Webhook 高级模板/鉴权字段。
 
-本轮补齐（P2 前置条件 2 的批次 P1）：板块排行 / 涨跌停池路由（`SECTOR_*` / `LIMITPOOL_*` 各 3 项）与外部行情凭证（`ALPHAVANTAGE_API_KEY`、`FINNHUB_API_KEY`、`LONGBRIDGE_*` 4 项、`SOCIAL_SENTIMENT_*` 2 项）共 14 个字段，归入「数据源」分类。路由字段的 `options` 与各 manager 实际注册的 source 绑定，由 `tests/test_config_registry.py::TestP1DataSourceFieldsRegistered` 保证一致，避免设置页出现未接入的源名。
+本轮补齐（P2 前置条件 2 的批次 P1）：板块排行 / 涨跌停池路由（`SECTOR_*` / `LIMITPOOL_*` 各 3 项）与外部行情凭证（`ALPHAVANTAGE_API_KEY`、`FINNHUB_API_KEY`、`LONGBRIDGE_*` 4 项、`SOCIAL_SENTIMENT_*` 2 项）共 14 个字段，归入「数据源」分类。路由字段的 `options` 与各 manager 实际注册的 source 绑定，由 `tests/config/settings/test_config_registry.py::TestP1DataSourceFieldsRegistered` 保证一致，避免设置页出现未接入的源名。
 
 批次 P2（资讯源）补齐：实时快讯（`WSCN_LIVE_NEWS_*` 7 项）、财经日历（`WALLSTREETCN_CALENDAR_*` 4 项）、本地资讯池（`NEWS_INTEL_*` 4 项）与 NewsNow 聚合源（`NEWSNOW_BASE_URL`）共 16 个字段，归入「数据源」分类；help_key 按能力分为 `live_news` / `live_calendar` / `news_intel` / `newsnow` 四组。数值字段的 `validation.min/max` 必须等于 `parse_env_int` / `parse_env_float` 的收敛边界（越界值运行时会被静默 clamp），由 `TestP2NewsFieldsRegistered` 以真实 `Config._load_from_env()` 反证。
 
-数值区间的两条路径（适用于所有 `number` / `integer` 注册字段）：设置页的保存 / validate 链路走 `SystemConfigService._validate_numeric_range`，越界值返回 `out_of_range`（severity=`error`）并阻止写入，不会静默改写用户输入；`parse_env_int` / `parse_env_float` 的 `minimum` / `maximum` clamp 只作用于 `.env` 与进程环境变量读取路径。因此 registry 里声明的边界同时是“前端拒绝阈值”和“`.env` 收敛目标”，两者必须保持一致，不能只按其中一条路径描述。回归覆盖见 `tests/test_system_config_service.py::test_validate_rejects_portfolio_risk_values_below_registry_min`。
+数值区间的两条路径（适用于所有 `number` / `integer` 注册字段）：设置页的保存 / validate 链路走 `SystemConfigService._validate_numeric_range`，越界值返回 `out_of_range`（severity=`error`）并阻止写入，不会静默改写用户输入；`parse_env_int` / `parse_env_float` 的 `minimum` / `maximum` clamp 只作用于 `.env` 与进程环境变量读取路径。因此 registry 里声明的边界同时是“前端拒绝阈值”和“`.env` 收敛目标”，两者必须保持一致，不能只按其中一条路径描述。回归覆盖见 `tests/application/runtime/test_system_config_service.py::test_validate_rejects_portfolio_risk_values_below_registry_min`。
 
 下拉（`select`）字段的枚举同理分两条路径：`get_field_definition` 会从 `options` 自动派生 `validation.enum`，设置页保存列表外的值返回 `invalid_enum`（severity=`error`）；而 `.env` / 进程环境变量路径不报错，只按字段自身的解析语义处理（`MD2IMG_ENGINE` 非法值回落默认引擎，`WECHAT_MSG_TYPE` 则原样存储、由发送侧把非 `text` 的值当 `markdown` 处理）。枚举比较按字面值，因此大写值在设置页会被拒，而 `.env` 里会先归一成小写。
 
@@ -71,7 +71,7 @@ PR3 registered-field slice / 阶段性补齐：聚焦 Web 设置页中实际展�
 
 批次 P5（报告转图片与企业微信消息形态）补齐：转图三键（`MARKDOWN_TO_IMAGE_CHANNELS` / `MARKDOWN_TO_IMAGE_MAX_CHARS` / `MD2IMG_ENGINE`，共用 `settings.notification.markdown_to_image` 帮助组）与企业微信两键（`WECHAT_MSG_TYPE` / `WECHAT_MAX_BYTES`，`settings.notification.wechat_delivery`）共 5 个字段，归入已有的「通知」分类。本批两个下拉字段是首次把“options 派生 enum → 保存拒写”这条路径带入设置页，因此 `TestP5ReportImageAndWechatFormFieldsRegistered` 与 `test_validate_rejects_p5_select_values_outside_options` 分别锁定选项集等于运行时真正接受的值集、以及列表外值被 `invalid_enum` 拒写。`VISION_MODEL`（写入归属已由「AI 模型接入」的通道编辑器卡片接管，注册会造成一键两面）与 `VISION_PROVIDER_PRIORITY`（除 `Config.validate()` 告警文案外无行为读取方，且与文档描述已漂移）继续留在 `WEB_SETTINGS_PENDING_EXPOSURE`，需先定调才能入库。
 
-批次 P6（LLM 渠道开关）结论：唯一待评估的 `LLM_ANSPIRE_ENABLED` **不入库**，仍留在 `WEB_SETTINGS_PENDING_EXPOSURE`。它和上面段落里的例外是同一家族：前端把任何 `LLM_` 前缀的键当作「AI 模型接入」渠道编辑器的草稿键（`SettingsPage.tsx` 的 `isLlmChannelEditorDraftKey`），本键又正好匹配 `LLM_<渠道>_ENABLED` 正则，编辑器会按渠道名读回并写回它；因此注册会造成一键两面，而且在已配置渠道时 `ai_model` 分类会把这张卡片静默过滤，“注册 = 可在设置页编辑”并不成立。另外它只在 `LLM_CHANNELS` 里确实存在名为 `anspire` 的渠道时才会改变解析结果，其余场景是一个不生效的开关，不符合批次 P3 确立的“运行时确有读取方”入库标准。回归覆盖见 `tests/test_config_registry.py::TestP6LlmChannelSwitchStaysPending`。至此配置批次 P1–P6 收口，pending 表剩下 9 个键：因编辑器托管 / 无行为读取方 + 文档漂移 / 条件性不生效而待定的 3 个键（`VISION_MODEL`、`VISION_PROVIDER_PRIORITY`、`LLM_ANSPIRE_ENABLED`），以及平台适配器尚未实现的 6 个 P3 遗留键。
+批次 P6（LLM 渠道开关）结论：唯一待评估的 `LLM_ANSPIRE_ENABLED` **不入库**，仍留在 `WEB_SETTINGS_PENDING_EXPOSURE`。它和上面段落里的例外是同一家族：前端把任何 `LLM_` 前缀的键当作「AI 模型接入」渠道编辑器的草稿键（`SettingsPage.tsx` 的 `isLlmChannelEditorDraftKey`），本键又正好匹配 `LLM_<渠道>_ENABLED` 正则，编辑器会按渠道名读回并写回它；因此注册会造成一键两面，而且在已配置渠道时 `ai_model` 分类会把这张卡片静默过滤，“注册 = 可在设置页编辑”并不成立。另外它只在 `LLM_CHANNELS` 里确实存在名为 `anspire` 的渠道时才会改变解析结果，其余场景是一个不生效的开关，不符合批次 P3 确立的“运行时确有读取方”入库标准。回归覆盖见 `tests/config/settings/test_config_registry.py::TestP6LlmChannelSwitchStaysPending`。至此配置批次 P1–P6 收口，pending 表剩下 9 个键：因编辑器托管 / 无行为读取方 + 文档漂移 / 条件性不生效而待定的 3 个键（`VISION_MODEL`、`VISION_PROVIDER_PRIORITY`、`LLM_ANSPIRE_ENABLED`），以及平台适配器尚未实现的 6 个 P3 遗留键。
 
 Issue #1512 收口后，Web 设置页只展示后端配置注册表中的正式字段。未注册的 `.env` key 不再作为普通可编辑设置项展示，避免 raw key、`Auto-inferred field metadata.` 和无 help 按钮的配置项进入中文界面；这些 key 仍可通过 `.env` 文件或导入/导出能力保留和维护。
 
@@ -79,7 +79,7 @@ Issue #1512 收口后，Web 设置页只展示后端配置注册表中的正式�
 
 暂不纳入 Web 设置页展示的运维/基础设施类变量包括 `DATABASE_PATH`、`SQLITE_*`、`USE_PROXY`、`PROXY_HOST`、`PROXY_PORT`、`HTTPS_PROXY`、`NO_PROXY`、`ENV_FILE` 等。若后续需要在 Web 中编辑这些字段，应先在 `src/config/registry.py` 中正式注册并补齐 help 元数据，而不是依赖自动推断。
 
-所有未注册的运行时键必须由 `src/config/registry.py` 中的三张声明表之一收录，`tests/test_config_registry.py` 会强制校验 `src/config/settings.py` 的每个 `os.getenv` 键都落在其中：
+所有未注册的运行时键必须由 `src/config/registry.py` 中的三张声明表之一收录，`tests/config/settings/test_config_registry.py` 会强制校验 `src/config/settings.py` 的每个 `os.getenv` 键都落在其中：
 
 | 声明表 | 语义 |
 | --- | --- |

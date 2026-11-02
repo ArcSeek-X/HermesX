@@ -424,14 +424,144 @@ S/P 路径治理对单一边界件已穷尽后，重新盘存顶层 164 件：�
 
 `git mv tests/application/decision/test_signal_scanner_service.py tests/` 并删除空目录 `tests/application/decision/`；`scanner.md:127` 一行还原为 `tests/test_signal_scanner_service.py`；live_news/security_baseline 未动。
 
+## 4Q. 分类搬迁批 7：providers/common(1)+application/reporting(1)+config/settings(1) 三件（含一次 git 索引态异常上报）（✅ 已验证，2026-11-01）
+
+重新盘存顶层 121 件：**62 件路径干净 + 59 件带 hazard**。严格以「读完整断言分布」作 pre-check（不沿用计数/初筛的乐观标注）：62 件干净里**仅 1 件 SOLE**（test_chip_distribution_manager），其余均 ≥ 2-bound，且绝大多数已在批 5/6 被判为真混合（analyzer_news_prompt、decision_stability、run_flow、portfolio 组、backtest service/repo、search 组、live_news/security_baseline 等）。本批从 2-bound 中挑出「第二边界实为 DTO/helper、主边界就近」的确定件：
+
+| 目标目录 | 文件 | 主体依据（断言分布） |
+| --- | --- | --- |
+| `infrastructure/providers/common/` | test_chip_distribution_manager | SOLE `data_provider`；断言 `DataFetcherManager.get_chip_distribution` 跨 fetcher 选源降级（与同目录 `test_data_fetcher_manager_*`/`*_fallback`/`*_manager_routing` 同族） |
+| `application/reporting/` | test_report_renderer | 断言均为 `reporting.report_renderer.render`；`application.analysis.AnalysisResult` 仅在构造/类型标注出现→纯 DTO（DTO 支撑型判据） |
+| `config/settings/` | test_config_validate_structured | 主体 `Config.validate_structured`/`ConfigIssue`；`domain.generation.backend_identity` 仅作错误消息里的样本字符串→helper；与同目录 config_manager/env_compat 同族 |
+
+三件均路径完全干净（sys/parents/file 全 0、无 `from tests.`/包内导入）、双目录 docref 均 clean、零代码改动。**暂缓**：test_report_language_fallbacks_ko（domain.shared 占位文本 + application.market 标题两组均断言、ko sweep 双 subject）、test_autocomplete_pr0（`class TestAnalyzeRequest`(api.schemas) + `class TestTaskInfo`(runtime.task_queue) 两个对等测试类→双 SUT）→归 T3。
+
+**⚠️ git 索引态异常（非本任务发起、非破坏性）**：本片收尾核查发现，此前已暂存的 `R` 重命名集体退化为「旧路径 ` D` + 新目录 `??`」。排查 HEAD 发现：① **HEAD 仍跟踪全部旧测试路径**、无新路径→测试搬迁从未被提交（仅存在于工作树）；② HEAD 相对基线 fe7410bb 领先 **44 个提交**，均为 `gaocangxiong` 于 2026-11-01 23:40–23:41 一分钟内提交的**纯文档提交**（Update CHANGELOG.md/scanner.md/PLAN.md、Create PROGRESS.md）→系用户/其环境 checkpoint 在提交文档并伴随一次 index reset，**非本 agent 发起的 commit**（本会话全程未跑 commit/add/reset/stash，批 7 三个 git mv 仍为正确已暂存 `R`）。物理重构完整无损（294→118 = 176 件纯搬迁、无删除）；未暂存的 D+?? 在提交时 `git add -A` + rename 检测（-M）会自动重新配对，零数据风险。因此本台账的累计口径改用**稳健的物理口径**（顶层 `test_*.py` 294 递减），不再以 git 已暂存 R 计数为准。待用户自行确认 checkpoint 行为后再统一提交。
+
+验证：3 件定向 **102 passed**、全量离线门禁 **5713 passed / 4 deselected / 0 failed**（237.61s）、`--collect-only` **5717**、零回归；双目录+scripts/.github 无活动残留。至此**累计 176 件**（物理口径）、顶层降至 **118**。未改 conftest/setup.cfg/stub，未提交。
+
+### 回滚方式（本片）
+
+3 件逐件 `git mv` 回 `tests/`（目标目录均为既有且非空，无需回收）；本批零代码改动、零 docref 变更。
+
+## 4R T3-a 跨切首片：新建 `tests/utils/` + 无 hazard 就近/入口件 8 件（2026-11-02）
+
+T3 设计经用户确认（单一新增 `integration/` 桶 + 其余复用既有桶 + hazard 先修后归 + 仅 autocomplete_pr0 拆分）。T3-a 仅取**路径干净、纯 `git mv` 零代码改动**的就近/入口/安全件：
+
+| 文件 | 边界签名（读完整断言定 SUT） | 目标 | 规则 |
+|---|---|---|---|
+| `test_security_baseline` | api cookie 标志 + src.auth session/secret 跨层安全不变量 | `infrastructure/security/`（已含 auth.py、cwe_xff） | R4 security |
+| `test_auth_status_setup_state` | `endpoints.auth.auth_status/update_settings` 主导，src.auth 为状态源 | `api/auth/` | R1 |
+| `test_main_portfolio` | `import main` + `main.parse_arguments/resolve_portfolio_stock_codes` | `bootstrap/entrypoints/` | R1 入口 |
+| `test_main_schedule_mode` | `import main` + schedule 模式配置/通知编排 | `bootstrap/entrypoints/` | R1 入口 |
+| `test_news_intel` | `DatabaseManager.save_news_intel` 持久化去重，search_service 为 DTO | `infrastructure/persistence/` | R1 |
+| `test_get_latest_data` | `DatabaseManager.get_latest_data`，models 为 DTO | `infrastructure/persistence/` | R1 |
+| `test_search_tools_persistence` | `agent.tools.search_tools` 持久化，intelligence.search_service 为 DTO | `application/agent/` | R1 |
+| `test_analysis_metadata` | SOLE `src.utils.analysis_metadata`（utils 族后续聚拢） | 🆕 `tests/utils/` | SOLE |
+
+- `notification_diagnostics`（application.alert↔notification 跨子域、无 tests/application/alert 目录）**延至 T3-b integration/notification**，不在本片强归。
+- 活动指针同步：`documents/framework/security_performance_baseline.md` ×3（security_baseline 守卫用例路径）、`docs/analysis-context-pack.md:113`（main_schedule_mode 验收路径）→ 均为可执行回归路径，已随迁更新；同 line 内其余待搬件路径随各自片同步。
+- 验证：定向 133 passed；**全量离线门禁 `pytest tests -m "not network"` = 5713 passed / 4 deselected / 0 failed**（231.57s），collect 不变 → 零回归；顶层 118 → 110，物理累计 184 件。
+
+---
+
+## 4S T3-b 跨切/就近片：新建 `tests/integration/` 稀疏桶（11） + 主 SUT 就近（39）（共 50 件，2026-11-02）
+
+**策略修订**（较初始设计更收敛）：经回顾批 1「seam 件可就近」先例 + AGENTS.md §7「不新增平行结构」，确立：**仅真正跨 ≥3 特性域的端到端/seam-heavy 件进稀疏 `integration/`，其余按主 SUT 模块就近归既有桶**（避免 `integration/` 退化为与特性树平行的第二套目录）。逐件读完整断言分布定主 SUT。
+
+**integration/（11 件，跨 ≥3 域端到端/seam-heavy）**：
+- `integration/analysis`←analysis_integration（api+runtime+auth TestClient 端到端触发）、analysis_api_contract（api+analysis+history+indexing+runtime 合约）
+- `integration/intelligence`←live_news（fetcher+service+api+persistence seam）、live_calendar（dp news+config+persistence+service seam）、intelligence_analysis_integration（config+analysis+market+persistence seam）
+- `integration/decision`←skill_opinion_samples（agent+analysis+decision+persistence seam）、decision_signal_extractor（analysis+decision+persistence ×3 bootstrap seam）
+- `integration/portfolio`←portfolio_pr2（portfolio+auth+api+decision ×4 bootstrap seam）、portfolio_service（service+persistence+providers seam）
+- `integration/generation`←llm_channel_config（config+domain.generation+infra.generation+app.runtime 三域 channel 配置）
+- `integration/alert`←alert_worker（notification+alert+decision+config ×4 bootstrap seam）
+
+**主 SUT 就近（39 件，含 2 个新建二级目录）**：application/agent←agent_tool_surface/skill_load_warning/agent_litellm_route_resolution；infrastructure/agent_runtime←codex_tool_process/codex_app_server_gate_a；infrastructure/search←search_searxng/search_tavily_provider；application/intelligence←search_news_freshness/search_service_concurrency/intelligence_service；application/analysis←analysis_context_pack_overview/analyzer_news_prompt/decision_stability/pipeline_daily_market_context/pipeline_related_boards/chip_structure_fallback；application/reporting←report_language_prompt_directives/analysis_context_pack_prompt；application/market←market_review_runtime/report_language_fallbacks_ko；application/runtime←run_flow/system_config_service/generation_backend_status_service；application/history←analysis_history；🆕 application/watchlist←watchlist_use_case；application/notification←notification_diagnostics；application/decision←decision_signal_outcome_service/skill_opinion_outcomes；🆕 application/backtest←backtest_service；domain/analysis←analysis_context_pack_schema；infrastructure/persistence←backtest_repo_record_mapping/decision_signal_repo；infrastructure/generation←generation_backend/local_cli_backend；infrastructure/providers/common←jp_kr_market_support/tw_market_support/realtime_quote_fallback_logging；application/portfolio←portfolio_risk_belong_boards_port/portfolio_service_realtime_port。
+
+- 活动指针同步（均为可执行回归路径）：analysis_api_contract×5、live_news×2、llm_channel_config×多处、analyzer_news_prompt/decision_stability/pipeline_daily_market_context/market_review_runtime/system_config_service/analysis_history——以 `find docs documents -name '*.md' | xargs sed` 递归双目录同步，残留旧路径清零。
+- 验证：integration 子片定向 389 passed；39 就近件纯 git mv；**全量离线门禁 = 5713 passed / 4 deselected / 0 failed**（两次子片各 229/231s），collect 不变 → 零回归；顶层 110 → 60（余均 hazard + autocomplete_pr0），物理累计 234。
+
+---
+
+## 4T T3-c 拆分片：`test_autocomplete_pr0.py` 按真实边界三段拆分（2026-11-02）
+
+顶层唯一剩余的「干净但双 SUT」件。全文读完发现实为 4 个类、**3 个真实边界**，按边界三段拆分（非原计划两段）：
+- `api/contract/test_autocomplete_analyze_request.py`←TestAnalyzeRequest（5 例，仅 `api.v1.schemas.analysis.AnalyzeRequest` 请求契约）
+- `application/runtime/test_task_queue_autocomplete_fields.py`←TestTaskInfo(3)+TestTaskQueue(4)（均针对 `task_queue` 的 TaskInfo/AnalysisTaskQueue，共 7 例）
+- `integration/analysis/test_autocomplete_end_to_end.py`←TestIntegration(2 例，AnalyzeRequest→get_task_queue 跨 api+runtime 端到端）
+
+原件 `git rm`；14 例总数与拆分前三文件之和一致（5+7+2），collect 恒 5717。原件无 docref 活动指针（已核）。验证：拆分三件定向 **14 passed**；**全量离线门禁 = 5713 passed / 4 deselected / 0 failed**（238.86s），零回归；顶层 60 → 59（均为 hazard），物理累计 235。
+
+---
+
+## 4U T3-e 结构守卫片：`bound=0` 仓库结构/契约守卫件路径修正 + 归位 `tooling/*` 与 `api/contract`（8 件，2026-11-02）
+
+这批不测运行时行为，而是校验仓库文件结构 / 工作流 env / 脚本契约 / schema 契约，逐件先修深度敏感路径（`Path(__file__).parent[s]` → `get_repo_root()`；`sys.path.insert(... 'scripts')` 保留但对齐根辅助），再按守卫对象就近归位（先做 T3-e、后做 T3-d，因守卫件归属最无歧义）：
+
+| 件 | 守卫对象（读全文确认） | 路径修正 | 目标 |
+|---|---|---|---|
+| test_check_architecture | importlib 加载 `scripts/check_architecture.py` + 扫真实仓库 | `REPO_ROOT=parent.parent`→`get_repo_root()`（保留 Path，别处仍用） | tooling/scripts |
+| test_generate_index_from_csv | `scripts/generate_index_from_csv.py` 单元 | `sys.path.insert(Path(__file__).parent.parent/'scripts')`→`get_repo_root()/'scripts'`，删 Path 导入 | tooling/scripts |
+| test_refresh_stock_index | `scripts/refresh_stock_index` importlib | `ROOT=parent.parent`→`get_repo_root()`，删 Path 导入 | tooling/scripts |
+| test_fetch_tushare_stock_list | `scripts/fetch_tushare_stock_list` importlib | 同上 | tooling/scripts |
+| test_daily_analysis_workflow_llm_env | `.github/workflows/00-daily-analysis.yml` + 模板/env 静态校验 | `ROOT_DIR=parent.parent`→`get_repo_root()`，删 Path 导入 | tooling/workflows |
+| test_daily_analysis_workflow_notification_env | 同上 yml + `docs/notifications.md` 表 + scripts/src 常量 | `ROOT_DIR`→`get_repo_root()`，删 Path 导入 | tooling/workflows |
+| test_data_provider_adr_structure | `data_provider/` 目录与 ADR-001 结构对齐 + 语法编译 | `ROOT=parents[1]`→`get_repo_root()`，删 Path 导入 | tooling/docs |
+| test_kline_schema | `api/v1/schemas/kline.py` Pydantic 字段契约（importlib 隔离加载） | `_SCHEMA_PATH=parents[1]`→`get_repo_root()`，删 Path 导入 | api/contract |
+
+> 注：`test_static_assets_consistency` 经读全文判定为 **scripts 检查器 + 大量 `api.app` 资源服务/股票索引路由** 的混合件（非纯结构守卫），不纳入本批，归 T3-d 处理。
+
+docref：9 处匹配全落在 `documents/framework/**`（ADR/refactoring/迁移台账）与 CHANGELOG 等**历史留真**治理文档，无 `docs/*.md` 产品文档或 `.github` 工作流的**活动 pytest 指针**，故本批无需活动指针同步。验证：8 件全量离线门禁 **5713 passed / 4 deselected / 0 failed**（231.96s），零回归；顶层 59 → 51（均为 hazard），物理累计 243。（定向曾出现 `dotenv` stub 泄漏假红：`fetch_tushare_stock_list` 模块级桩只注入 `load_dotenv`，当它在同进程先于 `notification_env`（需 `dotenv_values`）被收集时污染 `sys.modules`；属既有跨文件导入顺序耦合，非搬迁引入，全量收集顺序下门禁绿。）
+
+---
+
+## 4V T3-d hazard 多边界件：51 件逐簇修路径 + 读断言定主 SUT 归位（顶层 51 → 0，物理累计 294，2026-11-02）
+
+承接 T3-e（先做归属最无歧义的 bound=0 守卫件），T3-d 处理剩余 51 个 hazard 件。按主 SUT 簇分片推进，每片先修路径 hazard 再 `git mv` 归位，**每片均跑全量离线门禁对账零回归**。路径 hazard 三分法：① `sys.path.insert(0, abspath(dirname(__file__),'..'))` = 仓库根自注入（conftest 已提供根路径），删行即可，若 `os`/`sys` 再无他用则删对应 import；② `Path(__file__).resolve().parent[s]` 求根 = 深度敏感，改 `get_repo_root()`（注入 `scripts`/`data` 子路径的改为 `get_repo_root()/'scripts'` 保留访问）；③ 引用**被测模块**的 `module.__file__`（读源码断言）= 深度安全，纯搬迁不改码。
+
+| 簇 | 件数 | 主 SUT 判据 | 路径修法 | 目标桶 |
+|---|---|---|---|---|
+| api endpoint 接线 | 8 | `api/v1/endpoints/*` 分层接线契约 | 4 件 `parents[1]`/`.parent.parent`→`get_repo_root()`（kline/limit_pool/sector/decision_signal），4 件仅 `module.__file__` 安全纯搬 | api/{kline,limit_pool,stocks,analysis,sector,backtest,agent,decision_signals} |
+| agent 簇 | 9 | `src.application.agent.*` + infra.search + api.agent | 删冗余根自注入/转 `get_repo_root()`/`strategies_dir`→根辅助，多余 `os`/`sys`/`Path` 删导入；anspire `os.path` 求根→`str(get_repo_root())` | application/agent(7)+infrastructure/search(1)+api/agent(1) |
+| pipeline 簇 | 7 | `src.application.analysis.pipeline.StockAnalysisPipeline`（既有 `test_pipeline_*` 家族先例） | 6 件删根自注入（realtime 另修 `data/test_issue234.db`→`get_repo_root()/'data'`）；persistence_port 仅 `module.__file__` 安全 | application/analysis |
+| signal_attribution | 4 | schema 件=`report_schema`+`domain.shared.report_language`（单元）；e2e/real_paths/supplement 跨 analyzer+notification+history+utils（集成） | schema 件无 hazard 纯搬；其余删 `..'/src'`/自目录/root 注入块（os/sys 仅此处用） | application/analysis(1)+integration/analysis(3) |
+| notification/misc S 件 | 8 | formatters/report_fixtures→`domain.shared.text_chunking`；llm_usage→`infra.generation.usage`；task_service→`application.runtime`；chat_context→`application.agent`；tw_report/notification→`application.notification`；data_fetcher→`DataFetcherManager`（`test_data_fetcher_manager_*` 先例） | 各删根自注入（llm_usage 保留 os/Path，notification 保留 sys 因 `sys.modules` mock），report_fixtures `FIXTURE_DIR=Path(__file__).parent/'fixtures'`→`get_repo_root()/'tests'/'fixtures'` | domain/shared(2)+infra/generation/telemetry(1)+application/runtime(1)+application/agent(1)+application/notification(2)+infra/providers/common(1) |
+| 混合/P/守卫尾部 | 15 | analyzer_domain_rules→`domain.analysis`(chip/prompt)+`domain.decision`；bot_use_case_wiring→bot 分层守卫；config_registry→`src.config.registry`；decision_signal_docs→docs 契约守卫；decision_signal_service→`application.decision`；image_vision→`application.analysis`+infra.generation；market_analyzer/market_review→`application.analysis`/`application.market`；run_diagnostics_p1/p2→`application.runtime.run_diagnostics`；schedule_times→`domain.shared`；schema_migration_guard→`infra.persistence.schema_compat`；static_assets_consistency→`scripts.check_static_assets`+api.app（混合判主 scripts 侧）；tushare→`data_provider.tushare_fetcher`；webui_frontend→`src.webui_frontend` 入口件 | parents[1]/parent.parent 求根→`get_repo_root()`（config_registry 8 处、bot 4 处、static `SCRIPT_DIR`→`get_repo_root()/'scripts'`、tushare `_PROJECT_ROOT`→`str(get_repo_root())` 供 `load_dotenv`）；market_analyzer/market_review/schema_guard/webui 仅 `module.__file__`/`tmp_path`+monkeypatch 安全纯搬；p1/p2 删根自注入 | domain/analysis(1)+bot(1)+config/settings(1)+tooling/docs(1)+application/decision(1)+application/analysis(2)+application/market(1)+application/runtime(2)+domain/shared(1)+infra/persistence(1)+tooling/scripts(1)+infra/providers/common(1)+bootstrap/entrypoints(1) |
+
+> 关键判定：`test_tushare_fetcher_get_stock_list` 的 `__main__` 用 `unittest.main()`（非 `pytest.main([__file__])`），直跑不自我递归，无死循环风险，正常搬迁；`test_static_assets_consistency` 从 T3-e 剔除后按主 SUT（`check_static_assets` 脚本模块为顶层导入依赖、api.app 侧复用同一一致性逻辑）归 `tooling/scripts`，`SCRIPT_DIR` 改走根辅助保留 `importlib.import_module('check_static_assets')` 可解析；`agent_frozen_context` 等双关注点件按 P5 整件归主边界桶不拆。
+
+docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命中仅落在 `documents/framework/refactoring/ARCHITECTURE_MIGRATION_PROGRESS.md`、`src_migration_index.md`、`CHANGELOG.md` 的**历史留真**迁移记录（记录各切片当时实跑命令），无 `docs/*.md` 产品文档或 `.github` 工作流的**活动 pytest 指针**，故无需活动指针同步（agent 簇的 8 处活动指针已在 T3-d 子批2 单独 sed 同步、残留清零）。
+
+验证：T3-d 全程 4 次全量离线门禁均 **5713 passed / 4 deselected / 0 failed**（pipeline+signal 合并片 228.34s、notif/misc 片 239.28s、尾部 15 件片 232.50s，另 pipeline 单独片 235.24s；EXIT=0），各簇定向亦全绿（71 / 46 / 270 / 437 passed），零回归。顶层 `test_*.py` 51 → **0**，物理累计 **294**（= T0 基线顶层 294 全部归位）。残留顶层仅 `conftest.py`（基础设施，留）、`litellm_stub.py`（待 T4 → `support/stubs`）、`longbridge_live_smoke.py`/`tw_institutional_live_smoke.py`（network 门控 smoke，留）。全程零提交、未动 git 索引（早期已暂存 rename 退化为 `D+??` 的索引态异常仍待用户处置）。
+
+---
+
+## 4W T4 公共依赖治理 + T5 收口：stub/smoke 归位、docs 活动指针同步、随机顺序如实登记（2026-11-02）
+
+承接 T3 全部收官（顶层 `test_*.py`=0），本片交付 T4（公共依赖治理）与 T5（收口）。全程零提交、未动 git 索引（用户最后一次性提交）。
+
+- **T4-A stub 归位**：`git mv tests/litellm_stub.py → tests/support/stubs/litellm_stub.py`。40 个消费件（38 `import ensure_litellm_stub` + 2 `import ensure_litellm_stub, remove_litellm_stub`）的 `from tests.litellm_stub import` 单形态 sed 重指为 `from tests.support.stubs.litellm_stub import`；残留旧模块路径 0。`tests/__init__.py` 使 `tests` 为常规包、根 conftest 注入仓库根 sys.path，深层子包**无需** `__init__.py` 即可解析（符合方案 §5.3「不批量新增 `__init__.py`」）。import 冒烟（ensure→`litellm.__hrs_test_stub__`→remove）+ py_compile 均绿。stub 内部只写 `sys.modules["litellm"]`、无自指模块路径，故其体内 `litellm_stub.` 变量名不受影响。
+- **T4-B smoke 归位**：`git mv` 两个直跑在线脚本 → `tests/tooling/manual_smoke/`。二者无 `test_` 前缀、pytest 不收集、不靠 conftest；其 `_PROJECT_ROOT = os.path.dirname(__file__)/".."` 自举 sys.path **早于**任何 `tests.*` 导入（鸡生蛋），故**不能**用 `get_repo_root()`；改深度为 `"..","..",".."`（manual_smoke→tooling→tests→根），运行时校验解析到仓库根（`main.py`/`pyproject.toml` 均命中）。docstring 内调用命令 + 2 处跨件 docstring 引用（`test_tw_institutional_network.py` / `test_longbridge_fetcher.py`）同步；CHANGELOG/PLAN/PROGRESS/reviews 历史留真不改。
+- **T4-C `src.utils` 族聚拢（取证后为 no-op）**：`src/utils/` = {analysis_metadata, data_processing, market_review_region, pagination, sanitize, sniper_points, time}；仅 `test_analysis_metadata.py` 以单一 `src.utils` 模块为主 SUT（已在 `tests/utils/`）。`data_processing`/`sanitize` 仅作为**支撑 import** 出现在 pipeline/signal/decision/context-pack 域测试（主 SUT 非 utils），按「勿以支撑 import 误杀归类」原则留原桶；`market_review_region`/`pagination`/`sniper_points`/`time` 无 dotted-path 专属测试件；亦无 `from src.utils import` 非点号形态。结论：`tests/utils/` 已正确最小化，无件需搬。
+- **T4-D 模块级副作用 / 全局补丁审计（保持原样 + 上报）**：全仓测试 **0 处模块级（无缩进）`sys.modules` 写入**，38 个写 `sys.modules` 的文件均在函数/fixture 内局部注入——§5.3 无机械收敛对象。`ensure_litellm_stub()` 的模块顶层调用是刻意导入期 seam（被测模块自身 top-level `import litellm`），不可降为 fixture。conftest 的 asyncio/AnyIO 唤醒补偿 + `_ThreadlessTestClient`（TestClient 替换）为方案 §5.2 明确的**独立证据驱动治理对象**：改其全局作用域须先复现原「沙箱首唤醒丢失」问题、按证据定范围，非文件搬迁范畴，本片**不盲改**，登记为后续独立片。
+- **T5 硬路径收口**：`scripts/` + `.github/` 对 tests 旧路径 **0 硬编码**（CI 仅 `pytest -m "not network"` + `testpaths=tests` 递归；`setup.cfg` `python_files=test_*.py` 全递归、默认 import-mode + basename 唯一，无需改配置）。`docs/*.md` 发现 **7 个 stale 顶层活动指针**（`test_config_env_compat`/`test_config_registry`/`test_market_analyzer_generate_text`/`test_market_review`/`test_pipeline_market_phase_context`/`test_run_diagnostics_p1`/`test_run_diagnostics_p2`），逐一按当前实际子路径 sed 同步、残留 0。`documents/` 447 命中全部为 `CHANGELOG.md` 历史留真、`.claude/reviews/` 为审查历史——均不改。doc-anchor 守卫（`test_analysis_context_pack_docs`/`test_decision_signal_docs`/`test_config_registry`/`test_docker_entrypoint`）不断言 `tests/test_*.py` 串，编辑不破锚点。
+- **T5 随机顺序（如实登记未验证）**：本环境 pytest 9.1.1 **未安装 pytest-randomly/order/xdist/parallel**，方案 §8.1「已有 pytest-randomly 环境下记录 seed」的前提不满足；安装属新增 dev 依赖且改变收集语义，需单独授权，不在搬迁范围。以确定性全量门禁 + 高 seam 簇定向作为替代证据。子集直跑时 `test_system_config_api` 出现 2 处失败为**导入顺序假红**（该件在全量权威门禁中随兄弟模块安装 stub 后绿），非搬迁回归。
+
+> 复核纠正（2026-11-02）：此前 §4W 曾把 `tests/tooling/test_runtime/`（内含 `test_threadless_test_client.py`，测 conftest `_ThreadlessTestClient` shim）标为「`test_` 前缀目录命名瑕疵」，**判断有误**。核对方案 `TEST_SUITE_REFACTORING_PLAN.md` 目标目录树 line 230/294：`tooling/test_runtime/` 是方案**明确指定**的桶（注释「测试 client、兼容工具本身的回归」），与 line 231 指定的 `tooling/manual_smoke/` 平级；`test_` 前缀目录名是方案有意选择（与 `manual_smoke/` 同为 tooling 下固定子目录）。故按「单一真源/不改与方案冲突」原则**保留原样、不重命名**；用户请求的「test_runtime 目录清理」经此取证结论为无需清理（已在位、与方案一致、collect 正常、无任何代码/文档路径依赖它）。
+
+验证：T4-A/B/C 合并后全量离线门禁 **5713 passed / 4 deselected / 0 failed**（256.23s，EXIT=0）；docs 同步后再跑最终权威全量门禁 **5713 passed / 4 deselected / 0 failed**（250.60s，EXIT=0）、`--collect-only` 恒 **5717**（=5713+4 network），零回归。定向 stub+doc-anchor 簇 498 passed / 1 skip（skip 为离线门控的 network 类件）。`flake8 --select=E9,F63,F7,F82` on 改动件 = 0。顶层残留仅 `conftest.py`（基础设施，留）、`__init__.py`（包标识，留）；`test_*.py` 恒 0、stub 与 smoke 已归位。HEAD 未变、零提交、未动 git 索引。
+
+---
+
 ## 5. 后续切片与推进计划（进行中）
 
 - **T0 全量归属映射（待完成）**：还需对剩余 ~290 个顶层 `test_*.py` 逐文件确定目标边界/域与「移动/拆分/保留」状态。混合职责文件与大文件（见方案 §4）先登记拆分候选，不强拆。
 - **T1 续批（可立即推进）**：继续挑选**无 §2 依赖 + 非文档引用**的纯领域/独立工具测试，按模板分批搬，每批验证 collect=5717 + 目标目录绿。建议每批 5–15 个文件、按业务域成组。
 - **T2 按域归类**：处理带路径/包内依赖者——搬迁同片修正 `parents[...]`/`sys.path`，并对被文档引用的文件同步 `docs/*.md`（中英）与 CHANGELOG。config/infrastructure/api/bot/bootstrap/architecture 分域推进。
 - **T3 内部拆分**：`test_system_config_service.py`（222 方法）、`test_multi_agent.py`、`test_analysis_api_contract.py` 等按行为契约拆分，追踪用例覆盖对应关系，记录参数化导致的用例数变化。
-- **T4 公共依赖治理**：`litellm_stub` → `support/stubs/`（同步 109 引用）、根 conftest 兼容补丁适用范围评估、fixture 作用域下放、`support/paths` 统一根路径辅助。
-- **T5 收口**：核对 `scripts/ci_gate.sh`、`.github/workflows/*`、全仓文档中的 `tests/` 硬编码路径；补运行说明；全量离线结果不退化，网络未跑项明示。
+- **T4 公共依赖治理（✅ 已完成，见 §4W）**：`litellm_stub` → `support/stubs/`（40 引用同步）、两个 live_smoke → `tooling/manual_smoke/`（自举深度改 `../../..`）、`src.utils` 族聚拢经取证为 no-op、模块级 `sys.modules` 0 写入；conftest §5.2 全局补丁保持原样并登记为独立证据驱动后续片。
+- **T5 收口（✅ 已完成，见 §4W）**：`scripts/ci_gate.sh`、`.github/workflows/*` 0 硬编码旧路径；`docs/*.md` 7 处 stale 活动指针已同步、`documents/` 历史留真不改；全量离线 5713/4/0 不退化、collect 恒 5717；随机顺序因本环境无 pytest-randomly 而记为未验证项（安装需单独授权）。
 
 ### 每片收尾必做
 

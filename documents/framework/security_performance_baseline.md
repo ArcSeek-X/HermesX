@@ -2,7 +2,7 @@
 
 > 对应 `ARCHITECTURE_TARGET.md` §9.2-5：「对公网/桌面两种运行场景的认证、Cookie、CORS 与修改类请求防护，以及性能/启动时间的基线和验收阈值，须在相关切片开始前记录」。
 > 取证时间：**2026-10-31**｜基线 HEAD：`fe7410bb`（工作树含 W1–W9 未提交改动）｜实测环境：macOS 14 (darwin)、Python 3.11.15（`.venv`）
-> 守卫用例：`tests/test_security_baseline.py`（15 条）｜测量脚本：`scripts/measure_performance_baseline.py`
+> 守卫用例：`tests/infrastructure/security/test_security_baseline.py`（15 条）｜测量脚本：`scripts/measure_performance_baseline.py`
 
 本文件只记录**可核对的事实与阈值**，不宣称「已安全」「性能不变」。凡未实测的项，在 §5 明确列为未覆盖。
 
@@ -39,7 +39,7 @@
 - **本次结论**：**维持落法 A，不做 `AuthPort` 端口化**。理由：
   1. `auth.py` 的外部依赖只有本地文件（`.env`、`.session_secret`、`.admin_password_hash`）与 `os.environ`，不存在「可替换驱动」——端口化只会得到一个单实现的空壳，违反 AGENTS.md「优先复用现有模块，不新增平行实现」；
   2. `api/` 直连 `src.auth` 已被架构守卫判定合法（守卫只禁 `api → src.storage/repositories/infrastructure/data_provider`）；
-  3. 真实风险（签名强度、Cookie 标志、CORS 组合、限流桶）已由 `tests/test_security_baseline.py` 静态+行为双重锁定，端口化不降低这些风险。
+  3. 真实风险（签名强度、Cookie 标志、CORS 组合、限流桶）已由 `tests/infrastructure/security/test_security_baseline.py` 静态+行为双重锁定，端口化不降低这些风险。
 - **重评触发条件**（满足任一才重新考虑选项 B）：引入多用户/OAuth 等第二种会话载体；会话需要跨进程或多实例共享；需要把 `api/auth` 与会话存储拆到不同部署单元。
 - **回滚**：本决策无代码改动，无需回滚。
 
@@ -82,7 +82,7 @@
 
 ## 5. 守卫映射与未覆盖项
 
-`tests/test_security_baseline.py`（15 条）逐条对应的不变量：
+`tests/infrastructure/security/test_security_baseline.py`（15 条）逐条对应的不变量：
 
 1. Cookie：`httponly/lax/secure(https)`、`secure(http)=False`、代理分支 `X-Forwarded-Proto`、`max_age` 非法值回落；
 2. 密钥：32 字节 + `0600`、长度异常自动重建、令牌三段式往返、篡改签名失效、过期失效、`hmac.compare_digest` 静态断言；
