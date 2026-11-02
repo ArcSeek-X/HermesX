@@ -75,9 +75,23 @@ class TestStockIndexLoader(unittest.TestCase):
             ):
                 paths = stock_index_loader.get_stock_index_candidate_paths()
 
+            # 单一真相源：仅剩远程缓存 + 仓库根 dist-web/static 两个候选。
+            self.assertEqual(len(paths), 2)
             self.assertEqual(paths[0], remote_cache)
-            self.assertTrue(paths[1].as_posix().endswith("apps/hrs-web/public/stocks.index.json"))
-            self.assertTrue(paths[2].as_posix().endswith("static/stocks.index.json"))
+            self.assertTrue(paths[1].as_posix().endswith("dist-web/static/stocks.index.json"))
+
+    def test_default_candidate_paths_honor_static_dir_override(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            remote_cache = Path(temp_dir) / "data" / "cache" / "stocks.index.json"
+            override_root = Path(temp_dir) / "frontend"
+            with patch.dict(os.environ, {"HRS_STATIC_DIR": str(override_root)}), patch.object(
+                stock_index_loader,
+                "get_remote_stock_index_cache_path",
+                return_value=remote_cache,
+            ):
+                paths = stock_index_loader.get_stock_index_candidate_paths()
+
+            self.assertEqual(paths[1], override_root / "static" / "stocks.index.json")
 
     def test_get_stock_name_index_map_is_cached_after_first_load(self):
         with tempfile.TemporaryDirectory() as temp_dir:

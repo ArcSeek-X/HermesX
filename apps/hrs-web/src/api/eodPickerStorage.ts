@@ -32,7 +32,7 @@ export function healFilters(input: Partial<EodPickerFilters> | null | undefined)
   const v = (input ?? {}) as Partial<EodPickerFilters>;
   const num = (x: unknown, d: number): number => (typeof x === 'number' && !Number.isNaN(x) ? x : d);
   // 上限字段允许 null（不限制）：仅接受 number 或 null，其余回退默认
-  const numOrNull = (x: unknown, d: number): number | null =>
+  const numOrNull = (x: unknown, d: number | null): number | null =>
     x === null ? null : typeof x === 'number' && !Number.isNaN(x) ? x : d;
   return {
     circMvMin: num(v.circMvMin, base.circMvMin),

@@ -29,8 +29,8 @@ x-common: &common
     # Longbridge OAuth token cache persistence; entrypoint repairs container-side ownership for hrs user.
     # Create ../longbridge_tokens on the host before copying an authorized token cache into it.
     - ../longbridge_tokens:/home/hrs/.longbridge
-    # 如需覆盖前端静态资源，可挂载本地 static 目录
-    # - ../static:/app/static:ro
+    # 如需覆盖前端静态资源，可挂载本地 dist-web 目录
+    # - ../dist-web:/app/dist-web:ro
 
   environment:
     - TZ=Asia/Shanghai

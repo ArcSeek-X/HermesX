@@ -884,6 +884,11 @@ function buildBackendEnvironment({
     FEISHU_STREAM_ENABLED: 'false',
   };
 
+  // 前端外置：打包态注入 HRS_STATIC_DIR，指向 Resources/frontend（含 static/ 直通资源）。
+  if (app.isPackaged) {
+    env.HRS_STATIC_DIR = path.join(process.resourcesPath, 'frontend');
+  }
+
   if (Number.isInteger(selectedPort) && selectedPort >= 1 && selectedPort <= 65535) {
     env.WEBUI_PORT = String(selectedPort);
   }
@@ -910,11 +915,11 @@ function ensureDirectory(dirPath) {
 function initLogging() {
   const appDir = resolveAppDir();
   logFilePath = path.join(appDir, 'logs', 'desktop.log');
-  
+
   // 确保日志目录存在
   const logDir = path.dirname(logFilePath);
   ensureDirectory(logDir);
-  
+
   logLine('Desktop app starting');
 }
 

@@ -33,8 +33,12 @@
         "to": ".env.example"
       },
       {
-        "from": "../../build/backend/stock_analysis",
+        "from": "../../dist-desktop/backend/stock_analysis",
         "to": "backend/stock_analysis"
+      },
+      {
+        "from": "../../dist-desktop/frontend",
+        "to": "frontend"
       }
     ],
     "win": {

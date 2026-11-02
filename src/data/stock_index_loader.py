@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from threading import RLock
 from typing import Dict, Iterable, Optional
@@ -26,12 +27,16 @@ _STOCK_INDEX_CACHE_LOCK = RLock()
 
 
 def get_stock_index_candidate_paths() -> tuple[Path, ...]:
-    """Return the supported locations for the generated stock index."""
-    repo_root = Path(__file__).resolve().parents[2]
+    """Return the supported locations for the generated stock index.
+
+    单一真相源：前端构建产物位于仓库根 dist-web/，stock 索引作为直通资源位于 dist-web/static/。
+    桌面端由 Electron 注入 HRS_STATIC_DIR 指向包内 frontend（含 static/）；未注入时走仓库根 dist-web/。
+    """
+    override = os.getenv("HRS_STATIC_DIR")
+    static_root = Path(override) if override else Path(__file__).resolve().parents[2] / "dist-web"
     return (
         get_remote_stock_index_cache_path(),
-        repo_root / "apps" / "hrs-web" / "public" / _STOCK_INDEX_FILENAME,
-        repo_root / "static" / _STOCK_INDEX_FILENAME,
+        static_root / "static" / _STOCK_INDEX_FILENAME,
     )
 
 

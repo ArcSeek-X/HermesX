@@ -16,9 +16,9 @@ if ([string]::IsNullOrWhiteSpace($pythonBin)) {
 Write-Host "Using Python: $pythonBin"
 
 Write-Host 'Verifying static asset references (source)...'
-& $pythonBin "${PSScriptRoot}\check_static_assets.py" 'static'
+& $pythonBin "${PSScriptRoot}\check_static_assets.py" 'dist-web'
 if ($LASTEXITCODE -ne 0) {
-  throw "Static asset sanity check failed for source static/. See GitHub #1064."
+  throw "Static asset sanity check failed for source dist-web/. See GitHub #1064."
 }
 
 function Test-PythonCode {
@@ -66,17 +66,18 @@ if (-not (Test-PythonCode -Python $pythonBin -Code "import orjson")) {
   throw 'orjson is not importable after installing requirements.'
 }
 
-if (Test-Path 'dist\backend') {
-  Remove-Item -Recurse -Force 'dist\backend'
-}
-New-Item -ItemType Directory -Path 'dist\backend' | Out-Null
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
-if (Test-Path 'dist\stock_analysis') {
-  Remove-Item -Recurse -Force 'dist\stock_analysis'
+# 桌面端产物统一收纳到 dist-desktop\：backend 为 PyInstaller 最终产物，.work\.specs 为中间产物（隐藏目录）。
+# 仅清理 backend\.work\.specs 三项，不触碰 dist-desktop\frontend（由 build-desktop 脚本生成）。
+if (-not (Test-Path 'dist-desktop')) {
+  New-Item -ItemType Directory -Path 'dist-desktop' | Out-Null
 }
-
-if (Test-Path 'build\stock_analysis') {
-  Remove-Item -Recurse -Force 'build\stock_analysis'
+foreach ($stale in @('backend', '.work', '.specs')) {
+  $stalePath = Join-Path 'dist-desktop' $stale
+  if (Test-Path $stalePath) {
+    Remove-Item -Recurse -Force $stalePath
+  }
 }
 
 $hiddenImports = @(
@@ -137,8 +138,14 @@ $pyInstallerArgs = @(
   '--onedir',
   '--noconfirm',
   '--noconsole',
-  '--add-data', 'static;static',
-  '--add-data', 'strategies;strategies',
+  # --distpath：最终产物落到 dist-desktop\backend\stock_analysis。
+  # --workpath/--specpath：中间产物收纳到 dist-desktop\.work 与 dist-desktop\.specs（隐藏目录，不被 extraResources 取用）。
+  # 前端不再烤入包：桌面 frontend 由 build-desktop 从 dist-web 复制到 dist-desktop\frontend，经 Electron extraResources 外置。
+  # 注：PyInstaller 6.x 在 --specpath 下会按 spec 目录解析 --add-data 的相对源路径，故此处必须用绝对路径。
+  '--distpath', 'dist-desktop\backend',
+  '--workpath', 'dist-desktop\.work',
+  '--specpath', 'dist-desktop\.specs',
+  '--add-data', "$repoRoot\strategies;strategies",
   '--collect-data', 'litellm',
   '--collect-data', 'tiktoken',
   '--collect-data', 'akshare',
@@ -154,14 +161,12 @@ if ($LASTEXITCODE -ne 0) {
   throw "PyInstaller failed with exit code $LASTEXITCODE."
 }
 
-if (!(Test-Path 'dist\stock_analysis')) {
-  throw 'PyInstaller finished but dist\stock_analysis was not generated.'
+if (!(Test-Path 'dist-desktop\backend\stock_analysis')) {
+  throw 'PyInstaller finished but dist-desktop\backend\stock_analysis was not generated.'
 }
 
-Copy-Item -Path 'dist\stock_analysis' -Destination 'dist\backend\stock_analysis' -Recurse -Force
-
 Write-Host 'Verifying packaged runtime imports...'
-$packagedEntry = Join-Path 'dist\backend\stock_analysis' 'stock_analysis.exe'
+$packagedEntry = Join-Path 'dist-desktop\backend\stock_analysis' 'stock_analysis.exe'
 if (-not (Test-Path $packagedEntry)) {
   throw "Packaged backend entrypoint not found: $packagedEntry"
 }
@@ -183,36 +188,22 @@ try {
 }
 
 Write-Host 'Verifying packaged AkShare calendar data...'
-$packagedAkshareCalendar = Join-Path 'dist\backend\stock_analysis' '_internal\akshare\file_fold\calendar.json'
+$packagedAkshareCalendar = Join-Path 'dist-desktop\backend\stock_analysis' '_internal\akshare\file_fold\calendar.json'
 if (-not (Test-Path $packagedAkshareCalendar)) {
-  $packagedAkshareCalendar = Join-Path 'dist\backend\stock_analysis' 'akshare\file_fold\calendar.json'
+  $packagedAkshareCalendar = Join-Path 'dist-desktop\backend\stock_analysis' 'akshare\file_fold\calendar.json'
 }
 if (-not (Test-Path $packagedAkshareCalendar)) {
-  throw 'Packaged AkShare calendar data not found under dist\backend\stock_analysis.'
-}
-
-Write-Host 'Verifying static asset references (packaged)...'
-$packagedStatic = Join-Path 'dist\backend\stock_analysis' '_internal\static'
-if (-not (Test-Path $packagedStatic)) {
-  $packagedStatic = Join-Path 'dist\backend\stock_analysis' 'static'
-}
-if (Test-Path $packagedStatic) {
-  & $pythonBin "${PSScriptRoot}\check_static_assets.py" $packagedStatic
-  if ($LASTEXITCODE -ne 0) {
-    throw "Static asset sanity check failed for packaged $packagedStatic. See GitHub #1064."
-  }
-} else {
-  Write-Warning "Could not locate packaged static directory under dist\backend\stock_analysis; skipping post-package check."
+  throw 'Packaged AkShare calendar data not found under dist-desktop\backend\stock_analysis.'
 }
 
 Write-Host 'Verifying packaged built-in strategies...'
 $sourceStrategyCount = @(Get-ChildItem -Path 'strategies' -Filter '*.yaml' -File).Count
-$packagedStrategies = Join-Path 'dist\backend\stock_analysis' '_internal\strategies'
+$packagedStrategies = Join-Path 'dist-desktop\backend\stock_analysis' '_internal\strategies'
 if (-not (Test-Path $packagedStrategies)) {
-  $packagedStrategies = Join-Path 'dist\backend\stock_analysis' 'strategies'
+  $packagedStrategies = Join-Path 'dist-desktop\backend\stock_analysis' 'strategies'
 }
 if (-not (Test-Path $packagedStrategies)) {
-  throw 'Packaged strategies directory not found under dist\backend\stock_analysis.'
+  throw 'Packaged strategies directory not found under dist-desktop\backend\stock_analysis.'
 }
 $packagedStrategyCount = @(Get-ChildItem -Path $packagedStrategies -Filter '*.yaml' -File).Count
 if ($packagedStrategyCount -ne $sourceStrategyCount) {

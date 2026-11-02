@@ -72,11 +72,21 @@ verify_unsigned_dmg() {
 
 echo "Building Electron desktop app (macOS)..."
 
-if [[ ! -d "${ROOT_DIR}/dist/backend/stock_analysis" ]]; then
-  echo "Backend artifact not found: ${ROOT_DIR}/dist/backend/stock_analysis"
+if [[ ! -d "${ROOT_DIR}/dist-desktop/backend/stock_analysis" ]]; then
+  echo "Backend artifact not found: ${ROOT_DIR}/dist-desktop/backend/stock_analysis"
   echo "Run scripts/build-backend-macos.sh first."
   exit 1
 fi
+
+# 前端外置：把 dist-web 复制到 dist-desktop/frontend，供 Electron extraResources 打进 Resources/frontend。
+if [[ ! -d "${ROOT_DIR}/dist-web" ]]; then
+  echo "Frontend artifact not found: ${ROOT_DIR}/dist-web"
+  echo "Run scripts/build-backend-macos.sh first (it builds dist-web)."
+  exit 1
+fi
+mkdir -p "${ROOT_DIR}/dist-desktop"
+rm -rf "${ROOT_DIR}/dist-desktop/frontend"
+cp -R "${ROOT_DIR}/dist-web" "${ROOT_DIR}/dist-desktop/frontend"
 
 pushd "${ROOT_DIR}/apps/hrs-desktop" >/dev/null
 

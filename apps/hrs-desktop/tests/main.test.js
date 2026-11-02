@@ -358,6 +358,40 @@ test('buildBackendEnvironment normalizes wildcard host for backend env', (t) => 
   assert.equal(ipv6Env.WEBUI_HOST, '::');
 });
 
+test('buildBackendEnvironment injects HRS_STATIC_DIR to packaged frontend resource dir', (t) => {
+  const originalResourcesPath = process.resourcesPath;
+  t.after(() => {
+    process.resourcesPath = originalResourcesPath;
+  });
+  process.resourcesPath = '/tmp/hrs-resources';
+
+  const mainModule = loadMainModule(t, { platform: 'win32', app: { isPackaged: true } });
+
+  const env = mainModule.buildBackendEnvironment({
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
+    port: 8000,
+    sourceEnv: { PATH: '/bin' },
+  });
+
+  assert.equal(env.HRS_STATIC_DIR, path.join('/tmp/hrs-resources', 'frontend'));
+});
+
+test('buildBackendEnvironment leaves HRS_STATIC_DIR unset in unpackaged dev mode', (t) => {
+  const mainModule = loadMainModule(t, { platform: 'win32' });
+
+  const env = mainModule.buildBackendEnvironment({
+    envFile: '/tmp/hrs/.env',
+    dbPath: '/tmp/hrs/data.db',
+    logDir: '/tmp/hrs/logs',
+    port: 8000,
+    sourceEnv: { PATH: '/bin' },
+  });
+
+  assert.equal(env.HRS_STATIC_DIR, undefined);
+});
+
 test('buildBackendArgs passes resolved host to main.py', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
 

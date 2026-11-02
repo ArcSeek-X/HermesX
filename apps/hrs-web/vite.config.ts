@@ -6,7 +6,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from 'node:fs'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -218,6 +218,38 @@ const getVendorChunkName = (id: string): string | undefined => {
   )
 }
 
+// 直通静态资源插件：apps/hrs-web/public 下不参与打包的第三方资源（universe 星系背景、
+// stocks.index.json、vite.svg）需归入构建产物的 dist-web/static/ 子目录。
+// - build：Vite 默认把 public/* 原样复制到 outDir 根，closeBundle 阶段再搬到 outDir/static/*。
+// - dev：将 /static/* 重写到 Vite 的 publicDir 根，使其命中 public/*。
+// 这样 dev 与 prod 都以 /static/... 访问，与后端托管 dist-web/static/ 的路径契约一致。
+function staticPassthroughPlugin(): Plugin {
+  const publicDir = path.resolve(frontendDir, 'public')
+  const outDir = path.resolve(repoRoot, 'dist-web')
+  return {
+    name: 'hrs-static-passthrough',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url?.startsWith('/static/')) {
+          req.url = req.url.slice('/static'.length)
+        }
+        next()
+      })
+    },
+    closeBundle() {
+      const staticDir = path.join(outDir, 'static')
+      mkdirSync(staticDir, { recursive: true })
+      for (const name of readdirSync(publicDir)) {
+        try {
+          renameSync(path.join(outDir, name), path.join(staticDir, name))
+        } catch {
+          // public 内容未随构建出现在 outDir 根时忽略。
+        }
+      }
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -235,6 +267,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    staticPassthroughPlugin(),
     buildMetadataPlugin(),
     tailwindcss(),
     react({
@@ -254,8 +287,11 @@ export default defineConfig({
     },
   },
   build: {
-    // 打包输出到项目根目录的 static 文件夹
-    outDir: path.resolve(__dirname, '../../static'),
+    // 打包输出到项目根目录的 dist-web 文件夹
+    // 内部布局：
+    //   - dist-web/index.html + dist-web/assets/*：参与打包的前端产物
+    //   - dist-web/static/*：从 apps/hrs-web/public 直通、不参与打包的第三方资源（universe 背景、stocks.index.json 等），由 staticPassthroughPlugin 搬运
+    outDir: path.resolve(__dirname, '../../dist-web'),
     emptyOutDir: true,
     rollupOptions: {
       output: {

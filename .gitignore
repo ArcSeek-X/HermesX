@@ -86,9 +86,9 @@ verify_*.py
 !.claude/skills/
 !.claude/skills/**
 
-# ignore static files
-# 仅忽略仓库根目录下的历史 Vite 产物目录，避免误匹配 apps/hrs-web/public/static/ 中需要入库的直通资源。
-/static/
+# 前端与桌面端构建产物（均可重生成的构建输出，不入库）
+/dist-web/
+/dist-desktop/
 /apps/hrs-desktop/dist/
 /apps/hrs-desktop/node_modules/
 docs/specs/

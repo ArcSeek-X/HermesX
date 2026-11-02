@@ -5,7 +5,8 @@
 Default flow:
 1. Fetch Tushare stock lists into ``data/`` with ``--a-rk`` for A-share name correction.
 2. Generate ``apps/hrs-web/public/stocks.index.json`` from CSV plus JP/KR seed rows.
-3. Copy the generated index to ``static/stocks.index.json`` for backend use.
+3. Sync the generated index to ``dist-web/static/stocks.index.json`` when the frontend has been built,
+   so backend can serve the freshest copy without re-running ``npm run build``.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from typing import Sequence
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_INDEX_PATH = REPO_ROOT / "apps" / "hrs-web" / "public" / "stocks.index.json"
-STATIC_INDEX_PATH = REPO_ROOT / "static" / "stocks.index.json"
+STATIC_INDEX_PATH = REPO_ROOT / "dist-web" / "static" / "stocks.index.json"
 
 
 def _run(command: Sequence[str]) -> None:
@@ -49,6 +50,13 @@ def _has_tushare_token() -> bool:
 def _sync_static_index() -> None:
     if not WEB_INDEX_PATH.is_file():
         raise FileNotFoundError(f"generated Web index not found: {WEB_INDEX_PATH}")
+    # dist-web/ 为前端构建产物目录，只有已跑过 npm run build 时才存在；此时同步刷新。
+    if not STATIC_INDEX_PATH.parent.parent.is_dir():
+        print(
+            f"[refresh_stock_index] skip dist-web sync (frontend not built yet): {STATIC_INDEX_PATH.parent}",
+            flush=True,
+        )
+        return
     STATIC_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(WEB_INDEX_PATH, STATIC_INDEX_PATH)
     print(f"[refresh_stock_index] synced {WEB_INDEX_PATH} -> {STATIC_INDEX_PATH}", flush=True)

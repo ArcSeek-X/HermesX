@@ -28,7 +28,7 @@ import { cn } from '../../utils/cn';
  */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-subtle' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'danger-soft' | 'settings-primary' | 'settings-secondary' | 'action-primary' | 'action-secondary' | 'home-action-ai' | 'home-action-report';
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
   size?: 'xsm' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
@@ -67,7 +67,7 @@ const ACTION_REPORT_STYLES = 'bg-[var(--home-action-report-bg)] border border-[v
  *   - 主操作类：primary（主色渐变）、gradient（青→紫渐变）、settings-primary（设置面板主按钮，跟随 --primary）
  *   - 次操作类：secondary（卡片底 + 边框）、settings-secondary（设置面板次按钮，跟随 --primary）
  *   - 轻量类：outline（描边）、ghost（透明、最弱）
- *   - 危险类：danger（实心红）、danger-subtle（淡红描边）
+ *   - 危险类：danger（实心红）、danger-soft（淡红描边）
  *   - 业务专用：action-primary / action-secondary / home-action-ai / home-action-report（首页 workspace 用）
  */
 const BUTTON_VARIANT_STYLES = {
@@ -79,7 +79,7 @@ const BUTTON_VARIANT_STYLES = {
   ghost: 'border border-transparent bg-transparent text-secondary-text hover:bg-hover hover:opacity-80 hover:text-foreground',
   gradient: 'border border-cyan/20 bg-gradient-to-r from-cyan to-purple text-primary-foreground shadow-lg shadow-cyan/20 hover:brightness-105',
   danger: 'border border-danger/40 bg-danger text-destructive-foreground shadow-lg shadow-danger/20 hover:brightness-105',
-  'danger-subtle': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
+  'danger-soft': 'border border-danger/60 bg-danger/10 text-danger hover:bg-danger/15',
   'action-primary': ACTION_AI_STYLES,
   'action-secondary': ACTION_REPORT_STYLES,
   'home-action-ai': ACTION_AI_STYLES,

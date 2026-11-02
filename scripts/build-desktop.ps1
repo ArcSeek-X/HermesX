@@ -23,11 +23,22 @@ $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_SYMLINKS = 'true'
 $env:ELECTRON_BUILDER_CACHE = "${PSScriptRoot}\..\.electron-builder-cache"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$backendArtifact = Join-Path $repoRoot 'dist\backend\stock_analysis'
+$backendArtifact = Join-Path $repoRoot 'dist-desktop\backend\stock_analysis'
 
 if (!(Test-Path $backendArtifact)) {
   throw "Backend artifact not found: $backendArtifact. Run scripts\build-backend.ps1 first."
 }
+
+# 前端外置：把 dist-web 复制到 dist-desktop\frontend，供 Electron extraResources 打进 Resources\frontend。
+$frontendSource = Join-Path $repoRoot 'dist-web'
+if (!(Test-Path $frontendSource)) {
+  throw "Frontend artifact not found: $frontendSource. Run scripts\build-backend.ps1 first (it builds dist-web)."
+}
+$frontendArtifact = Join-Path $repoRoot 'dist-desktop\frontend'
+if (Test-Path $frontendArtifact) {
+  Remove-Item -Recurse -Force $frontendArtifact
+}
+Copy-Item -Recurse -Force $frontendSource $frontendArtifact
 
 function Get-PackageLockHash {
   return (Get-FileHash -Path 'package-lock.json' -Algorithm SHA256).Hash

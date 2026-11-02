@@ -101,7 +101,7 @@ def _check_frontend_assets_consistency(static_dir: Path) -> List[str]:
             "that are not present on disk under %s. This will surface as a "
             "blank page in the desktop app (see GitHub #1064 / #1065). "
             "Missing: %s. Re-run the frontend build and make sure the packaging "
-            "step copies the freshly generated static/ directory.",
+            "step copies the freshly generated dist/ directory.",
             len(missing),
             static_dir,
             ", ".join(missing),
@@ -175,25 +175,25 @@ _STOCK_INDEX_HEADERS = {
 }
 
 
-def _bundled_stock_index_path() -> Path:
-    return Path(__file__).parent.parent / "apps" / "hrs-web" / "public" / _STOCK_INDEX_FILENAME
-
-
 def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     """
     创建并配置 FastAPI 应用实例
     
     Args:
-        static_dir: 静态文件目录路径（可选，默认为项目根目录下的 static）
+        static_dir: 静态文件目录路径（可选；未显式传入时优先读 HRS_STATIC_DIR，否则为仓库根 dist-web）
         
     Returns:
         配置完成的 FastAPI 应用实例
     """
-    # 默认静态文件目录
+    # 静态文件目录定位（单一真相源）：
+    # 桌面端由 Electron 注入 HRS_STATIC_DIR 指向包内 frontend；网页/Docker 未注入时走仓库根 dist-web。
     _register_frontend_asset_mime_types()
 
     if static_dir is None:
-        static_dir = Path(__file__).parent.parent / "static"
+        override = os.getenv("HRS_STATIC_DIR")
+        static_dir = (
+            Path(override) if override else Path(__file__).resolve().parent.parent / "dist-web"
+        )
     
     # 创建 FastAPI 实例
     app = FastAPI(
@@ -324,8 +324,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
 
     def _stock_index_candidate_paths() -> tuple[Path, ...]:
         local_candidates = (
-            static_dir / _STOCK_INDEX_FILENAME,
-            _bundled_stock_index_path(),
+            static_dir / "static" / _STOCK_INDEX_FILENAME,
         )
         local_path = next((path for path in local_candidates if path.is_file()), None)
         if local_path is None:

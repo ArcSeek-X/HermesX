@@ -7,12 +7,12 @@ Validates that ``index.html`` only references ``/assets/*.js`` and
 ``/assets/*.css`` files that actually exist on disk. A mismatch here is the
 most common cause of the "Preparing backend..." / blank-page bug reported in
 GitHub issues #1064, #1065, #1050: vite re-builds with a new content hash,
-but the packaging step picks up a stale ``static/`` directory or copies the
+but the packaging step picks up a stale ``dist/`` directory or copies the
 files out of sync, so the browser receives a 404 (often as JSON) for the
 main bundle and refuses to execute it.
 
 Usage:
-    python scripts/check_static_assets.py [<static_dir>]
+    python scripts/check_static_assets.py [<dist_dir>]
 
 Exits 0 when consistent, non-zero with a human-readable message otherwise.
 """
@@ -71,7 +71,7 @@ def main(argv: List[str]) -> int:
     if len(argv) > 1:
         static_dir = Path(argv[1]).resolve()
     else:
-        static_dir = (Path(__file__).resolve().parent.parent / "static").resolve()
+        static_dir = (Path(__file__).resolve().parent.parent / "dist-web").resolve()
 
     print(f"[check_static_assets] inspecting {static_dir}")
 
@@ -105,7 +105,7 @@ def main(argv: List[str]) -> int:
         print(
             "[check_static_assets] This produces a blank page on first load "
             "(see GitHub #1064 / #1065). Re-run the frontend build and make "
-            "sure the packaging step copies the freshly generated static/ "
+            "sure the packaging step copies the freshly generated dist/ "
             "directory.",
             file=sys.stderr,
         )

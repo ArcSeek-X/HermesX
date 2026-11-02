@@ -135,8 +135,10 @@ class DesktopBackendPackagingAssetsTestCase(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn('--add-data "strategies:strategies"', macos_script)
-        self.assertIn("--add-data', 'strategies;strategies'", windows_script)
+        # --add-data 的源路径使用绝对路径（--specpath 已迁至 dist-desktop/.specs，
+        # 绝对路径不受相对解析基目录影响）；此处只断言映射到包内 strategies 目标这一契约。
+        self.assertIn('strategies:strategies"', macos_script)
+        self.assertIn('strategies;strategies"', windows_script)
         self.assertIn("_internal/strategies", macos_script)
         self.assertIn("_internal\\strategies", windows_script)
 

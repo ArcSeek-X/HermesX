@@ -39,11 +39,11 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toHaveTextContent('处理中');
   });
 
-  it('supports the danger-subtle variant', () => {
-    render(<Button variant="danger-subtle">Bulk Delete</Button>);
+  it('supports the danger-soft variant', () => {
+    render(<Button variant="danger-soft">Bulk Delete</Button>);
 
     const button = screen.getByRole('button', { name: 'Bulk Delete' });
-    expect(button).toHaveAttribute('data-variant', 'danger-subtle');
+    expect(button).toHaveAttribute('data-variant', 'danger-soft');
     expect(button.className).toContain('border-danger/60');
     expect(button.className).toContain('bg-danger/10');
   });

@@ -73,17 +73,8 @@ def _max_mtime(paths: Iterable[Path]) -> float:
 
 
 def _resolve_artifact_index(frontend_dir: Path) -> Path:
-    # Prefer static/index.html because it is the configured output path in this repo.
-    static_index = (frontend_dir / ".." / ".." / "static" / "index.html").resolve()
-    dist_index = frontend_dir / "dist" / "index.html"
-    build_index = frontend_dir / "build" / "index.html"
-    if static_index.exists():
-        return static_index
-
-    fallback_candidates = [p for p in (dist_index, build_index) if p.exists()]
-    if not fallback_candidates:
-        return static_index
-    return max(fallback_candidates, key=_safe_mtime)
+    # 单一真相源：前端构建产物位于仓库根 dist-web/。
+    return (frontend_dir / ".." / ".." / "dist-web" / "index.html").resolve()
 
 
 def _calculate_dependency_fingerprint(frontend_dir: Path) -> str | None:

@@ -24,7 +24,7 @@ COPY apps/hrs-web/package.json apps/hrs-web/package-lock.json ./
 # 用缓存挂载加速 npm，避免每次重新下载整个 node_modules
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-# 拷贝全部前端源码并执行生产构建，产物默认输出到 build/ 目录
+# 拷贝全部前端源码并执行生产构建，产物输出到仓库根的 dist-web/（即容器内 /app/dist-web，内部包含 dist-web/static/ 直通目录）
 COPY apps/hrs-web/ ./
 RUN HRS_WEB_VERSION="${HRS_WEB_VERSION}" HRS_WEB_REVISION="${HRS_WEB_REVISION}" npm run build
 
@@ -77,8 +77,8 @@ COPY data_provider/ ./data_provider/
 COPY bot/ ./bot/
 COPY src/ ./src/
 COPY strategies/ ./strategies/
-# 从前端构建阶段拷贝静态产物到 /app/static，供后端直接托管
-COPY --from=web-builder /app/static ./static/
+# 从前端构建阶段拷贝静态产物到 /app/dist-web，供后端直接托管
+COPY --from=web-builder /app/dist-web ./dist-web/
 # 拷贝容器启动脚本并放到标准 PATH 下
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
