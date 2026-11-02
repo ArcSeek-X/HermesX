@@ -591,3 +591,24 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 已同步 `docs/desktop-package.md` 的前端输出目录和扫描边界说明，以及 `documents/CHANGELOG.md`。
 
 完整后端门禁 `PATH="$PWD/.venv/bin:$PATH" ./scripts/ci_gate.sh all`：syntax、architecture、严格 flake8 和 deterministic 阶段通过；离线阶段在沙箱内得到 **12 failed / 5701 passed / 1 skipped / 4 deselected / 511 subtests passed（316.67s）**。失败集中在 `test_live_news.py`（11 条）与 `test_tencent_fetcher.py`（1 条）。代表性新闻失败在不收集本片修改测试的独立进程中同样复现，错误为外部来源域名 DNS 解析失败；腾讯短历史用例单独复跑通过。获准在沙箱外复跑上述两个文件后 **51 passed（9.81s）**。据此记录沙箱内完整门禁未绿、相关失败文件环境外复跑全绿；未将两次结果拼成一次“完整门禁全绿”，腾讯用例首次失败的具体原因未进一步确认。
+
+## 8. 后续修正：路由测试契约与新闻离线 DNS 边界（2026-11-02）
+
+基线：`main`，HEAD `7fc4f0fd`，开工工作树干净。本片只调整测试与记录，不修改生产 API、行情规则或 URL 安全校验，也不删除用例、不添加 skip/xfail/network 标记。
+
+| 失败簇 | 原因与处理 | 保护行为 |
+| --- | --- | --- |
+| `appRouter.test.ts` 1 条 | 生产 `protectedLoader` 返回 redirect Response，旧测试仍要求抛异常；改为检查返回值 | 验证 HTTP 302、登录地址与原访问路径/查询参数的编码；保留已登录和禁用鉴权时的放行断言 |
+| `routeRegistry.test.ts` 2 条 | 生产通过 `attachRouter()` 注入实例，旧测试仍 mock 静态 `appRouter` 导出；每个用例显式注入 router | 验证注册、重复注册跳过、关闭注册标志时跳过、卸载清空与标志复位 |
+| `test_live_news.py` 11 条 | HTTP/抓取 mock 未覆盖来源 URL 校验中的真实 DNS，导致业务测试依赖外网；service/API 用例按用例作用域固定公网解析结果并通过 cleanup 恢复 | 继续执行真实 URL/IP 安全校验；新增私网解析与 DNS 失败两条回归，不直接 mock 掉 `_validate_url` |
+| 腾讯短历史 1 条 | 尚未稳定复现，不进行猜测性修改 | 检查 799 条历史未达到 800 条上限的实际分支及 scoped HTTP patch；保留原断言与失败可见性，根因仍待确认 |
+
+定向验证：Web 三个路由测试文件 **87 passed**；新闻测试独立运行 **41 passed**（新增 2 条）；既有 intelligence service 测试 **26 passed**（含 URL/DNS 安全路径）。改动的前端文件 ESLint 与 `npm run build`（含 TypeScript 检查）通过。构建仍有既有循环 chunk、混合导入和大 chunk 警告。
+
+第一轮完整离线验证：`./.venv/bin/python -m pytest tests -m 'not network' -q -o addopts= --tb=short`，**5715 passed / 1 skipped / 4 deselected / 511 subtests passed（329.58s，退出码 0）**。相对 §7 增加的两个用例均为 DNS 安全回归；12 条原失败本轮均未出现。另逐阶段验证 `scripts/ci_gate.sh` 的 syntax、architecture、flake8、deterministic 均通过。
+
+第二轮按原入口执行完整门禁：`PATH="$PWD/.venv/bin:$PATH" ./scripts/ci_gate.sh all`，所有阶段通过，离线部分 **5715 passed / 1 skipped / 4 deselected / 511 subtests passed（310.67s）**，最终输出 `backend-gate: all checks passed`，退出码 0；腾讯短历史用例再次在正常全量顺序中通过。两轮均在受限环境内完成，未依赖外部网络放行；完整门禁通过的结论不等于腾讯历史偶发失败的根因已关闭。
+
+腾讯用例的边界：本轮按正常全量收集/执行顺序通过，不能由此认定其历史偶发失败已修复。未发现足以归因的共享状态泄漏，未更改腾讯生产实现，也未将重跑通过写为根因关闭。现有全量测试仍会输出部分后台行情预热的网络失败日志及既有依赖弃用/测试类收集警告，本片未改造后台生命周期。
+
+未验证：真实外网数据源与全部 Web 测试。没有用户界面变更，故无页面截图；本片只更新中文迁移台账，项目没有对应的英文台账。回滚：撤回本片两个 Web 测试文件、新闻测试文件及本节/CHANGELOG 记录的改动即可；不涉及数据迁移。未执行 commit、tag 或 push。

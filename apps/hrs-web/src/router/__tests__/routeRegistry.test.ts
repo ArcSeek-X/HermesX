@@ -6,12 +6,11 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRouterStore } from '../../stores/RouterStore';
-import { registerAsyncRoutes, uninstallAsyncRoutes } from '../routeRegistration';
+import { attachRouter, registerAsyncRoutes, uninstallAsyncRoutes } from '../routeRegistration';
 
 // vi.mock 工厂会被提升到文件顶部，其引用变量须用 vi.hoisted 提升，避免 TDZ
 const { patchRoutes } = vi.hoisted(() => ({ patchRoutes: vi.fn() }));
 
-vi.mock('../appRouter', () => ({ router: { patchRoutes } }));
 vi.mock('../asyncRouteFactory', () => ({ buildAsyncRoutes: () => [{ path: 'home' }] }));
 
 const sampleData = vi.hoisted(() =>
@@ -29,6 +28,7 @@ const sampleData = vi.hoisted(() =>
 
 beforeEach(() => {
   patchRoutes.mockClear();
+  attachRouter({ patchRoutes } as unknown as Parameters<typeof attachRouter>[0]);
   useRouterStore.setState({ asyncRouteData: sampleData as never, addRouteFlag: true });
 });
 
@@ -38,6 +38,9 @@ describe('路由注册（routeRegistration）', () => {
     expect(patchRoutes).toHaveBeenCalledWith('business', expect.any(Array));
     const injected = patchRoutes.mock.calls[0][1] as Array<{ path?: string }>;
     expect(injected.some((r) => r.path === 'home')).toBe(true);
+    expect(useRouterStore.getState().addRouteFlag).toBe(false);
+    registerAsyncRoutes();
+    expect(patchRoutes).toHaveBeenCalledTimes(1);
   });
 
   it('registerAsyncRoutes：addRouteFlag 为 false 时跳过', () => {
@@ -47,7 +50,9 @@ describe('路由注册（routeRegistration）', () => {
   });
 
   it('uninstallAsyncRoutes：patchRoutes 注入空数组', () => {
+    useRouterStore.setState({ addRouteFlag: false });
     uninstallAsyncRoutes();
     expect(patchRoutes).toHaveBeenCalledWith('business', []);
+    expect(useRouterStore.getState().addRouteFlag).toBe(true);
   });
 });

@@ -22,16 +22,12 @@ const redirectLocation = (res: unknown): string =>
   (res as Response).headers.get('Location') ?? '';
 
 describe('protectedLoader', () => {
-  it('未登录且开启鉴权 → 抛出重定向 /login（携带来源路径）', () => {
+  it('未登录且开启鉴权 → 返回重定向 /login（保留路径和查询参数）', () => {
     storeState.authEnabled = true;
     storeState.loggedIn = false;
-    expect(() => protectedLoader(makeArgs('/home'))).toThrow();
-    try {
-      protectedLoader(makeArgs('/home'));
-    } catch (e) {
-      expect((e as Response).status).toBe(302);
-      expect(redirectLocation(e)).toContain('/login?redirect=');
-    }
+    const response = protectedLoader(makeArgs('/home?market=hk'));
+    expect(response?.status).toBe(302);
+    expect(redirectLocation(response)).toBe(`/login?redirect=${encodeURIComponent('/home?market=hk')}`);
   });
 
   it('已登录 → 放行（返回 null）', () => {

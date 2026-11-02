@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -82,6 +83,16 @@ OFFICIAL_PAYLOAD: Dict[str, Any] = {
 
 # 上游业务错误响应
 ERROR_PAYLOAD: Dict[str, Any] = {"code": 71404, "message": "Not Found", "data": {}}
+
+
+def _patch_public_dns(test_case: unittest.TestCase) -> None:
+    """固定系统 DNS 边界，仍执行生产 URL/IP 安全校验；仅在当前用例内生效。"""
+    dns_patch = patch(
+        "src.application.intelligence.intelligence_service.socket.getaddrinfo",
+        return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))],
+    )
+    dns_patch.start()
+    test_case.addCleanup(dns_patch.stop)
 
 
 class _FakeResponse:
@@ -193,6 +204,7 @@ class LiveNewsServiceTestCase(unittest.TestCase):
     """Service 层：落库、查询、降级与边界。"""
 
     def setUp(self) -> None:
+        _patch_public_dns(self)
         self._temp_dir = tempfile.TemporaryDirectory()
         os.environ["DATABASE_PATH"] = os.path.join(self._temp_dir.name, "live_news.db")
         os.environ["NEWS_INTEL_RETENTION_DAYS"] = "30"
@@ -241,6 +253,22 @@ class LiveNewsServiceTestCase(unittest.TestCase):
         self.assertFalse(result["degraded"])
         self.assertEqual(result["source"], "wallstreetcn")
         self.assertEqual(result["channels"][0], {"value": "global-channel", "label": "要闻"})
+
+    def test_url_validation_rejects_private_dns_result(self) -> None:
+        with patch(
+            "src.application.intelligence.intelligence_service.socket.getaddrinfo",
+            return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 0))],
+        ):
+            with self.assertRaisesRegex(IntelligenceServiceError, "private or local"):
+                self.service._validate_url("https://news.example.com/feed")
+
+    def test_url_validation_reports_dns_failure(self) -> None:
+        with patch(
+            "src.application.intelligence.intelligence_service.socket.getaddrinfo",
+            side_effect=socket.gaierror("offline test DNS failure"),
+        ):
+            with self.assertRaisesRegex(IntelligenceServiceError, "DNS resolution failed"):
+                self.service._validate_url("https://news.example.com/feed")
 
     def test_refresh_persists_and_expands_channels(self) -> None:
         """一条快讯命中 2 个 Tab 频道时，应拆成 2 行落库。"""
@@ -553,6 +581,7 @@ class LiveNewsEndpointTestCase(unittest.TestCase):
     """
 
     def setUp(self) -> None:
+        _patch_public_dns(self)
         self._temp_dir = tempfile.TemporaryDirectory()
         os.environ["DATABASE_PATH"] = os.path.join(self._temp_dir.name, "live_news_api.db")
         os.environ["WSCN_LIVE_NEWS_ENABLED"] = "true"
