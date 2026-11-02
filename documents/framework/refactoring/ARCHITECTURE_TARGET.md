@@ -146,9 +146,11 @@ HermesX/
 │       ├── scripts/afterPackMacos.js
 │       └── tests/main.test.js  tests/preload.test.js
 │
-├── tests/                                 REWORK，随用例/模块迁移测试，不强制一次重排
-│   ├── conftest.py  fixtures/  agent/  test_*.py  ...
-│   └── 按需要逐步形成 domain/ application/ infrastructure/ api/ bot/
+├── tests/                                 已完成：按 `TEST_SUITE_REFACTORING_PLAN.md` 的 T0–T5 分类重排（commit e630eb23），不再「随用随迁」；本图仅给顶层分组，细粒度分桶与逐件归属以该方案 §3 为唯一真源，逐件进度与证据见 `documents/framework/refactoring/TEST_SUITE_MIGRATION_PROGRESS.md`
+│   ├── conftest.py  __init__.py  fixtures/
+│   ├── domain/  application/  infrastructure/        # 镜像 src 分层：纯规则·值对象 / 用例与编排、端口消费 / ORM·provider·sender 等适配
+│   ├── api/  bot/  bootstrap/  config/  integration/ # 各驱动与跨组件用例的 HTTP·命令契约、装配生命周期、配置、集成流程
+│   └── tooling/  support/  utils/  agent/            # 脚本·workflow·docs·packaging·test_runtime·manual_smoke 工具 / 共享 stubs 与 paths 工具（方案候选的 builders·clients 尚未创建） / 纯 utils 件 / 保留的 agent 四件（`agent`、`utils` 为落地现实分组，方案 §3.1 的 `architecture/` 桶未建，其守卫按主 SUT 分入 `tooling/scripts`（check_architecture）、`api`、`bot`、`infrastructure`；分桶与命名以工作树及方案 §3 为准）
 ├── strategies/                            KEEP，现有 15 个 YAML 策略及 README.md
 ├── templates/                             KEEP，现有报告 Jinja2 模板
 ├── static/                                KEEP，Web 构建输出与静态资产
