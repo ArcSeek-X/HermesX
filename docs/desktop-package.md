@@ -20,7 +20,9 @@ powershell -ExecutionPolicy Bypass -File scripts\run-desktop.ps1
 
 或手动执行：
 
-1) 构建 React UI（输出到 `static/`）
+1) 构建 React UI（输出到仓库根目录 `dist-web/`）
+
+页面懒加载扫描排除 `__tests__/`、`tests/` 目录及 `.test.tsx`、`.spec.tsx` 文件；这些测试模块不会作为页面入口进入 Web 或桌面端使用的生产产物。调整路由扫描范围后，应运行 `src/router/__tests__/asyncRouteFactory.test.ts` 的回归测试，并重新构建确认产物中没有测试 chunk。
 
 ```bash
 cd apps/hrs-web

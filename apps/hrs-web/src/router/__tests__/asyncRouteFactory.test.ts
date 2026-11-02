@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { AsyncRouteNode } from '../../types/router';
-import { buildAsyncRoutes } from '../asyncRouteFactory';
+import { buildAsyncRoutes, resolvePageImporter } from '../asyncRouteFactory';
 
 const pageNode: AsyncRouteNode = {
   routerKey: 'home',
@@ -25,6 +25,26 @@ const redirectNode: AsyncRouteNode = {
   redirect: '/home',
   routerDescription: '',
 };
+
+describe('resolvePageImporter', () => {
+  // 通过 Vite 实际展开的文件映射验证，避免 mock 掉构建期扫描边界。
+  const pagePaths = Object.keys(import.meta.glob('../../pages/**/*.tsx'));
+
+  it.each(pagePaths)('按生产页面边界解析 %s', (path) => {
+    const pagePath = path.replace('../../', '').replace(/\.tsx$/, '');
+    const isTest = /\/(?:__tests__|tests)\//.test(path) || /\.(?:test|spec)\.tsx$/.test(path);
+
+    if (isTest) {
+      expect(resolvePageImporter(pagePath)).toBeUndefined();
+    } else {
+      expect(resolvePageImporter(pagePath)).toBeTypeOf('function');
+    }
+  });
+
+  it('未指定页面时不返回导入器', () => {
+    expect(resolvePageImporter()).toBeUndefined();
+  });
+});
 
 describe('buildAsyncRoutes', () => {
   it('空输入返回空数组', () => {

@@ -35,6 +35,7 @@ import src.auth as auth
 from src.config import Config
 from src.config.env_file import ConfigManager
 from src.application.runtime.system_config_service import SystemConfigService
+from src.bootstrap import generation as generation_bootstrap
 
 
 class SystemConfigApiTestCase(unittest.TestCase):
@@ -67,6 +68,22 @@ class SystemConfigApiTestCase(unittest.TestCase):
         os.environ["ENV_FILE"] = str(self.env_path)
         os.environ["DATABASE_PATH"] = str(Path(self.temp_dir.name) / "system_config_api_test.db")
         Config.reset_instance()
+
+        # 独立运行也须显式装配真实生成端口，不依赖兄弟测试的导入期副作用。
+        # 保存所有被 bootstrap 写入的 seam，测试结束后恢复原状态，避免污染其他用例。
+        for module, attributes in (
+            (generation_bootstrap.analyzer_module, (
+                "_generation_backend_factory_port", "_generation_runtime_port",
+                "_generation_usage_port", "_provider_cache_port",
+            )),
+            (generation_bootstrap.system_config_module, ("_generation_runtime_port",)),
+            (generation_bootstrap.status_module, ("_generation_runtime_port",)),
+        ):
+            for attribute in attributes:
+                port_patch = patch.object(module, attribute, None)
+                port_patch.start()
+                self.addCleanup(port_patch.stop)
+        generation_bootstrap.configure_generation_runtime()
 
         self.manager = ConfigManager(env_path=self.env_path)
         self.service = SystemConfigService(manager=self.manager)

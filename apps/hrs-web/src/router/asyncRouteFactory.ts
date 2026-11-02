@@ -22,9 +22,15 @@ export type RouteLoader = () => Promise<{ default: ComponentType }>;
  * 真源页面模块的懒加载导入映射（Vite 构建期静态收集）。
  * 键为相对本文件的 '../pages/<相对路径>.tsx'，与 manifest 中的 menuPagePath 字符串
  * （如 'pages/StockDashboardPage' 或嵌套路径 'pages/CodeTest/CodeTestPage'）经前缀 '../' 与后缀 '.tsx' 补全后一一对应。
- * 支持 pages 下的多级子目录（** 递归匹配）。
+ * 支持 pages 下的多级子目录；测试目录和测试模块不参与页面映射或生产打包。
  */
-const pageModules = import.meta.glob('../pages/**/*.tsx');
+const pageModules = import.meta.glob([
+  '../pages/**/*.tsx',
+  '!../pages/**/__tests__/**',
+  '!../pages/**/tests/**',
+  '!../pages/**/*.test.tsx',
+  '!../pages/**/*.spec.tsx',
+]);
 
 /**
  * 将真源中的 menuPagePath 字符串（如 'pages/StockDashboardPage'）解析为可执行的懒加载导入函数。

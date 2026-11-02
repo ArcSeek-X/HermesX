@@ -576,3 +576,18 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 - 不以删用例/改标记（network/skip/xfail）让门禁变绿；删除或合并须说明保护行为与替代证据。
 - `apps/hrs-web`、`apps/hrs-desktop` 的客户端原生测试留在各自目录，不并入根 `tests/`。
 - 本台账数值更新必须注明基线日期；历史统计不覆盖当前状态。
+
+## 7. 后续修正：生产页面扫描与系统配置 API 测试独立装配（2026-11-02）
+
+针对迁移完成后的复核，本片处理两项：
+
+- Web 的 `asyncRouteFactory.ts` 使用 Vite 负匹配排除页面树中的 `__tests__/`、`tests/` 及 `.test.tsx`/`.spec.tsx`，真实页面仍保持递归懒加载。新增回归直接验证 Vite 展开的页面/测试文件映射，避免 mock 掉扫描边界。
+- `tests/api/system_config/test_system_config_api.py` 在每个用例准备时调用生产 `configure_generation_runtime()` 装配真实端口；用 patch 的 cleanup 保存并恢复其写入的全部六个模块级 seam，不依赖其他测试文件的导入副作用，也不把装配状态泄漏给后续用例。原先单跑的两个失败是真实的测试初始化缺口，本片补齐；生产端口缺失时的 fail-fast 行为保持。
+
+定向验证：系统配置 API 独立运行 **35 passed**；页面扫描回归 **81 passed**；改动的两个前端文件 ESLint 通过；`npm run build`（含 TypeScript 检查）通过。新产物 `dist-web/assets/` 中 `.test-*`/`.spec-*` JS chunk **0 个**，扫描 JS 也未发现 `__tests__/`、`.test.tsx`、`.spec.tsx` 或 `__vitest_` 残留。
+
+扩大路由回归发现 `appRouter.test.ts` 一条、`routeRegistry.test.ts` 两条既有失败：使用修复前的页面 glob 重新运行这两个文件，同样 **3 failed / 3 passed**。两处问题不在本片修复范围，记录为未清理的既有测试债务；不能将本片定向通过解读为所有 Web 测试通过。构建仍有既有循环 chunk/混合导入与大 chunk 警告。
+
+已同步 `docs/desktop-package.md` 的前端输出目录和扫描边界说明，以及 `documents/CHANGELOG.md`。
+
+完整后端门禁 `PATH="$PWD/.venv/bin:$PATH" ./scripts/ci_gate.sh all`：syntax、architecture、严格 flake8 和 deterministic 阶段通过；离线阶段在沙箱内得到 **12 failed / 5701 passed / 1 skipped / 4 deselected / 511 subtests passed（316.67s）**。失败集中在 `test_live_news.py`（11 条）与 `test_tencent_fetcher.py`（1 条）。代表性新闻失败在不收集本片修改测试的独立进程中同样复现，错误为外部来源域名 DNS 解析失败；腾讯短历史用例单独复跑通过。获准在沙箱外复跑上述两个文件后 **51 passed（9.81s）**。据此记录沙箱内完整门禁未绿、相关失败文件环境外复跑全绿；未将两次结果拼成一次“完整门禁全绿”，腾讯用例首次失败的具体原因未进一步确认。
