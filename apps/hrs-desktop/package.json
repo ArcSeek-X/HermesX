@@ -33,7 +33,7 @@
         "to": ".env.example"
       },
       {
-        "from": "../../dist/backend/stock_analysis",
+        "from": "../../build/backend/stock_analysis",
         "to": "backend/stock_analysis"
       }
     ],
