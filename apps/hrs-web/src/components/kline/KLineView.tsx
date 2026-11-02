@@ -383,7 +383,7 @@ function KLineViewComponent({
             fixRightEdge: false,
             rightOffset: 2,
             // 时间戳为「本地墙上时间按 UTC 秒存储」，需用 UTC getter 还原为 HH:mm
-            tickMarkFormatter: (time) => formatTimelineTime(Number(time)),
+            tickMarkFormatter: (time: Time) => formatTimelineTime(Number(time)),
           }
         : { visible: false, fixLeftEdge: true, fixRightEdge: true, rightOffset: 0 },
       grid: interactive
@@ -424,7 +424,7 @@ function KLineViewComponent({
         : false,
       handleScale: interactive ? { mouseWheel: true, pinch: true, axisPressedMouseMove: true } : false,
       localization: interactive
-        ? { timeFormatter: (time) => formatTimelineTime(Number(time)) }
+        ? { timeFormatter: (time: Time) => formatTimelineTime(Number(time)) }
         : undefined,
     });
     chartRef.current = chart;

@@ -106,8 +106,9 @@ const BUTTON_VARIANT_STYLES = {
  * 通用按钮组件。
  * 负责把 size / variant / glow / className 等合并为最终 className，
  * 并处理 loading 态（渲染旋转图标 + 文案）。
+ * 支持 forwardRef：外部可通过 ref 访问真实 DOM button 元素。
  */
-export const HrsButton: React.FC<ButtonProps> = ({
+export const HrsButton = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   children,
   variant = 'primary',
   size = 'sm',
@@ -119,7 +120,7 @@ export const HrsButton: React.FC<ButtonProps> = ({
   type = 'button',
   onClick,
   ...props
-}: ButtonProps, ref) => {
+}: ButtonProps, ref: React.Ref<HTMLButtonElement>) => {
   // 用于读取 i18n 文案（loading 默认文案等）
   const { t } = useUiLanguage();
   // 发光效果对应的附加类名（为空字符串时不影响结果）
@@ -195,4 +196,4 @@ export const HrsButton: React.FC<ButtonProps> = ({
       )}
     </HeroButton>
   );
-};
+});

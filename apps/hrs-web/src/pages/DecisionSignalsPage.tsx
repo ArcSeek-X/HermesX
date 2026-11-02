@@ -1713,7 +1713,7 @@ const DecisionSignalsPage: React.FC = () => {
                 items={timelineItems}
                 selectedId={selected?.item.id ?? null}
                 loading={timelineLoading}
-                content={timelineError?.message ?? null}
+                error={timelineError?.message ?? null}
                 truncated={timelineTruncated}
                 onSelect={(selectedItem) => setSelected({ source: 'timeline', item: selectedItem })}
               />

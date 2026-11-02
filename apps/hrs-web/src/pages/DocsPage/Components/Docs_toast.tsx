@@ -3,13 +3,22 @@
  */
 
 import React, { useState } from 'react';
-import { HrsButton, dismissAllToasts, dismissToast, showToast, type ToastPlacement, type ToastVariant } from '@components';
+import { HrsButton, type HrsButtonVariant, dismissAllToasts, dismissToast, showToast, type ToastPlacement, type ToastVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { DocsSection } from '../DocsSection';
 
 /** 6 个浮层方位（示例二展示） */
 const PLACEMENTS: ToastPlacement[] = ['top start', 'top', 'top end', 'bottom start', 'bottom', 'bottom end'];
+
+/** ToastVariant → HrsButtonVariant 映射：Toast 的 'default' 对应按钮的 'secondary' */
+const TOAST_TO_BUTTON_VARIANT: Record<ToastVariant, HrsButtonVariant> = {
+  default: 'secondary',
+  primary: 'primary',
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
+};
 
 /**
  * 轻提示组件文档演示页。
@@ -40,7 +49,7 @@ export const DocsToastPage: React.FC = () => {
             {(['default', 'primary', 'success', 'warning', 'danger'] as ToastVariant[]).map((variant) => (
               <HrsButton
                 key={variant}
-                variant={variant}
+                variant={TOAST_TO_BUTTON_VARIANT[variant]}
                 onClick={() => showToast({
                   title: `variant = ${variant}`,
                   description: `这是一条 ${variant} 风格的轻提示，3 秒后自动关闭。`,

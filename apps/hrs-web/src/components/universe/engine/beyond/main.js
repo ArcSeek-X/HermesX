@@ -33,7 +33,7 @@ import { createDash } from './dash.js';
  * @param {boolean} [opts.audio] start the soundtrack (default false)
  * @param {boolean} [opts.flyIn] ease into the entry view (default true)
  * @param {'galaxy'|'title'} [opts.entry] 'title' shows the original start screen
- * @param {string} [opts.assetsBase] base URL for assets/ (default '/universe/')
+ * @param {string} [opts.assetsBase] base URL for assets/ (default '/static/universe/')
  * @param {string|object} [opts.params] URL-param overrides (q/dpr/msaa)
  * @param {(p: number, s: string) => void} [opts.onProgress] loading progress
  * @param {(api: object) => void} [opts.onReady] fired once the scene is live
@@ -48,7 +48,7 @@ export function createUniverse(opts = {}) {
   const view = { w: Math.max(1, (root && root.clientWidth) || opts.width || 1), h: Math.max(1, (root && root.clientHeight) || opts.height || 1) };
   const VW = () => view.w;
   const VH = () => view.h;
-  const ASSET_BASE = (opts.assetsBase || '/universe/').replace(/\/*$/, '/');
+  const ASSET_BASE = (opts.assetsBase || '/static/universe/').replace(/\/*$/, '/');
   setAssetBase(ASSET_BASE);                                   // fx/models.js: the Draco decoder lives under the same base
   THREE.DefaultLoadingManager.setURLModifier(u => {           // textures / glTF / PBR: every relative asset URL is based here
     const s = String(u || '');

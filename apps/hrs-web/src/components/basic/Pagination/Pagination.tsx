@@ -115,7 +115,7 @@ export default function PaginationBar({
 
   return (
     <div className={`flex items-center justify-between px-3 py-2 border-t border-subtle !text-foreground-soft ${className}`}> 
-      <Pagination size={size}>
+      <Pagination size={size === 'xs' ? 'sm' : size}>
         <Pagination.Summary className={paginationTextClass}>
           {total === 0 ? '暂无数据' : `显示 ${start} - ${end} 条 / 共 ${total} 条`}
         </Pagination.Summary>

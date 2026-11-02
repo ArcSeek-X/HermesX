@@ -96,11 +96,14 @@ class ImmediateIntersectionObserver {
   readonly root = null;
   readonly rootMargin = '';
   readonly thresholds = [0];
+  private readonly _callback: IntersectionObserverCallback;
 
-  constructor(private readonly callback: IntersectionObserverCallback) {}
+  constructor(callback: IntersectionObserverCallback) {
+    this._callback = callback;
+  }
 
   observe(target: Element) {
-    this.callback(
+    this._callback(
       [{ isIntersecting: true, target } as unknown as IntersectionObserverEntry],
       this as unknown as IntersectionObserver,
     );
@@ -117,17 +120,15 @@ class DeferredIntersectionObserver {
   readonly root = null;
   readonly rootMargin = '';
   readonly thresholds = [0];
-  private readonly callback: IntersectionObserverCallback;
-  private target: Element | null = null;
+  private readonly _callback: IntersectionObserverCallback;
 
   constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback;
+    this._callback = callback;
   }
 
   observe(target: Element) {
-    this.target = target;
     triggerIntersection = () => {
-      this.callback(
+      this._callback(
         [{ isIntersecting: true, target } as unknown as IntersectionObserverEntry],
         this as unknown as IntersectionObserver,
       );

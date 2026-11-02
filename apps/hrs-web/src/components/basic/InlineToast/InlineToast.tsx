@@ -43,7 +43,7 @@ const CARD_BUTTON_VARIANT_MAPPING: Record<InlineToastVariant, HrsButtonVariant> 
  *
  * 入参保持不变以兼容现有调用方；新增可选 `variant` 以承载本次样式重构的能力。
  */
-interface InlineToastProps {
+export interface InlineToastProps {
     /** 已解析好的提示内容（必须包含 title、message、rawMessage 等字段；不一定是错误，也可承载成功/警告等提示）。 */
     content: ParsedApiError;
     /** 透传到最外层容器的额外 className，用于外部覆盖/追加样式。 */

@@ -13,7 +13,7 @@
  * @author Lensgcx (GaoCangxiong)
  */
 import React, { useEffect, useState } from 'react';
-import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CandlestickChart, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sidebar as SidebarIcon, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
+import { Activity, AppWindow, BarChart3, Bell, BellRing, BriefcaseBusiness, CalendarDays, CheckSquare, ChevronsUpDown, FlaskConical, Gauge, History, Home, LayoutDashboard, LayoutGrid, LayoutList, List, MessageSquareQuote, Minus, MousePointerClick, Newspaper, PanelRight, Search, Settings2, Sidebar as SidebarIcon, Sparkles, Star, Table, Tags, TextCursorInput, WrapText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
 import { useAgentChatStore } from '../../../stores/agentChatStore';

@@ -54,7 +54,7 @@ const releaseFonts = () => {
   document.head.querySelectorAll('link[data-universe-font]').forEach(n => n.remove())
 }
 
-const DEFAULT_ASSETS_BASE = `${import.meta.env.BASE_URL}universe/`
+const DEFAULT_ASSETS_BASE = `${import.meta.env.BASE_URL}static/universe/`
 
 export default function UniverseBackground({
   className,

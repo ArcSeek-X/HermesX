@@ -10,10 +10,8 @@
 import type React from 'react';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
-import { useLocation, useMatches, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import type { UiTextKey } from '../../i18n/uiText';
-import type { RouteHandle } from '../../types/router';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
@@ -43,18 +41,9 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   const navigate = useNavigate();
   const { t } = useUiLanguage();
   const location = useLocation();
-  const matches = useMatches();
   // 个股 K 线页已有独立页内搜索框，顶部搜索框在该路由下隐藏（避免重复输入入口）
   const isKLineRoute = location.pathname === '/stock/kline';
-  // 当前页标题/描述：经 useMatches 读取路由 handle（数据路由原生能力），与侧栏/路由同源；按字段独立 i18n 兜底
-  const handle = matches[matches.length - 1]?.handle as RouteHandle | undefined;
-  const title = handle?.routerName
-    ? t(handle.routerName as UiTextKey) || handle.routerName
-    : t('layout.appFallbackTitle');
-  const description = handle?.routerDescription
-    ? t(handle.routerDescription as UiTextKey) || handle.routerDescription
-    : t('layout.appFallbackDescription');
-
+  // 当前页标题/描述：保留路由 handle 读取代码以备重新开启，当前 JSX 注释不展示标题
   // 头部股票搜索框：提交后带 ?stockCode= 跳转 K 线页
   const [stockQuery, setStockQuery] = useState('');
 
