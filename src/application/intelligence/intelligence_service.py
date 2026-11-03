@@ -61,6 +61,9 @@ from src.application.intelligence.ports import (
     NewsSourcePort,
 )
 
+from src.domain.search.feed import FeedEntry, IntelligenceServiceError
+from src.application.intelligence.feed_parser import FeedParser
+
 logger = logging.getLogger(__name__)
 
 
@@ -248,22 +251,6 @@ _NEWSNOW_DEFAULT_SOURCE_DEFS = [
         "description": "NewsNow 格隆汇事件资讯，适合港股和中概股市场上下文。",
     },
 ]
-
-
-class IntelligenceServiceError(ValueError):
-    """面向调用方的校验/业务错误，其文案会直接透出到 API 响应。"""
-
-
-@dataclass(frozen=True)
-class FeedEntry:
-    """解析后的单条资讯条目，与具体数据源类型无关的中间结构。"""
-
-    title: str  # 标题（已清洗、截断）
-    summary: str  # 摘要/正文片段（已去除 HTML 标签）
-    url: str  # 原文链接；无链接时退化为 no-url:intel:<hash> 形式
-    source: str  # 来源的资讯源名称
-    published_at: Optional[datetime]  # 发布时间（统一为 UTC naive），解析失败为 None
-    raw_payload: Dict[str, Any]  # 预留的原始负载，便于排查与扩展
 
 
 class IntelligenceService:
@@ -826,90 +813,19 @@ class IntelligenceService:
                 raise IntelligenceServiceError("source url must not target private or local network addresses")
 
     def _parse_feed(self, content: bytes, *, source_name: str, limit: int) -> List[FeedEntry]:
-        """解析 RSS / Atom XML，按根节点类型分发到对应解析器并截断到 limit 条。"""
-        try:
-            root = ET.fromstring(content)
-        except ET.ParseError as exc:
-            raise IntelligenceServiceError(f"invalid RSS/Atom feed: {exc}") from exc
-        tag = self._strip_ns(root.tag).lower()
-        if tag == "rss":
-            nodes = root.findall("./channel/item")
-            return [entry for entry in (self._parse_rss_item(node, source_name) for node in nodes[:limit]) if entry]
-        if tag == "feed":
-            nodes = root.findall("./{*}entry") or root.findall("./entry")
-            return [entry for entry in (self._parse_atom_entry(node, source_name) for node in nodes[:limit]) if entry]
-        raise IntelligenceServiceError("unsupported feed format; expected RSS or Atom")
+        return FeedParser(self._validate_url).parse_feed(content=content, source_name=source_name, limit=limit)
 
     def _parse_newsnow_payload(self, payload: Any, *, source_name: str, limit: int) -> List[FeedEntry]:
-        """解析 NewsNow 响应：要求形如 {"items": [{title, url, extra{info/hover/date}, pubDate}]}。"""
-        if not isinstance(payload, dict):
-            raise IntelligenceServiceError("invalid NewsNow response: expected object")
-        items = payload.get("items")
-        if not isinstance(items, list):
-            raise IntelligenceServiceError("invalid NewsNow response: missing items")
-        entries = []
-        for item in items[:limit]:
-            if not isinstance(item, dict):
-                continue
-            # 摘要优先取 extra.info，其次 extra.hover；链接优先 url，其次 mobileUrl
-            extra = item.get("extra") if isinstance(item.get("extra"), dict) else {}
-            published_raw = item.get("pubDate") or extra.get("date")
-            entries.append(self._build_entry(
-                str(item.get("title") or ""),
-                str(extra.get("info") or extra.get("hover") or ""),
-                str(item.get("url") or item.get("mobileUrl") or ""),
-                source_name,
-                self._parse_datetime_or_timestamp(published_raw),
-            ))
-        return [entry for entry in entries if entry]
+        return FeedParser(self._validate_url).parse_newsnow_payload(payload=payload, source_name=source_name, limit=limit)
 
     def _parse_rss_item(self, node: ET.Element, source_name: str) -> Optional[FeedEntry]:
-        """解析单个 RSS <item>：标题、description、link、pubDate/published。"""
-        return self._build_entry(
-            self._text(node, "title"),
-            self._text(node, "description") or self._text(node, "summary"),
-            self._text(node, "link"),
-            source_name,
-            self._parse_datetime(self._text(node, "pubDate") or self._text(node, "published")),
-        )
+        return FeedParser(self._validate_url).parse_rss_item(node=node, source_name=source_name)
 
     def _parse_atom_entry(self, node: ET.Element, source_name: str) -> Optional[FeedEntry]:
-        """解析单个 Atom <entry>：链接取 rel=alternate 的 href，时间取 published/updated。"""
-        url = ""
-        for link in node.findall("./{*}link") or node.findall("./link"):
-            if (link.attrib.get("rel") or "alternate").lower() == "alternate" and link.attrib.get("href"):
-                url = link.attrib["href"].strip()
-                break
-        return self._build_entry(
-            self._text(node, "title"),
-            self._text(node, "summary") or self._text(node, "content"),
-            url,
-            source_name,
-            self._parse_datetime(self._text(node, "published") or self._text(node, "updated")),
-        )
+        return FeedParser(self._validate_url).parse_atom_entry(node=node, source_name=source_name)
 
     def _build_entry(self, title: str, summary: str, url: str, source_name: str, published_at: Optional[datetime]) -> Optional[FeedEntry]:
-        """构造 FeedEntry：清洗文本、截断长度，并为条目生成稳定的去重键。
-
-        有链接时用链接作为去重键（同时校验其合法性，非法直接丢弃该条目）；
-        无链接时用 来源+标题+发布时间 的哈希生成 `no-url:intel:<hash>` 占位键，
-        保证 upsert 仍能去重。
-        """
-        title = self._clean_text(title)[:300]
-        summary = self._clean_text(summary)[:2000]
-        url = url.strip()
-        if not title and not url:
-            return None
-        if url:
-            try:
-                self._validate_url(url, allow_no_url=True)
-            except IntelligenceServiceError:
-                return None
-            url_key = url
-        else:
-            digest = hashlib.sha256(f"{source_name}|{title}|{published_at}".encode("utf-8")).hexdigest()[:24]
-            url_key = f"no-url:intel:{digest}"
-        return FeedEntry(title or url_key, summary, url_key, source_name, published_at, {"source": source_name})
+        return FeedParser(self._validate_url).build_entry(title=title, summary=summary, url=url, source_name=source_name, published_at=published_at)
 
     def _entry_to_item_fields(self, entry: FeedEntry, source: Any, now: datetime) -> Dict[str, Any]:
         """把 FeedEntry 转成待入库字段：作用域与市场信息继承自所属资讯源。"""
@@ -1008,57 +924,15 @@ class IntelligenceService:
         """错误文案脱敏并截断，失败时回退为统一的内部错误提示。"""
         return sanitize_diagnostic_text(str(exc), max_length=500) or "internal intelligence service error"
 
-    @staticmethod
-    def _strip_ns(tag: str) -> str:
-        """去掉 XML 标签的命名空间前缀，只保留本地标签名。"""
-        return tag.rsplit("}", 1)[-1] if "}" in tag else tag
+    _strip_ns = staticmethod(FeedParser.strip_ns)
 
-    @classmethod
-    def _text(cls, node: ET.Element, name: str) -> str:
-        """读取子节点文本：先按任意命名空间匹配，再退回无命名空间匹配。"""
-        found = node.find(f"./{{*}}{name}")
-        if found is None:
-            found = node.find(f"./{name}")
-        return "" if found is None or found.text is None else found.text.strip()
+    _text = staticmethod(FeedParser.text)
 
-    @staticmethod
-    def _clean_text(value: str) -> str:
-        """清洗文本：先剥离 HTML 标签，再折叠空白字符。"""
-        return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", value or "")).strip()
+    _clean_text = staticmethod(FeedParser.clean_text)
 
-    @staticmethod
-    def _parse_datetime(value: str) -> Optional[datetime]:
-        """解析时间字符串：优先 RFC 2822（RSS pubDate），其次 ISO 8601；统一转 UTC naive。"""
-        raw = (value or "").strip()
-        if not raw:
-            return None
-        try:
-            parsed = parsedate_to_datetime(raw)
-        except (TypeError, ValueError):
-            try:
-                parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-            except ValueError:
-                return None
-        if parsed.tzinfo is not None and parsed.utcoffset() is not None:
-            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
-        return parsed
+    _parse_datetime = staticmethod(FeedParser.parse_datetime)
 
-    @classmethod
-    def _parse_datetime_or_timestamp(cls, value: Any) -> Optional[datetime]:
-        """解析时间：支持秒/毫秒时间戳与常见字符串格式（NewsNow 的 pubDate 两种都有）。"""
-        if isinstance(value, (int, float)):
-            timestamp = float(value)
-            # 超过该阈值视为毫秒时间戳，统一换算成秒
-            if timestamp > 10_000_000_000:
-                timestamp = timestamp / 1000
-            try:
-                return datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(tzinfo=None)
-            except (OSError, OverflowError, ValueError):
-                return None
-        raw = str(value or "").strip()
-        if raw.isdigit():
-            return cls._parse_datetime_or_timestamp(float(raw))
-        return cls._parse_datetime(raw)
+    _parse_datetime_or_timestamp = staticmethod(FeedParser.parse_datetime_or_timestamp)
 
     def _builtin_source_templates(self) -> List[Dict[str, Any]]:
         """返回完整内置模板列表：RSS/Atom 模板 + 由 NewsNow 定义动态生成的模板。"""

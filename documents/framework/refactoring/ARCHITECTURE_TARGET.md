@@ -3,6 +3,7 @@
 | 项目 | 约定 |
 | --- | --- |
 | 状态 | 待评审；本文是目标设计和实施顺序，不表示代码已迁移 |
+| 服务端大文件拆分实施延续 | [ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md](./ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md)：§4.3 的服务端大文件第二轮拆分结果、验证证据与交接记录 |
 | 仓库根目录 | `HermesX/`；沿用现有可导入的 Python 包 `src`，不增加 `src/hermesx/` |
 | 主要改造范围 | `src/`、`api/`、`bot/`、`data_provider/`、根目录 Python 入口和相应测试 |
 | 联动范围 | 当导入路径或契约变化时，同步修改 Web、Desktop、脚本、Docker、CI、文档 |

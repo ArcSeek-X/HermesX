@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 按职责拆分系统配置、分析器、分析流水线、通知报告、Agent 汇总、搜索与复盘模块，保留既有 API、配置写入、异常处理及客户端契约；声明和单一适配边界不按行数强拆。
+- [测试] 同步拆分后的依赖 patch 位置，保持 5725 项收集数量；固定序和随机序离线全量验证通过，补充提示词、结果规则与中英韩报告输出一致性对账。
+- [文档] 新增 `ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md`，作为 `ARCHITECTURE_TARGET.md` §4.3 的服务端大文件第二轮拆分实施延续，逐项登记原 13 个大文件的处理结果、模块落点、保留理由和回滚边界，并建立双向引用。
+
 - [测试] 按业务行为拆分 16 个大测试文件并细分目录，保留用例映射和覆盖；增加 pytest-randomly，修复机构数据 mock 懒加载污染及静态资源启动测试触发真实调度的问题，固定序和两个随机种子的离线全量验证通过。
 - [修复] 修正 Dockerfile ENV 声明的行内注释语法；macOS 打包将损坏或缺失的运行库及应用签名修复为有效 ad-hoc 签名，避免 Apple Silicon 无法加载 Python。
 - [chore] Docker 上下文和后端静态检查排除本地 Web / Desktop 构建产物与 Electron 构建缓存，避免扫描打包后的第三方运行库。

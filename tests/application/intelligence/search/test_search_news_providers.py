@@ -378,7 +378,7 @@ class SearchNewsFreshnessTestCase(_SearchNewsFreshnessTestCaseFixture, unittest.
                     }
                 }
 
-                with patch("src.infrastructure.search.providers.requests.get", return_value=fake_response) as mock_get:
+                with patch("src.infrastructure.search.provider_base.requests.get", return_value=fake_response) as mock_get:
                     service = SearchService(
                         brave_keys=["dummy_key"],
                         searxng_public_instances_enabled=False,

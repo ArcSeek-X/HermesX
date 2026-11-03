@@ -1,5 +1,7 @@
 """Tests for system config channels."""
 
+from src.application.runtime.notification_channel_test import NotificationChannelTester
+
 from tests.application.runtime._system_config_service_support import (
     ANSPIRE_LLM_MODEL_DEFAULT,
     Any,
@@ -563,7 +565,7 @@ class SystemConfigServiceTestCase(_SystemConfigServiceTestCaseFixture, unittest.
             }
 
         with self._notification_test_env(), patch.object(
-            SystemConfigService,
+            NotificationChannelTester,
             "_dispatch_notification_test",
             side_effect=fake_dispatch,
         ):

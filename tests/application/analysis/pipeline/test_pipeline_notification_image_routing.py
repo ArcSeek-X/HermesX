@@ -206,7 +206,7 @@ class TestPipelineWechatOnlyImageRouting(unittest.TestCase):
         results = [SimpleNamespace(code="000001")]
 
         with patch("src.infrastructure.reporting.img_render.markdown_to_image", return_value=None), patch(
-            "src.application.analysis.pipeline.get_config", return_value=SimpleNamespace(md2img_engine="wkhtmltoimage")
+            "src.application.notification.analysis_report_delivery.get_config", return_value=SimpleNamespace(md2img_engine="wkhtmltoimage")
         ), patch("src.application.analysis.pipeline.logger.warning") as mock_warning:
             pipeline._send_notifications(results, ReportType.SIMPLE)
 

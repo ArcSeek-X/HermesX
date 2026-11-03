@@ -202,7 +202,8 @@ class _TestSafeIntFixture:
             mock_config.return_value = mock_cfg
 
             from src.application.analysis.pipeline import StockAnalysisPipeline
-            return StockAnalysisPipeline._safe_int
+            from src.application.analysis.agent_result_mapper import AgentResultMapper
+        return AgentResultMapper.safe_int
 
 
 class _TestSkillActivationFixture:

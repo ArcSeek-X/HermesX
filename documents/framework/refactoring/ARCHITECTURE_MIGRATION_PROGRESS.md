@@ -5510,3 +5510,14 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 基线 main / `2ba90010`，开始时工作区干净。服务端分层未调整，本轮测试和打包修复尚未提交。测试专项的逐项映射、顺序依赖根因和最终结果统一见 [测试台账 §10](./TEST_SUITE_MIGRATION_PROGRESS.md#10-测试文件内部拆分目录细分与验收2026-11-03)。当前全局状态见 [总览](./ARCHITECTURE_MIGRATION_STATUS.md)，不再沿用旧零提交或旧 TS 编译错误状态。
 
 本轮16个测试大文件拆为113模块，另归类64文件，测试方法AST1520项保持，收集5725项守恒；离线固定序与种子20261103/20261104每轮5720通过、1跳过、4未选、511 subtests通过。Docker修复ENV语法后停在HeroUI Pro授权，维护者确认保留依赖；macOS修复ad-hoc签名后DMG及挂载检查通过，独立打包后端健康与首页200，但Electron实际启动受本机8000服务冲突及就绪判定问题阻塞，Windows/Intel未验收。未修改UI、未引入Tooltip、未执行全量前端lint、未commit/push/tag。
+
+## 0.177 服务端第二轮职责拆分（2026-11-03）
+
+实施基线 main / `6eb298aa`，开始时工作区干净；本轮未 commit / push / tag。逐项处理决定、职责落点、兼容边界与回滚见 [ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md](./ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md)。
+
+- 原 13 个大文件全部评估，9 个混合职责文件拆出 28 个职责模块；字段声明、统一配置加载及两个单一 AlphaSift 边界共 4 件保留，理由逐项登记。1800 行不作为硬门槛。
+- 系统配置 4328→1426 行、分析器 4379→1964 行、流水线 3732→2509 行；配置写入/冲突/重载和流水线并发状态仍归原协调入口。最终行数以专项表格/当前文件为准。
+- 测试收集 5725 不变，固定序全量 5720 passed / 1 skipped / 4 deselected / 511 subtests（最终 330.11s），随机种子 20261103 同结果（366.77s）；清理后相关子集 499 passed。架构守卫、45 个改动 Python 文件语法、严重 flake8（0）和 CI 确定性检查通过。
+- 3 个分析系统提示词常量 AST 原样保留；21 个结果规则函数、8 个提供方/基类和 6 个值对象定义 AST 一致（忽略 docstring 排版）。中英韩 21 组代表报告输出逐字一致，无报告格式或页面改动。
+- Web 构建通过。正式 macOS 后端脚本重新安装固定 AlphaSift 版本时 GitHub SSL 超时；核对本机版本完全相同后，以正式冻结参数复用已安装依赖，冻结完成、28 个新模块逐一实际导入通过、关键 SDK/日历/策略检查通过，临时配置及数据库下 `/api/health` 和首页均 200。没有修改正式打包脚本，不把该结果等同于干净安装通过。
+- API、Web/Electron 源文件、数据库结构、配置默认值和架构 baseline 未改。既有 Docker 授权、桌面端口、UI title 守卫、全量前端 lint 和 Windows/Intel 验收仍独立保留。

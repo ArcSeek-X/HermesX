@@ -737,3 +737,13 @@ macOS arm64 实际打包发现 Python 运行库移除签名后无法加载，改
 当前总览重写为最新状态，旧过程保留在历史流水；14 份活动测试路径文档同步，涉及中英文对应者均同步。desktop-package.md 无对应英文专题文件，本轮仅更新现有中文版本。没有修改 README。
 
 主要风险是支持模块的共享装配和跨模块状态，已用内容对账、固定序和双随机序覆盖；这不等于任意顺序和任意环境均无风险。完整映射用于后续增补测试与局部回滚，恢复旧模块时须撤回对应新模块，避免重复收集。打包修复可独立按本轮文件撤回，不操作用户数据。UI 规则、全量前端 lint、服务端第二轮拆分继续作为后续工作。
+
+## 11. 服务端职责拆分后的测试接缝同步（2026-11-03）
+
+实施基线 main / `6eb298aa`。服务端拆分详见 [专项交接](./ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md)；测试目录、测试名称和断言保持，未增删 skip/xfail/network 标记，收集仍为 5725。
+
+本轮测试改动仅涉及 8 个文件的依赖消费位置 / 辅助引用：配置通知试发转到 NotificationChannelTester，Agent 数值转换转到 AgentResultMapper，流水线实时行情日期转到 context_enrichment，图片配置转到 analysis_report_delivery，以及搜索提供方 requests / HTTP retry / 正文提取 / 时钟 patch 转到实际 adapter 或 provider_base。未通过改预期掩盖行为变化。
+
+验证：核心联合子集 1636 passed；后续配置及通知协调子集 499 passed；最终固定序全量 5720 passed / 1 skipped / 4 deselected / 511 subtests（330.11s），随机种子 20261103 同结果（366.77s）。最后清理仅收敛重复静态函数 / 无引用常量，清理后子集与完整固定序复核通过。27 条原警告保留。
+
+原测试目录迁移及内部拆分仍维持 §10 的完成状态。服务端新模块不意味着重新迁移测试目录或增设平行测试框架；本轮无前端源码改动，全量前端 lint 继续暂缓。未执行 commit / push / tag。
