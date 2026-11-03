@@ -28,21 +28,18 @@ fi
 checked_count=0
 signed_count=0
 removed_count=0
+repaired_count=0
 
-remove_broken_signature() {
+# Apple Silicon requires a valid signature on loaded Mach-O code. Removing a
+# damaged library signature makes the Python runtime unloadable; repair it with
+# an ad-hoc signature. This does not add an Apple Developer identity or notarize
+# the application; the outer bundle also needs a consistent ad-hoc seal.
+repair_runtime_signature() {
   local candidate="$1"
-  local signature_details=""
-
-  echo "WARNING: removing invalid signature from unsigned macOS artifact: ${candidate}"
-  codesign --remove-signature "${candidate}"
-  removed_count=$((removed_count + 1))
-
-  signature_details="$(codesign -d "${candidate}" 2>&1 || true)"
-  if [[ "${signature_details}" != *"code object is not signed at all"* ]]; then
-    echo "ERROR: failed to remove invalid signature: ${candidate}" >&2
-    echo "${signature_details}" >&2
-    exit 1
-  fi
+  echo "Repairing runtime signature with ad-hoc identity: ${candidate}"
+  codesign --force --sign - --timestamp=none "${candidate}"
+  codesign --verify --strict --verbose=4 "${candidate}"
+  repaired_count=$((repaired_count + 1))
 }
 
 audit_candidate() {
@@ -52,10 +49,18 @@ audit_candidate() {
   checked_count=$((checked_count + 1))
   if ! signature_details="$(codesign -d "${candidate}" 2>&1)"; then
     if [[ "${signature_details}" == *"code object is not signed at all"* ]]; then
+      if [[ -f "${candidate}" || "${candidate}" == *.app || "${candidate}" == *.framework || "${candidate}" == *.xpc ]]; then
+        if [[ "${mode}" == "normalize" ]]; then
+          repair_runtime_signature "${candidate}"
+        else
+          echo "ERROR: unsigned runtime code in macOS artifact: ${candidate}" >&2
+          exit 1
+        fi
+      fi
       return 0
     fi
     if [[ "${mode}" == "normalize" ]]; then
-      remove_broken_signature "${candidate}"
+      repair_runtime_signature "${candidate}"
       return 0
     fi
     echo "ERROR: unreadable or invalid signature in macOS artifact: ${candidate}" >&2
@@ -69,7 +74,7 @@ audit_candidate() {
   fi
 
   if [[ "${mode}" == "normalize" ]]; then
-    remove_broken_signature "${candidate}"
+    repair_runtime_signature "${candidate}"
     return 0
   fi
 
@@ -90,4 +95,4 @@ done < <(
     -print0
 )
 
-echo "macOS signature audit complete: mode=${mode}, checked=${checked_count}, signed=${signed_count}, removed=${removed_count}"
+echo "macOS signature audit complete: mode=${mode}, checked=${checked_count}, signed=${signed_count}, removed=${removed_count}, repaired=${repaired_count}"

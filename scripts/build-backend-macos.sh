@@ -136,7 +136,7 @@ if [[ ! -d "${packaged_root}" ]]; then
   exit 1
 fi
 
-log "Removing invalid signatures before the packaged backend is executed..."
+log "Repairing ad-hoc runtime signatures before the packaged backend is executed..."
 bash "${SCRIPT_DIR}/macos-signature-audit.sh" normalize "${packaged_root}"
 
 log "Verifying packaged runtime imports..."

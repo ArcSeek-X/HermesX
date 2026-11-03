@@ -51,3 +51,6 @@ apps/hrs-web/node_modules/
 apps/hrs-web/dist/
 apps/hrs-web/build/
 apps/hrs-web/coverage/
+/dist-web/
+/dist-desktop/
+/.electron-builder-cache/

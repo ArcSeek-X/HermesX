@@ -83,7 +83,7 @@ are mock identifiers only.
 Recommended checks for changes to this contract:
 
 ```bash
-python -m pytest tests/application/agent/test_agent_stream_events.py tests/api/agent/test_agent_sse_cleanup.py
+python -m pytest tests/application/agent/conversation/test_agent_stream_events.py tests/api/agent/test_agent_sse_cleanup.py
 ```
 
 ```bash

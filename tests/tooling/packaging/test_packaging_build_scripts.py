@@ -114,22 +114,26 @@ def _write_fake_macos_signature_tools(fake_bin: Path) -> None:
         """#!/usr/bin/env bash
 candidate="${@: -1}"
 marker="${candidate}.removed"
+repaired="${candidate}.repaired"
 case "$1" in
   -d)
-    if [[ -f "${marker}" ]] || [[ "${candidate}" == *"unsigned.bin" ]]; then
+    if [[ -f "${marker}" ]] || [[ "${candidate}" == *"unsigned.bin" && ! -f "${repaired}" ]]; then
       printf 'code object is not signed at all\\n' >&2
       exit 1
     fi
     printf 'Authority=adhoc\\n' >&2
     ;;
   --verify)
-    if [[ "${candidate}" == *"broken.bin" ]] && [[ ! -f "${marker}" ]]; then
+    if [[ "${candidate}" == *"broken.bin" ]] && [[ ! -f "${marker}" && ! -f "${repaired}" ]]; then
       printf 'broken signature\\n' >&2
       exit 1
     fi
     ;;
   --remove-signature)
     : > "${marker}"
+    ;;
+  --force)
+    : > "${repaired}"
     ;;
 esac
 """,
@@ -169,8 +173,10 @@ def test_macos_signature_audit_normalizes_invalid_signatures(tmp_path: Path) -> 
     )
 
     assert result.returncode == 0, result.stderr
-    assert (artifact / "broken.bin.removed").is_file()
-    assert "removed=1" in result.stdout
+    assert (artifact / "broken.bin.repaired").is_file()
+    assert (artifact / "unsigned.bin.repaired").is_file()
+    assert not (artifact / "broken.bin.removed").exists()
+    assert "removed=0, repaired=2" in result.stdout
 
 
 def test_macos_signature_audit_rejects_invalid_signatures(tmp_path: Path) -> None:

@@ -145,7 +145,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(
-                    "data_provider.tw_institutional_fetcher.TwInstitutionalFetcher",
+                    "data_provider.institutional.tw_source.TwInstitutionalFetcher",
                     side_effect=RuntimeError("init boom"),
                 ):
             ctx = manager.get_fundamental_context("2330.TW")  # must NOT raise

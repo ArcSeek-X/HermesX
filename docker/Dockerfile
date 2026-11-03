@@ -104,12 +104,13 @@ RUN EF_DATA_DIR="$(python -c 'import efinance, pathlib; print(pathlib.Path(efina
     chown -R hrs:hrs "$EF_DATA_DIR"
 
 # 设置环境变量默认值（均可在 docker run / compose 时覆盖）
-ENV PYTHONUNBUFFERED=1                       # Python 日志实时输出，不缓冲，便于看容器日志
-ENV LOG_DIR=/app/logs                        # 应用日志目录
-ENV DATABASE_PATH=/app/data/stock_analysis.db# SQLite 数据库路径（持久化卷内）
+# Python 日志实时输出，不缓冲；应用日志与 SQLite 数据库分别持久化。
+ENV PYTHONUNBUFFERED=1
+ENV LOG_DIR=/app/logs
+ENV DATABASE_PATH=/app/data/stock_analysis.db
 # Web/API service 监听配置
-ENV WEBUI_HOST=0.0.0.0                       # 监听所有网卡，便于容器外访问
-ENV API_PORT=8000                           # API/Web 服务端口
+ENV WEBUI_HOST=0.0.0.0
+ENV API_PORT=8000
 
 # 暴露 API 端口（仅文档性声明，真正映射由 run/compose 的 -p 决定）
 EXPOSE 8000

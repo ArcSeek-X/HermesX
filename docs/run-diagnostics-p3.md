@@ -165,17 +165,17 @@ Web 入口：
 ## 兼容性回归与验证（PR 合并前关键证据）
 
 - 后端回归覆盖：
-  - `tests/application/analysis/test_pipeline_market_phase_context.py`
+  - `tests/application/analysis/pipeline/test_pipeline_market_phase_context.py`
   - `tests/infrastructure/providers/realtime/test_realtime_types.py`
   - `tests/application/runtime/test_scheduler_background.py`
-  - `tests/integration/analysis/test_analysis_api_contract.py`（子集：诊断上下文入出参/状态查询契约）
-  - `tests/application/history/test_analysis_history.py`（子集：历史 API 与持久化链路）
-- 覆盖关系：API 合约由 `tests/integration/analysis/test_analysis_api_contract.py` 与 `tests/application/history/test_analysis_history.py` 覆盖；任务编排、历史保存和 `context_snapshot.diagnostics` 由 `tests/application/analysis/test_pipeline_market_phase_context.py` 覆盖；通知路径通过 `./scripts/ci_gate.sh` 中的既有通知回归与导入检查兜底。
+  - `tests/integration/analysis/`（子集：诊断上下文入出参/状态查询契约）
+  - `tests/application/history/read_model/`（子集：历史 API 与持久化链路）
+- 覆盖关系：API 合约由 `tests/integration/analysis/` 与 `tests/application/history/read_model/` 覆盖；任务编排、历史保存和 `context_snapshot.diagnostics` 由 `tests/application/analysis/pipeline/test_pipeline_market_phase_context.py` 覆盖；通知路径通过 `./scripts/ci_gate.sh` 中的既有通知回归与导入检查兜底。
 - 回归命令（PR 合并前至少确认全部通过）：
 
 ```bash
 ./scripts/ci_gate.sh
-python -m pytest tests/infrastructure/providers/realtime/test_realtime_types.py tests/application/runtime/test_scheduler_background.py tests/application/analysis/test_pipeline_market_phase_context.py tests/integration/analysis/test_analysis_api_contract.py tests/application/history/test_analysis_history.py
+python -m pytest tests/infrastructure/providers/realtime/test_realtime_types.py tests/application/runtime/test_scheduler_background.py tests/application/analysis/pipeline/test_pipeline_market_phase_context.py tests/integration/analysis/ tests/application/history/read_model/
 cd apps/hrs-web && npm run lint && npm run build
 ```
 

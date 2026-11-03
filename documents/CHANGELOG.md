@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ArcSeek-X/HermesX/releases) page.
 
 ## [Unreleased]
+
+- [测试] 按业务行为拆分 16 个大测试文件并细分目录，保留用例映射和覆盖；增加 pytest-randomly，修复机构数据 mock 懒加载污染及静态资源启动测试触发真实调度的问题，固定序和两个随机种子的离线全量验证通过。
+- [修复] 修正 Dockerfile ENV 声明的行内注释语法；macOS 打包将损坏或缺失的运行库及应用签名修复为有效 ad-hoc 签名，避免 Apple Silicon 无法加载 Python。
+- [chore] Docker 上下文和后端静态检查排除本地 Web / Desktop 构建产物与 Electron 构建缓存，避免扫描打包后的第三方运行库。
+- [文档] 更新架构及测试当前总览、完整拆分映射和中英文活动测试路径；如实登记 Docker Pro 样式授权缺口、桌面端口启动问题及未验证平台。
 - [修复] 持仓信号查询在账户快照与当前范围不匹配时清空旧信号并暂停查询，避免跨账户显示；修正搜索框受控清空、表单标签关联及首屏主题存储读取。保留既有原生 title 提示和持仓页布局，不迁移 Tooltip，不新增汇率状态展示。
 - [测试] 修复全量 Web 测试的路由/缓存/Toast 装配和旧 mock、页面路径与交互断言，Vitest 纳入 web-gate；移除 pytest 全局 asyncio/AnyIO/TestClient 替换，以原生框架验证取消、限流、跨线程调用、异常和生命周期。
 - [测试] 路由守卫测试对齐返回重定向的契约，路由注册测试显式注入 router 并覆盖重复注册与卸载状态；新闻离线测试固定 DNS 边界，补充私网解析和解析失败的安全校验回归。

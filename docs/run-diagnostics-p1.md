@@ -40,6 +40,6 @@
 ## 验证建议
 
 ```bash
-python -m pytest tests/application/runtime/test_run_diagnostics_p1.py tests/integration/analysis/test_analysis_api_contract.py::AnalysisApiContractTestCase::test_get_analysis_status_normalizes_completed_queue_result_contract
+python -m pytest tests/application/runtime/test_run_diagnostics_p1.py tests/integration/analysis/::AnalysisApiContractTestCase::test_get_analysis_status_normalizes_completed_queue_result_contract
 python -m py_compile src/application/runtime/run_diagnostics.py src/application/runtime/task_queue.py src/application/analysis/analysis_service.py src/application/analysis/pipeline.py data_provider/base.py api/v1/schemas/analysis.py api/v1/endpoints/analysis.py
 ```

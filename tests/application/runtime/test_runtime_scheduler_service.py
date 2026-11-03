@@ -566,7 +566,9 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
             "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"), patch(
+            "src.bootstrap.api_lifecycle._schedule_market_cards_warmup"
+        ):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -613,7 +615,9 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
             "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"), patch(
+            "src.bootstrap.api_lifecycle._schedule_market_cards_warmup"
+        ):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -662,7 +666,9 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
             "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"), patch(
+            "src.bootstrap.api_lifecycle._schedule_market_cards_warmup"
+        ):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -718,7 +724,9 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
             "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"), patch(
+            "src.bootstrap.api_lifecycle._schedule_market_cards_warmup"
+        ):
             app = create_app(static_dir=Path(temp_dir))
             with TestClient(app):
                 pass
@@ -758,7 +766,9 @@ class RuntimeSchedulerServiceTestCase(unittest.TestCase):
         ), patch("src.bootstrap.api_lifecycle.RuntimeSchedulerService", FakeRuntimeSchedulerService), patch(
             "src.bootstrap.api_lifecycle.SystemConfigService",
             FakeSystemConfigService,
-        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"):
+        ), patch("src.bootstrap.api_lifecycle.schedule_stock_index_background_refresh"), patch(
+            "src.bootstrap.api_lifecycle._schedule_market_cards_warmup"
+        ):
             os.environ.pop(CLI_SCHEDULER_OWNER_ENV, None)
             os.environ.pop(RUNTIME_SCHEDULER_FORCE_ENABLED_ENV, None)
             os.environ.pop(RUNTIME_SCHEDULER_RUN_IMMEDIATELY_ENV, None)

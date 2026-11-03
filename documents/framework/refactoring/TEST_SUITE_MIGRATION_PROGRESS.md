@@ -5,7 +5,7 @@
 
 | 项目 | 约定 |
 | --- | --- |
-| 关联方案 | TEST_SUITE_REFACTORING_PLAN.md v1.2 |
+| 关联方案 | TEST_SUITE_REFACTORING_PLAN.md v1.3 |
 | 台账创建 | 2026-11-01 |
 | 迁移基线 | `main`，收集基线 **5717 tests / ~5–7s**（含 network，`--collect-only`）|
 | 推进口径 | 严格 T0→T5 分片、逐片验证、禁止一次性大爆炸搬迁 |
@@ -554,14 +554,17 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 
 ---
 
-## 5. 后续切片与推进计划（进行中）
+## 5. 当前状态与后续计划（2026-11-03 更新）
 
-- **T0 全量归属映射（待完成）**：还需对剩余 ~290 个顶层 `test_*.py` 逐文件确定目标边界/域与「移动/拆分/保留」状态。混合职责文件与大文件（见方案 §4）先登记拆分候选，不强拆。
-- **T1 续批（可立即推进）**：继续挑选**无 §2 依赖 + 非文档引用**的纯领域/独立工具测试，按模板分批搬，每批验证 collect=5717 + 目标目录绿。建议每批 5–15 个文件、按业务域成组。
-- **T2 按域归类**：处理带路径/包内依赖者——搬迁同片修正 `parents[...]`/`sys.path`，并对被文档引用的文件同步 `docs/*.md`（中英）与 CHANGELOG。config/infrastructure/api/bot/bootstrap/architecture 分域推进。
-- **T3 内部拆分**：`test_system_config_service.py`（222 方法）、`test_multi_agent.py`、`test_analysis_api_contract.py` 等按行为契约拆分，追踪用例覆盖对应关系，记录参数化导致的用例数变化。
-- **T4 公共依赖治理（✅ 已完成，见 §4W）**：`litellm_stub` → `support/stubs/`（40 引用同步）、两个 live_smoke → `tooling/manual_smoke/`（自举深度改 `../../..`）、`src.utils` 族聚拢经取证为 no-op、模块级 `sys.modules` 0 写入；conftest §5.2 全局补丁保持原样并登记为独立证据驱动后续片。
-- **T5 收口（✅ 已完成，见 §4W）**：`scripts/ci_gate.sh`、`.github/workflows/*` 0 硬编码旧路径；`docs/*.md` 7 处 stale 活动指针已同步、`documents/` 历史留真不改；全量离线 5713/4/0 不退化、collect 恒 5717；随机顺序因本环境无 pytest-randomly 而记为未验证项（安装需单独授权）。
+| 阶段 | 当前状态 | 当前证据 / 后续边界 |
+| --- | --- | --- |
+| T0 / T1 / T2 | 目录归位完成 | tests/ 顶层 test_*.py 为 0，不再有“剩余约 290 个顶层”待处理 |
+| T3 | 本轮大文件内部拆分完成 | 16 → 113 测试模块，1520 方法内容保持，另归类 64 文件；见拆分映射 |
+| T4 | 原生运行机制及本轮顺序验证通过 | 保留真实 asyncio / AnyIO / TestClient；消除本轮发现的两类测试状态污染，固定序与双随机种子全绿 |
+| T5 | 本轮当前文档收口完成 | 活动路径及双语对应文档同步；历史执行记录保留，5725 是当前收集基线 |
+| 尚存边界 | 不算本轮已通过项 | UI 原生 title 规则、全量前端 lint、Docker 授权、桌面端口问题及未验证平台，见架构总览 |
+
+目录和文件的逐项对应及一二三级目录文件数见 [TEST_SUITE_SPLIT_MAPPING.md](./TEST_SUITE_SPLIT_MAPPING.md)。本节只反映当前状态，§1–4W、§7–9 的数字与结论保留为当时的执行记录。
 
 ### 每片收尾必做
 
@@ -668,3 +671,69 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 测试按现有设计验证：旧汇率快照下手动刷新入口可用且不会自动刷新；刷新后从原有 Toast 核对结果和最新汇率状态，同时保留请求范围、快照/风险重载、失败与竞态断言。不再要求页面额外渲染独立状态文字，也不以新增 UI 满足旧断言。
 
 验证：`PortfolioPage.test.tsx` **28 passed**；`npm run build`（TypeScript + Vite）通过，保留既有 chunk 警告；`git diff --check` 通过。未重跑全部 Web 测试，§9.4 的原生 title 守卫失败仍未处理。本片未提交或推送。
+
+## 10. 测试文件内部拆分、目录细分与验收（2026-11-03）
+
+### 10.1 范围与交接
+
+- 代码基线：main / `2ba90010`，开始时工作区干净；本轮无 commit / push / tag。
+- [完整旧→新映射与目录统计](./TEST_SUITE_SPLIT_MAPPING.md)：16 个 ≥1800 行文件拆为 113 个测试模块，16 个局部 support；64 个其他模块按业务能力迁移。
+- tests/ 当前 397 个测试模块，顶层 0，最大 1725 行；三级目录内叶目录最多 15 件。服务端源文件第二轮拆分不在本轮范围。
+- 每个被拆测试方法 / 函数及装饰器 AST 共 1520 项保持一致；完整 nodeid 映射（含参数与重复次数）对账前后均 5725 项。未通过删除断言、跳过或改 network 标记减少覆盖。
+- 原 unittest 共同准备提取为不含 test_ 方法、不继承 TestCase 的私有 fixture mixin；只在本域复用。配置注册测试跨类常量改显式导入 fixture，避免导入测试类触发重复收集。
+- analysis API 临时 ENV_FILE 作用域从模块级泄漏改为局部 patch.dict；去掉已不归属单一测试模块的整进程环境 teardown。
+
+### 10.2 随机顺序定位与修复
+
+首次随机种子 20261103 报告 12 条失败，其中拆分后的两处常量引用和在运行期间加载的旧打包 fake 已修正。进一步定位的真实顺序污染：
+
+| 问题 | 根因 | 修复与保护边界 |
+| --- | --- | --- |
+| 台湾机构数据测试串扰 | patch 原定义模块的构造器，首次懒加载 TwInstitutionalSource 时 from-import 把 mock 永久绑定在消费模块 | patch `data_provider.institutional.tw_source.TwInstitutionalFetcher`，保留真实初始化失败及 fail-open 分支 |
+| 运行时调度共享锁占用 | 静态资源启动测试进入真实 lifespan，读到开发环境配置后启动实际调度分析；测试退出时工作线程尚在运行 | 该静态资源测试局部 mock RuntimeSchedulerService 与行情预热，仍运行真实 TestClient/lifespan，断言 stop 调用；不强制释放生产共享锁、不全局关闭生命周期 |
+
+调度生命周期测试的 5 个场景还局部隔离无关的 `_schedule_market_cards_warmup`，避免离线调度契约测试后台请求真实行情；最终相关子集 46 passed。
+
+依赖在 `.github/requirements-ci.txt` 增加 pytest-randomly；本机版本 5.0.0。默认加载该插件时顺序会随机化；要复现本轮结果必须传明确种子，固定序则禁用插件。历史腾讯行情偶发失败本轮未复现，根因仍未确认，不能据三轮通过宣布根因关闭。
+
+### 10.3 最终验证
+
+| 运行方式 | 结果 | 时间 |
+| --- | --- | ---: |
+| 固定序，`-p no:randomly` | 5720 passed / 1 skipped / 4 deselected / 511 subtests | 343.06s |
+| `--randomly-seed=20261103` | 同上 | 393.96s |
+| `--randomly-seed=20261104` | 同上 | 338.71s |
+| 16 个原拆分组独立进程运行 | 16/16 通过，覆盖各组全部新模块 | 各组 2.08–94.29s |
+| 架构守卫 | 通过 | — |
+| flake8 `E9,F63,F7,F82` | 0 | — |
+| Desktop `npm test` | 49 passed | 3.29s |
+| 打包脚本定向测试 | 5 passed | 4.90s |
+
+复现命令（仓库根目录使用已装依赖的 Python 环境）：
+
+```bash
+python -m pytest tests --collect-only -q -o addopts= -p no:randomly
+python -m pytest tests -m "not network" -p no:randomly -q -o addopts= --tb=short
+python -m pytest tests -m "not network" --randomly-seed=20261103 -q -o addopts= --tb=short
+python -m pytest tests -m "not network" --randomly-seed=20261104 -q -o addopts= --tb=short
+python scripts/check_architecture.py --check
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+```
+
+最终 20261104 复核在补齐 5 个调度生命周期场景的行情预热隔离后重新运行，结果保持不变（338.71s）；46 条相关定向测试也通过。
+
+27 条既有框架弃用警告和 1 条既有跳过仍保留；网络测试未运行。运行日志为本机 `/tmp/hermesx-final-fixed.log`、`/tmp/hermesx-final-random-20261103.log`、`/tmp/hermesx-final-random-20261104-clean.log`；临时文件不是长期 CI 证据，后续应在 CI 留存结果。
+
+### 10.4 平台验收与未闭环项
+
+Docker daemon 已确认运行。修复 Dockerfile ENV 行内注释解析错误；镜像经过系统依赖和 npm ci，最终干净 Web 构建缺少 `@heroui-pro/react/css`。维护者明确选择保留 Pro 依赖、记录授权缺口；没有删除 CSS 导入或调整页面。Docker 完整镜像和容器启动仍未通过。
+
+macOS arm64 实际打包发现 Python 运行库移除签名后无法加载，改为修复 ad-hoc 签名，外层 app 也保持完整 ad-hoc 封印。后端 --help、Electron .app、DMG 构建与只读挂载检查通过（259 个代码对象严格验证），Gatekeeper 因未使用 Apple Developer 身份而拒绝符合当前分发边界。独立打包后端在临时目录 `/api/health` 与首页均 200。实际 Electron 窗口启动被本机 8000 端口冲突及就绪判定问题阻塞，首页 internal_error；未改本机已有服务，未宣称桌面端到端通过。未执行 /Applications 安装、Windows 或 Intel 验收。
+
+打包后第三方 protobuf 运行库会出现在 dist-desktop，旧 flake8 全树扫描误报 4540 项；仅将 dist-desktop / dist-web / .electron-builder-cache 加入产物排除，源码严重检查仍开启。Docker 上下文也排除这些本地产物。
+
+### 10.5 文档、风险与回滚
+
+当前总览重写为最新状态，旧过程保留在历史流水；14 份活动测试路径文档同步，涉及中英文对应者均同步。desktop-package.md 无对应英文专题文件，本轮仅更新现有中文版本。没有修改 README。
+
+主要风险是支持模块的共享装配和跨模块状态，已用内容对账、固定序和双随机序覆盖；这不等于任意顺序和任意环境均无风险。完整映射用于后续增补测试与局部回滚，恢复旧模块时须撤回对应新模块，避免重复收集。打包修复可独立按本轮文件撤回，不操作用户数据。UI 规则、全量前端 lint、服务端第二轮拆分继续作为后续工作。

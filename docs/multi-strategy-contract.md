@@ -345,7 +345,7 @@ Phase 1 涉及的入口：
 - `src/application/agent/disagreement.py`：`build_agent_disagreement_summary()` 直接消费 `ctx.opinions`（因 StrategyEngine 已完成分拣并由 Orchestrator 写回），Invalid 完全不出现在 `bullish_agents` / `bearish_agents` / `neutral_agents` 三桶中。
 - `src/application/reporting/report_renderer.py`、`templates/report_markdown.j2`、`templates/report_wechat.j2`、`src/application/notification/notification.py`、`src/application/history/read_model.py`：读取 `strategy_synthesis.supporting_skills` / `opposing_skills` / `consensus_level` / `summary_params.invalid_opinion_count`；空列表通过 `labels.none_label` 输出；不再消费 `neutral_skills`。
 - `src/domain/shared/report_language.py`：`labels.none_label` 在 zh/en/ko 三语中完备；共识度、诊断计数文案完备。
-- `tests/application/agent/test_multi_agent.py`：新增 E2E-A..G 反例矩阵，从 SkillAgent 输入 → StrategyEngine 分拣/聚合 → DecisionAgent prompt → dashboard payload → renderer 实际文本全链路断言。
+- `tests/application/agent/`：新增 E2E-A..G 反例矩阵，从 SkillAgent 输入 → StrategyEngine 分拣/聚合 → DecisionAgent prompt → dashboard payload → renderer 实际文本全链路断言。
 
 Phase 1 不改变 `AgentOpinion` 字段、不改变 API 返回结构、不改变数据库 schema、不新增配置项、不改变现有 skill 的执行方式。
 
@@ -471,7 +471,7 @@ Phase 1 必须提供如下 E2E 反例覆盖。E2E 定义为：从 SkillAgent 输
 | Renderer · Notification | `src/application/notification/notification.py`（策略综合行渲染） |
 | Renderer · History | `src/application/history/read_model.py`（历史详情策略综合块） |
 | 多语言与宽松 payload 防腐 | `src/domain/shared/report_language.py::_REPORT_LABELS`, `normalize_strategy_synthesis_payload`, `strategy_invalid_opinion_count`, `localize_strategy_synthesis_summary`, `labels.none_label` |
-| E2E 反例矩阵 | `tests/application/agent/test_multi_agent.py::TestP1SemanticConvergence`, `TestStrategyEngineE2E` |
+| E2E 反例矩阵 | `tests/application/agent/::TestP1SemanticConvergence`, `TestStrategyEngineE2E` |
 
 ## 兼容与回滚
 

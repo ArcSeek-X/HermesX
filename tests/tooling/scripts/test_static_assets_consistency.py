@@ -452,11 +452,14 @@ def test_app_startup_schedules_stock_index_background_refresh(tmp_path: Path) ->
     # patch seam for the startup hook.
     with patch.object(
         api_lifecycle, "schedule_stock_index_background_refresh"
-    ) as schedule:
+    ) as schedule, patch.object(
+        api_lifecycle, "RuntimeSchedulerService"
+    ) as scheduler, patch.object(api_lifecycle, "_schedule_market_cards_warmup"):
         with TestClient(create_app(static_dir=static_dir)):
             pass
 
     schedule.assert_called_once_with(ANY, "startup")
+    scheduler.return_value.stop.assert_called_once_with()
     assert app_module.schedule_stock_index_background_refresh is api_lifecycle.schedule_stock_index_background_refresh
 
 

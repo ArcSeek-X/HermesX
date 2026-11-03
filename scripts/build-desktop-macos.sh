@@ -14,19 +14,19 @@ verify_expected_unsigned_app() {
 
   bash "${SCRIPT_DIR}/macos-signature-audit.sh" check "${app_path}"
 
-  if signature_details="$(codesign -d "${app_path}" 2>&1)"; then
-    echo "ERROR: expected an unsigned application bundle, but a signature was found: ${app_path}"
+  if ! signature_details="$(codesign -dvv "${app_path}" 2>&1)"; then
+    echo "ERROR: application bundle has no valid runtime signature: ${app_path}"
     echo "${signature_details}" >&2
     exit 1
   fi
-  if [[ "${signature_details}" != *"code object is not signed at all"* ]]; then
-    echo "ERROR: application bundle has an unreadable or invalid signature: ${app_path}"
+  if [[ "${signature_details}" != *"Signature=adhoc"* ]]; then
+    echo "ERROR: expected ad-hoc signing without an Apple Developer identity: ${app_path}"
     echo "${signature_details}" >&2
     exit 1
   fi
 
   if assessment_output="$(spctl --assess --type execute --verbose=4 "${app_path}" 2>&1)"; then
-    echo "WARNING: Gatekeeper accepted an explicitly unsigned application: ${app_path}"
+    echo "WARNING: Gatekeeper accepted an ad-hoc application: ${app_path}"
     echo "${assessment_output}"
     return 0
   fi
