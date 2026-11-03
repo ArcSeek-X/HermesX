@@ -44,6 +44,8 @@ import type { StockSuggestion } from '../../types/stockIndex';
 
 /** StockSearch 组件对外 Props */
 export interface StockSearchProps {
+  /** Accessible name supplied by the surrounding form. */
+  ariaLabel?: string;
   /** 输入值（用于搜索逻辑，通常是解析后的纯代码） */
   value: string;
   /**
@@ -145,6 +147,7 @@ class StockSearchBoundary extends Component<
  * 随滚动/缩放实时重算位置；选中候选后用 justSelectedRef 阻止 value 同步重复触发搜索。
  */
 function StockSearchInner({
+  ariaLabel,
   value,
   displayValue,
   onChange,
@@ -232,6 +235,10 @@ function StockSearchInner({
   // 避免选中回填的 value 再次触发搜索。
   useEffect(() => {
     if (prevValueRef.current !== value) {
+      if (value === '') {
+        setDisplayText('');
+        setEditingValue(null);
+      }
       if (justSelectedRef.current) {
         justSelectedRef.current = false;
         prevValueRef.current = value;
@@ -377,7 +384,7 @@ function StockSearchInner({
             className={cn('h-full !placeholder:text-xs ![overflow:visible] ![text-overflow:clip]')}
             disabled={disabled}
             placeholder={placeholder}
-            aria-label={placeholder}
+            aria-label={ariaLabel ?? placeholder}
             onKeyDown={handleKeyDown}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
