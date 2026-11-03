@@ -13,17 +13,23 @@ import { Shell } from '../Shell';
 const mockLogout = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../../stores/AuthStore', () => ({
-  useAuth: () => ({
+  useAuthStore: () => ({
     authEnabled: true,
     logout: mockLogout,
   }),
 }));
 
-vi.mock('../../../stores/agentChatStore', () => ({
-  useAgentChatStore: (selector: (state: { completionBadge: boolean }) => unknown) =>
-    selector({ completionBadge: true }),
-}));
+vi.mock('../../../stores/agentChatStore', () => {
+  const state = { completionBadge: true, setCurrentRoute: vi.fn() };
+  return {
+    useAgentChatStore: Object.assign(
+      (selector?: (value: typeof state) => unknown) => selector ? selector(state) : state,
+      { getState: () => state },
+    ),
+  };
+});
 
+/** 渲染应用外壳；菜单数据由 MenuStore 构建，未登录时侧栏为空，故先模拟登录后的建菜单动作。 */
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -40,7 +46,6 @@ beforeAll(() => {
   });
 });
 
-/** 渲染应用外壳；菜单数据由 MenuStore 构建，未登录时侧栏为空，故先模拟登录后的建菜单动作。 */
 function renderShell() {
   useMenuStore.getState().buildMenuData();
 

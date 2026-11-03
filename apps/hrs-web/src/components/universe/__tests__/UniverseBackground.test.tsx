@@ -12,6 +12,12 @@ import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import UniverseBackground from '../UniverseBackground'
 
+// jsdom has no WebGL context. Isolate that boundary, keeping the component's
+// error reporting, shell rendering and cleanup paths real.
+vi.mock('../engine/beyond/main.js', () => ({
+  createUniverse: () => { throw new Error('WebGL is unavailable in jsdom') },
+}))
+
 afterEach(cleanup)
 
 describe('UniverseBackground', () => {

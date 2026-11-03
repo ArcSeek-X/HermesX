@@ -13,18 +13,18 @@ import { RouteOutletBoundary } from '../../../pages/ErrorPage/RouteBoundary';
 import { Shell } from '../Shell';
 
 vi.mock('../../../stores/AuthStore', () => ({
-  useAuth: () => ({
+  useAuthStore: () => ({
     authEnabled: false,
     logout: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
 vi.mock('../../../stores/agentChatStore', () => {
-  const state = { completionBadge: false };
-
+  const state = { completionBadge: false, setCurrentRoute: vi.fn() };
   return {
-    useAgentChatStore: (selector?: (value: typeof state) => unknown) => (
-      selector ? selector(state) : state
+    useAgentChatStore: Object.assign(
+      (selector?: (value: typeof state) => unknown) => selector ? selector(state) : state,
+      { getState: () => state },
     ),
   };
 });
@@ -53,7 +53,7 @@ describe('RouteOutletBoundary', () => {
               )}
             >
               <Route path="/chat" element={<BrokenLazyRoute />} />
-              <Route path="/portfolio" element={<div data-testid="portfolio-page">Portfolio</div>} />
+              <Route path="/home" element={<div data-testid="home-page">Home</div>} />
             </Route>
           </Routes>
         </MemoryRouter>,
@@ -61,16 +61,16 @@ describe('RouteOutletBoundary', () => {
 
       expect(screen.getByRole('navigation', { name: '主导航' })).toBeInTheDocument();
       expect(await screen.findByRole('heading', { name: '页面加载失败' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '重新加载页面' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '重新加载' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '返回首页' })).toBeInTheDocument();
 
       // 错误态是模态框，打开期间页面其余部分被 aria-hidden，
       // 无法用 role 查询导航链接，这里直接取 DOM 节点模拟点击跳转。
-      const portfolioLink = document.querySelector<HTMLAnchorElement>('a[href="/portfolio"]');
-      expect(portfolioLink).not.toBeNull();
-      fireEvent.click(portfolioLink as HTMLAnchorElement);
+      const homeLink = document.querySelector<HTMLAnchorElement>('a[href="/home"]');
+      expect(homeLink).not.toBeNull();
+      fireEvent.click(homeLink as HTMLAnchorElement);
 
-      expect(await screen.findByTestId('portfolio-page')).toBeInTheDocument();
+      expect(await screen.findByTestId('home-page')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: '页面加载失败' })).not.toBeInTheDocument();
     } finally {
       consoleError.mockRestore();

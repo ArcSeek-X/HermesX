@@ -57,7 +57,7 @@ class ConversationSession:
 
 class ConversationManager:
     """Manages multiple conversation sessions with TTL."""
-    
+
     def __init__(self, ttl_minutes: int = 30):
         self._sessions: Dict[str, ConversationSession] = {}
         self.ttl = timedelta(minutes=ttl_minutes)

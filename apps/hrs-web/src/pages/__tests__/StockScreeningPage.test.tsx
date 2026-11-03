@@ -1,5 +1,5 @@
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // 测试框架：beforeEach/describe/it/vi/expect
 // 被测页面组件
@@ -268,7 +268,7 @@ describe('StockScreeningPage', () => {
 
     // 点击「分析 中际旭创」应跳转到首页并携带待分析股票信息
     fireEvent.click(screen.getByRole('button', { name: '分析 中际旭创' }));
-    expect(navigate).toHaveBeenCalledWith('/home', {
+    expect(navigate).toHaveBeenCalledWith('/', {
       state: {
         stockCode: '300000',
         stockName: '中际旭创',
@@ -1155,3 +1155,4 @@ describe('StockScreeningPage', () => {
     expect(screen.getByText('stock_news_unavailable')).toBeInTheDocument();
   });
 });
+import { renderWithRouter as render } from '../../test/renderWithRouter';

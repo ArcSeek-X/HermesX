@@ -1,5 +1,5 @@
 // 测试库：act 包裹状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 // 测试框架：beforeEach/describe/it/vi/expect
@@ -139,7 +139,7 @@ describe('TokenUsagePage', () => {
 
     // 标题、周期按钮、调用类型、说明文案均为英文
     expect(await screen.findByRole('heading', { name: 'Token usage' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Today' })).toBeInTheDocument();
     expect(screen.getAllByText('Stock analysis')).toHaveLength(2);
     expect(screen.getByText('Latest 50 LLM token audit records.')).toBeInTheDocument();
     // 中文标题不应出现（确认文案确实切换了）
@@ -204,7 +204,7 @@ describe('TokenUsagePage', () => {
     });
 
     // 点击「今日」按钮，触发 today 请求
-    fireEvent.click(screen.getByRole('button', { name: '今日' }));
+    fireEvent.click(screen.getByRole('tab', { name: '今日' }));
 
     // 断言：最近一次调用是 today 周期
     await waitFor(() => {
@@ -237,7 +237,7 @@ describe('TokenUsagePage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Token 用量监控' });
-    fireEvent.click(screen.getByRole('button', { name: '今日' }));
+    fireEvent.click(screen.getByRole('tab', { name: '今日' }));
 
     await waitFor(() => {
       expect(get).toHaveBeenLastCalledWith('/api/v1/usage/dashboard', {
@@ -246,3 +246,4 @@ describe('TokenUsagePage', () => {
     });
   });
 });
+import { renderWithRouter as render } from '../../test/renderWithRouter';

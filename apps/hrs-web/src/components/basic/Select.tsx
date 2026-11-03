@@ -62,6 +62,7 @@ interface SelectProps {
  * @returns 带标签和暗色样式的下拉选择器
  */
 export const Select: React.FC<SelectProps> = ({
+  id,
   value,
   onChange,
   options,
@@ -70,16 +71,19 @@ export const Select: React.FC<SelectProps> = ({
   disabled = false,
   className = '',
 }) => {
+  const generatedId = React.useId();
+  const controlId = id ?? generatedId;
   return (
     <div className={className}>
       {/* 标签 */}
       {label && (
-        <label className="mb-1.5 block text-xs font-medium text-muted-text">
+        <label htmlFor={controlId} className="mb-1.5 block text-xs font-medium text-muted-text">
           {label}
         </label>
       )}
       <div className="relative">
         <select
+          id={controlId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}

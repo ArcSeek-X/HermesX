@@ -260,7 +260,7 @@ class AnalysisHistoryRepository:
     ) -> Tuple[List[AnalysisHistory], int]:
         """
         分页查询分析历史记录（带总数）
-        
+
         Args:
             code: 股票代码筛选
             report_type: 报告类型筛选
@@ -268,13 +268,13 @@ class AnalysisHistoryRepository:
             end_date: 结束日期（含）
             offset: 偏移量（跳过前 N 条）
             limit: 每页数量
-            
+
         Returns:
             Tuple[List[AnalysisHistory], int]: (记录列表, 总数)
         """
         with self._db.get_session() as session:
             conditions = []
-            
+
             if code:
                 if isinstance(code, list):
                     codes = [c for c in code if c]
@@ -290,14 +290,14 @@ class AnalysisHistoryRepository:
             if end_date:
                 # created_at < end_date+1 00:00:00 (即 <= end_date 23:59:59)
                 conditions.append(AnalysisHistory.created_at < datetime.combine(end_date + timedelta(days=1), datetime.min.time()))
-            
+
             # 构建 where 子句
             where_clause = and_(*conditions) if conditions else True
-            
+
             # 查询总数
             total_query = select(func.count(AnalysisHistory.id)).where(where_clause)
             total = session.execute(total_query).scalar() or 0
-            
+
             # 查询分页数据
             data_query = (
                 select(AnalysisHistory)
@@ -307,19 +307,19 @@ class AnalysisHistoryRepository:
                 .limit(limit)
             )
             results = session.execute(data_query).scalars().all()
-            
+
             return list(results), total
 
     def get_analysis_history_by_id(self, record_id: int) -> Optional[AnalysisHistory]:
         """
         根据数据库主键 ID 查询单条分析历史记录
-        
+
         由于 query_id 可能重复（批量分析时多条记录共享同一 query_id），
         使用主键 ID 确保精确查询唯一记录。
-        
+
         Args:
             record_id: 分析历史记录的主键 ID
-            
+
         Returns:
             AnalysisHistory 对象，不存在返回 None
         """

@@ -30,27 +30,27 @@ logger = logging.getLogger(__name__)
 class StockRepository:
     """
     股票数据访问层
-    
+
     封装 StockDaily 表的数据库操作
     """
-    
+
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
         """
         初始化数据访问层
-        
+
         Args:
             db_manager: 数据库管理器（可选，默认使用单例）
         """
         self.db = db_manager or DatabaseManager.get_instance()
-    
+
     def get_latest(self, code: str, days: int = 2) -> List[StockDaily]:
         """
         获取最近 N 天的数据
-        
+
         Args:
             code: 股票代码
             days: 获取天数
-            
+
         Returns:
             StockDaily 对象列表（按日期降序）
         """
@@ -59,7 +59,7 @@ class StockRepository:
         except Exception as e:
             logger.error(f"获取最新数据失败: {e}")
             return []
-    
+
     def get_range(
         self,
         code: str,
@@ -68,12 +68,12 @@ class StockRepository:
     ) -> List[StockDaily]:
         """
         获取指定日期范围的数据
-        
+
         Args:
             code: 股票代码
             start_date: 开始日期
             end_date: 结束日期
-            
+
         Returns:
             StockDaily 对象列表
         """
@@ -82,7 +82,7 @@ class StockRepository:
         except Exception as e:
             logger.error(f"获取日期范围数据失败: {e}")
             return []
-    
+
     def save_dataframe(
         self,
         df: pd.DataFrame,
@@ -91,12 +91,12 @@ class StockRepository:
     ) -> int:
         """
         保存 DataFrame 到数据库
-        
+
         Args:
             df: 包含日线数据的 DataFrame
             code: 股票代码
             data_source: 数据来源
-            
+
         Returns:
             保存的记录数
         """
@@ -105,15 +105,15 @@ class StockRepository:
         except Exception as e:
             logger.error(f"保存日线数据失败: {e}")
             return 0
-    
+
     def has_today_data(self, code: str, target_date: Optional[date] = None) -> bool:
         """
         检查是否有指定日期的数据
-        
+
         Args:
             code: 股票代码
             target_date: 目标日期（默认今天）
-            
+
         Returns:
             是否存在数据
         """
@@ -122,19 +122,19 @@ class StockRepository:
         except Exception as e:
             logger.error(f"检查数据存在失败: {e}")
             return False
-    
+
     def get_analysis_context(
-        self, 
-        code: str, 
+        self,
+        code: str,
         target_date: Optional[date] = None
     ) -> Optional[Dict[str, Any]]:
         """
         获取分析上下文
-        
+
         Args:
             code: 股票代码
             target_date: 目标日期
-            
+
         Returns:
             分析上下文字典
         """

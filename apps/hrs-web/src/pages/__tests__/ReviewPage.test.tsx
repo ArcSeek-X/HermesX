@@ -1,7 +1,9 @@
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { getReportText, normalizeReportLanguage } from '@utils/reportLanguage';
 import { UI_LANGUAGE_STORAGE_KEY } from '@utils/uiLanguage';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render as renderComponent, screen, waitFor } from '@testing-library/react';
+import { KeepAlive } from 'keepalive-for-react';
+import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { analysisApi, DuplicateTaskError } from '../../api/analysis';
@@ -22,7 +24,11 @@ import type { RunFlowSnapshot } from '../../types/runFlow';
 // 报告语言工具（getReportText 取报告文本、normalizeReportLanguage 规整语言）
 // 语言存储键
 // 被测页面
-import HomePage from '../HomePage';
+import HomePage from '../reviewPage';
+
+const render = (ui: ReactElement) => renderComponent(
+  <KeepAlive activeCacheKey="review">{ui}</KeepAlive>,
+);
 
 // 路由跳转 mock
 const navigateMock = vi.fn();
@@ -227,16 +233,21 @@ const runFlowSnapshot: RunFlowSnapshot = {
   ],
 };
 
-describe('HomePage', () => {
+describe('ReviewPage', () => {
   // 每个用例前：清空 mock、重置路由跳转、默认中文、重置自选 store 状态，
   // 并设定默认响应——任务列表（空）、自选（空）、技能（空）、诊断（unknown）、
   // 任务流快照、设置状态（已完成/可冒烟）
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     navigateMock.mockReset();
     window.localStorage.clear();
     window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'zh');
     useStockPoolStore.getState().resetDashboardState();
+    vi.mocked(historyApi.getList).mockResolvedValue({ total: 0, page: 1, limit: 20, items: [] });
+    vi.mocked(historyApi.getDetail).mockResolvedValue(historyReport);
+    vi.mocked(historyApi.getNews).mockResolvedValue({ total: 0, items: [] });
+    vi.mocked(historyApi.getStockBarList).mockResolvedValue({ total: 0, items: [] });
+    vi.mocked(historyApi.getMarkdown).mockResolvedValue('# report');
     vi.mocked(analysisApi.getTasks).mockResolvedValue({
       total: 0,
       pending: 0,
@@ -291,7 +302,7 @@ describe('HomePage', () => {
     expect(dashboard.firstElementChild?.className).toContain('min-h-0');
     expect(dashboard.querySelector('.flex-1.flex.min-h-0.overflow-hidden')).toBeTruthy();
     expect(screen.getByTestId('home-dashboard-scroll')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('输入股票代码或名称，如 600519、贵州茅台、AAPL')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('输入股票代码或名称')).toBeInTheDocument();
     expect(await screen.findByText('趋势维持强势')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
@@ -1324,7 +1335,7 @@ describe('HomePage', () => {
       </MemoryRouter>,
     );
 
-    const input = await screen.findByPlaceholderText('输入股票代码或名称，如 600519、贵州茅台、AAPL');
+    const input = await screen.findByPlaceholderText('输入股票代码或名称');
     fireEvent.change(input, { target: { value: '600519' } });
     fireEvent.click(screen.getByRole('button', { name: '分析' }));
 
@@ -1348,7 +1359,7 @@ describe('HomePage', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByPlaceholderText('输入股票代码或名称，如 600519、贵州茅台、AAPL');
+    await screen.findByPlaceholderText('输入股票代码或名称');
 
     act(() => {
       useStockPoolStore.setState({ duplicateError: '股票 600519 正在分析中，请等待完成' });
@@ -1583,7 +1594,7 @@ describe('HomePage', () => {
       </UiLanguageProvider>,
     );
 
-    fireEvent.change(await screen.findByPlaceholderText('Enter a stock code or name, e.g. 600519, Kweichow Moutai, AAPL'), {
+    fireEvent.change(await screen.findByPlaceholderText('Enter a stock code or name'), {
       target: { value: 'AAPL' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Analyze' }));
@@ -2017,7 +2028,7 @@ describe('HomePage', () => {
     await screen.findByText('趋势维持强势');
 
     // Type something else in the search box
-    const input = screen.getByPlaceholderText('输入股票代码或名称，如 600519、贵州茅台、AAPL');
+    const input = screen.getByPlaceholderText('输入股票代码或名称');
     fireEvent.change(input, { target: { value: 'AAPL' } });
 
     // Click "Reanalyze"
@@ -2061,7 +2072,7 @@ describe('HomePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '策略' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: /成长质量/ }));
 
-    const input = screen.getByPlaceholderText('输入股票代码或名称，如 600519、贵州茅台、AAPL');
+    const input = screen.getByPlaceholderText('输入股票代码或名称');
     fireEvent.change(input, { target: { value: '600519' } });
     fireEvent.click(screen.getByRole('button', { name: '分析' }));
 

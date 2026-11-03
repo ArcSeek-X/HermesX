@@ -1412,6 +1412,7 @@ const DecisionSignalsPage: React.FC = () => {
           >
             <div className="min-w-0 flex-1">
               <StockSearch
+                ariaLabel={t('decisionSignals.stockContextTitle')}
                 value={stockDraft}
                 onChange={setStockDraft}
                 onSubmit={handleStockSubmit}

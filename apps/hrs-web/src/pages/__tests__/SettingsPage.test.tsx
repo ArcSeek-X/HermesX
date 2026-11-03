@@ -11,7 +11,7 @@
 import type React from 'react';
 // 测试库：act 包裹异步状态更新、fireEvent 模拟交互、render/screen 渲染与查询、waitFor 等待异步
 import { resolveWebBuildInfo } from '@utils/constants';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SetupStatusResponse } from '../../types/systemConfig';
 // 测试框架
@@ -1984,7 +1984,7 @@ describe('SettingsPage', () => {
     render(<SettingsPage />);
 
     const enabledCheckbox = await screen.findByTestId('scheduler-enabled-checkbox');
-    expect(enabledCheckbox).toBeChecked();
+    await waitFor(() => expect(enabledCheckbox).toBeChecked());
 
     fireEvent.click(enabledCheckbox);
 
@@ -2782,3 +2782,43 @@ describe('SettingsPage', () => {
     await waitFor(() => expect(desktopInstallDownloadedUpdate).toHaveBeenCalledTimes(1));
   });
 });
+import { renderWithRouter as render } from '../../test/renderWithRouter';
+vi.mock('@components/settings/AuthSettingsCard', async () => ({
+  AuthSettingsCard: (await import('@components/settings')).AuthSettingsCard,
+}));
+vi.mock('@components/settings/ChangePasswordCard', async () => ({
+  ChangePasswordCard: (await import('@components/settings')).ChangePasswordCard,
+}));
+vi.mock('@components/settings/IntelligentImport', async () => ({
+  IntelligentImport: (await import('@components/settings')).IntelligentImport,
+}));
+vi.mock('@components/settings/LLMChannelEditor', async () => ({
+  LLMChannelEditor: (await import('@components/settings')).LLMChannelEditor,
+}));
+vi.mock('@components/settings/GenerationBackendStatusPanel', async () => ({
+  GenerationBackendStatusPanel: (await import('@components/settings')).GenerationBackendStatusPanel,
+}));
+vi.mock('@components/settings/AgentBackendStatusPanel', async () => ({
+  AgentBackendStatusPanel: (await import('@components/settings')).AgentBackendStatusPanel,
+}));
+vi.mock('@components/settings/NotificationTestPanel', async () => ({
+  NotificationTestPanel: (await import('@components/settings')).NotificationTestPanel,
+}));
+vi.mock('@components/settings/SettingsAlert', async () => ({
+  SettingsAlert: (await import('@components/settings')).SettingsAlert,
+}));
+vi.mock('@components/settings/SettingsCategoryNav', async () => ({
+  SettingsCategoryNav: (await import('@components/settings')).SettingsCategoryNav,
+}));
+vi.mock('@components/settings/SettingsField', async () => ({
+  SettingsField: (await import('@components/settings')).SettingsField,
+}));
+vi.mock('@components/settings/SettingsLoading', async () => ({
+  SettingsLoading: (await import('@components/settings')).SettingsLoading,
+}));
+vi.mock('@components/settings/SettingsPanelErrorBoundary', async () => ({
+  SettingsPanelErrorBoundary: (await import('@components/settings')).SettingsPanelErrorBoundary,
+}));
+vi.mock('@components/settings/SettingsSectionCard', async () => ({
+  SettingsSectionCard: (await import('@components/settings')).SettingsSectionCard,
+}));

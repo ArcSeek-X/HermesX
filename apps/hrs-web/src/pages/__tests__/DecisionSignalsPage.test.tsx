@@ -1,7 +1,7 @@
 // 仅类型导入 React（用于 recharts mock 的节点类型标注）
 import type React from 'react';
 // 测试库：within 用于在某个 DOM 子树内查询
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { historyApi } from '../../api/history';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
@@ -794,6 +794,7 @@ describe('DecisionSignalsPage', () => {
 
   it('reports an expired signal refresh separately and refreshes active views', async () => {
     const refreshedItem = makeSignal({
+      createdAt: new Date().toISOString(),
       id: 90,
       decisionProfile: 'balanced',
       sourceAgent: null,
@@ -1115,7 +1116,7 @@ describe('DecisionSignalsPage', () => {
       });
     });
     expect(screen.getByText('当前查看：600519 / 贵州茅台 / cn')).toBeInTheDocument();
-    expect(screen.getByLabelText('当前股票')).toHaveValue('600519');
+    expect(screen.getByLabelText('当前股票')).toHaveValue('贵州茅台（600519.SH）');
   });
 
   it('shows recent history candidates and passes normalized market when a candidate is selected', async () => {
@@ -1939,3 +1940,4 @@ describe('DecisionSignalsPage', () => {
     });
   });
 });
+import { renderWithRouter as render } from '../../test/renderWithRouter';

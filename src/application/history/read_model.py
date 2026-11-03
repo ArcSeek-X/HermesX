@@ -79,14 +79,14 @@ class MarkdownReportGenerationError(Exception):
 class HistoryService:
     """
     History Query Service
-    
+
     Encapsulates query logic for historical analysis records.
     """
-    
+
     def __init__(self, history_repo: Optional[HistoryRepositoryPort] = None):
         """
         Initialize the history query service.
-        
+
         Args:
             history_repo: 历史仓储端口（可选，由调用方/装配层注入现成仓储或适配器）
         """
@@ -189,7 +189,7 @@ class HistoryService:
                     add(f"SS{normalized}")
 
         return candidates
-    
+
     def get_history_list(
         self,
         stock_code: Optional[str] = None,
@@ -201,7 +201,7 @@ class HistoryService:
     ) -> Dict[str, Any]:
         """
         Get history analysis list.
-        
+
         Args:
             stock_code: Stock code filter
             report_type: Report type filter
@@ -209,7 +209,7 @@ class HistoryService:
             end_date: End date (YYYY-MM-DD)
             page: Page number
             limit: Items per page
-            
+
         Returns:
             Dictionary containing total count and items
         """
@@ -220,22 +220,22 @@ class HistoryService:
             # Parse date parameters
             start_dt = None
             end_dt = None
-            
+
             if start_date:
                 try:
                     start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
                 except ValueError:
                     logger.warning(f"无效的 start_date 格式: {start_date}")
-            
+
             if end_date:
                 try:
                     end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
                 except ValueError:
                     logger.warning(f"无效的 end_date 格式: {end_date}")
-            
+
             # Calculate offset
             offset = (page - 1) * limit
-            
+
             # Use new paginated query method
             records, total = self.history_repo.get_analysis_history_paginated(
                 code=stock_code,
@@ -245,17 +245,17 @@ class HistoryService:
                 offset=offset,
                 limit=limit
             )
-            
+
             # Convert to response format
             items = []
             for record in records:
                 items.append(self._record_to_list_item_dict(record))
-            
+
             return {
                 "total": total,
                 "items": items,
             }
-            
+
         except Exception as e:
             logger.error(f"查询历史列表失败: {e}", exc_info=True)
             raise
@@ -527,7 +527,7 @@ class HistoryService:
         """
         Get history report detail.
 
-        Uses database primary key for precise query, avoiding returning incorrect records 
+        Uses database primary key for precise query, avoiding returning incorrect records
         due to duplicate query_id in batch analysis.
 
         Args:
@@ -781,7 +781,7 @@ class HistoryService:
                 filtered.append(item)
 
         return filtered[:limit]
-    
+
     def _get_sentiment_label(self, score: int) -> str:
         """
         Get sentiment label based on score.

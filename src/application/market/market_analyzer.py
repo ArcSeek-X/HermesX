@@ -124,7 +124,7 @@ class MarketIndex:
     volume: float = 0.0          # 成交量（手）
     amount: float = 0.0          # 成交额（元）
     amplitude: float = 0.0       # 振幅(%)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'code': self.code,
@@ -153,7 +153,7 @@ class MarketOverview:
     limit_down_count: int = 0           # 跌停家数
     total_amount: float = 0.0           # 两市成交额（亿元）
     # north_flow: float = 0.0           # 北向资金净流入（亿元）- 已废弃，接口不可用
-    
+
     # 板块涨幅榜
     top_sectors: List[Dict] = field(default_factory=list)     # 涨幅前5板块
     bottom_sectors: List[Dict] = field(default_factory=list)  # 跌幅前5板块
@@ -174,7 +174,7 @@ class MarketLightReviewResult:
 class MarketAnalyzer:
     """
     大盘复盘分析器
-    
+
     功能：
     1. 获取大盘指数实时行情
     2. 获取市场涨跌统计
@@ -182,7 +182,7 @@ class MarketAnalyzer:
     4. 搜索市场新闻
     5. 生成大盘复盘报告
     """
-    
+
     def __init__(
         self,
         search_service: Optional[SearchService] = None,
@@ -483,13 +483,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
     def get_market_overview(self) -> MarketOverview:
         """
         获取市场概览数据
-        
+
         Returns:
             MarketOverview: 市场概览数据对象
         """
         today = datetime.now().strftime('%Y-%m-%d')
         overview = MarketOverview(date=today)
-        
+
         # 1. 获取主要指数行情（按 region 切换 A 股/美股）
         overview.indices = self._get_main_indices()
 
@@ -501,13 +501,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         if self.profile.has_sector_rankings:
             self._get_sector_rankings(overview)
             self._get_concept_rankings(overview)
-        
+
         # 4. 获取北向资金（可选）
         # self._get_north_flow(overview)
-        
+
         return overview
 
-    
+
     def _get_main_indices(self) -> List[MarketIndex]:
         """获取主要指数实时行情"""
         indices = []
@@ -627,15 +627,15 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
         except Exception as e:
             logger.warning("[大盘] %s action=get_concept_rankings status=failed error=%s", self._log_context(), e)
-    
+
     # def _get_north_flow(self, overview: MarketOverview):
     #     """获取北向资金流入"""
     #     try:
     #         logger.info("[大盘] 获取北向资金...")
-    #         
+    #
     #         # 获取北向资金数据
     #         df = ak.stock_hsgt_north_net_flow_in_em(symbol="北上")
-    #         
+    #
     #         if df is not None and not df.empty:
     #             # 取最新一条数据
     #             latest = df.iloc[-1]
@@ -643,16 +643,16 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
     #                 overview.north_flow = float(latest['当日净流入']) / 1e8  # 转为亿元
     #             elif '净流入' in df.columns:
     #                 overview.north_flow = float(latest['净流入']) / 1e8
-    #                 
+    #
     #             logger.info(f"[大盘] 北向资金净流入: {overview.north_flow:.2f}亿")
-    #             
+    #
     #     except Exception as e:
     #         logger.warning(f"[大盘] 获取北向资金失败: {e}")
-    
+
     def search_market_news(self) -> List[Dict]:
         """
         搜索市场新闻
-        
+
         Returns:
             新闻列表
         """
@@ -662,7 +662,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 self._log_context(),
             )
             return []
-        
+
         all_news = []
 
         # 按 region 使用不同的新闻搜索词
@@ -675,10 +675,10 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             "jp": "日本股市" if review_language == "zh" else "Japan stock market",
             "kr": "韩国股市" if review_language == "zh" else "Korea stock market",
         }
-        
+
         try:
             logger.info("[大盘] %s action=search_market_news status=start", self._log_context())
-            
+
             # 根据 region 设置搜索上下文名称，避免美股搜索被解读为 A 股语境
             market_name = market_names.get(self.region, "大盘")
             for query in search_queries:
@@ -695,26 +695,26 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                         self._log_context(),
                         len(response.results),
                     )
-            
+
             logger.info(
                 "[大盘] %s action=search_market_news status=success count=%d",
                 self._log_context(),
                 len(all_news),
             )
-            
+
         except Exception as e:
             logger.error("[大盘] %s action=search_market_news status=failed error=%s", self._log_context(), e)
-        
+
         return all_news
-    
+
     def generate_market_review(self, overview: MarketOverview, news: List) -> str:
         """
         使用大模型生成大盘复盘报告
-        
+
         Args:
             overview: 市场概览数据
             news: 市场新闻列表 (SearchResult 对象列表)
-            
+
         Returns:
             大盘复盘报告文本
         """
@@ -943,7 +943,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             "published_date": cls._compact_news_text(cls._get_news_field(item, "published_date"), limit=40),
             "url": cls._compact_news_text(cls._get_news_field(item, "url"), limit=240),
         }
-    
+
     def _inject_data_into_review(
         self,
         review: str,
@@ -1461,13 +1461,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         for idx in overview.indices:
             direction = "↑" if idx.change_pct > 0 else "↓" if idx.change_pct < 0 else "-"
             indices_text += f"- {idx.name}: {idx.current:.2f} ({direction}{abs(idx.change_pct):.2f}%)\n"
-        
+
         # 板块信息
         top_sectors_text = self._format_ranking_summary(overview.top_sectors)
         bottom_sectors_text = self._format_ranking_summary(overview.bottom_sectors)
         top_concepts_text = self._format_ranking_summary(overview.top_concepts)
         bottom_concepts_text = self._format_ranking_summary(overview.bottom_concepts)
-        
+
         # 新闻信息 - 支持 SearchResult 对象或字典
         news_text = ""
         for i, n in enumerate(news[:6], 1):
@@ -1481,7 +1481,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             meta = f" ({' / '.join(meta_parts)})" if meta_parts else ""
             url_line = f"\n   URL: {url}" if url else ""
             news_text += f"{i}. {title}{meta}\n   {snippet or '-'}{url_line}\n"
-        
+
         # 按 region 组装市场概况与板块区块（美股/港股/日韩无涨跌家数、板块数据）
         stats_block = ""
         sector_block = ""
@@ -1688,7 +1688,7 @@ Output the report content directly, no extra commentary.
 
 请直接输出复盘报告内容，不要输出其他说明文字。
 """
-    
+
     def _generate_template_review(self, overview: MarketOverview, news: List) -> str:
         """使用模板生成复盘报告（无大模型时的备选方案）"""
         template_language = self._get_template_review_language()
@@ -1715,13 +1715,13 @@ Output the report content directly, no extra commentary.
                 market_mood = self._get_market_mood_text("strong_down", template_language)
         else:
             market_mood = self._get_market_mood_text("range", template_language)
-        
+
         # 指数行情（简洁格式）
         indices_text = ""
         for idx in overview.indices[:4]:
             direction = "↑" if idx.change_pct > 0 else "↓" if idx.change_pct < 0 else "-"
             indices_text += f"- **{idx.name}**: {idx.current:.2f} ({direction}{abs(idx.change_pct):.2f}%)\n"
-        
+
         # 板块信息
         separator = ", " if template_language == "en" else "、"
         top_text = separator.join([s['name'] for s in overview.top_sectors[:3]])
@@ -1835,7 +1835,7 @@ Market conditions can change quickly. The data above is for reference only and d
 ---
 *复盘时间: {datetime.now().strftime('%H:%M')}*
 """
-    
+
     def _run_daily_review_parts(self) -> MarketLightReviewResult:
         """Run market review once and keep report/snapshot on the same overview."""
         logger.info("========== 开始大盘复盘分析 ==========")
@@ -1931,14 +1931,14 @@ Market conditions can change quickly. The data above is for reference only and d
 if __name__ == "__main__":
     import sys
     sys.path.insert(0, '.')
-    
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
     )
-    
+
     analyzer = MarketAnalyzer()
-    
+
     # 测试获取市场概览
     overview = analyzer.get_market_overview()
     print(f"\n=== 市场概览 ===")
@@ -1948,6 +1948,6 @@ if __name__ == "__main__":
         print(f"  {idx.name}: {idx.current:.2f} ({idx.change_pct:+.2f}%)")
     print(f"上涨: {overview.up_count} | 下跌: {overview.down_count}")
     print(f"成交额: {overview.total_amount:.0f}亿")
-    
+
     # 模板报告渲染是用例内部步骤，演示块不再跨对象调用私有方法；
     # 需要完整复盘请调用 run_daily_review_with_snapshot()（会触发 LLM 调用）。

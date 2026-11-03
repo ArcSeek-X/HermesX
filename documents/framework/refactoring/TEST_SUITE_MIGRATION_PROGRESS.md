@@ -612,3 +612,59 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 腾讯用例的边界：本轮按正常全量收集/执行顺序通过，不能由此认定其历史偶发失败已修复。未发现足以归因的共享状态泄漏，未更改腾讯生产实现，也未将重跑通过写为根因关闭。现有全量测试仍会输出部分后台行情预热的网络失败日志及既有依赖弃用/测试类收集警告，本片未改造后台生命周期。
 
 未验证：真实外网数据源与全部 Web 测试。没有用户界面变更，故无页面截图；本片只更新中文迁移台账，项目没有对应的英文台账。回滚：撤回本片两个 Web 测试文件、新闻测试文件及本节/CHANGELOG 记录的改动即可；不涉及数据迁移。未执行 commit、tag 或 push。
+
+## 9. Web 全量测试收敛与原生测试运行机制治理（2026-11-03）
+
+基线 HEAD `a6397960`，开工工作树干净。范围为用户指定的两项：Web 全量测试修复、公共测试运行机制治理；前端全量 lint 清理明确留到最后。本片未 commit/tag/push。工作期间另出现后端源文件及 `setup.cfg` 的格式调整，非本片主动修改，予以保留；不得将整个工作区差异一概归入本片。
+
+### 9.1 Web 失败的根因与修复
+
+| 根因 | 最终处理与保留的保护行为 |
+| --- | --- |
+| 页面使用 Router，但单测未装配；rerender 又丢失上下文 | 通过局部 `renderWithRouter` 的 wrapper 装配真实 MemoryRouter，rerender 延续上下文；不全局 mock 路由 hook |
+| 原分析首页已迁入 `reviewPage.tsx`，页面缓存默认未激活 | 原 `HomePage.test.tsx` 改为 `ReviewPage.test.tsx`，指向实际复盘工作台，并装配真实 KeepAlive；保留原分析、报告、任务流、自选、竞态覆盖，重置每例 mock 响应 |
+| 认证/agent store、设置模块的测试 mock 仍针对旧导出或 barrel 路径 | 对齐 `useAuthStore`、`getState().setCurrentRoute` 和实际叶模块入口，保持页面编排与独立子组件的各自覆盖 |
+| Node 环境没有 Element；主题 CSS 已抽入 palette；首屏仍读旧主题键 | DOM shim 检查 Element 存在；主题 token 守卫读取实际 palette；首屏读取 `hrs-pref-theme` 对象并保留旧键迁移窗口，执行真实内联脚本覆盖 light/dark/system、非法/不可用存储 |
+| 控件标签与搜索受控状态缺口 | Select 透传/生成 id 并关联 label，通知输入增加可访问名称；股票搜索支持上下文名称及外部清空。提示方式迁移已按用户要求撤回，详见 §9.4 |
+| 持仓账户竞态与测试宿主缺失 | `usePortfolioSignals` 真正检查快照账户匹配，匹配前清空旧信号/暂停查询。测试装配真实 Toast 并清理队列，进入持仓表格后断言明细，保留延迟响应反例；额外的汇率状态展示已按 §9.5 撤回 |
+| 旧交互、文案与时间假设 | Tab 通过 tab 角色交互；路由边界使用当前可见导航；时间线续期样本落在查询窗口内；等待调度状态异步加载完成后再操作，不延长全局超时掩盖失败 |
+| jsdom 无 WebGL | UniverseBackground 单测在引擎边界注入明确的构造错误，保留真实外壳、错误报告和卸载验证；不宣称验证了真实 Three.js/WebGL 渲染 |
+
+`web-gate` 新增 `npm test`（在原 lint/build 前）；未取消或放松既有 lint 检查。AGENTS 的 CI 表与中英贡献文档同步。仍须注意：测试通过不代表当前含既有 lint 债务的完整 Web CI 已绿。
+
+### 9.2 原生框架机制治理
+
+移除根 `tests/conftest.py` 对 asyncio 唤醒/执行器关闭、AnyIO worker/from_thread、FastAPI/Starlette TestClient 的全部模块级替换；保留现有生产端口装配，不新增环境开关或平行 client。
+
+旧 `test_threadless_test_client.py` 改为 `test_framework_runtime.py`：5 条原行为覆盖改为原生契约，再新增 5 条（含取消参数化两例），共 **10 条**。覆盖 Cookie 连续请求、上下文内外 lifespan、异常传播/500、ContextVar、原生执行器收尾、CapacityLimiter 串行约束、worker→event-loop 往返、`abandon_on_cancel` 的等待与放弃语义；显式检查 TestClient、AnyIO、asyncio 仍来自框架模块。临时线程通过释放事件和完成信号收尾。
+
+### 9.3 验证、边界与交接
+
+| 验证 | 结果 |
+| --- | --- |
+| Web 全量 `npm test`（§9.4 撤回前） | **118 files / 1305 passed / 0 failed（82.26s）**；此为当时结果，撤回 Tooltip 迁移后不再代表当前全绿，详见 §9.4 |
+| 完整后端 `PATH="$PWD/.venv/bin:$PATH" ./scripts/ci_gate.sh all` | 所有阶段通过；**5720 passed / 1 skipped / 4 deselected / 511 subtests passed（356.12s）** |
+| 原生运行机制定向 | **10 passed**；相对上一片后端基线新增 5 条 |
+| Web 生产构建 | TypeScript 与 Vite 均通过；仍有既有循环/混合导入、大 chunk 警告 |
+| AI 资产治理、改动 Python 严格 flake8、差异空白检查 | 通过 |
+| 可视证据（历史） | 隔离浏览器、模拟 API 的临时截图 `/tmp/hermesx-portfolio-stale.png` 曾覆盖额外汇率状态展示；该展示已按 §9.5 撤回，截图不再代表当前页面，不得用于当前 PR 验收；未入库 |
+
+未验证或明确延期：前端全量 lint 清理、真实外网/第三方服务、Three.js/WebGL 实际渲染、Docker 与 Electron 安装包及远端 Actions。本次并未关闭腾讯历史偶发失败的根因调查。Web 测试仍有 jsdom Canvas/scrollTo 提示，后端仍有依赖弃用与收集警告；不能把这些日志当作已消除。
+
+中英贡献文档已同步；本台账、测试方案、`docs/decision-signals.md` 无对应英文专题，未新增平行译本。对外 API 字段及数据库 schema 未变。回滚应以本片路径/改动为单位恢复测试、运行机制、少量 Web 修复及 CI/文档；不得整仓 reset，以免覆盖并行的其他工作；回滚原生测试机制时须同时恢复旧回归文件，不能只恢复 client 替换。
+
+### 9.4 范围纠正：撤回未经要求的 Tooltip 迁移（2026-11-03）
+
+用户明确要求本次不引入 Tooltip。已完整撤回 `StockSearchList.tsx`、`BeyondShell.tsx`、`boardColumns.tsx`、`WatchlistStockColumn.tsx` 的 Tooltip import/包裹，恢复原有 DOM 与 title；同批恢复 `LiveCalendarListView.tsx` 的原生 title。这五个文件与本片 HEAD 一致，不再属于本次改动。
+
+旧 `ui_governance.test.ts` 要求上述页面不得出现原生 title，与用户保留当前提示方式的要求存在冲突；本片保留该测试，不删除断言、不加白名单或 skip 来隐藏失败。故撤回后的当前状态不能再称为 Web 全量全绿，原 1305 passed 仅作撤回前的历史验证。后续如要调整提示规范或该守卫，必须作为明确的独立决定，不能借测试修复改造页面。
+
+撤回后定向验证：`StockSearch.test.tsx`、`UniverseBackground.test.tsx` 与 `ui_governance.test.ts` 合计 **27 passed / 1 failed**；唯一失败为既有的原生 title 禁用守卫。检查本次 Web diff，新增 Tooltip import 与包裹均为 0。
+
+### 9.5 范围纠正：撤回持仓页额外汇率状态展示（2026-11-03）
+
+按用户要求删除 `PortfolioPage.tsx` 页头新增的“汇率状态：过期/最新”，恢复原有布局；该页面文件不再有本片差异。账户范围匹配与旧响应隔离修复仍保留在 `usePortfolioSignals.ts`。
+
+测试按现有设计验证：旧汇率快照下手动刷新入口可用且不会自动刷新；刷新后从原有 Toast 核对结果和最新汇率状态，同时保留请求范围、快照/风险重载、失败与竞态断言。不再要求页面额外渲染独立状态文字，也不以新增 UI 满足旧断言。
+
+验证：`PortfolioPage.test.tsx` **28 passed**；`npm run build`（TypeScript + Vite）通过，保留既有 chunk 警告；`git diff --check` 通过。未重跑全部 Web 测试，§9.4 的原生 title 守卫失败仍未处理。本片未提交或推送。

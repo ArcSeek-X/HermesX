@@ -33,40 +33,40 @@ class CustomWebhookSender:
         self._custom_webhook_bearer_token = getattr(config, 'custom_webhook_bearer_token', None)
         self._custom_webhook_body_template = getattr(config, 'custom_webhook_body_template', None)
         self._webhook_verify_ssl = getattr(config, 'webhook_verify_ssl', True)
- 
+
     def send_to_custom(self, content: str) -> bool:
         """
         推送消息到自定义 Webhook
-        
+
         支持任意接受 POST JSON 的 Webhook 端点
         默认发送格式：{"text": "消息内容", "content": "消息内容"}
-        
+
         适用于：
         - 钉钉机器人
         - Discord Webhook
         - Slack Incoming Webhook
         - 自建通知服务
         - 其他支持 POST JSON 的服务
-        
+
         Args:
             content: 消息内容（Markdown 格式）
-            
+
         Returns:
             是否至少有一个 Webhook 发送成功
         """
         if not self._custom_webhook_urls:
             logger.warning("未配置自定义 Webhook，跳过推送")
             return False
-        
+
         success_count = 0
-        
+
         for i, url in enumerate(self._custom_webhook_urls):
             try:
                 # 通用 JSON 格式，兼容大多数 Webhook
                 # 钉钉格式: {"msgtype": "text", "text": {"content": "xxx"}}
                 # Slack 格式: {"text": "xxx"}
                 # Discord 格式: {"content": "xxx"}
-                
+
                 # 钉钉机器人对 body 有字节上限（约 20000 bytes），超长需要分批发送
                 if self._is_dingtalk_webhook(url):
                     templated_payload = self._build_custom_webhook_template_payload(content)
@@ -97,14 +97,14 @@ class CustomWebhookSender:
                     success_count += 1
                 else:
                     logger.error(f"自定义 Webhook {i+1} 推送失败")
-                    
+
             except Exception as e:
                 logger.error(f"自定义 Webhook {i+1} 推送异常: {e}")
-        
+
         logger.info(f"自定义 Webhook 推送完成：成功 {success_count}/{len(self._custom_webhook_urls)}")
         return success_count > 0
 
-    
+
     def _send_custom_webhook_image(
         self, image_bytes: bytes, fallback_content: str = ""
     ) -> bool:
@@ -269,11 +269,11 @@ class CustomWebhookSender:
         if isinstance(exc, requests.exceptions.RequestException):
             return "network_error", True
         return "unexpected_error", False
-    
+
     def _build_custom_webhook_payload(self, url: str, content: str) -> dict:
         """
         根据 URL 构建对应的 Webhook payload
-        
+
         自动识别常见服务并使用对应格式
         """
         templated_payload = self._build_custom_webhook_template_payload(content)
@@ -281,7 +281,7 @@ class CustomWebhookSender:
             return templated_payload
 
         url_lower = url.lower()
-        
+
         # 钉钉机器人
         if 'dingtalk' in url_lower or 'oapi.dingtalk.com' in url_lower:
             return {
@@ -291,7 +291,7 @@ class CustomWebhookSender:
                     "text": content
                 }
             }
-        
+
         # Discord Webhook
         if 'discord.com/api/webhooks' in url_lower or 'discordapp.com/api/webhooks' in url_lower:
             # Discord 限制 2000 字符
@@ -299,14 +299,14 @@ class CustomWebhookSender:
             return {
                 "content": truncated
             }
-        
+
         # Slack Incoming Webhook
         if 'hooks.slack.com' in url_lower:
             return {
                 "text": content,
                 "mrkdwn": True
             }
-        
+
         # Bark (iOS 推送)
         if 'api.day.app' in url_lower:
             return {
@@ -314,7 +314,7 @@ class CustomWebhookSender:
                 "body": content[:4000],  # Bark 限制
                 "group": "stock"
             }
-        
+
         # 通用格式（兼容大多数服务）
         return {
             "text": content,

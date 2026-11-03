@@ -201,6 +201,8 @@ jobs:
           cache-dependency-path: apps/hrs-web/package-lock.json
       - name: 📦 Install
         run: npm ci
+      - name: 🧪 Unit tests
+        run: npm test
       - name: 🔎 Lint
         run: npm run lint
       - name: 🏗️ Build

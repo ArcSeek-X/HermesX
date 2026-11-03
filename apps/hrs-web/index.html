@@ -6,9 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (() => {
-        const storageKey = 'hrs-pref-theme.themeMode';
         const root = document.documentElement;
-        const storedTheme = localStorage.getItem(storageKey);
+        let storedTheme;
+        try {
+          const raw = localStorage.getItem('hrs-pref-theme');
+          storedTheme = raw !== null
+            ? JSON.parse(raw)?.themeMode
+            : localStorage.getItem('hrs-pref-theme.themeMode');
+        } catch { /* Unavailable or malformed storage follows the system theme. */ }
         // 存储值为 light/dark 时直接采用；为 system 或缺失时跟随系统偏好（避免首屏闪烁）
         const theme = storedTheme === 'light' || storedTheme === 'dark'
           ? storedTheme

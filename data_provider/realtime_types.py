@@ -35,30 +35,30 @@ logger = logging.getLogger(__name__)
 def safe_float(val: Any, default: Optional[float] = None) -> Optional[float]:
     """
     安全转换为浮点数
-    
+
     处理场景：
     - None / 空字符串 → default
     - pandas NaN / numpy NaN → default
     - 数值字符串 → float
     - 已是数值 → float
-    
+
     Args:
         val: 待转换的值
         default: 转换失败时的默认值
-        
+
     Returns:
         转换后的浮点数，或默认值
     """
     try:
         if val is None:
             return default
-        
+
         # 处理字符串
         if isinstance(val, str):
             val = val.strip()
             if val == "" or val == "-" or val == "--":
                 return default
-        
+
         # 处理 pandas/numpy NaN
         # 使用 math.isnan 而不是 pd.isna，避免强制依赖 pandas
         import math
@@ -67,7 +67,7 @@ def safe_float(val: Any, default: Optional[float] = None) -> Optional[float]:
                 return default
         except (ValueError, TypeError):
             pass
-        
+
         return float(val)
     except (ValueError, TypeError):
         return default
@@ -76,13 +76,13 @@ def safe_float(val: Any, default: Optional[float] = None) -> Optional[float]:
 def safe_int(val: Any, default: Optional[int] = None) -> Optional[int]:
     """
     安全转换为整数
-    
+
     先转换为 float，再取整，处理 "123.0" 这类情况
-    
+
     Args:
         val: 待转换的值
         default: 转换失败时的默认值
-        
+
     Returns:
         转换后的整数，或默认值
     """
@@ -111,7 +111,7 @@ class RealtimeSource(Enum):
 class UnifiedRealtimeQuote:
     """
     统一实时行情数据结构
-    
+
     设计原则：
     - 各数据源返回的字段可能不同，缺失字段用 None 表示
     - 主流程使用 getattr(quote, field, None) 获取，保证兼容性
@@ -131,36 +131,36 @@ class UnifiedRealtimeQuote:
     currency: Optional[str] = None               # 报价币种（JPY/KRW/TWD/USD/HKD/CNY 等）
     data_quality: Optional[str] = None           # ok/partial/unavailable
     missing_fields: Optional[list[str]] = None   # provider 缺失的关键字段
-    
+
     # === 核心价格数据（几乎所有源都有）===
     price: Optional[float] = None           # 最新价
     change_pct: Optional[float] = None      # 涨跌幅(%)
     change_amount: Optional[float] = None   # 涨跌额
-    
+
     # === 量价指标（部分源可能缺失）===
     volume: Optional[int] = None            # 成交量（股，与历史日线口径一致）
     amount: Optional[float] = None          # 成交额（元）
     volume_ratio: Optional[float] = None    # 量比
     turnover_rate: Optional[float] = None   # 换手率(%)
     amplitude: Optional[float] = None       # 振幅(%)
-    
+
     # === 价格区间 ===
     open_price: Optional[float] = None      # 开盘价
     high: Optional[float] = None            # 最高价
     low: Optional[float] = None             # 最低价
     pre_close: Optional[float] = None       # 昨收价
-    
+
     # === 估值指标（仅东财等全量接口有）===
     pe_ratio: Optional[float] = None        # 市盈率(动态)
     pb_ratio: Optional[float] = None        # 市净率
     total_mv: Optional[float] = None        # 总市值(元)
     circ_mv: Optional[float] = None         # 流通市值(元)
-    
+
     # === 其他指标 ===
     change_60d: Optional[float] = None      # 60日涨跌幅(%)
     high_52w: Optional[float] = None        # 52周最高
     low_52w: Optional[float] = None         # 52周最低
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典（过滤 None 值）"""
         result = {
@@ -183,11 +183,11 @@ class UnifiedRealtimeQuote:
             if val is not None:
                 result[f] = val
         return result
-    
+
     def has_basic_data(self) -> bool:
         """检查是否有基本的价格数据"""
         return self.price is not None and self.price > 0
-    
+
     def has_volume_data(self) -> bool:
         """检查是否有量价数据"""
         return self.volume_ratio is not None or self.turnover_rate is not None
@@ -196,24 +196,24 @@ class UnifiedRealtimeQuote:
 class CircuitBreaker:
     """
     熔断器 - 管理数据源的熔断/冷却状态
-    
+
     策略：
     - 连续失败 N 次后进入熔断状态
     - 熔断期间跳过该数据源
     - 冷却时间后自动恢复半开状态
     - 半开状态下单次成功则完全恢复，失败则继续熔断
-    
+
     状态机：
     CLOSED（正常） --失败N次--> OPEN（熔断）--冷却时间到--> HALF_OPEN（半开）
     HALF_OPEN --成功--> CLOSED
     HALF_OPEN --失败--> OPEN
     """
-    
+
     # 状态常量
     CLOSED = "closed"      # 正常状态
     OPEN = "open"          # 熔断状态（不可用）
     HALF_OPEN = "half_open"  # 半开状态（试探性请求）
-    
+
     def __init__(
         self,
         failure_threshold: int = 3,       # 连续失败次数阈值
@@ -223,11 +223,11 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.cooldown_seconds = cooldown_seconds
         self.half_open_max_calls = half_open_max_calls
-        
+
         # 各数据源状态 {source_name: {state, failures, last_failure_time, half_open_calls}}
         self._states: Dict[str, Dict[str, Any]] = {}
         self._lock = RLock()
-    
+
     def _get_state_locked(self, source: str) -> Dict[str, Any]:
         """获取或初始化数据源状态（调用方需持有锁）。"""
         if source not in self._states:
@@ -238,11 +238,11 @@ class CircuitBreaker:
                 'half_open_calls': 0
             }
         return self._states[source]
-    
+
     def is_available(self, source: str) -> bool:
         """
         检查数据源是否可用
-        
+
         返回 True 表示可以尝试请求
         返回 False 表示应跳过该数据源
         """
@@ -284,7 +284,7 @@ class CircuitBreaker:
                 return False
 
             return True
-    
+
     def record_inconclusive(self, source: str) -> None:
         """记录不确定的探测结果（如返回 None）。
 
@@ -312,7 +312,7 @@ class CircuitBreaker:
             state['state'] = self.CLOSED
             state['failures'] = 0
             state['half_open_calls'] = 0
-    
+
     def record_failure(self, source: str, error: Optional[str] = None) -> None:
         """记录失败请求"""
         with self._lock:
@@ -334,12 +334,12 @@ class CircuitBreaker:
                               f"(冷却 {self.cooldown_seconds}s)")
                 if error:
                     logger.warning(f"[熔断器] 最后错误: {error}")
-    
+
     def get_status(self) -> Dict[str, str]:
         """获取所有数据源状态"""
         with self._lock:
             return {source: info['state'] for source, info in self._states.items()}
-    
+
     def reset(self, source: Optional[str] = None) -> None:
         """重置熔断器状态"""
         with self._lock:

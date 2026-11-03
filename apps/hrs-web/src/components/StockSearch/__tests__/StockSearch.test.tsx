@@ -159,6 +159,21 @@ describe('StockSearch', () => {
     expect(input).toBeInTheDocument();
   });
 
+  it('clears the display label and draft when the parent clears the controlled value', () => {
+    const props = {
+      ariaLabel: '当前股票',
+      displayValue: '贵州茅台（600519.SH）',
+      onChange: mockOnChange,
+      onSubmit: mockOnSubmit,
+    };
+    const { rerender } = render(<StockSearch {...props} value="600519.SH" />);
+    const input = screen.getByLabelText('当前股票');
+    expect(input).toHaveValue('贵州茅台（600519.SH）');
+    fireEvent.change(input, { target: { value: 'other draft' } });
+    rerender(<StockSearch {...props} value="" />);
+    expect(input).toHaveValue('');
+  });
+
   it('renders the i18n placeholder for the active UI language', () => {
     window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'en');
     render(

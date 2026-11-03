@@ -45,7 +45,7 @@ describe('login theme tokens', () => {
   // 用例 1：校验所有登录 Token 都定义于浅色主题根块（:root）
   it('defines all login-specific tokens in the light theme root block', () => {
     // 读取全局样式表
-    const css = readFileSync(resolve(__dirname, '..', 'src', 'style', 'index.css'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '..', 'src', 'style', 'palette.css'), 'utf8');
     // 正则抽取 :root { ... } 块（到首个 } 结束，主题块内部不含裸 } 的简写）
     const rootMatch = css.match(/:root\s*\{([\s\S]*?)\n\}/);
 
@@ -61,7 +61,7 @@ describe('login theme tokens', () => {
 
   // 用例 2：校验所有登录 Token 都定义于深色主题块（.dark）
   it('defines all login-specific tokens in the dark theme block', () => {
-    const css = readFileSync(resolve(__dirname, '..', 'src', 'style', 'index.css'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '..', 'src', 'style', 'palette.css'), 'utf8');
     // 正则抽取 .dark { ... } 块
     const darkMatch = css.match(/\.dark\s*\{([\s\S]*?)\n\}/);
 

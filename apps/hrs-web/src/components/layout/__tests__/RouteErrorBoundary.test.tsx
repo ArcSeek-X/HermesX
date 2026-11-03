@@ -3,7 +3,8 @@
  * @description RouteErrorBoundary（轻量错误边界）单测：验证其读取 useRouteError 并展示错误描述与重新加载按钮。
  */
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { renderWithRouter as render } from '../../../test/renderWithRouter';
 import { RouteErrorBoundary } from '../../../pages/ErrorPage/RouteBoundary';
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -20,10 +21,11 @@ vi.mock('../../../contexts/UiLanguageContext', () => ({
 }));
 
 describe('RouteErrorBoundary（轻量）', () => {
-  it('渲染 useRouteError 的错误描述、重新加载与返回登录按钮', () => {
+  it('渲染错误操作并允许展开 useRouteError 的详情', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     render(<RouteErrorBoundary />);
-    expect(screen.getByText('boom')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'exception.routeBoundary.details' }));
+    expect(await screen.findByText(/boom/)).toBeInTheDocument();
     // 重新加载按钮存在（i18n 已被 mock 为原 key）
     expect(screen.getByText('exception.routeBoundary.reload')).toBeInTheDocument();
     // 返回登录按钮存在

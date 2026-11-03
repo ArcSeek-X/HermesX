@@ -131,6 +131,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTitle')}</label>
           <HrsInput
+            aria-label={t('settings.notificationTestTitle')}
             value={title}
             maxLength={80}
             disabled={disabled || isTesting}
@@ -143,6 +144,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{t('settings.notificationTestTimeout')}</label>
           <HrsInput
+            aria-label={t('settings.notificationTestTimeout')}
             type="number"
             min={1}
             max={120}

@@ -59,7 +59,7 @@ def set_search_provider_builder(
 class SearchService:
     """
     搜索服务
-    
+
     功能：
     1. 管理多个搜索引擎
     2. 自动故障转移
@@ -67,7 +67,7 @@ class SearchService:
     4. 数据源失败时的增强搜索（股价、走势等）
     5. 港股/美股自动使用英文搜索关键词
     """
-    
+
     # 增强搜索关键词模板（A股 中文）
     ENHANCED_SEARCH_KEYWORDS = [
         "{name} 股票 今日 股价",
@@ -293,7 +293,7 @@ class SearchService:
             self.news_max_age_days,
             self.news_window_days,
         )
-    
+
     @classmethod
     def _is_foreign_stock(cls, stock_code: str) -> bool:
         """判断是否为港股或美股。
@@ -1597,13 +1597,13 @@ class SearchService:
     ) -> SearchResponse:
         """
         搜索股票相关新闻
-        
+
         Args:
             stock_code: 股票代码
             stock_name: 股票名称
             max_results: 最大返回结果数
             focus_keywords: 重点关注的关键词列表
-            
+
         Returns:
             SearchResponse 对象
         """
@@ -1889,7 +1889,7 @@ class SearchService:
                     success=True,
                     error_message=None,
                 )
-            
+
             # 所有引擎都失败
             return SearchResponse(
                 query=query,
@@ -1901,7 +1901,7 @@ class SearchService:
         finally:
             if cache_owner and cache_event is not None:
                 self._release_cache_fill(cache_key, cache_event)
-    
+
     def search_stock_events(
         self,
         stock_code: str,
@@ -1910,14 +1910,14 @@ class SearchService:
     ) -> SearchResponse:
         """
         搜索股票特定事件（年报预告、减持等）
-        
+
         专门针对交易决策相关的重要事件进行搜索
-        
+
         Args:
             stock_code: 股票代码
             stock_name: 股票名称
             event_types: 事件类型列表
-            
+
         Returns:
             SearchResponse 对象
         """
@@ -1936,19 +1936,19 @@ class SearchService:
         # 构建针对性查询
         event_query = " OR ".join(event_types)
         query = f"{effective_name} ({event_query})"
-        
+
         logger.info(f"搜索股票事件: {stock_name}({stock_code}) - {event_types}")
-        
+
         # 依次尝试各个搜索引擎
         for provider in self._providers:
             if not provider.is_available:
                 continue
-            
+
             response = provider.search(query, max_results=5)
-            
+
             if response.success:
                 return response
-        
+
         return SearchResponse(
             query=query,
             results=[],
@@ -1956,7 +1956,7 @@ class SearchService:
             success=False,
             error_message="事件搜索失败"
         )
-    
+
     def search_comprehensive_intel(
         self,
         stock_code: str,
@@ -1965,17 +1965,17 @@ class SearchService:
     ) -> Dict[str, SearchResponse]:
         """
         多维度情报搜索（同时使用多个引擎、多个维度）
-        
+
         搜索维度：
         1. 最新消息 - 近期新闻动态
         2. 风险排查 - 减持、处罚、利空
         3. 业绩预期 - 年报预告、业绩快报
-        
+
         Args:
             stock_code: 股票代码
             stock_name: 股票名称
             max_searches: 最大搜索次数
-            
+
         Returns:
             {维度名称: SearchResponse} 字典
         """
@@ -2097,7 +2097,7 @@ class SearchService:
                     'strict_freshness': False,
                 },
             ]
-        
+
         search_days = self._effective_news_window_days()
         target_per_dimension = 3
         provider_max_results = self._provider_request_size(target_per_dimension)
@@ -2115,22 +2115,22 @@ class SearchService:
             target_per_dimension,
             provider_max_results,
         )
-        
+
         # 轮流使用不同的搜索引擎
         provider_index = 0
-        
+
         for dim in search_dimensions:
             if search_count >= max_searches:
                 break
-            
+
             # 选择搜索引擎（轮流使用）
             available_providers = [p for p in self._providers if p.is_available]
             if not available_providers:
                 break
-            
+
             provider = available_providers[provider_index % len(available_providers)]
             provider_index += 1
-            
+
             request_days = (
                 self.ANALYTICAL_INTEL_LOOKBACK_DAYS
                 if dim['name'] in self.ANALYTICAL_INTEL_DIMENSIONS
@@ -2189,7 +2189,7 @@ class SearchService:
             )
             results[dim['name']] = filtered_response
             search_count += 1
-            
+
             if response.success:
                 logger.info(
                     "[情报搜索] %s: 原始=%s条, 过滤后=%s条",
@@ -2199,25 +2199,25 @@ class SearchService:
                 )
             else:
                 logger.warning(f"[情报搜索] {dim['desc']}: 搜索失败 - {response.error_message}")
-            
+
             # 短暂延迟避免请求过快
             time.sleep(0.5)
-        
+
         return results
-    
+
     def format_intel_report(self, intel_results: Dict[str, SearchResponse], stock_name: str) -> str:
         """
         格式化情报搜索结果为报告
-        
+
         Args:
             intel_results: 多维度搜索结果
             stock_name: 股票名称
-            
+
         Returns:
             格式化的情报报告文本
         """
         lines = [f"【{stock_name} 情报搜索结果】"]
-        
+
         # 维度展示顺序
         display_order = ['latest_news', 'announcements', 'market_analysis', 'risk_check', 'earnings', 'industry']
 
@@ -2233,12 +2233,12 @@ class SearchService:
         for dim_name in display_order:
             if dim_name not in intel_results:
                 continue
-                
+
             resp = intel_results[dim_name]
-            
+
             # 获取维度描述
             dim_desc = dim_labels.get(dim_name, dim_name)
-            
+
             lines.append(f"\n{dim_desc} (来源: {resp.provider}):")
             if resp.success and resp.results:
                 # 增加显示条数
@@ -2259,9 +2259,9 @@ class SearchService:
                         lines.append(f"     关联度: {'; '.join(relevance_parts)}")
             else:
                 lines.append("  未找到相关信息")
-        
+
         return "\n".join(lines)
-    
+
     def batch_search(
         self,
         stocks: List[Dict[str, str]],
@@ -2270,27 +2270,27 @@ class SearchService:
     ) -> Dict[str, SearchResponse]:
         """
         Batch search news for multiple stocks.
-        
+
         Args:
             stocks: List of stocks
             max_results_per_stock: Max results per stock
             delay_between: Delay between searches (seconds)
-            
+
         Returns:
             Dict of results
         """
         results = {}
-        
+
         for i, stock in enumerate(stocks):
             if i > 0:
                 time.sleep(delay_between)
-            
+
             code = stock.get('code', '')
             name = stock.get('name', '')
-            
+
             response = self.search_stock_news(code, name, max_results_per_stock)
             results[code] = response
-        
+
         return results
 
     def search_stock_price_fallback(
@@ -2302,21 +2302,21 @@ class SearchService:
     ) -> SearchResponse:
         """
         Enhance search when data sources fail.
-        
+
         When all data sources (efinance, akshare, tushare, baostock, etc.) fail to get
         stock data, use search engines to find stock trends and price info as supplemental data for AI analysis.
-        
+
         Strategy:
         1. Search using multiple keyword templates
         2. Try all available search engines for each keyword
         3. Aggregate and deduplicate results
-        
+
         Args:
             stock_code: Stock Code
             stock_name: Stock Name
             max_attempts: Max search attempts (using different keywords)
             max_results: Max results to return
-            
+
         Returns:
             SearchResponse object with aggregated results
         """
@@ -2329,60 +2329,60 @@ class SearchService:
                 success=False,
                 error_message="未配置搜索能力"
             )
-        
+
         logger.info(f"[增强搜索] 数据源失败，启动增强搜索: {stock_name}({stock_code})")
-        
+
         all_results = []
         seen_urls = set()
         successful_providers = []
-        
+
         # 使用多个关键词模板搜索
         is_foreign = self._is_foreign_stock(stock_code)
         keywords = self.ENHANCED_SEARCH_KEYWORDS_EN if is_foreign else self.ENHANCED_SEARCH_KEYWORDS
         for i, keyword_template in enumerate(keywords[:max_attempts]):
             query = keyword_template.format(name=stock_name, code=stock_code)
-            
+
             logger.info(f"[增强搜索] 第 {i+1}/{max_attempts} 次搜索: {query}")
-            
+
             # 依次尝试各个搜索引擎
             for provider in self._providers:
                 if not provider.is_available:
                     continue
-                
+
                 try:
                     response = provider.search(query, max_results=3)
-                    
+
                     if response.success and response.results:
                         # 去重并添加结果
                         for result in response.results:
                             if result.url not in seen_urls:
                                 seen_urls.add(result.url)
                                 all_results.append(result)
-                                
+
                         if provider.name not in successful_providers:
                             successful_providers.append(provider.name)
-                        
+
                         logger.info(f"[增强搜索] {provider.name} 返回 {len(response.results)} 条结果")
                         break  # 成功后跳到下一个关键词
                     else:
                         logger.debug(f"[增强搜索] {provider.name} 无结果或失败")
-                        
+
                 except Exception as e:
                     logger.warning(f"[增强搜索] {provider.name} 搜索异常: {e}")
                     continue
-            
+
             # 短暂延迟避免请求过快
             if i < max_attempts - 1:
                 time.sleep(0.5)
-        
+
         # 汇总结果
         if all_results:
             # 截取前 max_results 条
             final_results = all_results[:max_results]
             provider_str = ", ".join(successful_providers) if successful_providers else "None"
-            
+
             logger.info(f"[增强搜索] 完成，共获取 {len(final_results)} 条结果（来源: {provider_str}）")
-            
+
             return SearchResponse(
                 query=f"{stock_name}({stock_code}) 股价走势",
                 results=final_results,
@@ -2409,29 +2409,29 @@ class SearchService:
     ) -> Dict[str, SearchResponse]:
         """
         综合搜索接口（支持新闻和股价信息）
-        
+
         当 include_price=True 时，会同时搜索新闻和股价信息。
         主要用于数据源完全失败时的兜底方案。
-        
+
         Args:
             stock_code: 股票代码
             stock_name: 股票名称
             include_news: 是否搜索新闻
             include_price: 是否搜索股价/走势信息
             max_results: 每类搜索的最大结果数
-            
+
         Returns:
             {'news': SearchResponse, 'price': SearchResponse} 字典
         """
         results = {}
-        
+
         if include_news:
             results['news'] = self.search_stock_news(
-                stock_code, 
-                stock_name, 
+                stock_code,
+                stock_name,
                 max_results=max_results
             )
-        
+
         if include_price:
             results['price'] = self.search_stock_price_fallback(
                 stock_code,
@@ -2439,34 +2439,34 @@ class SearchService:
                 max_attempts=3,
                 max_results=max_results
             )
-        
+
         return results
 
     def format_price_search_context(self, response: SearchResponse) -> str:
         """
         将股价搜索结果格式化为 AI 分析上下文
-        
+
         Args:
             response: 搜索响应对象
-            
+
         Returns:
             格式化的文本，可直接用于 AI 分析
         """
         if not response.success or not response.results:
             return "【股价走势搜索】未找到相关信息，请以其他渠道数据为准。"
-        
+
         lines = [
             f"【股价走势搜索结果】（来源: {response.provider}）",
             "⚠️ 注意：以下信息来自网络搜索，仅供参考，可能存在延迟或不准确。",
             ""
         ]
-        
+
         for i, result in enumerate(response.results, 1):
             date_str = f" [{result.published_date}]" if result.published_date else ""
             lines.append(f"{i}. 【{result.source}】{result.title}{date_str}")
             lines.append(f"   {result.snippet[:200]}...")
             lines.append("")
-        
+
         return "\n".join(lines)
 
 
@@ -2478,13 +2478,13 @@ _search_service_lock = threading.Lock()
 def get_search_service() -> SearchService:
     """获取搜索服务单例"""
     global _search_service
-    
+
     if _search_service is None:
         with _search_service_lock:
             if _search_service is None:
                 from src.config import get_config
                 config = get_config()
-                
+
                 _search_service = SearchService(
                     bocha_keys=config.bocha_api_keys,
                     tavily_keys=config.tavily_api_keys,
@@ -2497,7 +2497,7 @@ def get_search_service() -> SearchService:
                     news_max_age_days=config.news_max_age_days,
                     news_strategy_profile=getattr(config, "news_strategy_profile", "short"),
                 )
-    
+
     return _search_service
 
 
@@ -2514,10 +2514,10 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s'
     )
-    
+
     # 手动测试（需要配置 API Key）
     service = get_search_service()
-    
+
     if service.is_available:
         print("=== 测试股票新闻搜索 ===")
         response = service.search_stock_news("300389", "艾比森")

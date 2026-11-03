@@ -315,7 +315,7 @@ def run_market_review(
                     report=review_report,
                 )
             }
-        
+
         if review_report:
             market_review_payload = _build_combined_market_review_payload(
                 review_report=review_report,
@@ -359,7 +359,7 @@ def run_market_review(
                     market_light_snapshots=market_light_snapshots,
                     market_review_payload=market_review_payload,
                 )
-            
+
             # 推送通知（合并模式下跳过，由 main 层统一发送）
             if merge_notification and send_notification:
                 logger.info(
@@ -436,7 +436,7 @@ def run_market_review(
                     success=False,
                     attempts=0,
                 )
-            
+
             if return_structured:
                 return MarketReviewRunResult(
                     report=review_report,
@@ -445,7 +445,7 @@ def run_market_review(
             if merge_notification:
                 return merge_markdown_report
             return review_report
-        
+
     except GenerationError:
         logger.exception(
             "[MarketReview] component=market_review action=failed "
@@ -463,7 +463,7 @@ def run_market_review(
             history_query_id,
             persist_region,
         )
-    
+
     return None
 
 

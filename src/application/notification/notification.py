@@ -470,7 +470,7 @@ class NotificationService:
         if getattr(config, "wechat_webhook_url", None):
             channels.append(NotificationChannel.WECHAT)
         if getattr(config, "dingtalk_webhook_url", None):
-            channels.append(NotificationChannel.DINGTALK)    
+            channels.append(NotificationChannel.DINGTALK)
 
         if is_feishu_static_configured(config):
             channels.append(NotificationChannel.FEISHU)
