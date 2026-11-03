@@ -46,12 +46,14 @@ def parse_json_field(value: Any) -> Any:
 
 
 def _non_empty_dict(value: Any) -> Optional[Dict[str, Any]]:
+    """返回非空的 dict，否则返回 None。"""
     if not isinstance(value, dict):
         return None
     return value if value else None
 
 
 def _normalize_belong_boards(value: Any) -> List[Dict[str, Any]]:
+    """把板块列表归一化为 ``{name, code?, type?}`` 列表，跳过缺 name 的条目。"""
     if not isinstance(value, list):
         return []
 
@@ -79,6 +81,7 @@ def _normalize_belong_boards(value: Any) -> List[Dict[str, Any]]:
 
 
 def _safe_float(value: Any) -> Optional[float]:
+    """鲁棒地把值转为 float；支持 ``"12%"`` 形式，失败返回 None。"""
     if value is None:
         return None
     try:
@@ -95,6 +98,7 @@ def _safe_float(value: Any) -> Optional[float]:
 
 
 def _safe_int(value: Any) -> Optional[int]:
+    """鲁棒地把值转为 int，失败返回 None。"""
     if value is None:
         return None
     try:
@@ -104,6 +108,7 @@ def _safe_int(value: Any) -> Optional[int]:
 
 
 def _normalize_sector_ranking_items(value: Any) -> List[Dict[str, Any]]:
+    """把行业/概念排名条目归一化为含 name/code/rank/change_pct 等字段的列表。"""
     if not isinstance(value, list):
         return []
 
@@ -134,6 +139,7 @@ def _normalize_sector_ranking_items(value: Any) -> List[Dict[str, Any]]:
 
 
 def _normalize_sector_rankings(value: Any) -> Optional[Dict[str, Any]]:
+    """把涨跌板块排名对象归一化为 ``{top, bottom, status?}`` 结构。"""
     if not isinstance(value, dict):
         return None
 
@@ -149,6 +155,7 @@ def _normalize_sector_rankings(value: Any) -> Optional[Dict[str, Any]]:
 
 
 def _extract_ranking_payload_from_block(value: Any) -> Optional[Dict[str, Any]]:
+    """从板块原始对象里抽取排名 payload（直接含 top/bottom 或包裹在 data 中）。"""
     if not isinstance(value, dict):
         return None
     if "top" in value or "bottom" in value:
@@ -171,10 +178,12 @@ def _extract_ranking_payload_from_block(value: Any) -> Optional[Dict[str, Any]]:
 
 
 def _is_empty_value(value: Any) -> bool:
+    """判断值是否为空（None / 空串 / 空列表 / 空字典）。"""
     return value is None or value == "" or value == [] or value == {}
 
 
 def _deep_merge_dicts(*values: Any) -> Optional[Dict[str, Any]]:
+    """深度合并多个 JSON 字段为单一字典，跳过空值；全为空返回 None。"""
     merged: Dict[str, Any] = {}
     has_value = False
     for value in values:

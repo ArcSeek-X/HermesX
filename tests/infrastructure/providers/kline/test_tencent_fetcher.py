@@ -8,13 +8,23 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pandas as pd
+import requests
 
 from data_provider.tencent_fetcher import TencentFetcher, _to_tencent_symbol
 from tests.support.paths import get_repo_root
+
+@contextmanager
+def _stub_tencent_http(get):
+    """Replace this adapter's client without patching process-wide requests.get."""
+    with patch("data_provider.tencent_fetcher.requests", SimpleNamespace(get=get)):
+        yield
 
 
 def _read_priority_from_fresh_process(value: str | None) -> int:
@@ -139,7 +149,7 @@ def test_tencent_fetcher_parses_qfq_daily_response() -> None:
         return FakeResponse()
 
     fetcher = TencentFetcher()
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = fetcher.get_daily_data("000001", start_date="2026-05-01", end_date="2026-05-10")
 
     assert captured["url"] == "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
@@ -191,7 +201,7 @@ def test_tencent_fetcher_requests_explicit_historical_date_window() -> None:
         return FakeResponse()
 
     fetcher = TencentFetcher()
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = fetcher.get_daily_data("000001", start_date="2020-05-01", end_date="2020-05-31")
 
     assert captured["url"] == "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
@@ -220,7 +230,7 @@ def test_tencent_fetcher_preserves_amount_column_when_missing() -> None:
         def json(self):
             return payload
 
-    with patch("data_provider.tencent_fetcher.requests.get", return_value=FakeResponse()):
+    with _stub_tencent_http(lambda *args, **kwargs: FakeResponse()):
         df = TencentFetcher().get_daily_data("600519", start_date="2026-05-01", end_date="2026-05-10")
 
     assert "amount" in df.columns
@@ -238,7 +248,7 @@ def test_tencent_fetcher_returns_empty_frame_for_empty_history() -> None:
         def json(self):
             return payload
 
-    with patch("data_provider.tencent_fetcher.requests.get", return_value=FakeResponse()):
+    with _stub_tencent_http(lambda *args, **kwargs: FakeResponse()):
         df = TencentFetcher().get_daily_data("000001", start_date="2026-05-01", end_date="2026-05-10")
 
     assert df.empty
@@ -269,7 +279,7 @@ def test_tencent_fetcher_keeps_short_history_when_cap_not_hit() -> None:
         captured.update(kwargs)
         return FakeResponse()
 
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = TencentFetcher().get_daily_data("000001", start_date="2020-01-01", end_date="2026-05-10")
 
     assert ",day,2020-01-01,2026-05-10,800,qfq" in captured["params"]["param"]
@@ -305,7 +315,7 @@ def test_tencent_fetcher_keeps_near_cap_short_history_for_new_listing() -> None:
         captured.update(kwargs)
         return FakeResponse()
 
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = TencentFetcher().get_daily_data("000001", start_date="2020-01-01", end_date="2026-05-10")
 
     assert ",day,2020-01-01,2026-05-10,800,qfq" in captured["params"]["param"]
@@ -341,7 +351,7 @@ def test_tencent_fetcher_keeps_capped_history_when_start_is_weekend() -> None:
         captured.update(kwargs)
         return FakeResponse()
 
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = TencentFetcher().get_daily_data("000001", start_date="2024-03-02", end_date="2027-05-10")
 
     assert ",day,2024-03-02,2027-05-10,800,qfq" in captured["params"]["param"]
@@ -377,8 +387,37 @@ def test_tencent_fetcher_rejects_capped_incomplete_history() -> None:
         captured.update(kwargs)
         return FakeResponse()
 
-    with patch("data_provider.tencent_fetcher.requests.get", fake_get):
+    with _stub_tencent_http(fake_get):
         df = TencentFetcher().get_daily_data("000001", start_date="2020-01-01", end_date="2026-05-10")
 
     assert ",day,2020-01-01,2026-05-10,800,qfq" in captured["params"]["param"]
     assert df.empty
+
+
+def test_tencent_http_stub_keeps_other_provider_requests_isolated() -> None:
+    """A concurrent provider must not receive Tencent's fake K-line payload."""
+    other_response = object()
+    payload = {
+        "data": {
+            "sz000001": {
+                "qfqday": [["2023-01-03", "10.00", "10.50", "10.80", "9.90", "12345", "67890"]]
+            }
+        }
+    }
+    tencent_calls = []
+
+    def fake_get(url, **kwargs):
+        tencent_calls.append((url, kwargs))
+        return SimpleNamespace(raise_for_status=lambda: None, json=lambda: payload)
+
+    with patch.object(requests, "get", return_value=other_response) as other_get:
+        with _stub_tencent_http(fake_get), ThreadPoolExecutor(max_workers=1) as executor:
+            other = executor.submit(requests.get, "https://example.com/other-provider")
+            df = TencentFetcher().get_daily_data(
+                "000001", start_date="2020-01-01", end_date="2026-05-10"
+            )
+            assert other.result(timeout=5) is other_response
+        other_get.assert_called_once_with("https://example.com/other-provider")
+    assert len(tencent_calls) == 1
+    assert len(df) == 1
+    assert float(df.iloc[0]["close"]) == 10.5

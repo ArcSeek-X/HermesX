@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Web admin authentication module.
+Web 后台认证模块。
 
-Single toggle (ADMIN_AUTH_ENABLED) + file-based credentials.
-First login sets initial password; supports web change-password and CLI reset.
+单一开关（``ADMIN_AUTH_ENABLED``）+ 基于文件的凭据：首次登录设置初始密码，
+支持 Web 端改密与 CLI 重置。会话采用 HMAC 签名 + 固定过期时长，登录失败有频控。
 """
 
 from __future__ import annotations

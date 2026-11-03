@@ -21,6 +21,7 @@ from src.domain.notification.noise_rules import NOTIFICATION_SEVERITIES
 from src.domain.notification.routing import ROUTABLE_NOTIFICATION_CHANNELS
 
 FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
+    # === Base Settings：基础设置（自选股、飞书云文档等）===
     "STOCK_LIST": {
         "title": "Stock List",
         "description": "Watchlist stock codes. English commas are recommended; common pasted separators are normalized on save. There is no runtime default: an empty list raises a configuration validation error.",
@@ -54,6 +55,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     # ------------------------------------------------------------------
     # AI Model – LiteLLM unified config
     # ------------------------------------------------------------------
+    # === AI Model：AI 模型（生成后端、LiteLLM 统一配置、渠道等）===
     "GENERATION_BACKEND": {
         "title": "Analysis Generation Method",
         "description": "Generation method used by stock analysis, market reviews, and regular text generation.",
@@ -688,6 +690,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "validation": {"multi_value": True, "delimiter": ","},
         "display_order": 7,
     },
+    # === Data Source：数据源（行情/资讯源、凭证与优先级）===
     "TUSHARE_TOKEN": {
         "title": "Tushare Token",
         "description": "Token for Tushare Pro API.",
@@ -2300,6 +2303,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "validation": {"min": 256, "max": 8192},
         "display_order": 38,
     },
+    # === Notification：通知渠道（机器人、Webhook、推送等）===
     "WECHAT_WEBHOOK_URL": {
         "title": "WeChat Webhook URL",
         "description": "Webhook URL for enterprise WeChat bot.",
@@ -3852,6 +3856,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     # Config.reset_instance()，因此同一进程内下一次请求即生效、不标 restart。
     # 数值字段运行时只有下限，registry 不额外加 max，避免把可用区间锁窄。
     # ------------------------------------------------------------------
+    # === System：系统（运行、调度、日志、WebUI 等）===
     "PORTFOLIO_RISK_CONCENTRATION_ALERT_PCT": {
         "title": "Portfolio Concentration Alert Threshold (%)",
         "description": "Top-holding weight percentage above which the portfolio risk report raises a concentration alert; the same value is used for the sector concentration block. It feeds alert-rule evaluation, so lowering it makes alerts fire more easily. Read each time a risk report is built, so a saved change applies to the next request.",
@@ -4654,6 +4659,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         ],
         "warning_codes": [],
     },
+    # === Backtest：回测（引擎行为与评估参数）===
     "BACKTEST_ENABLED": {
         "title": "Backtest Enabled",
         "description": "Whether backtest is enabled.",
@@ -4784,6 +4790,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         ],
         "warning_codes": [],
     },
+    # === Agent：Agent 模式与策略/技能设置 ===
     "AGENT_MODE": {
         "title": "Agent Mode",
         "description": "Enable ReAct Agent for stock analysis.",

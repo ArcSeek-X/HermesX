@@ -1,3 +1,10 @@
+"""东财请求入口的运行时猴子补丁。
+
+在 ``requests.Session.request`` 处统一注入随机 User-Agent 与 NID 授权 Cookie，
+并对目标东财域名随机休眠，以降低被频率限制 / 封禁的风险。``eastmoney_patch()``
+为幂等入口，重复调用不会重复打补丁。
+"""
+
 import hashlib
 import random
 import secrets
@@ -17,6 +24,8 @@ ua = UserAgent()
 
 
 class AuthCache:
+    """NID 授权令牌的内存缓存：带过期时间与线程锁，避免对东财授权接口频繁请求。"""
+
     def __init__(self):
         self.data = None
         self.expire_at = 0
@@ -28,6 +37,8 @@ _cache = AuthCache()
 
 
 class PatchSign:
+    """记录补丁是否已生效的标记（防止重复打补丁）。"""
+
     def __init__(self):
         self.patched = False
 
@@ -148,6 +159,10 @@ def _get_nid(user_agent):
 
 
 def eastmoney_patch():
+    """全局替换 ``requests.Session.request``，为目标东财域名请求注入鉴权与反爬措施。
+
+    非东财域名的请求直接走原始实现，不影响其它数据源。
+    """
     if _patch_sign.is_patched():
         return
 

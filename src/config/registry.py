@@ -277,11 +277,13 @@ def build_schema_response() -> Dict[str, Any]:
 
 
 def _is_sensitive_key(key: str) -> bool:
+    """判断键名是否对应敏感字段（含 KEY/TOKEN/SECRET/PASSWORD 子串）。"""
     markers = ("KEY", "TOKEN", "SECRET", "PASSWORD")
     return any(marker in key for marker in markers)
 
 
 def _infer_category(key: str) -> str:
+    """按键名前缀/后缀推断其所属设置分类；未命中时回退 ``uncategorized``。"""
     if key == "STOCK_LIST":
         return "base"
     if key.startswith("BACKTEST_"):
@@ -332,6 +334,7 @@ def _infer_category(key: str) -> str:
 
 
 def _infer_data_type(key: str, value_hint: Optional[str]) -> str:
+    """根据键名与样例值推断数据类型（time/boolean/integer/number/array/string）。"""
     if key.endswith("_TIME"):
         return "time"
     if value_hint is None:
@@ -359,6 +362,7 @@ def _infer_data_type(key: str, value_hint: Optional[str]) -> str:
 
 
 def _infer_ui_control(data_type: str, key: str) -> str:
+    """根据数据类型与键名推断 Web 设置页应使用的控件类型。"""
     if _is_sensitive_key(key):
         return "password"
     if data_type == "boolean":

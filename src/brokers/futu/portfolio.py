@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Read real stock holdings from a Futu OpenD instance."""
+"""从 Futu OpenD 实例读取真实持仓。
+
+只读查询：发现 ACTIVE 的 REAL NORMAL/MASTER 账户，取其非零多头正股持仓，
+过滤 A/HK/US 股票后转换为分析流水线使用的代码格式；不写入、不下单。
+"""
 
 from __future__ import annotations
 

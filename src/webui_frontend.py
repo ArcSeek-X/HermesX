@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-WebUI frontend asset preparation helper.
+WebUI 前端静态资源准备助手。
 
-Default behavior runs startup-time frontend auto build.
-Set WEBUI_AUTO_BUILD=false to disable auto build and only verify artifacts.
+后端启动时根据依赖指纹 / 源码指纹判断是否需要 ``npm install`` + ``npm run build``；
+默认开启自动构建（``WEBUI_AUTO_BUILD=true``），置为 ``false`` 时只校验产物是否就绪。
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ def _is_truthy_env(var_name: str, default: str = "true") -> bool:
 
 
 def _safe_mtime(path: Path) -> float:
+    """安全读取文件 mtime，读取失败返回 0.0。"""
     try:
         return path.stat().st_mtime
     except OSError:
@@ -52,6 +53,7 @@ def _safe_mtime(path: Path) -> float:
 
 
 def _tree_latest_mtime(root: Path) -> float:
+    """返回目录树下最新文件 mtime；目录不存在或遍历失败返回 0.0。"""
     if not root.exists():
         return 0.0
     latest = 0.0
@@ -66,6 +68,7 @@ def _tree_latest_mtime(root: Path) -> float:
 
 
 def _max_mtime(paths: Iterable[Path]) -> float:
+    """返回一组路径中的最大 mtime。"""
     latest = 0.0
     for path in paths:
         latest = max(latest, _safe_mtime(path))
@@ -97,6 +100,7 @@ def _calculate_dependency_fingerprint(frontend_dir: Path) -> str | None:
 
 
 def _read_installed_dependency_fingerprint(frontend_dir: Path) -> str | None:
+    """读取已安装依赖的指纹标记；缺失或损坏返回 None。"""
     marker_path = frontend_dir / "node_modules" / _DEPENDENCY_FINGERPRINT_FILE
     try:
         fingerprint = marker_path.read_text(encoding="ascii").strip()
@@ -118,6 +122,7 @@ def _write_installed_dependency_fingerprint(frontend_dir: Path) -> None:
 
 
 def _needs_dependency_install(frontend_dir: Path, package_json: Path, lock_file: Path, force_build: bool) -> bool:
+    """判断是否需要重装依赖（强制 / node_modules 缺失 / 依赖指纹变化 / 文件时间更新）。"""
     node_modules_dir = frontend_dir / "node_modules"
     if force_build or not node_modules_dir.exists():
         return True
@@ -134,6 +139,7 @@ def _needs_dependency_install(frontend_dir: Path, package_json: Path, lock_file:
 
 
 def _collect_build_inputs_latest_mtime(frontend_dir: Path) -> float:
+    """收集所有构建输入（配置文件 + src/public）的最大 mtime。"""
     latest = _max_mtime(frontend_dir / filename for filename in _BUILD_INPUT_FILES)
     for dirname in _BUILD_INPUT_DIRS:
         latest = max(latest, _tree_latest_mtime(frontend_dir / dirname))
@@ -141,6 +147,7 @@ def _collect_build_inputs_latest_mtime(frontend_dir: Path) -> float:
 
 
 def _collect_build_input_files(frontend_dir: Path) -> list[Path]:
+    """列出参与构建指纹计算的所有输入文件（配置项 + src/public 递归），按相对路径排序。"""
     input_files = [
         frontend_dir / filename
         for filename in _BUILD_INPUT_FILES
@@ -154,6 +161,7 @@ def _collect_build_input_files(frontend_dir: Path) -> list[Path]:
 
 
 def _calculate_source_fingerprint(frontend_dir: Path) -> str | None:
+    """对整个前端源码树计算 SHA-256 指纹（文件相对路径 + 内容）。"""
     digest = hashlib.sha256()
     try:
         input_files = _collect_build_input_files(frontend_dir)
@@ -183,6 +191,7 @@ def _read_artifact_source_fingerprint(artifact_index: Path) -> str | None:
 
 
 def _needs_frontend_build(frontend_dir: Path, force_build: bool) -> tuple[bool, Path]:
+    """判断是否需要前端构建：缺产物 / 强制 / 指纹或 mtime 不一致则视为需要。"""
     artifact_index = _resolve_artifact_index(frontend_dir)
     if force_build or not artifact_index.exists():
         return True, artifact_index
@@ -207,6 +216,7 @@ def _needs_frontend_build(frontend_dir: Path, force_build: bool) -> tuple[bool, 
 
 
 def _run_frontend_commands(commands: Sequence[Sequence[str]], frontend_dir: Path) -> bool:
+    """顺序执行若干子命令（install/build）；任一失败返回 False。"""
     try:
         for command in commands:
             logger.info("执行前端命令: %s", " ".join(command))
@@ -224,6 +234,7 @@ def _run_frontend_commands(commands: Sequence[Sequence[str]], frontend_dir: Path
 
 
 def _manual_build_command(frontend_dir: Path) -> str:
+    """拼出手动构建前端的 shell 命令串（npm ci/install + build）。"""
     lock_file = frontend_dir / "package-lock.json"
     install_cmd = "npm ci" if lock_file.exists() else "npm install"
     return f'cd "{frontend_dir}" && {install_cmd} && npm run build'

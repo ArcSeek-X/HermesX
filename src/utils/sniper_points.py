@@ -94,10 +94,12 @@ def extract_sniper_points(result: Any) -> Dict[str, Optional[float]]:
 
 
 def _has_any_sniper_value(points: Mapping[str, Any]) -> bool:
+    """判断狙击点字典中是否存在任一非空取值。"""
     return any(points.get(key) not in (None, "") for key in SNIPER_KEYS)
 
 
 def find_sniper_points(data: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+    """在嵌套结果（顶层 / ``sniper_points`` / ``battle_plan`` / ``dashboard``）中定位狙击点字典。"""
     if not isinstance(data, Mapping):
         return None
 

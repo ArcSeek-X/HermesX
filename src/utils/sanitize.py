@@ -140,6 +140,7 @@ def _sanitize_decision_signal_payload_values(obj: Any) -> Any:
 
 
 def _redact_sensitive_url_match(match: re.Match[str]) -> str:
+    """对正则匹配到的 URL 做脱敏：命中敏感规则才替换为 ``[REDACTED_URL]``，否则原样返回。"""
     url = match.group(0)
     if _is_sensitive_url(url):
         return "[REDACTED_URL]"
@@ -147,6 +148,7 @@ def _redact_sensitive_url_match(match: re.Match[str]) -> str:
 
 
 def _is_sensitive_url(url: str) -> bool:
+    """判断 URL 是否含令牌样式或敏感凭据（用户/密码、webhook 路径、敏感 query 参数）。"""
     if _TOKEN_LIKE_PATTERN.search(url):
         return True
     try:
@@ -164,6 +166,7 @@ def _is_sensitive_url(url: str) -> bool:
 
 
 def _is_webhook_url(hostname: str, path: str) -> bool:
+    """按域名与路径识别常见 IM / webhook 推送地址（Slack/Discord/飞书/钉钉/企业微信/FTQQ 等）。"""
     hostname = str(hostname or "").lower().strip(".")
     normalized_path = f"/{path.lstrip('/').lower()}"
     path_segments = [segment for segment in normalized_path.split("/") if segment]
@@ -188,6 +191,7 @@ def _is_webhook_url(hostname: str, path: str) -> bool:
 
 
 def _has_sensitive_url_params(params_text: str) -> bool:
+    """判断 URL query/fragment 中是否含敏感键名或令牌样式值。"""
     if not params_text:
         return False
     try:
@@ -204,6 +208,7 @@ def _has_sensitive_url_params(params_text: str) -> bool:
 
 
 def _is_sensitive_mapping_key(key: Any) -> bool:
+    """按键名（大小写不敏感）判断映射键是否属于敏感字段。"""
     key_text = str(key or "").strip()
     if not key_text:
         return False
@@ -214,6 +219,7 @@ def _is_sensitive_mapping_key(key: Any) -> bool:
 
 
 def _has_sensitive_phrase(normalized_key: str) -> bool:
+    """判断归一化键名是否含已知敏感短语（含去下划线紧凑匹配）。"""
     padded_key = f"_{normalized_key}_"
     if any(f"_{phrase}_" in padded_key for phrase in _SENSITIVE_KEY_PHRASES):
         return True
@@ -224,6 +230,7 @@ def _has_sensitive_phrase(normalized_key: str) -> bool:
 
 
 def _mapping_key_parts(key_text: str) -> list[str]:
+    """把键名拆成小写词元（处理驼峰与分隔符），供敏感短语匹配使用。"""
     split_camel = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key_text)
     return [
         part.lower()

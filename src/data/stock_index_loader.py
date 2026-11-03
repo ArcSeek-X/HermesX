@@ -41,10 +41,12 @@ def get_stock_index_candidate_paths() -> tuple[Path, ...]:
 
 
 def _same_path(left: Path, right: Path) -> bool:
+    """判断两个路径是否指向同一文件（解析符号链接后比较）。"""
     return left == right or left.resolve() == right.resolve()
 
 
 def _add_lookup_key(keys: set[str], value: str) -> None:
+    """把一个候选值以原文与大写两种形式加入查找键集合（空值忽略）。"""
     candidate = str(value or "").strip()
     if not candidate:
         return
@@ -53,6 +55,7 @@ def _add_lookup_key(keys: set[str], value: str) -> None:
 
 
 def _build_lookup_keys(canonical_code: str, display_code: str) -> Iterable[str]:
+    """为由 canonical/display 代码衍生的一组查找键（含去后缀、HK 补零等归一化形式）。"""
     keys: set[str] = set()
     _add_lookup_key(keys, canonical_code)
     _add_lookup_key(keys, display_code)
@@ -81,6 +84,7 @@ def _build_lookup_keys(canonical_code: str, display_code: str) -> Iterable[str]:
 
 
 def _load_stock_index_payload(index_path: Path) -> list:
+    """读取股票索引 JSON 文件，要求顶层为列表（否则抛 ValueError）。"""
     with index_path.open("r", encoding="utf-8") as fh:
         raw_items = json.load(fh)
 
@@ -92,6 +96,7 @@ def _load_stock_index_payload(index_path: Path) -> list:
 
 
 def _build_stock_name_map(raw_items: list) -> Dict[str, str]:
+    """将索引条目展开成 (查找键 -> 中文名) 映射，跳过无意义名称。"""
     stock_name_map: Dict[str, str] = {}
     for item in raw_items:
         if not isinstance(item, list) or len(item) < 3:
@@ -112,6 +117,7 @@ def _add_code_lookup(
     key: str,
     canonical_code: str,
 ) -> None:
+    """把 (key -> canonical_code) 写入代码候选查找表（空值忽略）。"""
     candidate = str(key or "").strip().upper()
     canonical = str(canonical_code or "").strip()
     if not candidate or not canonical:
@@ -125,6 +131,7 @@ def _is_jp_kr_index_code(code: str) -> bool:
 
 
 def _build_stock_code_candidates(raw_items: list) -> dict[str, set[str]]:
+    """从索引条目构建 (别名 -> 规范代码集合) 映射，按市场做归一化。"""
     candidates: dict[str, set[str]] = {}
 
     for item in raw_items:
@@ -168,16 +175,19 @@ def _build_stock_code_candidates(raw_items: list) -> dict[str, set[str]]:
 
 
 def _load_stock_index_file(index_path: Path) -> Dict[str, str]:
+    """加载本地股票索引文件并构建名称映射（不做远端校验）。"""
     return _build_stock_name_map(_load_stock_index_payload(index_path))
 
 
 def _load_remote_stock_index_file(index_path: Path) -> Dict[str, str]:
+    """加载远端缓存的股票索引文件，先做结构校验再构建名称映射。"""
     raw_items = _load_stock_index_payload(index_path)
     validate_stock_index_payload(raw_items)
     return _build_stock_name_map(raw_items)
 
 
 def _get_stock_index_signature(index_path: Path) -> tuple[float, int] | None:
+    """返回文件的 (mtime, size) 签名；文件不可用或不存在时返回 None。"""
     try:
         stat_result = index_path.stat()
     except OSError as exc:
@@ -192,6 +202,7 @@ def _get_fresh_stock_index_candidates(
     candidate_paths: Iterable[Path],
     remote_cache_path: Path,
 ) -> tuple[Path, ...]:
+    """按 mtime（远端缓存优先）对候选索引文件排序，返回由新到旧的路径序列。"""
     paths = tuple(candidate_paths)
     candidates: list[tuple[tuple[float, int], Path]] = []
 
@@ -212,6 +223,7 @@ def _is_remote_stock_index_cache_usable(
     remote_cache_path: Path,
     signature: tuple[float, int],
 ) -> bool:
+    """判断远端缓存索引是否仍有效（非本地文件；远端用签名缓存避免重复校验）。"""
     global _REMOTE_INDEX_VALIDITY_CACHE
 
     if not _same_path(index_path, remote_cache_path):
