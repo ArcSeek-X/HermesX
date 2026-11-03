@@ -189,7 +189,7 @@ export const usePortfolioSignals = ({
   // 加载持仓决策信号：持仓行变化时，以并发方式批量查询最新决策信号
   // 使用请求序列号防止竞态条件，快照不匹配范围时跳过加载
   useEffect(() => {
-    if (positionSignalLookups.length === 0) {
+    if (!snapshotMatchesAccountScope || positionSignalLookups.length === 0) {
       // 数据加载型副作用，按仓库约定关闭该规则
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPositionSignals([]);
