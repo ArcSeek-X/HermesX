@@ -97,3 +97,6 @@ docs/specs/
 
 # # 第三方本地模板（参考用，不入库）
 /vibe-template/
+
+# archify 生成的本地分析产物（不入库）
+/documents/archify-V2/
