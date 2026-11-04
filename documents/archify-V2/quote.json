@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "09 · 行情能力、数据源与降级",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      710
+    ]
+  },
+  "components": [
+    {
+      "id": "quote-n01",
+      "type": "backend",
+      "label": "行情业务入口",
+      "sublabel": "quote service / kline endpoints",
+      "pos": [
+        30,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n02",
+      "type": "backend",
+      "label": "能力型 Source Manager",
+      "sublabel": "kline / stock_info / code_search",
+      "pos": [
+        380,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n03",
+      "type": "backend",
+      "label": "K线与周期标准化",
+      "sublabel": "KlineManager / transform",
+      "pos": [
+        730,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n04",
+      "type": "backend",
+      "label": "信息、搜索与其他能力",
+      "sublabel": "stock_info / code_search / sector",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n05",
+      "type": "backend",
+      "label": "分析 DataFetcherManager",
+      "sublabel": "历史 / 实时 / 基本面上下文",
+      "pos": [
+        30,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n06",
+      "type": "backend",
+      "label": "公共缓存与健康",
+      "sublabel": "TTL / rate-limit / normalize",
+      "pos": [
+        380,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n07",
+      "type": "database",
+      "label": "StockDB 共享客户端",
+      "sublabel": "local source / 只读 HTTP",
+      "pos": [
+        730,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n08",
+      "type": "backend",
+      "label": "StockSDK Node 桥接",
+      "sublabel": "subprocess / JSON action",
+      "pos": [
+        1080,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n09",
+      "type": "external",
+      "label": "远端行情与基本面",
+      "sublabel": "腾讯 / 东财 / 新浪 / 多源",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n10",
+      "type": "backend",
+      "label": "新闻、机构与板块源",
+      "sublabel": "wallstreetcn / tw / shidaotec",
+      "pos": [
+        380,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n11",
+      "type": "database",
+      "label": "StockDB 独立服务",
+      "sublabel": "源数据库由服务进程持有",
+      "pos": [
+        730,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "quote-n12",
+      "type": "external",
+      "label": "StockSDK 外部供应",
+      "sublabel": "stock-sdk / 市场接口",
+      "pos": [
+        1080,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "quote-n01",
+      "to": "quote-n02",
+      "label": "基础能力取数"
+    },
+    {
+      "from": "quote-n02",
+      "to": "quote-n03",
+      "label": "调用能力适配"
+    },
+    {
+      "from": "quote-n03",
+      "to": "quote-n04",
+      "label": "共享同构契约"
+    },
+    {
+      "from": "quote-n01",
+      "to": "quote-n05",
+      "label": "分析用例取数",
+      "labelAt": [
+        165,
+        210.0
+      ]
+    },
+    {
+      "from": "quote-n02",
+      "to": "quote-n06",
+      "label": "复用公共底座",
+      "labelAt": [
+        515,
+        210.0
+      ]
+    },
+    {
+      "from": "quote-n03",
+      "to": "quote-n07",
+      "label": "local source",
+      "labelAt": [
+        865,
+        210.0
+      ]
+    },
+    {
+      "from": "quote-n04",
+      "to": "quote-n08",
+      "label": "桥接型扩展",
+      "labelAt": [
+        1215,
+        210.0
+      ]
+    },
+    {
+      "from": "quote-n05",
+      "to": "quote-n09",
+      "label": "旧 Fetcher 多源",
+      "labelAt": [
+        165,
+        410.0
+      ]
+    },
+    {
+      "from": "quote-n07",
+      "to": "quote-n11",
+      "label": "本地 HTTP",
+      "labelAt": [
+        865,
+        410.0
+      ]
+    },
+    {
+      "from": "quote-n08",
+      "to": "quote-n12",
+      "label": "Node 协议调用",
+      "labelAt": [
+        1215,
+        410.0
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "范围约束",
+      "items": [
+        "三类基础能力配置回退不代表所有新闻、板块与分析 Fetcher 都采用相同排序规则。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "存储例外",
+      "items": [
+        "StockDaily 是 HermesX 日线缓存例外；外部源 TTL 规则不禁止保存分析业务结果。"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "外部服务",
+      "items": [
+        "StockDB 是独立服务，StockSDK bridge 是按请求子进程，两种运行边界不同。"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "13 · Electron 启动与本地运行边界",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      710
+    ]
+  },
+  "components": [
+    {
+      "id": "desktop-n01",
+      "type": "backend",
+      "label": "Electron 主进程",
+      "sublabel": "app / BrowserWindow / lifecycle",
+      "pos": [
+        30,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n02",
+      "type": "backend",
+      "label": "运行目录与配置",
+      "sublabel": "resources / userData / env",
+      "pos": [
+        380,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n03",
+      "type": "backend",
+      "label": "Python 后端子进程",
+      "sublabel": "spawn / packaged executable",
+      "pos": [
+        730,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n04",
+      "type": "backend",
+      "label": "健康等待与窗口加载",
+      "sublabel": "loading.html → health → URL",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n05",
+      "type": "backend",
+      "label": "preload 桥接",
+      "sublabel": "contextBridge / ipcRenderer",
+      "pos": [
+        30,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n06",
+      "type": "backend",
+      "label": "Web 渲染进程",
+      "sublabel": "hrs-web SPA",
+      "pos": [
+        380,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n07",
+      "type": "backend",
+      "label": "本地 FastAPI 服务",
+      "sublabel": "REST / 静态站点 / SSE",
+      "pos": [
+        730,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n08",
+      "type": "backend",
+      "label": "应用资源生命周期",
+      "sublabel": "bootstrap / database / scheduler",
+      "pos": [
+        1080,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n09",
+      "type": "backend",
+      "label": "更新与安装接口",
+      "sublabel": "check / download / install / release",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n10",
+      "type": "backend",
+      "label": "构建与打包产物",
+      "sublabel": "Web → backend → Electron",
+      "pos": [
+        380,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n11",
+      "type": "backend",
+      "label": "业务库与本地文件",
+      "sublabel": "DB / credentials / logs / reports",
+      "pos": [
+        730,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "desktop-n12",
+      "type": "external",
+      "label": "外部网络与行情服务",
+      "sublabel": "LLM / 市场 / 通知 / StockDB",
+      "pos": [
+        1080,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "desktop-n01",
+      "to": "desktop-n02",
+      "label": "解析启动环境"
+    },
+    {
+      "from": "desktop-n02",
+      "to": "desktop-n03",
+      "label": "准备后端参数"
+    },
+    {
+      "from": "desktop-n03",
+      "to": "desktop-n04",
+      "label": "健康后加载"
+    },
+    {
+      "from": "desktop-n01",
+      "to": "desktop-n05",
+      "label": "绑定 IPC",
+      "labelAt": [
+        165,
+        210.0
+      ]
+    },
+    {
+      "from": "desktop-n02",
+      "to": "desktop-n06",
+      "label": "加载共用 UI",
+      "labelAt": [
+        515,
+        210.0
+      ]
+    },
+    {
+      "from": "desktop-n03",
+      "to": "desktop-n07",
+      "label": "启动服务",
+      "labelAt": [
+        865,
+        210.0
+      ]
+    },
+    {
+      "from": "desktop-n04",
+      "to": "desktop-n08",
+      "label": "服务资源就绪",
+      "labelAt": [
+        1215,
+        210.0
+      ]
+    },
+    {
+      "from": "desktop-n05",
+      "to": "desktop-n09",
+      "label": "请求桌面更新",
+      "labelAt": [
+        165,
+        410.0
+      ]
+    },
+    {
+      "from": "desktop-n07",
+      "to": "desktop-n11",
+      "label": "服务数据落盘",
+      "labelAt": [
+        865,
+        410.0
+      ]
+    },
+    {
+      "from": "desktop-n08",
+      "to": "desktop-n12",
+      "label": "装配外部适配",
+      "labelAt": [
+        1215,
+        410.0
+      ]
+    },
+    {
+      "from": "desktop-n10",
+      "to": "desktop-n06",
+      "label": "供给 Web 产物",
+      "labelAt": [
+        515,
+        410.0
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "运行进程",
+      "items": [
+        "主进程、Web 渲染进程、Python 后端是不同运行单元。"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "可选子进程",
+      "items": [
+        "StockSDK bridge 与 Codex 工具进程由相应能力按需启动。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "验收边界",
+      "items": [
+        "本图描述启动代码，不宣称 macOS / Windows 安装包端到端验收通过。"
+      ]
+    }
+  ]
+}

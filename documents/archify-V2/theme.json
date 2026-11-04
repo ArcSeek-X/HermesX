@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "06 · 主题、样式、参数与缓存",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      710
+    ]
+  },
+  "components": [
+    {
+      "id": "theme-n01",
+      "type": "frontend",
+      "label": "用户视觉偏好",
+      "sublabel": "ThemeSetting / ThemeToggle",
+      "pos": [
+        30,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n02",
+      "type": "frontend",
+      "label": "themeStore 单一真源",
+      "sublabel": "themeMode / themeColor / sidebar",
+      "pos": [
+        380,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n03",
+      "type": "frontend",
+      "label": "ThemeProvider 与同步",
+      "sublabel": "next-themes / ThemeSync",
+      "pos": [
+        730,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n04",
+      "type": "frontend",
+      "label": "CSS 令牌与设计系统",
+      "sublabel": "palette / HSL / HeroUI / Tailwind",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n05",
+      "type": "frontend",
+      "label": "基础组件参数",
+      "sublabel": "Props / variant / size / callbacks",
+      "pos": [
+        30,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n06",
+      "type": "frontend",
+      "label": "业务组件与页面",
+      "sublabel": "Card / Table / 图表 / 报告",
+      "pos": [
+        380,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n07",
+      "type": "frontend",
+      "label": "共享业务与页面状态",
+      "sublabel": "Zustand / Context / preferences",
+      "pos": [
+        730,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n08",
+      "type": "frontend",
+      "label": "查询参数与 DTO",
+      "sublabel": "API params / normalize / types",
+      "pos": [
+        1080,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n09",
+      "type": "frontend",
+      "label": "组件布局与页面缓存",
+      "sublabel": "KeepAlive / scroll container",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n10",
+      "type": "frontend",
+      "label": "内存 GET 缓存",
+      "sublabel": "apiCache / TTL / LRU",
+      "pos": [
+        380,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n11",
+      "type": "frontend",
+      "label": "浏览器持久化",
+      "sublabel": "storage / menu / router / theme",
+      "pos": [
+        730,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "theme-n12",
+      "type": "frontend",
+      "label": "后端配置持久化",
+      "sublabel": "systemConfig API / .env",
+      "pos": [
+        1080,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "theme-n01",
+      "to": "theme-n02",
+      "label": "更新偏好"
+    },
+    {
+      "from": "theme-n02",
+      "to": "theme-n03",
+      "label": "桥接主题"
+    },
+    {
+      "from": "theme-n03",
+      "to": "theme-n04",
+      "label": "DOM 与变量"
+    },
+    {
+      "from": "theme-n01",
+      "to": "theme-n05",
+      "label": "控件交互",
+      "labelAt": [
+        165,
+        210.0
+      ]
+    },
+    {
+      "from": "theme-n02",
+      "to": "theme-n06",
+      "label": "消费视觉状态",
+      "labelAt": [
+        515,
+        210.0
+      ]
+    },
+    {
+      "from": "theme-n05",
+      "to": "theme-n09",
+      "label": "渲染与容器",
+      "labelAt": [
+        165,
+        410.0
+      ]
+    },
+    {
+      "from": "theme-n07",
+      "to": "theme-n11",
+      "label": "按域持久化",
+      "labelAt": [
+        865,
+        410.0
+      ]
+    },
+    {
+      "from": "theme-n08",
+      "to": "theme-n12",
+      "label": "系统配置请求",
+      "labelAt": [
+        1215,
+        410.0
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "样式关系",
+      "items": [
+        "主题影响整个组件树，不只基础控件；业务图表也有主题消费逻辑。"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "三类参数",
+      "items": [
+        "视觉 Props、页面状态、后端查询参数属于不同契约。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "缓存关系",
+      "items": [
+        "KeepAlive、GET 内存缓存、localStorage 与服务端缓存互不等价。"
+      ]
+    }
+  ]
+}

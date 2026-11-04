@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify-V2/theme.json",
+  "output": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify-V2/theme.html",
+  "specification": {
+    "sha256": "d9ac7989f27592bd248a55282ff3d868af4ca933ad036fbeeb64709f8b63ebd0",
+    "bytes": 4913
+  },
+  "artifact": {
+    "sha256": "a47bcc1deb7938a8049d042015928dca9ff01dd79b0c59787ae2a1f299a0a1a4",
+    "bytes": 715661
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

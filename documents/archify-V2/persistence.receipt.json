@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify-V2/persistence.json",
+  "output": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify-V2/persistence.html",
+  "specification": {
+    "sha256": "2c4cbc96e4701a156c667d44991b9fd86ca1d12201399863abf038fa65102647",
+    "bytes": 5014
+  },
+  "artifact": {
+    "sha256": "bf820cf0e9eb012fe06b66015ab368057878a6b8874be5f0d33eab9b1ae94abb",
+    "bytes": 713951
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

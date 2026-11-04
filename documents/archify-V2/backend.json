@@ -1,0 +1,489 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "03 · 后端完整职责与业务域",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      720
+    ]
+  },
+  "components": [
+    {
+      "id": "backend-n01",
+      "type": "backend",
+      "label": "协议驱动层",
+      "sublabel": "FastAPI / CLI / Bot",
+      "pos": [
+        30,
+        55
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n02",
+      "type": "backend",
+      "label": "装配与生命周期",
+      "sublabel": "bootstrap / configure_*",
+      "pos": [
+        380,
+        55
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n03",
+      "type": "backend",
+      "label": "运行配置与横切",
+      "sublabel": "config / auth / observability",
+      "pos": [
+        730,
+        55
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n04",
+      "type": "backend",
+      "label": "领域模型与纯规则",
+      "sublabel": "domain / 10 个领域包",
+      "pos": [
+        1080,
+        55
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n05",
+      "type": "backend",
+      "label": "分析与市场用例",
+      "sublabel": "analysis / market / quote",
+      "pos": [
+        30,
+        171
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n06",
+      "type": "backend",
+      "label": "Agent 与生成用例",
+      "sublabel": "agent / generation",
+      "pos": [
+        380,
+        171
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n07",
+      "type": "backend",
+      "label": "交易与风险用例",
+      "sublabel": "decision / portfolio / alert",
+      "pos": [
+        730,
+        171
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n08",
+      "type": "backend",
+      "label": "历史与支撑用例",
+      "sublabel": "history / backtest / runtime",
+      "pos": [
+        1080,
+        171
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n09",
+      "type": "backend",
+      "label": "就近行情与分析端口",
+      "sublabel": "stock_data / persistence / quote",
+      "pos": [
+        30,
+        287
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n10",
+      "type": "backend",
+      "label": "Agent / 生成端口",
+      "sublabel": "LLM / Memory / Telemetry",
+      "pos": [
+        380,
+        287
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n11",
+      "type": "backend",
+      "label": "交易与风险端口",
+      "sublabel": "decision / portfolio / alert",
+      "pos": [
+        730,
+        287
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n12",
+      "type": "backend",
+      "label": "报告与配置端口",
+      "sublabel": "notification / runtime / history",
+      "pos": [
+        1080,
+        287
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n13",
+      "type": "backend",
+      "label": "行情适配基础设施",
+      "sublabel": "providers + data_provider",
+      "pos": [
+        30,
+        403
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n14",
+      "type": "backend",
+      "label": "生成与 Agent runtime",
+      "sublabel": "LiteLLM / CLI / Codex",
+      "pos": [
+        380,
+        403
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n15",
+      "type": "database",
+      "label": "Repository 与 ORM",
+      "sublabel": "models / session / repositories",
+      "pos": [
+        730,
+        403
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n16",
+      "type": "backend",
+      "label": "检索、报告与通知",
+      "sublabel": "search / reporting / senders",
+      "pos": [
+        1080,
+        403
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n17",
+      "type": "database",
+      "label": "外部市场与 StockDB",
+      "sublabel": "远端 API / 本地 HTTP / Node",
+      "pos": [
+        30,
+        519
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n18",
+      "type": "external",
+      "label": "外部生成与搜索",
+      "sublabel": "模型 API / 本地工具 / 搜索",
+      "pos": [
+        380,
+        519
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n19",
+      "type": "database",
+      "label": "SQLite 与文件边界",
+      "sublabel": "业务表 / 报告 / 配置 / 日志",
+      "pos": [
+        730,
+        519
+      ],
+      "size": [
+        270,
+        68
+      ]
+    },
+    {
+      "id": "backend-n20",
+      "type": "external",
+      "label": "外部通知与文档平台",
+      "sublabel": "IM / 邮件 / Webhook / 文档",
+      "pos": [
+        1080,
+        519
+      ],
+      "size": [
+        270,
+        68
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "backend-n01",
+      "to": "backend-n05",
+      "label": "调用用例",
+      "labelAt": [
+        165,
+        147.0
+      ]
+    },
+    {
+      "from": "backend-n02",
+      "to": "backend-n06",
+      "label": "注入应用运行",
+      "labelAt": [
+        515,
+        147.0
+      ]
+    },
+    {
+      "from": "backend-n03",
+      "to": "backend-n07",
+      "label": "提供运行参数",
+      "labelAt": [
+        865,
+        147.0
+      ]
+    },
+    {
+      "from": "backend-n05",
+      "to": "backend-n09",
+      "label": "依赖能力契约",
+      "labelAt": [
+        165,
+        263.0
+      ]
+    },
+    {
+      "from": "backend-n06",
+      "to": "backend-n10",
+      "label": "依赖能力契约",
+      "labelAt": [
+        515,
+        263.0
+      ]
+    },
+    {
+      "from": "backend-n07",
+      "to": "backend-n11",
+      "label": "依赖能力契约",
+      "labelAt": [
+        865,
+        263.0
+      ]
+    },
+    {
+      "from": "backend-n08",
+      "to": "backend-n12",
+      "label": "依赖能力契约",
+      "labelAt": [
+        1215,
+        263.0
+      ]
+    },
+    {
+      "from": "backend-n09",
+      "to": "backend-n13",
+      "label": "运行时注入实现",
+      "labelAt": [
+        165,
+        379.0
+      ]
+    },
+    {
+      "from": "backend-n10",
+      "to": "backend-n14",
+      "label": "运行时注入实现",
+      "labelAt": [
+        515,
+        379.0
+      ]
+    },
+    {
+      "from": "backend-n11",
+      "to": "backend-n15",
+      "label": "运行时注入实现",
+      "labelAt": [
+        865,
+        379.0
+      ]
+    },
+    {
+      "from": "backend-n12",
+      "to": "backend-n16",
+      "label": "运行时注入实现",
+      "labelAt": [
+        1215,
+        379.0
+      ]
+    },
+    {
+      "from": "backend-n13",
+      "to": "backend-n17",
+      "label": "网络与桥接 IO",
+      "labelAt": [
+        165,
+        495.0
+      ]
+    },
+    {
+      "from": "backend-n14",
+      "to": "backend-n18",
+      "label": "供应商与工具调用",
+      "labelAt": [
+        515,
+        495.0
+      ]
+    },
+    {
+      "from": "backend-n15",
+      "to": "backend-n19",
+      "label": "持久化 IO",
+      "labelAt": [
+        865,
+        495.0
+      ]
+    },
+    {
+      "from": "backend-n16",
+      "to": "backend-n20",
+      "label": "发送与适配",
+      "labelAt": [
+        1215,
+        495.0
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "驱动、装配与纯规则",
+      "wraps": [
+        "backend-n01",
+        "backend-n02",
+        "backend-n03",
+        "backend-n04"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "业务应用域",
+      "wraps": [
+        "backend-n05",
+        "backend-n06",
+        "backend-n07",
+        "backend-n08"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "按消费域就近定义的端口",
+      "wraps": [
+        "backend-n09",
+        "backend-n10",
+        "backend-n11",
+        "backend-n12"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "基础设施实现",
+      "wraps": [
+        "backend-n13",
+        "backend-n14",
+        "backend-n15",
+        "backend-n16"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "外部服务与数据资源",
+      "wraps": [
+        "backend-n17",
+        "backend-n18",
+        "backend-n19",
+        "backend-n20"
+      ],
+      "pad": 20
+    }
+  ]
+}
