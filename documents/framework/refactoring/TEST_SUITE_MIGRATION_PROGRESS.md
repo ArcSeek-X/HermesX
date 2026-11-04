@@ -7,6 +7,7 @@
 | --- | --- |
 | 关联方案 | TEST_SUITE_REFACTORING_PLAN.md v1.3 |
 | 台账创建 | 2026-11-01 |
+| 最近更新 | 2026-11-04（Asia/Shanghai）；腾讯调查与验收边界见 [§12](#12-腾讯行情测试隔离调查与台账收口2026-11-04) |
 | 迁移基线 | `main`，收集基线 **5717 tests / ~5–7s**（含 network，`--collect-only`）|
 | 推进口径 | 严格 T0→T5 分片、逐片验证、禁止一次性大爆炸搬迁 |
 | Git | 全程不自动 commit/push/tag/PR，遵循 AGENTS.md，需用户授权 |
@@ -554,17 +555,17 @@ docref：本批在 `docs/`、`documents/` 全量核对 34 个搬迁件名，命�
 
 ---
 
-## 5. 当前状态与后续计划（2026-11-03 更新）
+## 5. 当前状态与后续计划（2026-11-04 更新）
 
 | 阶段 | 当前状态 | 当前证据 / 后续边界 |
 | --- | --- | --- |
 | T0 / T1 / T2 | 目录归位完成 | tests/ 顶层 test_*.py 为 0，不再有“剩余约 290 个顶层”待处理 |
 | T3 | 本轮大文件内部拆分完成 | 16 → 113 测试模块，1520 方法内容保持，另归类 64 文件；见拆分映射 |
-| T4 | 原生运行机制及本轮顺序验证通过 | 保留真实 asyncio / AnyIO / TestClient；消除本轮发现的两类测试状态污染，固定序与双随机种子全绿 |
-| T5 | 本轮当前文档收口完成 | 活动路径及双语对应文档同步；历史执行记录保留，5725 是当前收集基线 |
+| T4 | 原生运行机制及已执行顺序验证通过 | 保留真实 asyncio / AnyIO / TestClient；既有固定序与双随机种子记录保留；新增腾讯 HTTP mock 隔离修复、并发回归、五种子定向验证及一次全量门禁，见 §12 |
+| T5 | 当前文档收口完成 | 活动路径及双语对应文档同步；新增 1 条腾讯隔离回归，当前收集基线为 5726，历史 5725 记录保留 |
 | 尚存边界 | 不算本轮已通过项 | UI 原生 title 规则、全量前端 lint、Docker 授权、桌面端口问题及未验证平台，见架构总览 |
 
-目录和文件的逐项对应及一二三级目录文件数见 [TEST_SUITE_SPLIT_MAPPING.md](./TEST_SUITE_SPLIT_MAPPING.md)。本节只反映当前状态，§1–4W、§7–9 的数字与结论保留为当时的执行记录。
+目录和文件的逐项对应及一二三级目录文件数见 [TEST_SUITE_SPLIT_MAPPING.md](./TEST_SUITE_SPLIT_MAPPING.md)。本节只反映当前状态，§1–4W、§7–11 的数字与结论保留为当时的执行记录。
 
 ### 每片收尾必做
 
@@ -747,3 +748,59 @@ macOS arm64 实际打包发现 Python 运行库移除签名后无法加载，改
 验证：核心联合子集 1636 passed；后续配置及通知协调子集 499 passed；最终固定序全量 5720 passed / 1 skipped / 4 deselected / 511 subtests（330.11s），随机种子 20261103 同结果（366.77s）。最后清理仅收敛重复静态函数 / 无引用常量，清理后子集与完整固定序复核通过。27 条原警告保留。
 
 原测试目录迁移及内部拆分仍维持 §10 的完成状态。服务端新模块不意味着重新迁移测试目录或增设平行测试框架；本轮无前端源码改动，全量前端 lint 继续暂缓。未执行 commit / push / tag。
+
+## 12. 腾讯行情测试隔离调查与台账收口（2026-11-04）
+
+### 12.1 基线与结论
+
+本次文档收口基线为 `main` / `bcab0218`，开始时工作区干净。下列隔离修复和回归测试已在该基线中，本次只同步文档，不重复修改生产代码或测试代码。与 [目标架构](./ARCHITECTURE_TARGET.md) 的关系：沿用数据源适配边界，收敛测试替身的作用域，不改变腾讯数据源优先级、历史数据完整性规则或 fallback。
+
+**结论：已确认并修复一个测试 HTTP mock 隔离缺陷；历史单次失败的唯一根因仍未确认。** §7–11 的“当时未复现 / 根因待确认”是历史事实，保留原文。文档收口不等于宣称历史故障归因完成，也不承诺任意顺序长期零偶发。
+
+| 调查项 | 已确认事实与边界 |
+| --- | --- |
+| 原失败 | `test_tencent_fetcher_keeps_near_cap_short_history_for_new_listing` 曾在完整门禁失败，单独及后续全量复跑通过；本次未取得可用于唯一归因的原始失败堆栈 |
+| 完整性分支 | 用例返回 799 条历史，未达到 800 条上限；该分支不会进入满上限历史的日历完整性判断，不能凭猜测修改日历或生产完整性规则 |
+| 已证实的隔离缺陷 | 原 8 处 `patch("data_provider.tencent_fetcher.requests.get", ...)` 修改的是进程共享 requests 模块，其他提供方或后台线程的请求也可能收到腾讯假响应，并影响测试捕获状态 |
+| 已入库修复 | `tests/infrastructure/providers/kline/test_tencent_fetcher.py` 的 `_stub_tencent_http` 仅替换腾讯适配器模块持有的 requests 引用；其他模块仍使用原 requests，退出上下文后恢复 |
+| 回归保护 | 新增 `test_tencent_http_stub_keeps_other_provider_requests_isolated`，并发执行其他提供方的假 HTTP 请求与腾讯取数，断言响应身份、调用次数及腾讯数据结果；不发真实网络请求 |
+| 反证 | 临时仅将 helper 恢复为原全局 patch，新并发回归即失败：其他请求拿到腾讯假响应；恢复局部替换后通过。临时反证未保留在源码中 |
+| 未改内容 | `data_provider/tencent_fetcher.py`、业务断言、跳过 / network 标记、全局测试运行机制、前端均未修改 |
+
+### 12.2 验证证据与数量对账
+
+下表区分前轮调查实测与本次复核；前轮结果不冒充本次重跑。subtests 单独统计，不加到收集节点总数中。
+
+| 阶段 | 范围 / 顺序 | 结果 |
+| --- | --- | --- |
+| 前轮修复前 | 腾讯文件独立运行 | 12 passed（5.92s） |
+| 前轮修复前 | providers + integration/analysis + pipeline 相关子集，种子 20261103 | 717 passed / 3 skipped / 1 warning / 97 subtests（27.96s） |
+| 前轮修复后 | 腾讯文件独立运行 | 13 passed（5.77s） |
+| 前轮反证 | 恢复旧 helper 后，仅运行新增并发回归 | 预期 1 failed（5.97s）；随后恢复隔离修复 |
+| 前轮修复后 | 腾讯文件，5 个独立进程，种子 20261103–20261107 | 每轮 13 passed；分别 14.76 / 8.10 / 9.32 / 8.49 / 9.33s |
+| 前轮修复后 | 完整后端门禁，种子 20261103 | 所有阶段通过；离线 5721 passed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（492.85s） |
+| 本次 2026-11-04 复核 | 当前腾讯文件，种子 20261103 | 13 passed（12.11s） |
+| 本次 2026-11-04 复核 | 全 tests 收集，禁用随机插件 | 5726 tests collected（14.64s） |
+
+当前 5726 = 原 5725 + 新增 1 条并发隔离回归；全量执行结果 5721 + 1 skipped + 4 deselected = 5726，未因隔离修复删减旧用例。测试模块数仍为 397，原拆分映射保持；历史固定序 / 双种子 5720 passed 属新增回归前的结果，不改写为本轮数量。
+
+复现命令（仓库根目录，使用已安装项目及 CI 测试依赖的环境）：
+
+```bash
+.venv/bin/python -m pytest tests/infrastructure/providers/kline/test_tencent_fetcher.py --randomly-seed=20261103 -q -o addopts= --tb=short
+.venv/bin/python -m pytest tests --collect-only -q -o addopts= -p no:randomly
+PATH="$PWD/.venv/bin:$PATH" PYTEST_ADDOPTS="--randomly-seed=20261103" bash scripts/ci_gate.sh all
+```
+
+五种子定向运行使用第一条命令逐次替换种子；这不等于五次完整后端门禁。本次仅重跑定向测试与收集检查，未重复完整门禁。
+
+前轮日志：`/tmp/hermesx-tencent-baseline.log`、`/tmp/hermesx-tencent-order-baseline.log`、`/tmp/hermesx-tencent-isolation.log`、`/tmp/hermesx-tencent-isolation-negative.log`、`/tmp/hermesx-tencent-seed-repeats.log`、`/tmp/hermesx-cleanup-backend-gate.log`；本次收集日志：`/tmp/hermesx-tencent-ledger-collect.log`。收口时已读取核对；这些是可清理的本机临时证据，不是长期 CI artifact，后续 CI 应留存对应失败堆栈与测试结果。
+
+### 12.3 后续处理、风险与回滚
+
+- 已完成：隔离缺陷修复、并发反证与回归保护、上述范围的顺序验证、当前台账及架构总览同步。
+- 保留边界：历史单次失败的唯一归因尚缺原始证据；若再次发生，先保留完整堆栈、HEAD、种子 / 插件版本、失败前执行节点和后台线程状态，再按相同顺序复现。不得仅凭重跑通过关闭，也不追加无证据的生产 fallback。
+- 未验证：真实腾讯网络、任意随机顺序及长期稳定性；干净后端打包、Docker 授权、桌面启动及前端 lint 仍按架构总览独立跟进。
+- 回滚：本次只涉及文档，可单独撤回本节及其他文档同步；若另行撤回已入库的测试隔离修复，必须连同 helper、8 处调用及新增回归成组处理，并重新验证共享 requests 的影响，不能只删除失败断言。
+
+本次未 commit / push / tag。更新的内部台账与总览没有对应英文版本，无双语镜像需要同步；不修改 README。
