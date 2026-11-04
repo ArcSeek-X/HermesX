@@ -664,6 +664,7 @@ class StockAnalysisPipeline:
             llm_progress_state = {"last_progress": 64}
 
             def _on_llm_stream(chars_received: int) -> None:
+                """LLM 流式输出回调：动态更新进度百分比。"""
                 dynamic_progress = min(92, 64 + min(chars_received // 80, 28))
                 if dynamic_progress <= llm_progress_state["last_progress"]:
                     return
@@ -834,6 +835,7 @@ class StockAnalysisPipeline:
         market_phase_context: Optional[Dict[str, Any]] = None,
         portfolio_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        """增强分析上下文：补充实时行情/技术面等附加信息。"""
         return AnalysisContextEnricher(
             config=self.config, fetcher_manager=getattr(self, "fetcher_manager", None),
             search_service=getattr(self, "search_service", None),
@@ -1515,6 +1517,7 @@ class StockAnalysisPipeline:
         return self._build_analysis_context_from_daily_df(code, df)
 
     def _build_analysis_context_from_daily_df(self, code: str, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
+        """从日线 DataFrame 构建个股分析上下文。"""
         if df is None or df.empty:
             return None
 
@@ -1528,6 +1531,7 @@ class StockAnalysisPipeline:
             return None
 
         def normalize_row(row: Dict[str, Any]) -> Dict[str, Any]:
+            """归一化单行行情数据为统一字段结构。"""
             normalized: Dict[str, Any] = {"code": row.get("code") or code}
             for key in ("open", "high", "low", "close", "volume", "amount", "pct_chg", "ma5", "ma10", "ma20", "volume_ratio"):
                 value = row.get(key)
@@ -1604,6 +1608,7 @@ class StockAnalysisPipeline:
             return None
 
     def _get_daily_market_context_service_lock(self) -> threading.Lock:
+        """返回日线市场上下文构建的线程锁。"""
         service_lock = getattr(self, "_daily_market_context_service_lock", None)
         if service_lock is not None:
             return service_lock
@@ -1616,6 +1621,7 @@ class StockAnalysisPipeline:
 
     @staticmethod
     def _coerce_daily_market_context_date(value: Any) -> Optional[date]:
+        """将任意日期输入规范化为 date，失败返回 None。"""
         return _pipeline_rules.coerce_daily_market_context_date(value)
 
     @staticmethod
@@ -1647,6 +1653,7 @@ class StockAnalysisPipeline:
         query_id: str,
         trend_result: Optional[TrendAnalysisResult] = None,
     ) -> AnalysisResult:
+        """将 Agent 执行结果转换为统一 AnalysisResult。"""
         mapper = AgentResultMapper(normalize_report_language(getattr(self.config, "report_language", "zh")))
         return mapper.agent_result_to_analysis_result(agent_result=agent_result, code=code, stock_name=stock_name, report_type=report_type, query_id=query_id, trend_result=trend_result)
 
@@ -1660,6 +1667,7 @@ class StockAnalysisPipeline:
         # A guardrail may rewrite the advice after the Agent action was parsed;
         # discard that stale action before using the same resolver as the
         # downstream DecisionSignal builder.
+        """刷新最终结果的买卖操作建议字段。"""
         previous_advice = str(previous_operation_advice or "").strip()
         current_advice = str(getattr(result, "operation_advice", None) or "").strip()
         if previous_advice != current_advice:
@@ -1675,6 +1683,7 @@ class StockAnalysisPipeline:
 
 
     def _describe_volume_ratio(self, volume_ratio: float) -> str:
+        """将量比数值转换为可读性文字描述。"""
         return AnalysisContextEnricher(
             config=self.config, fetcher_manager=getattr(self, "fetcher_manager", None),
             search_service=getattr(self, "search_service", None),
@@ -1685,6 +1694,7 @@ class StockAnalysisPipeline:
     def _augment_historical_with_realtime(
         self, df: pd.DataFrame, realtime_quote: Any, code: str
     ) -> pd.DataFrame:
+        """用实时行情补充历史数据缺口。"""
         return AnalysisContextEnricher(
             config=self.config, fetcher_manager=getattr(self, "fetcher_manager", None),
             search_service=getattr(self, "search_service", None),
@@ -1942,6 +1952,7 @@ class StockAnalysisPipeline:
         query_id: str,
         portfolio_context: Optional[Dict[str, Any]] = None,
     ) -> PipelineAnalysisArtifacts:
+        """构建旧版（非 Agent）分析产物。"""
         return PipelineAnalysisArtifacts(
             code=code,
             stock_name=stock_name,
@@ -1975,6 +1986,7 @@ class StockAnalysisPipeline:
         base_context: Optional[Dict[str, Any]] = None,
         portfolio_context: Optional[Dict[str, Any]] = None,
     ) -> PipelineAnalysisArtifacts:
+        """构建 Agent 模式分析产物。"""
         context_candidate = base_context
         if not isinstance(context_candidate, dict):
             context_candidate = initial_context.get("analysis_context")
@@ -2020,6 +2032,7 @@ class StockAnalysisPipeline:
         code: str,
         query_id: str,
     ) -> Tuple[str, Optional[Dict[str, Any]]]:
+        """构建分析上下文包的输出文本与摘要。"""
         try:
             pack = AnalysisContextBuilder.build(artifacts)
             summary = format_analysis_context_pack_prompt_section(
@@ -2480,6 +2493,7 @@ class StockAnalysisPipeline:
                 logger.error(f"[{stock_code}] 单股推送异常: {e}")
 
     def _report_delivery(self) -> AnalysisReportDelivery:
+        """返回分析报告投递器（含配置/通知器）。"""
         return AnalysisReportDelivery(
             config=getattr(self, "config", None),
             notifier=self.notifier,
@@ -2491,6 +2505,7 @@ class StockAnalysisPipeline:
         results: List[AnalysisResult],
         report_type: ReportType = ReportType.SIMPLE,
     ) -> None:
+        """保存本地分析报告。"""
         return self._report_delivery().save_local_report(results=results, report_type=report_type)
 
     def _send_notifications(
@@ -2499,6 +2514,7 @@ class StockAnalysisPipeline:
         report_type: ReportType = ReportType.SIMPLE,
         skip_push: bool = False,
     ) -> None:
+        """发送分析完成通知（可跳过推送）。"""
         return self._report_delivery().send_notifications(results=results, report_type=report_type, skip_push=skip_push)
 
     def _generate_aggregate_report(
@@ -2506,4 +2522,5 @@ class StockAnalysisPipeline:
         results: List[AnalysisResult],
         report_type: ReportType,
     ) -> str:
+        """生成聚合分析报告文本。"""
         return self._report_delivery().generate_aggregate_report(results=results, report_type=report_type)

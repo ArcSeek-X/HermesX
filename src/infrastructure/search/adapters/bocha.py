@@ -25,6 +25,7 @@ class BochaSearchProvider(BaseSearchProvider):
     """
 
     def __init__(self, api_keys: List[str]):
+        """构造博查检索适配器并装配依赖。"""
         super().__init__(api_keys, "Bocha")
 
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:

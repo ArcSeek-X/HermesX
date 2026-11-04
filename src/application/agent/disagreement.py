@@ -4,6 +4,9 @@ Low-sensitivity disagreement summary for multi-agent decision synthesis.
 
 This module intentionally exposes pure functions only.  The orchestrator owns
 when to compute the summary; DecisionAgent owns how to present it to the LLM.
+
+多智能体决策合成用的低敏感度分歧摘要。本模块仅暴露纯函数，由编排器决定何时计算、
+DecisionAgent 决定如何向 LLM 呈现。将意见按多空/中性分桶，结合风险覆盖与降级结果分类冲突类型。
 """
 
 from __future__ import annotations
@@ -106,12 +109,14 @@ def _summarize_opinion(agent_name: str, signal: Any, confidence: Any) -> Dict[st
 
 
 def _normalize_signal(signal: Any) -> str:
+    """归一化策略信号：经 normalize_strategy_signal 规范化，非法信号回退 hold。"""
     from src.application.agent.protocols import normalize_strategy_signal
     canonical, invalid, _ = normalize_strategy_signal(signal)
     return "hold" if invalid else canonical
 
 
 def _effective_signal(agent_name: str, signal: Any) -> str:
+    """计算有效信号：风险 Agent 的看多信号强制降为 hold，其余返回归一化信号。"""
     normalized = _normalize_signal(signal)
     if _is_risk_agent(agent_name) and normalized in _BULLISH_SIGNALS:
         return "hold"
@@ -119,10 +124,12 @@ def _effective_signal(agent_name: str, signal: Any) -> str:
 
 
 def _is_risk_agent(agent_name: str) -> bool:
+    """判断是否为风险 Agent（agent_name 归一后属于 _RISK_AGENT_NAMES，即 'risk'）。"""
     return str(agent_name or "").strip().lower() in _RISK_AGENT_NAMES
 
 
 def _safe_confidence(confidence: Any) -> float:
+    """安全化为 0–1 的置信度浮点：解析失败或越界则截断并保留两位小数。"""
     try:
         value = float(confidence)
     except (TypeError, ValueError):
@@ -131,6 +138,7 @@ def _safe_confidence(confidence: Any) -> float:
 
 
 def _build_degraded_result(ctx: AgentContext) -> Dict[str, Any]:
+    """从 ctx.meta 的 degraded_stages 收集失败阶段，标记是否存在及是否含非关键阶段。"""
     stages = list(_iter_degraded_stages(ctx))
     has_non_critical = any(stage.get("non_critical") is True for stage in stages)
     return {
@@ -141,6 +149,7 @@ def _build_degraded_result(ctx: AgentContext) -> Dict[str, Any]:
 
 
 def _iter_degraded_stages(ctx: AgentContext) -> Iterable[Dict[str, Any]]:
+    """惰性产出降级阶段（stage 失败），按 (stage_name, status) 去重，最多取前 _SUMMARY_STAGE_LIMIT 条。"""
     source = ctx.meta.get("degraded_stages")
     if not isinstance(source, list):
         return
@@ -171,6 +180,7 @@ def _classify_conflict_type(
     risk_override_present: bool,
     degraded_result: Dict[str, Any],
 ) -> str:
+    """据多空/中性桶、风险覆盖与降级结果分类冲突类型（如 risk_override、mixed_directional_signals 等）。"""
     if risk_override_present:
         return "risk_override"
     if bullish_agents and bearish_agents:
@@ -191,6 +201,7 @@ def _classify_conflict_type(
 
 
 def _decision_path_hint(conflict_type: str) -> str:
+    """按冲突类型返回决策路径提示串（用于指导最终信号生成）。"""
     hints = {
         "risk_override": "prioritize_risk_controls_and_cap_buy_signal",
         "mixed_directional_signals": "explain_cross_agent_conflict_before_final_signal",

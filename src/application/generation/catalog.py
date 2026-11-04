@@ -41,11 +41,13 @@ def _read_backend_config_value(config: Any, field_name: str, default: str) -> An
 
 
 def normalize_backend_id(value: Any, *, default: str) -> str:
+    """归一化生成后端标识，空值回退默认。"""
     candidate = str(value or "").strip().lower()
     return candidate or default
 
 
 def _unsupported_backend_error(backend_id: str, *, field: str) -> GenerationError:
+    """构造指定配置字段的未支持后端错误。"""
     if field == "AGENT_GENERATION_BACKEND":
         supported = SUPPORTED_AGENT_GENERATION_BACKENDS
     elif field == "GENERATION_FALLBACK_BACKEND":

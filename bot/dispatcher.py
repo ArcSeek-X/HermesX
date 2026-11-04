@@ -245,6 +245,7 @@ class CommandDispatcher:
         error_holder: Dict[str, BaseException] = {}
 
         def _runner() -> None:
+            """命令分发执行主体。"""
             try:
                 result_holder["response"] = self._dispatch_sync(message)
             except BaseException as exc:  # pragma: no cover
@@ -680,6 +681,7 @@ User: "analyze TSLA and NVDA using trend strategy"
         from src.application.quote.stock_code_utils import canonical_stock_code_for_input
 
         def _iter_candidates(raw_text: str) -> List[str]:
+            """迭代候选命令。"""
             candidates: List[str] = []
             stripped = (raw_text or "").strip()
             if stripped:
@@ -701,6 +703,7 @@ User: "analyze TSLA and NVDA using trend strategy"
             return sorted(candidates, key=len, reverse=True)
 
         def _unique_partial_match(candidate: str) -> Optional[str]:
+            """返回唯一的前缀匹配命令。"""
             if not re.search(r'[\u4e00-\u9fff]', candidate):
                 return None
             matches = [

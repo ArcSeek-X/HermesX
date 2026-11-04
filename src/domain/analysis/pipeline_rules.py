@@ -277,12 +277,14 @@ def symbol_scope_lookup_values(code: str, market: str) -> List[str]:
     seen: set = set()
 
     def add(value: str) -> None:
+        """追加一条规则。"""
         text = str(value or "").strip()
         if text and text not in seen:
             seen.add(text)
             values.append(text)
 
     def add_case_variants(value: str) -> None:
+        """追加规则的大小写变体。"""
         text = str(value or "").strip()
         if not text:
             return

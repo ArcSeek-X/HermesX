@@ -66,19 +66,23 @@ class _NullMarketReviewDataProvider:
     """未装配取数端口时的兜底：返回空结果，沿用原降级语义。"""
 
     def get_main_indices(self, region: str = "cn") -> List[Dict[str, Any]]:
+        """获取主要指数行情。"""
         return []
 
     def get_market_stats(self, *, purpose: str = "unspecified") -> Dict[str, Any]:
+        """获取大盘统计数据。"""
         return {}
 
     def get_sector_rankings(
         self, limit: int
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取行业板块排行。"""
         return [], []
 
     def get_concept_rankings(
         self, limit: int
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取概念板块排行。"""
         return [], []
 
 
@@ -152,6 +156,7 @@ class MarketAnalyzer:
         self.strategy = get_market_strategy_blueprint(self.region)
 
     def _log_context(self) -> str:
+        """记录大盘分析上下文日志。"""
         return f"component=market_review region={self.region}"
 
     def _get_output_language(self) -> str:
@@ -163,16 +168,20 @@ class MarketAnalyzer:
     def _get_review_language(self) -> str:
         # Structural/template language. Korean reuses the English scaffolding;
         # the Korean output directive is applied in the prompt builder.
+        """返回复盘语言。"""
         language = self._get_output_language()
         return "en" if language == "ko" else language
 
     def _get_template_review_language(self) -> str:
+        """返回模板使用的复盘语言。"""
         return self._get_review_language()
 
     def _get_market_scope_name(self, review_language: str | None = None) -> str:
+        """返回市场范围名称。"""
         return self._review_prompt_builder().get_market_scope_name(review_language=review_language)
 
     def _get_turnover_unit_label(self) -> str:
+        """返回成交额单位标签。"""
         return self._review_prompt_builder().get_turnover_unit_label()
 
     def _format_turnover_value(self, amount_raw: float) -> str:
@@ -186,6 +195,7 @@ class MarketAnalyzer:
         return f"{amount_raw:.0f}"
 
     def _get_index_change_arrow(self, change_pct: float) -> str:
+        """返回指数涨跌箭头标识。"""
         if change_pct == 0:
             return "⚪"
         color_scheme = getattr(getattr(self, "config", None), "market_review_color_scheme", "green_up")
@@ -194,15 +204,19 @@ class MarketAnalyzer:
         return "🟢" if change_pct > 0 else "🔴"
 
     def _get_review_title(self, date: str) -> str:
+        """返回复盘标题。"""
         return self._review_prompt_builder().get_review_title(date=date)
 
     def _get_index_hint(self) -> str:
+        """返回指数相关提示文案。"""
         return self._review_prompt_builder().get_index_hint()
 
     def _get_strategy_prompt_block(self) -> str:
+        """返回策略提示词段落。"""
         return self._review_prompt_builder().get_strategy_prompt_block()
 
     def _get_strategy_markdown_block(self, review_language: str | None = None) -> str:
+        """返回策略 Markdown 段落。"""
         review_language = review_language or self._get_review_language()
         if self.region == "hk" and review_language == "en":
             return """### 6. Strategy Framework
@@ -237,6 +251,7 @@ class MarketAnalyzer:
 """
 
     def _get_market_mood_text(self, mood_key: str, review_language: str | None = None) -> str:
+        """返回市场情绪文案。"""
         review_language = review_language or self._get_review_language()
         if review_language == "en":
             mapping = {
@@ -662,10 +677,12 @@ class MarketAnalyzer:
         return payload
 
     def _supports_market_light(self) -> bool:
+        """判断是否支持大盘轻量模式。"""
         return self.region in MARKET_LIGHT_REGIONS
 
     @staticmethod
     def _extract_report_title(report: str) -> str:
+        """从报告中提取标题。"""
         for line in (report or "").splitlines():
             stripped = line.strip()
             if stripped.startswith("#"):
@@ -674,6 +691,7 @@ class MarketAnalyzer:
 
     @classmethod
     def _split_report_sections(cls, report: str) -> List[Dict[str, str]]:
+        """按章节拆分报告文本。"""
         text = (report or "").strip()
         if not text:
             return []
@@ -712,6 +730,7 @@ class MarketAnalyzer:
 
     @classmethod
     def _normalize_news_item(cls, item: Any) -> Dict[str, str]:
+        """规范化单条新闻条目。"""
         return {
             "title": cls._compact_news_text(cls._get_news_field(item, "title"), limit=120),
             "snippet": cls._compact_news_text(cls._get_news_field(item, "snippet"), limit=260),
@@ -877,6 +896,7 @@ class MarketAnalyzer:
         return snapshot.model_dump()
 
     def _build_market_light_reasons_zh(self, overview: MarketOverview, score: int) -> List[str]:
+        """构建中文版大盘轻量理由。"""
         participation = overview.up_count + overview.down_count
         up_ratio = overview.up_count / participation if participation else None
         reasons: List[str] = []
@@ -900,6 +920,7 @@ class MarketAnalyzer:
         return reasons[:4]
 
     def _build_market_light_reasons_en(self, overview: MarketOverview, score: int) -> List[str]:
+        """构建英文版大盘轻量理由。"""
         participation = overview.up_count + overview.down_count
         up_ratio = overview.up_count / participation if participation else None
         reasons: List[str] = []
@@ -960,6 +981,7 @@ class MarketAnalyzer:
         language = self._get_review_language()
 
         def append_ranking(title: str, name_label: str, rows: List[Dict]) -> None:
+            """追加一条排行数据。"""
             if not rows:
                 return
             if lines:
@@ -1008,6 +1030,7 @@ class MarketAnalyzer:
 
     @classmethod
     def _format_news_catalyst_line(cls, idx: int, item: Any, *, language: str = "zh") -> str:
+        """格式化新闻催化剂文本行。"""
         fallback_title = "Untitled catalyst" if language == "en" else "未命名线索"
         title = cls._compact_news_text(cls._get_news_field(item, "title"), limit=90) or fallback_title
         source = cls._compact_news_text(cls._get_news_field(item, "source"), limit=40)
@@ -1027,10 +1050,12 @@ class MarketAnalyzer:
 
     @staticmethod
     def _format_optional_number(value: float) -> str:
+        """格式化可选数值。"""
         return "N/A" if value in (None, 0, 0.0) else f"{value:.2f}"
 
     @staticmethod
     def _format_optional_pct(value: float) -> str:
+        """格式化可选百分比。"""
         return "N/A" if value in (None, 0, 0.0) else f"{value:.2f}%"
 
     _format_signed_pct = staticmethod(MarketReviewPromptBuilder.format_signed_pct)
@@ -1039,10 +1064,12 @@ class MarketAnalyzer:
 
     @staticmethod
     def _escape_markdown_link_label(value: str) -> str:
+        """转义 Markdown 链接文本。"""
         return value.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
     @staticmethod
     def _describe_turnover(total_amount: float) -> str:
+        """描述成交额水平。"""
         if total_amount >= 15000:
             return "高活跃度"
         if total_amount >= 9000:
@@ -1113,15 +1140,18 @@ class MarketAnalyzer:
         }
 
     def _build_market_temperature(self, overview: MarketOverview) -> tuple[int, str]:
+        """构建市场温度指标。"""
         scores = self._build_market_light_scores(overview)
         score = int(scores["score"])
         label = str(scores["temperature_label"])
         return score, label
 
     def _build_output_template_sections(self, review_language: str) -> str:
+        """构建输出模板章节。"""
         return self._review_prompt_builder().build_output_template_sections(review_language=review_language)
 
     def _review_prompt_builder(self) -> MarketReviewPromptBuilder:
+        """返回复盘提示词构建器。"""
         return MarketReviewPromptBuilder(
             profile=self.profile, region=self.region, strategy=self.strategy,
             review_language_provider=self._get_review_language,
@@ -1129,6 +1159,7 @@ class MarketAnalyzer:
         )
 
     def _build_review_prompt(self, overview: MarketOverview, news: List) -> str:
+        """构建大盘复盘提示词。"""
         return self._review_prompt_builder().build_review_prompt(overview=overview, news=news)
 
     def _generate_template_review(self, overview: MarketOverview, news: List) -> str:

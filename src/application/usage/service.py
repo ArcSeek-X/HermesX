@@ -36,6 +36,7 @@ class UsageService:
         *,
         now: Callable[[], datetime] = _beijing_now,
     ) -> None:
+        """构造用量服务：保存仓储端口与当前时间函数（默认北京时区）。"""
         self._repository = repository
         self._now = now
 
@@ -55,6 +56,7 @@ class UsageService:
         return payload
 
     def _resolve_period(self, period: str) -> Tuple[str, datetime, datetime]:
+        """解析统计周期并返回规范周期名与起止时间。"""
         normalized = period if period in _VALID_PERIODS else "month"
         now = self._now()
         if normalized == "today":
@@ -85,6 +87,7 @@ def _build_summary_payload(
     to_dt: datetime,
     data: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """构造用量汇总载荷（周期、起止日期与统计数据）。"""
     return {
         "period": period,
         "from_date": from_dt.date().isoformat(),

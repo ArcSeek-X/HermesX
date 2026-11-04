@@ -29,18 +29,22 @@ class StatusCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "status"
     
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["s", "状态", "info"]
     
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "显示系统状态"
     
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/status"
     
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
@@ -147,6 +151,7 @@ class StatusCommand(BotCommand):
         """格式化状态信息"""
         # 状态图标
         def icon(enabled: bool) -> str:
+            """返回状态命令图标。"""
             return "✅" if enabled else "❌"
         
         lines = [

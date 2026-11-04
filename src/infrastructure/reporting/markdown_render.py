@@ -184,10 +184,12 @@ def markdown_to_plain_text(markdown_text: str) -> str:
     return text.strip()
 
 def _is_markdown_table_separator(row: str) -> bool:
+    """判断行是否为 Markdown 表格分隔行。"""
     return bool(re.match(r'^\s*\|?\s*[:-]+\s*(\|\s*[:-]+\s*)+\|?\s*$', row))
 
 
 def _parse_markdown_table_row(row: str) -> List[str]:
+    """解析 Markdown 表格行。"""
     stripped = row.strip()
     if stripped.startswith('|'):
         stripped = stripped[1:]
@@ -197,6 +199,7 @@ def _parse_markdown_table_row(row: str) -> List[str]:
 
 
 def _strip_inline_markdown(text: str) -> str:
+    """移除行内 Markdown 标记。"""
     text = text.strip()
     text = re.sub(r'^\*\*(.+)\*\*$', r'\1', text)
     text = re.sub(r'^\*(.+)\*$', r'\1', text)
@@ -205,6 +208,7 @@ def _strip_inline_markdown(text: str) -> str:
 
 
 def _format_two_column_table_row(header: List[str], row: List[str]) -> str:
+    """格式化两列表格行。"""
     key = _strip_inline_markdown(row[0]) if row else ""
     value = _strip_inline_markdown(row[1]) if len(row) > 1 else ""
     value_header = _strip_inline_markdown(header[1]) if len(header) > 1 else ""
@@ -217,6 +221,7 @@ def _format_two_column_table_row(header: List[str], row: List[str]) -> str:
 
 
 def _flush_table_as_key_value_rows(buffer: List[str], output: List[str], *, bullet: str) -> None:
+    """将表格缓冲转为键值对行。"""
     if not buffer:
         return
 
@@ -248,9 +253,11 @@ def _flush_table_as_key_value_rows(buffer: List[str], output: List[str], *, bull
 
 
 def _protect_fenced_code_blocks(content: str) -> tuple[str, List[str]]:
+    """保护围栏代码块不被转换。"""
     blocks: List[str] = []
 
     def _replace(match: re.Match) -> str:
+        """执行链接替换辅助逻辑。"""
         blocks.append(match.group(0))
         return FENCED_CODE_BLOCK_PLACEHOLDER.format(len(blocks) - 1)
 
@@ -258,6 +265,7 @@ def _protect_fenced_code_blocks(content: str) -> tuple[str, List[str]]:
 
 
 def _restore_fenced_code_blocks(content: str, blocks: List[str]) -> str:
+    """还原受保护的代码块。"""
     restored = content
     for idx, block in enumerate(blocks):
         restored = restored.replace(FENCED_CODE_BLOCK_PLACEHOLDER.format(idx), block)
@@ -265,6 +273,7 @@ def _restore_fenced_code_blocks(content: str, blocks: List[str]) -> str:
 
 
 def _transform_outside_fenced_code_blocks(content: str, transform: Callable[[str], str]) -> str:
+    """仅转换代码块之外的文本。"""
     protected, blocks = _protect_fenced_code_blocks(content)
     return _restore_fenced_code_blocks(transform(protected), blocks)
 
@@ -302,6 +311,7 @@ def markdown_tables_to_key_value_rows(content: str, *, bullet: str = "•") -> s
     ).strip()
 
 def _format_feishu_markdown_unprotected(content: str) -> str:
+    """格式化飞书 Markdown（未保护版本）。"""
     lines = []
     table_buffer: List[str] = []
 
@@ -455,6 +465,7 @@ def _escape_telegram_non_link_markdown_chars(content: str) -> str:
     links: list[str] = []
 
     def _save_link(match: re.Match) -> str:
+        """保存链接映射。"""
         links.append(match.group(0))
         return f"@@HRS_TELEGRAM_LINK_{len(links) - 1}@@"
 

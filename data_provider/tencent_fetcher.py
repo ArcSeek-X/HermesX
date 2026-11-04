@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Tencent direct daily K-line fetcher for A-share fallback routing."""
+"""Tencent direct daily K-line fetcher for A-share fallback routing.
+
+A 股日线的腾讯直连兜底数据源。将标准股票代码转换为腾讯 symbol，按请求区间估算回溯天数，
+解析 K 线报文并处理单次条数上限导致的截断，同时提供实时报价与名称查询所需的归一化能力。
+"""
 
 from __future__ import annotations
 
@@ -37,9 +41,11 @@ class TencentFetcher(BaseFetcher):
     _HTTP_TIMEOUT_SECONDS = 8
 
     def __init__(self) -> None:
+        """构造抓取器：按环境变量设置数据源优先级。"""
         self.priority = _read_tencent_priority()
 
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """按日期区间向腾讯接口请求原始 K 线，处理截断与异常后返回原始 DataFrame。"""
         code = normalize_stock_code(stock_code)
         symbol = _to_tencent_symbol(code)
         if not symbol:
@@ -94,6 +100,7 @@ class TencentFetcher(BaseFetcher):
         return df
 
     def _normalize_data(self, df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
+        """将原始行情列为标准数值类型并补齐标准列，返回可直接消费的日线数据。"""
         normalized = df.copy()
         for column in ("open", "high", "low", "close", "volume", "amount"):
             if column in normalized.columns:
@@ -105,6 +112,7 @@ class TencentFetcher(BaseFetcher):
 
 
 def _to_tencent_symbol(stock_code: str) -> str:
+    """将标准 6 位 A 股代码转换为腾讯 symbol（sh/sz/bj 前缀）；非法代码返回空串。"""
     code = normalize_stock_code(stock_code)
     if not code or not code.isdigit() or len(code) != 6:
         return ""
@@ -116,6 +124,7 @@ def _to_tencent_symbol(stock_code: str) -> str:
 
 
 def _read_tencent_priority() -> int:
+    """读取环境变量 TENCENT_PRIORITY 作为数据源优先级，解析失败回退默认值 5。"""
     raw_value = os.getenv("TENCENT_PRIORITY", "5")
     try:
         return int(str(raw_value).strip())
@@ -128,6 +137,7 @@ def _read_tencent_priority() -> int:
 
 
 def _estimate_lookback_days(*, start_date: str, end_date: str) -> int:
+    """按请求起止日期估算需回溯的自然日数（含安全余量），解析失败时取默认窗口。"""
     try:
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
@@ -139,10 +149,12 @@ def _estimate_lookback_days(*, start_date: str, end_date: str) -> int:
 
 
 def _empty_daily_frame() -> pd.DataFrame:
+    """构造带标准列但无数据行的空日线 DataFrame。"""
     return pd.DataFrame(columns=STANDARD_COLUMNS)
 
 
 def _first_returned_date(df: pd.DataFrame) -> Optional[str]:
+    """取日线数据中最早的有效日期字符串；无日期列或数据为空时返回 None。"""
     if "date" not in df.columns or df.empty:
         return None
     dates = pd.to_datetime(df["date"], errors="coerce").dropna()
@@ -158,6 +170,7 @@ def _is_capped_history_incomplete(
     lookback: int,
     returned_rows: int,
 ) -> bool:
+    """判断返回历史是否因单次 K 线条数上限被截断（未覆盖到请求的起始日期）。"""
     hit_cap = lookback >= _MAX_KLINE_BARS and returned_rows >= _MAX_KLINE_BARS
     if not hit_cap:
         return False
@@ -170,6 +183,7 @@ def _is_capped_history_incomplete(
 
 
 def _first_trading_date_on_or_after(start_date: datetime) -> datetime:
+    """返回不早于给定日期的首个 A 股交易日（优先用交易日历，否则按周末顺延）。"""
     if xcals is not None:
         try:
             cal = xcals.get_calendar("XSHG")
@@ -185,6 +199,7 @@ def _first_trading_date_on_or_after(start_date: datetime) -> datetime:
 
 
 def _format_tencent_date(date_text: str) -> Optional[str]:
+    """将腾讯返回的日期文本归一为 YYYY-MM-DD；格式非法返回 None。"""
     try:
         return datetime.strptime(date_text, "%Y-%m-%d").strftime("%Y-%m-%d")
     except ValueError:
@@ -192,6 +207,7 @@ def _format_tencent_date(date_text: str) -> Optional[str]:
 
 
 def _lots_to_shares(volume: Any) -> Any:
+    """将腾讯以「手」为单位的成交量换算为股数（×100）；无法转换时原样返回。"""
     try:
         return float(volume) * 100
     except (TypeError, ValueError):
@@ -199,6 +215,7 @@ def _lots_to_shares(volume: Any) -> Any:
 
 
 def _extract_kline_rows(payload: dict[str, Any], *, symbol: str) -> list[dict[str, Any]]:
+    """从腾讯 K 线 JSON 报文中提取指定 symbol 的日线/分钟线行列表；结构异常返回空列表。"""
     data = payload.get("data") if isinstance(payload, dict) else None
     item = data.get(symbol) if isinstance(data, dict) else None
     if not isinstance(item, dict):

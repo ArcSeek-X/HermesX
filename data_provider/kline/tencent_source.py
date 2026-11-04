@@ -47,6 +47,7 @@ class TencentKLineSource(KLineDataSource):
     source_id = "tencent"
 
     def fetch(self, request: KLineRequest) -> Optional[KLineResult]:
+        """拉取 K 线数据（腾讯源）。"""
         tx_period = PERIOD_MAP.get(request.period)
         if not tx_period:
             return None
@@ -74,6 +75,7 @@ class TencentKLineSource(KLineDataSource):
         fqt: int,
         period: str,
     ) -> Optional[List[Dict]]:
+        """拉取 K 线原始行。"""
         total_limit = max(min(limit, 10000), 1)
         fqt_str = "qfq" if fqt == 1 else ("hfq" if fqt == 2 else "")
         rows: List[Dict] = []

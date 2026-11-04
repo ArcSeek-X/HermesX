@@ -57,6 +57,7 @@ class SinaKLineSource(KLineDataSource):
     source_id = "sina"
 
     def fetch(self, request: KLineRequest) -> Optional[KLineResult]:
+        """拉取 K 线数据（新浪源）。"""
         scale = SCALE_MAP.get(request.period)
         if not scale:
             return None
@@ -77,6 +78,7 @@ class SinaKLineSource(KLineDataSource):
         )
 
     def _fetch_rows(self, symbol: str, scale: int, limit: int, period: str) -> Optional[List[Dict]]:
+        """拉取 K 线原始行。"""
         total_limit = max(min(limit, 10000), 1)
         items: Optional[List[Dict]] = None
         try:

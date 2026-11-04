@@ -25,6 +25,7 @@ class TavilySearchProvider(BaseSearchProvider):
     """
 
     def __init__(self, api_keys: List[str]):
+        """构造 Tavily 检索适配器并装配依赖。"""
         super().__init__(api_keys, "Tavily")
 
     def _do_search(

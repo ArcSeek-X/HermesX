@@ -91,6 +91,7 @@ class PortfolioImportService:
         portfolio_service: Optional[PortfolioService] = None,
         repo: Optional[PortfolioRepositoryPort] = None,
     ):
+        """构造持仓导入服务并装配依赖。"""
         self.portfolio_service = portfolio_service or PortfolioService()
         self.repo: PortfolioRepositoryPort = repo or get_portfolio_repository()
         self._parser_registry = self._shared_parser_registry
@@ -110,6 +111,7 @@ class PortfolioImportService:
         cls._shared_registry_initialized = True
 
     def _init_default_parsers(self) -> None:
+        """注册各券商默认 CSV 解析器。"""
         for spec in DEFAULT_PARSER_SPECS:
             self.register_parser(spec)
 
@@ -159,6 +161,7 @@ class PortfolioImportService:
         broker: str,
         content: bytes,
     ) -> Dict[str, Any]:
+        """解析券商交易 CSV 内容为标准化记录。"""
         broker_norm = self._normalize_broker(broker)
         parser_spec = self._parser_registry[broker_norm]
         df = self._read_csv(content)
@@ -200,6 +203,7 @@ class PortfolioImportService:
         records: List[Dict[str, Any]],
         dry_run: bool = False,
     ) -> Dict[str, Any]:
+        """将标准化交易记录落库。"""
         broker_norm = self._normalize_broker(broker)
 
         inserted_count = 0
@@ -283,6 +287,7 @@ class PortfolioImportService:
         }
 
     def _normalize_broker(self, value: str) -> str:
+        """规范化券商名称标识。"""
         broker = (value or "").strip().lower()
         broker = self._broker_alias_map.get(broker, broker)
         if broker not in self._parser_registry:
@@ -292,6 +297,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _read_csv(content: bytes) -> pd.DataFrame:
+        """将 CSV 字节内容读取为 DataFrame。"""
         for encoding in ("utf-8-sig", "gbk", "gb18030"):
             try:
                 return pd.read_csv(
@@ -310,6 +316,7 @@ class PortfolioImportService:
         row: Any,
         parser_spec: CsvParserSpec,
     ) -> Optional[Dict[str, Any]]:
+        """将单行交易数据归一化为标准记录。"""
         broker_hints = parser_spec.column_hints
 
         trade_date_raw = self._pick(
@@ -394,6 +401,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _pick(row: Any, *candidates: str) -> Any:
+        """从数据行中按候选列名取首个非空值。"""
         for name in candidates:
             if name in row.index:
                 value = row.get(name)
@@ -403,6 +411,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _parse_float(value: Any) -> Optional[float]:
+        """将值安全解析为 float，失败返回 None。"""
         if value is None:
             return None
         text = str(value).strip().replace(",", "")
@@ -415,6 +424,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _parse_date(value: Any) -> Optional[date]:
+        """将值安全解析为 date，失败返回 None。"""
         if value is None:
             return None
         text = str(value).strip()
@@ -427,6 +437,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _normalize_side(value: Any) -> Optional[str]:
+        """将买卖方向值归一化为标准标识。"""
         text = str(value or "").strip().lower()
         if not text:
             return None
@@ -445,6 +456,7 @@ class PortfolioImportService:
 
     @staticmethod
     def _build_dedup_hash(record: Dict[str, Any]) -> str:
+        """按交易记录内容生成去重哈希。"""
         payload = "|".join(
             [
                 str(record.get("trade_date") or ""),

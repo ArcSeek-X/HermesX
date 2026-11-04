@@ -26,6 +26,7 @@ class AnalysisResponseParser:
     """Validate and parse an analysis response independently of transport state."""
 
     def __init__(self, runtime_config_provider, generation_config_resolver):
+        """构造响应解析器：装配运行时配置与生成配置解析器。"""
         self._runtime_config_provider = runtime_config_provider
         self._generation_config_resolver = generation_config_resolver
 
@@ -89,6 +90,7 @@ class AnalysisResponseParser:
 
     @staticmethod
     def contains_embedded_json_object(text: str) -> bool:
+        """判断文本中是否包含内嵌的 JSON 对象。"""
         decoder = json.JSONDecoder()
         count = 0
         for index, char in enumerate(text):
@@ -106,6 +108,7 @@ class AnalysisResponseParser:
         return False
 
     def validate_analysis_minimal_contract(self, data: Dict[str, Any]) -> None:
+        """校验分析结果是否满足最小字段契约。"""
         try:
             AnalysisReportSchema.model_validate(data)
         except Exception as exc:
@@ -143,6 +146,7 @@ class AnalysisResponseParser:
         reason: str,
         message: str,
     ) -> GenerationError:
+        """构造生成结果校验错误。"""
         try:
             backend_id, _fallback_backend_id = self._generation_config_resolver()
         except GenerationError:

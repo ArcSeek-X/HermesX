@@ -259,6 +259,7 @@ _try_parse_json = try_parse_json
 
 
 def _try_repair_json(text: str, repair_fn: Callable) -> Optional[Dict[str, Any]]:
+    """尝试修复并解析非标准 JSON 文本。"""
     try:
         repaired = repair_fn(text)
         obj = json.loads(repaired)
@@ -288,6 +289,7 @@ def _build_timeout_result(
     models_used: List[str],
     messages: List[Dict[str, Any]],
 ) -> RunLoopResult:
+    """构造运行超时时的结果对象。"""
     elapsed = time.time() - start_time
     return RunLoopResult(
         success=False,
@@ -315,6 +317,7 @@ def _build_budget_guard_result(
     remaining_timeout_s: float,
     min_step_budget_s: float,
 ) -> RunLoopResult:
+    """构造预算护栏触发时的结果对象。"""
     elapsed = time.time() - start_time
     return RunLoopResult(
         success=False,
@@ -392,6 +395,7 @@ def run_agent_loop(
     _MIN_STEP_BUDGET_S = 8.0
 
     def _finish(result: RunLoopResult) -> RunLoopResult:
+        """收尾运行循环并返回最终结果。"""
         if progress_callback and emit_stage_events:
             progress_callback(
                 stream_event(
@@ -634,6 +638,7 @@ def _execute_tools(
     """
 
     def _exec_single(tc_item):
+        """执行单个工具调用项。"""
         return execute_runner_tool_call(
             tool_call=tc_item,
             tool_registry=tool_registry,

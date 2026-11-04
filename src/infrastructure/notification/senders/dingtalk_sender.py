@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""钉钉群机器人通知发送器。
+
+按钉钉 Webhook 协议发送 Markdown 消息，支持加签鉴权、按字节上限自动分片、
+标题长度限制与分段间限速，避免超长内容被拒绝。
+"""
+
 import time
 import hmac
 import hashlib
@@ -14,7 +20,10 @@ from src.domain.shared.text_chunking import chunk_content_by_max_bytes  # <-- �
 logger = logging.getLogger(__name__)
 
 class DingtalkSender:
+    """钉钉通知发送器：读取 webhook 与加签密钥，将 Markdown 消息分片发送。"""
+
     def __init__(self, config: Config):
+        """构造发送器：从配置读取 webhook URL 与加签密钥。"""
         self.webhook_url = config.dingtalk_webhook_url
         self.secret = config.dingtalk_secret
 

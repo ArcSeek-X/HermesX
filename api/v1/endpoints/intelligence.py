@@ -115,6 +115,7 @@ def list_sources(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
 ) -> IntelligenceSourceListResponse:
+    """列出情报数据源。"""
     try:
         return IntelligenceSourceListResponse(**IntelligenceService().list_sources(
             enabled=enabled, source_type=source_type, scope_type=scope_type,
@@ -129,6 +130,7 @@ def list_source_templates(
     source_type: Optional[str] = Query(None),  # 按数据源类型过滤（rss/atom/newsnow）
     market: Optional[str] = Query(None),
 ) -> IntelligenceSourceTemplateListResponse:
+    """列出情报数据源模板。"""
     try:
         return IntelligenceSourceTemplateListResponse(**IntelligenceService().list_source_templates(
             source_type=source_type,
@@ -143,6 +145,7 @@ def create_source_from_template(
     template_id: str,  # 内置模板标识（如 cctv-finance）
     request: IntelligenceSourceTemplateCreateRequest = IntelligenceSourceTemplateCreateRequest(),
 ) -> IntelligenceSourceItem:
+    """按模板创建情报数据源。"""
     try:
         return IntelligenceSourceItem(**IntelligenceService().create_source_from_template(
             template_id,
@@ -220,6 +223,7 @@ def list_items(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
 ) -> IntelligenceItemListResponse:
+    """列出情报条目。"""
     try:
         return IntelligenceItemListResponse(**IntelligenceService().list_items(
             scope_type=scope_type, scope_value=scope_value, market=market,

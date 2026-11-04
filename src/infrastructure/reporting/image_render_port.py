@@ -25,4 +25,5 @@ class Md2ImgImageRenderPort:
     def markdown_to_image(
         self, markdown_text: str, max_chars: int = 15000
     ) -> Optional[bytes]:
+        """将 Markdown 报告渲染为图片字节。"""
         return img_render.markdown_to_image(markdown_text, max_chars=max_chars)

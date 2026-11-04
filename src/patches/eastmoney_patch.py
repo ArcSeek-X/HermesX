@@ -27,6 +27,7 @@ class AuthCache:
     """NID 授权令牌的内存缓存：带过期时间与线程锁，避免对东财授权接口频繁请求。"""
 
     def __init__(self):
+        """构造东财请求补丁管理器。"""
         self.data = None
         self.expire_at = 0
         self.lock = threading.Lock()
@@ -40,12 +41,15 @@ class PatchSign:
     """记录补丁是否已生效的标记（防止重复打补丁）。"""
 
     def __init__(self):
+        """构造东财请求补丁管理器。"""
         self.patched = False
 
     def set_patch(self, patched):
+        """启用或关闭请求补丁。"""
         self.patched = patched
 
     def is_patched(self):
+        """返回补丁是否已启用。"""
         return self.patched
 
 
@@ -168,6 +172,7 @@ def eastmoney_patch():
 
     def patched_request(self, method, url, **kwargs):
         # 排除非目标域名
+        """打补丁后的请求函数。"""
         is_target = any(
             d in (url or "")
             for d in [

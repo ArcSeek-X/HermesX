@@ -144,6 +144,7 @@ def trim_rows(rows: List[Dict[str, Any]], limit: int, before_date: Optional[str]
 
 
 def _aggregate_fixed_chunk(rows: List[Dict[str, Any]], chunk_size: int) -> List[Dict[str, Any]]:
+    """按固定长度分块聚合 K 线。"""
     result: List[Dict[str, Any]] = []
     for index in range(0, len(rows), chunk_size):
         chunk = rows[index:index + chunk_size]
@@ -153,6 +154,7 @@ def _aggregate_fixed_chunk(rows: List[Dict[str, Any]], chunk_size: int) -> List[
 
 
 def _aggregate_intraday(rows: List[Dict[str, Any]], step_minutes: int) -> List[Dict[str, Any]]:
+    """按分时区间聚合 K 线。"""
     buckets: "OrderedDict[str, List[Dict[str, Any]]]" = OrderedDict()
     for row in rows:
         stamp = str(row.get("date") or "")
@@ -168,6 +170,7 @@ def _aggregate_intraday(rows: List[Dict[str, Any]], step_minutes: int) -> List[D
 
 
 def _aggregate_calendar(rows: List[Dict[str, Any]], mode: str) -> List[Dict[str, Any]]:
+    """按日历周期聚合 K 线。"""
     buckets: "OrderedDict[str, List[Dict[str, Any]]]" = OrderedDict()
     for row in rows:
         stamp = str(row.get("date") or "")
@@ -187,6 +190,7 @@ def _aggregate_calendar(rows: List[Dict[str, Any]], mode: str) -> List[Dict[str,
 
 
 def _merge_chunk(chunk: List[Dict[str, Any]], bucket_key: Optional[str] = None) -> Dict[str, Any]:
+    """合并单个聚合块。"""
     last = chunk[-1]
     merged = {
         "date": bucket_key or str(last.get("date") or ""),
@@ -203,6 +207,7 @@ def _merge_chunk(chunk: List[Dict[str, Any]], bucket_key: Optional[str] = None) 
 
 
 def _normalize_minute_timestamp(value: Any) -> str:
+    """规范化分钟级时间戳。"""
     raw = str(value or "")
     if len(raw) == 14 and raw.isdigit():
         return f"{raw[:4]}-{raw[4:6]}-{raw[6:8]} {raw[8:10]}:{raw[10:12]}:{raw[12:14]}"
@@ -210,6 +215,7 @@ def _normalize_minute_timestamp(value: Any) -> str:
 
 
 def _to_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value in (None, "", "-"):
         return None
     try:
@@ -219,6 +225,7 @@ def _to_float(value: Any) -> Optional[float]:
 
 
 def _safe_number(value: Any) -> float:
+    """将值安全转换为数值。"""
     number = _to_float(value)
     return number if number is not None else 0.0
 

@@ -37,6 +37,7 @@ def set_history_repo(repo: Any) -> None:
 
 
 def _get_history_repo() -> Any:
+    """返回当前已装配的历史仓储单例。"""
     return _history_repo
 
 

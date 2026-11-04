@@ -25,6 +25,7 @@ _TEXT_LIMIT = 39000
 
 class SlackSender:
 
+    """Slack 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 Slack 配置

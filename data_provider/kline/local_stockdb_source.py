@@ -30,6 +30,7 @@ class LocalStockDbKLineSource(KLineDataSource):
     source_id = "local"
 
     def fetch(self, request: KLineRequest) -> Optional[KLineResult]:
+        """拉取 K 线数据（本地库源）。"""
         client = get_stockdb_client()
         try:
             prev_close = None

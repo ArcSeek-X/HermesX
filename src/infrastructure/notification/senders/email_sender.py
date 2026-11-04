@@ -50,6 +50,7 @@ SMTP_CONFIGS = {
 
 class EmailSender:
     
+    """邮件渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 Email 配置

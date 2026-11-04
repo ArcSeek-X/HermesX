@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Pure forward-outcome evaluation for persisted skill opinions."""
+"""Pure forward-outcome evaluation for persisted skill opinions.
+
+对已持久化的技能意见做纯函数式的事后收益评估。将不可变技能信号与本地存储的日线逐根对比，
+按给定时间跨度（1d/3d/5d/10d）计算方向收益与命中/未命中结果，不依赖外部 IO。
+"""
 
 from __future__ import annotations
 
@@ -38,6 +42,7 @@ class SkillOpinionOutcomeEvaluation:
     directional_return_pct: Optional[float] = None
 
     def to_fields(self) -> Dict[str, Any]:
+        """将评估结果转为字典（asdict 展开所有字段）。"""
         return asdict(self)
 
 
@@ -54,6 +59,7 @@ class SkillOpinionOutcomeEvaluator:
         start_bar: Any = None,
         forward_bars: Sequence[Any] = (),
     ) -> SkillOpinionOutcomeEvaluation:
+        """评估单个不可变技能信号：归一化信号、校验跨度/分析日期/起始棒，按 eval_days 取末端收盘价计算收益率与方向是否正确，返回 SkillOpinionOutcomeEvaluation。"""
         canonical_signal, invalid_signal, _ = normalize_strategy_signal(signal)
         if invalid_signal:
             return cls._unable("invalid_signal", analysis_date=analysis_date)
@@ -130,6 +136,7 @@ class SkillOpinionOutcomeEvaluator:
 
     @staticmethod
     def _pending(reason: str, **fields: Any) -> SkillOpinionOutcomeEvaluation:
+        """构造 eval_status='pending' 的评估结果（数据暂不足，附原因与已知字段）。"""
         return SkillOpinionOutcomeEvaluation(
             eval_status="pending",
             unable_reason=reason,
@@ -138,6 +145,7 @@ class SkillOpinionOutcomeEvaluator:
 
     @staticmethod
     def _unable(reason: str, **fields: Any) -> SkillOpinionOutcomeEvaluation:
+        """构造 eval_status='unable' 的评估结果（信号非法或跨度不支持等，附原因）。"""
         return SkillOpinionOutcomeEvaluation(
             eval_status="unable",
             unable_reason=reason,
@@ -146,6 +154,7 @@ class SkillOpinionOutcomeEvaluator:
 
     @staticmethod
     def _positive_finite_float(value: Any) -> Optional[float]:
+        """将值安全化为正数有限浮点：None/bool/非数返回 None，否则返回 >0 的有限浮点，否则 None。"""
         if value is None or isinstance(value, bool):
             return None
         try:
@@ -156,5 +165,6 @@ class SkillOpinionOutcomeEvaluator:
 
     @staticmethod
     def _bar_date(bar: Any) -> Optional[date]:
+        """从 bar 对象取 date 字段；非 date 类型返回 None。"""
         value = getattr(bar, "date", None)
         return value if isinstance(value, date) else None

@@ -133,6 +133,7 @@ class NotificationChannelTester:
     _NOTIFICATION_TEST_TARGET_KEYS = _NOTIFICATION_TEST_TARGET_KEYS
 
     def __init__(self, dispatch_port_provider: Callable[[], NotificationDispatchPort]):
+        """构造通知渠道测试服务：装配分发端口提供者。"""
         self._dispatch_port_provider = dispatch_port_provider
 
     def test_notification_channel(
@@ -240,6 +241,7 @@ class NotificationChannelTester:
         channel: str,
         effective_map: Dict[str, str],
     ) -> Optional[str]:
+        """返回通知测试配置不合法时的提示文案。"""
         if channel == "ntfy":
             ntfy_url = (effective_map.get("NTFY_URL") or "").strip()
             if not ntfy_url:
@@ -270,6 +272,7 @@ class NotificationChannelTester:
         return Config(**kwargs)
 
     def _parse_notification_test_value(self, key: str, value: str, value_type: str) -> Any:
+        """按声明类型解析通知测试配置值。"""
         if value_type == "csv":
             return _split_csv(value)
         if value_type == "bool":
@@ -294,6 +297,7 @@ class NotificationChannelTester:
         content: str,
         timeout_seconds: float,
     ) -> Dict[str, Any]:
+        """向指定渠道发起一次通知测试发送。"""
         dispatch_port = self._dispatch_port_provider()
 
         started_at = time.perf_counter()
@@ -359,11 +363,13 @@ class NotificationChannelTester:
 
     @staticmethod
     def _build_notification_test_content(title: str, content: str) -> str:
+        """构造通知测试的标题与正文内容。"""
         title = title.strip()
         content = content.strip()
         return f"{title}\n\n{content}" if title else content
 
     def _resolve_notification_test_target(self, channel: str, effective_map: Dict[str, str]) -> str:
+        """解析指定渠道的测试接收目标。"""
         for key in self._NOTIFICATION_TEST_TARGET_KEYS.get(channel, ()):
             raw_value = (effective_map.get(key) or "").strip()
             if not raw_value:
@@ -386,6 +392,7 @@ class NotificationChannelTester:
         latency_ms: Optional[int],
         attempts: Sequence[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        """构造通知测试的结构化结果。"""
         sanitized_attempts = [cls._sanitize_notification_attempt(attempt) for attempt in attempts]
         return {
             "success": success,
@@ -399,6 +406,7 @@ class NotificationChannelTester:
 
     @classmethod
     def _sanitize_notification_attempt(cls, attempt: Dict[str, Any]) -> Dict[str, Any]:
+        """清洗单次发送尝试记录中的敏感字段。"""
         sanitized = dict(attempt)
         if "message" in sanitized:
             sanitized["message"] = cls._sanitize_notification_text(sanitized["message"])
@@ -408,6 +416,7 @@ class NotificationChannelTester:
 
     @classmethod
     def _sanitize_notification_text(cls, text: Any) -> str:
+        """清洗通知文本中的敏感信息。"""
         sanitized = _sanitize_llm_error_text(text)
         if not sanitized:
             return ""
@@ -422,6 +431,7 @@ class NotificationChannelTester:
 
     @staticmethod
     def _mask_notification_target(target: str, *, source_key: Optional[str] = None) -> str:
+        """对通知目标做脱敏处理。"""
         value = (target or "").strip()
         if not value:
             return ""
@@ -473,6 +483,7 @@ class NotificationChannelTester:
 
     @staticmethod
     def _classify_notification_exception(exc: Exception) -> Tuple[str, bool]:
+        """将通知异常归类为错误码与是否可重试。"""
         if isinstance(exc, requests.exceptions.Timeout):
             return "timeout", True
         if isinstance(exc, requests.exceptions.ConnectionError):

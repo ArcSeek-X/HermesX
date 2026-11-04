@@ -18,6 +18,7 @@ TargetRecordStatusValue = Literal["triggered", "skipped", "degraded", "failed"]
 
 
 class AlertRuleCreateRequest(BaseModel):
+    """创建告警规则的请求体。"""
     name: Optional[str] = Field(None, max_length=64)
     target_scope: TargetScopeValue = "single_symbol"
     target: str = Field(..., min_length=1, max_length=64)
@@ -30,6 +31,7 @@ class AlertRuleCreateRequest(BaseModel):
 
 
 class AlertRuleUpdateRequest(BaseModel):
+    """更新告警规则的请求体。"""
     name: Optional[str] = Field(None, max_length=64)
     target_scope: Optional[TargetScopeValue] = None
     target: Optional[str] = Field(None, min_length=1, max_length=64)
@@ -42,6 +44,7 @@ class AlertRuleUpdateRequest(BaseModel):
 
 
 class AlertRuleItem(BaseModel):
+    """告警规则条目。"""
     id: int
     name: str
     target_scope: str
@@ -61,6 +64,7 @@ class AlertRuleItem(BaseModel):
 
 
 class AlertRuleListResponse(BaseModel):
+    """告警规则列表响应体。"""
     items: List[AlertRuleItem] = Field(default_factory=list)
     total: int
     page: int
@@ -68,10 +72,12 @@ class AlertRuleListResponse(BaseModel):
 
 
 class AlertDeleteResponse(BaseModel):
+    """告警规则删除响应体。"""
     deleted: int
 
 
 class AlertRuleTargetResult(BaseModel):
+    """单目标规则试运行结果。"""
     target: str
     display_target: Optional[str] = None
     status: DryRunStatusValue
@@ -83,6 +89,7 @@ class AlertRuleTargetResult(BaseModel):
 
 
 class AlertRuleTestResponse(BaseModel):
+    """告警规则试运行响应体。"""
     rule_id: int
     target_scope: Optional[str] = None
     status: DryRunStatusValue
@@ -97,6 +104,7 @@ class AlertRuleTestResponse(BaseModel):
 
 
 class AlertTriggerItem(BaseModel):
+    """告警触发记录条目。"""
     id: int
     rule_id: Optional[int] = None
     target: str
@@ -121,6 +129,7 @@ class AlertTriggerItem(BaseModel):
 
 
 class AlertTriggerListResponse(BaseModel):
+    """告警触发记录列表响应体。"""
     items: List[AlertTriggerItem] = Field(default_factory=list)
     total: int
     page: int
@@ -128,6 +137,7 @@ class AlertTriggerListResponse(BaseModel):
 
 
 class AlertNotificationItem(BaseModel):
+    """告警通知记录条目。"""
     id: int
     trigger_id: Optional[int] = None
     channel: str
@@ -141,6 +151,7 @@ class AlertNotificationItem(BaseModel):
 
 
 class AlertNotificationListResponse(BaseModel):
+    """告警通知记录列表响应体。"""
     items: List[AlertNotificationItem] = Field(default_factory=list)
     total: int
     page: int

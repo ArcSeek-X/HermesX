@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Strategy deliberation mediators for material skill-agent conflicts.
+
+针对策略智能体之间「实质性冲突」的审议（deliberation）调解器集合。
+提供多档调解器：确定性 mediator_v0、带 schema 护栏的 LLM 调解器（llm_mediator_v1）、
+让参与者自评的 self_review_v2，以及可多轮迭代的 multi_round_v4。
+所有调解器都只能「软化(soften)」已有立场、不能反转信号、不能覆盖最终合成信号。
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ _DELIBERATION_ALLOWED_RESOLUTION_STATUS = {"unresolved", "partially_resolved"}
 
 @dataclass
 class DeliberationAgendaItem:
+    """单个审议议程项：描述一条冲突（类型/严重度/参与者）与待问问题。"""
     agenda_id: str = ""
     conflict_type: str = ""
     severity: str = "medium"
@@ -40,6 +46,7 @@ class DeliberationAgendaItem:
 
 @dataclass
 class DeliberationResponse:
+    """单个参与者对某议程项的回应：原始/修订信号与置信度、立场(defend/challenge)、修正方式。"""
     agenda_id: str = ""
     skill_id: str = ""
     stance: str = "defend"
@@ -54,6 +61,7 @@ class DeliberationResponse:
 
 @dataclass
 class DeliberationSummary:
+    """审议汇总：解决状态、冲突计数、是否保留少数派观点、置信度整体调整与原因键。"""
     resolution_status: str = "unresolved"
     resolved_conflict_count: int = 0
     unresolved_conflict_count: int = 0
@@ -64,6 +72,7 @@ class DeliberationSummary:
 
 @dataclass
 class StrategyDeliberationResult:
+    """一次审议的完整结果：状态/模式/轮次/议程/回应/汇总/多轮历史，可序列化为 dict。"""
     status: str = "skipped"
     mode: str = "mediator_v0"
     rounds: int = 0
@@ -73,6 +82,7 @@ class StrategyDeliberationResult:
     round_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
+        """序列化为 API 友好 dict；仅当存在 round_history 时才输出该字段。"""
         payload = {
             "status": self.status,
             "mode": self.mode,
@@ -96,6 +106,7 @@ class DeliberationMediator:
         *,
         final_signal: str,
     ) -> Optional[StrategyDeliberationResult]:
+        """确定性一阶段审议：筛选有效/实质性冲突，为前 3 个冲突构造议程与各参与者回应并汇总；有效意见不足 2 条或无实质冲突时返回 None。"""
         valid_opinions = [op for op in opinions if not op.invalid_signal]
         material_conflicts = self._material_conflicts(conflicts)
         if len(valid_opinions) < 2 or not material_conflicts:
@@ -147,6 +158,7 @@ class DeliberationMediator:
 
     @staticmethod
     def _material_conflicts(conflicts: List[StrategyConflict]) -> List[StrategyConflict]:
+        """筛选实质性冲突：严重度为 medium/high，或属于触发型（方向对立/高置信异议）。"""
         return [
             conflict
             for conflict in conflicts
@@ -158,6 +170,7 @@ class DeliberationMediator:
 
     @staticmethod
     def _agenda_id(conflict: StrategyConflict, participants: List[str]) -> str:
+        """生成议程项 ID：冲突类型与参与者用冒号拼接。"""
         return ":".join([conflict.conflict_type, *participants])
 
     def _response_for(
@@ -167,6 +180,7 @@ class DeliberationMediator:
         *,
         final_signal: str,
     ) -> DeliberationResponse:
+        """为某参与者构造对议程项的回应：依规则决定修正方式，软化信号/置信度，并判定立场（与最终信号同侧 defend 否则 challenge）。"""
         revision = self._revision_for(agenda, opinion)
         revised_signal = self.softened_signal(opinion.signal) if revision == "softened" else opinion.signal
         revised_confidence = (
@@ -193,6 +207,7 @@ class DeliberationMediator:
 
     @staticmethod
     def _revision_for(agenda: DeliberationAgendaItem, opinion: StrategyOpinion) -> str:
+        """决定对某回应是否软化：高严重度或方向对立且低置信时返回 'softened'，否则 'unchanged'。"""
         if agenda.severity == "high":
             return "softened"
         if agenda.conflict_type == "directional_opposition" and opinion.confidence < 0.75:
@@ -201,6 +216,7 @@ class DeliberationMediator:
 
     @staticmethod
     def softened_signal(signal: str) -> str:
+        """将强信号软化：strong_buy→buy、strong_sell→sell，其余不变。"""
         if signal == "strong_buy":
             return "buy"
         if signal == "strong_sell":
@@ -209,6 +225,7 @@ class DeliberationMediator:
 
     @staticmethod
     def _softened_confidence(confidence: float) -> float:
+        """软化置信度：先夹到 [0,1]，低于下限则保持，否则按软化系数下修（且不低于下限）。"""
         bounded = max(0.0, min(1.0, confidence))
         if bounded <= _DELIBERATION_RESPONSE_CONFIDENCE_FLOOR:
             return bounded
@@ -216,6 +233,7 @@ class DeliberationMediator:
 
     @staticmethod
     def _same_side(signal: str, final_signal: str) -> bool:
+        """判断某信号与最终信号是否同侧（按策略信号分值判多/空方向，最终中性单独处理）。"""
         signal_score = strategy_signal_score(signal)
         final_score = strategy_signal_score(final_signal)
         if final_score == 3.0:
@@ -233,6 +251,7 @@ class DeliberationMediator:
         *,
         final_signal: str,
     ) -> DeliberationSummary:
+        """汇总审议：计算是否部分解决、按最高严重度给出置信度调整（解决/未解决不同档）、判断是否保留少数派观点，生成 DeliberationSummary。"""
         by_agenda: Dict[str, List[DeliberationResponse]] = {}
         for response in responses:
             by_agenda.setdefault(response.agenda_id, []).append(response)
@@ -290,6 +309,7 @@ class LLMDeliberationMediator:
         *,
         fallback: Optional[DeliberationMediator] = None,
     ) -> None:
+        """依赖装配：持有文本补全回调与确定性回退（默认 DeliberationMediator）。"""
         self.text_completion = text_completion
         self.fallback = fallback or DeliberationMediator()
 
@@ -300,6 +320,7 @@ class LLMDeliberationMediator:
         *,
         final_signal: str,
     ) -> Optional[StrategyDeliberationResult]:
+        """以确定性结果作基线，调用 LLM 精炼审议；解析/校验失败或产出非法时回退到基线（mediator_v0）。"""
         baseline = self.fallback.deliberate(opinions, conflicts, final_signal=final_signal)
         if baseline is None:
             return None
@@ -330,6 +351,7 @@ class LLMDeliberationMediator:
         *,
         final_signal: str,
     ) -> List[Dict[str, str]]:
+        """构造 LLM 审议请求消息：system 约束 + user 载荷（最终信号、基线审议、意见、冲突），要求只返回 JSON、不得反转或弱化保守结果。"""
         payload = {
             "final_signal": final_signal,
             "allowed_revisions": sorted(_DELIBERATION_ALLOWED_REVISIONS),
@@ -373,6 +395,7 @@ class LLMDeliberationMediator:
         payload: Optional[Dict[str, Any]],
         baseline: StrategyDeliberationResult,
     ) -> Optional[StrategyDeliberationResult]:
+        """将 LLM 原始 JSON 校验并装配为 StrategyDeliberationResult；任一字段不合法或脱离基线 ID 即返回 None。"""
         if not isinstance(payload, dict):
             return None
 
@@ -424,6 +447,7 @@ class LLMDeliberationMediator:
         items: List[Any],
         baseline_agenda: Dict[str, Dict[str, Any]],
     ) -> Optional[List[DeliberationAgendaItem]]:
+        """校验 LLM 议程列表：ID 须与基线完全一致（不增不减、不重复），冲突类型/严重度/参与者沿用基线，仅允许微调 question_key/metadata。"""
         coerced: List[DeliberationAgendaItem] = []
         seen: set[str] = set()
         for item in items:
@@ -454,6 +478,7 @@ class LLMDeliberationMediator:
         baseline: StrategyDeliberationResult,
         baseline_agenda: Dict[str, Dict[str, Any]],
     ) -> Optional[List[DeliberationResponse]]:
+        """校验 LLM 回应列表：键(agenda_id,skill_id)须与基线一致，修正方式仅限 unchanged/softened（且不得撤销基线已做的软化），置信度不得高于基线，立场须为 defend/challenge。"""
         baseline_responses = {
             (response.agenda_id, response.skill_id): response
             for response in baseline.responses
@@ -528,6 +553,7 @@ class LLMDeliberationMediator:
         payload: Dict[str, Any],
         baseline: DeliberationSummary,
     ) -> Optional[DeliberationSummary]:
+        """校验 LLM 汇总：解决状态须合法，置信度调整不得高于基线（且不低于 -0.1），冲突计数与少数派标志安全解析；否则返回 None。"""
         resolution_status = str(payload.get("resolution_status") or baseline.resolution_status).strip()
         if resolution_status not in _DELIBERATION_ALLOWED_RESOLUTION_STATUS:
             return None
@@ -575,6 +601,7 @@ class StrategySelfReviewMediator:
         *,
         fallback: Optional[Any] = None,
     ) -> None:
+        """依赖装配：持有参与者自评回调与回退（默认 DeliberationMediator）；v2 是首个可让冲突方自评自身立场的契约层。"""
         self.self_review = self_review
         self.fallback = fallback or DeliberationMediator()
 
@@ -585,6 +612,7 @@ class StrategySelfReviewMediator:
         *,
         final_signal: str,
     ) -> Optional[StrategyDeliberationResult]:
+        """以基线作底，逐参与者调用自评回调精炼回应，再用确定性 summarize 汇总；任何环节失败回退基线（self_review_v2）。"""
         baseline = self.fallback.deliberate(opinions, conflicts, final_signal=final_signal)
         if baseline is None:
             return None
@@ -657,6 +685,7 @@ class StrategySelfReviewMediator:
         *,
         final_signal: str,
     ) -> List[Dict[str, str]]:
+        """构造单参与者自评消息：system 要求仅评审自身立场、不改 agenda_id/skill_id/original_signal/final_signal；user 带基线回应与自身观点载荷。"""
         payload = {
             "final_signal": final_signal,
             "allowed_revisions": sorted(_DELIBERATION_ALLOWED_REVISIONS),
@@ -709,6 +738,7 @@ class MultiRoundDeliberationMediator:
         max_rounds: int = 2,
         stop_when_stable: bool = True,
     ) -> None:
+        """依赖装配：持有每轮补全回调、回退、最大轮次（夹到 1–4）与稳定即停开关；v4 保持与前序调解器相同安全契约。"""
         self.round_completion = round_completion
         self.fallback = fallback or DeliberationMediator()
         self.max_rounds = _clamp_int(max_rounds, minimum=1, maximum=4)
@@ -721,6 +751,7 @@ class MultiRoundDeliberationMediator:
         *,
         final_signal: str,
     ) -> Optional[StrategyDeliberationResult]:
+        """多轮审议：在基线上逐轮调用补全回调精炼，接受变化的轮计入历史；无变化且开启稳定即停；异常时保留最近有效轮（multi_round_v4）。"""
         current = self.fallback.deliberate(opinions, conflicts, final_signal=final_signal)
         if current is None or self.max_rounds <= current.rounds:
             return current
@@ -789,6 +820,7 @@ class MultiRoundDeliberationMediator:
         final_signal: str,
         round_index: int,
     ) -> List[Dict[str, str]]:
+        """构造第 N 轮审议消息：system 约束不得反转/撤销软化/加置信，user 带当前审议、意见、冲突与轮次载荷。"""
         payload = {
             "final_signal": final_signal,
             "round_index": round_index,
@@ -831,6 +863,7 @@ class MultiRoundDeliberationMediator:
         payload: Optional[Dict[str, Any]],
         previous: StrategyDeliberationResult,
     ) -> Optional[StrategyDeliberationResult]:
+        """校验单轮 LLM 产出：议程/回应/汇总均须合法且对齐前一结果，汇总置信度不得高于前轮；否则返回 None。"""
         if not isinstance(payload, dict):
             return None
 
@@ -885,6 +918,7 @@ class MultiRoundDeliberationMediator:
         previous: StrategyDeliberationResult,
         previous_agenda: Dict[str, Dict[str, Any]],
     ) -> Optional[List[DeliberationResponse]]:
+        """复用 LLM 调解器的回应校验逻辑，对上一轮结果做逐响应安全校验。"""
         return LLMDeliberationMediator.coerce_responses(
             items,
             previous,
@@ -893,12 +927,14 @@ class MultiRoundDeliberationMediator:
 
 
 def _highest_severity(conflicts: List[StrategyConflict]) -> str:
+    """返回冲突列表中的最高严重度（none<low<medium<high）；空列表返回 'none'。"""
     if not conflicts:
         return "none"
     return max((conflict.severity for conflict in conflicts), key=lambda severity: _SEVERITY_RANK.get(severity, 0))
 
 
 def _unique_strings(values: Any) -> List[str]:
+    """去重并保留顺序的字符串列表；忽略空值，空/None 输入返回空列表。"""
     result: List[str] = []
     for value in values or []:
         if value and value not in result:
@@ -907,6 +943,7 @@ def _unique_strings(values: Any) -> List[str]:
 
 
 def _as_float(value: Any, default: float) -> float:
+    """安全转 float，失败回退默认值。"""
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -914,6 +951,7 @@ def _as_float(value: Any, default: float) -> float:
 
 
 def _as_non_negative_int(value: Any, default: int) -> int:
+    """安全转非负 int：bool 视为非法回退；解析失败或负数回退默认值。"""
     if isinstance(value, bool):
         return default
     try:
@@ -924,6 +962,7 @@ def _as_non_negative_int(value: Any, default: int) -> int:
 
 
 def _clamp_int(value: Any, *, minimum: int, maximum: int) -> int:
+    """将值解析为 int 并夹到 [minimum, maximum]，解析失败则用 minimum。"""
     try:
         parsed = int(value)
     except (TypeError, ValueError):
@@ -932,6 +971,7 @@ def _clamp_int(value: Any, *, minimum: int, maximum: int) -> int:
 
 
 def _changed_response_count(responses: List[DeliberationResponse]) -> int:
+    """统计回应中被软化的数量（revision=='softened'）。"""
     return sum(1 for response in responses if response.revision == "softened")
 
 
@@ -939,6 +979,7 @@ def _round_changed_response_count(
     previous: List[DeliberationResponse],
     current: List[DeliberationResponse],
 ) -> int:
+    """比较前后两轮响应，统计发生变化的回应数（修正方式/信号/置信度/批评键任一不同即计）。"""
     previous_by_key = {
         (response.agenda_id, response.skill_id): response
         for response in previous
@@ -959,16 +1000,19 @@ def _round_changed_response_count(
 
 
 def _dict_or_empty(value: Any) -> Dict[str, Any]:
+    """若为 dict 则返回其副本，否则返回空 dict。"""
     return dict(value) if isinstance(value, dict) else {}
 
 
 def _conflict_to_dict(conflict: StrategyConflict) -> Dict[str, Any]:
+    """将冲突对象转为 dict 并丢弃 description 字段（避免大文本进入 LLM 载荷）。"""
     payload = asdict(conflict)
     payload.pop("description", None)
     return payload
 
 
 def _parse_deliberation_json(raw: Any) -> Optional[Dict[str, Any]]:
+    """从 LLM 原始输出中稳健解析出首个合法 JSON 对象：支持裸 JSON、代码围栏、以及首末花括号截取；失败返回 None。"""
     if isinstance(raw, dict):
         return raw
     content = getattr(raw, "content", raw)
@@ -1006,6 +1050,7 @@ def _parse_deliberation_json(raw: Any) -> Optional[Dict[str, Any]]:
 
 
 def _coerce_revised_signal(value: Any, *, original_signal: str, revision: str) -> Optional[str]:
+    """校验 LLM 给出的修订信号：归一化后须合法；unchanged 须等于原信号，softened 须等于原信号的软化结果，否则返回 None。"""
     candidate = str(value or original_signal).strip()
     signal, invalid, _ = normalize_strategy_signal(candidate)
     if invalid:
@@ -1018,6 +1063,7 @@ def _coerce_revised_signal(value: Any, *, original_signal: str, revision: str) -
 
 
 def _coerce_revised_confidence(value: Any, *, original: float, revision: str) -> Optional[float]:
+    """校验 LLM 给出的修订置信度：须落在 [0,1]；unchanged 须与原值一致，softened 不得高于原值，否则返回 None。"""
     confidence = _as_float(value, original)
     if confidence < 0 or confidence > 1:
         return None

@@ -35,6 +35,7 @@ class ConversationRepository:
     """对话消息、滚动摘要与 provider 轨迹的读写入口。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造会话仓储并装配依赖。"""
         self._db = db_manager
 
     def save_conversation_message(self, session_id: str, role: str, content: str) -> int:

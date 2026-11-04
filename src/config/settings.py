@@ -153,6 +153,7 @@ class ConfigIssue:
 
     # 返回告警可读信息（直接取 message 字段）
     def __str__(self) -> str:  # noqa: D105
+        """返回配置对象的字符串表示（脱敏）。"""
         return self.message
 
 
@@ -763,14 +764,17 @@ class Config:
     # 存储字段保留私有名 _agent_mode_explicit，避免改变 __init__ 关键字与序列化字段契约。
     @property
     def agent_mode_explicit(self) -> bool:
+        """判断是否显式设置了 Agent 模式。"""
         return self._agent_mode_explicit
 
     @agent_mode_explicit.setter
     def agent_mode_explicit(self, value: bool) -> None:
+        """判断是否显式设置了 Agent 模式。"""
         self._agent_mode_explicit = value
 
     # Config 初始化：解析全部环境变量并归一化，汇总校验问题到 llm_channel_config_issues 等字段
     def __post_init__(self) -> None:
+        """数据类后处理：规范化配置并校验。"""
         _log = logging.getLogger(__name__)
         if self.agent_arch not in self._VALID_AGENT_ARCH:
             _log.warning(
@@ -2320,12 +2324,14 @@ class Config:
     @classmethod
     # 判断某 key 是否在启动期被运行时覆盖过
     def _has_bootstrap_runtime_env_override(cls, key: str) -> bool:
+        """判断存在引导期运行时环境覆盖。"""
         cls._capture_bootstrap_runtime_env_overrides()
         return key in cls._BOOTSTRAP_RUNTIME_ENV_OVERRIDES
 
     @classmethod
     # 判断某 key 在启动期是否存在于环境中
     def _had_bootstrap_runtime_env_key(cls, key: str) -> bool:
+        """判断引导期曾设置过运行时环境键。"""
         cls._capture_bootstrap_runtime_env_overrides()
         return key in cls._BOOTSTRAP_RUNTIME_ENV_PRESENT_KEYS
 
@@ -2780,6 +2786,7 @@ class Config:
         available_router_model_set = set(available_router_models)
 
         def _has_runtime_source_for_model(model: str) -> bool:
+            """判断模型存在可用的运行时来源。"""
             if not model or _uses_direct_env_provider(model):
                 return True
             provider = _get_litellm_provider(model)
@@ -2979,6 +2986,7 @@ class Config:
             ))
 
         def _warn_if_webhook_url_invalid(field: str, value: Optional[str]) -> None:
+            """Webhook URL 不合法时发出警告。"""
             raw_url = (value or "").strip()
             if not raw_url:
                 return

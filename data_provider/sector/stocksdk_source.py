@@ -348,6 +348,7 @@ def get_sector_fund_flow_history_data(
 
 
 def _normalize_board_market_cap(value: object) -> float:
+    """规范化板块市值。"""
     numeric = _to_float(value) or 0.0
     # StockSDK 某些 provider 返回亿元，某些返回元；用数量级做一次保守归一。
     if numeric > 1e9:
@@ -356,12 +357,14 @@ def _normalize_board_market_cap(value: object) -> float:
 
 
 def _yuan_to_yi(value: Optional[float]) -> Optional[float]:
+    """将元换算为亿元。"""
     if value is None:
         return None
     return round(value / 1e8, 2)
 
 
 def _to_float(value: object) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value in (None, "", "-"):
         return None
     try:
@@ -371,6 +374,7 @@ def _to_float(value: object) -> Optional[float]:
 
 
 def _to_int(value: object) -> Optional[int]:
+    """将值安全转换为 int。"""
     numeric = _to_float(value)
     if numeric is None:
         return None

@@ -44,6 +44,7 @@ def set_timeline_bridge_port(port: Optional[IntradayTimelineBridgePort]) -> None
 
 
 def _get_bridge_port() -> Optional[IntradayTimelineBridgePort]:
+    """返回当前已装配的分时时间线桥接端口。"""
     return _bridge_port
 
 
@@ -87,6 +88,7 @@ def _safe_float(value: Any) -> Optional[float]:
 
 
 def _round(value: Any, nd: int = 3) -> Optional[float]:
+    """按指定小数位四舍五入，无效值返回 None。"""
     v = _safe_float(value)
     return None if v is None else round(v, nd)
 

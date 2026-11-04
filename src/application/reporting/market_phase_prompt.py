@@ -68,6 +68,7 @@ def format_market_phase_prompt_section(
 
 
 def _format_zh(ctx: Dict[str, Any], phase: str) -> str:
+    """格式化中文版大盘阶段提示词。"""
     label = _PHASE_LABELS_ZH[phase]
     lines = ["", "## 市场阶段上下文", f"- 当前市场阶段：{label}"]
     lines.extend(_metadata_lines_zh(ctx))
@@ -81,6 +82,7 @@ def _format_zh(ctx: Dict[str, Any], phase: str) -> str:
 
 
 def _format_en(ctx: Dict[str, Any], phase: str) -> str:
+    """格式化英文版大盘阶段提示词。"""
     label = _PHASE_LABELS_EN[phase]
     lines = ["", "## Market Phase Context", f"- Current market phase: {label}"]
     lines.extend(_metadata_lines_en(ctx))
@@ -94,6 +96,7 @@ def _format_en(ctx: Dict[str, Any], phase: str) -> str:
 
 
 def _metadata_lines_zh(ctx: Dict[str, Any]) -> List[str]:
+    """生成中文版元数据说明行。"""
     items: List[str] = []
     market = _string_value(ctx.get("market"))
     market_time = _string_value(ctx.get("market_local_time"))
@@ -115,6 +118,7 @@ def _metadata_lines_zh(ctx: Dict[str, Any]) -> List[str]:
 
 
 def _metadata_lines_en(ctx: Dict[str, Any]) -> List[str]:
+    """生成英文版元数据说明行。"""
     items: List[str] = []
     market = _string_value(ctx.get("market"))
     market_time = _string_value(ctx.get("market_local_time"))
@@ -136,6 +140,7 @@ def _metadata_lines_en(ctx: Dict[str, Any]) -> List[str]:
 
 
 def _phase_rule_zh(ctx: Dict[str, Any], phase: str) -> str:
+    """生成中文版阶段规则说明。"""
     effective_date = _string_value(ctx.get("effective_daily_bar_date"))
     date_hint = f"（{effective_date}）" if effective_date else ""
 
@@ -161,6 +166,7 @@ def _phase_rule_zh(ctx: Dict[str, Any], phase: str) -> str:
 
 
 def _phase_rule_en(ctx: Dict[str, Any], phase: str) -> str:
+    """生成英文版阶段规则说明。"""
     effective_date = _string_value(ctx.get("effective_daily_bar_date"))
     date_hint = f" ({effective_date})" if effective_date else ""
 
@@ -189,6 +195,7 @@ def _phase_rule_en(ctx: Dict[str, Any], phase: str) -> str:
 
 
 def _warning_text(value: Any, *, lang: str) -> str:
+    """按语言返回告警文案。"""
     if not isinstance(value, list):
         return ""
     labels = _WARNING_LABELS_EN if lang == "en" else _WARNING_LABELS_ZH
@@ -201,6 +208,7 @@ def _warning_text(value: Any, *, lang: str) -> str:
 
 
 def _string_value(value: Any) -> str:
+    """将任意值安全转换为字符串。"""
     if value is None:
         return ""
     text = str(value).strip()
@@ -208,6 +216,7 @@ def _string_value(value: Any) -> str:
 
 
 def _int_like(value: Any) -> Optional[int]:
+    """将任意值安全转换为整数，失败返回 None。"""
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, int):

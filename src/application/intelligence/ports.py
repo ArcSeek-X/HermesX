@@ -50,9 +50,11 @@ class NewsSourceHandle(Protocol):
     def build_live_news_url(
         self, channel_id: str, *, limit: int, cursor: Optional[str] = None
     ) -> str:
+        """构造实时新闻数据源 URL。"""
         ...
 
     def fetch(self, query: NewsQuery) -> Any:
+        """拉取远端内容并返回原始数据。"""
         ...
 
 
@@ -60,12 +62,15 @@ class NewsSourcePort(Protocol):
     """华尔街见闻资讯源端口：频道元数据 + 运行时句柄工厂。"""
 
     def list_channels(self) -> List[Dict[str, Any]]:
+        """列出可用情报频道。"""
         ...
 
     def is_known_channel(self, channel_id: str) -> bool:
+        """判断频道标识是否为已知频道。"""
         ...
 
     def channel_scope_value(self, channel_id: str) -> str:
+        """返回频道的作用域值。"""
         ...
 
     def create_handle(
@@ -77,6 +82,7 @@ class NewsSourcePort(Protocol):
         calendar_base_url: str,
         calendar_timeout: float,
     ) -> NewsSourceHandle:
+        """创建数据源访问句柄。"""
         ...
 
 
@@ -109,10 +115,12 @@ class SearchProviderPort(Protocol):
 
     @property
     def name(self) -> str:
+        """返回数据源名称。"""
         ...
 
     @property
     def is_available(self) -> bool:
+        """返回数据源当前是否可用。"""
         ...
 
     def search(
@@ -122,6 +130,7 @@ class SearchProviderPort(Protocol):
         days: int = 7,
         options: Optional[SearchOptions] = None,
     ) -> SearchResponse:
+        """按关键词检索情报内容。"""
         ...
 
 
@@ -145,6 +154,7 @@ class IntelligenceSourceNameConflictError(Exception):
     """
 
     def __init__(self, name: str):
+        """构造端口适配实例并装配依赖。"""
         super().__init__(name)
         self.name = name
 
@@ -159,15 +169,19 @@ class IntelligenceRepositoryPort(Protocol):
     """
 
     def create_source(self, fields: Dict[str, Any]) -> Any:
+        """创建情报数据源记录。"""
         ...
 
     def get_source(self, source_id: int) -> Any:
+        """按 ID 获取情报数据源。"""
         ...
 
     def get_source_by_name(self, name: str) -> Any:
+        """按名称获取情报数据源。"""
         ...
 
     def update_source_enabled(self, source_id: int, enabled: bool) -> None:
+        """更新情报数据源的启用状态。"""
         ...
 
     def update_source_status(
@@ -178,28 +192,37 @@ class IntelligenceRepositoryPort(Protocol):
         error: Optional[str] = None,
         fetched_at: Optional[Any] = None,
     ) -> None:
+        """更新情报数据源的运行状态。"""
         ...
 
     def list_sources(self, **filters: Any) -> Tuple[List[Any], int]:
+        """列出全部情报数据源。"""
         ...
 
     def list_items(self, **filters: Any) -> Tuple[List[Any], int]:
+        """列出情报条目。"""
         ...
 
     def upsert_items(self, items: Any) -> int:
+        """批量新增或更新情报条目。"""
         ...
 
     def list_live_news_items(self, **filters: Any) -> Tuple[List[Any], int]:
+        """列出实时新闻条目。"""
         ...
 
     def get_live_news_item_by_id(self, item_id: int) -> Any:
+        """按 ID 获取单条实时新闻。"""
         ...
 
     def count_live_news_items(self, *, scope_value: str) -> int:
+        """统计实时新闻条目数量。"""
         ...
 
     def list_calendar_events(self, **filters: Any) -> List[Any]:
+        """列出财经日历事件。"""
         ...
 
     def apply_retention(self, retention_days: int) -> int:
+        """按保留策略清理过期情报数据。"""
         ...

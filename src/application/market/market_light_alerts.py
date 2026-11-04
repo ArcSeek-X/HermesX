@@ -48,11 +48,13 @@ class MarketLightAlert:
     stock_code: str = ""
 
     def __post_init__(self) -> None:
+        """数据类后处理：校验并规范化预警参数。"""
         self.target = normalize_market_alert_region(self.target)
         self.stock_code = self.target
 
 
 def normalize_market_alert_parameters(alert_type: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """规范化大盘预警参数字典。"""
     if alert_type not in MARKET_ALERT_TYPES:
         raise ValueError(f"unsupported market alert_type: {alert_type}")
     if not isinstance(parameters, dict):
@@ -85,6 +87,7 @@ def make_market_light_payload(
     data: Dict[str, Any],
     config: Optional[Any] = None,
 ) -> RuntimeAlertPayload:
+    """构造大盘轻量预警载荷。"""
     region = normalize_market_alert_region(data["target"])
     if config is None:
         from src.config import get_config
@@ -124,6 +127,7 @@ def evaluate_market_light_alert(
     current_snapshot: Optional[Dict[str, Any]] = None,
     cache: Optional[Dict[Any, Any]] = None,
 ) -> Dict[str, Any]:
+    """评估大盘轻量预警是否触发。"""
     if rule.metadata.get("trading_day_check_enabled") and not rule.metadata.get("market_is_open", True):
         return _market_result(
             rule,
@@ -179,10 +183,12 @@ def evaluate_market_light_alert(
 
 
 def parse_trade_date_to_datetime(trade_date: str) -> datetime:
+    """将交易日字符串解析为 datetime。"""
     return datetime.fromisoformat(str(trade_date))
 
 
 def _cached_current_snapshot(region: str, cache: Optional[Dict[Any, Any]]) -> Dict[str, Any]:
+    """读取当前缓存的大盘快照。"""
     if cache is None:
         return build_current_snapshot(region)
     cache_key = ("market_light", region)
@@ -196,6 +202,7 @@ def _evaluate_status(
     current: MarketLightSnapshot,
     data_timestamp: datetime,
 ) -> Dict[str, Any]:
+    """评估大盘状态类预警。"""
     statuses = set(rule.parameters.get("statuses") or ["red", "yellow"])
     triggered = current.status in statuses
     diagnostics = _base_diagnostics(current)
@@ -221,6 +228,7 @@ def _evaluate_score_drop(
     current: MarketLightSnapshot,
     data_timestamp: datetime,
 ) -> Dict[str, Any]:
+    """评估评分下跌类预警。"""
     min_drop = float(rule.parameters["min_drop"])
     try:
         raw_previous = load_previous_snapshot(
@@ -326,6 +334,7 @@ def _market_result(
     data_timestamp: Optional[datetime] = None,
     diagnostics: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
+    """从快照中提取大盘结果字段。"""
     effective_status = "triggered" if triggered else "not_triggered"
     if triggered and record_status is None:
         record_status = "triggered"
@@ -345,12 +354,14 @@ def _market_result(
 
 
 def _threshold(rule: MarketLightAlert) -> Optional[float]:
+    """读取预警阈值参数。"""
     if rule.alert_type == "market_light_score_drop":
         return float(rule.parameters.get("min_drop", 0) or 0)
     return None
 
 
 def _base_diagnostics(snapshot: MarketLightSnapshot) -> Dict[str, Any]:
+    """构造预警基础诊断信息。"""
     return {
         "region": snapshot.region,
         "trade_date": snapshot.trade_date,
@@ -359,11 +370,13 @@ def _base_diagnostics(snapshot: MarketLightSnapshot) -> Dict[str, Any]:
 
 
 def _missing_dimensions(snapshot: MarketLightSnapshot) -> list[str]:
+    """列出快照中缺失的评估维度。"""
     dimensions = snapshot.dimensions.model_dump()
     return sorted(name for name, item in dimensions.items() if not item.get("available"))
 
 
 def _positive_float(value: Any, field_name: str) -> float:
+    """将值安全转换为正浮点数。"""
     try:
         number = float(value)
     except (TypeError, ValueError) as exc:

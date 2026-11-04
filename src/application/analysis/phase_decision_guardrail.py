@@ -82,6 +82,7 @@ _NEGATION_PREFIXES_KO = ("하지", "권하지 않", "금지", "삼가", "불필�
 
 
 def _recap_patterns_for(language: str) -> tuple[str, ...]:
+    """按语言返回盘后复盘表述的匹配模式。"""
     if language == "en":
         return _EN_POSTMARKET_RECAP_PATTERNS
     if language == "ko":
@@ -90,6 +91,7 @@ def _recap_patterns_for(language: str) -> tuple[str, ...]:
 
 
 def _immediate_markers_for(language: str) -> tuple[str, ...]:
+    """按语言返回即时买卖信号的关键词。"""
     if language == "en":
         return _IMMEDIATE_ACTION_MARKERS_EN
     if language == "ko":
@@ -98,6 +100,7 @@ def _immediate_markers_for(language: str) -> tuple[str, ...]:
 
 
 def _negations_for(language: str) -> tuple[str, ...]:
+    """按语言返回否定词集合。"""
     if language == "en":
         return _NEGATION_PREFIXES_EN
     if language == "ko":
@@ -106,6 +109,7 @@ def _negations_for(language: str) -> tuple[str, ...]:
 
 
 def _reason_text(language: str, *, en: str, zh: str, ko: str) -> str:
+    """提取护栏判定的理由文本。"""
     if language == "en":
         return en
     if language == "ko":
@@ -206,6 +210,7 @@ def apply_phase_decision_guardrails(
 
 
 def _ensure_phase_decision_shape(phase_decision: Dict[str, Any]) -> None:
+    """确保阶段决策对象结构完整。"""
     phase_decision.setdefault("phase_context", None)
     phase_decision.setdefault("action_window", None)
     phase_decision.setdefault("immediate_action", None)
@@ -216,6 +221,7 @@ def _ensure_phase_decision_shape(phase_decision: Dict[str, Any]) -> None:
 
 
 def _safe_phase_summary(value: Any) -> Optional[Dict[str, Any]]:
+    """安全提取阶段摘要信息。"""
     summary = render_market_phase_summary(value)
     if not summary:
         return None
@@ -223,10 +229,12 @@ def _safe_phase_summary(value: Any) -> Optional[Dict[str, Any]]:
 
 
 def _phase_context_from_summary(summary: Mapping[str, Any]) -> Dict[str, Any]:
+    """从阶段摘要还原阶段上下文。"""
     return {key: summary.get(key) for key in _PHASE_CONTEXT_KEYS if key in summary}
 
 
 def _has_core_degraded_block(overview: Optional[Mapping[str, Any]]) -> bool:
+    """判断核心数据是否降级。"""
     if not isinstance(overview, Mapping):
         return False
     blocks = overview.get("blocks")
@@ -243,6 +251,7 @@ def _has_core_degraded_block(overview: Optional[Mapping[str, Any]]) -> bool:
 
 
 def _overview_limitations(overview: Optional[Mapping[str, Any]]) -> List[str]:
+    """提取总览部分的限制说明。"""
     if not isinstance(overview, Mapping):
         return []
     data_quality = overview.get("data_quality")
@@ -252,6 +261,7 @@ def _overview_limitations(overview: Optional[Mapping[str, Any]]) -> List[str]:
 
 
 def _phase_warning_limitations(summary: Optional[Mapping[str, Any]], *, language: str) -> List[str]:
+    """提取阶段告警部分的限制说明。"""
     if not isinstance(summary, Mapping):
         return []
     warnings = _list_strings(summary.get("warnings"))
@@ -265,6 +275,7 @@ def _phase_warning_limitations(summary: Optional[Mapping[str, Any]], *, language
 
 
 def _merge_limitations(*groups: Any, limit: int = 5) -> List[str]:
+    """合并去重多组限制说明。"""
     merged: List[str] = []
     for group in groups:
         for item in _list_strings(group):
@@ -276,6 +287,7 @@ def _merge_limitations(*groups: Any, limit: int = 5) -> List[str]:
 
 
 def _is_high_confidence(value: Any) -> bool:
+    """判断决策是否为高置信度。"""
     text = _safe_text(value).lower()
     return text in {"高", "high", "높음"}
 
@@ -286,6 +298,7 @@ def _has_immediate_buy_sell_signal(
     *,
     language: str,
 ) -> bool:
+    """判断文本是否含即时买卖信号。"""
     haystack = " ".join(
         _safe_text(value)
         for value in (
@@ -300,6 +313,7 @@ def _has_immediate_buy_sell_signal(
 
 
 def _contains_non_negated_marker(text: str, markers: tuple[str, ...], *, language: str) -> bool:
+    """判断文本是否含未被否定的信号词。"""
     if not text:
         return False
     lowered = text.lower()
@@ -317,6 +331,7 @@ def _contains_non_negated_marker(text: str, markers: tuple[str, ...], *, languag
 
 
 def _is_negated_marker(text: str, marker_index: int, *, language: str) -> bool:
+    """判断信号词是否被否定语境修饰。"""
     window = 24 if language == "en" else 8
     prefix = text[max(0, marker_index - window):marker_index].rstrip()
     negations = _negations_for(language)
@@ -324,6 +339,7 @@ def _is_negated_marker(text: str, marker_index: int, *, language: str) -> bool:
 
 
 def _contains_postmarket_recap(result: "AnalysisResult", phase_decision: Mapping[str, Any], *, language: str) -> bool:
+    """判断文本是否为盘后复盘表述。"""
     dashboard_value = getattr(result, "dashboard", None)
     dashboard = dashboard_value if isinstance(dashboard_value, dict) else {}
     core = dashboard.get("core_conclusion")
@@ -344,6 +360,7 @@ def _replace_postmarket_recap_fields(
     *,
     language: str,
 ) -> None:
+    """将盘后复盘表述字段替换为合规内容。"""
     dashboard_value = getattr(result, "dashboard", None)
     dashboard = dashboard_value if isinstance(dashboard_value, dict) else {}
     core = dashboard.get("core_conclusion")
@@ -371,6 +388,7 @@ def _replace_postmarket_recap_fields(
 
 
 def _append_reason(phase_decision: Dict[str, Any], reason: str) -> None:
+    """追加一条护栏调整理由。"""
     existing = _safe_text(phase_decision.get("confidence_reason"))
     if not existing:
         phase_decision["confidence_reason"] = reason
@@ -380,6 +398,7 @@ def _append_reason(phase_decision: Dict[str, Any], reason: str) -> None:
 
 
 def _adjustment_limitation_text(adjustment: str, *, language: str) -> str:
+    """生成护栏调整对应的限制说明。"""
     if adjustment == "postmarket_recap_wording_adjusted":
         return _reason_text(
             language,
@@ -412,6 +431,7 @@ def _adjustment_limitation_text(adjustment: str, *, language: str) -> str:
 
 
 def _safe_wait_action(language: str) -> str:
+    """返回安全的观望动作标识。"""
     return _reason_text(
         language,
         en="Wait for intraday confirmation; do not chase.",
@@ -421,15 +441,18 @@ def _safe_wait_action(language: str) -> str:
 
 
 def _patterns(language: str) -> tuple[str, ...]:
+    """编译并返回指定模式的正则集合。"""
     return _recap_patterns_for(language)
 
 
 def _contains_any(value: Any, patterns: tuple[str, ...]) -> bool:
+    """判断文本是否匹配任意给定模式。"""
     text = _safe_text(value).lower()
     return bool(text) and any(pattern.lower() in text for pattern in patterns)
 
 
 def _list_strings(value: Any, *, limit: int = 20) -> List[str]:
+    """安全提取字符串列表。"""
     if not isinstance(value, list):
         return []
     result: List[str] = []
@@ -443,6 +466,7 @@ def _list_strings(value: Any, *, limit: int = 20) -> List[str]:
 
 
 def _safe_text(value: Any) -> str:
+    """将任意值安全转换为文本。"""
     if value is None:
         return ""
     if isinstance(value, (Mapping, list, tuple, set)):

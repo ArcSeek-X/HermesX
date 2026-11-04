@@ -224,6 +224,7 @@ class ConfigValidationError(Exception):
     """Raised when one or more submitted fields fail validation."""
 
     def __init__(self, issues: List[Dict[str, Any]]):
+        """构造系统配置服务并装配依赖。"""
         super().__init__("Configuration validation failed")
         self.issues = issues
 
@@ -232,6 +233,7 @@ class ConfigConflictError(Exception):
     """Raised when submitted config_version is stale."""
 
     def __init__(self, current_version: str):
+        """构造系统配置服务并装配依赖。"""
         super().__init__("Configuration version conflict")
         self.current_version = current_version
 
@@ -240,6 +242,7 @@ class ConfigImportError(Exception):
     """Raised when an imported `.env` payload is invalid."""
 
     def __init__(self, message: str):
+        """构造系统配置服务并装配依赖。"""
         super().__init__(message)
         self.message = message
 
@@ -323,10 +326,12 @@ class SystemConfigService:
     _NOTIFICATION_TEST_TARGET_KEYS = _NOTIFICATION_TEST_TARGET_KEYS
 
     def __init__(self, manager: Optional[ConfigManager] = None, runtime_scheduler: Optional[Any] = None):
+        """构造系统配置服务并装配依赖。"""
         self._manager = manager or ConfigManager()
         self._runtime_scheduler = runtime_scheduler
 
     def _channel_probe(self) -> LlmChannelProbe:
+        """返回渠道连通性探测函数。"""
         return LlmChannelProbe(
             self._manager,
             probe_port_provider=_get_config_probe_port,
@@ -345,6 +350,7 @@ class SystemConfigService:
 
     @classmethod
     def _normalize_display_value(cls, key: str, value: str) -> str:
+        """规范化配置项展示值。"""
         alias_map = cls._DISPLAY_VALUE_ALIASES.get(key.upper())
         if not alias_map:
             return value
@@ -352,6 +358,7 @@ class SystemConfigService:
 
     @classmethod
     def _build_display_config_map(cls, raw_config_map: Dict[str, str]) -> Dict[str, str]:
+        """构建用于展示的配置映射。"""
         raw_upper = {key.upper(): value for key, value in raw_config_map.items()}
         aliased_keys = {
             alias
@@ -401,6 +408,7 @@ class SystemConfigService:
 
     @staticmethod
     def _resolve_display_value(raw_value: str, field_schema: Dict[str, Any], raw_value_exists: bool) -> str:
+        """解析配置项的展示取值。"""
         if raw_value_exists:
             return raw_value
 
@@ -546,6 +554,7 @@ class SystemConfigService:
         content: str = "这是一条来自 HRS Web 设置页的通知测试消息。",
         timeout_seconds: float = 20.0,
     ) -> Dict[str, Any]:
+        """测试指定通知渠道连通性。"""
         normalized_channel = (channel or "").strip().lower()
         if normalized_channel not in self._NOTIFICATION_TEST_CHANNELS:
             raise ValueError(f"Unsupported notification channel: {channel}")
@@ -703,6 +712,7 @@ class SystemConfigService:
         timeout_seconds: float = 20.0,
         use_saved_secret: bool = False,
     ) -> Dict[str, Any]:
+        """发现 LLM 渠道可用模型列表。"""
         return self._channel_probe().discover_llm_channel_models(name=name, protocol=protocol, base_url=base_url, api_key=api_key, models=models, timeout_seconds=timeout_seconds, use_saved_secret=use_saved_secret)
 
     def test_llm_channel(
@@ -718,6 +728,7 @@ class SystemConfigService:
         capability_checks: Sequence[str] = (),
         use_saved_secret: bool = False,
     ) -> Dict[str, Any]:
+        """测试指定 LLM 渠道连通性。"""
         return self._channel_probe().test_llm_channel(name=name, protocol=protocol, base_url=base_url, api_key=api_key, models=models, enabled=enabled, timeout_seconds=timeout_seconds, capability_checks=capability_checks, use_saved_secret=use_saved_secret)
 
 
@@ -1096,6 +1107,7 @@ class SystemConfigService:
 
     @classmethod
     def _is_generation_backend_status_key(cls, key: str) -> bool:
+        """判断配置键是否为生成后端状态项。"""
         normalized = str(key or "").strip().upper()
         return (
             normalized in cls._GENERATION_BACKEND_STATUS_EXACT_KEYS
@@ -1108,6 +1120,7 @@ class SystemConfigService:
         cls,
         items: Sequence[Dict[str, str]],
     ) -> List[Dict[str, str]]:
+        """筛选生成后端相关配置项。"""
         filtered: List[Dict[str, str]] = []
         for item in items:
             key = str(item.get("key", "")).strip().upper()
@@ -1121,6 +1134,7 @@ class SystemConfigService:
         cls,
         items: Sequence[Dict[str, str]],
     ) -> List[Dict[str, str]]:
+        """筛选 Agent 后端相关配置项。"""
         return [
             {
                 "key": str(item.get("key", "")).strip().upper(),
@@ -1227,6 +1241,7 @@ class SystemConfigService:
         self,
         effective_map: Dict[str, str],
     ) -> List[Dict[str, Any]]:
+        """从配置映射收集生成后端问题。"""
         items = [
             {"key": key, "value": value}
             for key, value in effective_map.items()
@@ -1236,6 +1251,7 @@ class SystemConfigService:
 
     @staticmethod
     def _validate_value(key: str, value: str, field_schema: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """校验配置值合法性。"""
         return ConfigValueValidator(_get_config_probe_port).validate_value(key=key, value=value, field_schema=field_schema)
 
     _normalize_value_for_storage = staticmethod(ConfigValueValidator.normalize_value_for_storage)
@@ -1273,6 +1289,7 @@ class SystemConfigService:
 
     @staticmethod
     def _is_setup_relevant_env_key(key: str) -> bool:
+        """判断环境变量键是否与初始化检查相关。"""
         if key in {
             "STOCK_LIST",
             "DATABASE_PATH",

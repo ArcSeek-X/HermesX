@@ -100,6 +100,7 @@ class EastMoneySectorSource(SectorDataSource):
     source_id = "eastmoney"
 
     def __init__(self) -> None:
+        """构造板块数据源（东财）。"""
         self.fetcher = AkshareFetcher()
 
     def fetch(self, request: SectorRankingRequest) -> Optional[SectorRankingResult]:
@@ -536,6 +537,7 @@ def get_sector_fund_flow_history_data(
     sector_histories: List[Dict] = []
 
     def _fetch_one(sector: Dict) -> Optional[Dict]:
+        """拉取单个板块数据。"""
         klines = fetch_sector_fund_flow_kline_with_retry(sector["code"], limit)
         if not klines:
             return None

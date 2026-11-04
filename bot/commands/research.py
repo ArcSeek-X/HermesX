@@ -37,21 +37,26 @@ class ResearchCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "research"
 
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["深研", "deepsearch"]
 
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "Deep research on a stock or market topic"
 
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/research <stock_code|topic> [specific question]"
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
+        """执行深度研究命令。"""
         if not args:
             return BotResponse.text_response(
                 f"Usage: {self.usage}\n"

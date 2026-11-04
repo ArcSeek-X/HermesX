@@ -44,6 +44,7 @@ class BacktestResultLike(Protocol):
 
 @dataclass(frozen=True)
 class EvaluationConfig:
+    """回测评估配置。"""
     eval_window_days: int
     neutral_band_pct: float = 2.0
     engine_version: str = "v1"
@@ -480,6 +481,7 @@ class BacktestEngine:
 
     @staticmethod
     def _normalize_text(value: Optional[str]) -> str:
+        """规范化文本用于比较。"""
         return str(value or "").strip().lower()
 
     @classmethod
@@ -607,6 +609,7 @@ class BacktestEngine:
         direction_expected: str,
         neutral_band_pct: float,
     ) -> tuple[Optional[str], Optional[bool]]:
+        """对结果进行分类。"""
         if stock_return_pct is None:
             return None, None
 
@@ -647,6 +650,7 @@ class BacktestEngine:
         direction_expected: str,
         neutral_band_pct: float,
     ) -> tuple[Optional[str], Optional[bool]]:
+        """对信号方向结果进行分类。"""
         if stock_return_pct is None:
             return None, None
 
@@ -676,6 +680,7 @@ class BacktestEngine:
 
     @staticmethod
     def _finite_optional_float(value: Any) -> Optional[float]:
+        """将值安全转换为有限浮点数。"""
         if value is None:
             return None
         try:
@@ -702,6 +707,7 @@ class BacktestEngine:
         Optional[float],
         str,
     ]:
+        """评估目标价与止损价达成情况。"""
         if position != "long":
             return (
                 None,
@@ -779,6 +785,7 @@ class BacktestEngine:
 
     @staticmethod
     def _average(values: Iterable[Optional[float]]) -> Optional[float]:
+        """计算数值平均值。"""
         items = [float(v) for v in values if v is not None]
         if not items:
             return None
@@ -786,6 +793,7 @@ class BacktestEngine:
 
     @staticmethod
     def _compute_advice_breakdown(results: List[BacktestResultLike]) -> Dict[str, Any]:
+        """按建议类型统计分布。"""
         breakdown: Dict[str, Dict[str, int]] = {}
         for row in results:
             raw_advice = row.operation_advice
@@ -807,6 +815,7 @@ class BacktestEngine:
 
     @staticmethod
     def _compute_diagnostics(results: List[BacktestResultLike]) -> Dict[str, Any]:
+        """计算回测诊断指标。"""
         status_counts: Dict[str, int] = {}
         first_hit_counts: Dict[str, int] = {}
         for row in results:

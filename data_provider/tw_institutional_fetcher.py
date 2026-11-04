@@ -112,6 +112,7 @@ class TwInstitutionalFetcher:
         timeout: int = 15,
     ) -> None:
         # Whole-market single-day cache keyed by (market, ad_date); filtered per stock.
+        """构造台股机构数据抓取器并装配依赖。"""
         self._cache: Dict[Any, Dict[str, dict]] = {}
         self._cache_at: Dict[Any, float] = {}
         self._cache_ttl = cache_ttl_seconds
@@ -171,6 +172,7 @@ class TwInstitutionalFetcher:
     # ------------------------------------------------------------------ routing
     @staticmethod
     def _market_of(stock_code: Any) -> Optional[str]:
+        """返回代码所属市场。"""
         upper = str(stock_code or "").strip().upper()
         if upper.endswith(".TWO"):
             return "tpex"
@@ -180,10 +182,12 @@ class TwInstitutionalFetcher:
 
     @staticmethod
     def _base_code(stock_code: Any) -> str:
+        """提取基础股票代码。"""
         return str(stock_code or "").strip().upper().rsplit(".", 1)[0]
 
     @staticmethod
     def _norm_ad_date(date: Any) -> Optional[str]:
+        """规范化台股日期。"""
         if not date:
             return None
         text = str(date).strip().replace("-", "").replace("/", "")
@@ -239,6 +243,7 @@ class TwInstitutionalFetcher:
             return table
 
     def _read_cache(self, key: Any) -> Optional[Dict[str, dict]]:
+        """读取缓存数据。"""
         with self._lock:
             cached = self._cache.get(key)
             if cached is not None and (time.time() - self._cache_at.get(key, 0.0)) < self._cache_ttl:
@@ -246,6 +251,7 @@ class TwInstitutionalFetcher:
         return None
 
     def _key_lock(self, key: Any) -> threading.Lock:
+        """返回指定键的锁。"""
         with self._lock:
             lock = self._inflight.get(key)
             if lock is None:
@@ -254,6 +260,7 @@ class TwInstitutionalFetcher:
             return lock
 
     def _throttle(self) -> None:
+        """执行请求限流。"""
         with self._throttle_lock:
             wait = self._min_interval - (time.time() - self._last_request_at)
             if wait > 0:
@@ -261,6 +268,7 @@ class TwInstitutionalFetcher:
             self._last_request_at = time.time()
 
     def _get_json(self, url: str, params: Optional[dict] = None) -> Any:
+        """发起 JSON 请求。"""
         self._throttle()
         resp = requests.get(
             url,
@@ -273,6 +281,7 @@ class TwInstitutionalFetcher:
 
     # ------------------------------------------------------------- TWSE T86 (上市)
     def _fetch_twse(self, ad_date: Optional[str]) -> Dict[str, dict]:
+        """拉取 TWSE 数据。"""
         params = {"response": "json", "selectType": "ALLBUT0999"}
         if ad_date:
             params["date"] = ad_date
@@ -316,6 +325,7 @@ class TwInstitutionalFetcher:
     def _parse_t86_row(
         row: Any, ad_date: Optional[str], idx: Dict[str, int]
     ) -> Optional[dict]:
+        """解析 T86 数据行。"""
         if not isinstance(row, (list, tuple)) or any(i >= len(row) for i in idx.values()):
             return None
         if ad_date is None:  # data with no attributable trading date -> fail-open
@@ -337,6 +347,7 @@ class TwInstitutionalFetcher:
 
     # -------------------------------------------------------------- TPEx (上櫃)
     def _fetch_tpex(self) -> Dict[str, dict]:
+        """拉取 TPEX 数据。"""
         payload = self._get_json(_TPEX_URL)
         if not isinstance(payload, list) or not payload:
             return {}
@@ -349,6 +360,7 @@ class TwInstitutionalFetcher:
 
     @staticmethod
     def _parse_tpex_row(raw: Any) -> Optional[dict]:
+        """解析 TPEX 数据行。"""
         if not isinstance(raw, dict):
             return None
         code = str(raw.get("SecuritiesCompanyCode", "")).strip()
@@ -384,6 +396,7 @@ class TwInstitutionalFetcher:
         # foreign / trust / dealer are guaranteed non-None by the parsers (a missing
         # component fails the row open upstream), so a genuine 0 is preserved as 0
         # and is never confused with a missing column.
+        """构造机构交易记录。"""
         return {
             "stock_code": code,
             "date": ad_date,

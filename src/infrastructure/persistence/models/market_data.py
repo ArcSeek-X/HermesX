@@ -80,6 +80,7 @@ class StockDaily(Base):
     )
     
     def __repr__(self):
+        """返回行情数据模型的调试表示。"""
         return f"<StockDaily(code={self.code}, date={self.date}, close={self.close})>"
     
     def to_dict(self) -> Dict[str, Any]:

@@ -24,6 +24,7 @@ class DataFetcherManagerAdapter:
 
     def __init__(self) -> None:
         # Lazy import to avoid pulling data_provider at module level
+        """构造市场数据提供者并装配依赖。"""
         from data_provider import DataFetcherManager
         self._manager = DataFetcherManager()
 
@@ -47,6 +48,7 @@ class DataFetcherManagerAdapter:
     # ------------------------------------------------------------------
 
     def get_realtime_quote(self, stock_code: str) -> Optional[Dict[str, Any]]:
+        """获取实时行情。"""
         quote = self._manager.get_realtime_quote(stock_code)
         if quote is None:
             return None
@@ -74,6 +76,7 @@ class DataFetcherManagerAdapter:
         }
 
     def get_chip_distribution(self, stock_code: str) -> Optional[Dict[str, Any]]:
+        """获取筹码分布数据。"""
         chip = self._manager.get_chip_distribution(stock_code)
         if chip is None:
             return None
@@ -92,22 +95,29 @@ class DataFetcherManagerAdapter:
         }
 
     def get_fundamental_context(self, stock_code: str) -> Dict[str, Any]:
+        """获取基本面上下文。"""
         return self._manager.get_fundamental_context(stock_code)
 
     def build_failed_fundamental_context(self, stock_code: str, reason: str) -> Dict[str, Any]:
+        """构造基本面获取失败时的降级上下文。"""
         return self._manager.build_failed_fundamental_context(stock_code, reason)
 
     def get_belong_boards(self, stock_code: str) -> List[Dict[str, Any]]:
+        """获取个股所属板块列表。"""
         return self._manager.get_belong_boards(stock_code)
 
     def get_stock_name(self, stock_code: str) -> Optional[str]:
+        """获取股票名称。"""
         return self._manager.get_stock_name(stock_code)
 
     def get_capital_flow_context(self, stock_code: str) -> Dict[str, Any]:
+        """获取资金流向上下文。"""
         return self._manager.get_capital_flow_context(stock_code)
 
     def get_main_indices(self, region: str = "cn") -> List[Dict[str, Any]]:
+        """获取主要指数行情。"""
         return self._manager.get_main_indices(region=region) or []
 
     def get_sector_rankings(self, n: int = 10) -> Optional[Tuple[List[Dict], List[Dict]]]:
+        """获取行业板块排行。"""
         return self._manager.get_sector_rankings(n=n)

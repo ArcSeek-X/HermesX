@@ -49,6 +49,7 @@ def set_belong_boards_port(port: Optional[BelongBoardsPort]) -> None:
 
 
 def _get_belong_boards_port() -> Optional[BelongBoardsPort]:
+    """返回当前已装配的所属板块数据端口。"""
     return _belong_boards_port
 
 
@@ -63,6 +64,7 @@ class PortfolioRiskService:
         decision_signal_service: Optional[DecisionSignalService] = None,
         config: Optional[Config] = None,
     ):
+        """构造组合风险服务并装配依赖。"""
         self.repo: PortfolioRepositoryPort = repo or get_portfolio_repository()
         self.portfolio_service = portfolio_service or PortfolioService(repo=self.repo)
         if decision_signal_service is None:
@@ -80,6 +82,7 @@ class PortfolioRiskService:
         cost_method: str = "fifo",
         include_realtime: bool = True,
     ) -> Dict[str, Any]:
+        """生成组合风险报告。"""
         as_of_date = as_of or date.today()
         snapshot = self.portfolio_service.get_portfolio_snapshot(
             account_id=account_id,
@@ -140,6 +143,7 @@ class PortfolioRiskService:
         self,
         snapshot: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """构建决策信号相关的风险段落。"""
         try:
             held_positions = self._held_position_identities(snapshot)
             if not held_positions:
@@ -210,6 +214,7 @@ class PortfolioRiskService:
 
     @staticmethod
     def _empty_decision_signal_risk(*, available: bool) -> Dict[str, Any]:
+        """构造空的决策信号风险段落。"""
         return {
             "available": available,
             "total": 0,
@@ -219,6 +224,7 @@ class PortfolioRiskService:
 
     @staticmethod
     def _held_position_identities(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """列出当前持仓标识集合。"""
         positions: List[Dict[str, Any]] = []
         for account in snapshot.get("accounts", []) or []:
             account_id = account.get("account_id")
@@ -247,6 +253,7 @@ class PortfolioRiskService:
         lookback_days: int,
         include_realtime: bool,
     ) -> None:
+        """确保回撤计算所需的快照区间完整。"""
         if lookback_days <= 0:
             return
 
@@ -303,6 +310,7 @@ class PortfolioRiskService:
         as_of_date: date,
         lookback_days: int,
     ) -> date:
+        """解析快照回补的起始日期。"""
         window_start = as_of_date - timedelta(days=lookback_days)
         if account_id is not None:
             first_activity = self.repo.get_first_activity_date(account_id=account_id, as_of=as_of_date)
@@ -318,6 +326,7 @@ class PortfolioRiskService:
         return max(window_start, min(first_activity_candidates))
 
     def _build_concentration(self, snapshot: Dict[str, Any], threshold_pct: float, *, as_of_date: date) -> Dict[str, Any]:
+        """构建持仓集中度风险指标。"""
         total_mv = float(snapshot.get("total_market_value", 0.0) or 0.0)
         exposure_by_symbol: Dict[str, float] = {}
         for account in snapshot.get("accounts", []):
@@ -362,6 +371,7 @@ class PortfolioRiskService:
         *,
         as_of_date: date,
     ) -> Dict[str, Any]:
+        """构建行业集中度风险指标。"""
         total_mv = float(snapshot.get("total_market_value", 0.0) or 0.0)
         sector_exposure: Dict[str, float] = {}
         sector_symbols: Dict[str, set] = {}
@@ -431,6 +441,7 @@ class PortfolioRiskService:
         coverage: Dict[str, int],
         errors: List[str],
     ) -> str:
+        """解析持仓所属的主行业。"""
         cache_key = (symbol, market)
         if cache_key in board_cache:
             return board_cache[cache_key]
@@ -456,6 +467,7 @@ class PortfolioRiskService:
         return board_cache[cache_key]
 
     def _fetch_belong_boards(self, symbol: str) -> List[Dict[str, Any]]:
+        """拉取个股所属板块数据。"""
         port = _get_belong_boards_port()
         if port is None:
             # 板块归属端口未装配：与迁移前 DataFetcherManager 初始化失败一致优雅降级为空
@@ -471,6 +483,7 @@ class PortfolioRiskService:
 
     @staticmethod
     def _pick_primary_board_name(boards: List[Dict[str, Any]]) -> Optional[str]:
+        """挑选主要板块名称。"""
         return _pick_primary_board_name(boards)
 
     def _build_drawdown(
@@ -482,6 +495,7 @@ class PortfolioRiskService:
         threshold_pct: float,
         lookback_days: int,
     ) -> Dict[str, Any]:
+        """构建回撤风险指标。"""
         rows = self.repo.list_daily_snapshots_for_risk(
             as_of=as_of_date,
             cost_method=cost_method,
@@ -517,6 +531,7 @@ class PortfolioRiskService:
 
     @staticmethod
     def _build_stop_loss(snapshot: Dict[str, Any], thresholds: Dict[str, Any]) -> Dict[str, Any]:
+        """构建止损风险指标。"""
         return build_stop_loss_report(
             snapshot,
             stop_loss_pct=float(thresholds["stop_loss_alert_pct"]),

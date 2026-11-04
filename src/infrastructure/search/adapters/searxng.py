@@ -37,6 +37,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
     _public_instances_lock = threading.Lock()
 
     def __init__(self, base_urls: Optional[List[str]] = None, *, use_public_instances: bool = False):
+        """构造 SearXNG 检索适配器并装配依赖。"""
         normalized_base_urls = [url.rstrip("/") for url in (base_urls or []) if url.strip()]
         super().__init__(normalized_base_urls, "SearXNG")
         self._base_urls = normalized_base_urls
@@ -46,6 +47,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @property
     def is_available(self) -> bool:
+        """判断 SearXNG 服务是否可用。"""
         return bool(self._base_urls) or self._use_public_instances
 
     @classmethod
@@ -78,6 +80,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @staticmethod
     def _time_range(days: int) -> str:
+        """将时间范围参数转换为接口取值。"""
         if days <= 1:
             return "day"
         if days <= 7:
@@ -88,6 +91,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @classmethod
     def _search_latency_seconds(cls, instance_data: Dict[str, Any]) -> float:
+        """返回检索延迟（秒）。"""
         timing = (instance_data.get("timing") or {}).get("search") or {}
         all_timing = timing.get("all")
         if isinstance(all_timing, dict):
@@ -99,6 +103,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @classmethod
     def _extract_public_instances(cls, payload: Any) -> List[str]:
+        """从响应提取公共实例列表。"""
         if not isinstance(payload, dict):
             return []
 
@@ -133,6 +138,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @classmethod
     def _get_public_instances(cls) -> List[str]:
+        """获取可用公共实例列表。"""
         now = time.time()
         with cls._public_instances_lock:
             stale_urls: List[str] = []
@@ -191,6 +197,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
             return []
 
     def _rotate_candidates(self, pool: List[str], *, max_attempts: int) -> List[str]:
+        """轮换候选实例。"""
         if not pool or max_attempts <= 0:
             return []
         with self._cursor_lock:

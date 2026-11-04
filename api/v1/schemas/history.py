@@ -269,6 +269,7 @@ class ReportDetails(BaseModel):
 
     @model_validator(mode="after")
     def populate_context_derived_details(self) -> "ReportDetails":
+        """填充由上下文派生的历史详情字段。"""
         if self.concept_rankings is None and self.context_snapshot is not None:
             try:
                 from src.utils.data_processing import extract_board_detail_fields

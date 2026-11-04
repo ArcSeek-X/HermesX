@@ -415,6 +415,7 @@ def infer_market_phase(
 
 
 def _add_warning_code(warnings: List[str], code: str) -> None:
+    """追加一条告警码。"""
     if code not in warnings:
         warnings.append(code)
 
@@ -422,6 +423,7 @@ def _add_warning_code(warnings: List[str], code: str) -> None:
 def _phase_booleans(
     phase: MarketPhase,
 ) -> Tuple[Optional[bool], Optional[bool], Optional[bool]]:
+    """返回各交易阶段的布尔状态。"""
     if phase == MarketPhase.UNKNOWN:
         return None, None, None
 
@@ -442,6 +444,7 @@ def _session_open_close_for_today(
     market: str,
     market_now: datetime,
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """返回当日开盘与收盘时间。"""
     ex = MARKET_EXCHANGE.get(market)
     tz_name = MARKET_TIMEZONE.get(market)
     if not ex or not tz_name or not _XCALS_AVAILABLE:
@@ -464,6 +467,7 @@ def _phase_minutes(
     market_now: datetime,
     phase: MarketPhase,
 ) -> Tuple[Optional[int], Optional[int], bool]:
+    """计算当前阶段剩余分钟数。"""
     if (
         market not in MARKET_EXCHANGE
         or phase in {MarketPhase.UNKNOWN, MarketPhase.NON_TRADING, MarketPhase.POSTMARKET}
@@ -500,7 +504,9 @@ def _normalize_analysis_phase(
     analysis_phase: Optional[str],
     analysis_intent: Optional[str],
 ) -> str:
+    """规范化分析阶段标识。"""
     def _coerce(value: Optional[str]) -> str:
+        """将值安全转换。"""
         if isinstance(value, MarketPhase):
             return value.value
         return str(value or "").strip().lower()

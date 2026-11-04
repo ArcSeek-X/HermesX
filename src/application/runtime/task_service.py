@@ -39,6 +39,7 @@ def set_history_repo(repo: Any) -> None:
 
 
 def _get_history_repo() -> Any:
+    """返回当前已装配的历史仓储单例。"""
     return _history_repo
 
 
@@ -56,6 +57,7 @@ class TaskService:
     _lock = threading.Lock()
 
     def __init__(self, max_workers: int = 3):
+        """构造任务服务：按最大工作线程数初始化执行器。"""
         self._executor: Optional[ThreadPoolExecutor] = None
         self._max_workers = max_workers
         self._tasks: Dict[str, Dict[str, Any]] = {}

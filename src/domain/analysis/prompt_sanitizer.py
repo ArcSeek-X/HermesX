@@ -107,6 +107,7 @@ def contains_trend_hint(text: str, hints: Tuple[str, ...]) -> bool:
     lowered = text.strip().lower()
 
     def _has_negation_scope_break(gap: str) -> bool:
+        """判断否定作用域是否被打破。"""
         normalized_gap = gap.lower()
         for token in NEGATION_SCOPE_BREAK_TOKENS:
             token_index = normalized_gap.find(token)
@@ -115,6 +116,7 @@ def contains_trend_hint(text: str, hints: Tuple[str, ...]) -> bool:
         return False
 
     def _is_valid_negation_gap(token: str, gap: str) -> bool:
+        """判断否定词与关键词间距是否有效。"""
         if not gap:
             return True
         if token not in {"未", "无", "非"}:
@@ -122,6 +124,7 @@ def contains_trend_hint(text: str, hints: Tuple[str, ...]) -> bool:
         return any(gap.startswith(prefix) for prefix in SINGLE_CHAR_NEGATION_GAP_PREFIXES)
 
     def _is_negated_match(index: int) -> bool:
+        """判断匹配是否处于否定语境。"""
         prefix = lowered[max(0, index - NEGATION_LOOKBACK_CHARS):index]
         for token in NEGATION_TOKENS:
             token_index = prefix.rfind(token)

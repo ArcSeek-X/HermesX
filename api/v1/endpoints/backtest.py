@@ -31,6 +31,7 @@ def _validate_analysis_date_range(
     analysis_date_from: Optional[date],
     analysis_date_to: Optional[date],
 ) -> None:
+    """校验分析日期区间合法性。"""
     if analysis_date_from and analysis_date_to and analysis_date_from > analysis_date_to:
         raise HTTPException(
             status_code=400,
@@ -56,6 +57,7 @@ def run_backtest(
     request: BacktestRunRequest,
     service: BacktestService = Depends(get_backtest_service),
 ) -> BacktestRunResponse:
+    """执行回测任务。"""
     try:
         _validate_analysis_date_range(request.analysis_date_from, request.analysis_date_to)
         stats = service.run_backtest(
@@ -104,6 +106,7 @@ def get_backtest_results(
     limit: int = Query(20, ge=1, le=200, description="每页数量"),
     service: BacktestService = Depends(get_backtest_service),
 ) -> BacktestResultsResponse:
+    """查询回测结果列表。"""
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
         data = service.get_recent_evaluations(
@@ -155,6 +158,7 @@ def get_overall_performance(
     analysis_phase: Optional[BacktestAnalysisPhaseQuery] = Query(None, description="分析阶段过滤：premarket/intraday/postmarket/unknown"),
     service: BacktestService = Depends(get_backtest_service),
 ) -> PerformanceMetrics:
+    """查询整体回测表现。"""
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
         summary = service.get_summary(
@@ -205,6 +209,7 @@ def get_stock_performance(
     analysis_phase: Optional[BacktestAnalysisPhaseQuery] = Query(None, description="分析阶段过滤：premarket/intraday/postmarket/unknown"),
     service: BacktestService = Depends(get_backtest_service),
 ) -> PerformanceMetrics:
+    """查询单只股票回测表现。"""
     try:
         _validate_analysis_date_range(analysis_date_from, analysis_date_to)
         summary = service.get_summary(

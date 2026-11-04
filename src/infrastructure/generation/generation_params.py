@@ -138,10 +138,12 @@ def resolve_litellm_thinking_enabled(
 
 
 def _model_parts(model: str) -> List[str]:
+    """拆分模型标识为组成部分。"""
     return [part for part in re.split(r"[/:\s]+", (model or "").lower()) if part]
 
 
 def _matches_model_family(model: str, family: str) -> bool:
+    """判断模型是否属于指定系列。"""
     return any(part == family or part.startswith(f"{family}-") for part in _model_parts(model))
 
 
@@ -229,6 +231,7 @@ def normalize_litellm_temperature(
 
 
 def _redact_recovery_cache_value(param_name: str, value: Any) -> Any:
+    """对恢复缓存值做脱敏。"""
     if param_name.strip().lower() in _SECRET_CACHE_FIELD_NAMES:
         return "<set>" if value else "<empty>"
     if isinstance(value, Mapping):
@@ -242,6 +245,7 @@ def _redact_recovery_cache_value(param_name: str, value: Any) -> Any:
 
 
 def _stable_recovery_cache_json(value: Mapping[str, Any]) -> str:
+    """生成稳定的恢复缓存 JSON。"""
     redacted = {
         key: _redact_recovery_cache_value(key, val)
         for key, val in sorted(value.items())
@@ -250,6 +254,7 @@ def _stable_recovery_cache_json(value: Mapping[str, Any]) -> str:
 
 
 def _filter_litellm_routing_params(params: Mapping[str, Any]) -> Dict[str, Any]:
+    """过滤 LiteLLM 路由相关参数。"""
     return {
         key: params[key]
         for key in _LITELLM_ROUTING_PARAM_KEYS
@@ -258,6 +263,7 @@ def _filter_litellm_routing_params(params: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def _request_endpoint_cache_scope(request_overrides: Optional[Dict[str, Any]]) -> Optional[str]:
+    """返回请求端点的缓存作用域。"""
     if not isinstance(request_overrides, Mapping):
         return None
     routing_params = _filter_litellm_routing_params(request_overrides)
@@ -270,6 +276,7 @@ def _model_list_endpoint_cache_scope(
     model: str,
     model_list: Optional[List[Dict[str, Any]]],
 ) -> Optional[str]:
+    """返回模型列表端点的缓存作用域。"""
     entries = find_model_list_entries(model, model_list)
     if not entries:
         return "default"
@@ -295,6 +302,7 @@ def _recovery_cache_key(
     model_list: Optional[List[Dict[str, Any]]] = None,
     request_overrides: Optional[Dict[str, Any]] = None,
 ) -> Optional[str]:
+    """构造恢复缓存键。"""
     wire_model = resolve_litellm_wire_model(model, model_list).strip().lower()
     thinking_enabled = resolve_litellm_thinking_enabled(
         model,

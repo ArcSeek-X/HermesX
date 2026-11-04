@@ -4,6 +4,9 @@
 The App Server transport may use threads for protocol dispatch, but HRS tool
 handlers run only in spawned child processes.  Cancellation and deadlines can
 therefore end database work by terminating the process group that owns it.
+
+进程持有的 Codex 动态工具调用执行边界。App Server 传输层可能用线程做协议分发，
+但 HRS 工具处理器只在派生的子进程中运行，因此取消与截止时间可通过终止拥有它的进程组来中断数据库操作。
 """
 
 from __future__ import annotations
@@ -38,11 +41,13 @@ ToolWorker = Callable[[str, dict, ToolAccessContext], dict]
 
 
 class _ToolProcessOutputTooLarge(ValueError):
+    """工具子进程输出超过上限时抛出的异常。"""
     pass
 
 
 @dataclass
 class _OwnedToolProcess:
+    """描述由本进程组持有的工具子进程（进程对象、pid 与就绪标志）。"""
     process: Any
     pid: int
     ready: bool = False
@@ -54,10 +59,12 @@ class _OwnedToolProcess:
 
 
 def _encode_json(payload: dict) -> bytes:
+    """将载荷序列化为紧凑 UTF-8 JSON 字节。"""
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def _send_frame(connection: Any, payload: dict) -> None:
+    """通过连接发送 IPC 帧；超过头部字节上限时抛 ValueError。"""
     encoded = _encode_json(payload)
     if len(encoded) > MAX_TOOL_PROCESS_HEADER_BYTES:
         raise ValueError("tool process metadata exceeded the IPC header limit")
@@ -65,6 +72,7 @@ def _send_frame(connection: Any, payload: dict) -> None:
 
 
 def _send_result_frame(connection: Any, payload: dict) -> None:
+    """发送结果帧，结果文本超过上限时截断并标记 is_truncated。"""
     result_text = str(payload.get("result_text", ""))
     result_bytes = result_text.encode("utf-8")
     if len(result_bytes) > MAX_TOOL_RESULT_BYTES:
@@ -86,6 +94,7 @@ def _send_result_frame(connection: Any, payload: dict) -> None:
 
 
 def _decode_frame(raw_frame: bytes) -> dict:
+    """按首字节标识解码 IPC 帧（J=JSON 单帧、R=分片帧）。"""
     if raw_frame.startswith(b"J"):
         frame = json.loads(raw_frame[1:])
     elif raw_frame.startswith(b"R") and len(raw_frame) >= 5:
@@ -108,6 +117,7 @@ def _decode_frame(raw_frame: bytes) -> dict:
 
 
 def _context_payload(context: ToolAccessContext) -> dict:
+    """将工具访问上下文构造为可跨进程传递的载荷（含股票作用域）。"""
     stock_scope = context.stock_scope
     stock_payload = None
     if stock_scope is not None:
@@ -134,6 +144,7 @@ def _context_payload(context: ToolAccessContext) -> dict:
 
 
 def _context_from_payload(payload: dict) -> ToolAccessContext:
+    """从 IPC 载荷还原工具访问上下文。"""
     from src.application.agent.stock_scope import StockScope
 
     stock_payload = payload.get("stock_scope")
@@ -167,6 +178,7 @@ def _execute_registered_tool(
     arguments: dict,
     context: ToolAccessContext,
 ) -> dict:
+    """在子进程中执行已注册工具：子进程持有独立进程组与干净注册表。"""
     # Import only after the child owns a new process group.  This prevents the
     # worker from inheriting a cached registry or database connections.
     from src.application.agent.factory import get_tool_registry
@@ -188,6 +200,7 @@ def _tool_process_entry(
     request_json: str,
     worker: ToolWorker,
 ) -> None:
+    """工具子进程入口：建立新会话、注册工具并执行请求循环。"""
     try:
         os.setsid()
         if os.getpgrp() != os.getpid():
@@ -239,6 +252,7 @@ def _tool_process_entry(
 
 
 def _pid_alive(pid: int) -> bool:
+    """判断给定 pid 的进程是否仍存活。"""
     if pid <= 0:
         return False
     try:
@@ -251,6 +265,7 @@ def _pid_alive(pid: int) -> bool:
 
 
 def _process_group_alive(process_group_id: int) -> bool:
+    """判断进程组是否仍存活（组内任一进程存在）。"""
     if process_group_id <= 0:
         return False
     try:
@@ -263,6 +278,7 @@ def _process_group_alive(process_group_id: int) -> bool:
 
 
 def _error_result(tool_name: str, code: str, message: str) -> dict:
+    """构造统一的工具错误结果字典（ok=False 与错误码/消息）。"""
     return {
         "ok": False,
         "tool_name": tool_name,
@@ -284,6 +300,7 @@ class CodexToolProcessRunner:
     """Own and reap every process used for one transport's HRS tool calls."""
 
     def __init__(self, *, worker: ToolWorker = _execute_registered_tool) -> None:
+        """构造工具进程管理器：配置 worker、spawn 上下文与状态锁。"""
         self._worker = worker
         self._mp_context = mp.get_context("spawn")
         self._state_lock = threading.Lock()
@@ -298,6 +315,7 @@ class CodexToolProcessRunner:
         arguments: Any,
         context: ToolAccessContext,
     ) -> dict:
+        """执行一次工具调用：检查取消事件，派生子进程执行并返回结果字典。"""
         cancel_event = context.cancel_event
         if cancel_event is not None and cancel_event.is_set():
             return _error_result(tool_name, "cancelled", "Tool execution was cancelled.")
@@ -499,11 +517,13 @@ class CodexToolProcessRunner:
         return cleanup_ok
 
     def snapshot(self) -> tuple[dict, ...]:
+        """在锁内返回当前记录列表的只读快照元组。"""
         with self._state_lock:
             return tuple(dict(record) for record in self._records)
 
     @staticmethod
     def _terminate(owner: _OwnedToolProcess, reason: str) -> bool:
+        """终止并清理持有的工具进程，返回是否成功清理。"""
         with owner.cleanup_lock:
             if owner.cleanup_complete:
                 return owner.cleanup_ok

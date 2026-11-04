@@ -54,18 +54,22 @@ class ChatCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "chat"
         
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "与 AI 助手进行自由对话 (需开启 Agent 模式)"
         
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/chat <问题>"
         
     @property
     def aliases(self) -> list[str]:
+        """返回命令别名列表。"""
         return ["c", "问"]
 
     def validate_args(self, args: List[str]) -> Optional[str]:

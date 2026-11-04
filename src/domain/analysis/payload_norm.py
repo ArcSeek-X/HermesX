@@ -14,6 +14,7 @@ from typing import Any, List, Optional
 
 
 def _safe_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     try:
         if value is None or value == "":
             return None
@@ -26,6 +27,7 @@ def _safe_float(value: Any) -> Optional[float]:
 
 
 def _env_text(value: Any) -> str:
+    """读取环境变量文本。"""
     if value is None:
         return ""
     if isinstance(value, float) and not math.isfinite(value):
@@ -37,6 +39,7 @@ def _env_text(value: Any) -> str:
 
 
 def _normalize_inline_text(value: Any) -> str:
+    """规范化行内文本。"""
     text = _env_text(value)
     text = re.sub(r"[\r\n\t]+", " ", text)
     text = re.sub(r"\s+", " ", text)
@@ -44,6 +47,7 @@ def _normalize_inline_text(value: Any) -> str:
 
 
 def _list_text_values(value: Any) -> List[str]:
+    """提取文本值列表。"""
     if value is None:
         return []
     if isinstance(value, str):
@@ -56,6 +60,7 @@ def _list_text_values(value: Any) -> List[str]:
 
 
 def _dedupe_strings(values: Any) -> List[str]:
+    """对字符串列表去重。"""
     result: List[str] = []
     seen: set[str] = set()
     if not isinstance(values, list):
@@ -70,6 +75,7 @@ def _dedupe_strings(values: Any) -> List[str]:
 
 
 def _to_plain(value: Any) -> Any:
+    """将对象转换为纯 Python 类型。"""
     if is_dataclass(value):
         return asdict(value)
     if hasattr(value, "model_dump"):
@@ -82,6 +88,7 @@ def _to_plain(value: Any) -> Any:
 
 
 def _remove_non_finite_json_values(value: Any) -> Any:
+    """移除 JSON 中的非有限数值。"""
     if isinstance(value, list):
         return [_remove_non_finite_json_values(item) for item in value]
     if isinstance(value, tuple):

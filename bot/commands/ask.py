@@ -34,18 +34,22 @@ class AskCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "ask"
 
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["问股"]
 
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "使用 Agent 技能分析股票"
 
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/ask <股票代码[,代码2,...]> [技能名称]"
 
     def _merge_code_args(self, args: List[str]) -> tuple[str, List[str]]:
@@ -124,6 +128,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _load_skills() -> List[object]:
+        """加载可用技能列表。"""
         try:
             from src.application.agent.factory import get_skill_manager
 
@@ -135,6 +140,7 @@ class AskCommand(BotCommand):
 
     @classmethod
     def _get_default_skill_id(cls) -> str:
+        """返回默认技能 ID。"""
         try:
             from src.application.agent.skills.defaults import get_primary_default_skill_id
 
@@ -145,6 +151,7 @@ class AskCommand(BotCommand):
 
     @classmethod
     def _build_skill_alias_pairs(cls) -> List[tuple[str, str]]:
+        """构造技能别名与 ID 的映射对。"""
         alias_pairs: List[tuple[str, str]] = []
         for skill in cls._load_skills():
             skill_id = str(getattr(skill, "name", "")).strip()
@@ -188,6 +195,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _build_execution_context(stock_code: str, skill_id: str) -> Dict[str, Any]:
+        """构造命令执行上下文。"""
         selected = [skill_id] if skill_id else []
         return {
             "stock_code": stock_code,
@@ -197,6 +205,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _build_user_message(stock_code: str, skill_id: str, skill_text: str) -> str:
+        """构造提交给 Agent 的用户消息。"""
         user_msg = f"请分析股票 {stock_code}"
         if skill_id:
             user_msg = f"请使用 {skill_id} 技能分析股票 {stock_code}"
@@ -278,6 +287,7 @@ class AskCommand(BotCommand):
         user_id = message.user_id
 
         def _run_one(stock_code: str) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
+            """执行单只股票的问答分析。"""
             try:
                 from src.application.agent.conversation import conversation_manager
                 from src.bootstrap.agent import build_agent_executor
@@ -409,6 +419,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _extract_stock_name(stock_code: str, dashboard: Optional[Dict[str, Any]]) -> str:
+        """从结果中提取股票名称。"""
         if isinstance(dashboard, dict):
             stock_name = dashboard.get("stock_name")
             if isinstance(stock_name, str) and stock_name.strip():
@@ -417,6 +428,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _extract_signal(dashboard: Optional[Dict[str, Any]]) -> str:
+        """从结果中提取信号标识。"""
         if isinstance(dashboard, dict):
             signal = dashboard.get("decision_type")
             if isinstance(signal, str) and signal.strip():
@@ -425,6 +437,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _extract_confidence(dashboard: Optional[Dict[str, Any]]) -> Optional[float]:
+        """从结果中提取置信度。"""
         if not isinstance(dashboard, dict):
             return None
 
@@ -439,6 +452,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _extract_summary(stock_code: str, dashboard: Optional[Dict[str, Any]], raw_content: str) -> str:
+        """从结果中提取摘要。"""
         if isinstance(dashboard, dict):
             for key in ("analysis_summary", "risk_warning", "trend_prediction"):
                 value = dashboard.get(key)
@@ -462,6 +476,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _extract_risk_flags(dashboard: Optional[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """从结果中提取风险标记。"""
         if not isinstance(dashboard, dict):
             return []
 
@@ -483,6 +498,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _format_sniper_value(value: Any) -> Optional[str]:
+        """格式化狙击点位数值。"""
         if value is None:
             return None
 
@@ -509,6 +525,7 @@ class AskCommand(BotCommand):
 
     @staticmethod
     def _format_stock_result(stock_code: str, dashboard: Optional[Dict[str, Any]], raw_content: str) -> str:
+        """格式化单只股票的分析结果。"""
         if not isinstance(dashboard, dict):
             content = raw_content
             if len(content) > 800:
@@ -576,6 +593,7 @@ class AskCommand(BotCommand):
             return ""
 
         def _render_overlay() -> str:
+            """渲染结果浮层内容。"""
             from src.application.agent.agents.portfolio_agent import PortfolioAgent
             from src.application.agent.factory import get_tool_registry
             from src.bootstrap.agent import build_agent_llm_adapter

@@ -22,12 +22,14 @@ router = APIRouter()
 
 
 class AlphaSiftScreenRequest(BaseModel):
+    """AlphaSift 选股筛选请求体。"""
     market: str = Field("cn", min_length=1, max_length=16)
     strategy: str = Field("dual_low", min_length=1, max_length=64)
     max_results: int = Field(20, ge=1, le=100)
 
 
 class AlphaSiftStrategyResponse(BaseModel):
+    """AlphaSift 策略信息响应体。"""
     id: str
     name: str = ""
     title: str = ""
@@ -40,6 +42,7 @@ class AlphaSiftStrategyResponse(BaseModel):
 
 
 class AlphaSiftScreenAccepted(BaseModel):
+    """AlphaSift 筛选任务已受理响应体。"""
     task_id: str
     trace_id: str
     status: str = "pending"
@@ -50,6 +53,7 @@ class AlphaSiftScreenAccepted(BaseModel):
 
 
 class AlphaSiftScreenTaskStatus(BaseModel):
+    """AlphaSift 筛选任务状态响应体。"""
     task_id: str
     trace_id: Optional[str] = None
     status: str
@@ -60,6 +64,7 @@ class AlphaSiftScreenTaskStatus(BaseModel):
 
 
 def _service(config: Config) -> AlphaSiftService:
+    """返回 AlphaSift 服务实例。"""
     return AlphaSiftService(config=config)
 
 
@@ -105,6 +110,7 @@ def _call_service(fn, /, *args, **kwargs):
 
 
 def _screening_task_not_found(task_id: str) -> HTTPException:
+    """构造筛选任务不存在的错误响应。"""
     return api_error(
         404,
         "alphasift_screen_task_not_found",
@@ -114,6 +120,7 @@ def _screening_task_not_found(task_id: str) -> HTTPException:
 
 @router.get("/status")
 def alphasift_status(config: Config = Depends(get_config_dep)) -> Dict[str, Any]:
+    """返回 AlphaSift 组件状态。"""
     return _call_service(_service(config).status)
 
 
@@ -122,6 +129,7 @@ def alphasift_strategies(
     request: Request,
     config: Config = Depends(get_config_dep),
 ) -> Dict[str, Any]:
+    """列出 AlphaSift 可用策略。"""
     return _call_service(_service(config).strategies)
 
 
@@ -133,6 +141,7 @@ def alphasift_hotspots(
     include_details: bool = Query(False),
     config: Config = Depends(get_config_dep),
 ) -> Dict[str, Any]:
+    """获取 AlphaSift 市场热点。"""
     refresh_value = refresh if isinstance(refresh, bool) else bool(getattr(refresh, "default", False))
     include_details_value = (
         include_details
@@ -155,6 +164,7 @@ def alphasift_hotspot_detail(
     refresh: bool = Query(False),
     config: Config = Depends(get_config_dep),
 ) -> Dict[str, Any]:
+    """获取单个热点详情。"""
     refresh_value = refresh if isinstance(refresh, bool) else bool(getattr(refresh, "default", False))
     return _call_service(
         _service(config).hotspot_detail, topic=topic, provider=provider, refresh=refresh_value
@@ -166,6 +176,7 @@ def alphasift_install(
     request: Request,
     config: Config = Depends(get_config_dep),
 ) -> Dict[str, Any]:
+    """安装或更新 AlphaSift 组件。"""
     _ensure_alphasift_install_access(request)
     return _call_service(_service(config).install)
 
@@ -176,10 +187,12 @@ def alphasift_start_screen_task(
     http_request: Request,
     config: Config = Depends(get_config_dep),
 ) -> AlphaSiftScreenAccepted:
+    """启动异步选股筛选任务。"""
     task_id = uuid.uuid4().hex
     task_queue = get_task_queue()
 
     def run_screen() -> Dict[str, Any]:
+        """后台线程中执行筛选的主体逻辑。"""
         task_queue.update_task_progress(
             task_id,
             20,
@@ -220,6 +233,7 @@ def alphasift_start_screen_task(
 
 @router.get("/screen/tasks/{task_id}", response_model=AlphaSiftScreenTaskStatus)
 def alphasift_screen_task_status(task_id: str) -> AlphaSiftScreenTaskStatus:
+    """查询筛选任务状态。"""
     task = get_task_queue().get_task(task_id)
     if task is None or task.report_type != "alphasift_screen":
         raise _screening_task_not_found(task_id)
@@ -242,6 +256,7 @@ def alphasift_screen(
     http_request: Request,
     config: Config = Depends(get_config_dep),
 ) -> Dict[str, Any]:
+    """同步执行选股筛选。"""
     return _call_service(
         _service(config).screen,
         strategy=request.strategy,

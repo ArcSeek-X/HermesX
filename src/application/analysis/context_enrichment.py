@@ -20,6 +20,7 @@ class AnalysisContextEnricher:
     """Enrich fetched context using explicit quote and search dependencies."""
 
     def __init__(self, *, config, fetcher_manager, search_service):
+        """构造上下文增强器：装配配置、取数管理器与检索服务。"""
         self.config = config
         self.fetcher_manager = fetcher_manager
         self.search_service = search_service

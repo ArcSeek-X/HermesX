@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 SkillAggregator — weighted aggregation of skill opinions.
+
+SkillAggregator —— 技能意见加权聚合。将多个技能 Agent 的意见归一化、按置信度/回测表现加权，
+计算加权分数与共识信号，检测冲突并合成最终共识意见；无足够证据时回退 hold。
 """
 
 from __future__ import annotations
@@ -38,6 +41,8 @@ _SCORE_TO_SIGNAL = [
 
 @dataclass
 class AggregationData:
+    """技能聚合的中间数据容器：技能意见、权重、策略意见、加权分数/置信度、冲突、最终信号等。"""
+
     skill_opinions: List[AgentOpinion] = field(default_factory=list)
     weights: List[float] = field(default_factory=list)
     skill_names: List[str] = field(default_factory=list)
@@ -59,6 +64,7 @@ class SkillAggregator:
         ctx: AgentContext,
         min_samples: int = _MIN_BACKTEST_SAMPLES,
     ) -> Optional[AgentOpinion]:
+        """聚合入口：先 calculate 得到聚合数据，再经 StrategySynthesizer 合成，最终产出共识 AgentOpinion。"""
         aggregation = self.calculate(ctx.opinions, min_samples=min_samples)
         if aggregation is None:
             return None
@@ -80,6 +86,7 @@ class SkillAggregator:
         opinions: List[AgentOpinion],
         min_samples: int = _MIN_BACKTEST_SAMPLES,
     ) -> Optional[AggregationData]:
+        """核心计算：筛选技能意见、计算权重（置信度×回测因子）、加权分数与置信度，检测冲突并推导最终信号，返回 AggregationData。"""
         skill_opinions = [op for op in opinions if is_skill_agent_name(op.agent_name)]
         if not skill_opinions:
             return None
@@ -175,6 +182,7 @@ class SkillAggregator:
         aggregation: AggregationData,
         synthesis: Dict[str, Any],
     ) -> AgentOpinion:
+        """由聚合数据与合成结果构造共识 AgentOpinion（含各技能信号/权重摘要与策略合成明细）。"""
         reasoning_parts = [
             f"Skill consensus from {len(aggregation.skill_opinions)} skills "
             f"({', '.join(aggregation.skill_names)}): weighted score {aggregation.weighted_score:.2f}/5.0, "
@@ -208,6 +216,7 @@ class SkillAggregator:
         min_samples: int,
         perf_weight: Optional[float] = None,
     ) -> float:
+        """计算单条意见的权重：置信度乘以（给定回测权重或按 agent 回测因子）。"""
         base_weight = opinion.confidence
         if perf_weight is not None:
             return base_weight * perf_weight
@@ -215,6 +224,7 @@ class SkillAggregator:
 
     @staticmethod
     def _backtest_factor(agent_name: str, min_samples: int) -> float:
+        """返回回测自权重因子：未启用或样本不足时回退 1.0，否则按胜率换算为 0.5+win_rate。"""
         if not SkillAggregator.use_backtest_autoweight():
             return 1.0
 
@@ -233,6 +243,7 @@ class SkillAggregator:
 
     @staticmethod
     def use_backtest_autoweight() -> bool:
+        """读取配置 agent_skill_autoweight（默认 True）决定是否启用回测自权重。"""
         try:
             from src.config import get_config
 

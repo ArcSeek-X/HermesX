@@ -29,6 +29,7 @@ class LLMUsageRepository:
     """``llm_usage`` 表的追加与聚合入口。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造 LLM 用量仓储并装配依赖。"""
         self._db = db_manager
 
     def record_llm_usage(

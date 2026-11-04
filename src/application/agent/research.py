@@ -11,6 +11,9 @@ Responsible for:
 Triggered by ``/research`` command or API async task interface.
 Designed for long-running analysis (up to ``AGENT_DEEP_RESEARCH_BUDGET``
 tokens).
+
+ResearchAgent —— 深度研究专家。负责把复杂研究问题拆解为子问题、迭代检索与信息收集、
+交叉验证发现，并产出结构化研究报告。由 /research 命令或 API 异步任务接口触发，面向长耗时分析。
 """
 
 from __future__ import annotations
@@ -62,6 +65,7 @@ class ResearchAgent:
         token_budget: int = _DEFAULT_TOKEN_BUDGET,
         max_sub_questions: int = 5,
     ):
+        """构造深度研究 Agent：保存工具注册表、LLM 适配器、token 预算与最大子问题数。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.token_budget = token_budget

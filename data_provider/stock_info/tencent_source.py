@@ -78,6 +78,7 @@ class TencentStockInfoSource(StockInfoSource):
     source_id = "tencent"
 
     def fetch(self, stock_code: str) -> Optional[StockInfoResult]:
+        """拉取个股信息（腾讯源）。"""
         symbol = code_to_sina_symbol(stock_code)
         try:
             response = _SESSION.get(
@@ -142,12 +143,14 @@ def _parse_fields(content: bytes) -> List[str]:
 
 
 def _normalize_name(value: object) -> Optional[str]:
+    """规范化股票名称。"""
     if value in (None, "", "-"):
         return None
     return str(value).strip() or None
 
 
 def _to_float(value: object) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value in (None, "", "-"):
         return None
     try:

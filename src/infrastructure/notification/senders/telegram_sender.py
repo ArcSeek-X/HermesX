@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TelegramSender:
 
+    """Telegram 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 Telegram 配置
@@ -269,6 +270,7 @@ class TelegramSender:
         chunk_index = 1
 
         def _flush_chunk() -> bool:
+            """发送当前累积的消息分片。"""
             nonlocal current_chunk, current_length, chunk_index, all_success
             if not current_chunk:
                 return all_success
@@ -290,6 +292,7 @@ class TelegramSender:
             return all_success
 
         def _split_long_section(section: str, limit: int) -> list[str]:
+            """将过长段落切分为可发送分片。"""
             if len(section) <= limit:
                 return [section]
             chunks: list[str] = []
@@ -381,6 +384,7 @@ class TelegramSender:
         _link_placeholder = f"__LINK_{_uuid.uuid4().hex[:8]}__"
         _links = []
         def _save_link(m):
+            """保存消息中的链接映射。"""
             _links.append(m.group(0))
             return f"{_link_placeholder}{len(_links) - 1}"
         result = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', _save_link, result)

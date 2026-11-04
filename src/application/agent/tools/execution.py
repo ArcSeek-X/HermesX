@@ -4,6 +4,10 @@
 This module is intentionally runtime-neutral.  It contains the existing
 runner semantics that later Tool Surface / AgentBackend adapters can reuse
 without importing the full ReAct loop.
+
+共享的 Agent 工具执行辅助模块，刻意保持运行期中立。封装现有 runner 语义
+（工具调用执行、股票代码作用域守卫、密钥/凭证脱敏、审计记录），供后续 Tool Surface /
+AgentBackend 适配器复用，而无需引入完整 ReAct 循环。
 """
 
 from __future__ import annotations
@@ -187,6 +191,7 @@ def _is_non_retriable_tool_result(result: Any) -> bool:
 
 
 def _is_stock_scoped_tool(tool_registry: ToolRegistry, tool_name: str) -> bool:
+    """判断某工具是否为「股票作用域工具」：从注册表解析工具定义，若存在名为 stock_code 的参数即为真。"""
     tool_def = tool_registry.resolve(tool_name)
     if tool_def is None:
         return False
@@ -194,6 +199,7 @@ def _is_stock_scoped_tool(tool_registry: ToolRegistry, tool_name: str) -> bool:
 
 
 def _normalize_guard_stock_code(value: Any) -> str:
+    """守卫用的股票代码归一化：None 返回空串；整型浮点转整，借助 _normalize_tool_stock_code 统一格式，结果非字符串则转字符串。"""
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
@@ -204,6 +210,7 @@ def _normalize_guard_stock_code(value: Any) -> str:
 
 
 def _iter_allowed_stock_codes(stock_scope: Any) -> Iterable[Any]:
+    """从 stock_scope 取允许的股票代码集合（缺省为空集合）。"""
     return getattr(stock_scope, "allowed_stock_codes", set()) or set()
 
 
@@ -213,6 +220,7 @@ def _guard_tool_stock_scope(
     arguments: Dict[str, Any],
     stock_scope: Any,
 ) -> Optional[Dict[str, Any]]:
+    """股票作用域守卫：当工具受 stock_code 约束且请求代码不在期望/允许集合内时，返回 stock_scope_violation 错误（不可重试）；否则返回 None 放行。"""
     if stock_scope is None or not isinstance(arguments, dict):
         return None
     if not _is_stock_scoped_tool(tool_registry, tool_name):
@@ -241,10 +249,12 @@ def _guard_tool_stock_scope(
 
 
 def _normalize_secret_key(key: Any) -> str:
+    """将键名归一为小写、仅保留字母数字、以 _ 连接的字符串，用于密钥名比对。"""
     return re.sub(r"[^a-z0-9]+", "_", str(key).strip().lower()).strip("_")
 
 
 def _is_secret_key(key: Any) -> bool:
+    """判断某键名是否为敏感密钥：归一后命中 _SECRET_KEY_NAMES 或包含任一 _SECRET_KEY_MARKERS 子串即为真。"""
     normalized = _normalize_secret_key(key)
     if not normalized:
         return False
@@ -254,6 +264,7 @@ def _is_secret_key(key: Any) -> bool:
 
 
 def _redact_structured_secrets(value: Any, *, _depth: int = 0) -> Any:
+    """递归脱敏结构化数据：dict 中敏感键名置 [REDACTED]、其余递归；list/tuple 逐元素递归；超过递归深度上限返回占位符。"""
     if _depth > 12:
         return "<redacted_depth_limit>"
     if isinstance(value, dict):
@@ -272,6 +283,7 @@ def _redact_structured_secrets(value: Any, *, _depth: int = 0) -> Any:
 
 
 def _redact_json_string_if_possible(text: str) -> str:
+    """若文本是 JSON 对象/数组，解析后递归脱敏再序列化返回；非 JSON 或解析失败则原样返回。"""
     stripped = text.strip()
     if not stripped or stripped[0] not in "[{":
         return text

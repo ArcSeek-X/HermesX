@@ -71,6 +71,7 @@ _COLUMNS = [
 
 
 def _stock_index_path() -> Path:
+    """返回股票索引文件路径。"""
     return Path(__file__).resolve().parent.parent / "apps" / "hrs-web" / "public" / "stocks.index.json"
 
 
@@ -109,6 +110,7 @@ def _load_a_share_symbols() -> List[str]:
 
 
 def _to_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     try:
         text = str(value).strip()
         if not text:

@@ -99,6 +99,7 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
     use_seed_fallback = data_dir.resolve() == default_data_dir.resolve()
 
     def _csv_path(file_name: str) -> Path:
+        """返回输入 CSV 文件路径。"""
         data_path = data_dir / file_name
         if data_path.exists() or not use_seed_fallback:
             return data_path

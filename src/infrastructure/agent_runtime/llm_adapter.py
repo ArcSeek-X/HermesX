@@ -4,6 +4,9 @@ Multi-provider LLM Tool-Calling Adapter.
 
 Normalizes function-calling / tool-use across all providers into a unified
 interface consumed by the AgentExecutor, via LiteLLM.
+
+多供应商的 LLM 工具调用适配器。经由 LiteLLM 把各供应商的函数调用/工具使用
+统一归一为 AgentExecutor 消费的标准接口。
 """
 
 import json
@@ -63,6 +66,7 @@ def _resolve_litellm_exception(name: str) -> type[BaseException]:
         return exc
 
     class _FallbackLiteLLMError(Exception):
+        """回退路径下包装的 LiteLLM 异常类型。"""
         pass
 
     _FallbackLiteLLMError.__name__ = f"Fallback{name}"
@@ -170,6 +174,7 @@ _FALLBACK_MODEL_PRICING_REGISTERED: set[str] = set()
 
 
 def _split_provider_model(model: str) -> Tuple[str, str]:
+    """将模型名拆分为 (provider, model)；无 '/' 时 provider 为空串。"""
     normalized = (model or "").strip()
     if not normalized:
         return "", ""
@@ -180,6 +185,7 @@ def _split_provider_model(model: str) -> Tuple[str, str]:
 
 
 def _object_to_dict(value: Any) -> Dict[str, Any]:
+    """将对象（支持 model_dump / dict / __dict__）或字典归一为 dict。"""
     if isinstance(value, dict):
         return dict(value)
     if hasattr(value, "model_dump"):
@@ -204,6 +210,7 @@ def _object_to_dict(value: Any) -> Dict[str, Any]:
 
 
 def _provider_specific_fields_from(value: Any) -> Dict[str, Any]:
+    """从响应值中提取供应商专属字段字典；为空或不可解析时返回空字典。"""
     if value is None:
         return {}
     if isinstance(value, dict):
@@ -344,6 +351,7 @@ class LLMToolAdapter:
     """
 
     def __init__(self, config=None):
+        """构造适配器：保存配置并惰性初始化 LiteLLM Router 与路由解析。"""
         config = config or get_config()
         self._config = config
         self._router = None          # litellm Router (multi-key primary model)
@@ -856,6 +864,7 @@ class LLMToolAdapter:
         return openai_messages
 
     def _trace_provider_for_target(self, target_model: Optional[str]) -> str:
+        """追踪目标模型实际解析到的 provider；无目标或解析缺失时返回空串。"""
         if not target_model:
             return ""
         resolution = getattr(self, "_route_resolution", None)

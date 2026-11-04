@@ -127,6 +127,7 @@ def warm_market_cards_cache() -> None:
 
 
 def _build_payload(market: str) -> Dict[str, Any]:
+    """构建大盘卡片载荷。"""
     if market == "a":
         cards = _build_a_market_cards()
     else:
@@ -140,6 +141,7 @@ def _build_payload(market: str) -> Dict[str, Any]:
 
 
 def _read_cache(market: str) -> Optional[Dict[str, Any]]:
+    """读取大盘卡片缓存。"""
     with _CACHE_LOCK:
         entry = _PAYLOAD_CACHE.get(market)
         if entry is None:
@@ -148,6 +150,7 @@ def _read_cache(market: str) -> Optional[Dict[str, Any]]:
 
 
 def _write_cache(market: str, payload: Dict[str, Any]) -> None:
+    """写入大盘卡片缓存。"""
     with _CACHE_LOCK:
         _PAYLOAD_CACHE[market] = {"payload": payload, "timestamp": time.time()}
 
@@ -168,6 +171,7 @@ def _schedule_refresh(market: str) -> None:
 
 
 def _refresh_cache_entry(market: str) -> None:
+    """刷新单个缓存条目。"""
     try:
         payload = _build_payload(market)
         if payload.get("cards"):
@@ -221,6 +225,7 @@ def _grab(
 
 
 def _build_a_market_cards() -> List[Dict[str, Any]]:
+    """构建 A 股市场卡片。"""
     futures = {
         "indices": _EXECUTOR.submit(_get_market_indices, "a"),
         "overview": _EXECUTOR.submit(_get_market_overview),
@@ -294,6 +299,7 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
 
 
 def _build_index_cards_for_market(market: str) -> List[Dict[str, Any]]:
+    """构建指定市场的指数卡片。"""
     futures = {"indices": _EXECUTOR.submit(_get_market_indices, market)}
     labels = {"indices": f"指数({market})"}
     done = _await_all(futures, labels)
@@ -302,6 +308,7 @@ def _build_index_cards_for_market(market: str) -> List[Dict[str, Any]]:
 
 
 def _build_index_quote_cards(indices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """构建指数行情卡片。"""
     cards: List[Dict[str, Any]] = []
     for index, item in enumerate(indices):
         code = str(item.get("code") or "").strip()
@@ -321,6 +328,7 @@ def _build_index_quote_cards(indices: List[Dict[str, Any]]) -> List[Dict[str, An
 
 
 def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
+    """获取主要指数数据。"""
     source_market = _INDEX_MARKET_MAPPING[market]
     return _prefer_loader_chain(
         lambda: get_cached_market_indices_from_stocksdk(source_market),
@@ -329,6 +337,7 @@ def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
 
 
 def _get_market_overview() -> Optional[Dict[str, Any]]:
+    """获取大盘概览数据。"""
     return _prefer_loader_chain(
         get_cached_market_overview_from_stocksdk,
         get_cached_market_overview_from_eastmoney,
@@ -336,6 +345,7 @@ def _get_market_overview() -> Optional[Dict[str, Any]]:
 
 
 def _get_northbound_flow() -> Optional[Dict[str, Any]]:
+    """获取北向资金流向。"""
     return _prefer_loader_chain(
         get_cached_northbound_flow_from_stocksdk,
         get_cached_northbound_flow_from_eastmoney,
@@ -343,6 +353,7 @@ def _get_northbound_flow() -> Optional[Dict[str, Any]]:
 
 
 def _get_market_fund_flow() -> Optional[Dict[str, Any]]:
+    """获取大盘资金流向。"""
     return _prefer_loader_chain(
         get_cached_market_fund_flow_from_stocksdk,
         get_cached_market_fund_flow_from_eastmoney,
@@ -374,6 +385,7 @@ def _get_strongest_board() -> Optional[Dict[str, Any]]:
 
 
 def _try_board_loader(loader: Callable[[], Any], label: str) -> Optional[List[Dict[str, Any]]]:
+    """尝试加载板块数据。"""
     try:
         boards = loader()
     except Exception as exc:  # noqa: BLE001 - 板块源逐个降级
@@ -383,6 +395,7 @@ def _try_board_loader(loader: Callable[[], Any], label: str) -> Optional[List[Di
 
 
 def _is_board_stocksdk_in_backoff() -> bool:
+    """判断 StockSDK 板块源是否处于退避期。"""
     with _BOARD_BACKOFF_LOCK:
         return time.time() < _BOARD_BACKOFF_UNTIL
 
@@ -399,6 +412,7 @@ def _mark_board_stocksdk_backoff() -> None:
 
 
 def _build_empty_northbound_payload() -> Dict[str, Any]:
+    """构造空的北向资金载荷。"""
     return {
         "netInflow": None,
         "name": "北向资金",
@@ -409,6 +423,7 @@ def _build_empty_northbound_payload() -> Dict[str, Any]:
 
 
 def _build_empty_main_flow_payload() -> Dict[str, Any]:
+    """构造空的主力资金载荷。"""
     return {
         "mainNetInflow": None,
         "mainNetInflowPercent": None,

@@ -29,6 +29,7 @@ _SCORE_TO_SIGNAL = [
 
 
 def strategy_opinion_from_agent_opinion(opinion: AgentOpinion) -> StrategyOpinion:
+    """将 Agent 观点转换为策略观点。"""
     raw_data = opinion.raw_data if isinstance(opinion.raw_data, dict) else {}
     skill_id = str(raw_data.get("skill_id") or extract_skill_id(opinion.agent_name) or opinion.agent_name)
     key_levels = opinion.key_levels or raw_data.get("key_levels") or {}
@@ -87,6 +88,7 @@ class ConflictDetector:
         *,
         final_signal: Optional[str] = None,
     ) -> List[StrategyConflict]:
+        """检测观点集合中的冲突。"""
         valid_opinions = [op for op in opinions if not op.invalid_signal]
         if len(valid_opinions) < 2:
             return []
@@ -101,6 +103,7 @@ class ConflictDetector:
 
     @staticmethod
     def _detect_directional_opposition(opinions: List[StrategyOpinion]) -> List[StrategyConflict]:
+        """检测方向性对立冲突。"""
         bullish = [op for op in opinions if strategy_signal_score(op.signal) >= 4.0]
         bearish = [op for op in opinions if strategy_signal_score(op.signal) <= 2.0]
         if not bullish or not bearish:
@@ -127,6 +130,7 @@ class ConflictDetector:
 
     @staticmethod
     def _detect_wide_score_dispersion(opinions: List[StrategyOpinion]) -> List[StrategyConflict]:
+        """检测评分过度分散冲突。"""
         scored = [(op, strategy_signal_score(op.signal)) for op in opinions]
         min_score = min(score for _, score in scored)
         max_score = max(score for _, score in scored)
@@ -150,6 +154,7 @@ class ConflictDetector:
         opinions: List[StrategyOpinion],
         final_signal: str,
     ) -> List[StrategyConflict]:
+        """检测高置信度异议冲突。"""
         final_score = strategy_signal_score(final_signal)
         dissenters = [
             op
@@ -177,6 +182,7 @@ class ConflictDetector:
 
     @staticmethod
     def _detect_adjustment_contradiction(opinions: List[StrategyOpinion]) -> List[StrategyConflict]:
+        """检测调整建议矛盾冲突。"""
         positive = [op for op in opinions if op.score_adjustment >= 8]
         negative = [op for op in opinions if op.score_adjustment <= -8]
         if not positive or not negative:
@@ -197,6 +203,7 @@ class ConflictDetector:
 
     @staticmethod
     def _sort_key(conflict: StrategyConflict) -> tuple[int, str, str]:
+        """生成观点排序用的比较键。"""
         return (-_SEVERITY_RANK.get(conflict.severity, 0), conflict.conflict_type, ",".join(conflict.participants))
 
 
@@ -207,6 +214,7 @@ class StrategySynthesizer:
         self,
         deliberation_mediator: Optional[Any] = None,
     ) -> None:
+        """构造观点合成器并装配依赖。"""
         self.deliberation_mediator = deliberation_mediator or DeliberationMediator()
 
     def synthesize(
@@ -220,6 +228,7 @@ class StrategySynthesizer:
         insufficient_evidence: bool = False,
         invalid_count: int = 0,
     ) -> Dict[str, Any]:
+        """合成多 Agent 观点为统一结论。"""
         conflict_severity = _highest_severity(conflicts)
         adjusted_confidence = self.adjust_confidence(weighted_confidence, conflict_severity)
         deliberation = self.deliberation_mediator.deliberate(
@@ -277,6 +286,7 @@ class StrategySynthesizer:
 
     @staticmethod
     def adjust_confidence(confidence: float, conflict_severity: str) -> float:
+        """按冲突结果调整结论置信度。"""
         adjusted = max(0.0, min(1.0, confidence))
         if conflict_severity == "high":
             adjusted *= 0.85
@@ -441,6 +451,7 @@ class StrategySynthesizer:
 
 
 def _as_float(value: Any, default: float) -> float:
+    """将值安全转换为 float。"""
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -448,16 +459,19 @@ def _as_float(value: Any, default: float) -> float:
 
 
 def _as_string_list(value: Any) -> List[str]:
+    """将值安全转换为字符串列表。"""
     if not isinstance(value, Iterable) or isinstance(value, (str, bytes, dict)):
         return []
     return [str(item) for item in value if item is not None]
 
 
 def _unique_ids(opinions: Iterable[StrategyOpinion]) -> List[str]:
+    """对标识列表去重。"""
     return _unique_strings(op.skill_id for op in opinions)
 
 
 def _unique_strings(values: Iterable[str]) -> List[str]:
+    """对字符串列表去重。"""
     result: List[str] = []
     for value in values:
         if value and value not in result:
@@ -466,12 +480,14 @@ def _unique_strings(values: Iterable[str]) -> List[str]:
 
 
 def _highest_severity(conflicts: List[StrategyConflict]) -> str:
+    """返回最高严重级别。"""
     if not conflicts:
         return "none"
     return max((conflict.severity for conflict in conflicts), key=lambda severity: _SEVERITY_RANK.get(severity, 0))
 
 
 def _confidence_weighted_projection(opinions: List[StrategyOpinion]) -> tuple[float, float]:
+    """按置信度加权汇总观点投影。"""
     weighted: List[tuple[StrategyOpinion, float]] = [
         (opinion, max(0.0, min(1.0, opinion.confidence)))
         for opinion in opinions
@@ -493,6 +509,7 @@ def _confidence_weighted_projection(opinions: List[StrategyOpinion]) -> tuple[fl
 
 
 def _signal_from_score(score: float) -> str:
+    """将评分映射为信号标识。"""
     for threshold, signal in _SCORE_TO_SIGNAL:
         if score >= threshold:
             return signal
@@ -500,6 +517,7 @@ def _signal_from_score(score: float) -> str:
 
 
 def _softened_response_by_skill(responses: Any) -> Dict[str, Any]:
+    """按技能生成缓和后的响应。"""
     result: Dict[str, Any] = {}
     if not isinstance(responses, list):
         return result
@@ -533,12 +551,14 @@ def _is_safe_projection_response(response: Any, opinion: StrategyOpinion) -> boo
 
 
 def _projection_preference(response: Any) -> tuple[float, float]:
+    """计算观点投影的偏好权重。"""
     signal = str(getattr(response, "revised_signal", "") or "hold")
     confidence = _as_float(getattr(response, "revised_confidence", 0.0), 0.0)
     return abs(strategy_signal_score(signal) - strategy_signal_score("hold")), confidence
 
 
 def _opinion_to_item(opinion: StrategyOpinion) -> Dict[str, Any]:
+    """将观点对象转换为可序列化条目。"""
     return {
         "skill_id": opinion.skill_id,
         "agent_name": opinion.agent_name,
@@ -552,6 +572,7 @@ def _opinion_to_item(opinion: StrategyOpinion) -> Dict[str, Any]:
 
 
 def _conflict_to_dict(conflict: StrategyConflict) -> Dict[str, Any]:
+    """将冲突对象转换为字典。"""
     payload = asdict(conflict)
     payload.pop("description", None)
     return payload

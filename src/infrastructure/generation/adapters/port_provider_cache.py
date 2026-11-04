@@ -14,6 +14,7 @@ class ProviderCacheAdapter:
     """prompt cache 路由上下文与遥测投影（薄转接，无策略）。"""
 
     def apply_hints(self, call_kwargs: Dict[str, Any], route_context: Any, config: Any) -> Any:
+        """将供应商缓存提示应用到请求参数。"""
         from src.infrastructure.generation import provider_cache
 
         return provider_cache.apply_prompt_cache_hints(call_kwargs, route_context, config)
@@ -27,6 +28,7 @@ class ProviderCacheAdapter:
         model_list: Any,
         call_type: str,
     ) -> Any:
+        """构建供应商缓存路由上下文。"""
         from src.infrastructure.generation import provider_cache
 
         return provider_cache.build_provider_cache_route_context(
@@ -38,6 +40,7 @@ class ProviderCacheAdapter:
         )
 
     def filter_telemetry(self, usage: Dict[str, Any], config: Any) -> Dict[str, Any]:
+        """过滤缓存遥测数据中的敏感字段。"""
         from src.infrastructure.generation import provider_cache
 
         return provider_cache.filter_prompt_cache_telemetry(usage, config)

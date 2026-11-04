@@ -150,6 +150,7 @@ class DuplicateTaskError(Exception):
     当股票已在分析中时抛出此异常
     """
     def __init__(self, stock_code: str, existing_task_id: str):
+        """构造任务冲突异常：保存股票代码与已存在任务 ID。"""
         self.stock_code = stock_code
         self.existing_task_id = existing_task_id
         super().__init__(f"股票 {stock_code} 正在分析中 (task_id: {existing_task_id})")
@@ -172,6 +173,7 @@ class AnalysisTaskQueue:
     _instance_lock = threading.Lock()
     
     def __new__(cls, *args, **kwargs):
+        """实现任务队列单例创建逻辑。"""
         if cls._instance is None:
             with cls._instance_lock:
                 if cls._instance is None:
@@ -180,6 +182,7 @@ class AnalysisTaskQueue:
     
     def __init__(self, max_workers: int = 3):
         # 防止重复初始化
+        """构造任务队列：按最大工作线程数初始化。"""
         if hasattr(self, '_initialized') and self._initialized:
             return
         
@@ -713,6 +716,7 @@ class AnalysisTaskQueue:
             service = AnalysisService()
 
             def _on_progress(progress: int, message: str) -> None:
+                """任务进度回调：记录进度百分比与消息。"""
                 self.update_task_progress(task_id, progress, message)
 
             diag_token = None

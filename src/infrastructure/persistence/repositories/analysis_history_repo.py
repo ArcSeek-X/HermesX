@@ -43,6 +43,7 @@ class AnalysisHistoryRepository:
     """``analysis_history`` 表的读写入口。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造分析历史仓储并装配依赖。"""
         self._db = db_manager
 
     def save_analysis_history(
@@ -71,6 +72,7 @@ class AnalysisHistoryRepository:
 
         try:
             def _write(session: Session) -> int:
+                """在会话内写入分析历史记录。"""
                 history = AnalysisHistory(
                     query_id=query_id,
                     code=result.code,
@@ -119,6 +121,7 @@ class AnalysisHistoryRepository:
 
         try:
             def _write(session: Session) -> int:
+                """在会话内写入分析历史记录。"""
                 conditions = [AnalysisHistory.query_id == query_id]
                 if code:
                     conditions.append(AnalysisHistory.code == code)
@@ -348,6 +351,7 @@ class AnalysisHistoryRepository:
             return 0
 
         def _write(session: Session) -> int:
+            """在会话内写入分析历史记录。"""
             existing_ids = sorted(
                 session.execute(
                     select(AnalysisHistory.id).where(AnalysisHistory.id.in_(ids))

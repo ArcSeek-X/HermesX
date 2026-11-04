@@ -18,6 +18,10 @@ Typical usage::
     from src.application.agent.agents.portfolio_agent import PortfolioAgent
     agent = PortfolioAgent(model=model, registry=registry)
     result = agent.run(ctx)
+
+PortfolioAgent —— 将一组股票作为整体组合分析（而非逐只）。职责包括仓位建议、
+相关性与行业集中度预警、组合级风险指标（beta/回撤/行业暴露）以及跨市场联动（A↔港↔美）。
+它消费已算好的逐股意见并叠加组合分析。
 """
 
 from __future__ import annotations
@@ -54,6 +58,7 @@ class PortfolioAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """构造组合分析师的系统提示：定义角色、6 项任务（仓位/行业集中度/相关性/跨市场/风险分/再平衡）与 JSON 输出格式。"""
         return (
             "You are a professional **portfolio analyst** specializing in "
             "multi-asset allocation for A-share, HK, and US equity portfolios.\n\n"
@@ -87,6 +92,7 @@ class PortfolioAgent(BaseAgent):
         )
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：汇总逐股意见（信号/置信度/摘要）、风险标记与用户请求，形成组合分析输入。"""
         # Gather per-stock opinions from context
         stock_opinions = ctx.data.get("stock_opinions", {})
         stock_list = ctx.data.get("stock_list", [])

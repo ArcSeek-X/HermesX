@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""LiteLLM error classification and one-shot parameter recovery."""
+"""LiteLLM error classification and one-shot parameter recovery.
+
+分类 LiteLLM 抛出的错误文本，识别可一次性恢复的参数问题（如仅支持特定 temperature），
+并据此生成修正后的生成参数，避免把可恢复错误直接暴露给调用方。
+"""
 
 from __future__ import annotations
 
@@ -34,6 +38,7 @@ _ALLOWED_TEMPERATURE_PATTERNS = (
 
 
 def _collect_error_text(value: Any, seen: Optional[set] = None) -> List[str]:
+    """递归收集异常及嵌套原因的文本片段，用 seen 集合防止循环引用。"""
     if seen is None:
         seen = set()
     if value is None:
@@ -60,10 +65,12 @@ def _collect_error_text(value: Any, seen: Optional[set] = None) -> List[str]:
 
 
 def _normalized_error_text(error: BaseException) -> str:
+    """将异常及其原因链拼成小写、去空的单一文本，便于关键字匹配。"""
     return " ".join(chunk for chunk in _collect_error_text(error) if chunk).lower()
 
 
 def _parse_allowed_temperature(text: str) -> Optional[float]:
+    """从错误信息中解析「仅支持 temperature=X」的取值；无法识别时返回 None。"""
     for segment in re.split(r"(?<!\d)\.(?!\d)|[!?;\n]+", text):
         if "only" not in segment:
             continue

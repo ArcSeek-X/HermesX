@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""校验仓库 AI 资产的一致性，供 CI / 本地预检使用。
+
+检查项包括：CLAUDE.md 是否为指向 AGENTS.md 的符号链接、Copilot 入口是否引用规范来源、
+.github/instructions 与 .claude/skills 必备文件是否齐全且引用 AGENTS.md、
+.gitignore 是否包含放行 skills 目录的规则，以及 .claude 下是否存在不该被跟踪的产物。
+任一项不满足即打印错误并以非零码退出；全部通过时输出 ``[ai-assets] OK``。
+"""
 
 from __future__ import annotations
 
@@ -35,16 +42,19 @@ REQUIRED_GITIGNORE_SNIPPETS = (
 
 
 def fail(message: str) -> None:
+    """打印校验失败信息到标准错误并以状态码 1 退出。"""
     print(f"[ai-assets] ERROR: {message}", file=sys.stderr)
     sys.exit(1)
 
 
 def ensure_file_exists(path: Path, description: str) -> None:
+    """确保给定路径存在；缺失时以带描述的相对路径信息报错退出。"""
     if not path.exists():
         fail(f"{description} is missing: {path.relative_to(ROOT)}")
 
 
 def ensure_symlink() -> None:
+    """校验规范来源：AGENTS.md 存在，且 CLAUDE.md 是指向 AGENTS.md 的符号链接。"""
     ensure_file_exists(AGENTS, "canonical AGENTS.md")
     if not CLAUDE.exists():
         fail("CLAUDE.md is missing")
@@ -57,6 +67,7 @@ def ensure_symlink() -> None:
 
 
 def ensure_copilot_entry() -> None:
+    """校验 .github/copilot-instructions.md 包含所有必需的规范来源引用片段。"""
     ensure_file_exists(COPILOT, "repository Copilot instructions")
     content = COPILOT.read_text(encoding="utf-8")
     required_fragments = (
@@ -71,6 +82,7 @@ def ensure_copilot_entry() -> None:
 
 
 def ensure_instruction_files() -> None:
+    """校验 instructions 目录存在且包含全部必需的 *.instructions.md 文件。"""
     ensure_file_exists(INSTRUCTIONS_DIR, "instructions directory")
     actual = {path.name for path in INSTRUCTIONS_DIR.glob("*.instructions.md")}
     missing = REQUIRED_INSTRUCTION_FILES - actual
@@ -79,6 +91,7 @@ def ensure_instruction_files() -> None:
 
 
 def ensure_skill_files() -> None:
+    """校验技能资产齐全，且除 README 外每个 SKILL.md 都引用 AGENTS.md 作为规则来源。"""
     ensure_file_exists(CLAUDE_SKILLS_DIR, "Claude skills directory")
     for relative_path in REQUIRED_SKILL_FILES:
         path = CLAUDE_SKILLS_DIR / relative_path
@@ -91,6 +104,7 @@ def ensure_skill_files() -> None:
 
 
 def ensure_gitignore_rules() -> None:
+    """校验 .gitignore 包含忽略 .claude/* 且放行 .claude/skills/ 的规则片段。"""
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
     for snippet in REQUIRED_GITIGNORE_SNIPPETS:
         if snippet not in gitignore:
@@ -98,6 +112,7 @@ def ensure_gitignore_rules() -> None:
 
 
 def ensure_no_tracked_claude_artifacts() -> None:
+    """校验 .claude 下被 git 跟踪的文件都位于 skills/ 目录内，避免误提交本地产物。"""
     result = subprocess.run(
         ["git", "ls-files", "--", ".claude"],
         cwd=ROOT,
@@ -114,6 +129,7 @@ def ensure_no_tracked_claude_artifacts() -> None:
 
 
 def main() -> None:
+    """依次执行全部 AI 资产校验；全部通过时输出 ``[ai-assets] OK``。"""
     ensure_symlink()
     ensure_copilot_entry()
     ensure_instruction_files()

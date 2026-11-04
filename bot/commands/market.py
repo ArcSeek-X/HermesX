@@ -34,18 +34,22 @@ class MarketCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "market"
 
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["m", "大盘", "复盘", "行情"]
 
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "大盘复盘分析"
 
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/market"
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
@@ -83,18 +87,22 @@ class MarketCommand(BotCommand):
         )
 
     def _get_config(self):
+        """返回机器人运行配置。"""
         from src.config import get_config
         return get_config()
 
     def _try_acquire_market_review_lock(self, config):
+        """尝试获取大盘复盘执行锁。"""
         from src.application.market.market_review_lock import try_acquire_market_review_lock
         return try_acquire_market_review_lock(config)
 
     def _release_market_review_lock(self, lock_token: Optional[Any]) -> None:
+        """释放大盘复盘执行锁。"""
         from src.application.market.market_review_lock import release_market_review_lock
         release_market_review_lock(lock_token)
 
     def _compute_market_review_override_region(self, config) -> Optional[str]:
+        """计算大盘复盘的覆盖区域参数。"""
         if not getattr(config, "trading_day_check_enabled", True):
             return None
 

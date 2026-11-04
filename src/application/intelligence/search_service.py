@@ -240,6 +240,7 @@ class SearchService:
         return f"{query}|{max_results}|{days}"
 
     def _get_cached_locked(self, key: str) -> Optional['SearchResponse']:
+        """在持锁状态下读取缓存结果。"""
         entry = self._cache.get(key)
         if entry is None:
             return None
@@ -259,6 +260,7 @@ class SearchService:
         self,
         key: str,
     ) -> Tuple[Optional['SearchResponse'], bool, Optional[threading.Event]]:
+        """读取缓存；未命中时占位以触发单次回填。"""
         with self._cache_lock:
             cached = self._get_cached_locked(key)
             if cached is not None:
@@ -272,6 +274,7 @@ class SearchService:
             return None, False, event
 
     def _release_cache_fill(self, key: str, event: threading.Event) -> None:
+        """释放缓存回填占位并唤醒等待者。"""
         with self._cache_lock:
             current = self._cache_inflight.get(key)
             if current is event:
@@ -279,6 +282,7 @@ class SearchService:
                 event.set()
 
     def _wait_for_cached(self, key: str, event: threading.Event) -> Optional['SearchResponse']:
+        """等待其他线程完成缓存回填并返回结果。"""
         event.wait(timeout=max(1.0, min(float(self._cache_ttl), 30.0)))
         return self._get_cached(key)
 
@@ -356,6 +360,7 @@ class SearchService:
 
     @staticmethod
     def _elapsed_ms(started_at: float) -> int:
+        """计算从起始时间到当前的耗时（毫秒）。"""
         return max(0, int((time.monotonic() - started_at) * 1000))
 
     @staticmethod
@@ -370,6 +375,7 @@ class SearchService:
         error_type: Optional[str] = None,
         error_message: Optional[Any] = None,
     ) -> None:
+        """记录一次新闻检索运行明细。"""
         record_provider_run(
             data_type="news_search",
             provider=provider,

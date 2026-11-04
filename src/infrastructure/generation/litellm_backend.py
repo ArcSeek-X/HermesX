@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""LiteLLM generation backend wrapper."""
+"""LiteLLM generation backend wrapper.
+
+将 LiteLLM 补全调用封装为统一 GenerationBackend 实现，负责 provider 推断、
+流式与响应校验回调的透传，以及生成结果与用量归一化。
+"""
 
 from __future__ import annotations
 
@@ -16,6 +20,7 @@ LiteLLMCallable = Callable[..., Tuple[str, str, Dict[str, Any]]]
 
 
 def _provider_from_model(model: str) -> str:
+    """从模型名推断 provider：含 '/' 取前缀，否则视为 openai；空串返回空串。"""
     if not model:
         return ""
     if "/" in model:
@@ -37,6 +42,7 @@ class LiteLLMGenerationBackend(GenerationBackend):
     )
 
     def __init__(self, completion_callable: LiteLLMCallable):
+        """构造后端：注入实际执行补全的可调用对象。"""
         self._completion_callable = completion_callable
 
     def generate(
@@ -50,6 +56,7 @@ class LiteLLMGenerationBackend(GenerationBackend):
         response_validator: Optional[Callable[[str], None]] = None,
         audit_context: Optional[Dict[str, Any]] = None,
     ) -> GenerationResult:
+        """执行一次生成：透传统一配置与可选的系统提示、流式进度、响应校验及审计上下文，返回归一化结果。"""
         text, model, usage = self._completion_callable(
             prompt,
             generation_config,

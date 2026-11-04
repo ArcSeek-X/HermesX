@@ -39,6 +39,7 @@ _FEISHU_STATIC_CONFIG_GROUPS: Tuple[Tuple[str, ...], ...] = (
 
 
 def _has_env_group(effective_map: Mapping[str, Any], group: Tuple[str, ...]) -> bool:
+    """判断环境变量配置组是否存在。"""
     return all(str(effective_map.get(key) or "").strip() for key in group)
 
 
@@ -53,6 +54,7 @@ def is_feishu_static_env_configured(effective_map: Mapping[str, Any]) -> bool:
 
 
 def _has_config_group(config: Any, group: Tuple[str, ...]) -> bool:
+    """判断配置组是否存在。"""
     return all(str(getattr(config, attr, None) or "").strip() for attr in group)
 
 

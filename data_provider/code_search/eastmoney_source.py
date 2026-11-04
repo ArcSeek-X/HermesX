@@ -30,6 +30,7 @@ class EastMoneyCodeSearchSource(CodeSearchSource):
     source_id = "eastmoney"
 
     def search(self, query: str, limit: int = 10) -> Optional[List[CodeSearchResult]]:
+        """按关键词搜索股票代码（东财源）。"""
         try:
             response = _SESSION.get(
                 EASTMONEY_SEARCH_URL,

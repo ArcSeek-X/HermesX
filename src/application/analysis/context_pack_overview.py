@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Low-sensitivity public overview for Issue #1389 AnalysisContextPack P4."""
+"""Low-sensitivity public overview for Issue #1389 AnalysisContextPack P4.
+
+面向 Issue #1389 的 AnalysisContextPack（P4 版）低敏感公开概览层。
+把内部分析上下文包投影成可对外暴露的概览（主体/各数据块状态/计数/数据质量/告警），
+并对所有可能外泄的字段做脱敏与类型安全裁剪；提供从上下文快照提取/剔除公开概览的辅助函数。
+"""
 
 from __future__ import annotations
 
@@ -121,6 +126,7 @@ def sanitize_context_snapshot_for_api(context_snapshot: Any) -> Any:
 
 
 def _as_mapping(value: Any) -> Optional[Mapping[str, Any]]:
+    """将值规范为 Mapping：已为 Mapping 直接返回；字符串尝试 JSON 解析为对象（否则 None）；其余返回 None。"""
     if isinstance(value, Mapping):
         return value
     if isinstance(value, str) and value.strip():
@@ -133,6 +139,7 @@ def _as_mapping(value: Any) -> Optional[Mapping[str, Any]]:
 
 
 def _sanitize_persisted_overview(overview: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """校验并清洗已持久化的公开概览：要求 subject 为 Mapping、blocks 为列表且含合法 key/status，重建标准化概览（含可选 data_quality）；不合法则返回 None。"""
     subject = overview.get("subject")
     blocks = overview.get("blocks")
     if not isinstance(subject, Mapping) or not isinstance(blocks, list):
@@ -191,6 +198,7 @@ def _sanitize_persisted_overview(overview: Mapping[str, Any]) -> Optional[Dict[s
 
 
 def _sanitize_data_quality(value: Any) -> Optional[Dict[str, Any]]:
+    """清洗数据质量片段：取 overall_score（0–100 整数）、level、block_scores（仅限已知块键）与 limitations（截断 5 条），非 Mapping 返回 None。"""
     if not isinstance(value, Mapping):
         return None
     return {
@@ -202,16 +210,19 @@ def _sanitize_data_quality(value: Any) -> Optional[Dict[str, Any]]:
 
 
 def _safe_status(value: Any) -> Optional[str]:
+    """将值安全化为合法的 ContextFieldStatus 字符串；经 _safe_text 脱敏后不在枚举集合内则返回 None。"""
     text = _safe_text(value)
     return text if text in _ALL_STATUSES else None
 
 
 def _safe_quality_level(value: Any) -> Optional[str]:
+    """将值安全化为合法的质量等级（good/usable/limited/poor）；非集合内返回 None。"""
     text = _safe_text(value)
     return text if text in {"good", "usable", "limited", "poor"} else None
 
 
 def _safe_score(value: Any) -> Optional[int]:
+    """安全化为 0–100 的整数分数；bool 或非 int 或越界返回 None。"""
     if isinstance(value, bool) or not isinstance(value, int):
         return None
     if 0 <= value <= 100:
@@ -220,6 +231,7 @@ def _safe_score(value: Any) -> Optional[int]:
 
 
 def _safe_block_scores(value: Any) -> Dict[str, int]:
+    """清洗各块得分：仅保留键属于已知数据质量块（quote/daily_bars/...）且分值合法的整数字典。"""
     if not isinstance(value, Mapping):
         return {}
     result: Dict[str, int] = {}
@@ -232,6 +244,7 @@ def _safe_block_scores(value: Any) -> Dict[str, int]:
 
 
 def _safe_text(value: Any) -> str:
+    """安全化为字符串：None/空返回空串；若含敏感标记（SENSITIVE_MARKERS）则返回 [REDACTED]，否则返回去空白文本。"""
     if value is None:
         return ""
     text = str(value).strip()
@@ -244,6 +257,7 @@ def _safe_text(value: Any) -> str:
 
 
 def _list_strings(value: Any, *, limit: int = 5) -> List[str]:
+    """将列表元素安全化为去重字符串列表，最多保留 limit 条（默认 5），跳过空值与已出现项。"""
     if not isinstance(value, list):
         return []
     result: List[str] = []
@@ -255,6 +269,7 @@ def _list_strings(value: Any, *, limit: int = 5) -> List[str]:
 
 
 def _first_non_empty(*values: Any) -> Optional[str]:
+    """返回首个经 _safe_text 后非空的值；全部为空返回 None。"""
     for value in values:
         text = _safe_text(value)
         if text:
@@ -263,6 +278,7 @@ def _first_non_empty(*values: Any) -> Optional[str]:
 
 
 def _first_item_field(items: Any, field: str) -> Optional[str]:
+    """从 items（Mapping）各条目中取首个字段 field 的非空安全化文本；非 Mapping 或全空返回 None。"""
     if not isinstance(items, Mapping):
         return None
     for item in items.values():
@@ -275,6 +291,7 @@ def _first_item_field(items: Any, field: str) -> Optional[str]:
 
 
 def _item_missing_reasons(items: Any) -> List[str]:
+    """收集各条目中的 missing_reason（去重、安全化），最多返回前 3 条。"""
     if not isinstance(items, Mapping):
         return []
     reasons: List[str] = []
@@ -288,6 +305,7 @@ def _item_missing_reasons(items: Any) -> List[str]:
 
 
 def _nested(value: Any, *keys: str) -> Any:
+    """按 keys 链逐层取嵌套值；任一层非 Mapping 则返回 None。"""
     current = value
     for key in keys:
         if not isinstance(current, Mapping):
@@ -297,6 +315,7 @@ def _nested(value: Any, *keys: str) -> Any:
 
 
 def _safe_int(value: Any) -> Optional[int]:
+    """安全化为 int（bool 视为非法返回 None）；非 int 返回 None。"""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):

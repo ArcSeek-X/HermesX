@@ -51,19 +51,23 @@ router = APIRouter()
 
 
 def _bad_request(exc: Exception) -> HTTPException:
+    """构造请求参数错误响应。"""
     return api_error(400, "validation_error", str(exc))
 
 
 def _internal_error(message: str, exc: Exception) -> HTTPException:
+    """构造内部错误响应。"""
     logger.error(f"{message}: {exc}", exc_info=True)
     return api_error(500, "internal_error", f"{message}: {str(exc)}")
 
 
 def _conflict_error(*, error: str, message: str) -> HTTPException:
+    """构造资源冲突响应。"""
     return api_error(409, error, message)
 
 
 def _serialize_import_record(item: dict) -> PortfolioImportTradeItem:
+    """序列化单条导入记录。"""
     payload = dict(item)
     trade_date = payload.get("trade_date")
     if isinstance(trade_date, date):
@@ -80,6 +84,7 @@ def _serialize_import_record(item: dict) -> PortfolioImportTradeItem:
     summary="Create portfolio account",
 )
 def create_account(request: PortfolioAccountCreateRequest) -> PortfolioAccountItem:
+    """创建组合账户。"""
     service = PortfolioService()
     try:
         row = service.create_account(
@@ -105,6 +110,7 @@ def create_account(request: PortfolioAccountCreateRequest) -> PortfolioAccountIt
 def list_accounts(
     include_inactive: bool = Query(False, description="Whether to include inactive accounts"),
 ) -> PortfolioAccountListResponse:
+    """列出组合账户。"""
     service = PortfolioService()
     try:
         rows = service.list_accounts(include_inactive=include_inactive)
@@ -120,6 +126,7 @@ def list_accounts(
     summary="Update portfolio account",
 )
 def update_account(account_id: int, request: PortfolioAccountUpdateRequest) -> PortfolioAccountItem:
+    """更新组合账户。"""
     service = PortfolioService()
     try:
         updated = service.update_account(
@@ -148,6 +155,7 @@ def update_account(account_id: int, request: PortfolioAccountUpdateRequest) -> P
     summary="Deactivate portfolio account",
 )
 def delete_account(account_id: int):
+    """删除组合账户。"""
     service = PortfolioService()
     try:
         ok = service.deactivate_account(account_id)
@@ -167,6 +175,7 @@ def delete_account(account_id: int):
     summary="Record trade event",
 )
 def create_trade(request: PortfolioTradeCreateRequest) -> PortfolioEventCreatedResponse:
+    """新增交易记录。"""
     service = PortfolioService()
     try:
         data = service.record_trade(
@@ -211,6 +220,7 @@ def list_trades(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioTradeListResponse:
+    """列出交易记录。"""
     service = PortfolioService()
     try:
         data = service.list_trade_events(
@@ -236,6 +246,7 @@ def list_trades(
     summary="Delete trade event",
 )
 def delete_trade(trade_id: int) -> PortfolioDeleteResponse:
+    """删除交易记录。"""
     service = PortfolioService()
     try:
         ok = service.delete_trade_event(trade_id)
@@ -257,6 +268,7 @@ def delete_trade(trade_id: int) -> PortfolioDeleteResponse:
     summary="Record cash event",
 )
 def create_cash_ledger(request: PortfolioCashLedgerCreateRequest) -> PortfolioEventCreatedResponse:
+    """新增现金流水。"""
     service = PortfolioService()
     try:
         data = service.record_cash_ledger(
@@ -290,6 +302,7 @@ def list_cash_ledger(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioCashLedgerListResponse:
+    """列出现金流水。"""
     service = PortfolioService()
     try:
         data = service.list_cash_ledger_events(
@@ -314,6 +327,7 @@ def list_cash_ledger(
     summary="Delete cash ledger event",
 )
 def delete_cash_ledger(entry_id: int) -> PortfolioDeleteResponse:
+    """删除现金流水。"""
     service = PortfolioService()
     try:
         ok = service.delete_cash_ledger_event(entry_id)
@@ -335,6 +349,7 @@ def delete_cash_ledger(entry_id: int) -> PortfolioDeleteResponse:
     summary="Record corporate action event",
 )
 def create_corporate_action(request: PortfolioCorporateActionCreateRequest) -> PortfolioEventCreatedResponse:
+    """新增公司行动记录。"""
     service = PortfolioService()
     try:
         data = service.record_corporate_action(
@@ -372,6 +387,7 @@ def list_corporate_actions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioCorporateActionListResponse:
+    """列出公司行动记录。"""
     service = PortfolioService()
     try:
         data = service.list_corporate_action_events(
@@ -397,6 +413,7 @@ def list_corporate_actions(
     summary="Delete corporate action event",
 )
 def delete_corporate_action(action_id: int) -> PortfolioDeleteResponse:
+    """删除公司行动记录。"""
     service = PortfolioService()
     try:
         ok = service.delete_corporate_action_event(action_id)
@@ -426,6 +443,7 @@ def get_snapshot(
         description="Whether today's snapshot should try realtime quotes before historical close fallback",
     ),
 ) -> PortfolioSnapshotResponse:
+    """获取组合持仓快照。"""
     service = PortfolioService()
     try:
         data = service.get_portfolio_snapshot(
@@ -449,6 +467,7 @@ def get_snapshot(
     summary="Submit manual analysis for a held portfolio position",
 )
 def analyze_position(symbol: str, request: PortfolioPositionAnalysisRequest) -> TaskAccepted | JSONResponse:
+    """分析单只持仓。"""
     service = PortfolioService()
     try:
         context = _resolve_position_analysis_context(service, symbol=symbol, account_id=request.account_id)
@@ -498,6 +517,7 @@ def _resolve_position_analysis_context(
     symbol: str,
     account_id: Optional[int],
 ) -> dict:
+    """解析持仓分析所需上下文。"""
     target = service._normalize_symbol_for_position(symbol)
     if not target:
         raise ValueError("symbol must not be empty")
@@ -565,6 +585,7 @@ def parse_csv_import(
     broker: str = Form(..., description="Broker id: huatai/citic/cmb"),
     file: UploadFile = File(...),
 ) -> PortfolioImportParseResponse:
+    """解析券商交易 CSV 导入内容。"""
     importer = PortfolioImportService()
     try:
         content = file.file.read()
@@ -590,6 +611,7 @@ def parse_csv_import(
     summary="List supported broker CSV parsers",
 )
 def list_csv_brokers() -> PortfolioImportBrokerListResponse:
+    """列出支持的券商 CSV 格式。"""
     importer = PortfolioImportService()
     try:
         return PortfolioImportBrokerListResponse(brokers=importer.list_supported_brokers())
@@ -609,6 +631,7 @@ def commit_csv_import(
     dry_run: bool = Form(False),
     file: UploadFile = File(...),
 ) -> PortfolioImportCommitResponse:
+    """提交 CSV 导入记录。"""
     importer = PortfolioImportService()
     try:
         content = file.file.read()
@@ -636,6 +659,7 @@ def refresh_fx_rates(
     account_id: Optional[int] = Query(None, description="Optional account id"),
     as_of: Optional[date] = Query(None, description="Rate date, default today"),
 ) -> PortfolioFxRefreshResponse:
+    """刷新汇率数据。"""
     service = PortfolioService()
     try:
         data = service.refresh_fx_rates(account_id=account_id, as_of=as_of)
@@ -661,6 +685,7 @@ def get_risk_report(
         description="Whether today's risk snapshot should try realtime quotes before historical close fallback",
     ),
 ) -> PortfolioRiskResponse:
+    """获取组合风险报告。"""
     service = PortfolioRiskService()
     try:
         data = service.get_risk_report(

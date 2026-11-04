@@ -417,6 +417,7 @@ TEXT_SYSTEM_PROMPT = """你是一位专业的股票分析助手。
 
 
 def _today_has_realtime_overlay(today: Any) -> bool:
+    """判断当日行情是否叠加了实时数据。"""
     if not isinstance(today, dict):
         return False
     data_source = today.get("data_source") or today.get("dataSource")
@@ -433,6 +434,7 @@ def _today_looks_complete_daily_bar(
     context: Dict[str, Any],
     phase_context: Dict[str, Any],
 ) -> bool:
+    """判断当日数据是否已构成完整日 K 线。"""
     today = context.get("today")
     if not isinstance(today, dict) or today.get("close") in (None, "") or _today_has_realtime_overlay(today):
         return False
@@ -468,6 +470,7 @@ def _phase_aware_quote_labels(context: Dict[str, Any]) -> Tuple[str, str]:
 
 
 def _should_hide_regular_session_ohlc(context: Dict[str, Any]) -> bool:
+    """判断是否应在提示词中隐藏常规时段 OHLC。"""
     phase_context = context.get("market_phase_context")
     if not isinstance(phase_context, dict):
         return False
@@ -483,6 +486,7 @@ class AnalysisPromptBuilder:
     """Build prompt text and price snapshots without invoking a model."""
 
     def __init__(self, runtime_config_provider, skill_prompt_sections_provider):
+        """构造分析提示词构建器：装配运行时配置与技能段落提供者。"""
         self._runtime_config_provider = runtime_config_provider
         self._skill_prompt_sections_provider = skill_prompt_sections_provider
 

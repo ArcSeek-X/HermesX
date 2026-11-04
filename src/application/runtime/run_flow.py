@@ -374,6 +374,7 @@ def _append_provider_runs(
     events: List[Dict[str, Any]],
     provider_runs: List[Any],
 ) -> Dict[str, str]:
+    """追加数据源运行节点。"""
     success_by_data_type = {
         data_type: any(_as_mapping(run).get("success") is True for run in runs)
         for data_type, runs in _group_provider_runs(provider_runs).items()
@@ -478,6 +479,7 @@ def _append_context_blocks(
     overview: Optional[Dict[str, Any]],
     provider_success_by_block: Dict[str, str],
 ) -> None:
+    """追加上下文信息块节点。"""
     if not overview:
         return
     metadata = overview.get("metadata") if isinstance(overview.get("metadata"), Mapping) else {}
@@ -540,6 +542,7 @@ def _append_llm_runs(
     llm_runs: List[Any],
     raw_result: Dict[str, Any],
 ) -> Optional[str]:
+    """追加 LLM 运行节点。"""
     previous_node_id = "context_pack"
     last_node_id: Optional[str] = None
     for index, raw_run in enumerate(llm_runs, start=1):
@@ -617,6 +620,7 @@ def _append_history_runs(
     anchor_node_id: str,
     fallback_created_at: Optional[str],
 ) -> Optional[str]:
+    """追加历史写入节点。"""
     last_node_id: Optional[str] = None
     previous_node_id = anchor_node_id
     for index, raw_run in enumerate(history_runs, start=1):
@@ -670,6 +674,7 @@ def _append_notification_runs(
     *,
     anchor_node_id: str,
 ) -> int:
+    """追加通知运行节点。"""
     count = 0
     for index, raw_run in enumerate(notification_runs, start=1):
         run = _as_mapping(raw_run)
@@ -742,6 +747,7 @@ def _normalize_history_diagnostics_for_record(
     snapshot: Dict[str, Any],
     diagnostics: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """规范化记录中的历史诊断。"""
     if not diagnostics:
         return diagnostics
 
@@ -791,6 +797,7 @@ def _normalize_history_diagnostics_for_record(
 
 
 def _first_timestamp(items: List[Any]) -> Optional[datetime]:
+    """返回首个有效时间戳。"""
     timestamps = [
         parsed
         for parsed in (_datetime_for_elapsed(_as_mapping(item).get("created_at")) for item in items)
@@ -800,6 +807,7 @@ def _first_timestamp(items: List[Any]) -> Optional[datetime]:
 
 
 def _timestamp_before(value: Any, boundary: datetime) -> bool:
+    """判断时间戳是否早于基准。"""
     parsed = _datetime_for_elapsed(value)
     if parsed is None:
         return False
@@ -817,6 +825,7 @@ def _put_skeleton_tail(
     anchor_node_id: str,
     status: str,
 ) -> None:
+    """写入流程骨架尾部节点。"""
     downstream_status = "skipped" if status in {"failed", "cancelled"} else "unknown"
     _put_node(
         nodes,
@@ -864,6 +873,7 @@ def _prune_active_skeleton_tail(
     nodes: Dict[str, Dict[str, Any]],
     edges: List[Dict[str, Any]],
 ) -> None:
+    """清理活跃骨架尾部节点。"""
     remove_node_ids = set()
     if "llm" in nodes and any(node_id.startswith("llm_") for node_id in nodes):
         remove_node_ids.add("llm")
@@ -881,6 +891,7 @@ def _prune_active_skeleton_tail(
 
 
 def _append_task_events(events: List[Dict[str, Any]], task: Any, flow_status: str) -> None:
+    """追加任务事件。"""
     _append_event(
         events,
         "task_created",
@@ -940,6 +951,7 @@ def _append_active_flow_events(
     *,
     flow_status: str,
 ) -> None:
+    """追加活跃流程事件。"""
     if not flow_events:
         return
 
@@ -1036,6 +1048,7 @@ def _append_active_flow_events(
 
 
 def _append_external_event(events: List[Dict[str, Any]], event: Dict[str, Any]) -> None:
+    """追加外部事件。"""
     event_id = _safe_text(event.get("id"), max_length=96) or f"flow_{len(events) + 1:04d}"
     if any(existing.get("id") == event_id for existing in events):
         return
@@ -1057,6 +1070,7 @@ def _append_external_event(events: List[Dict[str, Any]], event: Dict[str, Any]) 
 
 
 def _group_provider_runs(provider_runs: List[Any]) -> Dict[str, List[Dict[str, Any]]]:
+    """按数据源分组运行记录。"""
     grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for run in provider_runs:
         run_map = _as_mapping(run)
@@ -1066,6 +1080,7 @@ def _group_provider_runs(provider_runs: List[Any]) -> Dict[str, List[Dict[str, A
 
 
 def _provider_run_status(run: Dict[str, Any], *, had_previous_failure: bool) -> str:
+    """返回数据源运行状态。"""
     if run.get("success") is True:
         if run.get("fallback_from") or had_previous_failure:
             return "fallback"
@@ -1077,6 +1092,7 @@ def _provider_run_status(run: Dict[str, Any], *, had_previous_failure: bool) -> 
 
 
 def _provider_transition_kind(previous_run: Dict[str, Any], current_run: Dict[str, Any]) -> str:
+    """判断数据源状态转换类型。"""
     previous_provider = _safe_text(previous_run.get("provider"), max_length=80)
     current_provider = _safe_text(current_run.get("provider"), max_length=80)
     if previous_run.get("fallback_to") or current_run.get("fallback_from"):
@@ -1093,6 +1109,7 @@ def _history_snapshot_status(
     diagnostics: Dict[str, Any],
     overview: Optional[Dict[str, Any]],
 ) -> str:
+    """返回历史快照状态。"""
     statuses = [node.get("status") for node in nodes.values()]
     has_diagnostics = bool(diagnostics)
     has_overview = bool(overview)
@@ -1110,6 +1127,7 @@ def _history_snapshot_status(
 
 
 def _context_pack_status(overview: Optional[Dict[str, Any]]) -> str:
+    """返回上下文包状态。"""
     if not overview:
         return "unknown"
     block_statuses = [
@@ -1126,6 +1144,7 @@ def _context_pack_status(overview: Optional[Dict[str, Any]]) -> str:
 
 
 def _context_pack_message(overview: Optional[Dict[str, Any]]) -> str:
+    """返回上下文包提示文案。"""
     if not overview:
         return "未记录 AnalysisContextPack overview"
     counts = overview.get("counts")
@@ -1136,6 +1155,7 @@ def _context_pack_message(overview: Optional[Dict[str, Any]]) -> str:
 
 
 def _context_block_message(block: Dict[str, Any]) -> str:
+    """返回上下文块提示文案。"""
     status = str(block.get("status") or "")
     if status == "available":
         return "已进入本次分析输入"
@@ -1159,6 +1179,7 @@ def _context_block_message(block: Dict[str, Any]) -> str:
 
 
 def _provider_run_message(label: str, provider: str, run: Dict[str, Any], *, success: bool) -> str:
+    """返回数据源运行提示文案。"""
     if success:
         record_count = _safe_int(run.get("record_count"))
         suffix = f"，返回 {record_count} 条" if record_count is not None else ""
@@ -1168,6 +1189,7 @@ def _provider_run_message(label: str, provider: str, run: Dict[str, Any], *, suc
 
 
 def _llm_run_message(model: Optional[str], run: Dict[str, Any], *, success: bool) -> str:
+    """返回 LLM 运行提示文案。"""
     display_model = _safe_text(model or run.get("provider") or "unknown", max_length=120)
     if success:
         if run.get("fallback_model"):
@@ -1178,6 +1200,7 @@ def _llm_run_message(model: Optional[str], run: Dict[str, Any], *, success: bool
 
 
 def _notification_run_message(channel: str, run: Dict[str, Any], status: str) -> str:
+    """返回通知运行提示文案。"""
     if status == "success":
         return f"{channel} 通知发送成功"
     if status == "skipped":
@@ -1195,6 +1218,7 @@ def _build_summary(
     *,
     elapsed_ms: Optional[int] = None,
 ) -> Dict[str, Any]:
+    """构建流程摘要。"""
     bottleneck_node_id = None
     max_duration = -1
     for node_id, node in nodes.items():
@@ -1259,6 +1283,7 @@ def _put_node(
     message: Optional[Any] = None,
     metadata: Optional[Any] = None,
 ) -> None:
+    """写入流程节点。"""
     payload = {
         "id": node_id,
         "lane": lane,
@@ -1288,6 +1313,7 @@ def _append_edge(
     message: Optional[Any] = None,
     metadata: Optional[Any] = None,
 ) -> None:
+    """追加流程边。"""
     edge_id = f"{from_node}_to_{to_node}_{kind}"
     for edge in edges:
         if edge["id"] != edge_id:
@@ -1322,6 +1348,7 @@ def _refresh_incoming_edge_status(
     node_id: Optional[str],
     status: Optional[Any],
 ) -> None:
+    """刷新入边状态。"""
     if not node_id or status is None:
         return
     valid_status = _valid_status(status)
@@ -1341,6 +1368,7 @@ def _append_event(
     message: Optional[Any] = None,
     metadata: Optional[Any] = None,
 ) -> None:
+    """追加流程事件。"""
     event_id = f"evt_{len(events) + 1:04d}"
     events.append(
         {
@@ -1357,16 +1385,19 @@ def _append_event(
 
 
 def _task_status_value(task: Any) -> str:
+    """返回任务状态取值。"""
     status = getattr(task, "status", None)
     value = getattr(status, "value", status)
     return str(value or "unknown").strip().lower()
 
 
 def _map_task_status(status_value: str) -> str:
+    """映射任务状态。"""
     return _RUN_STATUS_MAP.get(status_value, "unknown")
 
 
 def _task_status_message(status: str) -> str:
+    """返回任务状态提示文案。"""
     return {
         "pending": "任务已加入队列",
         "running": "任务执行中",
@@ -1378,6 +1409,7 @@ def _task_status_message(status: str) -> str:
 
 
 def _valid_status(value: Any) -> str:
+    """判断状态值是否合法。"""
     text = str(value or "unknown").strip().lower()
     if text in {
         "pending",
@@ -1397,14 +1429,17 @@ def _valid_status(value: Any) -> str:
 
 
 def _safe_text(value: Any, *, max_length: int = 300) -> Optional[str]:
+    """将值安全转换为文本。"""
     return sanitize_diagnostic_text(value, max_length=max_length)
 
 
 def _safe_key(value: Any) -> str:
+    """生成安全的键名。"""
     return safe_diagnostic_key(value)
 
 
 def _safe_int(value: Any) -> Optional[int]:
+    """将值安全转换为整数。"""
     if isinstance(value, bool) or value is None:
         return None
     try:
@@ -1415,10 +1450,12 @@ def _safe_int(value: Any) -> Optional[int]:
 
 
 def _sanitize_metadata(value: Any, *, depth: int = 0) -> Any:
+    """清洗流程元数据。"""
     return sanitize_diagnostic_metadata(value, depth=depth)
 
 
 def _as_mapping(value: Any) -> Dict[str, Any]:
+    """将值安全转换为映射。"""
     parsed = parse_json_field(value)
     if isinstance(parsed, Mapping):
         return dict(parsed)
@@ -1432,10 +1469,12 @@ def _as_mapping(value: Any) -> Dict[str, Any]:
 
 
 def _as_list(value: Any) -> List[Any]:
+    """将值安全转换为列表。"""
     return value if isinstance(value, list) else []
 
 
 def _datetime_to_iso(value: Any) -> Optional[str]:
+    """将 datetime 转换为 ISO 字符串。"""
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, str) and value.strip():
@@ -1444,6 +1483,7 @@ def _datetime_to_iso(value: Any) -> Optional[str]:
 
 
 def _elapsed_ms(start: Any, end: Any) -> Optional[int]:
+    """计算耗时（毫秒）。"""
     start_dt = _datetime_for_elapsed(start)
     end_dt = _datetime_for_elapsed(end)
     if start_dt is None or end_dt is None:
@@ -1455,6 +1495,7 @@ def _elapsed_ms(start: Any, end: Any) -> Optional[int]:
 
 
 def _started_at_from_end_and_duration(end: Any, duration_ms: Any) -> Optional[str]:
+    """由结束时间与耗时反推开始时间。"""
     duration = _safe_int(duration_ms)
     if duration is None:
         return None
@@ -1472,10 +1513,12 @@ def _started_at_from_end_and_duration(end: Any, duration_ms: Any) -> Optional[st
 
 
 def _local_timezone():
+    """返回本地时区。"""
     return datetime.now().astimezone().tzinfo or timezone.utc
 
 
 def _datetime_for_elapsed(value: Any) -> Optional[datetime]:
+    """返回用于耗时计算的时间。"""
     if isinstance(value, datetime):
         parsed = value
     elif isinstance(value, str) and "T" in value:
@@ -1493,6 +1536,7 @@ def _datetime_for_elapsed(value: Any) -> Optional[datetime]:
 
 
 def _events_elapsed_ms(events: Iterable[Dict[str, Any]]) -> Optional[int]:
+    """计算事件序列总耗时（毫秒）。"""
     timestamps: List[datetime] = []
     for event in events:
         parsed = _datetime_for_elapsed(event.get("timestamp"))

@@ -71,6 +71,7 @@ def serve_api_in_thread(app, host: str, port: int, config) -> None:
     startup_error: list[BaseException] = []
 
     def run_server():
+        """启动 API 服务进程。"""
         try:
             uvicorn_server.run()
         except Exception as exc:  # noqa: BLE001 - surface startup issues to caller promptly

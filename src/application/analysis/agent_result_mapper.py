@@ -22,6 +22,7 @@ class AgentResultMapper:
     """Convert Agent output and trend fallbacks into the shared analysis result."""
 
     def __init__(self, report_language: str):
+        """构造 Agent 结果映射器：保存报告语言。"""
         self.report_language = report_language
 
     def agent_result_to_analysis_result(
@@ -245,10 +246,12 @@ class AgentResultMapper:
 
     @classmethod
     def extract_advice_text_from_dict(cls, raw_advice: dict) -> str:
+        """从建议字典中提取可读建议文本。"""
         return _pipeline_rules.extract_advice_text_from_dict(raw_advice)
 
     @classmethod
     def is_agent_placeholder_text(cls, text: str) -> bool:
+        """判断文本是否为 Agent 占位符内容。"""
         return _pipeline_rules.is_agent_placeholder_text(text)
 
     @classmethod
@@ -260,6 +263,7 @@ class AgentResultMapper:
         allow_dict: bool = False,
         expect_text: bool = False,
     ) -> bool:
+        """判断 Agent 结果字段是否缺失或无效。"""
         return _pipeline_rules.is_agent_field_missing(
             value,
             scalar=scalar,
@@ -269,6 +273,7 @@ class AgentResultMapper:
 
     @staticmethod
     def trend_score_fallback(trend_result: Optional[TrendAnalysisResult]) -> Optional[int]:
+        """从技术面结果回退得到趋势评分。"""
         return _pipeline_rules.trend_score_fallback(trend_result)
 
     @classmethod
@@ -277,6 +282,7 @@ class AgentResultMapper:
         trend_result: Optional[TrendAnalysisResult],
         report_language: str = "zh",
     ) -> str:
+        """从技术面结果回退得到趋势标签。"""
         return _pipeline_rules.trend_label_fallback(trend_result, report_language)
 
     @classmethod
@@ -285,20 +291,24 @@ class AgentResultMapper:
         trend_result: Optional[TrendAnalysisResult],
         report_language: str = "zh",
     ) -> str:
+        """从技术面结果回退得到趋势信号。"""
         return _pipeline_rules.trend_signal_fallback(trend_result, report_language)
 
     @staticmethod
     def trend_decision_fallback(trend_result: Optional[TrendAnalysisResult]) -> Optional[str]:
+        """从技术面结果回退得到趋势决策。"""
         return _pipeline_rules.trend_decision_fallback(trend_result)
 
     @staticmethod
     def mark_trend_fallback_source(result: AnalysisResult) -> None:
+        """标记结果中的趋势字段来自回退逻辑。"""
         if "trend:fallback" in (result.data_sources or ""):
             return
         result.data_sources = f"{result.data_sources},trend:fallback" if result.data_sources else "trend:fallback"
 
     @staticmethod
     def summary_fallback_from_result(result: AnalysisResult, report_language: str) -> str:
+        """按报告语言从结果生成回退摘要。"""
         return _pipeline_rules.summary_fallback_from_result(result, report_language)
 
     def backfill_agent_dashboard_fields(
@@ -307,6 +317,7 @@ class AgentResultMapper:
         trend_result: Optional[TrendAnalysisResult],
         report_language: str,
     ) -> None:
+        """回填 Agent 仪表盘缺失字段。"""
         if not isinstance(result.dashboard, dict):
             result.dashboard = {}
         dashboard = result.dashboard
@@ -377,6 +388,7 @@ class AgentResultMapper:
         trend_result: Optional[TrendAnalysisResult],
         report_language: str,
     ) -> Any:
+        """从技术面结果回退得到止损价。"""
         return _pipeline_rules.stop_loss_fallback_from_trend(trend_result, report_language)
 
     @classmethod
@@ -386,6 +398,7 @@ class AgentResultMapper:
         trend_result: Optional[TrendAnalysisResult],
         report_language: str,
     ) -> None:
+        """对最终结果应用趋势字段回退策略。"""
         if trend_result is None:
             result.sentiment_score = 50
             result.operation_advice = localize_operation_advice("观望", report_language)

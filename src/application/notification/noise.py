@@ -71,6 +71,7 @@ def reset_notification_noise_state() -> None:
 
 
 def _resolve_now(timezone_name: Optional[str], now: Optional[datetime]) -> datetime:
+    """按指定时区解析当前时间（可注入 now 便于测试）。"""
     raw_timezone = str(timezone_name or "").strip()
     if raw_timezone:
         if ZoneInfo is None:
@@ -90,10 +91,12 @@ def _resolve_now(timezone_name: Optional[str], now: Optional[datetime]) -> datet
 
 
 def _timestamp(now: datetime) -> float:
+    """将 datetime 转换为 Unix 时间戳。"""
     return now.timestamp()
 
 
 def _cleanup_expired(now_ts: float) -> None:
+    """清理已过期的噪声抑制状态条目。"""
     expired_dedup = [key for key, expires_at in _dedup_expires_at.items() if expires_at <= now_ts]
     for key in expired_dedup:
         _dedup_expires_at.pop(key, None)
@@ -120,10 +123,12 @@ def _cleanup_expired(now_ts: float) -> None:
 
 
 def _stable_content_hash(content: str) -> str:
+    """计算消息内容的稳定哈希。"""
     return hashlib.sha256((content or "").encode("utf-8")).hexdigest()
 
 
 def _state_key(prefix: str, route_type: str, severity: str, key: str) -> str:
+    """按前缀/路由类型/级别/业务键构造状态键。"""
     return f"{prefix}:{route_type}:{severity}:{key}"
 
 
@@ -135,6 +140,7 @@ def _build_keys(
     dedup_key: Optional[str],
     cooldown_key: Optional[str],
 ) -> Tuple[str, str]:
+    """为噪声判定构造一组候选状态键。"""
     dedup_part = str(dedup_key).strip() if dedup_key else _stable_content_hash(content)
     cooldown_part = str(cooldown_key).strip() if cooldown_key else "default"
     return (
@@ -189,6 +195,7 @@ def _evaluate_notification_noise(
     cooldown_key: Optional[str],
     now: Optional[datetime],
 ) -> NotificationNoiseDecision:
+    """评估通知是否应被噪声抑制，返回判定结果。"""
     route = str(route_type or "default").strip().lower() or "default"
     resolved_severity = normalize_notification_severity(route, severity)
     dedup_ttl = max(0, int(getattr(config, "notification_dedup_ttl_seconds", 0) or 0))
@@ -299,6 +306,7 @@ def _evaluate_notification_noise(
 
 
 def _release_reserved_locked(decision: NotificationNoiseDecision) -> None:
+    """在持锁状态下释放已预占的抑制名额。"""
     if decision.dedup_reserved and decision.dedup_key:
         dedup_inflight = _dedup_inflight_until.get(decision.dedup_key)
         if dedup_inflight and dedup_inflight[1] == decision.reservation_token:

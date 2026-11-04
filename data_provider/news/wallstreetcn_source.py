@@ -29,6 +29,7 @@ class WallstreetcnNewsSource(NewsDataSource):
         calendar_base_url: Optional[str] = None,
         calendar_timeout: Optional[float] = None,
     ) -> None:
+        """构造华尔街见闻新闻数据源。"""
         config = get_config()
         self.live_fetcher = WallstreetcnLiveNewsFetcher(
             base_url=live_base_url or getattr(config, "wscn_live_news_base_url", "https://api-one.wallstcn.com"),

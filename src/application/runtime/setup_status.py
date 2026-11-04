@@ -50,6 +50,7 @@ class SetupStatusBuilder:
     """Read-only first-run checks from an explicit effective configuration."""
 
     def __init__(self, generation_runtime_provider: Callable[[], GenerationRuntimePort]):
+        """构造初始化状态检查服务并装配依赖。"""
         self._generation_runtime_provider = generation_runtime_provider
 
     def get_setup_status(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
@@ -88,6 +89,7 @@ class SetupStatusBuilder:
         message: str,
         next_step: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """构造单项检查结果字典。"""
         return {
             "key": key,
             "title": title,
@@ -100,15 +102,18 @@ class SetupStatusBuilder:
 
     @staticmethod
     def _has_any_config_value(effective_map: Dict[str, str], keys: Sequence[str]) -> bool:
+        """判断配置映射中是否存在任意非空值。"""
         return any((effective_map.get(key) or "").strip() for key in keys)
 
     @staticmethod
     def _has_valid_ntfy_endpoint(effective_map: Dict[str, str]) -> bool:
+        """校验 ntfy 端点配置是否有效。"""
         ntfy_server_url, ntfy_topic = resolve_ntfy_endpoint(effective_map.get("NTFY_URL"))
         return bool(ntfy_server_url and ntfy_topic)
 
     @staticmethod
     def _has_valid_gotify_config(effective_map: Dict[str, str]) -> bool:
+        """校验 Gotify 配置是否有效。"""
         return bool(
             resolve_gotify_message_endpoint(effective_map.get("GOTIFY_URL"))
             and (effective_map.get("GOTIFY_TOKEN") or "").strip()
@@ -116,6 +121,7 @@ class SetupStatusBuilder:
 
     @classmethod
     def _provider_has_setup_credentials(cls, provider: str, effective_map: Dict[str, str]) -> bool:
+        """判断供应商是否已配置所需凭据。"""
         normalized = canonicalize_llm_channel_protocol(provider)
         if normalized == "ollama":
             return True
@@ -143,6 +149,7 @@ class SetupStatusBuilder:
 
     @classmethod
     def _has_setup_runtime_source_for_model(cls, model: str, effective_map: Dict[str, str]) -> bool:
+        """判断模型是否有可用的运行时来源配置。"""
         normalized_model = (model or "").strip()
         if not normalized_model:
             return False
@@ -151,6 +158,7 @@ class SetupStatusBuilder:
 
     @classmethod
     def _collect_setup_channel_models(cls, effective_map: Dict[str, str]) -> List[str]:
+        """收集各通知渠道涉及的模型配置。"""
         models: List[str] = []
         seen: Set[str] = set()
         for raw_name in _split_csv(effective_map.get("LLM_CHANNELS") or ""):
@@ -215,6 +223,7 @@ class SetupStatusBuilder:
 
     @classmethod
     def _infer_setup_legacy_primary_model(cls, effective_map: Dict[str, str]) -> str:
+        """推断遗留配置中的主模型。"""
         if cls._has_any_config_value(effective_map, ("GEMINI_API_KEYS", "GEMINI_API_KEY")):
             model = (effective_map.get("GEMINI_MODEL") or "gemini-3.1-pro-preview").strip()
             return model if "/" in model else f"gemini/{model}"
@@ -239,6 +248,7 @@ class SetupStatusBuilder:
         return ""
 
     def _resolve_setup_primary_model(self, effective_map: Dict[str, str]) -> Tuple[str, str]:
+        """解析当前生效的主模型及其来源。"""
         explicit_model = (effective_map.get("LITELLM_MODEL") or "").strip()
         yaml_models = _collect_yaml_models_from_map(effective_map)
         channel_models = self._collect_setup_channel_models(effective_map)
@@ -267,6 +277,7 @@ class SetupStatusBuilder:
         return "", "尚未检测到主模型配置"
 
     def _build_setup_primary_llm_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        """构建主 LLM 配置的初始化检查项。"""
         generation_backend = normalize_backend_id(
             effective_map.get("GENERATION_BACKEND"),
             default=LITELLM_BACKEND_ID,
@@ -333,6 +344,7 @@ class SetupStatusBuilder:
         effective_map: Dict[str, str],
         primary_check: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """构建 Agent LLM 配置的初始化检查项。"""
         generation_backend = normalize_backend_id(
             effective_map.get("GENERATION_BACKEND"),
             default=LITELLM_BACKEND_ID,
@@ -477,6 +489,7 @@ class SetupStatusBuilder:
         )
 
     def _build_setup_stock_list_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        """构建股票列表配置的初始化检查项。"""
         stocks = split_stock_list(effective_map.get("STOCK_LIST") or "")
         if stocks:
             return self._setup_check(
@@ -498,6 +511,7 @@ class SetupStatusBuilder:
         )
 
     def _build_setup_notification_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        """构建通知渠道配置的初始化检查项。"""
         configured = (
             self._has_any_config_value(
                 effective_map, ("WECHAT_WEBHOOK_URL", "DISCORD_WEBHOOK_URL", "DINGTALK_WEBHOOK_URL")
@@ -561,6 +575,7 @@ class SetupStatusBuilder:
         )
 
     def _build_setup_storage_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        """构建存储配置的初始化检查项。"""
         db_path = Path((effective_map.get("DATABASE_PATH") or "./data/stock_analysis.db").strip()).expanduser()
         parent = db_path.parent if db_path.parent != Path("") else Path(".")
         probe = parent

@@ -154,9 +154,11 @@ class PytdxFetcher(BaseFetcher):
         self._last_unavailable_reason = ""
 
     def _is_in_connection_cooldown(self) -> bool:
+        """判断是否处于连接冷却期。"""
         return time.time() < self._unavailable_until
 
     def _mark_connection_cooldown(self, reason: str) -> None:
+        """标记连接冷却期。"""
         self._unavailable_until = time.time() + _PYTDX_CONNECTION_COOLDOWN_SECONDS
         self._last_unavailable_reason = str(reason or "").strip()
         logger.info(
@@ -166,6 +168,7 @@ class PytdxFetcher(BaseFetcher):
         )
 
     def is_available_for_request(self, capability: str = "") -> bool:
+        """判断当前是否可发起请求。"""
         return not self._is_in_connection_cooldown()
     
     def _get_pytdx(self):

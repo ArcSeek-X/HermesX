@@ -40,6 +40,7 @@ WARMUP_REQUESTS = 5
 
 
 def _ms(seconds: float) -> float:
+    """将耗时转换为毫秒。"""
     return round(seconds * 1000, 2)
 
 
@@ -133,6 +134,7 @@ def measure_factory_ms() -> dict:
 
 
 async def _measure_latencies(app) -> dict:
+    """测量各接口调用延迟。"""
     import httpx
 
     transport = httpx.ASGITransport(app=app)
@@ -159,6 +161,7 @@ async def _measure_latencies(app) -> dict:
 
 
 def collect() -> dict:
+    """采集性能基线数据。"""
     payload = {
         "import_api_app": measure_import_ms(),
         "lifespan_startup": measure_lifespan_ms(),
@@ -173,6 +176,7 @@ def collect() -> dict:
 
 
 def main() -> int:
+    """脚本入口。"""
     parser = argparse.ArgumentParser(description="Measure startup and key endpoint baselines.")
     parser.add_argument("--json", action="store_true", help="只输出 JSON")
     args = parser.parse_args()

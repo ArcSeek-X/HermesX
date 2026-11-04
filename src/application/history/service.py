@@ -36,6 +36,7 @@ class HistoryQueryService:
         repository: HistoryRepositoryPort,
         code_normalizer: StockCodeNormalizerPort,
     ) -> None:
+        """构造历史服务：装配历史仓储等依赖。"""
         self._repository = repository
         self._code_normalizer = code_normalizer
 
@@ -249,6 +250,7 @@ class HistoryQueryService:
 
 
 def _raw_result_value(raw_result: Any, key: str) -> Any:
+    """从原始结果字典中安全读取指定键值。"""
     if not isinstance(raw_result, dict):
         return None
 
@@ -267,6 +269,7 @@ def _raw_result_value(raw_result: Any, key: str) -> Any:
 
 
 def _coalesce_text(*values: Any) -> Optional[str]:
+    """返回首个非空文本值。"""
     for value in values:
         if value is None:
             continue
@@ -277,6 +280,7 @@ def _coalesce_text(*values: Any) -> Optional[str]:
 
 
 def _coalesce_int(*values: Any) -> Optional[int]:
+    """返回首个可解析的整数值。"""
     for value in values:
         if value is None or isinstance(value, bool):
             continue
@@ -290,6 +294,7 @@ def _coalesce_int(*values: Any) -> Optional[int]:
 
 
 def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
+    """从原始结果中提取护栏拦截原因。"""
     if not isinstance(raw_result, dict):
         return None
     for reason in (

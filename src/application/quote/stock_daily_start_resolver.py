@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Resolve one authoritative stock identity and local-daily start date."""
+"""Resolve one authoritative stock identity and local-daily start date.
+
+解析权威股票身份与本地日线起始日期。综合市场阶段上下文校验市场一致性，
+并基于交易日历给出预期起始交易日，供后续本地日线查询使用。
+"""
 
 from __future__ import annotations
 
@@ -123,6 +127,7 @@ def resolve_stock_daily_start(
 
 
 def _parse_date(value: Any) -> Optional[date]:
+    """将任意值安全解析为 date：datetime 取日期、date 直接返回、'YYYY-MM-DD' 字符串按格式解析，其余返回 None。"""
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):

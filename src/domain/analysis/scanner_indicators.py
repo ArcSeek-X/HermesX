@@ -195,6 +195,7 @@ def _crossed_down(fast: "pd.Series", slow: "pd.Series") -> bool:
 
 
 def _crossed(fast: "pd.Series", slow: "pd.Series", direction: str) -> bool:
+    """判断序列是否穿越指定阈值。"""
     if len(fast) < 2 or len(slow) < 2:
         return False
 

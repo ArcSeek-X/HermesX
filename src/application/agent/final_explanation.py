@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Build the public multi-agent explanation after Pipeline finalization."""
+"""Build the public multi-agent explanation after Pipeline finalization.
+
+在 Pipeline 最终化之后，构造对外的多智能体解释。汇总基础意见分歧、风险覆盖、降级事件与流水线调整，
+经 AgentDisagreementExplanation 校验后产出最终公共动作的解释字典。
+"""
 
 from __future__ import annotations
 
@@ -22,6 +26,7 @@ class PipelineActionAdjustment:
     to_action: str
 
     def __post_init__(self) -> None:
+        """校验并归一化：要求 source 非空、from/to 动作均为规范动作且两者不同。"""
         source = str(self.source or "").strip()
         if not source:
             raise ValueError("pipeline adjustment requires a source")
@@ -141,6 +146,7 @@ def _public_opinion_payload(fact: Any) -> Optional[dict[str, Any]]:
 
 
 def _data_quality_payload(value: Optional[Mapping[str, Any]]) -> Optional[dict[str, Any]]:
+    """将 data_quality 映射为对外载荷：归一化 level（good/usable/limited/poor，否则 unknown），提取去重限制项；无有效信息返回 None。"""
     if not isinstance(value, Mapping):
         return None
     level = str(value.get("level") or "").strip().lower()
@@ -163,6 +169,7 @@ def _risk_control_payload(
     *,
     pipeline_start_signal: str,
 ) -> dict[str, Any]:
+    """构造风险覆盖载荷：无应用时返回未评估骨架，否则展开证据/覆盖/触发/应用状态与信号变化。"""
     application = runtime_facts.risk_override_application
     if application is None:
         return {
@@ -189,6 +196,7 @@ def _risk_control_payload(
 
 
 def _classify_base_disagreement(signals: Iterable[str]) -> str:
+    """按基础意见信号集合分类分歧类型（对齐看多/看空/中性、含中性、混合方向信号、证据不足）。"""
     values = list(signals)
     if len(values) < 2:
         return "insufficient_opinions"
@@ -213,6 +221,7 @@ def _decision_path(
     degraded: bool,
     pipeline_adjustments: Sequence[PipelineActionAdjustment],
 ) -> str:
+    """推导决策路径标识：流水线调整优先，其次风险已应用、降级合成、对齐共识、证据不足或混合信号合成。"""
     if pipeline_adjustments:
         return f"{pipeline_adjustments[-1].source}_adjusted"
     if risk_control.get("applied"):

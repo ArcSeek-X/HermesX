@@ -64,6 +64,7 @@ _RELEVANT_NOTIFICATIONS = {
 
 
 def _process_group_alive(process_group_id: int) -> bool:
+    """判断进程组是否仍存活。"""
     try:
         os.killpg(process_group_id, 0)
     except ProcessLookupError:
@@ -75,6 +76,7 @@ def _process_group_alive(process_group_id: int) -> bool:
 
 @dataclass(frozen=True)
 class ToolCallRecord:
+    """工具调用记录的数据结构。"""
     thread_id: str
     turn_id: str
     tool_name: str
@@ -86,6 +88,7 @@ class ToolCallRecord:
 
 @dataclass(frozen=True)
 class TurnResult:
+    """单轮对话结果的数据结构。"""
     turn_id: str
     final_text: str
     usage: Optional[dict] = None
@@ -151,6 +154,7 @@ class CodexAppServerTransport:
         tool_runner: Optional[CodexToolProcessRunner] = None,
         max_tool_calls: int = 10,
     ) -> None:
+        """构造 App Server 传输实例并初始化进程状态。"""
         if not command:
             raise ValueError("command must not be empty")
         self.command = list(command)
@@ -193,23 +197,28 @@ class CodexAppServerTransport:
         self._closed = False
 
     def __enter__(self) -> "CodexAppServerTransport":
+        """进入上下文并启动传输进程。"""
         self.start()
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
+        """退出上下文并关闭传输进程。"""
         self.close()
 
     @property
     def tool_calls(self) -> tuple[ToolCallRecord, ...]:
+        """返回本轮工具调用记录列表。"""
         with self._state_lock:
             return tuple(self._tool_calls)
 
     @property
     def stderr_preview(self) -> str:
+        """返回标准错误输出的摘要文本。"""
         with self._state_lock:
             return redact_diagnostic_value("".join(self._stderr_parts), limit=2000)
 
     def start(self) -> None:
+        """启动 Codex App Server 子进程。"""
         if self.process is not None:
             raise RuntimeError("transport already started")
         safe_path = Path(tempfile.mkdtemp(prefix="hrs-codex-app-server-"))
@@ -258,6 +267,7 @@ class CodexAppServerTransport:
             raise
 
     def close(self) -> None:
+        """关闭连接并回收子进程。"""
         if self._closed:
             return
         self._closed = True
@@ -289,6 +299,7 @@ class CodexAppServerTransport:
         *,
         respect_cancellation: bool = True,
     ) -> dict:
+        """发送请求并等待对应响应。"""
         request_timeout = self.request_timeout if timeout is None else timeout
         deadline = time.monotonic() + request_timeout
         if self.deadline is not None:
@@ -358,6 +369,7 @@ class CodexAppServerTransport:
         return result
 
     def notify(self, method: str, params: dict) -> None:
+        """发送无需响应的通知消息。"""
         deadline = time.monotonic() + self.request_timeout
         if self.deadline is not None:
             deadline = min(deadline, self.deadline)
@@ -378,6 +390,7 @@ class CodexAppServerTransport:
         base_instructions: str,
         developer_instructions: str,
     ) -> str:
+        """开启一个新的会话线程。"""
         if self.safe_cwd is None:
             raise RuntimeError("transport not started")
         result = self.request(
@@ -416,10 +429,12 @@ class CodexAppServerTransport:
         return thread_id
 
     def thread_metadata(self, thread_id: str) -> dict:
+        """返回当前线程元数据。"""
         with self._state_lock:
             return dict(self._thread_metadata.get(thread_id, {}))
 
     def inject_history(self, thread_id: str, messages: Sequence[dict]) -> None:
+        """向会话注入历史消息。"""
         items = []
         for message in messages:
             role = message.get("role")
@@ -448,6 +463,7 @@ class CodexAppServerTransport:
         timeout: Optional[float] = None,
         cancel_event: Optional[threading.Event] = None,
     ) -> TurnResult:
+        """执行一轮对话并等待完成。"""
         result = self.request(
             "turn/start",
             {
@@ -639,6 +655,7 @@ class CodexAppServerTransport:
         *,
         cancel_event: Optional[threading.Event],
     ) -> dict:
+        """等待当前轮次结束。"""
         deadline = time.monotonic() + timeout
         if self.deadline is not None:
             deadline = min(deadline, self.deadline)
@@ -661,6 +678,7 @@ class CodexAppServerTransport:
                 self._notification_condition.wait(timeout=min(remaining, 0.1))
 
     def _read_stdout(self) -> None:
+        """读取子进程标准输出流。"""
         assert self.process is not None and self.process.stdout is not None
         stream = self.process.stdout
         while True:
@@ -708,6 +726,7 @@ class CodexAppServerTransport:
             self._route_message(message)
 
     def _read_stderr(self) -> None:
+        """读取子进程标准错误流。"""
         assert self.process is not None and self.process.stderr is not None
         while True:
             chunk = self.process.stderr.readline(4096)
@@ -724,6 +743,7 @@ class CodexAppServerTransport:
                 self._stderr_size += min(encoded_size, remaining)
 
     def _route_message(self, message: dict) -> None:
+        """按类型分发收到的消息。"""
         request_id = message.get("id")
         method = message.get("method")
         if request_id is not None and isinstance(method, str):
@@ -773,6 +793,7 @@ class CodexAppServerTransport:
                 self._notification_condition.notify_all()
 
     def _handle_server_request(self, message: dict) -> None:
+        """处理服务端发起的请求。"""
         method = message.get("method")
         if method == "item/tool/call":
             with self._state_lock:
@@ -807,6 +828,7 @@ class CodexAppServerTransport:
         self._terminate_process()
 
     def _execute_tool_request(self, message: dict) -> None:
+        """执行服务端请求的工具调用。"""
         params = message.get("params") or {}
         thread_id = str(params.get("threadId", ""))
         turn_id = str(params.get("turnId", ""))
@@ -888,6 +910,7 @@ class CodexAppServerTransport:
         deadline: float,
         respect_cancellation: bool = True,
     ) -> None:
+        """向子进程写入一条消息。"""
         process = self.process
         if process is None or process.stdin is None or process.poll() is not None:
             self._raise_if_fatal()
@@ -953,20 +976,24 @@ class CodexAppServerTransport:
             self._writer_lock.release()
 
     def _set_fatal(self, error: CodexAppServerError) -> None:
+        """设置致命错误状态。"""
         with self._notification_condition:
             if self._fatal_error is None:
                 self._fatal_error = error
             self._notification_condition.notify_all()
 
     def _raise_if_fatal(self) -> None:
+        """存在致命错误时抛出异常。"""
         with self._state_lock:
             self._raise_if_fatal_locked()
 
     def _raise_if_fatal_locked(self) -> None:
+        """持锁状态下检查并抛出致命错误。"""
         if self._fatal_error is not None:
             raise self._fatal_error
 
     def _terminate_process(self) -> None:
+        """终止子进程及其进程组。"""
         with self._process_lock:
             process = self.process
             if process is None:

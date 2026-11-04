@@ -345,18 +345,23 @@ def _handle_analyze_pattern(stock_code: str, days: int = 60) -> dict:
 
     # ---- Helpers ----
     def body(i):
+        """计算第 i 根 K 线的实体长度。"""
         return abs(c[i] - o[i])
 
     def upper_shadow(i):
+        """计算第 i 根 K 线的上影线长度。"""
         return h[i] - max(c[i], o[i])
 
     def lower_shadow(i):
+        """计算第 i 根 K 线的下影线长度。"""
         return min(c[i], o[i]) - l[i]
 
     def is_bullish(i):
+        """判断第 i 根 K 线是否为阳线。"""
         return c[i] > o[i]
 
     def is_bearish(i):
+        """判断第 i 根 K 线是否为阴线。"""
         return c[i] < o[i]
 
     avg_body = sum(body(i) for i in range(n)) / n if n > 0 else 1

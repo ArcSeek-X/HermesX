@@ -19,9 +19,11 @@ class DataSectorRankingProvider:
     """通过 ``data_provider.sector.base`` 获取板块 / 概念排行。"""
 
     def get_sector_rankings(self, limit: int) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取行业板块排行数据。"""
         result = sector_base.get_sector_rankings(limit)
         return result.top_sectors, result.bottom_sectors
 
     def get_concept_rankings(self, limit: int) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取概念板块排行数据。"""
         result = sector_base.get_concept_rankings(limit)
         return result.top_sectors, result.bottom_sectors

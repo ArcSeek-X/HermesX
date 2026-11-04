@@ -153,6 +153,7 @@ class WallstreetcnCalendarFetcher:
         timeout: float = 8.0,
         request_get: Optional[Callable[..., Any]] = None,
     ):
+        """构造华尔街见闻财经日历抓取器。"""
         self.base_url = (base_url or _DEFAULT_BASE_URL).strip().rstrip("/")
         self.timeout = max(1.0, min(float(timeout), 30.0))
         self._request_get = request_get or requests.get

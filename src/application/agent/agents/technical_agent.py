@@ -6,6 +6,9 @@ Responsible for:
 - Fetching realtime quotes and historical K-line data
 - Running technical indicators (trend, MA, volume, pattern)
 - Producing a structured opinion on trend/momentum/support-resistance
+
+TechnicalAgent —— 技术与价格分析专家。负责获取实时行情与历史 K 线、计算技术指标
+（趋势、均线、成交量、形态），并产出关于趋势/动量与支撑阻力的结构化意见。
 """
 
 from __future__ import annotations
@@ -21,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class TechnicalAgent(BaseAgent):
+    """技术面分析 Agent：对华 A 股、港股、美股执行技术分析并输出结构化 JSON 意见。"""
+
     agent_name = "technical"
     max_steps = 6
     tool_names = [
@@ -35,6 +40,7 @@ class TechnicalAgent(BaseAgent):
     ]
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """构造系统提示：定义技术分析师角色、工作流程（行情/历史→趋势→量能→形态）与 JSON 输出格式。"""
         skills = ""
         if self.skill_instructions:
             skills = f"\n## Active Trading Skills\n\n{self.skill_instructions}\n"
@@ -76,6 +82,7 @@ Return **only** a JSON object (no markdown fences):
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：说明待分析股票并提示使用工具补齐缺失数据后输出 JSON 意见。"""
         parts = [f"Perform technical analysis on stock **{ctx.stock_code}**"]
         if ctx.stock_name:
             parts[0] += f" ({ctx.stock_name})"

@@ -1,4 +1,9 @@
-"""LLM channel discovery and capability probing through existing runtime ports."""
+"""LLM channel discovery and capability probing through existing runtime ports.
+
+经由既有运行期端口进行 LLM 通道发现与能力探测。解析配置中的模型通道、
+选择协议与鉴权，按通道类型（Hermes / 通用 LLM）执行 JSON、工具调用、流式、视觉等能力检查，
+并对探测结果做敏感值脱敏，产出低敏感度报告。
+"""
 
 from __future__ import annotations
 import json
@@ -62,6 +67,7 @@ class LlmChannelProbe:
         generation_runtime_provider: Callable[[], GenerationRuntimePort],
         runtime_config: Optional[Config] = None,
     ):
+        """构造通道探测服务：保存配置管理器、探测端口/生成运行期端口的提供器，以及可选的运行期配置。"""
         self._manager = manager
         self._probe_port_provider = probe_port_provider
         self._generation_runtime_provider = generation_runtime_provider
@@ -768,6 +774,7 @@ class LlmChannelProbe:
             )
 
     def _normalize_llm_capability_checks(self, capability_checks: Sequence[str]) -> List[str]:
+        """归一化能力检查项：去空白、转小写并按内置检查顺序返回，过滤未知项。"""
         requested = {str(check).strip().lower() for check in capability_checks if str(check).strip()}
         return [check for check in self._LLM_CAPABILITY_ORDER if check in requested]
 
@@ -781,6 +788,7 @@ class LlmChannelProbe:
         capability_checks: Sequence[str],
         redaction_values: Optional[Set[str]] = None,
     ) -> Dict[str, Dict[str, Any]]:
+        """对 Hermes 通道执行各项能力检查，逐项记录成功/失败与脱敏后的诊断信息。"""
         results: Dict[str, Dict[str, Any]] = {}
         probe_port = self._probe_port_provider()
         for capability in capability_checks:
@@ -871,6 +879,7 @@ class LlmChannelProbe:
         timeout_seconds: float,
         capability_checks: Sequence[str],
     ) -> Dict[str, Dict[str, Any]]:
+        """对通用 LLM 通道依次执行请求的各能力检查，汇总每项结果。"""
         results: Dict[str, Dict[str, Any]] = {}
         for capability in capability_checks:
             if capability == "json":
@@ -911,6 +920,7 @@ class LlmChannelProbe:
         base_url: str,
         timeout_seconds: float,
     ) -> Dict[str, Any]:
+        """探测「JSON 结构化输出」能力：请求严格 JSON 并校验返回可解析，记录状态与脱敏诊断。"""
         try:
             started_at = time.perf_counter()
             response = self._probe_port_provider().litellm_completion(
@@ -977,6 +987,7 @@ class LlmChannelProbe:
         base_url: str,
         timeout_seconds: float,
     ) -> Dict[str, Any]:
+        """探测「工具/函数调用」能力：携带工具定义发起请求并检查是否产生 tool_calls。"""
         tools = [
             {
                 "type": "function",
@@ -1038,6 +1049,7 @@ class LlmChannelProbe:
         base_url: str,
         timeout_seconds: float,
     ) -> Dict[str, Any]:
+        """探测「流式输出」能力：以 stream 模式发起请求并检查是否收到增量片段。"""
         stream = None
         started_at = time.perf_counter()
         try:
@@ -1094,6 +1106,7 @@ class LlmChannelProbe:
         base_url: str,
         timeout_seconds: float,
     ) -> Dict[str, Any]:
+        """探测「视觉/多模态输入」能力：发送含图像的消息并检查模型是否正常响应。"""
         try:
             started_at = time.perf_counter()
             response = self._probe_port_provider().litellm_completion(
@@ -1148,6 +1161,7 @@ class LlmChannelProbe:
         max_tokens: int,
         extra: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        """构造能力探测用的补全请求参数（模型、鉴权、base_url、超时、消息与额外参数）。"""
         try:
             timeout = float(timeout_seconds)
         except (TypeError, ValueError):

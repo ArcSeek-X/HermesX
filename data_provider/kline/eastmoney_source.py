@@ -51,6 +51,7 @@ class EastMoneyKLineSource(KLineDataSource):
     source_id = "eastmoney"
 
     def fetch(self, request: KLineRequest) -> Optional[KLineResult]:
+        """拉取 K 线数据（东财源）。"""
         klt = KLT_MAP.get(request.period)
         if not klt:
             return None
@@ -78,6 +79,7 @@ class EastMoneyKLineSource(KLineDataSource):
         fqt: int,
         period: str,
     ) -> Optional[List[Dict]]:
+        """拉取 K 线原始行。"""
         total_limit = max(min(limit, 10000), 1)
         for base_url in (EASTMONEY_KLINE_URL, EASTMONEY_KLINE_URL_DELAY):
             try:

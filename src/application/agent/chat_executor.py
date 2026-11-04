@@ -40,6 +40,7 @@ class AgentChatExecutor:
         max_steps: int = 10,
         timeout_seconds: Optional[float] = None,
     ) -> None:
+        """构造聊天执行器：装配后端、配置、上下文 LLM 适配器及技能策略。"""
         self.backend = backend
         self.config = config
         self.context_llm_adapter = context_llm_adapter
@@ -57,6 +58,7 @@ class AgentChatExecutor:
         context: Optional[Dict[str, Any]] = None,
         cancel_event=None,
     ) -> AgentResult:
+        """执行一轮对话，支持进度回调、上下文与取消事件，返回 Agent 结果。"""
         turn = self.prepare_turn(
             message=message,
             session_id=session_id,

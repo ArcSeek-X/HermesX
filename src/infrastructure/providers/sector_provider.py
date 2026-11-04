@@ -91,45 +91,55 @@ class DataProviderSectorProvider:
     """``SectorProviderPort`` 的数据源实现。"""
 
     def fetch_industry_treemap(self, *, time_str: str) -> Optional[Dict[str, Any]]:
+        """获取行业板块树图数据。"""
         return _translate_snapshot_error(lambda: get_industry_treemap(time_str))
 
     def fetch_stock_treemap(self, *, time_str: str) -> Optional[Dict[str, Any]]:
+        """获取个股树图数据。"""
         return _translate_snapshot_error(lambda: get_stock_treemap(time_str))
 
     def fetch_etf_treemap(self, *, period: str, top_n: int) -> Optional[Dict[str, Any]]:
+        """获取 ETF 树图数据。"""
         return get_etf_treemap(period=period, top_n=top_n)
 
     def fetch_concept_treemap(self, *, period: str, top_n: int) -> Optional[Dict[str, Any]]:
+        """获取概念板块树图数据。"""
         return get_concept_treemap(period=period, top_n=top_n)
 
     def fetch_market_indices(self, *, market: str) -> Optional[List[Dict[str, Any]]]:
+        """获取主要指数数据。"""
         return _prefer_stocksdk_then_fallback(
             lambda: get_cached_market_indices_from_stocksdk(market),
             lambda: get_cached_market_indices_from_eastmoney(market),
         )
 
     def fetch_market_overview(self) -> Optional[Dict[str, Any]]:
+        """获取大盘概览数据。"""
         return _prefer_stocksdk_then_fallback(
             get_cached_market_overview_from_stocksdk,
             get_cached_market_overview_from_eastmoney,
         )
 
     def fetch_northbound_flow(self) -> Optional[Dict[str, Any]]:
+        """获取北向资金流向。"""
         return _prefer_stocksdk_then_fallback(
             get_cached_northbound_flow_from_stocksdk,
             get_cached_northbound_flow_from_eastmoney,
         )
 
     def fetch_market_fund_flow(self) -> Optional[Dict[str, Any]]:
+        """获取大盘资金流向。"""
         return _prefer_stocksdk_then_fallback(
             get_cached_market_fund_flow_from_stocksdk,
             get_cached_market_fund_flow_from_eastmoney,
         )
 
     def fetch_market_cards(self, *, market: str) -> Optional[Dict[str, Any]]:
+        """获取大盘卡片数据。"""
         return get_market_cards(market)
 
     def fetch_board_list(self, *, sector_type: str) -> Optional[List[Dict[str, Any]]]:
+        """获取板块列表。"""
         return _prefer_loader_chain(
             lambda: get_cached_board_list_from_stocksdk(sector_type),
             lambda: get_cached_board_list_from_eastmoney(sector_type),
@@ -139,6 +149,7 @@ class DataProviderSectorProvider:
     def fetch_sector_fund_flow_rank(
         self, *, sector_type: str, top_n: int
     ) -> Optional[List[Dict[str, Any]]]:
+        """获取板块资金流排行。"""
         return _prefer_stocksdk_then_fallback(
             lambda: fetch_sector_fund_flow_rank_from_stocksdk(sector_type, top_n),
             lambda: fetch_sector_fund_flow_rank_from_eastmoney(sector_type, top_n),
@@ -152,6 +163,7 @@ class DataProviderSectorProvider:
         top_n: int,
         sector_codes: Optional[List[str]],
     ) -> Optional[Dict[str, Any]]:
+        """获取板块资金流历史。"""
         return _prefer_stocksdk_then_fallback(
             lambda: get_sector_fund_flow_history_data_from_stocksdk(
                 sector_type=sector_type,

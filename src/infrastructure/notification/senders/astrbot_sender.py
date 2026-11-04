@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class AstrbotSender:
     
+    """AstrBot 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 AstrBot 配置
@@ -59,7 +60,6 @@ class AstrbotSender:
 
 
     def _send_astrbot(self, content: str, *, timeout_seconds: Optional[float] = None) -> bool:
-        import time
         """
         使用 Bot API 发送消息到 AstrBot
 
@@ -69,6 +69,7 @@ class AstrbotSender:
         Returns:
             是否发送成功
         """
+        import time
 
         html_content = markdown_to_html_document(content)
 

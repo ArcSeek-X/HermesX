@@ -21,14 +21,17 @@ class SkillOpinionSampleRepository:
     """Persist low-sensitivity samples without mutating an existing sample."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造技能观点样本仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def insert_missing(self, rows: Iterable[Dict[str, Any]]) -> int:
+        """批量插入尚不存在的样本记录。"""
         values = list(rows)
         if not values:
             return 0
 
         def _insert(session):
+            """在会话内插入单条样本记录。"""
             history_ids = {
                 row.get("analysis_history_id")
                 for row in values
@@ -66,6 +69,7 @@ class SkillOpinionSampleRepository:
         )
 
     def list_for_history(self, analysis_history_id: int) -> List[SkillOpinionSampleRecord]:
+        """列出指定历史记录关联的样本。"""
         with self.db.get_session() as session:
             rows = session.execute(
                 select(SkillOpinionSampleRecord)

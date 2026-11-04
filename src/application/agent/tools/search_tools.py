@@ -48,6 +48,7 @@ def _get_search_service():
 
 
 def _canonical_search_code(stock_code: str) -> str:
+    """规范化搜索用股票代码（去空白/统一格式）。"""
     from src.domain.market.stock_codes import canonical_stock_code, normalize_stock_code
 
     return canonical_stock_code(normalize_stock_code(str(stock_code or "").strip()))

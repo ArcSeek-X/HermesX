@@ -44,9 +44,11 @@ class DecisionSignalRepository:
     })
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造决策信号仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def create(self, fields: Dict[str, Any]) -> DecisionSignalRecord:
+        """创建决策信号记录。"""
         fields = self._normalize_datetime_fields(fields)
         with self.db.get_session() as session:
             row = DecisionSignalRecord(**fields)
@@ -61,6 +63,7 @@ class DecisionSignalRepository:
         *,
         allow_relaxed_horizon_fill: bool = False,
     ) -> DecisionSignalCreateResult:
+        """在不存在重复时创建信号记录。"""
         self.expire_due_signals()
         fields = self._normalize_datetime_fields(fields)
         with self.db.get_session() as session:
@@ -137,6 +140,7 @@ class DecisionSignalRepository:
             )
 
     def get(self, signal_id: int) -> Optional[DecisionSignalRecord]:
+        """按标识获取决策信号。"""
         self.expire_due_signals()
         with self.db.get_session() as session:
             return session.execute(
@@ -164,6 +168,7 @@ class DecisionSignalRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[DecisionSignalRecord], int]:
+        """列出决策信号。"""
         self.expire_due_signals()
         created_from = self._normalize_optional_datetime(created_from)
         created_to = self._normalize_optional_datetime(created_to)
@@ -213,6 +218,7 @@ class DecisionSignalRepository:
         market: Optional[str] = None,
         limit: int = 1,
     ) -> List[DecisionSignalRecord]:
+        """获取最新一条有效信号。"""
         self.expire_due_signals()
         safe_limit = max(1, min(int(limit), 100))
         conditions = [
@@ -239,6 +245,7 @@ class DecisionSignalRepository:
         decision_profile: Optional[str],
         exclude_signal_id: Optional[int] = None,
     ) -> List[DecisionSignalRecord]:
+        """按股票与动作筛选有效信号。"""
         self.expire_due_signals()
         if not actions:
             return []
@@ -267,6 +274,7 @@ class DecisionSignalRepository:
         metadata_json: Optional[str] = None,
         replace_metadata: bool = False,
     ) -> Optional[DecisionSignalRecord]:
+        """更新信号状态。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(DecisionSignalRecord).where(DecisionSignalRecord.id == signal_id).limit(1)
@@ -282,6 +290,7 @@ class DecisionSignalRepository:
             return row
 
     def expire_due_signals(self, now: Optional[datetime] = None) -> int:
+        """将已到期的信号置为过期。"""
         now_value = to_utc_naive_datetime(now) if now is not None else utc_naive_now()
         with self.db.get_session() as session:
             rows = session.execute(
@@ -299,6 +308,7 @@ class DecisionSignalRepository:
 
     @staticmethod
     def _normalize_datetime_fields(fields: Dict[str, Any]) -> Dict[str, Any]:
+        """规范化记录中的时间字段。"""
         normalized = dict(fields)
         for field_name in ("expires_at", "created_at", "updated_at"):
             value = normalized.get(field_name)
@@ -308,12 +318,14 @@ class DecisionSignalRepository:
 
     @staticmethod
     def _normalize_optional_datetime(value: Optional[datetime]) -> Optional[datetime]:
+        """规范化可选时间字段。"""
         if value is None:
             return None
         return to_utc_naive_datetime(value)
 
     @classmethod
     def _should_refresh_existing(cls, existing: DecisionSignalRecord, fields: Dict[str, Any]) -> bool:
+        """判断已有记录是否需要刷新。"""
         expires_at = fields.get("expires_at")
         return (
             existing.status == "expired"
@@ -324,6 +336,7 @@ class DecisionSignalRepository:
 
     @classmethod
     def _refresh_existing_in_session(cls, existing: DecisionSignalRecord, fields: Dict[str, Any]) -> None:
+        """在会话内刷新已有记录。"""
         for field_name, value in fields.items():
             if field_name in cls._IMMUTABLE_REFRESH_FIELDS:
                 continue
@@ -332,6 +345,7 @@ class DecisionSignalRepository:
 
     @staticmethod
     def _find_existing_in_session(*, session: Any, fields: Dict[str, Any]) -> Optional[DecisionSignalRecord]:
+        """在会话内查找已有记录。"""
         source_report_id = fields.get("source_report_id")
         trace_id = fields.get("trace_id")
         source_type = fields.get("source_type")
@@ -380,6 +394,7 @@ class DecisionSignalRepository:
         fields: Dict[str, Any],
         allow_relaxed_horizon_fill: bool,
     ) -> Optional[DecisionSignalRecord]:
+        """在会话内宽松匹配已有记录。"""
         source_report_id = fields.get("source_report_id")
         trace_id = fields.get("trace_id")
         if source_report_id is None and not trace_id:
@@ -421,6 +436,7 @@ class DecisionSignalRepository:
         *,
         allow_horizon_fill: bool,
     ) -> bool:
+        """判断宽松匹配结果是否可合并。"""
         new_horizon = fields.get("horizon")
         new_phase = fields.get("market_phase")
 
@@ -444,6 +460,7 @@ class DecisionSignalRepository:
         *,
         allow_horizon_fill: bool,
     ) -> bool:
+        """在会话内补齐宽松匹配的维度字段。"""
         changed = False
         new_horizon = fields.get("horizon")
         new_phase = fields.get("market_phase")
@@ -477,6 +494,7 @@ class DecisionSignalRepository:
         expires_from: Optional[datetime],
         expires_to: Optional[datetime],
     ) -> List[Any]:
+        """构建查询条件。"""
         conditions: List[Any] = []
         if stock_identities:
             identity_conditions = [
@@ -518,6 +536,7 @@ class DecisionSignalRepository:
 
     @staticmethod
     def _same_profile_condition(profile: Optional[str]) -> Any:
+        """构造同决策档案的筛选条件。"""
         if profile is None:
             return DecisionSignalRecord.decision_profile.is_(None)
         return DecisionSignalRecord.decision_profile == profile
@@ -528,6 +547,7 @@ class DecisionSignalRepository:
         conditions: List[Any],
         decision_profile_filter: DecisionProfileFilter,
     ) -> None:
+        """追加决策档案筛选条件。"""
         if decision_profile_filter.is_all:
             return
         if decision_profile_filter.is_unknown:

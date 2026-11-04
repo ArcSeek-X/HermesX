@@ -34,6 +34,7 @@ class PortfolioRepository:
     """DB access layer for portfolio P0 domain."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造组合仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     # ------------------------------------------------------------------
@@ -48,6 +49,7 @@ class PortfolioRepository:
         base_currency: str,
         owner_id: Optional[str] = None,
     ) -> PortfolioAccount:
+        """创建组合账户。"""
         with self.db.get_session() as session:
             row = PortfolioAccount(
                 owner_id=owner_id,
@@ -63,6 +65,7 @@ class PortfolioRepository:
             return row
 
     def get_account(self, account_id: int, include_inactive: bool = False) -> Optional[PortfolioAccount]:
+        """按 ID 获取组合账户。"""
         with self.db.get_session() as session:
             return self.get_account_in_session(
                 session=session,
@@ -71,6 +74,7 @@ class PortfolioRepository:
             )
 
     def list_accounts(self, include_inactive: bool = False) -> List[PortfolioAccount]:
+        """列出全部组合账户。"""
         with self.db.get_session() as session:
             query = select(PortfolioAccount)
             if not include_inactive:
@@ -85,6 +89,7 @@ class PortfolioRepository:
         account_id: int,
         include_inactive: bool = False,
     ) -> Optional[PortfolioAccount]:
+        """在指定会话内获取组合账户。"""
         conditions = [PortfolioAccount.id == account_id]
         if not include_inactive:
             conditions.append(PortfolioAccount.is_active.is_(True))
@@ -93,6 +98,7 @@ class PortfolioRepository:
         ).scalar_one_or_none()
 
     def update_account(self, account_id: int, fields: Dict[str, Any]) -> Optional[PortfolioAccount]:
+        """更新组合账户信息。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(PortfolioAccount).where(PortfolioAccount.id == account_id).limit(1)
@@ -107,6 +113,7 @@ class PortfolioRepository:
             return row
 
     def deactivate_account(self, account_id: int) -> bool:
+        """停用组合账户。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(PortfolioAccount).where(PortfolioAccount.id == account_id).limit(1)
@@ -123,6 +130,7 @@ class PortfolioRepository:
     # ------------------------------------------------------------------
     @contextmanager
     def portfolio_write_session(self):
+        """返回组合写入用的数据库会话上下文。"""
         session = self.db.get_session()
         try:
             session.connection().exec_driver_sql("BEGIN IMMEDIATE")
@@ -163,6 +171,7 @@ class PortfolioRepository:
         note: Optional[str] = None,
         dedup_hash: Optional[str] = None,
     ) -> PortfolioTrade:
+        """新增一笔交易记录。"""
         with self.portfolio_write_session() as session:
             row = self.add_trade_in_session(
                 session=session,
@@ -193,6 +202,7 @@ class PortfolioRepository:
         currency: str,
         note: Optional[str] = None,
     ) -> PortfolioCashLedger:
+        """新增一条现金流水。"""
         with self.portfolio_write_session() as session:
             row = self.add_cash_ledger_in_session(
                 session=session,
@@ -219,6 +229,7 @@ class PortfolioRepository:
         split_ratio: Optional[float] = None,
         note: Optional[str] = None,
     ) -> PortfolioCorporateAction:
+        """新增一条公司行动记录。"""
         with self.portfolio_write_session() as session:
             row = self.add_corporate_action_in_session(
                 session=session,
@@ -236,14 +247,17 @@ class PortfolioRepository:
             return row
 
     def delete_trade(self, trade_id: int) -> bool:
+        """删除一笔交易记录。"""
         with self.portfolio_write_session() as session:
             return self.delete_trade_in_session(session=session, trade_id=trade_id)
 
     def delete_cash_ledger(self, entry_id: int) -> bool:
+        """删除一条现金流水。"""
         with self.portfolio_write_session() as session:
             return self.delete_cash_ledger_in_session(session=session, entry_id=entry_id)
 
     def delete_corporate_action(self, action_id: int) -> bool:
+        """删除一条公司行动记录。"""
         with self.portfolio_write_session() as session:
             return self.delete_corporate_action_in_session(session=session, action_id=action_id)
 
@@ -268,6 +282,7 @@ class PortfolioRepository:
             )
 
     def has_trade_uid_in_session(self, *, session: Any, account_id: int, trade_uid: str) -> bool:
+        """在会话内判断交易 UID 是否已存在。"""
         row = session.execute(
             select(PortfolioTrade.id).where(
                 and_(
@@ -279,6 +294,7 @@ class PortfolioRepository:
         return row is not None
 
     def has_trade_dedup_hash_in_session(self, *, session: Any, account_id: int, dedup_hash: str) -> bool:
+        """在会话内判断交易去重哈希是否已存在。"""
         row = session.execute(
             select(PortfolioTrade.id).where(
                 and_(
@@ -307,6 +323,7 @@ class PortfolioRepository:
         note: Optional[str] = None,
         dedup_hash: Optional[str] = None,
     ) -> PortfolioTrade:
+        """在会话内新增一笔交易记录。"""
         row = PortfolioTrade(
             account_id=account_id,
             trade_uid=trade_uid,
@@ -351,6 +368,7 @@ class PortfolioRepository:
         currency: str,
         note: Optional[str] = None,
     ) -> PortfolioCashLedger:
+        """在会话内新增一条现金流水。"""
         row = PortfolioCashLedger(
             account_id=account_id,
             event_date=event_date,
@@ -383,6 +401,7 @@ class PortfolioRepository:
         split_ratio: Optional[float] = None,
         note: Optional[str] = None,
     ) -> PortfolioCorporateAction:
+        """在会话内新增一条公司行动记录。"""
         row = PortfolioCorporateAction(
             account_id=account_id,
             symbol=symbol,
@@ -405,6 +424,7 @@ class PortfolioRepository:
         return row
 
     def delete_trade_in_session(self, *, session: Any, trade_id: int) -> bool:
+        """在会话内删除一笔交易记录。"""
         row = session.execute(
             select(PortfolioTrade).where(PortfolioTrade.id == trade_id).limit(1)
         ).scalar_one_or_none()
@@ -420,6 +440,7 @@ class PortfolioRepository:
         return True
 
     def delete_cash_ledger_in_session(self, *, session: Any, entry_id: int) -> bool:
+        """在会话内删除一条现金流水。"""
         row = session.execute(
             select(PortfolioCashLedger).where(PortfolioCashLedger.id == entry_id).limit(1)
         ).scalar_one_or_none()
@@ -435,6 +456,7 @@ class PortfolioRepository:
         return True
 
     def delete_corporate_action_in_session(self, *, session: Any, action_id: int) -> bool:
+        """在会话内删除一条公司行动记录。"""
         row = session.execute(
             select(PortfolioCorporateAction).where(PortfolioCorporateAction.id == action_id).limit(1)
         ).scalar_one_or_none()
@@ -453,6 +475,7 @@ class PortfolioRepository:
     # Event reads
     # ------------------------------------------------------------------
     def list_trades(self, account_id: int, as_of: date) -> List[PortfolioTrade]:
+        """列出交易记录。"""
         with self.db.get_session() as session:
             return self.list_trades_in_session(session=session, account_id=account_id, as_of=as_of)
 
@@ -463,6 +486,7 @@ class PortfolioRepository:
         account_id: int,
         as_of: date,
     ) -> List[PortfolioTrade]:
+        """在会话内列出交易记录。"""
         rows = session.execute(
             select(PortfolioTrade)
             .where(
@@ -476,6 +500,7 @@ class PortfolioRepository:
         return list(rows)
 
     def list_cash_ledger(self, account_id: int, as_of: date) -> List[PortfolioCashLedger]:
+        """列出现金流水。"""
         with self.db.get_session() as session:
             return self.list_cash_ledger_in_session(session=session, account_id=account_id, as_of=as_of)
 
@@ -486,6 +511,7 @@ class PortfolioRepository:
         account_id: int,
         as_of: date,
     ) -> List[PortfolioCashLedger]:
+        """在会话内列出现金流水。"""
         rows = session.execute(
             select(PortfolioCashLedger)
             .where(
@@ -499,6 +525,7 @@ class PortfolioRepository:
         return list(rows)
 
     def list_corporate_actions(self, account_id: int, as_of: date) -> List[PortfolioCorporateAction]:
+        """列出公司行动记录。"""
         with self.db.get_session() as session:
             return self.list_corporate_actions_in_session(session=session, account_id=account_id, as_of=as_of)
 
@@ -509,6 +536,7 @@ class PortfolioRepository:
         account_id: int,
         as_of: date,
     ) -> List[PortfolioCorporateAction]:
+        """在会话内列出公司行动记录。"""
         rows = session.execute(
             select(PortfolioCorporateAction)
             .where(
@@ -565,6 +593,7 @@ class PortfolioRepository:
         page: int,
         page_size: int,
     ) -> Tuple[List[PortfolioTrade], int]:
+        """按条件查询交易记录。"""
         with self.db.get_session() as session:
             conditions = []
             if account_id is not None:
@@ -611,6 +640,7 @@ class PortfolioRepository:
         page: int,
         page_size: int,
     ) -> Tuple[List[PortfolioCashLedger], int]:
+        """按条件查询现金流水。"""
         with self.db.get_session() as session:
             conditions = []
             if account_id is not None:
@@ -656,6 +686,7 @@ class PortfolioRepository:
         page: int,
         page_size: int,
     ) -> Tuple[List[PortfolioCorporateAction], int]:
+        """按条件查询公司行动记录。"""
         with self.db.get_session() as session:
             conditions = []
             if account_id is not None:
@@ -696,10 +727,12 @@ class PortfolioRepository:
     # Price / FX
     # ------------------------------------------------------------------
     def get_latest_close(self, symbol: str, as_of: date) -> Optional[float]:
+        """返回最新收盘价。"""
         close = self.get_latest_close_with_date(symbol=symbol, as_of=as_of)
         return close[0] if close is not None else None
 
     def get_latest_close_with_date(self, symbol: str, as_of: date) -> Optional[Tuple[float, date]]:
+        """返回最新收盘价及其日期。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(StockDaily)
@@ -726,6 +759,7 @@ class PortfolioRepository:
         source: str = "manual",
         is_stale: bool = False,
     ) -> None:
+        """保存汇率记录。"""
         with self.db.get_session() as session:
             existing = session.execute(
                 select(PortfolioFxRate).where(
@@ -761,6 +795,7 @@ class PortfolioRepository:
         to_currency: str,
         as_of: date,
     ) -> Optional[PortfolioFxRate]:
+        """返回最新汇率。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(PortfolioFxRate)
@@ -860,6 +895,7 @@ class PortfolioRepository:
         lots: Iterable[Dict[str, Any]],
         valuation_currency: str,
     ) -> None:
+        """整体替换持仓与批次数据。"""
         with self.db.get_session() as session:
             session.execute(
                 delete(PortfolioPosition).where(
@@ -914,6 +950,7 @@ class PortfolioRepository:
             session.commit()
 
     def _invalidate_account_cache_in_session(self, *, session: Any, account_id: int, from_date: date) -> None:
+        """在会话内失效账户缓存。"""
         session.execute(
             delete(PortfolioPositionLot).where(PortfolioPositionLot.account_id == account_id)
         )
@@ -931,6 +968,7 @@ class PortfolioRepository:
 
     @staticmethod
     def _is_sqlite_locked_error(exc: OperationalError) -> bool:
+        """判断是否为 SQLite 锁冲突错误。"""
         err_text = str(getattr(exc, "orig", exc)).lower()
         return any(
             token in err_text
@@ -949,6 +987,7 @@ class PortfolioRepository:
         trade_uid: Optional[str],
         dedup_hash: Optional[str],
     ) -> Exception:
+        """转换交易完整性错误为业务异常。"""
         err_text = str(getattr(exc, "orig", exc)).lower()
         if trade_uid and ("uix_portfolio_trade_uid" in err_text or "unique" in err_text):
             return DuplicateTradeUidError(
@@ -981,6 +1020,7 @@ class PortfolioRepository:
         fx_stale: bool,
         payload: str,
     ) -> None:
+        """新增或更新每日快照。"""
         with self.db.get_session() as session:
             existing = session.execute(
                 select(PortfolioDailySnapshot).where(

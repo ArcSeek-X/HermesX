@@ -26,6 +26,7 @@ class StockSdkStockInfoSource(StockInfoSource):
     source_id = "stocksdk"
 
     def fetch(self, stock_code: str) -> Optional[StockInfoResult]:
+        """拉取个股信息（StockSDK 源）。"""
         client = get_stocksdk_client()
         if not client.is_available():
             return None
@@ -84,12 +85,14 @@ class StockSdkStockInfoSource(StockInfoSource):
 
 
 def _normalize_name(value: object) -> Optional[str]:
+    """规范化股票名称。"""
     if value in (None, "", "-"):
         return None
     return str(value).strip() or None
 
 
 def _to_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value in (None, "", "-"):
         return None
     try:

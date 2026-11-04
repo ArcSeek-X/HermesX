@@ -48,6 +48,7 @@ _ACTIVE_CODEX_STREAMS: Dict[str, threading.Event] = {}
 _ACTIVE_CODEX_STREAMS_LOCK = threading.Lock()
 
 class ChatRequest(BaseModel):
+    """Agent 对话请求体。"""
     model_config = ConfigDict(populate_by_name=True)
 
     message: str
@@ -77,6 +78,7 @@ def _build_agent_chat_context(request: ChatRequest, config, skills: Optional[Lis
 
 
 class ChatResponse(BaseModel):
+    """Agent 对话响应体。"""
     success: bool
     content: str
     session_id: str
@@ -84,21 +86,25 @@ class ChatResponse(BaseModel):
 
 
 class SkillInfo(BaseModel):
+    """技能信息的响应结构。"""
     id: str
     name: str
     description: str
 
 class SkillsResponse(BaseModel):
+    """技能列表响应体。"""
     skills: List[SkillInfo]
     default_skill_id: str = ""
 
 
 class StrategiesResponse(BaseModel):
+    """策略列表响应体。"""
     strategies: List[SkillInfo]
     default_strategy_id: str = ""
 
 
 class AgentModelDeployment(BaseModel):
+    """Agent 模型部署信息。"""
     deployment_id: str
     model: str
     provider: str
@@ -110,6 +116,7 @@ class AgentModelDeployment(BaseModel):
 
 
 class AgentModelsResponse(BaseModel):
+    """Agent 可用模型列表响应体。"""
     models: List[AgentModelDeployment]
 
 
@@ -138,6 +145,7 @@ async def get_agent_status():
 
 
 def _agent_status_response(payload: Dict[str, Any]) -> AgentBackendStatusResponse:
+    """构造 Agent 服务状态响应。"""
     return AgentBackendStatusResponse(
         backend=payload["backend"],
         available=payload["available"],
@@ -149,6 +157,7 @@ def _agent_status_response(payload: Dict[str, Any]) -> AgentBackendStatusRespons
 
 
 def _build_skills_response(config) -> SkillsResponse:
+    """构造技能列表响应。"""
     from src.application.agent.factory import get_skill_manager
     from src.application.agent.skills.defaults import get_primary_default_skill_id
 
@@ -242,6 +251,7 @@ async def agent_chat(request: ChatRequest):
 
 
 class SessionItem(BaseModel):
+    """会话列表条目。"""
     session_id: str
     title: str
     message_count: int
@@ -249,9 +259,11 @@ class SessionItem(BaseModel):
     last_active: Optional[str] = None
 
 class SessionsResponse(BaseModel):
+    """会话列表响应体。"""
     sessions: List[SessionItem]
 
 class SessionMessagesResponse(BaseModel):
+    """会话消息列表响应体。"""
     session_id: str
     messages: List[Dict[str, Any]]
 
@@ -334,6 +346,7 @@ def _build_executor(config, skills: Optional[List[str]] = None):
 
 
 def _get_agent_chat_status(config) -> Dict[str, Any]:
+    """返回 Agent 对话服务当前状态。"""
     from src.application.runtime.agent_backend_status import AgentBackendStatusService
 
     return AgentBackendStatusService(config=config).get_status()
@@ -376,10 +389,12 @@ async def _run_research_in_background(
 # ============================================================
 
 class ResearchRequest(BaseModel):
+    """深度研究请求体。"""
     question: str
     stock_code: Optional[str] = None
 
 class ResearchResponse(BaseModel):
+    """深度研究响应体。"""
     success: bool
     content: str
     sources: List[str] = Field(default_factory=list)
@@ -490,6 +505,7 @@ async def agent_chat_stream(request: ChatRequest):
     stream_ctx = _build_agent_chat_context(request, config, skills)
 
     def progress_callback(event: dict):
+        """构造 SSE 进度回调。"""
         if backend_id == "codex_app_server" and cancel_event.is_set():
             return
         # Enrich tool events with display names
@@ -499,6 +515,7 @@ async def agent_chat_stream(request: ChatRequest):
         asyncio.run_coroutine_threadsafe(queue.put(event), loop)
 
     def run_sync(executor, turn):
+        """在线程池中同步执行 Agent 运行。"""
         try:
             execute_kwargs = {
                 "progress_callback": progress_callback,
@@ -535,6 +552,7 @@ async def agent_chat_stream(request: ChatRequest):
             asyncio.run_coroutine_threadsafe(queue.put(event), loop)
 
     async def event_generator():
+        """生成 SSE 事件流。"""
         fut = None
         try:
             try:

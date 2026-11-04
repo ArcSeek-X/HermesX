@@ -98,11 +98,13 @@ class _TushareHttpClient:
     """Lightweight Tushare Pro client that does not require the tushare SDK."""
 
     def __init__(self, token: str, timeout: int = 30, api_url: str = "http://api.tushare.pro") -> None:
+        """构造 Tushare 取数器并装配依赖。"""
         self._token = token
         self._timeout = timeout
         self._api_url = api_url
 
     def query(self, api_name: str, fields: str = "", **kwargs) -> pd.DataFrame:
+        """执行 Tushare 查询。"""
         req_params = {
             "api_name": api_name,
             "token": self._token,
@@ -123,10 +125,12 @@ class _TushareHttpClient:
         return pd.DataFrame(items, columns=columns)
 
     def __getattr__(self, api_name: str):
+        """将未定义属性访问委派给底层接口。"""
         if api_name.startswith("_"):
             raise AttributeError(api_name)
 
         def caller(**kwargs) -> pd.DataFrame:
+            """返回底层 Tushare 调用对象。"""
             return self.query(api_name, **kwargs)
 
         return caller
@@ -1094,6 +1098,7 @@ class TushareFetcher(BaseFetcher):
         注意：每个接口的行业分类和板块定义不同，会导致结果两者不一致
         """
         def _get_rank_top_n(df: pd.DataFrame, change_col: str, industry_name: str, n: int) -> Tuple[list, list]:
+            """取排行前 N 条记录。"""
             df[change_col] = pd.to_numeric(df[change_col], errors='coerce')
             df = df.dropna(subset=[change_col])
 
@@ -1255,6 +1260,7 @@ class TushareFetcher(BaseFetcher):
         # --- 辅助函数：求指定累积比例处的价格 ---
         def get_percentile_price(target_pct):
             # 寻找累积求和第一次大于等于目标百分比的行索引
+            """按分位数计算价格。"""
             idx = df_sorted['cumsum'].searchsorted(target_pct)
             idx = min(idx, len(df_sorted) - 1) # 防止越界
             return df_sorted.loc[idx, 'price']

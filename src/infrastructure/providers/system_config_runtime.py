@@ -46,6 +46,7 @@ class SystemConfigProbeAdapter:
         timeout_seconds: float,
         trust_env: bool,
     ) -> Any:
+        """拉取可用模型快照。"""
         if not trust_env:
             session = requests.Session()
             session.trust_env = False
@@ -72,6 +73,7 @@ class SystemConfigProbeAdapter:
         base_url: str,
         timeout_seconds: float,
     ) -> Any:
+        """创建绕过代理的 HTTP 客户端。"""
         return open_hermes_no_proxy_client(
             api_key=api_key,
             base_url=base_url,
@@ -85,6 +87,7 @@ class SystemConfigProbeAdapter:
         call_kwargs: Dict[str, Any],
         log_label: str,
     ) -> Any:
+        """带故障恢复的模型调用。"""
         import litellm
 
         return call_litellm_with_param_recovery(
@@ -96,11 +99,13 @@ class SystemConfigProbeAdapter:
         )
 
     def litellm_completion(self, **kwargs: Any) -> Any:
+        """执行 LiteLLM 生成调用。"""
         import litellm
 
         return litellm.completion(**kwargs)
 
     def register_fallback_pricing(self, resolved_model: str, config_model_list: Any) -> None:
+        """注册回退定价信息。"""
         from src.infrastructure.agent_runtime.llm_adapter import (
             register_fallback_model_pricing,
             resolve_fallback_litellm_wire_models,
@@ -112,6 +117,7 @@ class SystemConfigProbeAdapter:
         )
 
     def runtime_llm_temperature(self) -> float:
+        """返回运行时 LLM 温度参数。"""
         config = Config._load_from_env()
         try:
             return float(getattr(config, "llm_temperature", 0.7))
@@ -119,6 +125,7 @@ class SystemConfigProbeAdapter:
             return 0.7
 
     def validate_event_alert_rules(self, parsed: Any) -> None:
+        """校验事件告警规则配置。"""
         from src.application.alert.events import parse_event_alert_rules, validate_event_alert_rule
 
         rule_index = 0
@@ -142,6 +149,7 @@ class NotificationDispatchAdapter:
         content: str,
         timeout_seconds: float,
     ) -> bool:
+        """发送一次渠道连通性测试。"""
         from src.infrastructure.notification.senders import (
             AstrbotSender,
             DiscordSender,
@@ -183,6 +191,7 @@ class NotificationDispatchAdapter:
         content: str,
         timeout_seconds: float,
     ) -> List[Dict[str, Any]]:
+        """测试自定义 Webhook 配置。"""
         from src.infrastructure.notification.senders import CustomWebhookSender
 
         return CustomWebhookSender(config).test_custom_webhooks(
@@ -195,6 +204,7 @@ class RuntimeResetAdapter:
     """``RuntimeResetPort`` 实现：配置重载后的进程级单例重置。"""
 
     def reload_runtime_singletons(self) -> None:
+        """重载运行时单例。"""
         from src.infrastructure.agent_runtime.market_data_provider import DataFetcherManagerAdapter
         from src.application.intelligence.search_service import reset_search_service
 

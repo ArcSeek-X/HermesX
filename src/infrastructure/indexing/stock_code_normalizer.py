@@ -12,6 +12,7 @@ class DataProviderStockCodeNormalizer:
     """``StockCodeNormalizerPort`` 的默认实现。"""
 
     def normalize(self, stock_code: str) -> str:
+        """将股票代码规范化为统一格式。"""
         from data_provider.base import normalize_stock_code
 
         return normalize_stock_code(stock_code or "")

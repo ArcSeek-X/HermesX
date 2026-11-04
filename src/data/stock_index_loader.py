@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""股票自动补全索引加载器。
+
+读取并校验 stocks.index.json，构建按代码/名称/拼音/别名的检索结构；
+通过进程内缓存与可显式清理的接口避免重复解析，支持远程刷新后的缓存失效。
+"""
+
 from __future__ import annotations
 
 import json
@@ -402,4 +408,5 @@ def clear_stock_index_cache() -> None:
 
 
 def _clear_stock_index_cache_for_tests() -> None:
+    """测试用：清空股票索引进程内缓存。"""
     clear_stock_index_cache()

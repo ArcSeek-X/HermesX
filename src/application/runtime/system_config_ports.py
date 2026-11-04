@@ -33,6 +33,7 @@ class EventAlertRulesValidationError(ValueError):
     """
 
     def __init__(self, message: str, *, rule_index: int = 0):
+        """构造配置校验错误：保存消息与规则序号。"""
         super().__init__(message)
         self.rule_index = rule_index
 

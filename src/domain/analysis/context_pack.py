@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Internal AnalysisContextPack schema for Issue #1389 P1."""
+"""Internal AnalysisContextPack schema for Issue #1389 P1.
+
+Issue #1389 P1 的内部 AnalysisContextPack schema（分析上下文包）。
+定义版本化的内部分析输入信封：主题、各字段级上下文项/块、数据质量摘要，并提供脱敏序列化与受控拷贝。
+"""
 
 from __future__ import annotations
 
@@ -23,6 +27,7 @@ class _AnalysisContextModel(BaseModel):
 
 
 def _validate_iso8601_timestamp(value: Optional[str]) -> Optional[str]:
+    """校验时间戳为 ISO 8601 字符串：None 直接放行；含 'T' 且可解析为 datetime（'Z' 视为 UTC）即通过，否则抛 ValueError。"""
     if value is None:
         return value
     if "T" not in value:
@@ -71,6 +76,7 @@ class AnalysisContextItem(_AnalysisContextModel):
     @field_validator("timestamp")
     @classmethod
     def _timestamp_must_be_iso8601(cls, value: Optional[str]) -> Optional[str]:
+        """字段校验器：确保 timestamp 为 ISO 8601 时间字符串。"""
         return _validate_iso8601_timestamp(value)
 
 
@@ -87,6 +93,7 @@ class AnalysisContextBlock(_AnalysisContextModel):
     @field_validator("timestamp")
     @classmethod
     def _timestamp_must_be_iso8601(cls, value: Optional[str]) -> Optional[str]:
+        """字段校验器：确保 timestamp 为 ISO 8601 时间字符串。"""
         return _validate_iso8601_timestamp(value)
 
 

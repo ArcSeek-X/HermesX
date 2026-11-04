@@ -41,6 +41,7 @@ class WatchlistGroup(Base):
     update_date_time = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False, comment='更新时间')
 
     def to_dict(self) -> Dict[str, Any]:
+        """将自选股模型转换为字典。"""
         return {
             "id": self.id,
             "name": self.name,
@@ -86,6 +87,7 @@ class WatchlistItem(Base):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """将自选股模型转换为字典。"""
         return {
             "id": self.id,
             "group_id": self.group_id,

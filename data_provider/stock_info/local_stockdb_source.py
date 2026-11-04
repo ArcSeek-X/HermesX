@@ -24,6 +24,7 @@ class LocalStockDbStockInfoSource(StockInfoSource):
     source_id = "local"
 
     def fetch(self, stock_code: str) -> Optional[StockInfoResult]:
+        """拉取个股信息（本地库源）。"""
         client = get_stockdb_client()
         try:
             raw_rows = client.fetch_daily_bars(stock_code, limit=2)

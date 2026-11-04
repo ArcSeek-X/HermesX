@@ -74,6 +74,7 @@ class NewsIntel(Base):
     )
 
     def __repr__(self) -> str:
+        """返回情报模型的调试表示。"""
         return f"<NewsIntel(code={self.code}, title={self.title[:20]}...)>"
 
 
@@ -215,4 +216,5 @@ class FundamentalSnapshot(Base):
     )
 
     def __repr__(self) -> str:
+        """返回情报模型的调试表示。"""
         return f"<FundamentalSnapshot(query_id={self.query_id}, code={self.code})>"

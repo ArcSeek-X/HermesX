@@ -41,6 +41,7 @@ class MarketStructureService:
         fetcher_manager: Optional[Any] = None,
         hotspot_service: Optional[MarketHotspotService] = None,
     ) -> None:
+        """构造大盘结构服务并装配依赖。"""
         self.fetcher_manager = fetcher_manager
         self.hotspot_service = hotspot_service or MarketHotspotService(
             fetcher_manager=self.fetcher_manager,
@@ -56,6 +57,7 @@ class MarketStructureService:
         trade_date: Any = None,
         market_phase_summary: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        """构建大盘结构上下文。"""
         normalized_market = str(market or "cn").strip().lower() or "cn"
         trade_date_text = self._resolve_trade_date(trade_date, market_phase_summary)
         stock_code = str(code or "").strip()
@@ -212,6 +214,7 @@ class MarketStructureService:
         cls,
         fundamental_context: Optional[Dict[str, Any]],
     ) -> bool:
+        """判断基本面上下文是否为不支持状态。"""
         if not isinstance(fundamental_context, dict):
             return False
 
@@ -229,6 +232,7 @@ class MarketStructureService:
 
     @staticmethod
     def _is_not_supported_status(value: Any) -> bool:
+        """判断状态是否为不支持。"""
         return str(value or "").strip().lower() == "not_supported"
 
     @staticmethod
@@ -241,6 +245,7 @@ class MarketStructureService:
         missing_fields: List[str],
         message: str,
     ) -> Dict[str, Any]:
+        """构造不支持状态的结构上下文。"""
         theme_context = MarketThemeContext(
             status="not_supported",
             market=market,
@@ -282,6 +287,7 @@ class MarketStructureService:
         sector_rankings: Dict[str, Any],
         concept_rankings: Dict[str, Any],
     ) -> List[StockBoardPosition]:
+        """构建关联板块信息。"""
         if not isinstance(boards, list):
             return []
 
@@ -319,6 +325,7 @@ class MarketStructureService:
         sector_rankings: Dict[str, Any],
         concept_rankings: Dict[str, Any],
     ) -> tuple[ThemeRankSource, Optional[Dict[str, Any]]]:
+        """解析板块排行数据来源。"""
         if board_type is not None:
             source: ThemeRankSource = "concept" if self._is_concept_type(board_type) else "industry"
             ranking_payload = concept_rankings if source == "concept" else sector_rankings
@@ -344,10 +351,12 @@ class MarketStructureService:
         lagging_items: Any,
         lagging_allowed_sources: set[str],
     ) -> Dict[str, List[Dict[str, Any]]]:
+        """合并多来源排行用于板块匹配。"""
         top: List[Dict[str, Any]] = []
         bottom: List[Dict[str, Any]] = []
 
         def append_if_dict(target: List[Dict[str, Any]], item: Any) -> None:
+            """仅当值为字典时追加到列表。"""
             if not isinstance(item, dict):
                 return
             name = item.get("name")
@@ -377,6 +386,7 @@ class MarketStructureService:
         market_theme_payload: Dict[str, Any],
         related_boards: List[StockBoardPosition],
     ) -> tuple[Optional[PrimaryTheme], bool]:
+        """推断主线主题。"""
         if not related_boards:
             return None, False
 
@@ -427,6 +437,7 @@ class MarketStructureService:
     def _select_ranked_related_board(
         related_boards: List[StockBoardPosition],
     ) -> StockBoardPosition:
+        """挑选排名最高的关联板块。"""
         for board in related_boards:
             if board.rank is not None or board.change_pct is not None:
                 return board
@@ -445,6 +456,7 @@ class MarketStructureService:
         hotspot_constituents: List[Dict[str, Any]],
         leader_stocks: List[Dict[str, Any]],
     ) -> str:
+        """推断个股在主题中的角色。"""
         if primary_theme is None:
             return "edge" if related_boards else "unknown"
         if not has_market_match:
@@ -470,6 +482,7 @@ class MarketStructureService:
 
     @staticmethod
     def _is_non_empty_list(value: Any) -> bool:
+        """判断值是否为非空列表。"""
         return isinstance(value, list) and bool(value)
 
     @classmethod
@@ -480,6 +493,7 @@ class MarketStructureService:
         hotspot_constituents: List[Dict[str, Any]],
         leader_stocks: List[Dict[str, Any]],
     ) -> bool:
+        """判断是否存在个股角色证据。"""
         if primary_theme is None:
             return False
         if not stock_code:
@@ -499,6 +513,7 @@ class MarketStructureService:
 
     @staticmethod
     def _safe_cast_market_list(value: Any) -> List[Dict[str, Any]]:
+        """安全转换市场数据列表。"""
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
         return []
@@ -510,6 +525,7 @@ class MarketStructureService:
         theme_name: str,
         items: List[Dict[str, Any]],
     ) -> bool:
+        """判断个股是否属于主题成分股。"""
         return cls._match_stock_in_thematic_list(
             stock_code,
             theme_name,
@@ -523,6 +539,7 @@ class MarketStructureService:
         theme_name: str,
         items: List[Dict[str, Any]],
     ) -> bool:
+        """判断个股是否为主题龙头。"""
         return cls._match_stock_in_thematic_list(
             stock_code,
             theme_name,
@@ -536,6 +553,7 @@ class MarketStructureService:
         theme_name: str,
         items: List[Dict[str, Any]],
     ) -> bool:
+        """在主题榜单中匹配个股。"""
         normalized_stock_code = cls._normalize_stock_code(stock_code)
         normalized_theme = cls._normalize_theme_name(theme_name)
         if not normalized_stock_code or not normalized_theme:
@@ -554,6 +572,7 @@ class MarketStructureService:
 
     @staticmethod
     def _extract_stock_code(item: Dict[str, Any]) -> str:
+        """从条目中提取股票代码。"""
         for key in ("code", "stock_code", "ts_code", "ticker", "symbol"):
             value = item.get(key)
             if value is None:
@@ -565,6 +584,7 @@ class MarketStructureService:
 
     @staticmethod
     def _extract_item_themes(item: Dict[str, Any]) -> set[str]:
+        """提取条目关联的主题列表。"""
         themes: set[str] = set()
         for key in (
             "theme",
@@ -589,14 +609,17 @@ class MarketStructureService:
 
     @staticmethod
     def _normalize_theme_name(value: str) -> str:
+        """规范化主题名称。"""
         return str(value or "").strip().lower()
 
     @staticmethod
     def _normalize_stock_code(value: str) -> str:
+        """规范化股票代码。"""
         return str(value or "").strip().upper()
 
     @staticmethod
     def _has_primary_market_evidence(primary_theme: Optional[PrimaryTheme]) -> bool:
+        """判断是否存在主线市场证据。"""
         if primary_theme is None:
             return False
         return (
@@ -610,6 +633,7 @@ class MarketStructureService:
         trade_date: Any,
         market_phase_summary: Optional[Dict[str, Any]],
     ) -> Optional[str]:
+        """解析交易日。"""
         if trade_date is not None:
             if isinstance(trade_date, date):
                 return trade_date.isoformat()
@@ -625,6 +649,7 @@ class MarketStructureService:
 
     @staticmethod
     def _find_ranking_item(name: str, rankings: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """在排行列表中查找指定条目。"""
         if not isinstance(rankings, dict):
             return None
         for field in ("top", "bottom"):
@@ -638,21 +663,25 @@ class MarketStructureService:
 
     @staticmethod
     def _is_concept_type(value: Optional[str]) -> bool:
+        """判断板块类型是否为概念板块。"""
         text = str(value or "").strip().lower()
         return any(keyword in text for keyword in ("概念", "题材", "concept", "theme"))
 
     @staticmethod
     def _theme_source(value: Any) -> ThemeRankSource:
+        """返回主题数据来源标识。"""
         text = str(value or "unknown").strip()
         return text if text in _VALID_THEME_SOURCES else "unknown"
 
     @staticmethod
     def _theme_phase(value: Any) -> ThemePhase:
+        """返回主题所处阶段。"""
         text = str(value or "unknown").strip()
         return text if text in _VALID_THEME_PHASES else "unknown"
 
     @staticmethod
     def _phase_from_change(value: Optional[float]) -> ThemePhase:
+        """按涨跌幅推断阶段。"""
         if value is None:
             return "unknown"
         if value >= 3:
@@ -663,6 +692,7 @@ class MarketStructureService:
 
     @staticmethod
     def _safe_float(value: Any) -> Optional[float]:
+        """将值安全转换为 float。"""
         if value is None:
             return None
         try:
@@ -679,6 +709,7 @@ class MarketStructureService:
 
     @staticmethod
     def _safe_int(value: Any) -> Optional[int]:
+        """将值安全转换为 int。"""
         if value is None:
             return None
         try:
@@ -688,6 +719,7 @@ class MarketStructureService:
 
     @staticmethod
     def _optional_text(value: Any) -> Optional[str]:
+        """将值安全转换为可选文本。"""
         if value is None:
             return None
         text = str(value).strip()

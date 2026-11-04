@@ -61,6 +61,7 @@ class EodPickerStartRequest(BaseModel):
 
 
 class EodPickerAccepted(BaseModel):
+    """收盘选股任务已受理响应体。"""
     task_id: str
     trace_id: str
     status: str = "pending"
@@ -82,6 +83,7 @@ class EodPickerStep(BaseModel):
 
 
 class EodPickerTaskStatus(BaseModel):
+    """收盘选股任务状态响应体。"""
     task_id: str
     trace_id: Optional[str] = None
     status: str
@@ -104,6 +106,7 @@ class EodPickerTimelinePoint(BaseModel):
 
 
 class EodPickerTimeline(BaseModel):
+    """收盘选股时间线响应体。"""
     code: str
     name: str
     prev_close: Optional[float] = None
@@ -128,6 +131,7 @@ def eod_picker_start(
     filters = request.filters or {}
 
     def run() -> Dict[str, Any]:
+        """后台执行收盘选股任务。"""
         return eod_picker_service.run_eod_picker(
             filters,
             update_progress=lambda p, m: task_queue.update_task_progress(task_id, p, m),

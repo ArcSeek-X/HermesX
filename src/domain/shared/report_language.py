@@ -853,10 +853,12 @@ def get_chip_unavailable_text(language: Optional[str]) -> str:
 
 
 def _normalize_lookup_key(value: Any) -> str:
+    """规范化查表键。"""
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
 
 
 def _iter_lookup_candidates(value: Any) -> list[str]:
+    """迭代查表候选键。"""
     raw_text = str(value or "").strip()
     if not raw_text:
         return []
@@ -870,6 +872,7 @@ def _iter_lookup_candidates(value: Any) -> list[str]:
 
 
 def _canonicalize_lookup_value(value: Any, canonical_map: Dict[str, str]) -> Optional[str]:
+    """规范化查表结果值。"""
     for candidate in _iter_lookup_candidates(value):
         canonical = canonical_map.get(_normalize_lookup_key(candidate))
         if canonical:
@@ -878,6 +881,7 @@ def _canonicalize_lookup_value(value: Any, canonical_map: Dict[str, str]) -> Opt
 
 
 def _first_non_negated_position(text: str, token: str) -> Optional[int]:
+    """返回首个未被否定的匹配位置。"""
     if not text or not token:
         return None
 
@@ -924,6 +928,7 @@ def _first_non_negated_position(text: str, token: str) -> Optional[int]:
 
 
 def _is_placeholder_stock_name(value: Any, code: Any = None) -> bool:
+    """判断名称是否为占位股票名。"""
     text = str(value or "").strip()
     if not text:
         return True
@@ -948,6 +953,7 @@ def _translate_from_map(
     canonical_map: Dict[str, str],
     translations: Dict[str, Dict[str, str]],
 ) -> str:
+    """按映射表翻译文本。"""
     normalized_language = normalize_report_language(language)
     raw_text = str(value or "").strip()
     if not raw_text:

@@ -6,6 +6,9 @@ Every agent in the multi-agent pipeline inherits from this class and
 implements :meth:`run`.  The base class provides shared utilities:
 tool-subset selection, prompt assembly, LLM invocation via the shared
 runner, and structured opinion output.
+
+BaseAgent —— 所有专用 Agent 的抽象基类。流水线中的每个 Agent 都继承它并实现 run；
+基类提供工具子集选择、提示词组装、经共享 runner 调用 LLM、结构化意见输出等公共能力。
 """
 
 from __future__ import annotations
@@ -61,6 +64,7 @@ class BaseAgent(ABC):
         skill_instructions: str = "",
         technical_skill_policy: str = "",
     ):
+        """构造基础 Agent：保存工具注册表、LLM 适配器，以及技能指令与技术面技能策略文本。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.skill_instructions = skill_instructions

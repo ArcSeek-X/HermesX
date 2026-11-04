@@ -4,6 +4,8 @@ Agent skills package.
 
 Provides pluggable trading skills for the agent.
 Skills are defined in natural language (YAML files) — no Python code needed.
+
+Agent 技能包。技能以自然语言（YAML/Markdown）定义，按需懒加载，无需写 Python 代码。
 """
 
 from src.application.agent.skills.base import (
@@ -51,6 +53,7 @@ __all__ = [
 
 
 def __getattr__(name):
+    """延迟导入兼容别名（SkillAgent / SkillRouter / 各 DeliberationMediator 等），避免顶层循环依赖。"""
     if name == "SkillAgent":
         from src.application.agent.skills.skill_agent import SkillAgent
 

@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Orchestrate locally stored daily bars into per-skill opinion outcomes."""
+"""Orchestrate locally stored daily bars into per-skill opinion outcomes.
+
+将本地存储的日线编排为逐技能的「意见—结果」评估。对缺失/待定样本键，
+解析起始日与窗口、调用 SkillOpinionOutcomeEvaluator 评估并持久化结果，全程不请求外部数据。
+"""
 
 from __future__ import annotations
 
@@ -41,6 +45,7 @@ class SkillOpinionOutcomeService:
         stock_repo: Optional[StockRepositoryPort] = None,
         db_manager: Optional[Any] = None,
     ):
+        """构造服务：持有（或默认创建）结果仓储与股票仓储。"""
         self.repo = repo or get_skill_opinion_outcome_repository(db_manager)
         self.stock_repo = stock_repo or get_stock_repository(db_manager)
 
@@ -132,6 +137,7 @@ class SkillOpinionOutcomeService:
         self,
         candidate: SkillOpinionOutcomeCandidate,
     ) -> SkillOpinionOutcomeEvaluation:
+        """评估单个候选样本键：解析分析日期与起始日窗口，调用评估器产出 SkillOpinionOutcomeEvaluation。"""
         analysis_date = self._resolve_analysis_date(candidate.history)
         start_resolution = resolve_stock_daily_start(
             stock_code=candidate.sample.stock_code,
@@ -167,6 +173,7 @@ class SkillOpinionOutcomeService:
     def _resolve_analysis_date(
         history: AnalysisHistoryRow,
     ) -> Optional[date]:
+        """从分析历史快照解析分析日期：优先快照日期，否则取 created_at 的日期。"""
         snapshot_date = parse_analysis_date_from_snapshot(
             history.context_snapshot
         )
@@ -179,6 +186,7 @@ class SkillOpinionOutcomeService:
 
     @staticmethod
     def _normalize_horizons(values: Optional[Sequence[str]]) -> List[str]:
+        """归一化时间跨度列表：None 取全部支持跨度，空列表或非支持值抛错，去重后返回。"""
         if values is None:
             return list(SUPPORTED_SKILL_OUTCOME_HORIZONS)
         if not values:
@@ -198,6 +206,7 @@ class SkillOpinionOutcomeService:
 
     @classmethod
     def _optional_positive_int(cls, value: Any, field_name: str) -> Optional[int]:
+        """可选正整数解析：None 返回 None，否则委托 _bounded_positive_int。"""
         if value is None:
             return None
         return cls._bounded_positive_int(
@@ -212,6 +221,7 @@ class SkillOpinionOutcomeService:
         *,
         maximum: Optional[int] = None,
     ) -> int:
+        """将值校验为合法正整数（bool 非法、非数字非法、<=0 或超上限非法）。"""
         if isinstance(value, bool):
             raise ValueError(f"{field_name} must be a positive integer")
         if isinstance(value, int):
@@ -227,6 +237,7 @@ class SkillOpinionOutcomeService:
 
     @staticmethod
     def _optional_text(value: Any, field_name: str) -> Optional[str]:
+        """可选非空文本解析：None 返回 None，否则去空白，空串抛错。"""
         if value is None:
             return None
         text = str(value).strip()
@@ -239,6 +250,7 @@ class SkillOpinionOutcomeService:
         row: SkillOpinionOutcomeRow,
         sample: SkillOpinionSampleRow,
     ) -> Dict[str, Any]:
+        """将结果行与样本行序列化为对外字典（含各类日期的 isoformat 与评估字段）。"""
         return {
             "id": row.id,
             "skill_opinion_sample_id": row.skill_opinion_sample_id,

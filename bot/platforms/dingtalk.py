@@ -41,6 +41,7 @@ class DingtalkPlatform(BotPlatform):
     """
     
     def __init__(self):
+        """构造钉钉平台适配器并装配依赖。"""
         from src.config import get_config
         config = get_config()
         
@@ -49,6 +50,7 @@ class DingtalkPlatform(BotPlatform):
     
     @property
     def platform_name(self) -> str:
+        """返回平台名称。"""
         return "dingtalk"
     
     def verify_request(self, headers: Dict[str, str], body: bytes) -> bool:

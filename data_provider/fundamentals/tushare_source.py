@@ -24,6 +24,7 @@ class TushareFundamentalsSource(FundamentalsDataSource):
     source_id = "tushare"
 
     def __init__(self) -> None:
+        """构造 Tushare 基本面数据源。"""
         self.fetcher_manager = DataFetcherManager()
 
     def is_available(self) -> bool:

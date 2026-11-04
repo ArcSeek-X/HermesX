@@ -25,6 +25,7 @@ class LocalStockDbCodeSearchSource(CodeSearchSource):
     source_id = "local"
 
     def search(self, query: str, limit: int = 10) -> Optional[List[CodeSearchResult]]:
+        """按关键词搜索股票代码（本地库源）。"""
         dataset = _build_dataset()
         if not dataset:
             return None
@@ -53,6 +54,7 @@ class LocalStockDbCodeSearchSource(CodeSearchSource):
 
 
 def _build_dataset() -> Dict[str, str]:
+    """构建本地股票代码数据集。"""
     dataset: Dict[str, str] = {}
     for code, name in STOCK_NAME_MAP.items():
         if code and name:
@@ -64,6 +66,7 @@ def _build_dataset() -> Dict[str, str]:
 
 
 def _load_active_codes() -> set[str]:
+    """加载有效股票代码列表。"""
     client = get_stockdb_client()
     try:
         payload = client.fetch_code_index()

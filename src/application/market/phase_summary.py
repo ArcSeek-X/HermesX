@@ -117,6 +117,7 @@ def extract_market_phase_summary(context_snapshot: Any) -> Optional[Dict[str, An
 
 
 def _parse_phase_local_time(value: Any) -> Optional[datetime]:
+    """解析阶段本地时间字符串为 datetime。"""
     if isinstance(value, datetime):
         return value
     if isinstance(value, str):
@@ -264,6 +265,7 @@ def format_public_market_status_line(
 
 
 def _as_mapping(value: Any) -> Optional[Mapping[str, Any]]:
+    """将值安全转换为映射类型。"""
     if isinstance(value, Mapping):
         return value
     if isinstance(value, str) and value.strip():
@@ -276,11 +278,13 @@ def _as_mapping(value: Any) -> Optional[Mapping[str, Any]]:
 
 
 def _safe_phase(value: Any) -> Optional[str]:
+    """安全提取阶段标识。"""
     text = _safe_text(value)
     return text if text in _ALLOWED_PHASES else None
 
 
 def _source_label(value: Any, lang: str) -> Optional[str]:
+    """按语言返回数据来源的展示标签。"""
     source = _safe_text(value)
     if not source:
         return None
@@ -289,6 +293,7 @@ def _source_label(value: Any, lang: str) -> Optional[str]:
 
 
 def _safe_text(value: Any) -> str:
+    """将任意值安全转换为文本。"""
     if value is None:
         return ""
     if isinstance(value, (Mapping, list, tuple, set)):
@@ -303,6 +308,7 @@ def _safe_text(value: Any) -> str:
 
 
 def _safe_int(value: Any) -> Optional[int]:
+    """将任意值安全转换为整数，失败返回 None。"""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -311,6 +317,7 @@ def _safe_int(value: Any) -> Optional[int]:
 
 
 def _list_strings(value: Any, *, limit: int = 5) -> List[str]:
+    """提取字符串列表并按上限截断。"""
     if not isinstance(value, list):
         return []
     result: List[str] = []

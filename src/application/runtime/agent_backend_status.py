@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Side-effect-free compatibility status for Agent Chat backends."""
+"""Side-effect-free compatibility status for Agent Chat backends.
+
+对 Agent Chat 后端的无副作用兼容性状态探测。复用 Codex App Server 传输层，
+在请求期评估所选后端是否可被尝试：解析候选后端、校验请求期配置不变量（agent_mode/arch/timeout），
+并对 Codex 做轻量能力探测（平台、命令、协议 schema、版本），最终产出
+{backend, available, version, error_code, message} 状态。
+"""
 
 from __future__ import annotations
 
@@ -28,6 +34,7 @@ _PROBE_KILL_GRACE_SECONDS = 2.0
 
 
 def _probe_process_group_alive(process_group_id: int) -> bool:
+    """通过 killpg(pid, 0) 探测进程组是否仍存活：ProcessLookupError 表示已退出返回 False，PermissionError 表示存在返回 True，其余返回 True。"""
     try:
         os.killpg(process_group_id, 0)
     except ProcessLookupError:
@@ -117,6 +124,7 @@ def _run_codex_probe(
 
 
 def _schema_contains_literal(value: Any, literal: str) -> bool:
+    """递归判断 JSON schema 值中是否包含给定字面量字符串：dict 递归其 values，list 递归其 items，标量直接相等比较。"""
     if isinstance(value, dict):
         return literal in value or any(
             _schema_contains_literal(item, literal) for item in value.values()
@@ -127,6 +135,7 @@ def _schema_contains_literal(value: Any, literal: str) -> bool:
 
 
 def _codex_protocol_schema_is_capable(schema_dir: Path) -> bool:
+    """校验 Codex 协议 schema 是否满足能力要求：逐一对规定路径的 JSON 文件检查是否包含所需字面量（动态工具、权限档、各项请求/通知等），任一缺失或读取失败返回 False。"""
     requirements = {
         Path("v2", "ThreadStartParams.json"): {"dynamicTools", "runtimeWorkspaceRoots"},
         Path("v2", "ThreadStartResponse.json"): {
@@ -210,6 +219,7 @@ class AgentBackendStatusService:
     """Evaluate whether the selected Chat backend can be attempted."""
 
     def __init__(self, *, effective_map: Optional[Dict[str, str]] = None, config: Optional[Config] = None) -> None:
+        """装配状态服务：保存大写键的 effective_map（参数/环境变量快照）与可选的预置 Config。"""
         self._effective_map = {
             str(key).upper(): "" if value is None else str(value)
             for key, value in (effective_map or {}).items()
@@ -217,6 +227,7 @@ class AgentBackendStatusService:
         self._config = config
 
     def get_status(self) -> Dict[str, Any]:
+        """返回所选 Chat 后端的兼容性状态：先评估请求期配置不变量，不可用直接响应；litellm 直接可用；codex_app_server 走轻量能力探测。"""
         config = self._build_config()
         evaluation = evaluate_agent_backend_config(config)
         if not evaluation["available"]:
@@ -231,6 +242,7 @@ class AgentBackendStatusService:
         return self._codex_cheap_status()
 
     def _codex_cheap_status(self) -> Dict[str, Any]:
+        """对 Codex App Server 做轻量能力探测：原生 Windows 不支持；解析命令、生成协议 schema 校验、读取版本，任一失败返回对应 error_code 的不可用响应。"""
         if is_native_windows():
             return self._response(
                 backend="codex_app_server",
@@ -311,6 +323,7 @@ class AgentBackendStatusService:
         message: Optional[str] = None,
         version: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """构造统一的状态响应字典：含 backend/available/experimental(仅 codex 为真)/version/error_code/message。"""
         return {
             "backend": backend,
             "available": available,
@@ -321,6 +334,7 @@ class AgentBackendStatusService:
         }
 
     def _build_config(self) -> Config:
+        """构造用于评估的 Config：优先复用预置 config，否则由 GenerationBackendStatusService 生成并填入 effective_map 中的 AGENT_* 环境变量（backend/arch/mode/timeout 等）。"""
         if self._config is not None:
             return self._config
         generation_service = GenerationBackendStatusService(effective_map=self._effective_map)

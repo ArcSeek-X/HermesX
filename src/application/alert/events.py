@@ -21,6 +21,10 @@ Usage::
     monitor = EventMonitor()
     monitor.add_alert(PriceAlert(stock_code="600519", direction="above", price=1800.0))
     triggered = await monitor.check_all()
+
+轻量级事件驱动告警系统。监控一组股票是否触及阈值事件（价格穿越、涨跌幅、成交量异动），
+触发时发送通知。实时行情通过 RealtimeQuotePort 接缝获取（未配置时降级为无行情），各规则带 TTL 自动过期；
+支持从配置 JSON 解析/校验/反序列化，并对接通知服务。
 """
 
 from __future__ import annotations
@@ -51,6 +55,7 @@ def set_realtime_quote_port(port: Optional[RealtimeQuotePort]) -> None:
 
 
 class AlertType(str, Enum):
+    """告警类型枚举：价格穿越、涨跌幅、成交量异动（运行期支持），以及情绪偏移/风险标记/自定义（占位，运行期暂不支持）。"""
     PRICE_CROSS = "price_cross"
     PRICE_CHANGE_PERCENT = "price_change_percent"
     VOLUME_SPIKE = "volume_spike"
@@ -60,6 +65,7 @@ class AlertType(str, Enum):
 
 
 class AlertStatus(str, Enum):
+    """告警状态枚举：active（活跃）、triggered（已触发）、expired（过期）、dismissed（已忽略）。"""
     ACTIVE = "active"
     TRIGGERED = "triggered"
     EXPIRED = "expired"
@@ -74,10 +80,12 @@ _RUNTIME_SUPPORTED_ALERT_TYPES = frozenset({
 
 
 def _supported_alert_type_names() -> str:
+    """返回当前运行期支持的告警类型名称（逗号分隔、按字母排序），用于错误提示。"""
     return ", ".join(sorted(alert_type.value for alert_type in _RUNTIME_SUPPORTED_ALERT_TYPES))
 
 
 def _ensure_runtime_supported_alert_type(alert_type: AlertType) -> None:
+    """校验告警类型是否在运行期支持集合内；不在则抛出 ValueError 并列出支持的类别。"""
     if alert_type not in _RUNTIME_SUPPORTED_ALERT_TYPES:
         raise ValueError(
             f"unsupported alert_type for current EventMonitor runtime: {alert_type.value} "
@@ -141,6 +149,7 @@ class PriceAlert(AlertRule):
     price: float = 0.0
 
     def __post_init__(self):
+        """补全默认描述：当未提供 description 时，按「股票 方向 价格」生成。"""
         if not self.description:
             self.description = f"{self.stock_code} price {self.direction} {self.price}"
 
@@ -153,6 +162,7 @@ class PriceChangeAlert(AlertRule):
     change_pct: float = 3.0
 
     def __post_init__(self):
+        """补全默认描述：当未提供 description 时，按「股票 涨跌方向 百分比」生成。"""
         if not self.description:
             self.description = f"{self.stock_code} change {self.direction} {self.change_pct}%"
 
@@ -164,6 +174,7 @@ class VolumeAlert(AlertRule):
     multiplier: float = 2.0  # trigger when volume > multiplier × avg
 
     def __post_init__(self):
+        """补全默认描述：当未提供 description 时，按「股票 成交量 > N× 均值」生成。"""
         if not self.description:
             self.description = f"{self.stock_code} volume > {self.multiplier}× average"
 
@@ -176,6 +187,7 @@ class SentimentAlert(AlertRule):
     to_sentiment: str = "negative"
 
     def __post_init__(self):
+        """补全默认描述：当未提供 description 时，按「股票 情绪 从→到」生成。"""
         if not self.description:
             self.description = f"{self.stock_code} sentiment shift: {self.from_sentiment} → {self.to_sentiment}"
 
@@ -198,6 +210,7 @@ class EventMonitor:
     """
 
     def __init__(self):
+        """初始化：维护告警规则列表与触发回调列表。"""
         self.rules: List[AlertRule] = []
         self._callbacks: List[Callable[[TriggeredAlert], None]] = []
 
@@ -275,6 +288,7 @@ class EventMonitor:
         return None
 
     def _fetch_realtime_quote(self, stock_code: str) -> Any:
+        """同步获取实时行情：通过已安装的 RealtimeQuotePort 取某股票实时行情；未配置端口时返回 None（降级）。"""
         if _realtime_quote_port is None:
             logger.debug(
                 "[EventMonitor] Realtime quote port not configured; skipping %s", stock_code
@@ -283,6 +297,7 @@ class EventMonitor:
         return _realtime_quote_port.get_realtime_quote(stock_code)
 
     async def get_realtime_quote(self, stock_code: str) -> Any:
+        """异步封装：在独立线程中获取某股票实时行情，避免阻塞事件循环。"""
         return await asyncio.to_thread(self._fetch_realtime_quote, stock_code)
 
     async def _check_price(self, rule: PriceAlert) -> Optional[TriggeredAlert]:
@@ -353,6 +368,7 @@ class EventMonitor:
         """Check volume spike against recent average."""
         try:
             def _fetch_daily_data():
+                """在后台线程中加载该股票近 20 日历史日线数据。"""
                 from src.application.history.loader import load_history_df
 
                 return load_history_df(rule.stock_code, days=20)
@@ -565,6 +581,7 @@ def build_event_monitor_from_config(config=None, notifier=None) -> Optional[Even
     notification_service = notifier or NotificationService()
 
     def _notify(triggered: TriggeredAlert) -> None:
+        """触发回调：将已触发的告警组装为简单告警通知并发送到 alert 路由；无可用通道时仅记录日志。"""
         title = f"Event Alert | {triggered.rule.stock_code}"
         content = triggered.message or triggered.rule.description or "Alert triggered"
         alert_text = NotificationBuilder.build_simple_alert(title=title, content=content, alert_type="warning")

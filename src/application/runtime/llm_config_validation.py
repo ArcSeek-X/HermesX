@@ -55,6 +55,7 @@ class _LLMDiagnostic:
 #    消除对外层守卫 forbid_private_members 的跨对象私有访问；行为逐字不变。）────
 
 def _validate_numeric_range(key: str, numeric_value: float, validation: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """校验数值配置项是否落在允许范围内，返回问题列表。"""
     issues: List[Dict[str, Any]] = []
     min_value = validation.get("min")
     max_value = validation.get("max")
@@ -85,10 +86,12 @@ def _validate_numeric_range(key: str, numeric_value: float, validation: Dict[str
 
 
 def _split_csv(value: str) -> List[str]:
+    """按逗号拆分配置字符串并去空白。"""
     return [item.strip() for item in (value or "").split(",") if item.strip()]
 
 
 def _anspire_legacy_llm_enabled(effective_map: Dict[str, str]) -> bool:
+    """判断是否启用了 Anspire 遗留 LLM 配置。"""
     if not parse_env_bool(effective_map.get("ANSPIRE_LLM_ENABLED"), default=True):
         return False
     for name in _split_csv(effective_map.get("LLM_CHANNELS") or ""):
@@ -102,6 +105,7 @@ def _anspire_legacy_llm_enabled(effective_map: Dict[str, str]) -> bool:
 
 
 def _has_model_not_found_signal(text: str) -> bool:
+    """检测错误文本中是否含模型不存在信号。"""
     lowered = text.lower()
 
     model_candidates = [
@@ -123,6 +127,7 @@ def _has_model_not_found_signal(text: str) -> bool:
 
 
 def _has_model_access_denied_signal(text: str) -> bool:
+    """检测错误文本中是否含模型访问被拒信号。"""
     lowered = text.lower()
     if "model" not in lowered:
         return False
@@ -147,6 +152,7 @@ def _has_model_access_denied_signal(text: str) -> bool:
 
 
 def _has_request_blocked_signal(text: str) -> bool:
+    """检测错误文本中是否含请求被拦截信号。"""
     lowered = text.lower()
     if _has_transport_blocked_signal(lowered):
         return False
@@ -164,6 +170,7 @@ def _has_request_blocked_signal(text: str) -> bool:
 
 
 def _has_transport_blocked_signal(text: str) -> bool:
+    """检测错误文本中是否含传输层阻断信号。"""
     lowered = text.lower()
     transport_tokens = (
         "connection blocked",
@@ -177,6 +184,7 @@ def _has_transport_blocked_signal(text: str) -> bool:
 
 
 def _has_provider_prefix_mismatch_signal(text: str) -> bool:
+    """检测错误文本中是否含供应商前缀不匹配信号。"""
     lowered = text.lower()
     mismatch_tokens = (
         "provider prefix",
@@ -460,6 +468,7 @@ def _collect_non_hermes_channel_models_from_map(effective_map: Dict[str, str]) -
 
 
 def _collect_mixed_hermes_routes_from_map(effective_map: Dict[str, str]) -> Set[str]:
+    """从有效配置映射中收集混用 Hermes 的路由标识集合。"""
     hermes_routes = set(_collect_hermes_channel_models_from_map(effective_map))
     non_hermes_routes = set(_collect_non_hermes_channel_models_from_map(effective_map))
     return hermes_routes & non_hermes_routes

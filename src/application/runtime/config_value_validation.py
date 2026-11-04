@@ -21,6 +21,7 @@ class ConfigValueValidator:
     """Validate field values and cross-field constraints before persistence."""
 
     def __init__(self, probe_port_provider):
+        """构造配置值校验器：装配探测端口提供者。"""
         self._probe_port_provider = probe_port_provider
 
     def validate_value(self, key: str, value: str, field_schema: Dict[str, Any]) -> List[Dict[str, Any]]:

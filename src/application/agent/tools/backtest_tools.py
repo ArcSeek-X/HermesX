@@ -6,6 +6,9 @@ Tools:
 - get_skill_backtest_summary: skill-scoped stats when available, otherwise an explicit unsupported/info response
 - get_strategy_backtest_summary: legacy alias of the overall summary tool
 - get_stock_backtest_summary: backtest results for a specific stock
+
+回测工具 —— 向 Agent 暴露回测摘要的只读工具集。包含按技能统计、整体统计（含旧别名）
+与按股票统计三类；不可用时返回明确的 unsupported/info 响应，而非报错或伪造数据。
 """
 
 import logging

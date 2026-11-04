@@ -60,12 +60,14 @@ class DingtalkStreamHandler:
 
     @staticmethod
     def _truncate_log_content(text: str, max_len: int = 200) -> str:
+        """截断日志内容避免过长。"""
         cleaned = text.replace("\n", " ").strip()
         if len(cleaned) > max_len:
             return f"{cleaned[:max_len]}..."
         return cleaned
 
     def _log_incoming_message(self, message: BotMessage) -> None:
+        """记录收到的消息日志。"""
         content = message.raw_content or message.content or ""
         summary = self._truncate_log_content(content)
         self._logger.info(
@@ -82,6 +84,7 @@ class DingtalkStreamHandler:
             """内部消息处理器"""
 
             def __init__(self, parent: 'DingtalkStreamHandler'):
+                """构造钉钉流式平台适配器。"""
                 super().__init__()
                 self._parent = parent
                 self.logger = logger
@@ -239,6 +242,7 @@ class DingtalkStreamClient:
         """创建消息处理函数"""
 
         async def handle_message(message: BotMessage) -> BotResponse:
+            """处理钉钉流式消息。"""
             from bot.dispatcher import get_dispatcher
             dispatcher = get_dispatcher()
             return await dispatcher.dispatch_async(message)

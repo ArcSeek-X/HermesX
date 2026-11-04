@@ -341,6 +341,7 @@ def _popen_session_kwargs() -> Dict[str, Any]:
 
 
 def _extract_claude_code_json(result: LocalCliExecutionResult, *, schema_mode: bool) -> str:
+    """从 Claude Code 输出中提取 JSON。"""
     raw = (result.stdout or "").strip()
     if not raw:
         raise LocalCliExtractionError(
@@ -415,6 +416,7 @@ def _extract_claude_code_json(result: LocalCliExecutionResult, *, schema_mode: b
 
 
 def _extract_opencode_json_events(result: LocalCliExecutionResult) -> str:
+    """从 OpenCode 输出提取 JSON 事件。"""
     raw = (result.stdout or "").strip()
     if not raw:
         raise LocalCliExtractionError(
@@ -536,6 +538,7 @@ def _iter_opencode_events(output_text: str) -> Iterator[Dict[str, Any]]:
 
 
 def _validate_opencode_event(value: Any, *, event_index: int) -> Dict[str, Any]:
+    """校验 OpenCode 事件结构。"""
     if not isinstance(value, dict):
         raise LocalCliExtractionError(
             GenerationErrorCode.SCHEMA_VALIDATION_FAILED,
@@ -553,6 +556,7 @@ def _validate_opencode_event(value: Any, *, event_index: int) -> Dict[str, Any]:
 
 
 def _opencode_blocked_event_reason(event: Dict[str, Any], event_type_lower: str) -> str:
+    """返回 OpenCode 阻断事件原因。"""
     if (
         event_type_lower in _OPENCODE_BLOCKED_EVENT_TYPES
         or any(blocked in event_type_lower for blocked in _OPENCODE_BLOCKED_EVENT_TYPES)
@@ -572,11 +576,13 @@ def _opencode_blocked_event_reason(event: Dict[str, Any], event_type_lower: str)
 
 
 def _is_cli_contract_unsupported(output_text: str) -> bool:
+    """判断 CLI 输出契约是否不受支持。"""
     text = str(output_text or "").lower()
     return any(marker in text for marker in _UNSUPPORTED_ARG_MARKERS)
 
 
 def _opencode_output_has_error_event(output_text: str) -> bool:
+    """判断 OpenCode 输出是否含错误事件。"""
     try:
         events = _iter_opencode_events(output_text)
         for event in events:
@@ -632,15 +638,18 @@ class LocalCliGenerationBackend(GenerationBackend):
         preset_id: str = CODEX_CLI_BACKEND_ID,
         preset: Optional[LocalCliPreset] = None,
     ) -> None:
+        """构造本地 CLI 生成后端并装配依赖。"""
         self._config = config
         self._preset = preset or resolve_local_cli_preset(preset_id)
 
     @property
     def backend_id(self) -> str:
+        """返回后端标识。"""
         return self._preset.preset_id
 
     @property
     def preset_id(self) -> str:
+        """返回预设标识。"""
         return self._preset.preset_id
 
     def get_config_error(self) -> Optional[GenerationError]:
@@ -663,6 +672,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         response_validator: Optional[Callable[[str], None]] = None,
         audit_context: Optional[Dict[str, Any]] = None,
     ) -> GenerationResult:
+        """执行本地 CLI 生成调用。"""
         executable, argv, executable_summary = self._resolve_command()
         timeout_seconds = min(
             _positive_int(
@@ -1051,6 +1061,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         )
 
     def _resolve_command(self) -> tuple[str, list[str], Dict[str, str]]:
+        """解析可执行命令路径。"""
         tokens = [self._preset.executable, *self._preset.argv]
         if self._preset.output_last_message_arg:
             tokens.append(self._preset.output_last_message_arg)
@@ -1098,6 +1109,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         *,
         prompt_path: Optional[Path] = None,
     ) -> tuple[list[str], Optional[Path]]:
+        """构建运行时命令行参数。"""
         output_arg = self._preset.output_last_message_arg
         if not output_arg:
             runtime_argv = self._replace_runtime_placeholders(list(argv), prompt_path)
@@ -1129,6 +1141,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         argv: list[str],
         prompt_path: Optional[Path],
     ) -> list[str]:
+        """替换运行时参数占位符。"""
         if self._preset.preset_id != OPENCODE_CLI_BACKEND_ID:
             return argv
         model = self._get_opencode_cli_model()
@@ -1159,6 +1172,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         return runtime_argv
 
     def _get_opencode_cli_model(self) -> str:
+        """获取 OpenCode CLI 使用的模型。"""
         model = str(getattr(self._config, "opencode_cli_model", "") or "").strip()
         if not model:
             return ""
@@ -1182,6 +1196,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         cwd: Path,
         diagnostics: Dict[str, Any],
     ) -> Dict[str, str]:
+        """构建预设子进程环境变量。"""
         if self._preset.preset_id != OPENCODE_CLI_BACKEND_ID:
             return {}
         diagnostics["opencode_child_env_hardened"] = True
@@ -1201,6 +1216,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         prompt_path: Path,
         diagnostics: Dict[str, Any],
     ) -> None:
+        """准备预设运行时文件。"""
         if self._preset.preset_id != OPENCODE_CLI_BACKEND_ID:
             return
         diagnostics["opencode_model_override"] = bool(self._get_opencode_cli_model())
@@ -1225,6 +1241,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         diagnostics["opencode_prompt_file"] = prompt_path.name
 
     def _validate_runtime_contract_args(self, runtime_argv: Sequence[str]) -> None:
+        """校验运行时契约参数。"""
         runtime_tokens = [str(arg) for arg in runtime_argv]
         missing_contract_args: list[str] = []
         search_start = 0
@@ -1259,6 +1276,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         stderr: str,
         diagnostics: Dict[str, Any],
     ) -> GenerationError:
+        """构造非零退出码错误。"""
         combined = f"{stdout}\n{stderr}".lower()
         code = GenerationErrorCode.NON_ZERO_EXIT
         reason = "non_zero_exit"
@@ -1295,6 +1313,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         reason: str,
         exc: OSError,
     ) -> GenerationError:
+        """构造输出文件错误。"""
         return self._error(
             GenerationErrorCode.UNKNOWN_BACKEND_ERROR,
             stage="execution",
@@ -1316,6 +1335,7 @@ class LocalCliGenerationBackend(GenerationBackend):
         fallbackable: bool,
         details: Dict[str, Any],
     ) -> GenerationError:
+        """构造生成错误结果。"""
         return GenerationError(
             error_code=error_code,
             stage=stage,
@@ -1328,6 +1348,7 @@ class LocalCliGenerationBackend(GenerationBackend):
 
     @staticmethod
     def _emit_progress(callback: Optional[Callable[[int], None]], value: int) -> None:
+        """上报生成进度事件。"""
         if callback is None:
             return
         try:
@@ -1337,6 +1358,7 @@ class LocalCliGenerationBackend(GenerationBackend):
 
     @staticmethod
     def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+        """终止子进程组。"""
         if process.poll() is not None:
             return
         if os.name == "nt":
@@ -1383,6 +1405,7 @@ class LocalCliGenerationBackend(GenerationBackend):
 
 @contextmanager
 def _local_cli_concurrency_slot(limit: int):
+    """获取本地 CLI 并发槽位。"""
     global _CONCURRENCY_ACTIVE
     normalized_limit = max(1, int(limit or 1))
     with _CONCURRENCY_CONDITION:
@@ -1397,6 +1420,7 @@ def _local_cli_concurrency_slot(limit: int):
 
 
 def _is_command_not_executable_error(exc: OSError) -> bool:
+    """判断是否为命令不可执行错误。"""
     if not isinstance(exc, OSError):
         return False
     if os.name == "nt" and getattr(exc, "winerror", None) == 193:
@@ -1405,10 +1429,12 @@ def _is_command_not_executable_error(exc: OSError) -> bool:
 
 
 def _is_sensitive_env_name(upper_name: str) -> bool:
+    """判断环境变量名是否敏感。"""
     return any(pattern in upper_name for pattern in _SENSITIVE_ENV_PATTERNS)
 
 
 def _first_unsafe_token(tokens: Sequence[str]) -> str:
+    """返回首个不安全令牌。"""
     for token in tokens:
         value = str(token)
         if any(marker in value for marker in _SHELL_META_CHARS):
@@ -1419,6 +1445,7 @@ def _first_unsafe_token(tokens: Sequence[str]) -> str:
 
 
 def _executable_summary(path: str) -> Dict[str, str]:
+    """返回可执行命令的摘要信息。"""
     digest = hashlib.sha256(path.encode("utf-8")).hexdigest()[:12]
     return {
         "basename": Path(path).name,
@@ -1427,6 +1454,7 @@ def _executable_summary(path: str) -> Dict[str, str]:
 
 
 def _preview_diagnostics(stdout: str, stderr: str) -> Dict[str, str]:
+    """构造输出预览诊断信息。"""
     return {
         "stdout_preview": redact_diagnostic_text(stdout or ""),
         "stderr_preview": redact_diagnostic_text(stderr or ""),
@@ -1434,6 +1462,7 @@ def _preview_diagnostics(stdout: str, stderr: str) -> Dict[str, str]:
 
 
 def _preview_diagnostics_from_files(stdout_path: Path, stderr_path: Path) -> Dict[str, str]:
+    """从运行时文件构造预览诊断。"""
     return _preview_diagnostics(
         _read_text_file(stdout_path, limit_bytes=_PREVIEW_LIMIT * 4),
         _read_text_file(stderr_path, limit_bytes=_PREVIEW_LIMIT * 4),
@@ -1445,6 +1474,7 @@ def _stdout_preview_without_repeated_final_message(
     final_message_path: Path,
     max_output_bytes: int,
 ) -> tuple[str, bool]:
+    """去除重复最终消息后的标准输出预览。"""
     try:
         if _path_size_required(final_message_path) > max_output_bytes:
             return _STDOUT_PREVIEW_OMITTED, True
@@ -1464,6 +1494,7 @@ def _strip_repeated_final_message_from_stdout(
     *,
     replacement: str,
 ) -> tuple[str, bool]:
+    """从标准输出剥离重复的最终消息。"""
     final = (final_message or "").strip()
     if not final or final not in stdout:
         return stdout, False
@@ -1471,18 +1502,22 @@ def _strip_repeated_final_message_from_stdout(
 
 
 def _text_size_bytes(text: str) -> int:
+    """返回文本字节大小。"""
     return len((text or "").encode("utf-8", errors="replace"))
 
 
 def _combined_path_size_required(*paths: Path) -> int:
+    """校验并返回多路径合计大小。"""
     return sum(_path_size_required(path) for path in paths)
 
 
 def _path_size_required(path: Path) -> int:
+    """校验并返回单路径大小。"""
     return path.stat().st_size
 
 
 def _read_text_file(path: Path, *, limit_bytes: Optional[int] = None) -> str:
+    """读取文本文件。"""
     try:
         with path.open("rb") as handle:
             raw = handle.read() if limit_bytes is None else handle.read(limit_bytes)
@@ -1492,6 +1527,7 @@ def _read_text_file(path: Path, *, limit_bytes: Optional[int] = None) -> str:
 
 
 def _read_text_file_required(path: Path) -> str:
+    """读取必需的文本文件，缺失则报错。"""
     with path.open("rb") as handle:
         raw = handle.read()
     return raw.decode("utf-8", errors="replace")

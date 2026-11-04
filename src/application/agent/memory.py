@@ -46,6 +46,7 @@ def set_history_repo(repo: Any) -> None:
 
 
 def _get_history_repo() -> Any:
+    """返回当前已装配的历史仓储单例。"""
     return _history_repo
 
 
@@ -87,6 +88,7 @@ class AgentMemory:
     """
 
     def __init__(self, enabled: bool = False, min_samples: int = _MIN_CALIBRATION_SAMPLES):
+        """构造 Agent 记忆实例并初始化内部状态。"""
         self.enabled = enabled
         self.min_samples = min_samples
 

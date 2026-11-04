@@ -95,11 +95,13 @@ class DecisionSignalWriteOutcome:
     duplicate: bool
 
     def __post_init__(self) -> None:
+        """数据类后处理：规范化决策信号字段。"""
         if sum((self.created, self.refreshed, self.duplicate)) != 1:
             raise DecisionSignalStorageError("invalid DecisionSignal write outcome")
 
     @property
     def disposition(self) -> DecisionSignalWriteDisposition:
+        """返回信号处置状态。"""
         if self.created:
             return "created"
         if self.refreshed:
@@ -119,6 +121,7 @@ class DecisionSignalService:
         db_manager: Optional[Any] = None,
         history_repo: Optional[HistoryRepositoryPort] = None,
     ):
+        """构造决策信号服务并装配依赖。"""
         self.repo = repo or get_decision_signal_repository(db_manager)
         self.portfolio_repo = portfolio_repo or get_portfolio_repository(db_manager)
         # 分析历史的回填读取只经窄端口；优先级与 W4.2 收敛前逐字一致：
@@ -131,6 +134,7 @@ class DecisionSignalService:
         )
 
     def create_signal(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """创建决策信号。"""
         outcome = self.create_signal_with_outcome(payload)
         return {"item": outcome.item, "created": outcome.created}
 
@@ -181,6 +185,7 @@ class DecisionSignalService:
         return self._write_outcome(result, row=final_row)
 
     def _store_signal(self, payload: Dict[str, Any]) -> DecisionSignalCreateResult:
+        """持久化决策信号记录。"""
         fields, lifecycle = self._normalize_payload(payload)
         return self.repo.create_if_absent(
             fields,
@@ -193,6 +198,7 @@ class DecisionSignalService:
         *,
         row: Optional[DecisionSignalRow] = None,
     ) -> DecisionSignalWriteOutcome:
+        """写入信号评估结果。"""
         return DecisionSignalWriteOutcome(
             item=self._serialize(row if row is not None else result.row),
             created=result.created,
@@ -201,6 +207,7 @@ class DecisionSignalService:
         )
 
     def get_signal(self, signal_id: int) -> Dict[str, Any]:
+        """按 ID 获取决策信号。"""
         row = self.repo.get(signal_id)
         if row is None:
             raise DecisionSignalNotFoundError(f"Decision signal not found: {signal_id}")
@@ -229,6 +236,7 @@ class DecisionSignalService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出决策信号。"""
         safe_page = max(1, int(page))
         safe_page_size = max(1, min(int(page_size), 100))
         market_norm = self.normalize_optional_market(market)
@@ -352,6 +360,7 @@ class DecisionSignalService:
         market: Optional[str] = None,
         limit: int = 1,
     ) -> Dict[str, Any]:
+        """获取最新有效信号。"""
         market_norm = self.normalize_optional_market(market)
         rows = self.repo.get_latest_active(
             stock_codes=self.stock_filter_codes(stock_code, market=market_norm) or [
@@ -375,6 +384,7 @@ class DecisionSignalService:
         metadata: Optional[Any] = None,
         replace_metadata: bool = False,
     ) -> Dict[str, Any]:
+        """更新信号状态。"""
         status_norm = self._normalize_enum(status, SIGNAL_STATUSES, "status")
         existing = self.repo.get(signal_id)
         if existing is None:
@@ -550,6 +560,7 @@ class DecisionSignalService:
 
     @classmethod
     def _history_has_decision_source(cls, *, raw: Dict[str, Any], record: AnalysisHistoryRow) -> bool:
+        """判断历史记录是否含决策来源。"""
         action, _ = cls._history_action_fields(raw=raw, record=record)
         return action is not None
 
@@ -560,6 +571,7 @@ class DecisionSignalService:
         raw: Dict[str, Any],
         record: AnalysisHistoryRow,
     ) -> tuple[Optional[str], Optional[str]]:
+        """提取历史记录的决策动作字段。"""
         raw_operation_advice = raw.get("operation_advice")
         normalized_operation_advice = str(raw_operation_advice).strip() if raw_operation_advice is not None else None
         if not normalized_operation_advice:
@@ -601,6 +613,7 @@ class DecisionSignalService:
         score: Optional[int],
         raw_action: Optional[str],
     ) -> Optional[str]:
+        """提取历史记录的护栏原因。"""
         dashboard = raw.get("dashboard") if isinstance(raw.get("dashboard"), dict) else {}
         calibration = (
             dashboard.get("decision_score_calibration")
@@ -706,6 +719,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _sanitize_history_market_phase_summary(value: Any) -> Dict[str, Any]:
+        """清洗历史大盘阶段摘要。"""
         if not isinstance(value, dict):
             return {}
         allowed_fields = (
@@ -722,6 +736,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _coerce_history_created_at_to_utc_naive(value: datetime) -> datetime:
+        """将历史创建时间规范化为无时区 UTC。"""
         if value.tzinfo is not None:
             return to_utc_naive_datetime(value)
 
@@ -735,6 +750,7 @@ class DecisionSignalService:
             return to_utc_naive_datetime(value)
 
     def _invalidate_history_bound_if_superseded(self, signal_id: int) -> None:
+        """历史绑定被取代时使信号失效。"""
         row = self.repo.get(signal_id)
         if row is None or row.status != "active":
             return
@@ -777,6 +793,7 @@ class DecisionSignalService:
         market: str,
         metadata: Any,
     ) -> Optional[datetime]:
+        """计算历史绑定信号的过期时间。"""
         base = to_utc_naive_datetime(created_at)
         return cls._expires_at_from_base(
             horizon=horizon,
@@ -787,6 +804,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _history_int(*values: Any, default: int) -> int:
+        """从历史记录安全提取整数。"""
         for value in values:
             if value in (None, ""):
                 continue
@@ -798,6 +816,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _history_float(value: Any) -> Optional[float]:
+        """从历史记录安全提取浮点数。"""
         if value in (None, ""):
             return None
         try:
@@ -807,6 +826,7 @@ class DecisionSignalService:
         return parsed if math.isfinite(parsed) else None
 
     def _normalize_payload(self, payload: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """规范化信号载荷。"""
         market = self._normalize_market(payload.get("market"))
         stock_code = self._normalize_stock_code(payload.get("stock_code"), market=market)
         action = self._normalize_action(payload.get("action"))
@@ -900,10 +920,12 @@ class DecisionSignalService:
 
     @staticmethod
     def _payload_has_value(payload: Dict[str, Any], field_name: str) -> bool:
+        """判断载荷字段是否有值。"""
         return payload.get(field_name) not in (None, "")
 
     @staticmethod
     def _default_horizon(*, action: str, market_phase: Optional[str]) -> str:
+        """返回默认持有周期。"""
         if action == "alert" or market_phase in INTRADAY_PHASES:
             return "intraday"
         return "3d"
@@ -916,6 +938,7 @@ class DecisionSignalService:
         market: str,
         metadata: Any,
     ) -> Optional[datetime]:
+        """返回默认过期时间。"""
         return cls._expires_at_from_base(
             horizon=horizon,
             market=market,
@@ -932,6 +955,7 @@ class DecisionSignalService:
         metadata: Any,
         base: datetime,
     ) -> Optional[datetime]:
+        """基于基准时间计算过期时间。"""
         if horizon == "intraday":
             minutes_to_close = cls._metadata_minutes(metadata, "minutes_to_close")
             if minutes_to_close is not None:
@@ -949,16 +973,19 @@ class DecisionSignalService:
 
     @staticmethod
     def _intraday_fallback_hours(market: str) -> float:
+        """返回盘中回退小时数。"""
         return DEFAULT_INTRADAY_TTL_HOURS.get(market, 4.0)
 
     @staticmethod
     def _horizon_days(horizon: Optional[str]) -> Optional[int]:
+        """将持有周期转换为天数。"""
         if horizon in {"1d", "3d", "5d", "10d"}:
             return int(horizon[:-1])
         return None
 
     @classmethod
     def _metadata_minutes(cls, metadata: Any, field_name: str) -> Optional[int]:
+        """从元数据提取分钟数。"""
         if not isinstance(metadata, dict):
             return None
         summary = metadata.get("market_phase_summary")
@@ -979,6 +1006,7 @@ class DecisionSignalService:
         *,
         reference_at: Optional[datetime],
     ) -> None:
+        """使相反方向的有效信号失效。"""
         opposing_actions = self._opposing_actions(row.action)
         if not opposing_actions:
             return
@@ -1013,6 +1041,7 @@ class DecisionSignalService:
         *,
         reference_at: Optional[datetime],
     ) -> bool:
+        """判断是否为更早的信号。"""
         candidate_created_at = candidate.created_at
         if candidate_created_at is not None and reference_at is not None:
             candidate_created_at = to_utc_naive_datetime(candidate_created_at)
@@ -1026,6 +1055,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _opposing_actions(action: str) -> frozenset[str]:
+        """返回与给定动作相反的动作集合。"""
         if action in BULLISH_ACTIONS:
             return DEFENSIVE_ACTIONS
         if action in DEFENSIVE_ACTIONS:
@@ -1038,6 +1068,7 @@ class DecisionSignalService:
         *,
         invalidated_by: DecisionSignalRow,
     ) -> Optional[str]:
+        """构造失效原因元数据。"""
         metadata = self._metadata_for_invalidation(row)
         metadata.update({
             "invalidated_by_signal_id": invalidated_by.id,
@@ -1057,12 +1088,14 @@ class DecisionSignalService:
         metadata: Dict[str, Any],
         decision_profile: str,
     ) -> Dict[str, Any]:
+        """同步元数据中的决策档案。"""
         normalized = dict(metadata)
         normalized["decision_profile"] = decision_profile
         return normalized
 
     @staticmethod
     def _metadata_for_invalidation(row: DecisionSignalRow) -> Dict[str, Any]:
+        """构造信号失效元数据。"""
         if not row.metadata_json:
             return {}
         try:
@@ -1080,6 +1113,7 @@ class DecisionSignalService:
         return {"metadata_replaced_due_to_non_object": True}
 
     def _normalize_plan_quality(self, value: Any, *, fields: Dict[str, Any]) -> str:
+        """规范化计划质量评估。"""
         if value is not None:
             return self._normalize_enum(value, PLAN_QUALITIES, "plan_quality")
         has_action_or_reason = bool(fields.get("action") or fields.get("reason"))
@@ -1098,6 +1132,7 @@ class DecisionSignalService:
         return "minimal"
 
     def _cached_holding_identities(self, *, account_id: Optional[int]) -> set[Tuple[str, str]]:
+        """返回缓存的持仓标识集合。"""
         identities = self.portfolio_repo.list_cached_position_identities(account_id=account_id)
         normalized: set[Tuple[str, str]] = set()
         for market, symbol in identities:
@@ -1114,6 +1149,7 @@ class DecisionSignalService:
         *,
         market: Optional[str] = None,
     ) -> Optional[List[str]]:
+        """返回股票筛选代码列表。"""
         if not stock_code:
             return None
         normalized = cls._normalize_stock_code(stock_code, market=market)
@@ -1131,6 +1167,7 @@ class DecisionSignalService:
 
     @classmethod
     def _normalize_stock_code(cls, value: Any, *, market: Optional[str] = None) -> str:
+        """规范化股票代码。"""
         raw = str(value or "").strip()
         if market == "us":
             code = canonical_stock_code_for_analysis(raw)
@@ -1144,6 +1181,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _normalize_hk_stock_code(value: str) -> str:
+        """规范化港股代码。"""
         normalized = canonical_stock_code_for_analysis(normalize_stock_code_for_analysis(value))
         digits = ""
         if normalized.startswith("HK"):
@@ -1156,6 +1194,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _normalize_market(value: Any) -> str:
+        """规范化市场标识。"""
         market = str(value or "").strip().lower()
         if market not in VALID_MARKETS:
             raise ValueError("market must be one of cn, hk, us, jp, kr, tw")
@@ -1163,12 +1202,14 @@ class DecisionSignalService:
 
     @classmethod
     def normalize_optional_market(cls, value: Any) -> Optional[str]:
+        """规范化可选市场参数。"""
         if value in (None, ""):
             return None
         return cls._normalize_market(value)
 
     @staticmethod
     def _normalize_action(value: Any) -> str:
+        """规范化动作标识。"""
         action = str(value or "").strip().lower()
         if not action or action not in DECISION_ACTIONS:
             raise ValueError("action must be one of buy/add/hold/reduce/sell/watch/avoid/alert")
@@ -1176,12 +1217,14 @@ class DecisionSignalService:
 
     @classmethod
     def normalize_optional_action(cls, value: Any) -> Optional[str]:
+        """规范化可选动作参数。"""
         if value in (None, ""):
             return None
         return cls._normalize_action(value)
 
     @staticmethod
     def _normalize_enum(value: Any, allowed: frozenset[str], field_name: str) -> str:
+        """规范化枚举值。"""
         text = str(value or "").strip()
         if text not in allowed:
             allowed_text = ", ".join(sorted(allowed))
@@ -1195,12 +1238,14 @@ class DecisionSignalService:
         allowed: frozenset[str],
         field_name: str,
     ) -> Optional[str]:
+        """规范化可选枚举参数。"""
         if value in (None, ""):
             return None
         return cls._normalize_enum(value, allowed, field_name)
 
     @classmethod
     def _normalize_trigger_source(cls, value: Any) -> str:
+        """规范化触发来源。"""
         text = cls._public_text(value, "trigger_source", max_length=64, required=True)
         if not text:
             raise ValueError("trigger_source is required")
@@ -1208,12 +1253,14 @@ class DecisionSignalService:
 
     @classmethod
     def _normalize_optional_trigger_source(cls, value: Any) -> Optional[str]:
+        """规范化可选触发来源参数。"""
         if value in (None, ""):
             return None
         return cls._normalize_trigger_source(value)
 
     @staticmethod
     def _optional_text(value: Any, field_name: str, *, max_length: int) -> Optional[str]:
+        """将值转换为可选文本。"""
         if value is None:
             return None
         text = str(value).strip()
@@ -1225,10 +1272,12 @@ class DecisionSignalService:
 
     @classmethod
     def _optional_public_text(cls, value: Any, field_name: str, *, max_length: int) -> Optional[str]:
+        """将值转换为对外可选文本。"""
         return cls._public_text(value, field_name, max_length=max_length, required=False)
 
     @staticmethod
     def _public_text(value: Any, field_name: str, *, max_length: int, required: bool) -> Optional[str]:
+        """返回对外的文本表示。"""
         if value is None:
             if required:
                 raise ValueError(f"{field_name} is required")
@@ -1244,6 +1293,7 @@ class DecisionSignalService:
 
     @classmethod
     def _optional_identity_text(cls, value: Any, field_name: str, *, max_length: int) -> Optional[str]:
+        """转换可选标识文本。"""
         text = cls._optional_text(value, field_name, max_length=max_length)
         if text is None:
             return None
@@ -1254,6 +1304,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _optional_signal_text(value: Any) -> Optional[str]:
+        """转换可选信号文本。"""
         if value is None:
             return None
         if isinstance(value, (dict, list)):
@@ -1263,6 +1314,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _optional_float(value: Any, field_name: str) -> Optional[float]:
+        """将值转换为可选浮点数。"""
         if value in (None, ""):
             return None
         try:
@@ -1272,6 +1324,7 @@ class DecisionSignalService:
 
     @classmethod
     def _optional_price_float(cls, value: Any, field_name: str) -> Optional[float]:
+        """将值转换为可选价格浮点数。"""
         number = cls._optional_float(value, field_name)
         if number is None:
             return None
@@ -1281,6 +1334,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _validate_entry_range(fields: Dict[str, Any]) -> None:
+        """校验入场价区间合法性。"""
         entry_low = fields.get("entry_low")
         entry_high = fields.get("entry_high")
         if entry_low is not None and entry_high is not None and entry_low > entry_high:
@@ -1288,6 +1342,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _optional_int(value: Any, field_name: str) -> Optional[int]:
+        """将值转换为可选整数。"""
         if value in (None, ""):
             return None
         try:
@@ -1297,6 +1352,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _parse_datetime(value: Any) -> Optional[datetime]:
+        """解析日期时间字符串。"""
         if value in (None, ""):
             return None
         if isinstance(value, datetime):
@@ -1314,11 +1370,13 @@ class DecisionSignalService:
 
     @classmethod
     def _is_expired(cls, expires_at: Optional[datetime]) -> bool:
+        """判断信号是否已过期。"""
         normalized_expires_at = cls._parse_datetime(expires_at)
         return normalized_expires_at is not None and normalized_expires_at <= utc_naive_now()
 
     @staticmethod
     def _json_dumps(value: Any) -> Optional[str]:
+        """序列化对象为 JSON 字符串。"""
         if value in (None, ""):
             return None
         sanitized = sanitize_decision_signal_payload(value)
@@ -1326,6 +1384,7 @@ class DecisionSignalService:
 
     @staticmethod
     def _json_loads(value: Optional[str], *, signal_id: int, field_name: str) -> Any:
+        """解析 JSON 字符串。"""
         if not value:
             return None
         try:
@@ -1342,6 +1401,7 @@ class DecisionSignalService:
             ) from exc
 
     def _serialize(self, row: DecisionSignalRow) -> Dict[str, Any]:
+        """将信号对象序列化为字典。"""
         return {
             "id": row.id,
             "stock_code": row.stock_code,

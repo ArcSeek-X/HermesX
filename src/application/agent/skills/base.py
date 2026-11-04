@@ -83,6 +83,7 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---\s*\r?\n?(.*)$", re.DOTA
 
 
 def _coerce_string_list(value: object) -> List[str]:
+    """将任意值安全转换为字符串列表。"""
     if value is None:
         return []
     if isinstance(value, str):
@@ -93,6 +94,7 @@ def _coerce_string_list(value: object) -> List[str]:
 
 
 def _coerce_bool(value: object, default: bool = False) -> bool:
+    """将任意值安全转换为布尔值，失败用默认值。"""
     if value is None:
         return default
     if isinstance(value, bool):
@@ -107,6 +109,7 @@ def _coerce_bool(value: object, default: bool = False) -> bool:
 
 
 def _coerce_int(value: object, default: int = 100) -> int:
+    """将任意值安全转换为整数，失败用默认值。"""
     if value is None:
         return default
     try:
@@ -116,6 +119,7 @@ def _coerce_int(value: object, default: int = 100) -> int:
 
 
 def _parse_skill_frontmatter(raw_text: str) -> tuple[Dict[str, object], str]:
+    """解析技能文件的 frontmatter 与正文。"""
     import yaml
 
     match = _FRONTMATTER_RE.match(raw_text)
@@ -130,6 +134,7 @@ def _parse_skill_frontmatter(raw_text: str) -> tuple[Dict[str, object], str]:
 
 
 def _infer_skill_description(instructions: str) -> str:
+    """从技能指令文本推断描述信息。"""
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n", instructions or "") if part.strip()]
     if not paragraphs:
         return ""
@@ -334,6 +339,7 @@ class SkillManager:
     """
 
     def __init__(self):
+        """构造技能基础实例并初始化默认状态。"""
         self._skills: Dict[str, Skill] = {}
 
     def register(self, skill: Skill) -> None:

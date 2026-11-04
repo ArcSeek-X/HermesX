@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 StrategyEngine — authoritative multi-strategy pipeline facade.
+
+StrategyEngine —— 权威的多策略流水线门面。将技能意见的「证据链」集中编排：
+分区（有效/无效/非技能意见）、聚合、冲突检测与共识合成，产出 StrategyResult。
 """
 
 from __future__ import annotations
@@ -24,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 class StrategyResultStatus(str, Enum):
+    """策略处理结果状态：consensus（达成共识）/ no_consensus（有无效记录无共识）/ no_skills（无技能意见）。"""
+
     CONSENSUS = "consensus"
     NO_CONSENSUS = "no_consensus"
     NO_SKILLS = "no_skills"
@@ -31,6 +36,8 @@ class StrategyResultStatus(str, Enum):
 
 @dataclass
 class EvidencePartition:
+    """分区结果容器：有效技能意见、无效记录、非技能意见与证据意见列表。"""
+
     valid_skill_opinions: List[AgentOpinion] = field(default_factory=list)
     invalid_records: List[Dict[str, Any]] = field(default_factory=list)
     invalid_count: int = 0
@@ -40,6 +47,8 @@ class EvidencePartition:
 
 @dataclass
 class StrategyResult:
+    """策略处理结果：状态、合成字典、共识意见、各分区意见与无效记录。"""
+
     status: StrategyResultStatus = StrategyResultStatus.NO_SKILLS
     synthesis_dict: Optional[Dict[str, Any]] = None
     consensus_opinion: Optional[AgentOpinion] = None
@@ -55,9 +64,11 @@ class StrategyEngine:
     """Centralize the skill-opinion evidence chain into one facade."""
 
     def __init__(self, aggregator: Optional[SkillAggregator] = None) -> None:
+        """构造引擎：持有（或默认创建）SkillAggregator 聚合器。"""
         self.aggregator = aggregator or SkillAggregator()
 
     def partition_only(self, opinions: List[AgentOpinion]) -> EvidencePartition:
+        """仅做证据分区：将意见分为有效技能意见/无效记录/非技能意见，并归一化信号、收集证据意见。"""
         valid_skill_opinions: List[AgentOpinion] = []
         invalid_records: List[Dict[str, Any]] = []
         non_skill_opinions: List[AgentOpinion] = []
@@ -137,6 +148,7 @@ class StrategyEngine:
         *,
         diagnostic_records: Optional[List[Dict[str, Any]]] = None,
     ) -> StrategyResult:
+        """处理意见列表：先分区，合并外部诊断记录，再走 process_partition 产出 StrategyResult。"""
         partition = self.partition_only(opinions)
         existing_diagnostics = [
             dict(record)
@@ -149,6 +161,7 @@ class StrategyEngine:
         return self.process_partition(partition)
 
     def process_partition(self, partition: EvidencePartition) -> StrategyResult:
+        """基于分区执行聚合与合成：无有效技能意见时返回 no_skills/no_consensus 桩，否则聚合、合成并返回共识结果。"""
         if not partition.valid_skill_opinions:
             if partition.invalid_count > 0:
                 stub = self._build_no_consensus_stub(partition.invalid_count)
@@ -218,6 +231,7 @@ class StrategyEngine:
 
     @staticmethod
     def _build_consensus_opinion(aggregation: AggregationData, synthesis: Dict[str, Any]) -> AgentOpinion:
+        """由聚合数据与合成结果构造共识 AgentOpinion（与 SkillAggregator 同构的摘要生成）。"""
         reasoning_parts = [
             f"Skill consensus from {len(aggregation.skill_opinions)} skills "
             f"({', '.join(aggregation.skill_names)}): weighted score {aggregation.weighted_score:.2f}/5.0, "
@@ -247,6 +261,7 @@ class StrategyEngine:
 
     @staticmethod
     def _build_no_consensus_stub(invalid_count: int) -> Dict[str, Any]:
+        """构造「无共识」桩合成字典（信号 hold、置信 0、冲突空、共识等级 insufficient）。"""
         return {
             "final_signal": "hold",
             "weighted_score": 3.0,

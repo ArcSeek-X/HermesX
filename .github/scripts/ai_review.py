@@ -38,6 +38,7 @@ GITHUB_API_MAX_PAGES = 30
 
 
 def run_git(args):
+    """执行 git 命令并返回输出。"""
     result = subprocess.run(args, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"⚠️ git command failed: {' '.join(args)}")
@@ -80,6 +81,7 @@ def _event_payload():
 
 
 def _pull_request_number(payload=None):
+    """解析 PR 编号。"""
     configured = os.environ.get('PR_NUMBER', '').strip()
     if configured:
         return int(configured)
@@ -93,6 +95,7 @@ def _pull_request_number(payload=None):
 
 
 def _github_api_json(path):
+    """调用 GitHub API 并返回 JSON。"""
     api_url = os.environ.get('GITHUB_API_URL', 'https://api.github.com').rstrip('/')
     token = os.environ.get('GITHUB_TOKEN', '').strip()
     headers = {
@@ -112,6 +115,7 @@ def _github_api_json(path):
 
 
 def _github_repository():
+    """返回当前 GitHub 仓库标识。"""
     repository = os.environ.get('GITHUB_REPOSITORY', '').strip()
     if repository.count('/') != 1:
         raise RuntimeError('GITHUB_REPOSITORY must use owner/name format')
@@ -119,6 +123,7 @@ def _github_repository():
 
 
 def _fetch_pull_files():
+    """拉取 PR 变更文件列表。"""
     repository = _github_repository()
     pull_number = _pull_request_number()
     files = []
@@ -138,10 +143,12 @@ def _fetch_pull_files():
 
 
 def _is_review_path(filename):
+    """判断路径是否属于审查范围。"""
     return any(fnmatch.fnmatchcase(filename, pattern) for pattern in REVIEW_PATHS)
 
 
 def _build_api_diff(files):
+    """构建用于审查的 API 差异文本。"""
     chunks = []
     for file_info in files:
         filename = file_info.get('filename', '')
@@ -211,6 +218,7 @@ def get_pr_context():
 
 
 def classify_files(files):
+    """按类型分类 PR 变更文件。"""
     py_files = [f for f in files if f.endswith('.py')]
     doc_files = [f for f in files if f.endswith('.md') or f.startswith('docs/') or f in ('README.md', 'AGENTS.md')]
     frontend_files = [f for f in files if f.startswith('apps/hrs-web/') or f.endswith(('.tsx', '.ts'))]
@@ -403,6 +411,7 @@ def ai_review(diff_content, files, truncated):
 
 
 def main():
+    """脚本入口。"""
     diff, files, truncated = get_review_data()
 
     if not diff or not files:

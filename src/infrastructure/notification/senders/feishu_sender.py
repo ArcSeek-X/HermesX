@@ -81,6 +81,7 @@ _NO_CLIENT = object()
 
 class FeishuSender:
 
+    """飞书渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         Initialise Feishu sender.
@@ -152,17 +153,20 @@ class FeishuSender:
     # ------------------------------------------------------------------
 
     def _get_keyword_prefix(self) -> str:
+        """返回安全校验所需的关键字前缀。"""
         if not self._feishu_keyword:
             return ""
         return f"{self._feishu_keyword}\n"
 
     def _apply_keyword_prefix(self, content: str) -> str:
+        """为消息内容添加关键字前缀。"""
         prefix = self._get_keyword_prefix()
         if not prefix:
             return content
         return f"{prefix}{content}" if content else self._feishu_keyword
 
     def _build_security_fields(self) -> Dict[str, str]:
+        """构建飞书安全校验字段。"""
         if not self._feishu_secret:
             return {}
         timestamp = str(int(time.time()))
@@ -529,6 +533,7 @@ class FeishuSender:
             return False
 
     def _send_feishu_chunked(self, content: str, max_bytes: int) -> bool:
+        """分片发送飞书消息。"""
         try:
             chunks = chunk_content_by_max_bytes(content, max_bytes, add_page_marker=True)
         except ValueError as e:
@@ -557,6 +562,7 @@ class FeishuSender:
         security_fields = self._build_security_fields()
 
         def _post_payload(payload: Dict[str, Any]) -> bool:
+            """提交飞书消息载荷。"""
             request_payload = dict(payload)
             request_payload.update(security_fields)
             try:

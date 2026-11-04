@@ -44,6 +44,7 @@ class ScannerStartRequest(BaseModel):
 
 
 class ScannerAccepted(BaseModel):
+    """扫描任务已受理响应体。"""
     task_id: str
     status: str = "pending"
     message: str
@@ -98,6 +99,7 @@ class ScannerTaskStatus(BaseModel):
 
 
 class ScannerCancelResult(BaseModel):
+    """扫描任务取消结果响应体。"""
     task_id: str
     cancelled: bool
     message: str
@@ -118,6 +120,7 @@ def scanner_start(request: ScannerStartRequest) -> ScannerAccepted:
     scanner_service.register_run(task_id)
 
     def run() -> Dict[str, Any]:
+        """后台执行信号扫描任务。"""
         try:
             return scanner_service.run_signal_scan(
                 payload,

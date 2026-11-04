@@ -9,6 +9,9 @@ from api.adanos.org for US stock tickers.
 
 Optional — requires SOCIAL_SENTIMENT_API_KEY.
 Only activates for US stock codes (AAPL, TSLA, etc.).
+
+社交媒体情绪情报服务。从 api.adanos.org 拉取 Reddit / X（Twitter）/ Polymarket 的美股社交情绪数据，
+格式化为可注入 LLM 分析提示的文本块。（可选功能，需 SOCIAL_SENTIMENT_API_KEY，仅对美股代码激活。）
 """
 
 import logging
@@ -78,6 +81,7 @@ class SocialSentimentService:
     _TRENDING_CACHE_TTL = 600  # 10 minutes
 
     def __init__(self, api_key: Optional[str] = None, api_url: str = "https://api.adanos.org"):
+        """构造服务：保存（去空白的）API key 与 base URL，初始化内存缓存、锁与在途请求事件。"""
         self._api_key = (api_key or "").strip() or None
         self._api_url = (api_url or "https://api.adanos.org").rstrip("/")
         # Simple in-memory cache: {"key": (timestamp, data)}
@@ -87,10 +91,12 @@ class SocialSentimentService:
 
     @property
     def is_available(self) -> bool:
+        """服务是否可用：已配置 API key 时为真。"""
         return self._api_key is not None
 
     @property
     def _headers(self) -> Dict[str, str]:
+        """返回请求头：含 X-API-Key 与 Accept: application/json。"""
         return {"X-API-Key": self._api_key or "", "Accept": "application/json"}
 
     # ------------------------------------------------------------------
@@ -112,6 +118,7 @@ class SocialSentimentService:
 
     @classmethod
     def _cache_wait_timeout_seconds(cls) -> float:
+        """计算趋势端点的缓存等待超时（秒）：综合请求预算、缓存 TTL 与上限 30 秒取较小正值。"""
         request_budget = (_REQUEST_TIMEOUT * _REQUEST_RETRY_ATTEMPTS) + _REQUEST_RETRY_WAIT_CAP
         return max(1.0, min(float(cls._TRENDING_CACHE_TTL), float(request_budget), 30.0))
 

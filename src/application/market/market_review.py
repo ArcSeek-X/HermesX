@@ -114,6 +114,7 @@ def _record_market_review_notification_run(
     attempts: int = 1,
     error_message: Optional[Any] = None,
 ) -> None:
+    """记录一次大盘复盘通知运行。"""
     record_notification_run(
         channel=channel,
         status=status,
@@ -130,6 +131,7 @@ def _collect_market_light_snapshot(
     region: str,
     review_result: Any,
 ) -> None:
+    """收集大盘轻量快照数据。"""
     if region not in MARKET_LIGHT_REGIONS:
         return
     snapshot = getattr(review_result, "market_light_snapshot", None)
@@ -138,6 +140,7 @@ def _collect_market_light_snapshot(
 
 
 def _get_market_review_text(language: str) -> dict[str, str]:
+    """获取大盘复盘正文文本。"""
     normalized = normalize_report_language(language)
     if normalized == "en":
         return {
@@ -174,6 +177,7 @@ def _get_market_review_text(language: str) -> dict[str, str]:
 
 
 def _get_market_review_market_heading(language: Any, market: str) -> str:
+    """返回大盘复盘的市场标题。"""
     review_text = _get_market_review_text(str(language or "zh"))
     title_key = next(
         (candidate_title_key for mkt, candidate_title_key, _ in _MARKET_REVIEW_MARKETS if mkt == market),
@@ -473,6 +477,7 @@ def _coerce_market_review_payload(
     region: str,
     report: Optional[str],
 ) -> Dict[str, Any]:
+    """规范化大盘复盘载荷。"""
     payload = getattr(review_result, "structured_payload", None)
     if isinstance(payload, dict) and payload:
         return payload
@@ -494,6 +499,7 @@ def _build_combined_market_review_payload(
     language: str,
     root_title: str,
 ) -> Dict[str, Any]:
+    """构建合并后的多区域复盘载荷。"""
     normalized_language = normalize_report_language(language)
     title = root_title.lstrip("#").strip()
     if len(payloads) == 1:
@@ -542,6 +548,7 @@ def _render_market_review_merge_markdown(
 
 
 def _render_market_review_payload_body(payload: Dict[str, Any]) -> str:
+    """渲染复盘载荷正文。"""
     markets = payload.get("markets")
     if isinstance(markets, dict) and markets:
         markdown_report = payload.get("markdown_report")
@@ -574,6 +581,7 @@ def _render_market_review_payload_body(payload: Dict[str, Any]) -> str:
 
 
 def _render_single_market_review_payload(payload: Dict[str, Any]) -> str:
+    """渲染单区域复盘载荷。"""
     sections = payload.get("sections")
     if not isinstance(sections, list) or not sections:
         markdown = payload.get("markdown_report")
@@ -611,6 +619,7 @@ def _append_missing_sector_payload_block(
     existing_markdown: Optional[Any] = None,
     segment_title_prefix: str = "",
 ) -> str:
+    """补齐缺失的板块载荷段落。"""
     sector_block = _render_sector_payload_markdown_block(payload, title_prefix=title_prefix)
     if not sector_block:
         return markdown.strip()
@@ -632,6 +641,7 @@ def _append_missing_sector_payload_block_to_market_segment(
     title_prefix: str = "",
     segment_title_prefix: str = "",
 ) -> str:
+    """向市场段落补齐缺失板块表。"""
     base = markdown.strip()
     check_title_prefix = segment_title_prefix or title_prefix
     sector_block = _render_sector_payload_markdown_block(payload, title_prefix=title_prefix)
@@ -664,6 +674,7 @@ def _render_sector_payload_markdown_block(
     *,
     title_prefix: str = "",
 ) -> str:
+    """渲染板块载荷的 Markdown 段落。"""
     sector_block = _render_sector_payload_block(payload)
     if not sector_block:
         return ""
@@ -674,6 +685,7 @@ def _render_sector_payload_markdown_block(
 
 
 def _markdown_has_sector_table(markdown: Any, *, title_prefix: str = "") -> bool:
+    """判断 Markdown 是否已含板块表格。"""
     text = str(markdown or "")
     if title_prefix:
         title = title_prefix.strip()
@@ -692,6 +704,7 @@ def _markdown_has_sector_table(markdown: Any, *, title_prefix: str = "") -> bool
 
 
 def _extract_market_markdown_segment(markdown: str, title: str) -> Optional[str]:
+    """提取大盘 Markdown 段落。"""
     segment_span = _find_market_markdown_segment_span(markdown, title)
     if segment_span is None:
         return None
@@ -700,6 +713,7 @@ def _extract_market_markdown_segment(markdown: str, title: str) -> Optional[str]
 
 
 def _find_market_markdown_segment_span(markdown: str, title: str) -> Optional[tuple[int, int]]:
+    """定位大盘 Markdown 段落区间。"""
     if not title:
         return None
     heading_pattern = re.compile(rf"(?m)^(#{{1,2}})\s+{re.escape(title)}\s*$")
@@ -716,6 +730,7 @@ def _find_market_markdown_segment_span(markdown: str, title: str) -> Optional[tu
 
 
 def _markdown_contains_sector_markers(text: str) -> bool:
+    """判断 Markdown 是否含板块标记。"""
     markers = (
         "#### 领涨板块",
         "#### 领跌板块",
@@ -733,6 +748,7 @@ def _markdown_contains_sector_markers(text: str) -> bool:
 
 
 def _render_sector_payload_block(payload: Dict[str, Any]) -> str:
+    """渲染板块载荷段落。"""
     sectors = payload.get("sectors")
     if not isinstance(sectors, dict):
         return ""
@@ -769,6 +785,7 @@ def _render_sector_payload_block(payload: Dict[str, Any]) -> str:
 
 
 def _format_sector_change_pct(sector: Dict[str, Any]) -> str:
+    """格式化板块涨跌幅。"""
     raw = sector.get("change_pct", sector.get("changePct"))
     try:
         value = float(raw)
@@ -778,6 +795,7 @@ def _format_sector_change_pct(sector: Dict[str, Any]) -> str:
 
 
 def _normalize_market_review_heading(value: Any) -> str:
+    """规范化大盘复盘标题。"""
     if not isinstance(value, str):
         return ""
     return " ".join(value.lstrip("#").strip().lower().split())
@@ -951,6 +969,7 @@ def _build_market_review_context_overview(
 
 
 def _summarize_market_review(review_report: str, report_language: str) -> str:
+    """生成大盘复盘摘要。"""
     for line in (review_report or "").splitlines():
         text = line.strip().lstrip("#").strip()
         if text and not text.startswith("---") and not text.startswith(">"):

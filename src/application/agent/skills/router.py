@@ -6,6 +6,9 @@ Selects which trading skills to apply based on:
 1. User-explicit request (highest priority)
 2. Market regime detection from technical data in ``AgentContext``
 3. Centralised default fallback
+
+SkillRouter —— 基于规则的技能选择。按优先级决定应用哪些交易技能：
+① 用户显式请求（最高）；② 由技术数据检测市场状态（regime）；③ 集中式默认回退。
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ class SkillRouter:
         ctx: AgentContext,
         max_count: int = 3,
     ) -> List[str]:
+        """为给定分析上下文选择适用技能：优先用户请求，其次 manual 模式、regime 检测，最后默认回退，结果按 max_count 截断。"""
         requested_skills = ctx.meta.get("skills_requested") or ctx.meta.get("strategies_requested", [])
         if requested_skills:
             logger.info("[SkillRouter] user-requested skills: %s", requested_skills)
@@ -73,6 +77,7 @@ class SkillRouter:
         return self.select_skills(ctx, max_count=max_count)
 
     def _detect_regime(self, ctx: AgentContext) -> Optional[str]:
+        """根据技术面意见（均线对齐、趋势分、量能）与行业热度推断市场状态（trending_up/down/sideways/volatile/sector_hot），无匹配返回 None。"""
         for op in ctx.opinions:
             if op.agent_name != "technical":
                 continue
@@ -100,6 +105,7 @@ class SkillRouter:
 
     @staticmethod
     def _get_routing_mode() -> str:
+        """读取配置项 agent_skill_routing（默认 'auto'）；读取失败回退 auto。"""
         try:
             from src.config import get_config
 
@@ -111,10 +117,12 @@ class SkillRouter:
 
     @staticmethod
     def _get_available_ids() -> set:
+        """返回当前可用技能的 name 集合。"""
         return {skill.name for skill in SkillRouter.get_available_skills()}
 
     @staticmethod
     def get_available_skills() -> list:
+        """获取可用技能列表：优先用 _SKILL_MANAGER_PROTOTYPE，否则取 get_skill_manager；异常时返回空列表。"""
         try:
             from src.application.agent.factory import _SKILL_MANAGER_PROTOTYPE
 
@@ -131,6 +139,7 @@ class SkillRouter:
 
     @classmethod
     def _get_manual_skills(cls, max_count: int) -> List[str]:
+        """manual 路由模式：读取配置 agent_skills，过滤出可用项并按 max_count 截断；为空则回退默认技能。"""
         configured: List[str] = []
         try:
             from src.config import get_config

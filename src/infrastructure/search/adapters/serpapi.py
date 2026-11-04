@@ -64,6 +64,7 @@ class SerpAPISearchProvider(BaseSearchProvider):
     }
 
     def __init__(self, api_keys: List[str]):
+        """构造 SerpAPI 检索适配器并装配依赖。"""
         super().__init__(api_keys, "SerpAPI")
 
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:

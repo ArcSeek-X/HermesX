@@ -88,6 +88,7 @@ class DatabaseSession:
         sqlite_write_retry_max: int = 0,
         sqlite_write_retry_base_delay: float = 0.1,
     ) -> None:
+        """构造数据库会话管理器并装配依赖。"""
         self.db_url = db_url
         self.sqlite_busy_timeout_ms = sqlite_busy_timeout_ms
         self.sqlite_wal_enabled = sqlite_wal_enabled
@@ -125,6 +126,7 @@ class DatabaseSession:
 
         @event.listens_for(self.engine, "connect")
         def _configure_sqlite_connection(dbapi_connection, _connection_record) -> None:
+            """配置 SQLite 连接参数与 pragmas。"""
             cursor = dbapi_connection.cursor()
             try:
                 cursor.execute(f"PRAGMA busy_timeout={int(self.sqlite_busy_timeout_ms)}")

@@ -26,6 +26,7 @@ class GenerationRuntimeAdapter:
         model_list: Optional[list] = None,
         request_overrides: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        """将生成参数应用到请求配置。"""
         from src.infrastructure.generation import generation_params
 
         return generation_params.apply_litellm_generation_params(
@@ -48,6 +49,7 @@ class GenerationRuntimeAdapter:
         logger: Any = None,
         log_label: str = "[LiteLLM]",
     ) -> Any:
+        """带故障恢复的生成调用。"""
         from src.infrastructure.generation import errors
 
         return errors.call_litellm_with_param_recovery(
@@ -61,11 +63,13 @@ class GenerationRuntimeAdapter:
         )
 
     def resolve_preset(self, backend_id: str) -> Any:
+        """解析生成参数预设。"""
         from src.infrastructure.generation import local_cli_backend
 
         return local_cli_backend.resolve_local_cli_preset(backend_id)
 
     def config_error(self, config: Any, backend_id: str) -> Optional[GenerationError]:
+        """构造配置错误信息。"""
         from src.infrastructure.generation import local_cli_backend
 
         preset = local_cli_backend.resolve_local_cli_preset(backend_id)
@@ -77,6 +81,7 @@ class GenerationRuntimeAdapter:
         return backend.get_config_error()
 
     def capabilities(self) -> GenerationCapabilities:
+        """返回运行时支持的能力集合。"""
         from src.infrastructure.generation import local_cli_backend
 
         return local_cli_backend.LocalCliGenerationBackend.capabilities

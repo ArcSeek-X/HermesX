@@ -12,6 +12,7 @@ class WatchlistError(Exception):
     """自选股用例错误的基类。"""
 
     def __init__(self, message: str, *, error_code: str) -> None:
+        """构造自选股错误：保存消息与错误码。"""
         super().__init__(message)
         self.error_code = error_code
 

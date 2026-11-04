@@ -77,10 +77,12 @@ def _max_mtime(paths: Iterable[Path]) -> float:
 
 def _resolve_artifact_index(frontend_dir: Path) -> Path:
     # 单一真相源：前端构建产物位于仓库根 dist-web/。
+    """解析前端产物入口文件路径。"""
     return (frontend_dir / ".." / ".." / "dist-web" / "index.html").resolve()
 
 
 def _calculate_dependency_fingerprint(frontend_dir: Path) -> str | None:
+    """计算前端依赖指纹。"""
     digest = hashlib.sha256()
     found_input = False
     try:
@@ -110,6 +112,7 @@ def _read_installed_dependency_fingerprint(frontend_dir: Path) -> str | None:
 
 
 def _write_installed_dependency_fingerprint(frontend_dir: Path) -> None:
+    """写入已安装依赖指纹。"""
     fingerprint = _calculate_dependency_fingerprint(frontend_dir)
     if fingerprint is None:
         return
@@ -180,6 +183,7 @@ def _calculate_source_fingerprint(frontend_dir: Path) -> str | None:
 
 
 def _read_artifact_source_fingerprint(artifact_index: Path) -> str | None:
+    """读取产物来源指纹。"""
     metadata_path = artifact_index.parent / _BUILD_METADATA_FILE
     try:
         payload = json.loads(metadata_path.read_text(encoding="utf-8"))

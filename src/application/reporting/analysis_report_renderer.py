@@ -53,6 +53,7 @@ class AnalysisReportRenderer:
     """Render analysis reports using explicit configuration and shared history cache."""
 
     def __init__(self, *, config, show_llm_model, summary_only, history_compare_cache, runtime_config_provider):
+        """构造分析报告渲染器并装配依赖。"""
         self._config = config
         self._report_show_llm_model = show_llm_model
         self._report_summary_only = summary_only
@@ -74,6 +75,7 @@ class AnalysisReportRenderer:
         return normalize_report_language(getattr(self._runtime_config_provider(), "report_language", "zh"))
 
     def get_display_name(self, result: AnalysisResult, language: Optional[str] = None) -> str:
+        """返回股票展示名称。"""
         report_language = normalize_report_language(language or self.get_report_language(result))
         return self.escape_md(get_localized_stock_name(result.name, result.code, report_language))
 
@@ -113,6 +115,7 @@ class AnalysisReportRenderer:
         return {"history_by_code": history_by_code}
 
     def collect_models_used(self, results: List[AnalysisResult]) -> List[str]:
+        """汇总报告使用的模型列表。"""
         if not self.should_show_llm_model():
             return []
         models: List[str] = []
@@ -123,6 +126,7 @@ class AnalysisReportRenderer:
         return list(dict.fromkeys(models))
 
     def public_phase_pack_excerpt(self, result: AnalysisResult, report_language: str) -> str:
+        """返回对外的阶段上下文包摘要。"""
         return format_public_phase_pack_excerpt(
             getattr(result, "market_phase_summary", None),
             getattr(result, "analysis_context_pack_overview", None),
@@ -131,6 +135,7 @@ class AnalysisReportRenderer:
         )
 
     def public_market_status_line(self, results: List[AnalysisResult], report_language: str) -> str:
+        """返回对外的大盘状态描述行。"""
         for result in results or []:
             line = format_public_market_status_line(
                 getattr(result, "market_phase_summary", None),
@@ -146,6 +151,7 @@ class AnalysisReportRenderer:
         results: List[AnalysisResult],
         report_language: str,
     ) -> None:
+        """向报告追加大盘状态描述行。"""
         status_line = self.public_market_status_line(results, report_language)
         if status_line:
             lines.extend([status_line, ""])
@@ -153,6 +159,7 @@ class AnalysisReportRenderer:
             lines.append("")
 
     def should_show_llm_model(self) -> bool:
+        """判断是否展示 LLM 模型信息。"""
         return bool(getattr(self._config, "report_show_llm_model", self._report_show_llm_model))
 
     def generate_daily_report(self, results: List[AnalysisResult], report_date: Optional[str] = None) -> str:
@@ -398,6 +405,7 @@ class AnalysisReportRenderer:
         dashboard: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """向报告追加阶段决策段落。"""
         _append_phase_decision_block_impl(report_lines, dashboard, labels)
 
     def get_display_operation_advice(
@@ -405,6 +413,7 @@ class AnalysisReportRenderer:
         result: AnalysisResult,
         report_language: Optional[str] = None,
     ) -> str:
+        """返回展示用操作建议。"""
         return display_operation_advice_for_result(
             result,
             report_language=report_language or self.get_report_language(result),
@@ -415,6 +424,7 @@ class AnalysisReportRenderer:
         results: List[AnalysisResult],
         report_language: Optional[str] = None,
     ) -> Tuple[int, int, int]:
+        """统计展示的决策条目数。"""
         language = report_language or self.get_report_language(results)
         buckets = [display_decision_type_for_result(result, report_language=language) for result in results]
         buy_count = sum(1 for bucket in buckets if bucket == "buy")
@@ -468,6 +478,7 @@ class AnalysisReportRenderer:
         labels = get_report_labels(report_language)
 
         def _nlabel(en: str, zh: str, ko: str) -> str:
+            """返回本地化标签文本。"""
             if report_language == "en":
                 return en
             if report_language == "ko":
@@ -1342,9 +1353,11 @@ class AnalysisReportRenderer:
         return "\n".join(lines)
 
     def get_source_display_name(self, source: Any, language: Optional[str]) -> str:
+        """返回数据来源展示名称。"""
         return _source_display_name_impl(source, language)
 
     def append_market_snapshot(self, lines: List[str], result: AnalysisResult) -> None:
+        """向报告追加大盘快照段落。"""
         snapshot = getattr(result, "market_snapshot", None)
         if not snapshot:
             return
@@ -1390,14 +1403,17 @@ class AnalysisReportRenderer:
 
     @staticmethod
     def format_percent(value: Any) -> str:
+        """格式化百分比数值。"""
         return _format_percent_impl(value)
 
     @classmethod
     def format_per_share(cls, value: Any, currency: Optional[str] = None) -> str:
+        """格式化每股数值。"""
         return _format_per_share_impl(value, currency)
 
     @staticmethod
     def format_text(value: Any) -> str:
+        """格式化普通文本。"""
         return _format_text_impl(value)
 
     def get_fundamental_blocks(self, result: AnalysisResult) -> Dict[str, Any]:
@@ -1488,6 +1504,7 @@ class AnalysisReportRenderer:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """向报告追加财务摘要段落。"""
         report = blocks.get("financial_report") or {}
         growth = blocks.get("growth") or {}
         currency = report.get("currency") if isinstance(report.get("currency"), str) else None
@@ -1531,6 +1548,7 @@ class AnalysisReportRenderer:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """向报告追加股东回报段落。"""
         dividend = blocks.get("dividend") or {}
         report = blocks.get("financial_report") or {}
         # Dividends are paid in the trading currency (yfinance `info.currency`)
@@ -1623,6 +1641,7 @@ class AnalysisReportRenderer:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """向报告追加关联板块段落。"""
         belong_boards = blocks.get("belong_boards") or []
         if not belong_boards:
             return
@@ -1631,6 +1650,7 @@ class AnalysisReportRenderer:
         concept_signals: Dict[str, Tuple[str, float]] = {}
 
         def add_signals(target: Dict[str, Tuple[str, float]], rows: Any, label: str) -> None:
+            """向报告追加信号列表。"""
             for item in rows or []:
                 if not isinstance(item, dict):
                     continue
@@ -1647,6 +1667,7 @@ class AnalysisReportRenderer:
         add_signals(concept_signals, blocks.get("concept_bottom"), labels["lagging_board_label"])
 
         def resolve_board_type(name: str, board_type: str) -> str:
+            """解析板块类型标识。"""
             normalized_type = board_type.strip().lower()
             sector_signal = sector_signals.get(name)
             concept_signal = concept_signals.get(name)
@@ -1670,6 +1691,7 @@ class AnalysisReportRenderer:
             return "concept"
 
         def resolve_signal(name: str, board_group: str) -> Tuple[Optional[str], Optional[float]]:
+            """解析信号标识。"""
             if board_group == "sector":
                 return sector_signals.get(name, (None, None))
             if board_group == "concept":
@@ -1683,6 +1705,7 @@ class AnalysisReportRenderer:
             return None, None
 
         def board_type_label(board_group: str) -> str:
+            """返回板块类型展示标签。"""
             if board_group == "sector":
                 return labels["industry_boards_heading"]
             return labels["concept_boards_heading"]

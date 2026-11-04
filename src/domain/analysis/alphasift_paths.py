@@ -15,6 +15,7 @@ HRS_ALPHASIFT_DATA_DIR = Path("data") / "alphasift"
 
 
 def _resolve_alphasift_data_dir() -> Path:
+    """解析 AlphaSift 数据目录路径。"""
     configured = _env_text(os.getenv("ALPHASIFT_DATA_DIR"))
     if configured:
         return Path(configured)

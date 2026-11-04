@@ -28,6 +28,7 @@ _SPECIAL_CHAR_RANGE = (0x10000, 0xFFFFF)
 _SPECIAL_CHAR_REGEX = re.compile(r'[\U00010000-\U000FFFFF]')
 
 def _page_marker(i: int, total: int) -> str:
+    """构造分页标记。"""
     return f"{PAGE_MARKER_PREFIX} {i+1}/{total}"
 
 
@@ -98,6 +99,7 @@ def _slice_at_effective_len(s: str, effective_len: int, special_char_len: int = 
     return s_, s[len(s_):]
 
 def _bytes(s: str) -> int:
+    """返回文本字节数。"""
     return len(s.encode('utf-8'))
 
 
@@ -287,6 +289,7 @@ def chunk_markdown_preserving_blocks(
     return chunks
 
 def _chunk_by_max_bytes(content: str, max_bytes: int) -> List[str]:
+    """按最大字节数切分文本。"""
     if _bytes(content) <= max_bytes:
         return [content]
     if max_bytes < MIN_MAX_BYTES:
@@ -324,6 +327,7 @@ def chunk_content_by_max_bytes(content: str, max_bytes: int, add_page_marker: bo
     """
     def _chunk(content: str, max_bytes: int) -> List[str]:
         # 优先按分隔线/标题分割，保证分页自然
+        """将文本切分为消息分片。"""
         if max_bytes < MIN_MAX_BYTES:
             raise ValueError(f"max_bytes={max_bytes} < {MIN_MAX_BYTES}, 可能陷入无限递归。")
         
@@ -520,6 +524,7 @@ def chunk_content_by_max_words(
         分割后的区块列表
     """
     def _chunk(content: str, max_words: int, special_char_len: int = 2) -> list[str]:
+        """将文本切分为消息分片。"""
         if max_words < MIN_MAX_WORDS:
             # Safe guard，避免无限递归
             # 理论上，max_words在每次递归中可以减小到无限小，但实际中不太可能发生，

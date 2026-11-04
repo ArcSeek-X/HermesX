@@ -26,18 +26,22 @@ class StrategiesCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "strategies"
 
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["skills", "策略", "策略列表"]
 
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "查看可用交易策略"
 
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/strategies [active]"
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:

@@ -7,6 +7,10 @@ Report Engine - Pydantic Schema
 Defines AnalysisReportSchema for validating LLM JSON output.
 Aligns with SYSTEM_PROMPT in src/application/analysis/analyzer.py.
 Uses Optional for lenient parsing; business-layer integrity checks are separate.
+
+报告引擎的 Pydantic schema，用于校验 LLM 输出的 JSON 分析报告。
+与 src/application/analysis/analyzer.py 中的 SYSTEM_PROMPT 对齐；字段大量使用 Optional 以宽松解析，
+业务层完整性校验另行处理。另含多智能体解释（分歧/风险控制/降级事件/流水线终止/动作调整/数据质量）的对外模型。
 """
 
 import math
@@ -259,6 +263,7 @@ class RiskControlExplanation(BaseModel):
 
     @model_validator(mode="after")
     def validate_transition(self) -> "RiskControlExplanation":
+        """校验信号跃迁一致性：已应用时须有 from/to 且最终等于 post_risk_signal；未应用时不得携带跃迁。"""
         if self.applied:
             if not self.from_signal or not self.to_signal:
                 raise ValueError("applied risk control requires a signal transition")
@@ -270,6 +275,8 @@ class RiskControlExplanation(BaseModel):
 
 
 class DegradedEventExplanation(BaseModel):
+    """对外降级事件解释：阶段名、原因（timeout/budget_skip/stage_failure）与边界（期间/之前）。"""
+
     model_config = ConfigDict(extra="forbid")
 
     stage: str = Field(min_length=1)
@@ -278,6 +285,8 @@ class DegradedEventExplanation(BaseModel):
 
 
 class PipelineTerminationExplanation(BaseModel):
+    """对外流水线终止解释：终止原因（当前仅 timeout）与最后完成阶段。"""
+
     model_config = ConfigDict(extra="forbid")
 
     reason: Literal["timeout"]
@@ -285,6 +294,8 @@ class PipelineTerminationExplanation(BaseModel):
 
 
 class PipelineActionAdjustmentExplanation(BaseModel):
+    """对外流水线动作调整解释：调整来源与调整前后的公共动作（额外字段禁止）。"""
+
     model_config = ConfigDict(extra="forbid")
 
     source: Literal[
@@ -297,12 +308,15 @@ class PipelineActionAdjustmentExplanation(BaseModel):
 
     @model_validator(mode="after")
     def validate_change(self) -> "PipelineActionAdjustmentExplanation":
+        """校验动作调整确实改变了动作（from_action != to_action），否则抛 ValueError。"""
         if self.from_action == self.to_action:
             raise ValueError("pipeline adjustment must change the action")
         return self
 
 
 class AgentDataQualityExplanation(BaseModel):
+    """对外数据质量解释：质量等级（good/usable/limited/poor/unknown）与限制项列表（最多 5 条）。"""
+
     model_config = ConfigDict(extra="forbid")
 
     level: Literal["good", "usable", "limited", "poor", "unknown"]
@@ -326,6 +340,7 @@ class AgentDisagreementExplanation(BaseModel):
 
     @model_validator(mode="after")
     def validate_final_action_chain(self) -> "AgentDisagreementExplanation":
+        """校验最终动作链：各调整的 from 必须接上前一个 to，且链尾必须等于 final_action。"""
         expected = self.pipeline_start_action
         for adjustment in self.final_adjustments:
             if adjustment.from_action != expected:

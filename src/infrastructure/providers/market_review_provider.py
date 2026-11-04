@@ -26,20 +26,25 @@ class DataProviderMarketReviewProvider:
     """通过 ``DataFetcherManager`` 获取大盘复盘所需的行情与榜单。"""
 
     def __init__(self) -> None:
+        """构造大盘复盘数据提供者并装配依赖。"""
         self._manager = DataFetcherManager()
 
     def get_main_indices(self, region: str = "cn") -> List[Dict[str, Any]]:
+        """获取主要指数行情。"""
         return self._manager.get_main_indices(region=region)
 
     def get_market_stats(self, *, purpose: str = "unspecified") -> Dict[str, Any]:
+        """获取大盘统计数据。"""
         return self._manager.get_market_stats(purpose=purpose)
 
     def get_sector_rankings(
         self, limit: int
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取行业板块排行。"""
         return self._manager.get_sector_rankings(limit)
 
     def get_concept_rankings(
         self, limit: int
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """获取概念板块排行。"""
         return self._manager.get_concept_rankings(limit)

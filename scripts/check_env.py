@@ -60,6 +60,7 @@ def _reconfigure_output_stream(stream):
 
 
 def configure_console_encoding():
+    """配置控制台输出编码。"""
     for stream in (sys.stdout, sys.stderr):
         _reconfigure_output_stream(stream)
 
@@ -463,6 +464,7 @@ def query_stock_data(stock_code: str, days: int = 10):
 
 
 def main():
+    """脚本入口：检查运行环境配置。"""
     configure_console_encoding()
 
     # 独立进程入口：本脚本不经 main.py 的 CLI bootstrap 链，而 Analyzer 的 Router

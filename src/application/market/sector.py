@@ -39,6 +39,7 @@ class SectorService:
     """板块树、市场快照与板块资金流用例。"""
 
     def __init__(self, provider: SectorProviderPort) -> None:
+        """构造板块服务：保存板块数据端口。"""
         self._provider = provider
 
     # ---- 云图 / 层级树 -------------------------------------------------

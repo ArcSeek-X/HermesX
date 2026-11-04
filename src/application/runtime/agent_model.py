@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Helpers for exposing configured Agent model deployments."""
+"""Helpers for exposing configured Agent model deployments.
+
+暴露已配置的 Agent 模型部署信息（不泄露密钥）。从 litellm_config / llm_channels / legacy_env 解析来源，
+区分非 legacy 与 legacy 部署，标注主/备模型、provider、api_base 等，供前端或诊断使用。
+"""
 
 from __future__ import annotations
 
@@ -22,6 +26,7 @@ _MANAGED_LEGACY_PROVIDERS = set(_PLACEHOLDER_TO_PROVIDER.values())
 
 
 def _get_models_source(config) -> str:
+    """读取配置的 llm_models_source（litellm_config/llm_channels/legacy_env），非法值回退 legacy_env。"""
     source = getattr(config, "llm_models_source", "")
     if source in {"litellm_config", "llm_channels", "legacy_env"}:
         return source
@@ -29,6 +34,7 @@ def _get_models_source(config) -> str:
 
 
 def _get_model_provider(model_name: str) -> str:
+    """从模型名推断 provider：含 '/' 取前缀，否则视为 openai；空串返回 unknown。"""
     if not model_name:
         return "unknown"
     if "/" in model_name:
@@ -37,6 +43,7 @@ def _get_model_provider(model_name: str) -> str:
 
 
 def _build_non_legacy_deployments(config) -> List[Dict[str, Any]]:
+    """构建非 legacy 部署列表：解析 litellm 路由与模型清单，跳过占位与非法项，标注主/备与 api_base。"""
     source = _get_models_source(config)
     resolution = resolve_agent_litellm_route(config)
     primary_model = resolution.primary_model or get_effective_agent_primary_model(config)
@@ -69,6 +76,7 @@ def _build_non_legacy_deployments(config) -> List[Dict[str, Any]]:
 
 
 def _build_legacy_deployments(config) -> List[Dict[str, Any]]:
+    """构建 legacy 部署列表：遍历有序模型，按 provider 占位计数与 primary/fallback 生成部署项。"""
     primary_model = get_effective_agent_primary_model(config)
     ordered_models = get_effective_agent_models_to_try(config)
     if not ordered_models:

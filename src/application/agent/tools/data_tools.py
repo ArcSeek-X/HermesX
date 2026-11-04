@@ -123,6 +123,7 @@ def _history_code_candidates(stock_code: str) -> Tuple[List[str], str]:
 
 
 def _append_history_metadata(response: dict, metadata: Dict[str, Any]) -> dict:
+    """把历史元数据追加到工具响应字典中。"""
     if metadata:
         response.update(metadata)
     return response

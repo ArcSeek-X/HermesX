@@ -74,6 +74,7 @@ STEP_STOCK_LIMIT = 200
 # 工具函数
 # --------------------------------------------------------------------------- #
 def _safe_float(value: Any) -> Optional[float]:
+    """安全转换为 float，失败返回 None。"""
     if value is None:
         return None
     try:
@@ -84,11 +85,13 @@ def _safe_float(value: Any) -> Optional[float]:
 
 
 def _round(value: Any, nd: int = 3) -> Optional[float]:
+    """按指定小数位四舍五入，无效值返回 None。"""
     v = _safe_float(value)
     return None if v is None else round(v, nd)
 
 
 def _downsample(points: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
+    """将点位序列均匀降采样到 n 个。"""
     if len(points) <= n:
         return points
     step = len(points) / n
@@ -126,6 +129,7 @@ def set_market_snapshot_port(port: Any) -> None:
 
 
 def _get_market_snapshot_port() -> Any:
+    """返回当前已装配的大盘快照端口。"""
     return _market_snapshot_port
 
 
@@ -200,6 +204,7 @@ def compute_strength_trends(points: List[Dict[str, Any]]) -> float:
 # 阶段 1：全市场基础过滤
 # --------------------------------------------------------------------------- #
 def _basic_filter(df: pd.DataFrame, filt: Dict[str, Any]) -> pd.DataFrame:
+    """按基础筛选条件过滤候选 DataFrame。"""
     d = df.copy()
     for col in ("涨跌幅", "量比", "换手率", "流通市值"):
         if col in d.columns:
@@ -296,6 +301,7 @@ def _build_result(
     stage2_total: int,
     trade_date: Optional[datetime.date] = None,
 ) -> Dict[str, Any]:
+    """构造单只股票的收盘选股结果字典。"""
     return {
         "filters": filt,
         "total_scanned": total_scanned,
@@ -411,6 +417,7 @@ def run_eod_picker(
     workers = max(1, min(DEFAULT_CONCURRENCY, stage2_total))
 
     def worker(row: "pd.Series") -> Optional[Dict[str, Any]]:
+        """线程池工作单元：处理单行候选并返回结果。"""
         code = str(row.get("代码", ""))
         name = str(row.get("名称", ""))
         points, prev_close, _name = fetch_intraday_trends(code)

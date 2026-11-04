@@ -78,6 +78,7 @@ class NotificationDiagnosticResult:
 
     @property
     def ok(self) -> bool:
+        """返回诊断结果是否全部正常。"""
         return not self.errors
 
 
@@ -260,10 +261,12 @@ P6_CHANNEL_ACTIONS_ENV_KEYS: Tuple[str, ...] = (
 
 
 def _value(config: Config, attr: str):
+    """读取配置对象的指定属性值。"""
     return getattr(config, attr, None)
 
 
 def _has(config: Config, attr: str) -> bool:
+    """判断配置对象是否含指定属性。"""
     value = _value(config, attr)
     if isinstance(value, (list, tuple, set, dict)):
         return bool(value)
@@ -276,6 +279,7 @@ def _issue(
     message: str,
     key: Optional[str] = None,
 ) -> NotificationDiagnosticIssue:
+    """构造一条通知渠道诊断问题记录。"""
     return NotificationDiagnosticIssue(severity=severity, code=code, message=message, key=key)
 
 
@@ -291,6 +295,7 @@ def _require_pair(
     warnings: Optional[List[NotificationDiagnosticIssue]] = None,
     severity: IssueSeverity = "error",
 ) -> None:
+    """校验成对配置项是否同时存在。"""
     left = _has(config, left_attr)
     right = _has(config, right_attr)
     target = errors if severity == "error" else warnings
@@ -572,6 +577,7 @@ def run_notification_diagnostics(config: Config) -> NotificationDiagnosticResult
 
 
 def _format_issues(title: str, issues: Sequence[NotificationDiagnosticIssue]) -> List[str]:
+    """将诊断问题列表格式化为文本行。"""
     if not issues:
         return [f"{title}: 无"]
     lines = [f"{title}:"]

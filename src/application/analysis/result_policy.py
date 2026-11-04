@@ -80,6 +80,7 @@ def check_content_integrity(
     missing: List[str] = []
 
     def _is_blank_text(value: Any) -> bool:
+        """判断文本是否为空。"""
         if value is None:
             return True
         if isinstance(value, str):
@@ -87,9 +88,11 @@ def check_content_integrity(
         return True
 
     def _is_invalid_risk_alerts(value: Any) -> bool:
+        """判断风险提示字段是否无效。"""
         return not isinstance(value, list)
 
     def _is_invalid_stop_loss(value: Any) -> bool:
+        """判断止损字段是否无效。"""
         if value is None:
             return True
         if isinstance(value, (list, tuple, dict)):
@@ -147,6 +150,7 @@ def apply_placeholder_fill(result: "AnalysisResult", missing_fields: List[str]) 
     """Fill missing mandatory fields with placeholders (in-place). Module-level for pipeline."""
 
     def _is_blank_text(value: Any) -> bool:
+        """判断文本是否为空。"""
         if value is None:
             return True
         if isinstance(value, str):
@@ -154,9 +158,11 @@ def apply_placeholder_fill(result: "AnalysisResult", missing_fields: List[str]) 
         return True
 
     def _is_invalid_risk_alerts(value: Any) -> bool:
+        """判断风险提示字段是否无效。"""
         return not isinstance(value, list)
 
     def _is_invalid_stop_loss(value: Any) -> bool:
+        """判断止损字段是否无效。"""
         if value is None:
             return True
         if isinstance(value, (list, tuple, dict)):
@@ -265,6 +271,7 @@ def _is_value_placeholder(v: Any) -> bool:
 
 
 def _mark_chip_structure_unavailable(result: "AnalysisResult", language: str) -> None:
+    """标记筹码结构数据不可用。"""
     if not result or not isinstance(result.dashboard, dict):
         return
     data_perspective = result.dashboard.get("data_perspective")
@@ -553,6 +560,7 @@ def stabilize_decision_with_structure(
 
 
 def _has_structural_risk_alert(result: "AnalysisResult") -> bool:
+    """判断是否存在结构性风险提示。"""
     dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
 
     risk_text = getattr(result, "risk_warning", "")
@@ -578,6 +586,7 @@ def _has_structural_risk_alert(result: "AnalysisResult") -> bool:
 
 
 def _sync_stability_dashboard_fields(result: "AnalysisResult") -> None:
+    """同步决策稳定性相关仪表盘字段。"""
     dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
     result.dashboard = dashboard
     dashboard["sentiment_score"] = getattr(result, "sentiment_score", None)
@@ -586,6 +595,7 @@ def _sync_stability_dashboard_fields(result: "AnalysisResult") -> None:
 
 
 def _capital_flow_status_for_stability(reason: str, language: str) -> str:
+    """返回用于稳定性判断的资金流状态。"""
     normalized = str(reason or "").strip().lower()
     if "not_supported" in normalized or "unsupported" in normalized or "not available" in normalized:
         return "市场资金流服务暂不支持" if language == "zh" else "Capital flow source unsupported"
@@ -603,6 +613,7 @@ def _set_decision_stability_unavailable(
     resistance: Optional[float],
     flow_status: str,
 ) -> None:
+    """设置决策稳定性为不可用。"""
     dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
     result.dashboard = dashboard
     dashboard["decision_stability"] = {
@@ -629,6 +640,7 @@ def _record_decision_score_calibration(
     final_action: str,
     guardrail_reason: Optional[str],
 ) -> None:
+    """记录决策评分校准信息。"""
     dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
     result.dashboard = dashboard
     calibration = score_band_metadata(raw_score)
@@ -650,6 +662,7 @@ def _bound_hold_watch_sentiment_score(
     reason: Optional[str] = None,
     final_action: str = "watch",
 ) -> None:
+    """约束持有/观望情形下的情绪评分。"""
     try:
         score = int(getattr(result, "sentiment_score", 50))
     except (TypeError, ValueError):
@@ -679,6 +692,7 @@ def _apply_hold_watch_dashboard(
     has_position: str,
     capital_flow_status: Optional[str] = None,
 ) -> None:
+    """应用持有/观望仪表盘策略。"""
     result.operation_advice = advice
 
     dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
@@ -729,6 +743,7 @@ def _downgrade_buy_without_capital_flow(
     resistance: Optional[float],
     flow_status: str,
 ) -> None:
+    """无资金流支撑时下调买入建议。"""
     status_text = _capital_flow_status_for_stability(flow_status, language)
     if language == "zh":
         advice = "持有观察"
@@ -774,6 +789,7 @@ def _downgrade_to_structural_hold(
     resistance: Optional[float],
     flow_bias: str,
 ) -> None:
+    """降级为结构性持有建议。"""
     result.decision_type = "hold"
     _set_structural_hold_wording(
         result,
@@ -800,6 +816,7 @@ def _set_structural_hold_wording(
     flow_bias: str,
     calibrate_score: bool = False,
 ) -> None:
+    """设置结构性持有的措辞。"""
     advice_map = {
         "zh": {
             "range": "震荡观望",

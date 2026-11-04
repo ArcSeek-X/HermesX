@@ -33,6 +33,7 @@ def set_code_search_port(port: Optional[QuoteProviderPort]) -> None:
 
 
 def _get_code_search_port() -> Optional[QuoteProviderPort]:
+    """返回当前已装配的股票代码搜索端口（未装配时为 None）。"""
     return _code_search_port
 
 def _contains_cjk(text: str) -> bool:

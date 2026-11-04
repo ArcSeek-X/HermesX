@@ -25,6 +25,7 @@ DISCORD_CHUNK_SLEEP_SECONDS = 1
 
 class DiscordSender:
     
+    """Discord 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 Discord 配置
@@ -44,6 +45,7 @@ class DiscordSender:
 
     @staticmethod
     def _normalize_max_words(value) -> int:
+        """规范化消息最大词数上限。"""
         try:
             configured = int(value)
         except (TypeError, ValueError):
@@ -273,6 +275,7 @@ class DiscordSender:
 
     @staticmethod
     def _get_retry_after_seconds(response, attempt: int) -> float:
+        """从响应中解析重试等待秒数。"""
         try:
             retry_after = response.json().get('retry_after')
             if retry_after is not None:

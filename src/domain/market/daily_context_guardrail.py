@@ -48,10 +48,12 @@ _GUARDRAIL_SENTIMENT_SCORE = 52
 
 
 def _softened_operation_advice(language: str) -> str:
+    """返回缓和后的操作建议。"""
     return localize_operation_advice("观望", language)
 
 
 def _negation_hints_for(language: str) -> tuple[str, ...]:
+    """按语言返回否定语境提示词。"""
     if language == "en":
         return _NEGATION_HINTS_EN
     if language == "ko":
@@ -118,6 +120,7 @@ def _sync_softened_dashboard_fields(
     softened_advice: str,
     language: str,
 ) -> None:
+    """同步缓和后的仪表盘字段。"""
     dashboard["sentiment_score"] = _cap_conservative_sentiment_score(
         dashboard.get("sentiment_score", _GUARDRAIL_SENTIMENT_SCORE)
     )
@@ -135,6 +138,7 @@ def _sync_softened_dashboard_fields(
 
 
 def _softened_position_advice(language: str) -> dict[str, str]:
+    """返回缓和后的仓位建议。"""
     if language == "en":
         return {
             "no_position": "Do not open a new position until market risk eases or confirmation appears.",
@@ -152,6 +156,7 @@ def _softened_position_advice(language: str) -> dict[str, str]:
 
 
 def _softened_position_strategy(language: str) -> dict[str, str]:
+    """返回缓和后的仓位策略。"""
     position_advice = _softened_position_advice(language)
     if language == "en":
         return {
@@ -173,6 +178,7 @@ def _softened_position_strategy(language: str) -> dict[str, str]:
 
 
 def _append_softening_limitation(phase_decision: dict[str, Any], *, language: str) -> None:
+    """追加缓和处理的限制说明。"""
     limitations = phase_decision.get("data_limitations")
     if not isinstance(limitations, list):
         limitations = []
@@ -199,6 +205,7 @@ def _append_softening_limitation(phase_decision: dict[str, Any], *, language: st
 
 
 def _is_conservative_context(context: Any) -> bool:
+    """判断大盘上下文是否偏保守。"""
     if not isinstance(context, Mapping):
         return False
     tags = context.get("risk_tags")
@@ -216,6 +223,7 @@ def _is_conservative_context(context: Any) -> bool:
 
 
 def _has_aggressive_buy_signal(result: Any, *, language: str) -> bool:
+    """判断是否含激进买入信号。"""
     decision_type = str(getattr(result, "decision_type", "") or "").lower()
     if decision_type == "buy":
         advice = str(getattr(result, "operation_advice", "") or "")
@@ -230,6 +238,7 @@ def _has_aggressive_buy_signal(result: Any, *, language: str) -> bool:
 
 
 def _buy_markers(language: str) -> tuple[str, ...]:
+    """返回买入信号关键词。"""
     if language == "en":
         return _AGGRESSIVE_BUY_MARKERS_EN
     if language == "ko":
@@ -244,6 +253,7 @@ def _contains_any(
     language: str = "zh",
     require_negation: bool = False,
 ) -> bool:
+    """判断文本是否命中任意关键词。"""
     lowered = text.lower()
     negation_hints = _negation_hints_for(language)
     for marker in markers:
@@ -265,6 +275,7 @@ def _contains_any(
 
 
 def _contains_negation_near_marker(context: str, negation_hints: tuple[str, ...]) -> bool:
+    """判断关键词附近是否有否定词。"""
     separators = ("，", ",", "。", "；", ";", "：", ":", "？", "!", "！", "）", ")", "（", "(")
     tail = context
     sep_pos = -1
@@ -278,6 +289,7 @@ def _contains_negation_near_marker(context: str, negation_hints: tuple[str, ...]
 
 
 def _cap_conservative_sentiment_score(value: Any) -> int:
+    """限制保守情境下的情绪评分上限。"""
     try:
         score = int(float(value))
     except (TypeError, ValueError):
@@ -285,4 +297,5 @@ def _cap_conservative_sentiment_score(value: Any) -> int:
     return min(_GUARDRAIL_SENTIMENT_SCORE, max(0, score))
 
 def _is_high_confidence(value: Any) -> bool:
+    """判断决策是否为高置信度。"""
     return str(value or "").strip().lower() in {"高", "high", "높음"}

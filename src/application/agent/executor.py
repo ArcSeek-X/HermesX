@@ -656,6 +656,7 @@ class AgentExecutor:
         max_steps: int = 10,
         timeout_seconds: Optional[float] = None,
     ):
+        """构造 Agent 执行器并装配运行依赖。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.skill_instructions = skill_instructions
@@ -784,6 +785,7 @@ class AgentExecutor:
         user_message_id: int,
         assistant_message_id: int,
     ) -> None:
+        """持久化 LLM 供应商调用链路追踪信息。"""
         persist_provider_trace_turns(
             session_id=session_id,
             run_id=run_id,

@@ -79,12 +79,14 @@ class GenerationError(Exception):
     details: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """数据类后处理：缺失时回填 provider 并初始化异常消息。"""
         if not self.provider:
             self.provider = self.backend
         Exception.__init__(self, self.message)
 
     @property
     def message(self) -> str:
+        """返回格式化的生成错误描述（错误码/阶段/后端）。"""
         return f"{self.error_code.value} at {self.stage} for backend {self.backend}"
 
 

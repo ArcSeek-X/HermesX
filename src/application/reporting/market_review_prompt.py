@@ -13,6 +13,7 @@ class MarketReviewPromptBuilder:
     """Build review prompt text from explicit market profile and language policies."""
 
     def __init__(self, *, profile, region, strategy, review_language_provider, output_language_provider):
+        """构造大盘复盘提示词构建器：装配档案/区域/策略与语言提供者。"""
         self.profile = profile
         self.region = region
         self.strategy = strategy
@@ -20,6 +21,7 @@ class MarketReviewPromptBuilder:
         self._output_language_provider = output_language_provider
 
     def get_market_scope_name(self, review_language: str | None = None) -> str:
+        """按复盘语言返回市场范围名称。"""
         review_language = review_language or self._review_language_provider()
         if self.region == "us":
             return "US market" if review_language == "en" else "美股市场"
@@ -46,6 +48,7 @@ class MarketReviewPromptBuilder:
         return "CNY 100m" if self._review_language_provider() == "en" else "亿"
 
     def get_review_title(self, date: str) -> str:
+        """返回指定日期的复盘标题。"""
         if self._review_language_provider() == "en":
             market_names = {
                 "us": "US Market Recap",
@@ -58,6 +61,7 @@ class MarketReviewPromptBuilder:
         return f"## {date} 大盘复盘"
 
     def get_index_hint(self) -> str:
+        """返回指数相关提示文案。"""
         if self._review_language_provider() == "en":
             if self.region == "us":
                 return "Analyze the key moves in the S&P 500, Nasdaq, Dow, and other major indices."
@@ -71,6 +75,7 @@ class MarketReviewPromptBuilder:
         return self.profile.prompt_index_hint
 
     def get_strategy_prompt_block(self) -> str:
+        """返回策略专用的提示词段落。"""
         if self.region == "hk" and self._review_language_provider() == "en":
             return """## Strategy Blueprint: Hong Kong Market Regime Strategy
 Focus on HSI trend, southbound flow dynamics, and sector rotation to define next-session risk posture.
@@ -201,6 +206,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
     @staticmethod
     def get_news_field(item: Any, field: str) -> str:
+        """从新闻条目中安全读取指定字段文本。"""
         if hasattr(item, field):
             value = getattr(item, field, "") or ""
         elif isinstance(item, dict):
@@ -211,6 +217,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
     @staticmethod
     def compact_news_text(value: str, *, limit: int) -> str:
+        """按字数上限压缩新闻文本。"""
         text = " ".join(str(value or "").split())
         if limit <= 0 or len(text) <= limit:
             return text
@@ -218,6 +225,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
     @staticmethod
     def format_signed_pct(value: Any) -> str:
+        """将数值格式化为带正负号的百分比文本。"""
         try:
             numeric_value = float(value)
         except (TypeError, ValueError):
@@ -226,6 +234,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
     @classmethod
     def format_ranking_summary(cls, rows: List[Dict], limit: int = 3) -> str:
+        """将排行行列表格式化为摘要文本。"""
         parts = []
         for item in (rows or [])[:limit]:
             if not isinstance(item, dict):
@@ -300,6 +309,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         sections: List[str] = []
 
         def add_section(title: str, hint: str) -> None:
+            """向提示词追加一个带标题与说明的段落。"""
             nonlocal section_number
             sections.append(f"### {numerals[section_number - 1]}、{title}\n{hint}")
             section_number += 1

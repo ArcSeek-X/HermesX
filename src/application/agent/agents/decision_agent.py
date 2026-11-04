@@ -30,9 +30,11 @@ class DecisionAgent(BaseAgent):
 
     @staticmethod
     def _is_chat_mode(ctx: AgentContext) -> bool:
+        """判断当前上下文是否为对话模式。"""
         return ctx.meta.get("response_mode") == "chat"
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """返回决策 Agent 的系统提示词。"""
         report_language = normalize_report_language(ctx.meta.get("report_language", "zh"))
         if self._is_chat_mode(ctx):
             prompt = """\
@@ -157,6 +159,7 @@ should sum to 100; all-zero means no effective signal and must not be faked.
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：围绕个股组织决策分析指令。"""
         if self._is_chat_mode(ctx):
             parts = [
                 "# User Question",

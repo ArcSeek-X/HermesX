@@ -32,6 +32,7 @@ class EastMoneyStockInfoSource(StockInfoSource):
     source_id = "eastmoney"
 
     def fetch(self, stock_code: str) -> Optional[StockInfoResult]:
+        """拉取个股信息（东财源）。"""
         secid = code_to_secid(stock_code)
         for url in (EASTMONEY_STOCK_URL, EASTMONEY_STOCK_URL_DELAY):
             try:
@@ -91,24 +92,28 @@ def get_stock_name_from_eastmoney(stock_code: str) -> Optional[str]:
 
 
 def _normalize_name(value: object) -> Optional[str]:
+    """规范化股票名称。"""
     if value in (None, "", "-"):
         return None
     return str(value).strip() or None
 
 
 def _price(value: object) -> Optional[float]:
+    """提取价格字段。"""
     if value in (None, "", "-"):
         return None
     return float(value) / 100
 
 
 def _ratio(value: object) -> Optional[float]:
+    """提取比率字段。"""
     if value in (None, "", "-"):
         return None
     return float(value) / 100
 
 
 def _resolve_pe_ttm(data: dict) -> Optional[float]:
+    """解析市盈率 TTM。"""
     for key in ("f115", "f9"):
         value = _ratio(data.get(key))
         if value not in (None, 0):

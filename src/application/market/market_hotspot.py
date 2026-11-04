@@ -55,6 +55,7 @@ def set_default_sector_ranking_provider(provider: Any) -> None:
 
 
 def _get_default_sector_ranking_provider() -> Any:
+    """返回默认的板块排行数据提供者。"""
     return _default_sector_ranking_provider
 
 
@@ -74,6 +75,7 @@ class MarketHotspotService:
         failure_cache_ttl_seconds: Optional[float] = None,
         success_cache_ttl_seconds: Optional[float] = None,
     ) -> None:
+        """构造热点服务并装配依赖。"""
         self.fetcher_manager = fetcher_manager or _get_default_sector_ranking_provider()
         self._ranking_fetch_timeout_seconds = ranking_fetch_timeout_seconds
         self._failure_cache_ttl_seconds = self._coerce_cache_ttl(
@@ -101,6 +103,7 @@ class MarketHotspotService:
         sector_rankings: Any = None,
         concept_rankings: Any = None,
     ) -> Dict[str, Any]:
+        """获取市场热点主题列表。"""
         normalized_market = str(market or "cn").strip().lower() or "cn"
         trade_date_text = self._format_trade_date(trade_date)
         try:
@@ -223,6 +226,7 @@ class MarketHotspotService:
         *,
         preloaded_rankings: Any = None,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """解析并获取当前板块排行数据。"""
         preloaded = self._rankings_from_payload(preloaded_rankings, dataset, sources)
         if preloaded is not None:
             return preloaded
@@ -234,6 +238,7 @@ class MarketHotspotService:
         dataset: str,
         sources: List[MarketStructureSource],
     ) -> Optional[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]]:
+        """从缓存载荷还原排行数据。"""
         if rankings is None:
             return None
         if not isinstance(rankings, dict):
@@ -298,6 +303,7 @@ class MarketHotspotService:
         self,
         cache_key: Tuple[str, Optional[str], int],
     ) -> Optional[Dict[str, Any]]:
+        """读取缓存的热点结果。"""
         with self._hotspots_cache_lock:
             cached = self._hotspots_cache.get(cache_key)
             if not isinstance(cached, dict):
@@ -319,6 +325,7 @@ class MarketHotspotService:
         cache_key: Tuple[str, Optional[str], int],
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """写入热点结果缓存。"""
         if payload.get("status") == "ok":
             success_ttl = self._success_cache_ttl_seconds
             if success_ttl <= 0:
@@ -345,6 +352,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _coerce_cache_ttl(value: Any) -> float:
+        """规范化缓存有效期。"""
         try:
             return max(0.0, float(value))
         except (TypeError, ValueError):
@@ -358,6 +366,7 @@ class MarketHotspotService:
         errors: List[str],
         sources: List[MarketStructureSource],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """拉取板块排行原始数据。"""
         fetch_rankings = getattr(self.fetcher_manager, fetch_name, None)
         if not callable(fetch_rankings):
             sources.append(
@@ -416,6 +425,7 @@ class MarketHotspotService:
         return [], []
 
     def _resolve_ranking_fetch_timeout_seconds(self) -> float:
+        """解析排行拉取超时时间。"""
         if self._ranking_fetch_timeout_seconds is not None:
             try:
                 return max(0.0, float(self._ranking_fetch_timeout_seconds))
@@ -442,6 +452,7 @@ class MarketHotspotService:
         task_name: str,
         inflight_key: Optional[Hashable] = None,
     ) -> Any:
+        """在超时约束下调用拉取函数。"""
         timeout_value = max(0.0, float(timeout_seconds))
         if timeout_value <= 0:
             raise TimeoutError(f"{task_name} ranking fetch timeout")
@@ -475,6 +486,7 @@ class MarketHotspotService:
         inflight_key: Hashable,
         task_name: str,
     ) -> Future:
+        """获取或提交一次排行拉取任务。"""
         submitted: Future
         worker: threading.Thread
         with cls._ranking_fetch_futures_lock:
@@ -527,6 +539,7 @@ class MarketHotspotService:
 
     @classmethod
     def _forget_ranking_fetch(cls, inflight_key: Hashable, future: Future) -> None:
+        """丢弃指定的排行拉取任务。"""
         with cls._ranking_fetch_futures_lock:
             should_release_slot = False
             if cls._ranking_fetch_futures.get(inflight_key) is future:
@@ -551,6 +564,7 @@ class MarketHotspotService:
         *,
         retry_after: float,
     ) -> None:
+        """标记排行拉取任务超时。"""
         with cls._ranking_fetch_futures_lock:
             if cls._ranking_fetch_futures.get(inflight_key) is future:
                 cls._ranking_fetch_futures.pop(inflight_key, None)
@@ -567,6 +581,7 @@ class MarketHotspotService:
         inflight_key: Hashable,
         future: Future,
     ) -> None:
+        """清理尚未启动的排行拉取任务。"""
         with cls._ranking_fetch_futures_lock:
             if cls._ranking_fetch_futures.get(inflight_key) is future:
                 cls._ranking_fetch_futures.pop(inflight_key, None)
@@ -574,6 +589,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _run_ranking_fetch(future: Future, task: Callable[[], Any]) -> None:
+        """执行排行拉取并返回结果。"""
         if not future.set_running_or_notify_cancel():
             return
         try:
@@ -588,6 +604,7 @@ class MarketHotspotService:
         items: Any,
         source: ThemeRankSource,
     ) -> List[RankedThemeItem]:
+        """规范化排行条目列表。"""
         if not isinstance(items, list):
             return []
 
@@ -630,6 +647,7 @@ class MarketHotspotService:
         *,
         limit: int,
     ) -> List[MarketThemeItem]:
+        """构建活跃主题列表。"""
         positive_items = [
             item for item in items if item.change_pct is not None and item.change_pct > 0
         ]
@@ -654,6 +672,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _phase_from_change(value: Optional[float]) -> str:
+        """按涨跌幅推断主题阶段。"""
         if value is None:
             return "unknown"
         if value >= 3:
@@ -664,12 +683,14 @@ class MarketHotspotService:
 
     @staticmethod
     def _strength_from_change(value: Optional[float]) -> Optional[int]:
+        """按涨跌幅推断主题强度。"""
         if value is None:
             return None
         return max(0, min(100, int(round(50 + value * 8))))
 
     @staticmethod
     def _format_trade_date(value: Any) -> Optional[str]:
+        """格式化交易日文本。"""
         if value is None:
             return None
         if isinstance(value, date):
@@ -679,6 +700,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _safe_float(value: Any) -> Optional[float]:
+        """将值安全转换为 float。"""
         if value is None:
             return None
         try:
@@ -695,6 +717,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _safe_int(value: Any) -> Optional[int]:
+        """将值安全转换为 int。"""
         if value is None:
             return None
         try:
@@ -704,6 +727,7 @@ class MarketHotspotService:
 
     @staticmethod
     def _optional_text(value: Any) -> Optional[str]:
+        """将值安全转换为可选文本。"""
         if value is None:
             return None
         text = str(value).strip()

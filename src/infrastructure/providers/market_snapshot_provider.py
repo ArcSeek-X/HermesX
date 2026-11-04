@@ -28,6 +28,7 @@ class DataProviderMarketSnapshotSource:
     """
 
     def __init__(self) -> None:
+        """构造大盘快照提供者并装配依赖。"""
         self._akshare_fetcher: Any = None
         self._fetcher_lock = threading.Lock()
 

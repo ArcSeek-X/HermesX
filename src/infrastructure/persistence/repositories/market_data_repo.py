@@ -40,6 +40,7 @@ class MarketDataRepository:
     """``stock_daily`` 表的读写入口。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造行情数据仓储并装配依赖。"""
         self._db = db_manager
 
     def has_today_data(self, code: str, target_date: Optional[date] = None) -> bool:
@@ -188,6 +189,7 @@ class MarketDataRepository:
         batch_dates = list(records_by_date.keys())
 
         def _write(session: Session) -> int:
+            """在会话内写入行情数据记录。"""
             if self._db._is_sqlite_engine:
                 # SQLite has a per-statement bind-parameter limit (commonly 999).
                 # Each record has ~15 columns, so chunk upserts to stay within bounds.

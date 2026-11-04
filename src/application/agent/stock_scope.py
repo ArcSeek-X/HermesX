@@ -50,6 +50,7 @@ class StockScope:
     mode: str = "maintain"
 
     def as_log_payload(self) -> Dict[str, Any]:
+        """将股票范围解析结果转换为日志载荷字典。"""
         return {
             "expected_stock_code": self.expected_stock_code,
             "allowed_stock_codes": sorted(self.allowed_stock_codes),
@@ -82,6 +83,7 @@ def _normalize_stock_code(value: Any) -> str:
 
 
 def _is_denied_candidate(candidate: str, text: str = "") -> bool:
+    """判断候选代码是否命中拒绝规则。"""
     token = candidate.strip().upper()
     if token in _EXCHANGE_TOKEN_CANDIDATES:
         return True
@@ -96,6 +98,7 @@ def _is_denied_candidate(candidate: str, text: str = "") -> bool:
 
 
 def _append_candidate(candidates: List[str], candidate: str, text: str = "") -> None:
+    """追加候选股票代码（去重并校验）。"""
     normalized = _normalize_stock_code(candidate)
     if not normalized or _is_denied_candidate(normalized, text):
         return
@@ -135,6 +138,7 @@ def extract_stock_codes(text: str) -> List[str]:
 
 
 def _is_compare_message(message: str, candidates: List[str], current_code: str) -> bool:
+    """判断消息是否为多股对比意图。"""
     if _STRONG_COMPARE_PATTERN.search(message):
         return True
     new_candidates = {code for code in candidates if code != current_code}
@@ -158,6 +162,7 @@ def _is_compare_message(message: str, candidates: List[str], current_code: str) 
 
 
 def _with_skills(context: Dict[str, Any], skills: Optional[Iterable[str]]) -> Dict[str, Any]:
+    """将技能列表合并进上下文副本。"""
     if skills is None:
         return context
     next_context = dict(context)
@@ -166,6 +171,7 @@ def _with_skills(context: Dict[str, Any], skills: Optional[Iterable[str]]) -> Di
 
 
 def _switch_context(context: Dict[str, Any], stock_code: str) -> Dict[str, Any]:
+    """切换上下文中的当前股票代码。"""
     next_context = {
         key: value
         for key, value in context.items()

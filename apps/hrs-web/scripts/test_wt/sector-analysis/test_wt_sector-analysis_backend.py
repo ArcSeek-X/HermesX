@@ -55,10 +55,12 @@ PREFIX = "/api/v1/sector"
 
 
 def emit(summary_line: str, status: str) -> None:
+    """输出一条走查结果记录。"""
     print(f"[SUMMARY] 后端|{summary_line}|{status}")
 
 
 def _check(name: str, cond: bool, detail: str = ""):
+    """校验接口响应是否符合预期。"""
     if cond:
         print(f"[PASS] {name}：{detail}")
     else:
@@ -67,6 +69,7 @@ def _check(name: str, cond: bool, detail: str = ""):
 
 
 def test_industry(client: "TestClient"):
+    """走查行业板块接口。"""
     print("[INFO] === 行业板块树 /api/v1/sector/industry（含快照 time）===")
     # 实时
     r = client.get(f"{PREFIX}/industry")
@@ -92,6 +95,7 @@ def test_industry(client: "TestClient"):
 
 
 def test_stock_map(client: "TestClient"):
+    """走查个股树图接口。"""
     print("[INFO] === 个股云图 /api/v1/sector/stock-map（三级树 + 快照）===")
     r = client.get(f"{PREFIX}/stock-map")
     ok = _check("stock-map time=实时", r.status_code == 200, f"status={r.status_code}")
@@ -109,6 +113,7 @@ def test_stock_map(client: "TestClient"):
 
 
 def test_etf_map(client: "TestClient"):
+    """走查 ETF 树图接口。"""
     print("[INFO] === ETF 云图 /api/v1/sector/etf-map（period 矩阵）===")
     for period in ("yesterday", "week", "month", "quarter", "year"):
         r = client.get(f"{PREFIX}/etf-map", params={"period": period})
@@ -121,6 +126,7 @@ def test_etf_map(client: "TestClient"):
 
 
 def test_concept_map(client: "TestClient"):
+    """走查概念板块树图接口。"""
     print("[INFO] === 概念云图 /api/v1/sector/concept-map（period 矩阵）===")
     for period in ("yesterday", "week", "month", "quarter", "year"):
         r = client.get(f"{PREFIX}/concept-map", params={"period": period})
@@ -133,6 +139,7 @@ def test_concept_map(client: "TestClient"):
 
 
 def test_sector_stocks(client: "TestClient"):
+    """走查板块成分股接口。"""
     print("[INFO] === 板块成分股 /api/v1/sector/{code}/stocks ===")
     # 取一个真实行业 code（优先从 industry 接口取一级节点 name/code）
     code = "电子"
@@ -152,6 +159,7 @@ def test_sector_stocks(client: "TestClient"):
 
 
 def test_market_indices(client: "TestClient"):
+    """走查主要指数接口。"""
     print("[INFO] === 市场指数 /api/v1/sector/market-indices ===")
     r = client.get(f"{PREFIX}/market-indices")
     ok = _check("market-indices", r.status_code == 200, f"status={r.status_code}")
@@ -168,6 +176,7 @@ def test_market_indices(client: "TestClient"):
 
 
 def test_market_overview(client: "TestClient"):
+    """走查大盘概览接口。"""
     print("[INFO] === 市场概览 /api/v1/sector/market-overview ===")
     r = client.get(f"{PREFIX}/market-overview")
     ok = _check("market-overview", r.status_code == 200, f"status={r.status_code}")
@@ -179,6 +188,7 @@ def test_market_overview(client: "TestClient"):
 
 
 def main():
+    """脚本入口：依次执行各接口走查。"""
     if not _APP_AVAILABLE:
         emit("应用不可用（环境）", "FAIL")
         print("[FAIL] 板块分析后端走查：应用无法构建")

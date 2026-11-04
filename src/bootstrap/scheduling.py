@@ -5,6 +5,9 @@ The API process (and the WebUI/Desktop launch mode) owns scheduled analysis.
 ``main.py`` describes the CLI intent through the ``HRS_RUNTIME_SCHEDULER_*``
 environment variables so that the FastAPI lifespan, which runs in the same
 process, can pick it up without importing CLI state.
+
+把 CLI 的 serve/schedule 相关开关翻译成同进程内 API lifespan 可读的
+``HRS_RUNTIME_SCHEDULER_*`` 环境变量；调度归属 API 进程，CLI 不反向 import 其状态。
 """
 
 from __future__ import annotations
@@ -31,6 +34,10 @@ def configure_runtime_scheduler_env(args: Any, config: Any) -> Dict[str, Any]:
     Returns the schedule argument overrides that were serialized into
     ``HRS_RUNTIME_SCHEDULER_ARGS``. Existing keys are always cleared first so a
     stale value from a previous launch cannot leak into this process.
+
+    根据 CLI 参数与配置，写入运行时调度相关环境变量（force/suppress/run_immediately/args），
+    并始终先清除旧值，避免上一次启动的残留泄漏到当前进程；返回序列化进
+    ``HRS_RUNTIME_SCHEDULER_ARGS`` 的调度参数覆盖。
     """
     os.environ.pop(CLI_SCHEDULER_OWNER_ENV, None)
 

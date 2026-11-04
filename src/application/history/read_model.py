@@ -71,6 +71,7 @@ class MarkdownReportGenerationError(Exception):
     """Exception raised when Markdown report generation fails due to internal errors."""
 
     def __init__(self, message: str, record_id: str = None):
+        """构造历史读取错误：保存消息与记录 ID。"""
         self.message = message
         self.record_id = record_id
         super().__init__(self.message)
@@ -119,6 +120,7 @@ class HistoryService:
         candidates: List[str] = []
 
         def add(candidate: str) -> None:
+            """向候选代码列表追加去重后的代码（嵌套辅助函数）。"""
             candidate = str(candidate or "").strip().upper()
             if candidate and candidate not in candidates:
                 candidates.append(candidate)
@@ -139,6 +141,7 @@ class HistoryService:
             return candidates
 
         def add_hk_variants(digits: str) -> None:
+            """为港股数字代码追加常见位数变体（嵌套辅助函数）。"""
             if not digits or not digits.isdigit():
                 return
 
@@ -262,6 +265,7 @@ class HistoryService:
 
     @staticmethod
     def _safe_float(value: Any) -> Optional[float]:
+        """安全转换为 float，失败或为空返回 None。"""
         if value is None:
             return None
         try:
@@ -276,12 +280,14 @@ class HistoryService:
 
     @staticmethod
     def _first_present(*values: Any) -> Any:
+        """返回首个非空（非 None 且非空串）的值。"""
         for value in values:
             if value is not None and value != "":
                 return value
         return None
 
     def _extract_history_market_fields(self, context_snapshot: Any) -> Dict[str, Optional[float]]:
+        """从上下文快照提取实时行情字段（价格/涨跌幅等）。"""
         snapshot_obj = parse_json_field(context_snapshot)
         realtime_fields = extract_realtime_detail_fields(snapshot_obj)
 
@@ -323,6 +329,7 @@ class HistoryService:
         return resolve_index_stock_code(code) or code
 
     def display_market_phase_summary(self, stock_code: str, context_snapshot: Any) -> Any:
+        """按股票代码重建并返回市场阶段摘要。"""
         return rebuild_market_phase_summary_for_stock_code(
             self.display_stock_code(stock_code),
             context_snapshot,
@@ -330,6 +337,7 @@ class HistoryService:
 
     @staticmethod
     def _extract_market_review_region(context_snapshot: Any) -> Optional[str]:
+        """从上下文快照提取市场回顾区域。"""
         snapshot = parse_json_field(context_snapshot)
         if not isinstance(snapshot, dict):
             return None
@@ -343,6 +351,7 @@ class HistoryService:
         return normalized or None
 
     def _record_to_list_item_dict(self, record) -> Dict[str, Any]:
+        """将历史记录转换为列表项字典（含展示代码/模型）。"""
         raw_result = parse_json_field(getattr(record, "raw_result", None))
         model_used = raw_result.get("model_used") if isinstance(raw_result, dict) else None
         display_code = self.display_stock_code(record.code)
@@ -641,6 +650,7 @@ class HistoryService:
         }
 
     def _decision_action_fields_for_record(self, record, raw_result: Any) -> Dict[str, Any]:
+        """提取记录中的买卖操作建议字段用于展示。"""
         raw = raw_result if isinstance(raw_result, dict) else {}
         return display_action_fields(
             operation_advice=raw.get("operation_advice") or getattr(record, "operation_advice", None),
@@ -960,6 +970,7 @@ class HistoryService:
         labels = get_report_labels(report_language)
 
         def _label(en: str, zh: str, ko: str) -> str:
+            """按报告语言在英/中/韩文案中选取标签（嵌套辅助函数）。"""
             if report_language == "en":
                 return en
             if report_language == "ko":
@@ -1293,6 +1304,7 @@ class HistoryService:
 
     @staticmethod
     def _format_strategy_skill_items(items: Any, report_language: str = "zh") -> str:
+        """将策略/技能条目格式化为报告文本，空值回退标签。"""
         none_text = get_report_labels(report_language).get("none_label", "None")
         if not isinstance(items, list):
             return none_text
@@ -1333,6 +1345,7 @@ class HistoryService:
         result: AnalysisResult,
         report_language: Optional[str] = None,
     ) -> str:
+        """返回记录的展示用操作建议。"""
         return display_operation_advice_for_result(
             result,
             report_language=report_language or getattr(result, "report_language", "zh"),

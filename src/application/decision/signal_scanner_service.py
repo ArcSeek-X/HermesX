@@ -64,10 +64,12 @@ def set_signal_scanner_providers(
 
 
 def _get_kline_provider() -> Optional[QuoteProviderPort]:
+    """返回当前已装配的 K 线数据端口。"""
     return _kline_provider
 
 
 def _get_limit_pool_provider() -> Optional[LimitPoolProviderPort]:
+    """返回当前已装配的涨跌停池数据端口。"""
     return _limit_pool_provider
 
 # ----------------------------- 契约常量（前端 /options 与请求校验共用） -----------------------------
@@ -230,6 +232,7 @@ def get_scanner_options() -> Dict[str, Any]:
 # ----------------------------- 请求规整 -----------------------------
 
 def _safe_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    """将值安全转换为整数并夹在最小/最大范围内。"""
     try:
         return max(minimum, min(maximum, int(value)))
     except (TypeError, ValueError):
@@ -430,6 +433,7 @@ def run_signal_scan(
     state = register_run(task_id) if task_id else None
 
     def report(progress: int, message: str) -> None:
+        """上报扫描进度百分比与消息。"""
         update(progress, message)
         if state is not None:
             with state.lock:
@@ -437,6 +441,7 @@ def run_signal_scan(
                 state.message = message
 
     def report_steps(steps: Sequence[Mapping[str, Any]]) -> None:
+        """按步骤列表批量上报文案。"""
         if state is not None:
             with state.lock:
                 state.steps = [dict(s) for s in steps]
@@ -476,6 +481,7 @@ def run_signal_scan(
     lock = threading.Lock()
 
     def worker(item: Mapping[str, str]) -> Optional[Dict[str, Any]]:
+        """线程池工作单元：处理单个扫描项并返回结果。"""
         if state is not None and state.cancel_event.is_set():
             return None
         return _scan_one(item, signals)
@@ -557,6 +563,7 @@ def _build_result(
     cancelled: bool,
     steps: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
+    """构造单只股票的信号扫描结果字典。"""
     return {
         "request": dict(payload),
         "pool_count": pool_count,

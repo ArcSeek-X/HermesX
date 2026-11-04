@@ -31,6 +31,7 @@ PRICE_RELATIONSHIP_VIOLATION_CODES = frozenset(
 
 @dataclass(frozen=True)
 class DecisionSignalCandidate:
+    """决策信号候选结构。"""
     action: DecisionAction
     score: Optional[int] = None
     confidence: Optional[float] = None
@@ -48,6 +49,7 @@ class DecisionSignalCandidate:
 
 @dataclass(frozen=True)
 class GuardrailResult:
+    """护栏判定结果。"""
     raw_action: DecisionAction
     final_action: DecisionAction
     passed: bool
@@ -56,6 +58,7 @@ class GuardrailResult:
     adjusted: bool = False
 
     def as_dict(self) -> dict[str, object]:
+        """将判定结果转换为字典。"""
         return {
             "raw_action": self.raw_action,
             "final_action": self.final_action,
@@ -68,6 +71,7 @@ class GuardrailResult:
 
 @dataclass(frozen=True)
 class PolicyResult:
+    """策略判定结果。"""
     candidate: DecisionSignalCandidate
     guardrail_result: GuardrailResult
     warnings: list[dict[str, object]]
@@ -111,6 +115,7 @@ def apply_decision_profile_policy(
 
 
 def _apply_profile_bias(candidate: DecisionSignalCandidate, decision_profile: str) -> DecisionSignalCandidate:
+    """应用决策档案偏置。"""
     horizon = candidate.horizon
     if not horizon:
         horizon = "intraday" if candidate.action == "alert" or candidate.market_phase == "intraday" else "3d"
@@ -136,6 +141,7 @@ def _apply_guardrail(
     decision_profile: str,
     data_quality_level: DecisionSignalDataQuality,
 ) -> GuardrailResult:
+    """应用护栏规则。"""
     violations: list[str] = []
     adjustments: list[str] = []
     raw_action = candidate.action
@@ -181,6 +187,7 @@ def _apply_guardrail(
 
 
 def _price_violations(candidate: DecisionSignalCandidate) -> list[str]:
+    """检测价格条件违规。"""
     violations: list[str] = []
     if (
         candidate.entry_low is not None
@@ -210,6 +217,7 @@ def _price_violations(candidate: DecisionSignalCandidate) -> list[str]:
 
 
 def _replace_action(candidate: DecisionSignalCandidate, action: DecisionAction) -> DecisionSignalCandidate:
+    """替换动作标识。"""
     return DecisionSignalCandidate(
         action=action,
         score=candidate.score,
@@ -228,6 +236,7 @@ def _replace_action(candidate: DecisionSignalCandidate, action: DecisionAction) 
 
 
 def _warnings_for_guardrail(guardrail: GuardrailResult) -> list[dict[str, object]]:
+    """生成护栏告警信息。"""
     warnings: list[dict[str, object]] = []
     if guardrail.adjusted:
         warnings.append(

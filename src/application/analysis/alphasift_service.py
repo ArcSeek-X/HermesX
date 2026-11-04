@@ -79,6 +79,7 @@ class AlphaSiftServiceError(Exception):
     """
 
     def __init__(self, status_code: int, detail: Dict[str, Any]):
+        """构造 AlphaSift 服务并装配依赖。"""
         super().__init__(f"{status_code}: {detail}")
         self.status_code = status_code
         self.detail = detail
@@ -115,32 +116,38 @@ HRS_ALPHASIFT_HOTSPOT_CONNECTIVITY_ERROR_MARKERS = (
 
 
 def _utc_now_iso() -> str:
+    """返回当前 UTC 时间的 ISO 格式字符串。"""
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _alphasift_hotspot_cache_path() -> Path:
+    """返回 AlphaSift 热点缓存文件路径。"""
     if _env_text(os.getenv("ALPHASIFT_DATA_DIR")):
         return _resolve_alphasift_data_dir() / "hotspots.json"
     return HRS_ALPHASIFT_HOTSPOT_CACHE_PATH
 
 
 def _alphasift_hotspot_history_path() -> Path:
+    """返回 AlphaSift 热点历史文件路径。"""
     if _env_text(os.getenv("ALPHASIFT_DATA_DIR")):
         return _resolve_alphasift_data_dir() / "hotspot.history.jsonl"
     return HRS_ALPHASIFT_HOTSPOT_HISTORY_PATH
 
 
 def _alphasift_hotspot_detail_cache_dir() -> Path:
+    """返回 AlphaSift 热点详情缓存目录。"""
     return _resolve_alphasift_data_dir() / "hotspot_details"
 
 
 def _alphasift_hotspot_detail_cache_path(*, provider: str, topic: str) -> Path:
+    """返回指定热点的详情缓存文件路径。"""
     provider_text = re.sub(r"[^A-Za-z0-9_.-]+", "_", _env_text(provider) or "akshare")
     digest = hashlib.sha1(f"{provider_text}\0{_env_text(topic)}".encode("utf-8")).hexdigest()
     return _alphasift_hotspot_detail_cache_dir() / f"{provider_text}.{digest}.json"
 
 
 def _parse_cache_datetime(value: Any) -> Optional[datetime]:
+    """解析缓存中的时间字符串。"""
     text = _env_text(value)
     if not text:
         return None
@@ -159,6 +166,7 @@ def _load_alphasift_hotspot_detail_cache(
     topic: str,
     allow_stale: bool = False,
 ) -> Optional[Dict[str, Any]]:
+    """读取热点详情缓存。"""
     cache_path = _alphasift_hotspot_detail_cache_path(provider=provider, topic=topic)
     try:
         raw = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -195,6 +203,7 @@ def _load_alphasift_hotspot_detail_cache(
 
 
 def _write_alphasift_hotspot_detail_cache(*, provider: str, topic: str, payload: Dict[str, Any]) -> None:
+    """写入热点详情缓存。"""
     cache_path = _alphasift_hotspot_detail_cache_path(provider=provider, topic=topic)
     try:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -219,6 +228,7 @@ def _write_alphasift_hotspot_detail_cache(*, provider: str, topic: str, payload:
 
 
 def _load_alphasift_hotspot_cache(*, provider: str, top: int) -> Optional[Dict[str, Any]]:
+    """读取热点列表缓存。"""
     cache_path = _alphasift_hotspot_cache_path()
     try:
         raw = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -259,6 +269,7 @@ def _load_alphasift_hotspot_cache(*, provider: str, top: int) -> Optional[Dict[s
 
 
 def _normalize_alphasift_hotspot_cache_payload(raw: Any) -> Optional[Dict[str, Any]]:
+    """规范化热点缓存载荷结构。"""
     if not isinstance(raw, dict):
         return None
     payload = raw.get("payload")
@@ -287,6 +298,7 @@ def _normalize_alphasift_hotspot_cache_payload(raw: Any) -> Optional[Dict[str, A
 
 
 def _hotspot_route_has_external_event(route: Any) -> bool:
+    """判断热点路由是否含外部事件信息。"""
     if not isinstance(route, list):
         return False
     generated_sources = {"", "eastmoney_board_change", "fallback", "hrs_topic_catalyst", "ths_info"}
@@ -300,6 +312,7 @@ def _hotspot_route_has_external_event(route: Any) -> bool:
 
 
 def _has_configured_hotspot_news_source(config: Config) -> bool:
+    """判断是否配置了热点新闻数据源。"""
     fields = (
         "bocha_api_keys",
         "tavily_api_keys",
@@ -313,6 +326,7 @@ def _has_configured_hotspot_news_source(config: Config) -> bool:
 
 
 def _build_hotspot_event_routes_from_search(topic: str, config: Config) -> List[Dict[str, Any]]:
+    """从检索结果构建热点事件路由。"""
     topic_text = _env_text(topic)
     if not topic_text or not _has_configured_hotspot_news_source(config):
         return []
@@ -387,6 +401,7 @@ def _build_hotspot_event_routes_from_search(topic: str, config: Config) -> List[
 
 
 def _summarize_hotspot_news_event(*, topic: str, title: str, snippet: str, config: Config) -> str:
+    """借助模型总结热点新闻事件。"""
     compact_text = _compact_hotspot_news_text(title=title, snippet=snippet)
     llm_summary = _get_alphasift_runtime_port().summarize_event_with_llm(topic=topic, text=compact_text, config=config)
     if llm_summary:
@@ -395,6 +410,7 @@ def _summarize_hotspot_news_event(*, topic: str, title: str, snippet: str, confi
 
 
 def _summarize_hotspot_news_event_locally(*, topic: str, text: str) -> str:
+    """本地规则总结热点新闻事件。"""
     cleaned = _strip_hotspot_news_noise(text)
     if not cleaned:
         return ""
@@ -411,6 +427,7 @@ def _summarize_hotspot_news_event_locally(*, topic: str, text: str) -> str:
 
 
 def _strip_hotspot_news_noise(text: str) -> str:
+    """去除热点新闻文本噪声。"""
     cleaned = _normalize_inline_text(text)
     cleaned = re.sub(r"【[^】]{1,24}】", " ", cleaned)
     cleaned = re.sub(r"\[[^\]]{1,24}\]", " ", cleaned)
@@ -425,6 +442,7 @@ def _strip_hotspot_news_noise(text: str) -> str:
 
 
 def _extract_hotspot_catalyst_phrase(text: str) -> str:
+    """提取热点催化剂短语。"""
     patterns = (
         r"以[^，。；;]{1,12}代[^，。；;]{1,12}",
         r"[^，。；;]{1,18}(涨价|价格上行|供需偏紧|供应紧张|资源增储|订单增长|政策催化|出口管制|减产|并购重组|技术突破)[^，。；;]{0,24}",
@@ -438,6 +456,7 @@ def _extract_hotspot_catalyst_phrase(text: str) -> str:
 
 
 def _extract_hotspot_impact_phrases(text: str) -> str:
+    """提取热点影响描述短语。"""
     impacts: List[str] = []
     keyword_groups = (
         ("小金属", ("小金属", "钼", "钨", "锑", "锗", "铟")),
@@ -452,6 +471,7 @@ def _extract_hotspot_impact_phrases(text: str) -> str:
 
 
 def _first_meaningful_hotspot_sentence(text: str) -> str:
+    """返回首个有意义的热点句子。"""
     sentences = [
         _normalize_inline_text(item).strip(" ，,；;。.")
         for item in re.split(r"[。！？!?；;]", text)
@@ -464,6 +484,7 @@ def _first_meaningful_hotspot_sentence(text: str) -> str:
 
 
 def _compact_hotspot_news_text(*, title: str, snippet: str) -> str:
+    """压缩热点新闻文本长度。"""
     title_text = _normalize_inline_text(title)
     snippet_text = _normalize_inline_text(snippet)
     if title_text and snippet_text.startswith(title_text):
@@ -477,6 +498,7 @@ def _compact_hotspot_news_text(*, title: str, snippet: str) -> str:
 
 
 def _truncate_text(text: str, max_chars: int) -> str:
+    """按长度上限截断文本。"""
     text = _normalize_inline_text(text)
     if len(text) <= max_chars:
         return text
@@ -494,6 +516,7 @@ def _truncate_text(text: str, max_chars: int) -> str:
 
 
 def _extract_date_text(text: str) -> str:
+    """从文本中提取日期字符串。"""
     match = re.search(r"(20\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})", text or "")
     if not match:
         return ""
@@ -502,6 +525,7 @@ def _extract_date_text(text: str) -> str:
 
 
 def _hotspot_rows_are_thin(rows: List[Any], *, top: int) -> bool:
+    """判断热点行数据是否过于稀疏。"""
     if len(rows) < min(HRS_ALPHASIFT_MIN_HOTSPOT_CACHE_COUNT, max(1, top)):
         return True
     rich_count = 0
@@ -522,11 +546,13 @@ def _hotspot_rows_are_thin(rows: List[Any], *, top: int) -> bool:
 
 
 def _snake_to_camel(value: str) -> str:
+    """将下划线命名转换为驼峰命名。"""
     parts = value.split("_")
     return parts[0] + "".join(part[:1].upper() + part[1:] for part in parts[1:])
 
 
 def _enrich_hotspot_rows_from_provider(rows: List[Any], provider: Any, *, top: int) -> List[Dict[str, Any]]:
+    """用数据源补充热点行详情。"""
     try:
         provider_rows = provider.hotspot_rows(top=max(top, len(rows), 30))
     except Exception as exc:
@@ -577,6 +603,7 @@ def _enrich_hotspot_rows_from_provider(rows: List[Any], provider: Any, *, top: i
 
 
 def _write_alphasift_hotspot_cache(payload: Dict[str, Any]) -> None:
+    """写入热点列表缓存。"""
     cache_path = _alphasift_hotspot_cache_path()
     try:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -611,6 +638,7 @@ def _write_alphasift_hotspot_cache(payload: Dict[str, Any]) -> None:
 
 
 def _hotspot_topic_from_row(row: Any) -> str:
+    """从热点行提取主题名称。"""
     if not isinstance(row, dict):
         return ""
     return _env_text(row.get("topic") or row.get("name") or row.get("canonical_topic"))
@@ -622,6 +650,7 @@ def _attach_cached_hotspot_details(
     provider: str,
     top: int,
 ) -> Dict[str, Any]:
+    """附加已缓存的热点详情。"""
     rows = payload.get("hotspots")
     if not isinstance(rows, list) or not rows:
         return payload
@@ -647,6 +676,7 @@ def _empty_alphasift_hotspot_payload(
     source_errors: Optional[List[str]] = None,
     message: str = "",
 ) -> Dict[str, Any]:
+    """构造空的 AlphaSift 热点载荷。"""
     return {
         "enabled": True,
         "provider": provider,
@@ -664,6 +694,7 @@ def _empty_alphasift_hotspot_payload(
 
 
 def _is_known_eastmoney_hotspot_connectivity_error(exc: BaseException) -> bool:
+    """判断是否为已知的东财热点连接错误。"""
     retryable_types: List[Any] = [ConnectionError, TimeoutError]
     try:
         import requests
@@ -721,10 +752,12 @@ def _is_known_eastmoney_hotspot_connectivity_error(exc: BaseException) -> bool:
 
 
 def _should_return_eastmoney_hotspot_unavailable(provider_arg: Any, exc: BaseException) -> bool:
+    """判断是否应返回东财热点不可用结果。"""
     return _get_alphasift_runtime_port().is_eastmoney_hotspot_provider(provider_arg) and _is_known_eastmoney_hotspot_connectivity_error(exc)
 
 
 def _has_degraded_eastmoney_hotspot_failure(provider_arg: Any, source_errors: List[str]) -> bool:
+    """判断东财热点是否降级失败。"""
     if not _get_alphasift_runtime_port().is_eastmoney_hotspot_provider(provider_arg):
         return False
     for source_error in source_errors:
@@ -736,6 +769,7 @@ def _has_degraded_eastmoney_hotspot_failure(provider_arg: Any, source_errors: Li
 
 
 class AlphaSiftStrategyResponse(BaseModel):
+    """AlphaSift 策略响应数据结构。"""
     id: str
     name: str = ""
     title: str = ""
@@ -751,9 +785,11 @@ class AlphaSiftService:
     """Coordinate AlphaSift calls with HRS-owned runtime capabilities."""
 
     def __init__(self, config: Config):
+        """构造 AlphaSift 服务并装配依赖。"""
         self.config = config
 
     def status(self) -> Dict[str, Any]:
+        """返回 AlphaSift 当前状态。"""
         adapter_status, available, diagnostics = _get_alphasift_status_snapshot()
         payload = {
             "enabled": bool(self.config.alphasift_enabled),
@@ -771,6 +807,7 @@ class AlphaSiftService:
         return payload
 
     def strategies(self) -> Dict[str, Any]:
+        """列出可用策略。"""
         _ensure_alphasift_enabled(self.config)
         _ensure_alphasift_available_for_use()
         strategies = _list_strategies()
@@ -781,6 +818,7 @@ class AlphaSiftService:
         }
 
     def install(self) -> Dict[str, Any]:
+        """安装或更新 AlphaSift 组件。"""
         _ensure_alphasift_enabled(self.config)
         return _install_alphasift(self.config)
 
@@ -792,6 +830,7 @@ class AlphaSiftService:
         refresh: bool = False,
         include_details: bool = False,
     ) -> Dict[str, Any]:
+        """获取市场热点主题。"""
         _ensure_alphasift_enabled(self.config)
         _ensure_alphasift_available_for_use()
         provider_name, provider_arg = _resolve_hotspot_provider(provider)
@@ -905,6 +944,7 @@ class AlphaSiftService:
         return payload
 
     def _prefetch_hotspot_details(self, payload: Dict[str, Any], *, provider: str, refresh: bool) -> Dict[str, Any]:
+        """预取热点详情数据。"""
         rows = payload.get("hotspots")
         if not isinstance(rows, list) or not rows:
             return payload
@@ -928,6 +968,7 @@ class AlphaSiftService:
         return attached
 
     def hotspot_detail(self, *, topic: str, provider: str = "", refresh: bool = False) -> Dict[str, Any]:
+        """获取单个热点详情。"""
         _ensure_alphasift_enabled(self.config)
         _ensure_alphasift_available_for_use()
         topic_text = _env_text(topic)
@@ -1016,6 +1057,7 @@ class AlphaSiftService:
         return cleaned
 
     def screen(self, *, strategy: str, market: str, max_results: int) -> Dict[str, Any]:
+        """执行策略选股筛选。"""
         _ensure_alphasift_enabled(self.config)
         _ensure_alphasift_available_for_use()
         _ensure_supported_market(market)
@@ -1081,6 +1123,7 @@ class AlphaSiftService:
 
 
 def _normalize_alphasift_hotspot_detail(detail: Any, *, provider: str, requested_topic: str) -> Dict[str, Any]:
+    """规范化热点详情数据。"""
     raw_value = _remove_non_finite_json_values(_to_plain(detail))
     raw: Dict[str, Any] = raw_value if isinstance(raw_value, dict) else {}
     summary_value = raw.get("summary")
@@ -1129,12 +1172,14 @@ def _normalize_alphasift_hotspot_detail(detail: Any, *, provider: str, requested
 
 
 def _list_dict_values(value: Any) -> List[Dict[str, Any]]:
+    """提取列表中的字典值。"""
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
 
 
 def _hotspot_timeline_to_route(timeline: List[Any]) -> List[Dict[str, Any]]:
+    """将热点时间线转换为事件路由。"""
     route: List[Dict[str, Any]] = []
     for item in timeline:
         if not isinstance(item, dict):
@@ -1166,6 +1211,7 @@ def _merge_provider_hotspot_route_fallback(
     provider: Any,
     topic: str,
 ) -> Dict[str, Any]:
+    """合并数据源热点路由的降级结果。"""
     if _has_meaningful_hotspot_route(normalized.get("route")):
         return normalized
     try:
@@ -1198,6 +1244,7 @@ def _merge_provider_hotspot_route_fallback(
 
 
 def _has_meaningful_hotspot_route(route: Any) -> bool:
+    """判断热点路由是否含有效信息。"""
     if not isinstance(route, list):
         return False
     for item in route:
@@ -1215,6 +1262,7 @@ def _has_meaningful_hotspot_route(route: Any) -> bool:
 
 
 def _build_alphasift_hotspot_summary_text(summary: Dict[str, Any], *, topic: str, canonical_topic: str) -> str:
+    """构建 AlphaSift 热点摘要文本。"""
     display_topic = canonical_topic or topic
     quality = _env_text(summary.get("quality_status"))
     heat = _safe_float(summary.get("heat_score"))
@@ -1233,6 +1281,7 @@ def _build_alphasift_hotspot_summary_text(summary: Dict[str, Any], *, topic: str
 
 
 def _install_alphasift(config: Config) -> Dict[str, Any]:
+    """安装 AlphaSift 依赖。"""
     with _ALPHASIFT_INSTALL_LOCK:
         install_spec_is_default = _is_default_alphasift_install_spec(config.alphasift_install_spec)
         if _is_alphasift_available():
@@ -1289,6 +1338,7 @@ def _install_alphasift(config: Config) -> Dict[str, Any]:
 
 
 def _validate_install_spec(raw_install_spec: str) -> str:
+    """校验安装规格参数。"""
     install_spec = (raw_install_spec or "").strip()
     if not install_spec or install_spec.lower() == "alphasift":
         raise AlphaSiftServiceError(
@@ -1315,6 +1365,7 @@ def _validate_install_spec(raw_install_spec: str) -> str:
 
 
 def _ensure_alphasift_enabled(config: Config) -> None:
+    """确保 AlphaSift 功能已启用。"""
     if not config.alphasift_enabled:
         raise AlphaSiftServiceError(
             status_code=403,
@@ -1323,6 +1374,7 @@ def _ensure_alphasift_enabled(config: Config) -> None:
 
 
 def _ensure_alphasift_available_for_use() -> None:
+    """确保 AlphaSift 当前可用。"""
     _, available, diagnostics = _get_alphasift_status_snapshot()
     if available:
         return
@@ -1339,12 +1391,14 @@ def _ensure_alphasift_available_for_use() -> None:
 
 
 def _is_missing_alphasift_module(diagnostics: Optional[Dict[str, str]]) -> bool:
+    """判断是否缺少 AlphaSift 模块。"""
     return bool(diagnostics and diagnostics.get("reason") == "missing_module")
 
 
 def _include_alphasift_diagnostic_suffix(
     diagnostics: Optional[Dict[str, str]],
 ) -> Optional[Dict[str, str]]:
+    """为响应附加诊断后缀。"""
     if diagnostics is None:
         return None
     if diagnostics.get("reason") == "missing_module":
@@ -1359,6 +1413,7 @@ def _include_alphasift_diagnostic_suffix(
 
 
 def _get_alphasift_status_snapshot() -> Tuple[Dict[str, Any], bool, Optional[Dict[str, str]]]:
+    """获取 AlphaSift 状态快照。"""
     try:
         adapter_status = _call_alphasift_status()
     except AlphaSiftServiceError as exc:
@@ -1371,6 +1426,7 @@ def _get_alphasift_status_snapshot() -> Tuple[Dict[str, Any], bool, Optional[Dic
 
 
 def _get_alphasift_source_health_snapshot() -> Dict[str, Any]:
+    """获取 AlphaSift 数据源健康快照。"""
     health: Dict[str, Any] = {}
     for module_name, key, function_name in (
         ("alphasift.snapshot", "snapshot", "snapshot_source_health_snapshot"),
@@ -1389,17 +1445,20 @@ def _get_alphasift_source_health_snapshot() -> Dict[str, Any]:
 
 
 def _is_alphasift_available() -> bool:
+    """判断 AlphaSift 是否可用。"""
     _, available, _ = _get_alphasift_status_snapshot()
     return available
 
 
 def _is_adapter_available(adapter_status: Any) -> bool:
+    """判断适配器是否可用。"""
     if isinstance(adapter_status, dict):
         return bool(adapter_status.get("available", True))
     return True
 
 
 def _import_alphasift() -> Any:
+    """导入 AlphaSift 模块。"""
     try:
         _prepare_alphasift_runtime_env()
         return importlib.import_module(ALPHASIFT_HRS_ADAPTER_MODULE)
@@ -1429,6 +1488,7 @@ def _import_alphasift() -> Any:
 
 
 def _import_alphasift_hotspot() -> Any:
+    """导入 AlphaSift 热点模块。"""
     try:
         _prepare_alphasift_runtime_env()
         return importlib.import_module("alphasift.hotspot")
@@ -1458,6 +1518,7 @@ def _import_alphasift_hotspot() -> Any:
 
 
 def _prepare_alphasift_runtime_env() -> None:
+    """准备 AlphaSift 运行时环境。"""
     if os.getenv("STRATEGIES_DIR"):
         return
 
@@ -1471,6 +1532,7 @@ def _prepare_alphasift_runtime_env() -> None:
 
 
 def _get_hrs_adapter() -> Any:
+    """获取 HRS 适配器实例。"""
     adapter = _import_alphasift()
     for attr in ("get_status", "list_strategies", "screen"):
         _get_adapter_callable(adapter, attr, f"{attr}() 不可调用。")
@@ -1478,6 +1540,7 @@ def _get_hrs_adapter() -> Any:
 
 
 def _get_adapter_callable(adapter: Any, name: str, missing_error: str) -> Any:
+    """获取适配器上的可调用方法。"""
     callable_obj = getattr(adapter, name, None)
     if not callable(callable_obj):
         raise AlphaSiftServiceError(
@@ -1488,6 +1551,7 @@ def _get_adapter_callable(adapter: Any, name: str, missing_error: str) -> Any:
 
 
 def _call_alphasift_status() -> Dict[str, Any]:
+    """调用 AlphaSift 状态接口。"""
     try:
         adapter = _import_alphasift()
     except ModuleNotFoundError as exc:
@@ -1536,10 +1600,12 @@ def _call_alphasift_status() -> Dict[str, Any]:
 
 
 def _is_expected_alphasift_missing(exc: ModuleNotFoundError) -> bool:
+    """判断是否为预期的模块缺失情况。"""
     return getattr(exc, "name", None) in ALPHASIFT_EXPECTED_MISSING_MODULES
 
 
 def _purge_alphasift_modules() -> None:
+    """清除已加载的 AlphaSift 模块缓存。"""
     for module_name in list(sys.modules):
         if module_name == "alphasift" or module_name.startswith("alphasift."):
             sys.modules.pop(module_name, None)
@@ -1550,6 +1616,7 @@ def _alphasift_unavailable_exception(
     *,
     diagnostics: Optional[Dict[str, str]] = None,
 ) -> AlphaSiftServiceError:
+    """构造 AlphaSift 不可用异常。"""
     detail: Dict[str, Any] = {"error": "alphasift_unavailable", "message": message}
     if diagnostics:
         detail["diagnostics"] = diagnostics
@@ -1557,6 +1624,7 @@ def _alphasift_unavailable_exception(
 
 
 def _log_unexpected_alphasift_exception(stage: str, exc: BaseException) -> Dict[str, str]:
+    """记录非预期的 AlphaSift 异常。"""
     logger.warning("Unexpected AlphaSift %s failure: %s", stage, exc, exc_info=exc.__traceback__ is not None)
     return {
         "reason": "unexpected_exception",
@@ -1566,6 +1634,7 @@ def _log_unexpected_alphasift_exception(stage: str, exc: BaseException) -> Dict[
 
 
 def _extract_alphasift_diagnostics(exc: AlphaSiftServiceError) -> Optional[Dict[str, str]]:
+    """提取 AlphaSift 诊断信息。"""
     detail = exc.detail if isinstance(exc.detail, dict) else {}
     diagnostics = detail.get("diagnostics")
     if not isinstance(diagnostics, dict):
@@ -1574,6 +1643,7 @@ def _extract_alphasift_diagnostics(exc: AlphaSiftServiceError) -> Optional[Dict[
 
 
 def _list_strategies() -> List[Dict[str, Any]]:
+    """列出可用策略。"""
     adapter = _get_hrs_adapter()
     list_strategies = _get_adapter_callable(adapter, "list_strategies", "list_strategies() 不可调用。")
     raw = _to_plain(list_strategies())
@@ -1593,6 +1663,7 @@ def _list_strategies() -> List[Dict[str, Any]]:
 
 
 def _normalize_strategy(raw: Any) -> Dict[str, Any]:
+    """规范化策略标识。"""
     item = _to_plain(raw)
     if isinstance(item, str):
         return _strategy_model(id=item, name=item, title=item)
@@ -1628,6 +1699,7 @@ def _normalize_strategy(raw: Any) -> Dict[str, Any]:
 
 
 def _strategy_model(**kwargs: Any) -> Dict[str, Any]:
+    """返回策略对应的模型。"""
     normalized = AlphaSiftStrategyResponse(**kwargs)
     try:
         return normalized.model_dump()
@@ -1636,6 +1708,7 @@ def _strategy_model(**kwargs: Any) -> Dict[str, Any]:
 
 
 def _ensure_supported_strategy(strategy: str) -> None:
+    """校验策略是否受支持。"""
     strategies = _list_strategies()
     if not strategies:
         return
@@ -1649,6 +1722,7 @@ def _ensure_supported_strategy(strategy: str) -> None:
 
 
 def _call_alphasift_screen(screen: Any, strategy: str, market: str, max_results: int, config: Config) -> Any:
+    """调用 AlphaSift 选股筛选。"""
     signature = inspect.signature(screen)
     params = signature.parameters
     supports_var_kwargs = any(parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in params.values())
@@ -1704,6 +1778,7 @@ def _call_alphasift_screen(screen: Any, strategy: str, market: str, max_results:
 
 
 def _resolve_hotspot_provider(provider: str) -> Tuple[str, Any]:
+    """解析热点数据提供者。"""
     requested = (provider or "").strip()
     if requested.lower() == "akshare":
         return requested, _get_alphasift_runtime_port().create_hotspot_provider()
@@ -1718,6 +1793,7 @@ def _resolve_hotspot_provider(provider: str) -> Tuple[str, Any]:
 
 
 def _ensure_supported_market(market: str) -> None:
+    """校验市场是否受支持。"""
     status = _call_alphasift_status()
     supported_markets = status.get("supported_markets") or status.get("markets") or status.get("market")
     if not supported_markets:
@@ -1745,6 +1821,7 @@ def _ensure_supported_market(market: str) -> None:
 
 
 def _normalize_candidates(raw: Any) -> List[Dict[str, Any]]:
+    """规范化候选股列表。"""
     data = _to_plain(raw)
     items = data
     if isinstance(data, dict):
@@ -1758,6 +1835,7 @@ def _normalize_candidates(raw: Any) -> List[Dict[str, Any]]:
 
 
 def _normalize_candidate(raw: Any, rank: int) -> Dict[str, Any]:
+    """规范化单个候选股。"""
     item = _remove_non_finite_json_values(_to_plain(raw))
     if not isinstance(item, dict):
         item = {"code": str(item)}
@@ -1804,6 +1882,7 @@ def _normalize_candidate(raw: Any, rank: int) -> Dict[str, Any]:
 
 
 def _first_present(primary: Dict[str, Any], source: Dict[str, Any], *keys: str) -> Any:
+    """返回首个存在的值。"""
     for key in keys:
         if primary.get(key) is not None:
             return primary.get(key)
@@ -1813,6 +1892,7 @@ def _first_present(primary: Dict[str, Any], source: Dict[str, Any], *keys: str) 
 
 
 def _build_candidate_reason(item: Dict[str, Any]) -> str:
+    """构造候选股入选理由。"""
     summaries = item.get("post_analysis_summaries")
     if isinstance(summaries, dict):
         summary = next((str(value) for value in summaries.values() if value), "")
@@ -1838,6 +1918,7 @@ def _build_candidate_reason(item: Dict[str, Any]) -> str:
 
 
 def _build_install_response(already_installed: bool, install_spec_is_default: bool) -> Dict[str, Any]:
+    """构造安装接口响应。"""
     return {
         "installed": True,
         "already_installed": already_installed,
@@ -1846,4 +1927,5 @@ def _build_install_response(already_installed: bool, install_spec_is_default: bo
 
 
 def _is_default_alphasift_install_spec(install_spec: str) -> bool:
+    """判断是否为默认安装规格。"""
     return (install_spec or "").strip() == DEFAULT_ALPHASIFT_INSTALL_SPEC

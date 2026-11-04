@@ -55,6 +55,7 @@ class InProcessNotificationSendPort:
     """组合 14 个 Sender 的默认发送端口实现。"""
 
     def __init__(self, config: Config) -> None:
+        """构造组合通知端口并装配各渠道发送器。"""
         self._wechat = WechatSender(config)
         self._dingtalk = DingtalkSender(config)
         self._feishu = FeishuSender(config)
@@ -72,67 +73,88 @@ class InProcessNotificationSendPort:
 
     # —— 静态渠道派发 ——
     def send_wechat(self, *args: Any, **kwargs: Any) -> bool:
+        """发送企业微信消息。"""
         return self._wechat.send_to_wechat(*args, **kwargs)
 
     def send_dingtalk(self, *args: Any, **kwargs: Any) -> bool:
+        """发送钉钉消息。"""
         return self._dingtalk.send_to_dingtalk(*args, **kwargs)
 
     def send_feishu(self, *args: Any, **kwargs: Any) -> bool:
+        """发送飞书消息。"""
         return self._feishu.send_to_feishu(*args, **kwargs)
 
     def send_telegram(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Telegram 消息。"""
         return self._telegram.send_to_telegram(*args, **kwargs)
 
     def send_email(self, *args: Any, **kwargs: Any) -> bool:
+        """发送邮件消息。"""
         return self._email.send_to_email(*args, **kwargs)
 
     def send_pushover(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Pushover 消息。"""
         return self._pushover.send_to_pushover(*args, **kwargs)
 
     def send_ntfy(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 ntfy 消息。"""
         return self._ntfy.send_to_ntfy(*args, **kwargs)
 
     def send_gotify(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Gotify 消息。"""
         return self._gotify.send_to_gotify(*args, **kwargs)
 
     def send_pushplus(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 PushPlus 消息。"""
         return self._pushplus.send_to_pushplus(*args, **kwargs)
 
     def send_serverchan3(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Server酱³ 消息。"""
         return self._serverchan3.send_to_serverchan3(*args, **kwargs)
 
     def send_custom(self, *args: Any, **kwargs: Any) -> bool:
+        """发送自定义渠道消息。"""
         return self._custom.send_to_custom(*args, **kwargs)
 
     def send_discord(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Discord 消息。"""
         return self._discord.send_to_discord(*args, **kwargs)
 
     def send_slack(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Slack 消息。"""
         return self._slack.send_to_slack(*args, **kwargs)
 
     def send_astrbot(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 AstrBot 消息。"""
         return self._astrbot.send_to_astrbot(*args, **kwargs)
 
     # —— 图片 / 文件变体 ——
     def send_wechat_image(self, *args: Any, **kwargs: Any) -> bool:
+        """发送企业微信图片消息。"""
         return self._wechat._send_wechat_image(*args, **kwargs)
 
     def send_telegram_photo(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Telegram 图片消息。"""
         return self._telegram._send_telegram_photo(*args, **kwargs)
 
     def send_email_with_inline_image(self, *args: Any, **kwargs: Any) -> bool:
+        """发送内嵌图片的邮件。"""
         return self._email._send_email_with_inline_image(*args, **kwargs)
 
     def send_custom_webhook_image(self, *args: Any, **kwargs: Any) -> bool:
+        """通过自定义 Webhook 发送图片。"""
         return self._custom._send_custom_webhook_image(*args, **kwargs)
 
     def send_slack_image(self, *args: Any, **kwargs: Any) -> bool:
+        """发送 Slack 图片消息。"""
         return self._slack._send_slack_image(*args, **kwargs)
 
     def send_feishu_file(self, *args: Any, **kwargs: Any) -> bool:
+        """发送飞书文件消息。"""
         return self._feishu.send_feishu_file(*args, **kwargs)
 
     def send_dingtalk_chunked(self, url: str, content: str, max_bytes: int = 20000) -> bool:
+        """分片发送钉钉消息。"""
         return send_dingtalk_markdown_chunked(
             url, content, max_bytes, poster=self._custom._post_custom_webhook
         )
@@ -194,6 +216,7 @@ class InProcessNotificationSendPort:
         import time
 
         def get_bytes(s: str) -> int:
+            """按 URL 获取图片字节内容。"""
             return len(s.encode('utf-8'))
 
         # 按段落或分隔线分割
@@ -243,7 +266,9 @@ class InProcessNotificationSendPort:
 
     # —— 邮件收件人解析 ——
     def all_email_receivers(self) -> Any:
+        """返回全部邮件收件人。"""
         return self._email.get_all_email_receivers()
 
     def receivers_for_stocks(self, *args: Any, **kwargs: Any) -> Any:
+        """返回指定股票对应的邮件收件人。"""
         return self._email.get_receivers_for_stocks(*args, **kwargs)

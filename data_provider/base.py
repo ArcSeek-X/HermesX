@@ -134,6 +134,7 @@ def _is_etf_code(code: str) -> bool:
 
 
 def _coerce_chip_metric(value: Any) -> Optional[float]:
+    """将筹码指标值安全转换为数值。"""
     try:
         if value is None:
             return None
@@ -558,6 +559,7 @@ class DataFetcherManager:
             self._stock_name_cache_lock = RLock()
 
     def _get_fetchers_snapshot(self) -> List[BaseFetcher]:
+        """返回当前抓取器列表快照。"""
         self._ensure_concurrency_guards()
         with self._fetchers_lock:
             return list(getattr(self, "_fetchers", []))
@@ -594,9 +596,11 @@ class DataFetcherManager:
         return self._tw_institutional_source
 
     def _refresh_fetcher_indexes_locked(self) -> None:
+        """持锁状态下刷新抓取器索引。"""
         self._fetchers_by_name = {fetcher.name: fetcher for fetcher in self._fetchers}
 
     def _get_fetcher_by_name(self, fetcher_name: str, capability: str = "") -> Optional[BaseFetcher]:
+        """按名称获取抓取器实例。"""
         self._ensure_concurrency_guards()
         with self._fetchers_lock:
             fetcher = self._fetchers_by_name.get(fetcher_name)
@@ -611,6 +615,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _call_availability_probe(fetcher: BaseFetcher, probe_name: str, capability: str) -> Optional[bool]:
+        """调用抓取器可用性探测。"""
         probe = getattr(fetcher, probe_name, None)
         if not callable(probe):
             return None
@@ -632,6 +637,7 @@ class DataFetcherManager:
 
     @classmethod
     def _is_fetcher_available(cls, fetcher: BaseFetcher, capability: str = "") -> bool:
+        """判断抓取器当前是否可用。"""
         for probe_name in ("is_available_for_request", "is_available", "_is_available"):
             result = cls._call_availability_probe(fetcher, probe_name, capability)
             if result is not None:
@@ -639,6 +645,7 @@ class DataFetcherManager:
         return True
 
     def _get_fetcher_call_lock(self, fetcher: BaseFetcher) -> RLock:
+        """返回指定抓取器的调用锁。"""
         self._ensure_concurrency_guards()
         fetcher_id = id(fetcher)
         with self._fetcher_call_locks_lock:
@@ -706,6 +713,7 @@ class DataFetcherManager:
 
     @classmethod
     def _daily_health_key(cls, fetcher: BaseFetcher, market: str) -> str:
+        """构造日线数据源健康状态键。"""
         return f"daily_data:{market}:{fetcher.name}"
 
     @classmethod
@@ -714,6 +722,7 @@ class DataFetcherManager:
         fetcher: BaseFetcher,
         market: str,
     ) -> bool:
+        """判断日线数据源是否可用。"""
         key = cls._daily_health_key(fetcher, market)
         if cls._daily_source_health.is_available(key):
             return True
@@ -726,14 +735,17 @@ class DataFetcherManager:
 
     @staticmethod
     def _daily_source_unavailable_error(fetcher: BaseFetcher) -> str:
+        """构造日线数据源不可用错误。"""
         return f"[{fetcher.name}] (CircuitOpen) 数据源短期熔断"
 
     @classmethod
     def _record_daily_source_success(cls, fetcher: BaseFetcher, market: str) -> None:
+        """记录日线数据源调用成功。"""
         cls._daily_source_health.record_success(cls._daily_health_key(fetcher, market))
 
     @classmethod
     def _record_daily_source_failure(cls, fetcher: BaseFetcher, market: str, error: str) -> None:
+        """记录日线数据源调用失败。"""
         cls._daily_source_health.record_failure(cls._daily_health_key(fetcher, market), error=error)
 
     @classmethod
@@ -742,11 +754,13 @@ class DataFetcherManager:
         cls._daily_source_health.reset()
 
     def _get_cached_stock_name(self, stock_code: str) -> Optional[str]:
+        """读取缓存的股票名称。"""
         self._ensure_concurrency_guards()
         with self._stock_name_cache_lock:
             return self._stock_name_cache.get(stock_code)
 
     def _cache_stock_name(self, stock_code: str, name: Optional[str]) -> Optional[str]:
+        """写入股票名称缓存。"""
         if name is None:
             return None
         self._ensure_concurrency_guards()
@@ -827,6 +841,7 @@ class DataFetcherManager:
                 logger.debug("[TickFlowFetcher] 关闭管理器资源失败: %s", exc)
 
     def __del__(self) -> None:
+        """析构时释放抓取器资源。"""
         try:
             self.close()
         except Exception:
@@ -1559,10 +1574,12 @@ class DataFetcherManager:
 
     @staticmethod
     def _utc_now_iso() -> str:
+        """返回当前 UTC 时间的 ISO 字符串。"""
         return datetime.now(timezone.utc).isoformat()
 
     @staticmethod
     def _parse_realtime_timestamp(value: Any) -> Optional[datetime]:
+        """解析实时行情时间戳。"""
         if value in (None, ""):
             return None
         if isinstance(value, datetime):
@@ -1583,6 +1600,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _realtime_fetcher_token(fetcher_name: str, **kw) -> str:
+        """返回实时抓取器标识。"""
         if fetcher_name == "AkshareFetcher" and kw.get("source") == "hk":
             return "akshare_hk"
         mapping = {
@@ -2486,6 +2504,7 @@ class DataFetcherManager:
             return None, f"{task_name} timeout worker pool exhausted", int(timeout_value * 1000)
 
         def runner() -> None:
+            """并发执行取数任务的主循环。"""
             try:
                 result_holder["value"] = task()
             except Exception as exc:
@@ -2545,6 +2564,7 @@ class DataFetcherManager:
         return None, last_error, total_cost_ms
 
     def _get_fundamental_config(self):
+        """返回基本面取数配置。"""
         from src.config import get_config
         return get_config()
 
@@ -2589,6 +2609,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _block_status(payload: Dict[str, Any], available: bool = True) -> str:
+        """返回数据块状态。"""
         if not available:
             return "not_supported"
         if not payload:
@@ -2602,6 +2623,7 @@ class DataFetcherManager:
         source_chain: Optional[List[Dict[str, Any]]] = None,
         errors: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
+        """构建基本面数据块。"""
         return {
             "status": status,
             "coverage": {"status": status},
@@ -2612,6 +2634,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _has_meaningful_payload(payload: Any) -> bool:
+        """判断载荷是否含有效内容。"""
         if payload is None:
             return False
         if isinstance(payload, str):
@@ -2644,6 +2667,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _infer_block_status(payload: Any, fallback_status: str) -> str:
+        """推断数据块状态。"""
         if DataFetcherManager._has_meaningful_payload(payload):
             return "ok"
         if fallback_status in ("failed", "partial", "not_supported"):
@@ -2652,6 +2676,7 @@ class DataFetcherManager:
 
     @staticmethod
     def _should_cache_fundamental_context(context: Any) -> bool:
+        """判断基本面上下文是否应缓存。"""
         if not isinstance(context, dict):
             return False
         status = str(context.get("status", "")).strip().lower()
@@ -2674,6 +2699,7 @@ class DataFetcherManager:
         return False
 
     def _build_market_not_supported(self, market: str, reason: str) -> Dict[str, Any]:
+        """构造市场不支持时的降级数据。"""
         blocks = {
             "valuation": self._build_fundamental_block(
                 "partial" if market == "etf" else "not_supported",
@@ -3079,6 +3105,7 @@ class DataFetcherManager:
         start_ts = time.time()
 
         def _consume_budget(consumed_ms: int) -> None:
+            """扣减取数耗时预算。"""
             nonlocal remaining_seconds
             remaining_seconds = max(0.0, remaining_seconds - consumed_ms / 1000.0)
 
@@ -3457,6 +3484,7 @@ class DataFetcherManager:
             )
 
         def task() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], str]:
+            """构造单个取数任务。"""
             return self._get_sector_rankings_with_meta(5)
 
         rankings, err, cost_ms = self._run_with_retry(task, timeout, "boards")
@@ -3587,10 +3615,12 @@ class DataFetcherManager:
 
     @staticmethod
     def _copy_ranking_rows(rows: List[Dict]) -> List[Dict]:
+        """复制排行行数据。"""
         return [dict(row) if isinstance(row, dict) else row for row in rows or []]
 
     @classmethod
     def clear_concept_rankings_cache_for_tests(cls) -> None:
+        """测试用：清空概念排行缓存。"""
         with cls._concept_rankings_cache_lock:
             cls._concept_rankings_cache.clear()
 

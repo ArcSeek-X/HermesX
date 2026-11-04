@@ -285,6 +285,7 @@ def _build_realtime_failure_message(
     elapsed: float,
     error_type: str,
 ) -> str:
+    """构造实时行情获取失败提示。"""
     return (
         f"{source_name} 实时行情接口失败: endpoint={endpoint}, stock_code={stock_code}, "
         f"symbol={symbol}, category={category}, error_type={error_type}, "
@@ -335,6 +336,7 @@ def _akshare_call_with_timeout(
 
 
 def _akshare_timeout_worker(conn, func, args, kwargs) -> None:
+    """在超时监控线程中执行 AkShare 调用。"""
     try:
         conn.send((True, func(*args, **kwargs)))
     except BaseException as exc:
@@ -350,6 +352,7 @@ def _akshare_timeout_worker(conn, func, args, kwargs) -> None:
 
 
 def _terminate_akshare_process(process) -> None:
+    """终止超时的 AkShare 子进程。"""
     if process.is_alive():
         process.terminate()
         process.join(_AKSHARE_TIMEOUT_PROCESS_JOIN_GRACE)
@@ -1511,6 +1514,7 @@ class AkshareFetcher(BaseFetcher):
         code = raw_code.zfill(5)
 
         def build_em_quote(df: pd.DataFrame) -> Optional[UnifiedRealtimeQuote]:
+            """构造东财行情数据对象。"""
             if df.empty:
                 logger.info(f"[API返回] 港股实时行情数据为空 (stock_hk_spot_em)")
                 return None
@@ -1547,6 +1551,7 @@ class AkshareFetcher(BaseFetcher):
             return quote
 
         def read_cached_em_quote() -> Tuple[bool, Optional[UnifiedRealtimeQuote]]:
+            """读取缓存的东财行情。"""
             current_time = time.time()
             cache_data = _hk_realtime_cache['data']
             cache_age = current_time - _hk_realtime_cache['timestamp']
@@ -2032,6 +2037,7 @@ class AkshareFetcher(BaseFetcher):
         import akshare as ak
 
         def _get_rank_top_n(df: pd.DataFrame, change_col: str, industry_name: str, n: int) -> Tuple[list, list]:
+            """取排行前 N 条记录。"""
             df[change_col] = pd.to_numeric(df[change_col], errors='coerce')
             df = df.dropna(subset=[change_col])
 
@@ -2365,6 +2371,7 @@ class AkshareFetcher(BaseFetcher):
 
     @staticmethod
     def _safe_float(value: Any) -> Optional[float]:
+        """将值安全转换为 float。"""
         try:
             if pd.isna(value):
                 return None
@@ -2374,6 +2381,7 @@ class AkshareFetcher(BaseFetcher):
 
     @staticmethod
     def _safe_int(value: Any) -> int:
+        """将值安全转换为 int。"""
         try:
             if pd.isna(value):
                 return 0
@@ -2383,6 +2391,7 @@ class AkshareFetcher(BaseFetcher):
 
     @staticmethod
     def _find_first_column(df: pd.DataFrame, candidates: Tuple[str, ...]) -> Optional[str]:
+        """按候选名查找首个存在的列。"""
         columns = [str(col) for col in df.columns]
         for candidate in candidates:
             if candidate in columns:
@@ -2391,6 +2400,7 @@ class AkshareFetcher(BaseFetcher):
 
     @staticmethod
     def _find_column_containing(df: pd.DataFrame, keywords: Tuple[str, ...]) -> Optional[str]:
+        """查找名称包含关键字的列。"""
         for col in df.columns:
             col_text = str(col)
             if all(keyword in col_text for keyword in keywords):

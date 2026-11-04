@@ -24,14 +24,17 @@ class GotifySender:
     """Send Markdown text notifications through Gotify's message API."""
 
     def __init__(self, config: Config):
+        """构造 Gotify 发送器并装配依赖。"""
         self._gotify_url = getattr(config, "gotify_url", None)
         self._gotify_token = getattr(config, "gotify_token", None)
         self._webhook_verify_ssl = getattr(config, "webhook_verify_ssl", True)
 
     def _is_gotify_configured(self) -> bool:
+        """判断 Gotify 配置是否完整。"""
         return bool((self._gotify_url or "").strip() and (self._gotify_token or "").strip())
 
     def _resolve_gotify_endpoint(self) -> Optional[str]:
+        """解析 Gotify 推送端点 URL。"""
         return resolve_gotify_message_endpoint(self._gotify_url)
 
     def send_to_gotify(

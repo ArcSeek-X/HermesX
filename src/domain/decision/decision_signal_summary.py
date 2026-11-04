@@ -95,12 +95,14 @@ def format_decision_signal_excerpt(summary: Any, report_language: str = "zh") ->
 
 
 def _public_scalar(value: Any, *, max_length: int) -> str:
+    """返回对外可见的标量值。"""
     if value in (None, ""):
         return ""
     return sanitize_decision_signal_text(value)[:max_length]
 
 
 def _public_text(value: Any, *, max_length: Optional[int]) -> str:
+    """返回对外可见的文本值。"""
     if value in (None, "", [], {}):
         return ""
     if isinstance(value, (list, tuple)):

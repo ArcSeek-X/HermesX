@@ -23,6 +23,7 @@ def make_ico(name: str, source: Path) -> None:
 
 
 def main() -> None:
+    """脚本入口：生成站点图标资源。"""
     for name in ("darklogo", "lightlogo"):
         src = ICON_DIR / f"{name}.png"
         if src.exists():

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Provider prompt-cache capability registry and safe hint lowering."""
+"""Provider prompt-cache capability registry and safe hint lowering.
+
+Provider 提示词缓存能力注册表与安全的 hint 降级逻辑。
+"""
 
 from __future__ import annotations
 
@@ -88,6 +91,7 @@ class PromptCacheTelemetryFilteredUsage(dict):
 
 @dataclass(frozen=True)
 class DirectiveSupport:
+    """Provider 指令（prompt cache key / retention / cache_control）支持能力的数据类。"""
     prompt_cache_key: bool = False
     prompt_cache_retention: bool = False
     top_level_cache_control: bool = False
@@ -100,6 +104,7 @@ class DirectiveSupport:
 
 @dataclass(frozen=True)
 class RetentionPolicySupport:
+    """缓存保留策略支持能力：可选值、来源与 ZDR 交互。"""
     supported_values: Tuple[str, ...] = ()
     default_policy_source: Literal["provider_default", "gateway_default", "project_default", "unknown"] = "unknown"
     zdr_interaction: Literal["compatible", "disabled", "unknown"] = "unknown"
@@ -107,6 +112,7 @@ class RetentionPolicySupport:
 
 @dataclass(frozen=True)
 class DeepSeekCaps:
+    """DeepSeek 专属能力：user_id 支持与字符集/长度限制。"""
     user_id_supported: bool = False
     user_id_enabled_by_default: bool = False
     allowed_charset: str = "A-Za-z0-9_-"
@@ -115,6 +121,7 @@ class DeepSeekCaps:
 
 @dataclass(frozen=True)
 class ProviderCacheCaps:
+    """Provider 提示词缓存能力记录（schema 版本、provider、api 表面、网关与各项支持标志）。"""
     schema_version: str
     provider: str
     api_surface: ApiSurface
@@ -140,12 +147,14 @@ class ProviderCacheCaps:
 
     @property
     def caps_id(self) -> str:
+        """返回该缓存能力的稳定标识（provider:表面:网关:模式）。"""
         gateway = self.gateway or "direct"
         return f"{self.provider}:{self.api_surface}:{gateway}:{self.model_pattern}"
 
 
 @dataclass(frozen=True)
 class ProviderCacheRouteContext:
+    """缓存能力路由上下文：模型、provider、api_base 与 api 表面。"""
     model: str
     provider: Optional[str] = None
     api_base: Optional[str] = None
@@ -157,6 +166,7 @@ class ProviderCacheRouteContext:
 
 @dataclass(frozen=True)
 class PromptCacheHintResult:
+    """应用提示词缓存 hint 的结果：调用参数、诊断、是否应用及未启用原因。"""
     call_kwargs: Dict[str, Any]
     diagnostics: Dict[str, Any] = field(default_factory=dict)
     hint_applied: bool = False
@@ -188,6 +198,7 @@ def _caps(
     last_verified_at: str = "2026-06-20",
     deepseek_caps: Optional[DeepSeekCaps] = None,
 ) -> ProviderCacheCaps:
+    """构造单条 ProviderCacheCaps 记录，聚合指令支持、保留策略与 DeepSeek 等能力。"""
     return ProviderCacheCaps(
         schema_version="provider_cache_caps_v1",
         provider=provider,
@@ -374,6 +385,7 @@ UNKNOWN_PROVIDER_CACHE_CAPS = _caps(
 
 
 def normalize_prompt_cache_diagnostics_level(value: Any) -> str:
+    """归一化缓存诊断级别字符串，仅允许预设的合法取值。"""
     normalized = str(value or "off").strip().lower()
     return normalized if normalized in DIAGNOSTICS_LEVELS else "off"
 
@@ -386,6 +398,7 @@ def build_provider_cache_route_context(
     model_list: Optional[List[Dict[str, Any]]] = None,
     call_type: Optional[str] = None,
 ) -> ProviderCacheRouteContext:
+    """从调用参数构造 ProviderCacheRouteContext（模型、provider、api_base 等）。"""
     kwargs = call_kwargs or {}
     api_base = _first_non_empty(
         kwargs.get("api_base"),
@@ -405,6 +418,7 @@ def build_provider_cache_route_context(
 
 
 def resolve_provider_cache_caps(route_context: ProviderCacheRouteContext) -> ProviderCacheCaps:
+    """按路由上下文推断 provider 家族并解析对应的缓存能力记录。"""
     family = infer_provider_family(
         model=route_context.model,
         provider=route_context.provider,
@@ -420,6 +434,7 @@ def resolve_provider_cache_caps(route_context: ProviderCacheRouteContext) -> Pro
 
 
 def _caps_route_matches(caps: ProviderCacheCaps, route_context: ProviderCacheRouteContext) -> bool:
+    """判断一条缓存能力记录是否匹配给定网关/模型/表面。"""
     if (caps.gateway or None) != (route_context.gateway or None):
         return False
     if not _api_surface_matches(caps.api_surface, route_context.api_surface):
@@ -428,12 +443,14 @@ def _caps_route_matches(caps: ProviderCacheCaps, route_context: ProviderCacheRou
 
 
 def _api_surface_matches(caps_surface: ApiSurface, route_surface: ApiSurface) -> bool:
+    """判断能力的 api 表面是否与请求兼容（unknown/completion 视为通配）。"""
     if caps_surface in {"unknown", "litellm_completion"}:
         return True
     return caps_surface == route_surface
 
 
 def _model_pattern_matches(pattern: str, model: str) -> bool:
+    """按通配模型模式匹配模型名（* 表示任意）。"""
     normalized_pattern = (pattern or "*").strip().lower()
     normalized_model = (model or "").strip().lower()
     if normalized_pattern in {"", "*"}:
@@ -449,6 +466,7 @@ def infer_provider_family(
     provider: Optional[str] = None,
     api_base: Optional[str] = None,
 ) -> str:
+    """综合模型名、provider 与 api_base 推断 provider 家族。"""
     normalized_model = (model or "").strip().lower()
     normalized_provider = (provider or "").strip().lower()
 
@@ -474,6 +492,7 @@ def infer_provider_family(
 
 
 def _infer_provider_family_from_model(normalized_model: str) -> Optional[str]:
+    """仅从模型名推断 provider 家族；无法识别返回 None。"""
     if not normalized_model:
         return None
     if normalized_model.startswith("openai/~"):
@@ -614,6 +633,7 @@ def filter_prompt_cache_telemetry(usage: Mapping[str, Any], config: Any) -> Dict
 
 
 def _apply_anthropic_system_cache_control(call_kwargs: Dict[str, Any]) -> bool:
+    """为 Anthropic messages 在 system 块上施加 cache_control 提示。"""
     messages = call_kwargs.get("messages")
     if not isinstance(messages, list) or not messages:
         return False
@@ -634,6 +654,7 @@ def _apply_anthropic_system_cache_control(call_kwargs: Dict[str, Any]) -> bool:
 
 
 def _safe_hmac_token(value: Any, *, domain: str) -> Optional[str]:
+    """用域 HMAC 安全地派生 token 片段（不泄露密钥）。"""
     from src.infrastructure.generation.usage import build_domain_hmac
 
     hmac_fields = build_domain_hmac(value, domain=domain)
@@ -642,6 +663,7 @@ def _safe_hmac_token(value: Any, *, domain: str) -> Optional[str]:
 
 
 def _deepseek_user_id(route_context: ProviderCacheRouteContext, caps: DeepSeekCaps) -> Optional[str]:
+    """基于 HMAC 派生稳定的 DeepSeek user_id，受字符集与长度约束。"""
     digest = _safe_hmac_token(
         {
             "provider": "deepseek",
@@ -664,6 +686,7 @@ def _diagnostics(
     disabled_reason: Optional[str],
     route_context: Optional[ProviderCacheRouteContext] = None,
 ) -> Dict[str, Any]:
+    """按诊断级别构造缓存诊断信息；off 时返回空字典。"""
     if level == "off":
         return {}
     diagnostics: Dict[str, Any] = {
@@ -708,6 +731,7 @@ def _diagnostics(
 
 
 def _model_list_api_base(model: str, model_list: Optional[List[Dict[str, Any]]]) -> Optional[str]:
+    """从模型清单中查找给定模型的 api_base。"""
     normalized_model = (model or "").strip()
     if not normalized_model or not model_list:
         return None
@@ -728,6 +752,7 @@ def _model_list_api_base(model: str, model_list: Optional[List[Dict[str, Any]]])
 
 
 def _first_non_empty(*values: Any) -> Optional[str]:
+    """返回首个非空白值；全部为空返回 None。"""
     for value in values:
         text = str(value or "").strip()
         if text:
@@ -736,6 +761,7 @@ def _first_non_empty(*values: Any) -> Optional[str]:
 
 
 def _infer_api_surface(family: str, api_base: Optional[str]) -> ApiSurface:
+    """根据 provider 家族推断 api 表面（如 anthropic→anthropic_messages）。"""
     if family == "anthropic":
         return "anthropic_messages"
     if family in {"gemini", "vertex_ai"}:
@@ -756,6 +782,7 @@ def _infer_api_surface(family: str, api_base: Optional[str]) -> ApiSurface:
 
 
 def _infer_gateway(api_base: Optional[str], family: str) -> Optional[str]:
+    """从 api_base 推断网关（openrouter/litellm 等）。"""
     text = (api_base or "").lower()
     if "openrouter" in text:
         return "openrouter"
@@ -769,6 +796,7 @@ def _infer_gateway(api_base: Optional[str], family: str) -> Optional[str]:
 
 
 def _infer_cloud_platform(api_base: Optional[str], family: str) -> CloudPlatform:
+    """从 api_base 推断云平台（aws_bedrock/vertex 等）。"""
     text = (api_base or "").lower()
     if "bedrock" in text:
         return "aws_bedrock"
@@ -780,6 +808,7 @@ def _infer_cloud_platform(api_base: Optional[str], family: str) -> CloudPlatform
 
 
 def _infer_provider_family_from_api_base(api_base: Optional[str]) -> Optional[str]:
+    """从 api_base 主机名后缀推断 provider 家族。"""
     host = _api_base_host(api_base)
     if not host:
         return None
@@ -790,6 +819,7 @@ def _infer_provider_family_from_api_base(api_base: Optional[str]) -> Optional[st
 
 
 def _api_base_host(api_base: Optional[str]) -> str:
+    """从 api_base 解析出主机名（小写、补默认协议）。"""
     text = (api_base or "").strip().lower()
     if not text:
         return ""
@@ -798,11 +828,13 @@ def _api_base_host(api_base: Optional[str]) -> str:
 
 
 def _is_native_openai_model(normalized_model: str) -> bool:
+    """判断归一化模型名是否为原生 OpenAI 模型。"""
     model_name = normalized_model.split("/", 1)[1] if normalized_model.startswith("openai/") else normalized_model
     return model_name.startswith(("gpt-", "o1", "o3", "o4", "chatgpt-", "gpt4"))
 
 
 def _is_glm_model(normalized_model: str) -> bool:
+    """判断归一化模型名是否为 GLM/智谱系列模型。"""
     if not normalized_model:
         return False
     model_name = normalized_model.split("/", 1)[-1]

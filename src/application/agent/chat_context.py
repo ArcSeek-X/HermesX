@@ -394,6 +394,7 @@ def _build_visible_history_state(
 
 
 def _load_visible_messages(session_id: str, *, limit: Optional[int] = None) -> List[VisibleMessage]:
+    """加载指定会话的可见消息列表。"""
     rows = _get_chat_context_port().get_visible_conversation_messages(session_id, limit=limit)
     messages = []
     for row in rows:
@@ -413,6 +414,7 @@ def _load_visible_messages(session_id: str, *, limit: Optional[int] = None) -> L
 
 
 def _split_protected_tail(messages: Sequence[VisibleMessage], protected_turns: int) -> List[VisibleMessage]:
+    """切出末尾需保留不被压缩的对话轮次。"""
     if not messages:
         return []
     if protected_turns <= 0:
@@ -440,6 +442,7 @@ def _generate_summary(
     to_summarize: Sequence[VisibleMessage],
     max_tokens: int,
 ) -> Tuple[Optional[str], Any]:
+    """为较早的对话消息生成摘要。"""
     try:
         response = llm_adapter.call_text(
             build_summary_messages(previous_summary, to_summarize),
@@ -462,6 +465,7 @@ def _to_chat_messages(
     *,
     include_ids: bool = False,
 ) -> List[Dict[str, Any]]:
+    """将内部消息结构转换为 LLM 聊天消息。"""
     result: List[Dict[str, Any]] = []
     for msg in messages:
         row: Dict[str, Any] = {"role": msg.role, "content": msg.content}
@@ -472,6 +476,7 @@ def _to_chat_messages(
 
 
 def _strip_internal_message_ids(messages: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """移除消息中的内部追踪 ID 字段。"""
     return [
         {key: value for key, value in msg.items() if key != "_message_id"}
         for msg in messages
@@ -484,6 +489,7 @@ def _restore_trace_metadata(
     provider: Any,
     model: Any,
 ) -> List[Dict[str, Any]]:
+    """恢复消息的追踪元数据。"""
     restored: List[Dict[str, Any]] = []
     for msg in messages:
         if not isinstance(msg, dict):
@@ -500,6 +506,7 @@ def _build_trace_match_targets(
     models: Sequence[str],
     config: Any,
 ) -> List[Tuple[str, str]]:
+    """构造追踪元数据的匹配目标集合。"""
     model_list = getattr(config, "llm_model_list", []) or []
     targets: List[Tuple[str, str]] = []
     for model in models:
@@ -511,6 +518,7 @@ def _build_trace_match_targets(
 
 
 def _render_messages(messages: Sequence[Dict[str, Any]]) -> str:
+    """将聊天消息渲染为可读文本。"""
     return "\n\n".join(
         f"{msg.get('role', '')}:\n{msg.get('content', '')}"
         for msg in messages
@@ -518,10 +526,12 @@ def _render_messages(messages: Sequence[Dict[str, Any]]) -> str:
 
 
 def _render_visible_messages(messages: Sequence[VisibleMessage]) -> str:
+    """将可见消息渲染为可读文本。"""
     return "\n\n".join(f"{msg.role}:\n{msg.content}" for msg in messages)
 
 
 def _coerce_int(value: Any, *, default: int) -> int:
+    """将值安全转换为整数，失败用默认值。"""
     try:
         return int(value)
     except (TypeError, ValueError):

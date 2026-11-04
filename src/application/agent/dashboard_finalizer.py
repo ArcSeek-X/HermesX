@@ -234,6 +234,7 @@ def finalize_dashboard_payload(payload: Optional[Dict[str, Any]], ctx: AgentCont
 
 
 def collect_strategy_synthesis(ctx: AgentContext, dashboard_block: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """汇总策略综合结论。"""
     consensus_data = ctx.get_data("skill_consensus")
     if isinstance(consensus_data, dict):
         synthesis = consensus_data.get("strategy_synthesis")
@@ -259,6 +260,7 @@ def collect_key_levels(ctx: AgentContext, payload: Dict[str, Any], dashboard_blo
     levels: Dict[str, Any] = {}
 
     def absorb(source: Any) -> None:
+        """吸收单条 Agent 观点到仪表盘。"""
         if not isinstance(source, dict):
             return
         for key, value in source.items():
@@ -294,6 +296,7 @@ def build_data_perspective(ctx: AgentContext, key_levels: Dict[str, Any]) -> Dic
         }
 
     def _bias_label(bias):
+        """返回倾向性展示标签。"""
         if not isinstance(bias, (int, float)):
             return ""
         if bias > 5:
@@ -349,9 +352,11 @@ def build_data_perspective(ctx: AgentContext, key_levels: Dict[str, Any]) -> Dic
 
 
 def collect_risk_alerts(ctx: AgentContext, intelligence: Dict[str, Any]) -> List[str]:
+    """汇总风险提示条目。"""
     alerts: List[str] = []
 
     def absorb(values: Any) -> None:
+        """吸收单条 Agent 观点到仪表盘。"""
         if not isinstance(values, list):
             return
         for item in values:
@@ -378,9 +383,11 @@ def collect_risk_alerts(ctx: AgentContext, intelligence: Dict[str, Any]) -> List
 
 
 def collect_positive_catalysts(ctx: AgentContext, intelligence: Dict[str, Any]) -> List[str]:
+    """汇总正面催化剂条目。"""
     catalysts: List[str] = []
 
     def absorb(values: Any) -> None:
+        """吸收单条 Agent 观点到仪表盘。"""
         if not isinstance(values, list):
             return
         for item in values:
@@ -396,6 +403,7 @@ def collect_positive_catalysts(ctx: AgentContext, intelligence: Dict[str, Any]) 
 
 
 def latest_opinion(ctx: AgentContext, names: set[str]) -> Optional[Any]:
+    """返回最新一条 Agent 观点。"""
     for opinion in reversed(ctx.opinions):
         if opinion.agent_name in names:
             return opinion
@@ -403,6 +411,7 @@ def latest_opinion(ctx: AgentContext, names: set[str]) -> Optional[Any]:
 
 
 def select_base_opinion(ctx: AgentContext) -> Optional[Any]:
+    """挑选作为基准的 Agent 观点。"""
     preferred_groups = ({"decision"}, {"skill_consensus", "strategy_consensus"}, {"technical"}, {"intel"}, {"risk"})
     for names in preferred_groups:
         opinion = latest_opinion(ctx, names)
@@ -458,6 +467,7 @@ def _adjust_operation_advice(advice: str, signal: str) -> str:
 
 
 def _signal_to_operation(signal: str) -> str:
+    """将信号映射为操作建议。"""
     mapping = {
         "buy": "买入",
         "hold": "观望",
@@ -467,6 +477,7 @@ def _signal_to_operation(signal: str) -> str:
 
 
 def _signal_to_signal_type(signal: str) -> str:
+    """将信号映射为信号类型。"""
     mapping = {
         "buy": "🟢买入信号",
         "hold": "🟡持有观望",
@@ -476,6 +487,7 @@ def _signal_to_signal_type(signal: str) -> str:
 
 
 def _default_position_advice(signal: str) -> Dict[str, str]:
+    """返回默认仓位建议。"""
     mapping = {
         "buy": {
             "no_position": "可结合支撑位分批试仓，避免一次性追高。",
@@ -509,6 +521,7 @@ def _post_risk_position_advice(signal: str) -> Dict[str, str]:
 
 
 def _default_position_size(signal: str) -> str:
+    """返回默认仓位比例。"""
     mapping = {
         "buy": "轻仓试仓",
         "hold": "控制仓位",
@@ -518,12 +531,14 @@ def _default_position_size(signal: str) -> str:
 
 
 def _normalize_operation_advice_value(value: Any, signal: str) -> str:
+    """规范化操作建议取值。"""
     if isinstance(value, str) and value.strip():
         return value.strip()
     return _signal_to_operation(signal)
 
 
 def _confidence_label(confidence: float) -> str:
+    """返回置信度展示标签。"""
     if confidence >= 0.75:
         return "高"
     if confidence >= 0.45:
@@ -532,6 +547,7 @@ def _confidence_label(confidence: float) -> str:
 
 
 def _estimate_sentiment_score(signal: str, confidence: float) -> int:
+    """估算情绪评分。"""
     confidence = max(0.0, min(1.0, float(confidence)))
     bands = {
         "buy": (65, 79),
@@ -543,6 +559,7 @@ def _estimate_sentiment_score(signal: str, confidence: float) -> int:
 
 
 def _coerce_level_value(value: Any) -> Any:
+    """将级别值安全转换为标准形式。"""
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, (int, float)):
@@ -557,6 +574,7 @@ def _coerce_level_value(value: Any) -> Any:
 
 
 def _pick_first_level(*values: Any) -> Any:
+    """选取首个有效级别值。"""
     for value in values:
         normalized = _coerce_level_value(value)
         if normalized is not None:
@@ -565,12 +583,14 @@ def _pick_first_level(*values: Any) -> Any:
 
 
 def _level_values_equal(left: Any, right: Any) -> bool:
+    """判断两个级别值是否等价。"""
     left_normalized = _coerce_level_value(left)
     right_normalized = _coerce_level_value(right)
     return left_normalized is not None and right_normalized is not None and left_normalized == right_normalized
 
 
 def _first_non_empty_text(*values: Any) -> str:
+    """返回首个非空文本。"""
     for value in values:
         if isinstance(value, str) and value.strip():
             return value.strip()
@@ -578,6 +598,7 @@ def _first_non_empty_text(*values: Any) -> str:
 
 
 def _truncate_text(text: Any, limit: int) -> str:
+    """按长度上限截断文本。"""
     value = str(text or "").strip()
     if len(value) <= limit:
         return value
@@ -585,6 +606,7 @@ def _truncate_text(text: Any, limit: int) -> str:
 
 
 def _extract_latest_news_title(intelligence: Dict[str, Any]) -> str:
+    """提取最新新闻标题。"""
     key_news = intelligence.get("key_news")
     if isinstance(key_news, list):
         for item in key_news:

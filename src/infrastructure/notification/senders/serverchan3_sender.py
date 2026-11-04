@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Serverchan3Sender:
     
+    """Server酱³ 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 Server酱3 配置

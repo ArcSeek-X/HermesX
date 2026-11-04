@@ -19,6 +19,8 @@ RunStageCallable = Callable[[Any, AgentContext, Optional[Callable], Optional[flo
 
 @dataclass
 class SkillBatchResult:
+    """技能批量运行结果：阶段结果列表、意见列表、无效记录列表，以及并发度与单技能超时配置。"""
+
     stage_results: List[StageResult] = field(default_factory=list)
     opinions: List[AgentOpinion] = field(default_factory=list)
     invalid_records: List[Dict[str, Any]] = field(default_factory=list)
@@ -30,6 +32,7 @@ class AgentSkillScheduler:
     """Run selected skill agents concurrently without sharing mutable context writes."""
 
     def __init__(self, *, max_concurrency: int = 3, timeout_per_skill: float = 0.0) -> None:
+        """构造调度器：钳制并发度到 [1,4]、单技能超时取非负值。"""
         self.max_concurrency = _clamp_int(max_concurrency, minimum=1, maximum=4)
         self.timeout_per_skill = max(0.0, float(timeout_per_skill or 0.0))
 
@@ -41,6 +44,7 @@ class AgentSkillScheduler:
         *,
         progress_callback: Optional[Callable] = None,
     ) -> SkillBatchResult:
+        """并发运行给定技能 Agent：用线程池提交各 agent 的隔离上下文运行，按完成顺序收集结果与意见，记录失败/无效项并返回 SkillBatchResult。"""
         selected_agents = list(agents)
         if not selected_agents:
             return SkillBatchResult(
@@ -118,6 +122,7 @@ class AgentSkillScheduler:
         run_stage: RunStageCallable,
         progress_callback: Optional[Callable],
     ) -> tuple[StageResult, List[AgentOpinion]]:
+        """单个 agent 的运行体：克隆隔离上下文后执行 run_stage，从结果或新增意见中提取意见返回。"""
         isolated_ctx = _clone_context_for_skill(ctx)
         opinion_count_before = len(isolated_ctx.opinions)
         timeout = self.timeout_per_skill if self.timeout_per_skill > 0 else None
@@ -136,6 +141,7 @@ class AgentSkillScheduler:
         result: StageResult,
         opinions: List[AgentOpinion],
     ) -> Optional[Dict[str, Any]]:
+        """根据阶段结果与意见构造无效记录：超时归为 skill_timeout，否则 skill_error；成功但无意见亦记为 skill_error。"""
         if result.success and opinions:
             return None
 
@@ -155,6 +161,7 @@ class AgentSkillScheduler:
 
 
 def _clone_context_for_skill(ctx: AgentContext) -> AgentContext:
+    """深度克隆 AgentContext 供单技能隔离运行（data/opinions/risk_flags/meta 均复制）。"""
     return AgentContext(
         query=ctx.query,
         stock_code=ctx.stock_code,
@@ -169,6 +176,7 @@ def _clone_context_for_skill(ctx: AgentContext) -> AgentContext:
 
 
 def _clamp_int(value: Any, *, minimum: int, maximum: int) -> int:
+    """将值钳制到 [minimum, maximum] 整数区间；解析失败回退 minimum。"""
     try:
         parsed = int(value)
     except (TypeError, ValueError):

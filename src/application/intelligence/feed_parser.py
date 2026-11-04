@@ -17,6 +17,7 @@ class FeedParser:
     """Parse feed content; URL validation remains an explicit caller dependency."""
 
     def __init__(self, url_validator):
+        """构造信息流解析器：保存 URL 校验器。"""
         self._url_validator = url_validator
 
     def parse_feed(self, content: bytes, *, source_name: str, limit: int) -> List[FeedEntry]:

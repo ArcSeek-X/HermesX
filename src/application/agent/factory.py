@@ -24,6 +24,11 @@ Usage::
     from src.application.agent.factory import resolve_skill_prompt_state
 
     state = resolve_skill_prompt_state(config, skills=["bull_trend", "shrink_pullback"])
+
+Agent 入口共享的技能/工具解析辅助模块。负责应用层的轻量装配：
+模块级缓存的 ToolRegistry / SkillManager 原型与技能提示词解析。
+真正实例化基础设施适配器（LLMToolAdapter / LiteLLMAgentBackend / CodexAgentBackend）的执行器构造
+位于 src.bootstrap.agent，属启动装配关注点，不得出现在 src.application 中。
 """
 
 import copy

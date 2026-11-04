@@ -26,6 +26,7 @@ def get_usage_summary(
     period: str = Query("month", description="'today' | 'month' | 'all'"),
     service: UsageService = Depends(get_usage_service),
 ) -> UsageSummaryResponse:
+    """获取用量汇总。"""
     return UsageSummaryResponse(**service.get_summary(period))
 
 
@@ -40,4 +41,5 @@ def get_usage_dashboard(
     limit: int = Query(50, ge=1, le=200, description="Recent call records to include"),
     service: UsageService = Depends(get_usage_service),
 ) -> UsageDashboardResponse:
+    """获取用量仪表盘数据。"""
     return UsageDashboardResponse(**service.get_dashboard(period, limit))

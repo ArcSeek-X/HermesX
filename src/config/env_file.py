@@ -44,6 +44,7 @@ def escape_compose_sensitive_env_value(key: str, value: str) -> str:
         return value
 
     def _replace(match: re.Match[str]) -> str:
+        """替换 .env 文件中的指定键值。"""
         braced_name = match.group(1)
         plain_name = match.group(2)
         if braced_name is not None:
@@ -59,6 +60,7 @@ def unescape_compose_sensitive_env_value(key: str, value: str) -> str:
         return value
 
     def _replace(match: re.Match[str]) -> str:
+        """替换 .env 文件中的指定键值。"""
         braced_name = match.group(1)
         plain_name = match.group(2)
         if braced_name is not None:
@@ -128,6 +130,7 @@ class ConfigManager:
     """
 
     def __init__(self, env_path: Optional[Path] = None):
+        """构造 .env 文件编辑器并初始化状态。"""
         self._env_path = env_path or self._resolve_env_path()
         self._lock = threading.RLock()
 

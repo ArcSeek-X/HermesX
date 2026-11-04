@@ -28,14 +28,17 @@ _frozen_target_date: contextvars.ContextVar[Optional[date]] = contextvars.Contex
 
 
 def set_frozen_target_date(d: date) -> contextvars.Token:
+    """设置协程上下文的冻结目标日期并返回还原 token。"""
     return _frozen_target_date.set(d)
 
 
 def get_frozen_target_date() -> Optional[date]:
+    """读取当前协程上下文的冻结目标日期。"""
     return _frozen_target_date.get()
 
 
 def reset_frozen_target_date(token: contextvars.Token) -> None:
+    """按 token 还原冻结目标日期。"""
     _frozen_target_date.reset(token)
 
 
@@ -56,6 +59,7 @@ def set_history_daily_bar_fetcher(fetcher: Any) -> None:
 
 
 def _get_daily_bar_fetcher() -> Any:
+    """返回当前已装配的日线抓取器。"""
     return _daily_bar_fetcher
 
 # ---------------------------------------------------------------------------
@@ -74,6 +78,7 @@ def set_history_kline_repo(repo: Any) -> None:
 
 
 def _get_kline_repo() -> Any:
+    """返回当前已装配的 K 线仓储。"""
     return _kline_repo
 
 
@@ -81,6 +86,7 @@ def _get_kline_repo() -> Any:
 # DB-first history loader
 # ---------------------------------------------------------------------------
 def _history_code_candidates(stock_code: str) -> Tuple[List[str], str]:
+    """生成股票代码的历史查询候选列表与展示代码。"""
     from src.application.quote.stock_code_utils import (
         canonical_stock_code_for_analysis,
         normalize_stock_code_for_analysis,
@@ -98,6 +104,7 @@ def _history_code_candidates(stock_code: str) -> Tuple[List[str], str]:
 
 
 def _coerce_bar_date(value: Any) -> date:
+    """将任意日期表示规范化为 date。"""
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
@@ -117,6 +124,7 @@ def _coerce_bar_date(value: Any) -> date:
 
 
 def _bar_date(bar: Any) -> date:
+    """从单根 K 线数据中提取日期。"""
     row_date = _coerce_bar_date(getattr(bar, "date", None))
     if row_date != date.min:
         return row_date
@@ -129,6 +137,7 @@ def _bar_date(bar: Any) -> date:
 
 
 def _select_best_bars(db, stock_code: str, start: date, end: date) -> Tuple[Optional[str], list]:
+    """在区间内挑选最完整的 K 线序列及其代码。"""
     candidates, normalized_code = _history_code_candidates(stock_code)
     best_code = None
     best_bars = []

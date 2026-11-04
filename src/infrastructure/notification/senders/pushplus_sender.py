@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class PushplusSender:
     
+    """PushPlus 渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化 PushPlus 配置
@@ -100,6 +101,7 @@ class PushplusSender:
         *,
         timeout_seconds: Optional[float] = None,
     ) -> bool:
+        """向 PushPlus 接口发送单条消息。"""
         payload = {
             "token": self._pushplus_token,
             "title": title,

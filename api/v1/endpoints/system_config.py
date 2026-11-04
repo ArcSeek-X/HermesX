@@ -1,4 +1,7 @@
-"""System configuration endpoints."""
+"""System configuration endpoints.
+
+系统配置相关端点：读取/预览 Agent 后端状态、环境变量备份访问控制等。
+"""
 
 from __future__ import annotations
 
@@ -83,9 +86,13 @@ def run_scheduler_now(
 
 
 class EnvBackupAccessDenied(Exception):
-    """Raised when raw `.env` backup access is not allowed for this request."""
+    """环境变量备份访问被拒绝的异常，携带 HTTP 状态码与消息。
+
+    Raised when raw `.env` backup access is not allowed for this request.
+    """
 
     def __init__(self, *, status_code: int, message: str) -> None:
+        """构造异常：保存 HTTP 状态码与消息。"""
         super().__init__(message)
         self.status_code = status_code
         self.message = message
@@ -118,6 +125,7 @@ def _allow_env_backup_access(request: Request) -> None:
 
 
 def _raise_env_backup_access_error(exc: EnvBackupAccessDenied) -> None:
+    """把环境变量备份访问被拒绝的异常转换为对应状态码的 HTTPException。"""
     raise HTTPException(
         status_code=exc.status_code,
         detail={
@@ -326,6 +334,7 @@ def test_generation_backend(
 def get_agent_backend_status(
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> AgentBackendStatusResponse:
+    """端点：返回当前 Agent 后端的运行状态。"""
     try:
         return AgentBackendStatusResponse.model_validate(service.get_agent_backend_status())
     except Exception as exc:
@@ -346,6 +355,7 @@ def preview_agent_backend_status(
     request: AgentBackendStatusPreviewRequest,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> AgentBackendStatusResponse:
+    """端点：按请求预览 Agent 后端状态变更后的结果。"""
     try:
         return AgentBackendStatusResponse.model_validate(
             service.preview_agent_backend_status(

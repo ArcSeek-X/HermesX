@@ -37,6 +37,7 @@ def _canonical_ipv4_numeric_host(host: str) -> Optional[str]:
 
 
 def _is_noncanonical_ipv4_numeric_host(host: str) -> bool:
+    """判断主机是否为非规范 IPv4 数字形式。"""
     canonical = _canonical_ipv4_numeric_host(host)
     return canonical is not None and host.lower() != canonical
 

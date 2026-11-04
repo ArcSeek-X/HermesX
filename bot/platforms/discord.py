@@ -31,6 +31,7 @@ class DiscordPlatform(BotPlatform):
     """Discord 平台适配器"""
 
     def __init__(self):
+        """构造 Discord 平台适配器并装配依赖。"""
         from src.config import get_config
 
         config = get_config()
@@ -326,6 +327,7 @@ class DiscordPlatform(BotPlatform):
         return None
 
     def _build_command_content(self, interaction_data: Dict[str, Any]) -> str:
+        """构造命令消息内容。"""
         command_name = str(interaction_data.get("name", "")).strip()
         if not command_name:
             return ""
@@ -335,6 +337,7 @@ class DiscordPlatform(BotPlatform):
         return " ".join(parts).strip()
 
     def _append_option_parts(self, parts: List[str], options: Any) -> None:
+        """追加命令选项片段。"""
         if not isinstance(options, list):
             return
 
@@ -366,6 +369,7 @@ class DiscordPlatform(BotPlatform):
                 parts.append(str(value))
 
     def _parse_timestamp(self, value: Any) -> datetime:
+        """解析消息时间戳。"""
         if not value:
             return datetime.now()
 

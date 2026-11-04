@@ -564,6 +564,7 @@ class YfinanceFetcher(BaseFetcher):
             return None
 
         def _fetch_prev_close() -> Optional[float]:
+            """获取前一交易日收盘价。"""
             history_url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
             history_request = Request(
                 history_url,

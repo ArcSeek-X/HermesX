@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class CustomWebhookSender:
 
+    """自定义 Webhook 通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化自定义 Webhook 配置
@@ -151,6 +152,7 @@ class CustomWebhookSender:
         return success_count > 0
 
     def _post_custom_webhook(self, url: str, payload: dict, timeout: int = 30) -> bool:
+        """向自定义 Webhook 提交载荷。"""
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
             'User-Agent': 'StockAnalysis/1.0',
@@ -202,6 +204,7 @@ class CustomWebhookSender:
         timeout_seconds: float,
         index: int,
     ) -> Dict[str, Any]:
+        """执行单次 Webhook 提交尝试。"""
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
             'User-Agent': 'StockAnalysis/1.0',
@@ -262,6 +265,7 @@ class CustomWebhookSender:
 
     @staticmethod
     def _classify_custom_webhook_exception(exc: Exception) -> Tuple[str, bool]:
+        """归类 Webhook 异常为错误码与可重试标志。"""
         if isinstance(exc, requests.exceptions.Timeout):
             return "timeout", True
         if isinstance(exc, requests.exceptions.ConnectionError):
@@ -354,11 +358,13 @@ class CustomWebhookSender:
 
     @staticmethod
     def _is_dingtalk_webhook(url: str) -> bool:
+        """判断 URL 是否为钉钉 Webhook。"""
         url_lower = (url or "").lower()
         return 'dingtalk' in url_lower or 'oapi.dingtalk.com' in url_lower
 
     @staticmethod
     def _is_discord_webhook(url: str) -> bool:
+        """判断 URL 是否为 Discord Webhook。"""
         url_lower = (url or "").lower()
         return (
             'discord.com/api/webhooks' in url_lower

@@ -189,9 +189,11 @@ def render(
     report_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def failed_checks(checklist: List[str]) -> List[str]:
+        """从检查清单中筛出失败项。"""
         return [c for c in (checklist or []) if c.startswith("❌") or c.startswith("⚠️")]
 
     def phase_pack_excerpt(result: AnalysisResult) -> str:
+        """提取分析结果中的阶段上下文包摘要。"""
         return format_public_phase_pack_excerpt(
             getattr(result, "market_phase_summary", None),
             getattr(result, "analysis_context_pack_overview", None),
@@ -200,6 +202,7 @@ def render(
         )
 
     def market_status_line() -> str:
+        """返回大盘状态描述行。"""
         for source_results in (results or [], sorted_results):
             for result in source_results:
                 line = format_public_market_status_line(

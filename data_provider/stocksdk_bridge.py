@@ -35,6 +35,7 @@ class StockSdkBridgeError(RuntimeError):
     """StockSDK bridge 调用失败。"""
 
     def __init__(self, code: str, message: str, status_code: int = 503) -> None:
+        """构造 StockSDK 桥接器并装配依赖。"""
         super().__init__(message)
         self.code = code
         self.status_code = status_code
@@ -128,6 +129,7 @@ class StockSdkBridgeClient:
     """StockSDK Python bridge 客户端。"""
 
     def __init__(self, settings: StockSdkSettings) -> None:
+        """构造 StockSDK 桥接器并装配依赖。"""
         self.settings = settings
 
     def is_available(self) -> bool:
@@ -311,6 +313,7 @@ class StockSdkBridgeClient:
         return payload_obj.get("data")
 
     def _resolve_node_binary(self) -> Optional[str]:
+        """解析 Node 可执行文件路径。"""
         node_bin = self.settings.node_bin
         if not node_bin:
             return None
@@ -319,12 +322,14 @@ class StockSdkBridgeClient:
         return shutil.which(node_bin)
 
     def _resolve_bridge_entry_path(self) -> Path:
+        """解析桥接脚本入口路径。"""
         entry = Path(self.settings.bridge_entry)
         if entry.is_absolute():
             return entry
         return REPO_ROOT / entry
 
     def _build_sdk_options(self) -> Dict[str, Any]:
+        """构建 SDK 调用选项。"""
         return {
             "timeout": self.settings.timeout_ms,
             "rateLimit": {
@@ -343,6 +348,7 @@ class StockSdkBridgeClient:
         }
 
     def _build_subprocess_env(self) -> Dict[str, str]:
+        """构建子进程环境变量。"""
         env = dict()
         for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE", "SYSTEMROOT"):
             raw_value = os.environ.get(key)

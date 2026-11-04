@@ -63,12 +63,14 @@ def _safe_float(value: Any) -> Optional[float]:
 
 
 def _safe_str(value: Any) -> str:
+    """将值安全转换为字符串。"""
     if value is None:
         return ""
     return str(value).strip()
 
 
 def _safe_datetime(value: Any) -> Optional[datetime]:
+    """将值安全转换为 datetime。"""
     if value is None:
         return None
     try:
@@ -84,6 +86,7 @@ def _safe_datetime(value: Any) -> Optional[datetime]:
 
 
 def _normalize_code(raw: Any) -> str:
+    """规范化股票代码。"""
     s = _safe_str(raw).upper()
     if "." in s:
         s = s.split(".", 1)[0]
@@ -142,6 +145,7 @@ def _extract_cash_dividend_per_share(row: pd.Series) -> Optional[float]:
 
 
 def _filter_rows_by_code(df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
+    """按代码过滤数据行。"""
     if df is None or df.empty:
         return pd.DataFrame()
     code_cols = [c for c in df.columns if any(k in str(c) for k in ("代码", "股票代码", "证券代码", "symbol", "ts_code"))]
@@ -161,6 +165,7 @@ def _filter_rows_by_code(df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
 
 
 def _normalize_report_date(value: Any) -> Optional[str]:
+    """规范化财报日期。"""
     parsed = _safe_datetime(value)
     return parsed.date().isoformat() if parsed else None
 
@@ -170,6 +175,7 @@ def _build_dividend_payload(
     stock_code: str,
     max_events: int = 5,
 ) -> Dict[str, Any]:
+    """构造分红数据载荷。"""
     work_df = _filter_rows_by_code(dividend_df, stock_code)
     if work_df.empty:
         return {}
@@ -268,6 +274,7 @@ class AkshareFundamentalAdapter:
         self,
         candidates: List[Tuple[str, Dict[str, Any]]],
     ) -> Tuple[Optional[pd.DataFrame], Optional[str], List[str]]:
+        """依次尝试多个 DataFrame 取数函数。"""
         errors: List[str] = []
         try:
             import akshare as ak

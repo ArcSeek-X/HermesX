@@ -134,6 +134,7 @@ class BacktestRepository:
     """DB access layer for backtesting."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造回测仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def get_candidates(
@@ -235,11 +236,13 @@ class BacktestRepository:
             return updated
 
     def save_result(self, result: BacktestResultRecord) -> None:
+        """保存单条回测结果。"""
         with self.db.get_session() as session:
             session.add(_to_result_orm(result))
             session.commit()
 
     def save_results_batch(self, results: List[BacktestResultRecord], *, replace_existing: bool = False) -> int:
+        """批量保存回测结果。"""
         if not results:
             return 0
 
@@ -281,6 +284,7 @@ class BacktestRepository:
         offset: int,
         limit: int,
     ) -> Tuple[List[BacktestResultContextRow], int]:  # rows carry BacktestResultRecord
+        """分页获取回测结果。"""
         with self.db.get_session() as session:
             conditions = self._build_result_conditions(
                 code=code,
@@ -371,6 +375,7 @@ class BacktestRepository:
         days: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[Tuple["BacktestResultRecord", Optional[str]]]:
+        """列出带上下文的回测结果。"""
         with self.db.get_session() as session:
             conditions = self._build_result_conditions(
                 code=code,
@@ -458,6 +463,7 @@ class BacktestRepository:
         days: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[BacktestResultRecord]:
+        """列出回测结果。"""
         with self.db.get_session() as session:
             conditions = self._build_result_conditions(
                 code=code,
@@ -532,6 +538,7 @@ class BacktestRepository:
         eval_window_days: Optional[int] = None,
         engine_version: str,
     ) -> Optional[BacktestSummaryRecord]:
+        """获取回测汇总统计。"""
         with self.db.get_session() as session:
             conditions = [
                 BacktestSummary.scope == scope,
@@ -593,6 +600,7 @@ class BacktestRepository:
         analysis_date_to: Optional[date],
         days: Optional[int],
     ) -> List[object]:
+        """构建结果查询条件。"""
         conditions = []
         if code:
             conditions.extend(BacktestRepository._build_code_conditions(BacktestResult.code, code))
@@ -611,6 +619,7 @@ class BacktestRepository:
 
     @staticmethod
     def _build_code_conditions(column, code: str) -> List[object]:
+        """构建代码查询条件。"""
         if not code:
             return []
 

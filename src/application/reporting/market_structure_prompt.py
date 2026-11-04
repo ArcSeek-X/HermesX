@@ -69,6 +69,7 @@ def _format_en(
     risk_tags: List[str],
     missing_fields: List[str],
 ) -> List[str]:
+    """格式化英文版大盘结构提示词。"""
     lines = [
         "\n## Market Structure Context",
         f"- Status: {context.get('status', 'unknown')}",
@@ -101,6 +102,7 @@ def _format_zh(
     risk_tags: List[str],
     missing_fields: List[str],
 ) -> List[str]:
+    """格式化中文版大盘结构提示词。"""
     lines = [
         "\n## 市场结构上下文",
         f"- 状态：{context.get('status', 'unknown')}",
@@ -133,6 +135,7 @@ def _format_ko(
     risk_tags: List[str],
     missing_fields: List[str],
 ) -> List[str]:
+    """格式化韩文版大盘结构提示词。"""
     lines = [
         "\n## 시장 구조 컨텍스트",
         f"- 상태: {context.get('status', '알 수 없음')}",
@@ -156,6 +159,7 @@ def _format_ko(
 
 
 def _item_names(value: Any, *, limit: int) -> List[str]:
+    """提取条目的名称列表（按上限截断）。"""
     if not isinstance(value, list):
         return []
     names: List[str] = []
@@ -176,6 +180,7 @@ def _item_names(value: Any, *, limit: int) -> List[str]:
 
 
 def _string_values(value: Any) -> List[str]:
+    """从任意值中提取字符串列表。"""
     if not isinstance(value, Iterable) or isinstance(value, (str, bytes, dict)):
         return []
     normalized: List[str] = []

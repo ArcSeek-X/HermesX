@@ -28,6 +28,11 @@ they never collide with import keys.
 Known limitation: dynamically resolved imports (``importlib.import_module`` and
 ``__import__``) are not detected. Keep them out of the layers listed here, or
 extend the scanner when a real use case appears.
+
+HermesX 后端的依赖方向守护脚本（ARCHITECTURE_TARGET.md 分层规则的可执行形式）。
+用 ast 扫描工作区，与已签入的基线对比，使既有技术债不阻塞开发、但任何新增的跨层依赖都会被发现。
+检测两类依赖：① import 语句（含函数体内的嵌套 import）；② 必须只访问公开面的层中对其他对象私有成员的访问（self._x/cls._x 除外）。
+基线以 (path, module) -> count 聚合（行号漂移不影响），新增违规即当前计数高于基线或基线未记录；私有成员访问用 private:<name> 命名空间避免与 import 键冲突。
 """
 
 from __future__ import annotations
@@ -179,6 +184,7 @@ RULES: tuple[Rule, ...] = (
 
 
 def _matches(module: str, forbidden: str) -> bool:
+    """判断 module 是否命中 forbidden 规则：forbidden 以 '.' 结尾按前缀匹配，否则精确匹配或「forbidden.」前缀匹配。"""
     if forbidden.endswith("."):
         return module.startswith(forbidden)
     return module == forbidden or module.startswith(forbidden + ".")
@@ -195,6 +201,7 @@ def _package_parts(relative_path: Path) -> list[str]:
 
 
 def _resolve_relative(relative_path: Path, level: int, module: str | None) -> str:
+    """解析相对导入的完整模块名：level==1 指当前包、level==2 指父包，依 level 从包路径截取并拼接 module 段。"""
     package = _package_parts(relative_path)
     # level == 1 refers to the current package, level == 2 to its parent, ...
     keep = len(package) - (level - 1)
@@ -248,6 +255,7 @@ def _private_member_target(node: ast.AST) -> str | None:
 
 
 def _rule_for(relative_path: str) -> Rule | None:
+    """按相对路径前缀匹配返回适用的分层规则（首个匹配）；无匹配返回 None（更具体的规则优先）。"""
     for rule in RULES:
         if relative_path.startswith(rule.source_prefix):
             return rule
@@ -255,6 +263,7 @@ def _rule_for(relative_path: str) -> Rule | None:
 
 
 def _iter_python_files(root: Path) -> Iterable[tuple[Path, Path]]:
+    """遍历所有扫描根（api/bot/src）下的 .py 文件，跳过 SKIP_DIR_NAMES 中的目录，逐个产出 (绝对路径, 相对路径) 对（按路径排序）。"""
     for scan_root in SCAN_ROOTS:
         base = root / scan_root
         if not base.is_dir():
@@ -302,6 +311,7 @@ def scan(root: Path) -> tuple[Counter[tuple[str, str]], list[str]]:
 
 
 def load_baseline(path: Path) -> dict[tuple[str, str], int]:
+    """加载基线 JSON 文件：解析 entries 为 {(path, module): count} 字典；文件不存在时返回空字典。"""
     if not path.is_file():
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -314,6 +324,7 @@ def load_baseline(path: Path) -> dict[tuple[str, str], int]:
 
 
 def write_baseline(path: Path, violations: Counter[tuple[str, str]]) -> None:
+    """将当前违规 Counter 写入基线 JSON（含 version/generated_at/entries），按 key 排序后写盘。"""
     entries = [
         {"path": path_key, "module": module, "count": count}
         for (path_key, module), count in sorted(violations.items())
@@ -354,6 +365,7 @@ def find_resolved_violations(
 
 
 def _print_report(violations: Counter[tuple[str, str]]) -> None:
+    """打印当前违规报告：无违规时提示，否则按规则分组输出每个 (path -> module) 及其计数。"""
     if not violations:
         print("No architecture violations found.")
         return
@@ -372,12 +384,14 @@ def _print_report(violations: Counter[tuple[str, str]]) -> None:
 
 
 def _default_baseline_path(root: Path) -> Path:
+    """返回默认基线文件路径：当 root 即仓库根时用 DEFAULT_BASELINE，否则用 root/scripts/architecture_baseline.json。"""
     if root.resolve() == REPO_ROOT:
         return DEFAULT_BASELINE
     return root / "scripts" / "architecture_baseline.json"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """CLI 入口：解析 --check/--report/--write-baseline/--root/--baseline 参数，扫描并对比基线，新增违规时返回 1、通过返回 0、参数缺失返回 2。"""
     parser = argparse.ArgumentParser(
         description="Check cross-layer imports against the architecture baseline.",
     )

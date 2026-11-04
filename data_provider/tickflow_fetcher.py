@@ -5,6 +5,9 @@ TickFlow data source adapter.
 TickFlow is optional and fail-open in this project. The fetcher supports
 general A-share daily K-lines/realtime quotes, keeps the existing market review
 capability, and exposes advanced TickFlow-only helpers for future consumers.
+
+TickFlow 数据源适配器。TickFlow 在本项目中为可选且 fail-open；
+该抓取器支持通用 A 股日线/实时报价，保留既有市场回顾能力，并暴露仅供 TickFlow 的高级辅助函数。
 """
 
 from __future__ import annotations
@@ -70,6 +73,7 @@ _SUPPORTED_KLINE_ADJUSTS = {
 
 
 def _parse_env_int(name: str, default: int, minimum: int = 1) -> int:
+    """从环境变量读取整数，解析失败或空值回退默认（含最小值约束）。"""
     raw_value = os.getenv(name)
     if raw_value is None or not str(raw_value).strip():
         return default
@@ -97,6 +101,7 @@ class TickFlowFetcher(BaseFetcher):
         batch_size: Optional[int] = None,
         priority: Optional[int] = None,
     ):
+        """构造 TickFlow 抓取器：保存 api_key、超时、优先级与各类缓存/能力状态。"""
         self.api_key = (api_key or "").strip()
         self.timeout = timeout
         self.priority = self._normalize_priority(priority)
@@ -145,17 +150,20 @@ class TickFlowFetcher(BaseFetcher):
                 logger.debug("[TickFlowFetcher] close client failed: %s", exc)
 
     def __del__(self) -> None:
+        """析构时尝试关闭底层客户端连接。"""
         try:
             self.close()
         except Exception:
             pass
 
     def _build_client(self):
+        """惰性构建 TickFlow 客户端实例。"""
         from tickflow import TickFlow
 
         return TickFlow(api_key=self.api_key, timeout=self.timeout)
 
     def _get_client(self):
+        """返回已构建客户端；无 api_key 时返回 None（fail-open）。"""
         if not self.api_key:
             return None
         if self._client is not None:
@@ -169,6 +177,7 @@ class TickFlowFetcher(BaseFetcher):
     def _fetch_raw_data(
         self, stock_code: str, start_date: str, end_date: str
     ) -> pd.DataFrame:
+        """按代码与日期区间向 TickFlow 请求原始 K 线数据。"""
         symbol = self._to_tickflow_symbol(stock_code)
         if not symbol:
             raise DataFetchError("TickFlowFetcher only supports A-share/ETF symbols")
@@ -208,6 +217,7 @@ class TickFlowFetcher(BaseFetcher):
         return raw_df.copy()
 
     def _normalize_data(self, df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
+        """将原始行情帧强制为标准列与数值类型。"""
         raw = self._coerce_frame(df)
         if raw.empty:
             return pd.DataFrame(columns=["code", *STANDARD_COLUMNS])
@@ -235,6 +245,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _safe_float(value: Any) -> Optional[float]:
+        """将值安全转为 float；空/占位符返回 None。"""
         if value in (None, "", "-"):
             return None
         try:
@@ -247,6 +258,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _parse_bool(value: Optional[str], default: bool) -> bool:
+        """解析布尔值；None 或非真值返回默认值。"""
         if value is None:
             return default
         normalized = value.strip().lower()
@@ -256,6 +268,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _normalize_priority(value: Optional[int]) -> int:
+        """归一化数据源优先级，缺省回退环境变量 TICKFLOW_PRIORITY。"""
         if value is None:
             return _parse_env_int("TICKFLOW_PRIORITY", 2, minimum=0)
         try:
@@ -266,6 +279,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _normalize_adjust(value: Optional[str]) -> str:
+        """归一化复权方式（qfq/hfq/none）。"""
         normalized = (value or "none").strip().lower()
         if normalized in _SUPPORTED_KLINE_ADJUSTS:
             return normalized
@@ -277,6 +291,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @classmethod
     def _ratio_to_percent(cls, value: Any) -> Optional[float]:
+        """将比率转为百分比浮点值。"""
         ratio = cls._safe_float(value)
         if ratio is None:
             return None
@@ -284,10 +299,12 @@ class TickFlowFetcher(BaseFetcher):
 
     @classmethod
     def _ratio_series_to_percent(cls, series: pd.Series) -> pd.Series:
+        """将比率序列逐元素转为百分比。"""
         return pd.to_numeric(series, errors="coerce") * 100.0
 
     @classmethod
     def _cn_lots_to_shares(cls, lots: Any, default: Optional[int] = None) -> Any:
+        """将 A 股手数序列换算为股数（×100）。"""
         if isinstance(lots, pd.Series):
             return pd.to_numeric(lots, errors="coerce") * 100
         volume = safe_int(lots, default)
@@ -297,12 +314,14 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _extract_name(quote: Dict[str, Any]) -> str:
+        """从行情报价中提取证券名称。"""
         ext = quote.get("ext") or {}
         name = ext.get("name") or quote.get("name") or ""
         return str(name).strip()
 
     @staticmethod
     def _is_permission_error(exc: Exception) -> bool:
+        """判断异常是否为权限类错误（按状态码/code 匹配）。"""
         status_code = getattr(exc, "status_code", None)
         code = str(getattr(exc, "code", "") or "").upper()
         message = f"{getattr(exc, 'message', '')} {exc}".strip().lower()
@@ -327,11 +346,13 @@ class TickFlowFetcher(BaseFetcher):
 
     @classmethod
     def _is_universe_permission_error(cls, exc: Exception) -> bool:
+        """判断异常是否为标的池权限错误。"""
         message = f"{getattr(exc, 'message', '')} {exc}".strip().lower()
         return cls._is_permission_error(exc) or "universe" in message or "\u6807\u7684\u6c60" in message
 
     @staticmethod
     def _is_cn_equity_symbol(symbol: str) -> bool:
+        """判断符号是否为 A 股普通股票代码。"""
         normalized = normalize_stock_code(symbol)
         upper_symbol = (symbol or "").strip().upper()
         return (
@@ -342,10 +363,12 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _round_limit_price(prev_close: float, ratio: float) -> float:
+        """按涨跌停比例对昨收价做向下取整的限价。"""
         return math.floor(prev_close * (1 + ratio) * 100 + 0.5) / 100.0
 
     @classmethod
     def _get_limit_ratio(cls, pure_code: str, name: str) -> float:
+        """按市场（主板/创业板/北交所）返回涨跌停比例。"""
         if is_bse_code(pure_code):
             return 0.30
         if is_kc_cy_stock(pure_code):
@@ -356,6 +379,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _coerce_frame(value: Any) -> pd.DataFrame:
+        """将任意值强制为 DataFrame，失败时返回空框。"""
         if value is None:
             return pd.DataFrame()
         if isinstance(value, pd.DataFrame):
@@ -373,6 +397,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _exchange_from_code(stock_code: str) -> Optional[str]:
+        """从股票代码后缀推断交易所标识。"""
         upper = (stock_code or "").strip().upper()
         if upper.endswith(".SS"):
             return "SH"
@@ -394,6 +419,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @classmethod
     def _to_tickflow_symbol(cls, stock_code: str) -> Optional[str]:
+        """将标准代码转换为 TickFlow 符号格式。"""
         code = normalize_stock_code(stock_code)
         if not (code.isdigit() and len(code) == 6):
             return None
@@ -412,6 +438,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _date_to_ms(date_str: str, *, end_of_day: bool = False) -> int:
+        """将日期字符串转为毫秒时间戳（可选当日收盘）。"""
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         if end_of_day:
             dt = dt + timedelta(days=1) - timedelta(milliseconds=1)
@@ -423,6 +450,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _extract_date_series(raw: pd.DataFrame) -> pd.Series:
+        """从原始数据提取并规范化日期序列。"""
         if "date" in raw.columns:
             return pd.to_datetime(raw["date"], errors="coerce").dt.normalize()
         if "trade_date" in raw.columns:
@@ -435,6 +463,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _daily_kline_count(start_date: str, end_date: str) -> int:
+        """估算日期区间内的交易日数量。"""
         try:
             start = datetime.strptime(start_date, "%Y-%m-%d")
             end = datetime.strptime(end_date, "%Y-%m-%d")
@@ -455,6 +484,7 @@ class TickFlowFetcher(BaseFetcher):
         count: int,
         context: str,
     ) -> pd.DataFrame:
+        """准备日线帧并做日期截断与去重。"""
         frame = cls._coerce_frame(value)
         if frame.empty:
             return frame
@@ -514,6 +544,7 @@ class TickFlowFetcher(BaseFetcher):
         count: int,
         returned_rows: int,
     ) -> bool:
+        """判断日线返回是否被单次上限截断。"""
         if returned_rows < count:
             return False
         try:
@@ -527,6 +558,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _first_trading_date_on_or_after(start_date: datetime) -> datetime:
+        """返回不早于给定日期的首个交易日。"""
         if xcals is not None:
             try:
                 cal = xcals.get_calendar("XSHG")
@@ -540,9 +572,11 @@ class TickFlowFetcher(BaseFetcher):
         return current
 
     def _daily_cache_key(self, symbol: str, start_date: str, end_date: str) -> Tuple[str, str, str, str]:
+        """构造日线缓存键（符号/区间/复权）。"""
         return (symbol.upper(), start_date, end_date, self.kline_adjust)
 
     def _get_daily_cache(self, cache_key: Tuple[str, str, str, str]) -> Optional[pd.DataFrame]:
+        """从进程内日线缓存读取命中项。"""
         with self._daily_cache_lock:
             cached = self._daily_cache.get(cache_key)
             if cached is not None:
@@ -550,10 +584,12 @@ class TickFlowFetcher(BaseFetcher):
         return None
 
     def _set_daily_cache(self, cache_key: Tuple[str, str, str, str], df: pd.DataFrame) -> None:
+        """写入日线缓存（受锁保护）。"""
         with self._daily_cache_lock:
             self._daily_cache[cache_key] = self._coerce_frame(df)
 
     def _capability_available(self, capability: str) -> bool:
+        """检查某能力是否当前可用（带冷却时间）。"""
         now = monotonic()
         with self._capability_lock:
             supported = self._capability_supported.get(capability)
@@ -567,6 +603,7 @@ class TickFlowFetcher(BaseFetcher):
             return False
 
     def _mark_capability(self, capability: str, supported: bool) -> None:
+        """记录某能力当前是否可用（受锁保护）。"""
         with self._capability_lock:
             self._capability_supported[capability] = supported
             self._capability_checked_at[capability] = monotonic()
@@ -683,6 +720,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @classmethod
     def _dedupe_symbols(cls, stock_codes: Iterable[str]) -> List[str]:
+        """对符号列表去重并保持顺序。"""
         symbols: List[str] = []
         seen = set()
         for stock_code in stock_codes:
@@ -695,6 +733,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _iter_batch_frames(batch_result: Any) -> Iterable[Tuple[str, Any]]:
+        """迭代批量请求结果中的各符号 DataFrame。"""
         if isinstance(batch_result, dict):
             for symbol, df in batch_result.items():
                 yield str(symbol).upper(), df
@@ -747,6 +786,7 @@ class TickFlowFetcher(BaseFetcher):
         return cached_count
 
     def _store_quotes(self, quotes: Any) -> int:
+        """将实时报价批量写入缓存，返回写入条数。"""
         if not quotes:
             return 0
         if isinstance(quotes, dict):
@@ -767,6 +807,7 @@ class TickFlowFetcher(BaseFetcher):
         return stored
 
     def _get_cached_quote(self, symbol: str, ttl_seconds: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """读取带 TTL 的实时报价缓存。"""
         ttl = 600 if ttl_seconds is None else max(0, int(ttl_seconds))
         now = monotonic()
         with self._quote_cache_lock:
@@ -780,6 +821,7 @@ class TickFlowFetcher(BaseFetcher):
             return dict(quote)
 
     def get_realtime_quote(self, stock_code: str) -> Optional[UnifiedRealtimeQuote]:
+        """获取单只股票实时报价并转为统一结构。"""
         symbol = self._to_tickflow_symbol(stock_code)
         if not symbol:
             return None
@@ -804,6 +846,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _get_realtime_cache_ttl() -> int:
+        """读取实时报价的缓存 TTL 配置。"""
         try:
             from src.config import get_config
 
@@ -816,6 +859,7 @@ class TickFlowFetcher(BaseFetcher):
         stock_code: str,
         quote: Dict[str, Any],
     ) -> Optional[UnifiedRealtimeQuote]:
+        """将 TickFlow 报价归一为统一行情结构。"""
         symbol = str(quote.get("symbol") or self._to_tickflow_symbol(stock_code) or "").upper()
         code = normalize_stock_code(stock_code or symbol)
         current = self._safe_float(quote.get("last_price"))
@@ -862,6 +906,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _format_provider_timestamp(value: Any) -> Optional[str]:
+        """将 TickFlow 时间戳格式化为标准字符串。"""
         if value in (None, ""):
             return None
         try:
@@ -875,6 +920,7 @@ class TickFlowFetcher(BaseFetcher):
         return datetime.fromtimestamp(numeric, timezone.utc).isoformat()
 
     def get_stock_name(self, stock_code: str) -> Optional[str]:
+        """查询股票名称（优先缓存）。"""
         symbol = self._to_tickflow_symbol(stock_code)
         quote = self._get_cached_quote(symbol) if symbol else None
         name = self._extract_name(quote or {}) if quote else ""
@@ -904,6 +950,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _extract_instrument_name(instrument: Any) -> Optional[str]:
+        """从 instrument 结构提取证券名称。"""
         if isinstance(instrument, list):
             if not instrument:
                 return None
@@ -919,6 +966,7 @@ class TickFlowFetcher(BaseFetcher):
         return str(name).strip() if name else None
 
     def get_stock_list(self) -> pd.DataFrame:
+        """获取 TickFlow 标的池列表。"""
         client = self._get_client()
         if client is None:
             return pd.DataFrame(columns=["code", "name", "industry", "area", "market"])
@@ -951,6 +999,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _extract_universe_entries(universe: Any) -> List[Dict[str, str]]:
+        """从标的池响应中提取条目列表。"""
         if universe is None:
             return []
         if isinstance(universe, dict):
@@ -981,6 +1030,7 @@ class TickFlowFetcher(BaseFetcher):
 
     @staticmethod
     def _extract_universe_symbols(universe: Any) -> List[str]:
+        """从标的池条目提取符号列表。"""
         return [entry["symbol"] for entry in TickFlowFetcher._extract_universe_entries(universe)]
 
     def get_main_indices(self, region: str = "cn") -> Optional[List[Dict[str, Any]]]:

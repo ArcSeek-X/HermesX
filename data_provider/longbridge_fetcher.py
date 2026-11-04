@@ -217,6 +217,7 @@ def _longbridge_config_kwargs() -> Dict[str, Any]:
 
 
 def _clean_optional(value: Any) -> Optional[str]:
+    """清洗可选字符串值。"""
     if value is None:
         return None
     cleaned = str(value).strip()
@@ -224,6 +225,7 @@ def _clean_optional(value: Any) -> Optional[str]:
 
 
 def _oauth_token_cache_path(client_id: str) -> Path:
+    """返回 OAuth 令牌缓存路径。"""
     return Path.home() / ".longbridge" / "openapi" / "tokens" / client_id
 
 
@@ -310,12 +312,14 @@ def _is_valid_oauth_cache_file(token_cache: Path) -> bool:
 
 
 def _oauth_reauth_not_supported(url: str) -> None:
+    """构造不支持重新授权的提示。"""
     raise RuntimeError(
         f"OAuth token 缓存已失效或缺失，当前为无头运行不支持打开授权页面，请重建 LONGBRIDGE_OAUTH_TOKEN_CACHE_B64: {url}"
     )
 
 
 def _oauth_sdk_unavailable_error() -> RuntimeError:
+    """构造 OAuth SDK 不可用错误。"""
     return RuntimeError(
         "当前安装的 longbridge SDK 不支持 OAuth 2.0（缺少 OAuthBuilder/Config.from_oauth）。"
         "请在支持该 SDK 版本的平台安装 longbridge>=4.0.0，或继续使用 Legacy 三件套。"
@@ -348,14 +352,17 @@ def _longbridge_credentials(config: Any = None) -> Dict[str, Optional[str]]:
 
 
 def _has_legacy_credentials(creds: Dict[str, Optional[str]]) -> bool:
+    """判断是否配置遗留凭据。"""
     return bool(creds.get("app_key") and creds.get("app_secret") and creds.get("access_token"))
 
 
 def _has_oauth_credentials(creds: Dict[str, Optional[str]]) -> bool:
+    """判断是否配置 OAuth 凭据。"""
     return bool(creds.get("oauth_client_id"))
 
 
 def _is_us_code(stock_code: str) -> bool:
+    """判断代码是否为美股。"""
     normalized = stock_code.strip().upper()
     return is_us_stock_code(normalized) or is_us_index_code(normalized)
 
@@ -430,6 +437,7 @@ class LongbridgeFetcher(BaseFetcher):
     _CONNECTION_ERRORS = ("client is closed", "context closed", "connection closed")
 
     def __init__(self):
+        """构造长桥行情抓取器并装配依赖。"""
         self._ctx = None
         self._config = None
         self._ctx_lock = threading.Lock()
@@ -440,6 +448,7 @@ class LongbridgeFetcher(BaseFetcher):
         self._static_cache_lock = threading.Lock()
 
     def _is_connection_error(self, exc: Exception) -> bool:
+        """判断是否为连接类错误。"""
         msg = str(exc).lower()
         return any(s in msg for s in self._CONNECTION_ERRORS)
 
@@ -450,6 +459,7 @@ class LongbridgeFetcher(BaseFetcher):
             self._config = None
 
     def _mark_connection_cooldown(self, exc: Exception) -> None:
+        """标记连接冷却期。"""
         cooldown_seconds = _connection_cooldown_seconds()
         self._invalidate_ctx()
         if cooldown_seconds <= 0:

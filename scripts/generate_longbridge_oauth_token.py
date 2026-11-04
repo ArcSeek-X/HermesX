@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the Longbridge SDK OAuth token cache for headless runtimes."""
+"""Generate the Longbridge SDK OAuth token cache for headless runtimes.
+
+为无头运行时生成 Longbridge SDK 的 OAuth token 缓存。先在交互机器上运行一次以完成授权，
+再将缓存文件 base64 存入 GitHub Actions 密钥，供调度/Docker 运行使用。
+"""
 
 from __future__ import annotations
 
@@ -9,6 +13,7 @@ from pathlib import Path
 
 
 def _default_client_id() -> str:
+    """返回默认 client_id：依次取环境变量 LONGBRIDGE_OAUTH_CLIENT_ID、LONGBRIDGE_APP_KEY，去空白。"""
     return (
         os.getenv("LONGBRIDGE_OAUTH_CLIENT_ID")
         or os.getenv("LONGBRIDGE_APP_KEY")
@@ -17,10 +22,12 @@ def _default_client_id() -> str:
 
 
 def _token_cache_path(client_id: str) -> Path:
+    """返回 OAuth token 缓存路径：~/.longbridge/openapi/tokens/<client_id>。"""
     return Path.home() / ".longbridge" / "openapi" / "tokens" / client_id
 
 
 def main() -> int:
+    """CLI 入口：解析 --client-id/--verify-symbol，执行 Longbridge OAuth 授权、可选校验标的，并提示缓存路径与 CI 用法。"""
     parser = argparse.ArgumentParser(
         description=(
             "Run Longbridge OAuth authorization and persist the SDK token cache. "
@@ -51,6 +58,7 @@ def main() -> int:
         ) from exc
 
     def show_url(url: str) -> None:
+        """OAuth 回调：将授权 URL 打印给用户以便手动在浏览器中授权。"""
         print(f"Open this URL to authorize Longbridge OAuth:\n{url}\n")
 
     oauth = OAuthBuilder(client_id).build(show_url)

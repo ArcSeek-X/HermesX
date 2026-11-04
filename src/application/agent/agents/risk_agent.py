@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class RiskAgent(BaseAgent):
+    """风险筛查 Agent：聚焦识别个股风险与红旗指标。"""
     agent_name = "risk"
     max_steps = 4
     tool_names = [
@@ -36,6 +37,7 @@ class RiskAgent(BaseAgent):
     ]
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """返回风险筛查 Agent 的系统提示词（风险/红旗识别角色）。"""
         return """\
 You are a **Risk Screening Agent** focused exclusively on identifying \
 risks and red flags for the given stock.
@@ -80,6 +82,7 @@ from your search results. Do NOT invent risks.
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：围绕个股组织风险筛查指令。"""
         parts = [f"Screen stock **{ctx.stock_code}**"]
         if ctx.stock_name:
             parts[0] += f" ({ctx.stock_name})"
@@ -93,6 +96,7 @@ from your search results. Do NOT invent risks.
         return "\n".join(parts)
 
     def post_process(self, ctx: AgentContext, raw_text: str) -> Optional[AgentOpinion]:
+        """解析风险 Agent 输出的观点 JSON，失败返回 None。"""
         parsed = try_parse_json(raw_text)
         if parsed is None:
             logger.warning("[RiskAgent] failed to parse risk JSON")

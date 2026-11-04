@@ -26,6 +26,7 @@ from src.domain.generation.hermes_rules import (
 
 @dataclass(frozen=True)
 class AgentLiteLLMRouteResolution:
+    """LiteLLM 路由解析结果（可用、主模型、候选模型与模型列表）。"""
     available: bool
     primary_model: str = ""
     models_to_try: List[str] = field(default_factory=list)
@@ -34,6 +35,7 @@ class AgentLiteLLMRouteResolution:
 
 
 def _is_model_agent_safe(config: Any, model: str, provenance: Dict[str, Any]) -> bool:
+    """判断模型在给定 provenance 下是否被允许用于 Agent。"""
     if not model:
         return False
     route = route_deployment_origins(getattr(config, "llm_model_list", []) or [], model)
@@ -46,6 +48,7 @@ def _is_model_agent_safe(config: Any, model: str, provenance: Dict[str, Any]) ->
 
 
 def _matched_route_alias(model: str, provenance: Dict[str, Any]) -> str:
+    """按路由身份候选匹配并返回模型别名。"""
     for candidate in route_identity_candidates(model):
         if candidate in provenance:
             return candidate

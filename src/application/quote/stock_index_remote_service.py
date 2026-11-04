@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Best-effort remote cache for the generated stock autocomplete index."""
+"""Best-effort remote cache for the generated stock autocomplete index.
+
+对生成的股票自动补全索引做「尽力而为」的远程缓存。从远程 URL 拉取 stocks.index.json，
+经 TTL 校验、格式校验、原子写入更新本地缓存；连续失败会临时抑制刷新，刷新失败回退本地。
+"""
 
 from __future__ import annotations
 
@@ -149,6 +153,7 @@ def is_valid_remote_stock_index_file(cache_path: Path = DEFAULT_STOCK_INDEX_CACH
 
 
 def _download_remote_stock_index(settings: RemoteStockIndexSettings) -> bytes:
+    """下载并解析远程股票索引：GET 后校验 wire 格式，返回原始字节内容。"""
     response = requests.get(settings.url, timeout=settings.timeout_seconds)
     response.raise_for_status()
 
@@ -159,6 +164,7 @@ def _download_remote_stock_index(settings: RemoteStockIndexSettings) -> bytes:
 
 
 def _atomic_write(cache_path: Path, content: bytes) -> None:
+    """原子写入缓存：先写临时文件再 os.replace 替换，finally 清理临时文件。"""
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = cache_path.with_name(f".{cache_path.name}.{os.getpid()}.tmp")
     try:
@@ -172,6 +178,7 @@ def _atomic_write(cache_path: Path, content: bytes) -> None:
 
 
 def _clear_backend_stock_index_cache() -> None:
+    """刷新成功后清空后端进程内股票索引缓存（失败仅告警不影响刷新）。"""
     try:
         from src.data.stock_index_loader import clear_stock_index_cache
 
@@ -181,6 +188,7 @@ def _clear_backend_stock_index_cache() -> None:
 
 
 def _reset_remote_failure_state() -> None:
+    """重置远程刷新连续失败计数与抑制截止时间。"""
     global _REMOTE_CONSECUTIVE_FAILURES, _REMOTE_SUPPRESS_UNTIL
     with _REMOTE_FAILURE_LOCK:
         _REMOTE_CONSECUTIVE_FAILURES = 0
@@ -188,6 +196,7 @@ def _reset_remote_failure_state() -> None:
 
 
 def _remote_refresh_suppressed(now: float) -> bool:
+    """判断当前是否处于「连续失败临时抑制」状态：达上限且未过抑制期则抑制并清零。"""
     global _REMOTE_CONSECUTIVE_FAILURES, _REMOTE_SUPPRESS_UNTIL
     with _REMOTE_FAILURE_LOCK:
         if _REMOTE_CONSECUTIVE_FAILURES < DEFAULT_STOCK_INDEX_REMOTE_MAX_FAILURES:
@@ -200,6 +209,7 @@ def _remote_refresh_suppressed(now: float) -> bool:
 
 
 def _record_remote_failure(now: float, ttl_hours: int) -> int:
+    """记录一次远程刷新失败，累计连续失败；达上限时设置抑制截止时间，返回当前失败次数。"""
     global _REMOTE_CONSECUTIVE_FAILURES, _REMOTE_SUPPRESS_UNTIL
     with _REMOTE_FAILURE_LOCK:
         _REMOTE_CONSECUTIVE_FAILURES += 1
@@ -262,4 +272,5 @@ def refresh_remote_stock_index_cache(settings: RemoteStockIndexSettings) -> Remo
 
 
 def _reset_remote_stock_index_state_for_tests() -> None:
+    """测试用：重置远程股票索引刷新的失败状态。"""
     _reset_remote_failure_state()

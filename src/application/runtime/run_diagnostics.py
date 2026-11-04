@@ -159,6 +159,7 @@ class ProviderRun:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "trace_id": self.trace_id,
             "data_type": self.data_type,
@@ -195,6 +196,7 @@ class LLMRun:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "trace_id": self.trace_id,
             "provider": self.provider,
@@ -224,6 +226,7 @@ class NotificationRun:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "trace_id": self.trace_id,
             "channel": self.channel,
@@ -248,6 +251,7 @@ class HistoryRun:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "trace_id": self.trace_id,
             "report_saved": self.report_saved,
@@ -270,6 +274,7 @@ class RunDiagnosticComponent:
     details: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "key": self.key,
             "label": self.label,
@@ -295,6 +300,7 @@ class RunDiagnosticSummary:
     components: Dict[str, RunDiagnosticComponent] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        """将诊断对象转换为字典。"""
         payload = {
             "trace_id": self.trace_id,
             "task_id": self.task_id,
@@ -336,6 +342,7 @@ class RunDiagnosticContext:
     llm_pending_attempt_index_by_call_type: Dict[str, List[int]] = field(default_factory=dict)
 
     def record_provider_run(self, provider_run: ProviderRun) -> None:
+        """记录一次数据源运行结果。"""
         self.provider_runs.append(provider_run)
         data_type_key = _safe_event_key(provider_run.data_type) or "provider"
         pending_key = _provider_pending_key(
@@ -362,6 +369,7 @@ class RunDiagnosticContext:
         provider: str,
         operation: str,
     ) -> None:
+        """记录数据源运行开始。"""
         data_type_key = _safe_event_key(data_type) or "provider"
         attempt_index = self.provider_attempt_index_by_type.get(data_type_key, 0) + 1
         self.provider_attempt_index_by_type[data_type_key] = attempt_index
@@ -380,6 +388,7 @@ class RunDiagnosticContext:
         )
 
     def record_llm_run(self, llm_run: LLMRun) -> None:
+        """记录一次 LLM 运行结果。"""
         self.llm_runs.append(llm_run)
         call_type_key = _safe_event_key(llm_run.call_type) or "analysis"
         pending_key = _llm_pending_key(llm_run.call_type, llm_run.provider, llm_run.model)
@@ -406,6 +415,7 @@ class RunDiagnosticContext:
         self._emit_flow_event(_llm_flow_event(self, llm_run, attempt_index))
 
     def _remove_llm_pending_call_type_index(self, call_type_key: str, attempt_index: int) -> None:
+        """移除指定调用类型的待处理索引。"""
         pending_indexes = self.llm_pending_attempt_index_by_call_type.get(call_type_key) or []
         if attempt_index not in pending_indexes:
             return
@@ -416,6 +426,7 @@ class RunDiagnosticContext:
             self.llm_pending_attempt_index_by_call_type.pop(call_type_key, None)
 
     def _remove_llm_pending_exact_index(self, attempt_index: int) -> None:
+        """移除精确匹配的待处理索引。"""
         for pending_key, pending_indexes in list(self.llm_pending_attempt_index_by_key.items()):
             if attempt_index not in pending_indexes:
                 continue
@@ -432,6 +443,7 @@ class RunDiagnosticContext:
         provider: Optional[str] = None,
         model: Optional[str] = None,
     ) -> None:
+        """记录 LLM 运行开始。"""
         call_type_key = _safe_event_key(call_type) or "analysis"
         attempt_index = self.llm_attempt_index_by_type.get(call_type_key, 0) + 1
         self.llm_attempt_index_by_type[call_type_key] = attempt_index
@@ -453,14 +465,17 @@ class RunDiagnosticContext:
         )
 
     def record_notification_run(self, notification_run: NotificationRun) -> None:
+        """记录一次通知运行。"""
         self.notification_runs.append(notification_run)
         self._emit_flow_event(_notification_flow_event(self, notification_run, len(self.notification_runs)))
 
     def record_history_run(self, history_run: HistoryRun) -> None:
+        """记录一次历史写入。"""
         self.history_runs.append(history_run)
         self._emit_flow_event(_history_flow_event(self, history_run, len(self.history_runs)))
 
     def _emit_flow_event(self, event: Dict[str, Any]) -> None:
+        """发出流程事件。"""
         if self.event_sink is None:
             return
         try:
@@ -473,6 +488,7 @@ class RunDiagnosticContext:
             logger.warning("run-flow event sink failed: %s", exc)
 
     def snapshot(self) -> Dict[str, Any]:
+        """返回当前诊断快照。"""
         return {
             "trace_id": self.trace_id,
             "task_id": self.task_id,
@@ -488,6 +504,7 @@ class RunDiagnosticContext:
 
 
 def get_current_diagnostic_context() -> Optional[RunDiagnosticContext]:
+    """返回当前运行的诊断上下文。"""
     return _CURRENT_CONTEXT.get()
 
 
@@ -515,6 +532,7 @@ def activate_run_diagnostic_context(
 
 
 def reset_run_diagnostic_context(token: Optional[Token]) -> None:
+    """重置运行诊断上下文。"""
     if token is None:
         return
     try:
@@ -524,6 +542,7 @@ def reset_run_diagnostic_context(token: Optional[Token]) -> None:
 
 
 def current_diagnostic_snapshot() -> Optional[Dict[str, Any]]:
+    """返回当前诊断快照。"""
     context = get_current_diagnostic_context()
     if context is None:
         return None
@@ -549,10 +568,12 @@ _DATA_TYPE_LABELS = {
 
 
 def _safe_event_key(value: Any) -> str:
+    """生成安全的事件键。"""
     return safe_diagnostic_key(value)
 
 
 def _clean_metadata(value: Dict[str, Any]) -> Dict[str, Any]:
+    """清洗诊断元数据。"""
     return {
         str(key): item
         for key, item in value.items()
@@ -561,6 +582,7 @@ def _clean_metadata(value: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _provider_pending_key(data_type: Any, provider: Any, operation: Any) -> str:
+    """生成数据源待处理事件键。"""
     return "|".join(
         (
             _safe_event_key(data_type) or "provider",
@@ -571,11 +593,13 @@ def _provider_pending_key(data_type: Any, provider: Any, operation: Any) -> str:
 
 
 def _llm_pending_key(call_type: Any, provider: Any, model: Any) -> str:
+    """生成 LLM 待处理事件键。"""
     _ = (provider, model)
     return _safe_event_key(call_type) or "analysis"
 
 
 def _flow_status_for_success(success: bool, *, fallback: bool = False, skipped: bool = False) -> str:
+    """按成功与否映射流程状态。"""
     if skipped:
         return "skipped"
     if success:
@@ -584,6 +608,7 @@ def _flow_status_for_success(success: bool, *, fallback: bool = False, skipped: 
 
 
 def _started_at_from_end_and_duration(end: Any, duration_ms: Optional[int]) -> Optional[str]:
+    """由结束时间与耗时反推开始时间。"""
     if duration_ms is None or duration_ms < 0:
         return None
     if isinstance(end, datetime):
@@ -607,6 +632,7 @@ def _provider_started_flow_event(
     operation: str,
     index: int,
 ) -> Dict[str, Any]:
+    """构造数据源开始流程事件。"""
     data_type_key = _safe_event_key(data_type) or "provider"
     provider_key = _safe_event_key(provider) or "unknown"
     label = _DATA_TYPE_LABELS.get(data_type_key, data_type_key)
@@ -647,6 +673,7 @@ def _provider_flow_event(
     run: ProviderRun,
     index: int,
 ) -> Dict[str, Any]:
+    """构造数据源流程事件。"""
     data_type = _safe_event_key(run.data_type) or "provider"
     provider_key = _safe_event_key(run.provider) or "unknown"
     label = _DATA_TYPE_LABELS.get(data_type, data_type)
@@ -703,6 +730,7 @@ def _llm_started_flow_event(
     model: Optional[str],
     index: int,
 ) -> Dict[str, Any]:
+    """构造 LLM 开始流程事件。"""
     call_type_key = _safe_event_key(call_type) or "analysis"
     display_model = model or provider or "unknown"
     node_id = f"llm_{call_type_key}_{index}"
@@ -742,6 +770,7 @@ def _llm_flow_event(
     run: LLMRun,
     index: int,
 ) -> Dict[str, Any]:
+    """构造 LLM 流程事件。"""
     call_type = _safe_event_key(run.call_type) or "analysis"
     model = run.model or run.provider or "unknown"
     status = _flow_status_for_success(run.success, fallback=bool(run.fallback_model or index > 1))
@@ -790,6 +819,7 @@ def _history_flow_event(
     run: HistoryRun,
     index: int,
 ) -> Dict[str, Any]:
+    """构造历史记录流程事件。"""
     node_id = "history_save" if index == 1 else f"history_save_{index}"
     status = "success" if run.report_saved else "failed"
     message = "报告历史已保存" if run.report_saved else f"报告历史保存失败：{run.error_message_sanitized or '未知错误'}"
@@ -823,6 +853,7 @@ def _notification_flow_event(
     run: NotificationRun,
     index: int,
 ) -> Dict[str, Any]:
+    """构造通知流程事件。"""
     channel = run.channel or "unknown"
     channel_key = _safe_event_key(channel) or "unknown"
     skipped = run.status in {"skipped", "not_configured"}
@@ -1057,10 +1088,12 @@ _ANALYSIS_INPUT_STATUS_MESSAGES = {
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:
+    """将值安全转换为字典。"""
     return value if isinstance(value, dict) else {}
 
 
 def _as_list(value: Any) -> List[Any]:
+    """将值安全转换为列表。"""
     return value if isinstance(value, list) else []
 
 
@@ -1071,6 +1104,7 @@ def _component(
     message: str,
     details: Optional[Dict[str, Any]] = None,
 ) -> RunDiagnosticComponent:
+    """构造组件诊断信息。"""
     clean_details = {
         key: value
         for key, value in (details or {}).items()
@@ -1086,6 +1120,7 @@ def _component(
 
 
 def _analysis_context_overview(context_snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """构造分析上下文概览。"""
     overview = context_snapshot.get("analysis_context_pack_overview")
     if not isinstance(overview, dict):
         overview = context_snapshot.get("analysisContextPackOverview")
@@ -1096,6 +1131,7 @@ def _analysis_input_block(
     context_snapshot: Dict[str, Any],
     block_key: str,
 ) -> Dict[str, Any]:
+    """构造分析输入信息块。"""
     blocks = _analysis_context_overview(context_snapshot).get("blocks")
     if isinstance(blocks, list):
         for block in blocks:
@@ -1109,6 +1145,7 @@ def _analysis_input_block(
 
 
 def _analysis_input_status_message(block: Dict[str, Any]) -> Optional[str]:
+    """返回分析输入状态文案。"""
     status = str(block.get("status") or "").strip()
     if status == "available" or not status:
         return None
@@ -1116,6 +1153,7 @@ def _analysis_input_status_message(block: Dict[str, Any]) -> Optional[str]:
 
 
 def _list_text(value: Any, *, limit: int = 5) -> List[str]:
+    """将列表渲染为文本。"""
     if not isinstance(value, list):
         return []
     result: List[str] = []
@@ -1130,6 +1168,7 @@ def _reconcile_daily_provider_with_analysis_input(
     component: RunDiagnosticComponent,
     context_snapshot: Dict[str, Any],
 ) -> RunDiagnosticComponent:
+    """对齐日线数据源与分析输入诊断。"""
     input_block = _analysis_input_block(context_snapshot, "daily_bars")
     input_message = _analysis_input_status_message(input_block)
     if not input_message or component.status not in {"ok", "degraded"}:
@@ -1165,6 +1204,7 @@ def _provider_component(
     data_type: str,
     provider_runs: List[Dict[str, Any]],
 ) -> RunDiagnosticComponent:
+    """构造数据源组件诊断。"""
     runs = [
         run for run in provider_runs
         if isinstance(run, dict) and run.get("data_type") == data_type
@@ -1224,6 +1264,7 @@ def _provider_component(
 
 
 def _news_component(context_snapshot: Dict[str, Any], raw_result: Dict[str, Any]) -> RunDiagnosticComponent:
+    """构造新闻组件诊断。"""
     label = "新闻搜索"
     input_block = _analysis_input_block(context_snapshot, "news")
     input_message = _analysis_input_status_message(input_block)
@@ -1277,6 +1318,7 @@ def _news_component(context_snapshot: Dict[str, Any], raw_result: Dict[str, Any]
 
 
 def _llm_component(diagnostics: Dict[str, Any], raw_result: Dict[str, Any]) -> RunDiagnosticComponent:
+    """构造 LLM 组件诊断。"""
     label = "LLM"
     runs = [
         run for run in _as_list(diagnostics.get("llm_runs"))
@@ -1330,6 +1372,7 @@ def _llm_component(diagnostics: Dict[str, Any], raw_result: Dict[str, Any]) -> R
 
 
 def _notification_component(diagnostics: Dict[str, Any]) -> RunDiagnosticComponent:
+    """构造通知组件诊断。"""
     label = "通知"
     runs = [
         run for run in _as_list(diagnostics.get("notification_runs"))
@@ -1381,6 +1424,7 @@ def _history_component(
     diagnostics: Dict[str, Any],
     report_saved: Optional[bool],
 ) -> RunDiagnosticComponent:
+    """构造历史组件诊断。"""
     label = "历史保存"
     runs = [
         run for run in _as_list(diagnostics.get("history_runs"))
@@ -1515,6 +1559,7 @@ def format_copyable_diagnostics(summary: Dict[str, Any]) -> str:
     components = _as_dict(summary.get("components"))
 
     def _component_line(key: str) -> str:
+        """返回组件诊断的展示文本行。"""
         component = _as_dict(components.get(key))
         message = sanitize_diagnostic_text(component.get("message"), max_length=160) or "unknown"
         return f"{key}: {component.get('status', 'unknown')} - {message}"

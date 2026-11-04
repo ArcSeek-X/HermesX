@@ -26,6 +26,7 @@ class AkshareRealtimeSource(RealtimeSource):
     source_id = "akshare"
 
     def __init__(self, market_source: str = "em", source_id: Optional[str] = None) -> None:
+        """构造实时行情数据源（AkShare）。"""
         self.market_source = market_source
         self.fetcher = AkshareFetcher()
         if source_id:

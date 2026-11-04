@@ -127,6 +127,7 @@ def sanitize_decision_signal_payload(obj: Any) -> Any:
 
 
 def _sanitize_decision_signal_payload_values(obj: Any) -> Any:
+    """清洗决策信号载荷中的非有限数值。"""
     if isinstance(obj, dict):
         return {
             key: _sanitize_decision_signal_payload_values(value)

@@ -80,6 +80,7 @@ def _to_http_error(exc: WatchlistError) -> HTTPException:
 def get_watchlist_groups(
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> List[dict]:
+    """获取自选股分组列表。"""
     return service.list_groups()
 
 
@@ -93,6 +94,7 @@ def create_watchlist_group(
     payload: WatchlistGroupCreate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """创建自选股分组。"""
     try:
         return service.create_group(
             name=payload.name,
@@ -113,6 +115,7 @@ def update_watchlist_group(
     payload: WatchlistGroupUpdate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """更新自选股分组。"""
     try:
         return service.update_group(
             group_code=payload.group_code,
@@ -134,6 +137,7 @@ def delete_watchlist_group(
     group_code: str,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """删除自选股分组。"""
     try:
         service.delete_group(group_code)
     except WatchlistError as exc:
@@ -184,6 +188,7 @@ def create_watchlist_item(
     payload: WatchlistItemCreate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """新增自选股条目。"""
     try:
         return service.create_item(
             group_id=id,
@@ -206,6 +211,7 @@ def update_watchlist_item(
     payload: WatchlistItemUpdate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """更新自选股条目。"""
     try:
         return service.update_item(
             item_id=id,
@@ -226,6 +232,7 @@ def delete_watchlist_item(
     id: int,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """删除自选股条目。"""
     try:
         service.delete_item(id)
     except WatchlistError as exc:
@@ -247,6 +254,7 @@ def move_watchlist_item(
     payload: WatchlistItemMove,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
+    """移动自选股条目到其他分组。"""
     try:
         return service.move_item(
             item_id=id,

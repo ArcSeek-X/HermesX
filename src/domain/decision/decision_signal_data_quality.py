@@ -58,6 +58,7 @@ def normalize_decision_signal_data_quality(value: Any) -> DecisionSignalDataQual
 
 
 def _normalize_scalar(value: Any) -> DecisionSignalDataQuality:
+    """规范化标量取值。"""
     if value is None:
         return "unknown"
     if isinstance(value, str):
@@ -69,6 +70,7 @@ def _normalize_scalar(value: Any) -> DecisionSignalDataQuality:
 
 
 def _explicit_quality_levels(value: Any) -> Iterable[DecisionSignalDataQuality]:
+    """提取显式声明的数据质量等级。"""
     scalar = _normalize_scalar(value)
     if scalar != "unknown":
         yield scalar

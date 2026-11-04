@@ -75,6 +75,7 @@ _RUNTIME_ENV_FILE_KEYS = set()
 
 
 def _get_active_env_path() -> Path:
+    """返回当前生效的 .env 文件路径。"""
     env_file = os.getenv("ENV_FILE")
     if env_file:
         return Path(env_file)
@@ -82,6 +83,7 @@ def _get_active_env_path() -> Path:
 
 
 def _warn_if_public_webui_without_auth(host: str) -> None:
+    """公网开放 WebUI 却未启用认证时发出警告。"""
     warn_if_public_webui_without_auth(host)
 
 
@@ -93,6 +95,7 @@ def _resolve_web_service_bind(args: argparse.Namespace, config: Config) -> Tuple
 
 
 def _read_active_env_values() -> Optional[Dict[str, str]]:
+    """读取当前生效的环境变量值。"""
     env_path = _get_active_env_path()
     if not env_path.exists():
         return {}
@@ -158,15 +161,18 @@ class _LazyPipelineDescriptor:
     _resolved = None
 
     def __set_name__(self, owner, name):
+        """描述符绑定所属类与属性名。"""
         self._name = name
 
     def __get__(self, obj, objtype=None):
+        """描述符取值时解析惰性导出。"""
         if self._resolved is None:
             self._resolved = _get_stock_analysis_pipeline()
         return self._resolved
 
 
 class _ModuleExports:
+    """main 模块惰性导出代理。"""
     StockAnalysisPipeline = _LazyPipelineDescriptor()
 
 
@@ -174,6 +180,7 @@ _exports = _ModuleExports()
 
 
 def __getattr__(name: str):
+    """惰性解析模块导出属性。"""
     if name == "StockAnalysisPipeline":
         return _exports.StockAnalysisPipeline
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -422,6 +429,7 @@ def _run_market_review_with_shared_lock(
     run_market_review_func: Callable[..., Any],
     **kwargs: Any,
 ) -> Any:
+    """在共享锁下执行大盘复盘。"""
     from src.application.market.market_review_lock import (
         release_market_review_lock,
         try_acquire_market_review_lock,
@@ -441,6 +449,7 @@ def _run_market_review_with_shared_lock(
 
 
 def _is_multi_market_region(region: str) -> bool:
+    """判断是否为多市场区域。"""
     normalized = str(region or "").strip().lower()
     if not normalized:
         return False
@@ -547,6 +556,7 @@ def _prime_daily_market_context(
 
 
 def _can_reuse_market_context_for_review(summary: str, region: str) -> bool:
+    """判断大盘上下文可否复用于复盘。"""
     if not summary:
         return False
     normalized = str(region or "").strip().lower()
@@ -557,6 +567,7 @@ def _can_reuse_market_context_for_review(summary: str, region: str) -> bool:
 
 
 def _resolve_daily_market_context_market(market: str, normalized_region: str) -> str:
+    """解析每日大盘上下文的目标市场。"""
     if "," not in normalized_region:
         return market
     parts = [item.strip() for item in normalized_region.split(",") if item.strip()]
@@ -569,6 +580,7 @@ def _resolve_daily_market_context_target_date(
     region: str,
     current_time: datetime,
 ) -> date:
+    """解析每日大盘上下文的目标日期。"""
     normalized_region = str(region or "cn").strip().lower()
     market = normalized_region if normalized_region in {"cn", "hk", "us", "jp", "kr"} else "cn"
 
@@ -581,6 +593,7 @@ def _resolve_daily_market_context_target_date(
 
 
 def _market_review_report_text(review_result: Any) -> str:
+    """返回大盘复盘报告文本。"""
     if review_result is None:
         return ""
     report = getattr(review_result, "report", None)
@@ -597,6 +610,7 @@ def _save_reused_market_review_report(
     trigger_source: str,
     region: str,
 ) -> None:
+    """保存复用上下文生成的复盘报告。"""
     body = str(market_report or "").strip()
     if not body:
         return
@@ -1022,6 +1036,7 @@ def _run_analysis_with_runtime_scheduler_lock(
     args: argparse.Namespace,
     stock_codes: Optional[List[str]] = None,
 ) -> None:
+    """在运行时调度锁下执行分析。"""
     from src.application.runtime.runtime_scheduler import run_with_global_analysis_lock
 
     # Keep startup/triggered analysis in sync with API runtime scheduler and
@@ -1133,6 +1148,7 @@ def _build_schedule_time_provider(default_schedule_time: str):
     manager = ConfigManager()
 
     def _provider() -> str:
+        """返回惰性导出提供者。"""
         if "SCHEDULE_TIME" in _INITIAL_PROCESS_ENV:
             return os.getenv("SCHEDULE_TIME", default_schedule_time)
 
@@ -1154,6 +1170,7 @@ def _build_schedule_times_provider(default_schedule_time: str):
     manager = ConfigManager()
 
     def _provider():
+        """返回惰性导出提供者。"""
         if "SCHEDULE_TIMES" in _INITIAL_PROCESS_ENV:
             return normalize_schedule_times(
                 os.getenv("SCHEDULE_TIMES", ""),
@@ -1494,6 +1511,7 @@ def main() -> int:
             schedule_times_provider = _build_schedule_times_provider(config.schedule_time)
 
             def scheduled_task():
+                """定时分析任务入口。"""
                 runtime_config = _reload_runtime_config()
                 run_full_analysis(runtime_config, args, scheduled_stock_codes)
 
@@ -1505,6 +1523,7 @@ def main() -> int:
                 alert_worker = build_alert_worker(config_provider=_reload_runtime_config)
 
                 def event_monitor_task():
+                    """事件监控任务入口。"""
                     stats = alert_worker.run_once()
                     triggered_count = stats.get("triggered", 0)
                     if triggered_count:

@@ -52,18 +52,22 @@ class HistoryCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """返回命令名称。"""
         return "history"
 
     @property
     def aliases(self) -> List[str]:
+        """返回命令别名列表。"""
         return ["历史", "会话"]
 
     @property
     def description(self) -> str:
+        """返回命令功能描述。"""
         return "查看 Agent 对话历史"
 
     @property
     def usage(self) -> str:
+        """返回命令用法说明。"""
         return "/history [session_id | clear]"
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:

@@ -9,6 +9,9 @@ Requires FEISHU_APP_ID and FEISHU_APP_SECRET env vars set on the target host.
 Optionally set FEISHU_CHAT_ID to send a live test message via interactive card.
 Optionally set FEISHU_OPEN_ID to send a live P2P test message (overrides CHAT_ID).
 Optionally set FEISHU_DOMAIN to "lark" for international (Lark) tenants.
+
+飞书 App Bot 手动冒烟验证与实发测试脚本。先校验凭证并获取
+tenant_access_token，再检查 SDK 初始化；若设置了 CHAT_ID/OPEN_ID 则真实发送一条卡片消息。
 """
 import logging
 import os

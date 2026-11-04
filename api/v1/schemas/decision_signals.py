@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""DecisionSignal API schemas."""
+"""DecisionSignal API schemas.
+
+决策信号相关 API 的 Pydantic 请求/响应模型，涵盖信号创建与重评估、护栏与预览、结果回测与统计、画像校准及反馈。
+"""
 
 from __future__ import annotations
 
@@ -25,6 +28,8 @@ DecisionSignalFeedbackSource = Literal["web", "api"]
 
 
 class DecisionSignalCreateRequest(BaseModel):
+    """创建决策信号的请求体。"""
+
     stock_code: str = Field(..., min_length=1, max_length=32)
     stock_name: Optional[str] = Field(None, json_schema_extra={"maxLength": 64})
     market: DecisionSignalMarket
@@ -65,6 +70,8 @@ class DecisionSignalCreateRequest(BaseModel):
 
 
 class DecisionSignalReassessRequest(BaseModel):
+    """重新评估决策信号的请求体。"""
+
     model_config = ConfigDict(extra="forbid")
 
     source_report_id: int = Field(..., gt=0)
@@ -73,12 +80,16 @@ class DecisionSignalReassessRequest(BaseModel):
 
 
 class DecisionSignalWarning(BaseModel):
+    """决策信号生成或重评估过程中的警告项。"""
+
     code: str
     message: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
 
 
 class DecisionSignalGuardrailResult(BaseModel):
+    """决策信号护栏（guardrail）校验结果。"""
+
     raw_action: str
     final_action: str
     passed: bool
@@ -88,6 +99,8 @@ class DecisionSignalGuardrailResult(BaseModel):
 
 
 class DecisionSignalPreview(BaseModel):
+    """决策信号预览结果（尚未落库）。"""
+
     action: str
     score: Optional[int] = None
     confidence: Optional[float] = None
@@ -104,6 +117,8 @@ class DecisionSignalPreview(BaseModel):
 
 
 class DecisionSignalStatusUpdateRequest(BaseModel):
+    """更新决策信号状态的请求体。"""
+
     status: DecisionSignalStatus
     metadata: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -116,6 +131,8 @@ class DecisionSignalStatusUpdateRequest(BaseModel):
 
 
 class DecisionSignalOutcomeRunRequest(BaseModel):
+    """触发决策信号结果回测评估的请求体。"""
+
     signal_id: Optional[int] = Field(None, gt=0)
     horizons: Optional[List[DecisionSignalHorizon]] = None
     force: bool = False
@@ -128,6 +145,8 @@ class DecisionSignalOutcomeRunRequest(BaseModel):
 
 
 class DecisionSignalOutcomeItem(BaseModel):
+    """单条决策信号的结果评估记录。"""
+
     id: int
     signal_id: int
     horizon: str
@@ -157,6 +176,8 @@ class DecisionSignalOutcomeItem(BaseModel):
 
 
 class DecisionSignalOutcomeRunResponse(BaseModel):
+    """结果回测运行响应（含处理键数与各状态计数）。"""
+
     items: List[DecisionSignalOutcomeItem] = Field(default_factory=list)
     evaluated: int
     created: int
@@ -166,6 +187,8 @@ class DecisionSignalOutcomeRunResponse(BaseModel):
 
 
 class DecisionSignalOutcomeListResponse(BaseModel):
+    """结果评估记录的分页列表响应。"""
+
     items: List[DecisionSignalOutcomeItem] = Field(default_factory=list)
     total: int
     page: int
@@ -173,6 +196,8 @@ class DecisionSignalOutcomeListResponse(BaseModel):
 
 
 class DecisionSignalOutcomeStatsBucket(BaseModel):
+    """结果统计中的单个分桶指标。"""
+
     dimension: str
     value: str
     total: int
@@ -187,6 +212,8 @@ class DecisionSignalOutcomeStatsBucket(BaseModel):
 
 
 class DecisionSignalProfileCalibrationBucket(BaseModel):
+    """按决策画像划分的校准统计分桶。"""
+
     dimensions: Dict[str, str] = Field(default_factory=dict)
     total: int
     completed: int
@@ -203,6 +230,8 @@ class DecisionSignalProfileCalibrationBucket(BaseModel):
 
 
 class DecisionSignalProfileCalibrationBreakdowns(BaseModel):
+    """画像校准结果的多维分解明细。"""
+
     decision_profile: List[DecisionSignalProfileCalibrationBucket] = Field(default_factory=list)
     decision_profile_action: List[DecisionSignalProfileCalibrationBucket] = Field(default_factory=list)
     decision_profile_horizon: List[DecisionSignalProfileCalibrationBucket] = Field(default_factory=list)
@@ -212,11 +241,15 @@ class DecisionSignalProfileCalibrationBreakdowns(BaseModel):
 
 
 class DecisionSignalProfileCalibration(BaseModel):
+    """决策信号的画像校准结果。"""
+
     minimum_completed_sample_size: int = Field(..., ge=1)
     breakdowns: DecisionSignalProfileCalibrationBreakdowns
 
 
 class DecisionSignalOutcomeStatsResponse(BaseModel):
+    """结果回测统计汇总响应（含引擎版本、跨度与完成度）。"""
+
     engine_version: str
     horizons: Optional[List[str]] = None
     statuses: List[str] = Field(default_factory=list)
@@ -234,6 +267,8 @@ class DecisionSignalOutcomeStatsResponse(BaseModel):
 
 
 class DecisionSignalFeedbackRequest(BaseModel):
+    """提交决策信号反馈的请求体（反馈值、原因码与备注）。"""
+
     feedback_value: DecisionSignalFeedbackValue
     reason_code: Optional[str] = Field(None, json_schema_extra={"maxLength": 64})
     note: Optional[str] = Field(None, json_schema_extra={"maxLength": 1000})
@@ -241,6 +276,8 @@ class DecisionSignalFeedbackRequest(BaseModel):
 
 
 class DecisionSignalFeedbackItem(BaseModel):
+    """单条决策信号反馈记录。"""
+
     signal_id: int
     feedback_value: Optional[DecisionSignalFeedbackValue] = None
     reason_code: Optional[str] = None
@@ -251,6 +288,8 @@ class DecisionSignalFeedbackItem(BaseModel):
 
 
 class DecisionSignalItem(BaseModel):
+    """决策信号详情项。"""
+
     id: int
     stock_code: str
     stock_name: Optional[str] = None
@@ -287,11 +326,15 @@ class DecisionSignalItem(BaseModel):
 
 
 class DecisionSignalMutationResponse(BaseModel):
+    """决策信号创建或变更响应（含是否为新建）。"""
+
     item: DecisionSignalItem
     created: bool
 
 
 class DecisionSignalReassessResponse(BaseModel):
+    """决策信号重评估响应（预览、落库项与持久化状态）。"""
+
     preview: Optional[DecisionSignalPreview] = None
     item: Optional[DecisionSignalItem] = None
     created: bool = False
@@ -301,6 +344,8 @@ class DecisionSignalReassessResponse(BaseModel):
 
 
 class DecisionSignalReassessErrorResponse(BaseModel):
+    """决策信号重评估的错误响应（不支持的报告类型/快照或护栏拦截）。"""
+
     error: Literal[
         "unsupported_report_type",
         "unsupported_report_snapshot",
@@ -312,6 +357,8 @@ class DecisionSignalReassessErrorResponse(BaseModel):
 
 
 class DecisionSignalListResponse(BaseModel):
+    """决策信号分页列表响应。"""
+
     items: List[DecisionSignalItem] = Field(default_factory=list)
     total: int
     page: int

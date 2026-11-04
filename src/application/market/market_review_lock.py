@@ -30,17 +30,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MarketReviewExecutionLock:
+    """大盘复盘执行锁的上下文管理（防止并发重复执行）。"""
     handle: Any
     path: Path
     uses_flock: bool
 
 
 def market_review_lock_path(config: Config) -> Path:
+    """返回大盘复盘锁文件路径。"""
     database_path = getattr(config, "database_path", "./data/stock_analysis.db")
     return Path(database_path).parent / "market_review.lock"
 
 
 def _write_market_review_lock_metadata(handle: Any) -> None:
+    """向锁文件写入进程元数据（PID/时间等）。"""
     handle.seek(0)
     handle.truncate()
     handle.write(f"pid={os.getpid()}\nstarted_at={datetime.now().isoformat()}\n")
@@ -48,6 +51,7 @@ def _write_market_review_lock_metadata(handle: Any) -> None:
 
 
 def _is_process_alive(pid: int) -> bool:
+    """判断指定 PID 的进程是否存活。"""
     if pid <= 0:
         return False
 
@@ -64,6 +68,7 @@ def _is_process_alive(pid: int) -> bool:
 
 
 def _is_windows_process_alive(pid: int) -> bool:
+    """在 Windows 下判断指定 PID 是否存活。"""
     try:
         import ctypes
     except ImportError:  # pragma: no cover - ctypes is part of stdlib
@@ -93,6 +98,7 @@ def _is_windows_process_alive(pid: int) -> bool:
 
 
 def _read_lock_metadata(lock_path: Path) -> dict[str, str]:
+    """读取锁文件中的进程元数据。"""
     try:
         raw = lock_path.read_text(encoding="utf-8")
     except OSError:
@@ -107,6 +113,7 @@ def _read_lock_metadata(lock_path: Path) -> dict[str, str]:
 
 
 def _is_lock_file_expired(lock_path: Path) -> bool:
+    """判断锁文件是否已过期。"""
     try:
         modified_at = datetime.fromtimestamp(lock_path.stat().st_mtime)
     except OSError:
@@ -118,6 +125,7 @@ def _is_lock_file_expired(lock_path: Path) -> bool:
 
 
 def _is_stale_lock(lock_path: Path) -> bool:
+    """判断锁文件是否为残留失效锁（进程已退出或过期）。"""
     metadata = _read_lock_metadata(lock_path)
     pid_raw = metadata.get("pid")
     if not pid_raw:
@@ -212,6 +220,7 @@ def try_acquire_market_review_lock(
 def release_market_review_lock(
     lock_token: Optional[MarketReviewExecutionLock],
 ) -> None:
+    """释放大盘复盘执行锁并清理锁文件。"""
     if lock_token is None:
         return
 

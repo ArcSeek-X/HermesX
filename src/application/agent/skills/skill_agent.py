@@ -5,6 +5,10 @@ SkillAgent — runtime specialist adapter for a selected skill.
 This is an optional multi-agent execution layer. The primary skill abstraction
 in this repository is the instruction bundle loaded by :mod:`src.application.agent.skills.base`;
 this adapter only exists for the orchestrator's specialist mode.
+
+SkillAgent —— 选中技能的运行期专家适配器。这是一个可选的多智能体执行层；
+本仓库主要的技能抽象是 src.application.agent.skills.base 加载的指令包，
+此适配器仅用于编排器的专家模式。
 """
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ class SkillAgent(BaseAgent):
     max_steps = 4
 
     def __init__(self, skill_id: Optional[str] = None, strategy_id: Optional[str] = None, **kwargs):
+        """构造技能评估 Agent：解析 skill_id/strategy_id，加载技能定义并据其 required_tools 设置工具集。"""
         super().__init__(**kwargs)
         resolved_skill_id = skill_id or strategy_id
         if not resolved_skill_id:
@@ -54,6 +59,7 @@ class SkillAgent(BaseAgent):
         return None
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """构造系统提示：以技能名称与指令构建「技能评估 Agent」角色与 JSON 输出格式。"""
         if self._skill:
             instructions = self._skill.instructions or self._skill.description
             display = self._skill.display_name
@@ -85,6 +91,7 @@ Return **only** a JSON object:
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：说明待评估技能与股票，并附上已有的技术面意见摘要作为上下文。"""
         parts = [
             f"Evaluate **{self.skill_id}** skill for stock "
             f"**{ctx.stock_code}** ({ctx.stock_name or 'unknown'}).",
@@ -102,6 +109,7 @@ Return **only** a JSON object:
         return "\n".join(parts)
 
     def post_process(self, ctx: AgentContext, raw_text: str) -> Optional[AgentOpinion]:
+        """解析 LLM 返回的 JSON 意见：校验置信度为 0–1 的有限浮点数，合法则产出 AgentOpinion，非法返回 None。"""
         parsed = try_parse_json(raw_text)
         if parsed is None:
             logger.warning("[SkillAgent:%s] failed to parse opinion JSON", self.skill_id)

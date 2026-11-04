@@ -21,6 +21,7 @@ class DataProviderRealtimeQuote:
     """通过实时行情多源 fallback 获取即时快照。"""
 
     def get_realtime_quote(self, stock_code: str) -> Any:
+        """为告警评估提供实时行情。"""
         from data_provider.realtime.base import get_realtime_quote
 
         try:

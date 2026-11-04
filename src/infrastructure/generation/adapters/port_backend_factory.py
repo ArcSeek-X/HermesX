@@ -18,6 +18,7 @@ class GenerationBackendFactoryAdapter:
         config: Any,
         litellm_completion_callable: Optional[Callable[..., Any]] = None,
     ) -> GenerationBackend:
+        """按后端标识创建生成后端实例。"""
         from src.infrastructure.generation import backend_factory
 
         return backend_factory.create_generation_backend(

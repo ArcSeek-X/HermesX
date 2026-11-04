@@ -47,6 +47,7 @@ def set_default_db_factory(factory: Any) -> None:
 
 
 def _get_default_db_factory() -> Any:
+    """返回默认的数据库连接工厂。"""
     return _default_db_factory
 
 
@@ -84,6 +85,7 @@ class TraceDiagnostics:
     budget_exceeded: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
+        """将供应商追踪记录转换为字典。"""
         return {
             "trace_injected": self.trace_injected,
             "trace_dropped_reason": self.trace_dropped_reason,
@@ -264,6 +266,7 @@ def message_contains_thinking_blocks(message: Dict[str, Any]) -> bool:
 
 
 def _contains_thinking_block(value: Any) -> bool:
+    """判断值中是否包含思考块（thinking block）。"""
     if isinstance(value, dict):
         block_type = str(value.get("type") or "").strip()
         if block_type in THINKING_BLOCK_TYPES:
@@ -275,6 +278,7 @@ def _contains_thinking_block(value: Any) -> bool:
 
 
 def _tool_calls_have_provider_specific_fields(tool_calls: Iterable[Dict[str, Any]]) -> bool:
+    """判断工具调用中是否含供应商专有字段。"""
     for tool_call in tool_calls:
         if not isinstance(tool_call, dict):
             continue
@@ -286,6 +290,7 @@ def _tool_calls_have_provider_specific_fields(tool_calls: Iterable[Dict[str, Any
 
 
 def _strip_trace_metadata_value(value: Any) -> Any:
+    """从追踪元数据值中剥离敏感或冗余字段。"""
     if isinstance(value, dict):
         return {
             key: _strip_trace_metadata_value(child)

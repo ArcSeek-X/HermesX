@@ -23,6 +23,7 @@ class MarketIndex:
     amplitude: float = 0.0  # 振幅(%)
 
     def to_dict(self) -> Dict[str, Any]:
+        """将复盘对象转换为字典。"""
         return {
             "code": self.code,
             "name": self.name,

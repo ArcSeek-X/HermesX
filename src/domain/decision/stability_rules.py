@@ -196,6 +196,7 @@ def capital_flow_bias_with_status(
         return "unavailable", "empty_stock_flow"
 
     def _flow_direction(value: Optional[float]) -> Optional[str]:
+        """判断资金流向方向。"""
         if value is None or value == 0:
             return None
         return "inflow" if value > 0 else "outflow"

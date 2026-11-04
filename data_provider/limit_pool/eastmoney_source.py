@@ -52,6 +52,7 @@ class EastMoneyLimitPoolSource(LimitPoolDataSource):
     source_id = "eastmoney"
 
     def __init__(self) -> None:
+        """构造涨跌停池数据源（东财）。"""
         self.fetcher = AkshareFetcher()
 
     def fetch(self, request: LimitPoolRequest) -> Optional[LimitPoolResult]:

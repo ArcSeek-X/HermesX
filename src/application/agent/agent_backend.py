@@ -5,6 +5,10 @@ The LiteLLM-specific wrapper lives in
 :mod:`src.infrastructure.agent_runtime.litellm_agent_backend` (it depends on the
 infrastructure ``LLMToolAdapter``); this module keeps only the backend-neutral
 contract so ``src/application`` stays free of infrastructure imports.
+
+AgentBackend 契约、后端选择逻辑，以及运行请求/结果 DTO。
+LiteLLM 专属封装位于 src.infrastructure.agent_runtime.litellm_agent_backend（依赖基础设施 LLMToolAdapter）；
+本模块仅保留后端中立的契约，使 src.application 不引入基础设施依赖。
 """
 
 from __future__ import annotations
@@ -42,6 +46,7 @@ class AgentBackendConfigError(ValueError):
     """Structured Agent backend selection error."""
 
     def __init__(self, code: str, message: str) -> None:
+        """构造结构化后端选择错误：保存错误码并委托 ValueError 设置消息。"""
         super().__init__(message)
         self.code = code
 
@@ -59,6 +64,8 @@ def resolve_agent_backend_id(config: Any) -> str:
 
 @dataclass(frozen=True)
 class AgentRunRequest:
+    """单次 Agent 运行请求：系统提示、历史消息、用户消息、会话、股票作用域、步数与墙钟上限等。"""
+
     system_prompt: str
     history_messages: List[Dict[str, Any]]
     user_message: str
@@ -72,6 +79,8 @@ class AgentRunRequest:
 
 @dataclass
 class AgentRunResult:
+    """Agent 运行结果：成功标志、最终答案、工具调用日志、模型/后端、用量、诊断与错误等。"""
+
     success: bool = False
     final_answer: str = ""
     tool_calls_log: List[Dict[str, Any]] = field(default_factory=list)

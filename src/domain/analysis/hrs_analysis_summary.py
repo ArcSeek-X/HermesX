@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 
 def _first_non_empty(*values: Any) -> Any:
+    """返回首个非空值。"""
     for value in values:
         if value not in (None, ""):
             return value
@@ -22,6 +23,7 @@ def _build_hrs_analysis_summary(
     fundamentals: Dict[str, Any],
     news: Dict[str, Any],
 ) -> str:
+    """构建 HRS 分析摘要。"""
     parts: List[str] = []
     price = _first_non_empty(quote.get("price"), candidate.get("price"))
     change_pct = _first_non_empty(quote.get("change_pct"), candidate.get("change_pct"))
@@ -50,6 +52,7 @@ def _build_hrs_analysis_summary(
 
 
 def _extract_hrs_news_from_context(context: Any) -> List[Dict[str, Any]]:
+    """从上下文提取 HRS 新闻。"""
     if not isinstance(context, dict):
         return []
     news = context.get("news")
@@ -65,6 +68,7 @@ def _extract_hrs_news_from_context(context: Any) -> List[Dict[str, Any]]:
 
 
 def _extract_hrs_analysis_summary_from_context(context: Any) -> str:
+    """从上下文提取 HRS 分析摘要。"""
     if not isinstance(context, dict):
         return ""
     for key in ("hrs_analysis_summary", "analysis_summary", "summary"):

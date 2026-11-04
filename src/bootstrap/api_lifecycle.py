@@ -86,10 +86,12 @@ _TRUTHY_VALUES = frozenset({"1", "true", "yes", "on"})
 
 
 def _env_truthy(name: str) -> bool:
+    """将环境变量值解析为布尔值。"""
     return os.getenv(name, "").strip().lower() in _TRUTHY_VALUES
 
 
 def _load_runtime_scheduler_args() -> Dict[str, Any]:
+    """加载运行时调度器启动参数。"""
     raw_value = os.getenv(RUNTIME_SCHEDULER_ARGS_ENV)
     if not raw_value:
         return {}
@@ -105,6 +107,7 @@ def _load_runtime_scheduler_args() -> Dict[str, Any]:
 
 
 async def _refresh_stock_index_cache_in_background(reason: str) -> None:
+    """后台刷新股票索引缓存。"""
     try:
         from src.config import get_config
 

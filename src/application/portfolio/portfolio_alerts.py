@@ -66,6 +66,7 @@ class PortfolioRiskAlert:
     stock_code: str = ""
 
     def __post_init__(self) -> None:
+        """数据类后处理：校验并规范化预警参数。"""
         effective_target = self.metadata.get("effective_target") or portfolio_effective_target(self.target)
         self.stock_code = str(effective_target)
 
@@ -100,11 +101,13 @@ def normalize_portfolio_alert_parameters(alert_type: str, parameters: Dict[str, 
 
 
 def portfolio_effective_target(target: str) -> str:
+    """返回组合预警生效的监控目标。"""
     target_text = str(target or "all").strip() or "all"
     return "account:all" if target_text == "all" else f"account:{target_text}"
 
 
 def normalize_batch_target_scope_target(target_scope: str, target: str) -> str:
+    """规范化批量目标作用域与标的。"""
     target_text = str(target or "").strip()
     if target_scope == "watchlist":
         if target_text not in {"", "default"}:
@@ -171,6 +174,7 @@ def make_static_payload(
     message: str,
     record_status: str = "skipped",
 ) -> RuntimeAlertPayload:
+    """构造组合静态预警载荷。"""
     rule = StaticAlertEvaluation(
         stock_code=effective_target,
         alert_type=alert_type,
@@ -196,6 +200,7 @@ def make_portfolio_risk_payload(
     parent_key: str,
     data: Dict[str, Any],
 ) -> RuntimeAlertPayload:
+    """构造组合风险预警载荷。"""
     effective_target = portfolio_effective_target(data["target"])
     display_target = "全部账户" if data["target"] == "all" else f"账户 {data['target']}"
     rule = PortfolioRiskAlert(
@@ -219,6 +224,7 @@ def make_portfolio_risk_payload(
 
 
 def evaluate_static_alert(rule: StaticAlertEvaluation) -> Dict[str, Any]:
+    """评估组合静态预警是否触发。"""
     return {
         "rule_id": int(rule.metadata.get("persisted_rule_id", 0) or 0),
         "status": "not_triggered",
@@ -269,6 +275,7 @@ def evaluate_portfolio_risk_alert(
 
 
 def result_to_target_result(payload: RuntimeAlertPayload, result: Dict[str, Any]) -> Dict[str, Any]:
+    """将单目标结果转换为目标结果结构。"""
     record_status = result.get("record_status")
     return {
         "target": payload.effective_target,
@@ -283,6 +290,7 @@ def result_to_target_result(payload: RuntimeAlertPayload, result: Dict[str, Any]
 
 
 def aggregate_dry_run_results(rule_id: int, target_scope: str, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """汇总试运行结果。"""
     target_results = sorted(
         results,
         key=lambda item: (
@@ -340,6 +348,7 @@ def aggregate_dry_run_results(rule_id: int, target_scope: str, results: List[Dic
 
 
 def _watchlist_symbols(config: Any) -> List[str]:
+    """返回自选股标的集合。"""
     refresh = getattr(config, "refresh_stock_list", None)
     if callable(refresh):
         try:
@@ -354,6 +363,7 @@ def _portfolio_holding_symbols(
     target: str,
     portfolio_service: Optional[PortfolioService],
 ) -> List[str]:
+    """返回组合持仓标的集合。"""
     service = portfolio_service or PortfolioService()
     account_id = None if target == "all" else _positive_int_target(target)
     snapshot = service.get_portfolio_snapshot(account_id=account_id, cost_method="fifo")
@@ -373,6 +383,7 @@ def _portfolio_holding_symbols(
 
 
 def _dedupe_symbols(symbols: Iterable[Any]) -> List[str]:
+    """对标的集合去重。"""
     output: List[str] = []
     seen = set()
     for raw in symbols:
@@ -385,10 +396,12 @@ def _dedupe_symbols(symbols: Iterable[Any]) -> List[str]:
 
 
 def _normalize_symbol(value: Any) -> str:
+    """规范化证券代码。"""
     return PortfolioService.normalize_symbol(str(value or ""))
 
 
 def _positive_int_target(value: Any) -> int:
+    """将目标值安全转换为正整数。"""
     try:
         account_id = int(str(value).strip())
     except (TypeError, ValueError) as exc:
@@ -399,6 +412,7 @@ def _positive_int_target(value: Any) -> int:
 
 
 def _evaluate_stop_loss(rule: PortfolioRiskAlert, report: Dict[str, Any]) -> Dict[str, Any]:
+    """评估止损类预警。"""
     mode = str(rule.parameters.get("mode") or "near")
     stop_loss = report.get("stop_loss") or {}
     items = list(stop_loss.get("items") or [])
@@ -439,6 +453,7 @@ def _evaluate_stop_loss(rule: PortfolioRiskAlert, report: Dict[str, Any]) -> Dic
 
 
 def _evaluate_concentration(rule: PortfolioRiskAlert, report: Dict[str, Any]) -> Dict[str, Any]:
+    """评估集中度类预警。"""
     concentration = report.get("concentration") or {}
     observed = float(concentration.get("top_weight_pct") or 0.0)
     threshold = _threshold(report, "concentration_alert_pct")
@@ -460,6 +475,7 @@ def _evaluate_concentration(rule: PortfolioRiskAlert, report: Dict[str, Any]) ->
 
 
 def _evaluate_drawdown(rule: PortfolioRiskAlert, report: Dict[str, Any]) -> Dict[str, Any]:
+    """评估回撤类预警。"""
     drawdown = report.get("drawdown") or {}
     observed = float(drawdown.get("max_drawdown_pct") or 0.0)
     threshold = _threshold(report, "drawdown_alert_pct")
@@ -483,6 +499,7 @@ def _evaluate_drawdown(rule: PortfolioRiskAlert, report: Dict[str, Any]) -> Dict
 
 
 def _evaluate_price_stale(rule: PortfolioRiskAlert, snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """评估价格过期类预警。"""
     affected: List[Dict[str, Any]] = []
     for account in snapshot.get("accounts", []) or []:
         for position in account.get("positions", []) or []:
@@ -527,6 +544,7 @@ def _portfolio_result(
     data_timestamp: Optional[datetime] = None,
     data_source: str = "portfolio_risk",
 ) -> Dict[str, Any]:
+    """从快照中提取组合结果字段。"""
     if data_timestamp is None:
         data_timestamp = _parse_date(diagnostics.get("as_of"))
     status = "triggered" if triggered else "not_triggered"
@@ -546,6 +564,7 @@ def _portfolio_result(
 
 
 def _base_diagnostics(report: Dict[str, Any], *, top_items: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """构造预警基础诊断信息。"""
     return {
         "account_id": report.get("account_id") if report.get("account_id") is not None else "all",
         "currency": report.get("currency"),
@@ -562,6 +581,7 @@ def _base_diagnostics_from_snapshot(
     *,
     top_items: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
+    """基于组合快照构造基础诊断。"""
     accounts = snapshot.get("accounts", []) or []
     explicit_account = accounts[0].get("account_id") if len(accounts) == 1 else "all"
     affected = top_items or []
@@ -577,6 +597,7 @@ def _base_diagnostics_from_snapshot(
 
 
 def _top_symbols(items: List[Dict[str, Any]]) -> List[str]:
+    """返回占比最高的若干标的。"""
     output: List[str] = []
     for item in items[:5]:
         symbol = str(item.get("symbol") or "").strip()
@@ -586,6 +607,7 @@ def _top_symbols(items: List[Dict[str, Any]]) -> List[str]:
 
 
 def _threshold(report: Dict[str, Any], name: str) -> Optional[float]:
+    """读取预警阈值参数。"""
     thresholds = report.get("thresholds") or {}
     value = thresholds.get(name)
     if value is None:
@@ -597,11 +619,13 @@ def _threshold(report: Dict[str, Any], name: str) -> Optional[float]:
 
 
 def _display_account(report: Dict[str, Any]) -> str:
+    """返回账户展示名称。"""
     account_id = report.get("account_id")
     return "account all" if account_id is None else f"account {account_id}"
 
 
 def _display_snapshot_account(snapshot: Dict[str, Any]) -> str:
+    """返回快照中的账户展示名称。"""
     accounts = snapshot.get("accounts", []) or []
     if len(accounts) == 1:
         return f"account {accounts[0].get('account_id')}"
@@ -609,6 +633,7 @@ def _display_snapshot_account(snapshot: Dict[str, Any]) -> str:
 
 
 def _parse_date(value: Any) -> Optional[datetime]:
+    """解析日期字符串。"""
     if value is None:
         return None
     if isinstance(value, datetime):

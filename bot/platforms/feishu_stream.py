@@ -386,6 +386,7 @@ class FeishuStreamClient:
         """创建消息处理函数"""
 
         def handle_message(message: BotMessage) -> BotResponse:
+            """处理飞书流式消息。"""
             from bot.dispatcher import get_dispatcher
             dispatcher = get_dispatcher()
             return dispatcher.dispatch(message)

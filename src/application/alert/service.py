@@ -116,6 +116,7 @@ class AlertService:
         repository: Optional[AlertRepositoryPort] = None,
         history_repo: Optional[HistoryRepositoryPort] = None,
     ):
+        """构造告警服务并装配依赖。"""
         if repository is None:
             raise AlertServiceError(
                 "alert repository port is required; assemble via "
@@ -126,16 +127,19 @@ class AlertService:
         self._daily_bar_fetcher = daily_bar_fetcher
 
     def create_rule(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """创建告警规则。"""
         fields = self._normalize_rule_payload(payload)
         return self._serialize_rule(self.repo.create_rule(fields))
 
     def get_rule(self, rule_id: int) -> Dict[str, Any]:
+        """按 ID 获取告警规则。"""
         row = self.repo.get_rule(rule_id)
         if row is None:
             raise AlertNotFoundError(f"Alert rule not found: {rule_id}")
         return self._serialize_rule(row)
 
     def update_rule(self, rule_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """更新告警规则。"""
         row = self.repo.get_rule(rule_id)
         if row is None:
             raise AlertNotFoundError(f"Alert rule not found: {rule_id}")
@@ -152,9 +156,11 @@ class AlertService:
         return self._serialize_rule(updated)
 
     def delete_rule(self, rule_id: int) -> bool:
+        """删除告警规则。"""
         return self.repo.delete_rule(rule_id)
 
     def enable_rule(self, rule_id: int, enabled: bool) -> Dict[str, Any]:
+        """启用或停用告警规则。"""
         updated = self.repo.update_rule(rule_id, {"enabled": enabled})
         if updated is None:
             raise AlertNotFoundError(f"Alert rule not found: {rule_id}")
@@ -171,6 +177,7 @@ class AlertService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出告警规则。"""
         rows, total = self.repo.list_rules(
             enabled=enabled,
             alert_type=alert_type,
@@ -188,6 +195,7 @@ class AlertService:
         }
 
     def test_rule(self, rule_id: int) -> Dict[str, Any]:
+        """试运行单条告警规则。"""
         row = self.repo.get_rule(rule_id)
         if row is None:
             raise AlertNotFoundError(f"Alert rule not found: {rule_id}")
@@ -227,6 +235,7 @@ class AlertService:
         monitor: EventMonitor,
         daily_cache: Optional[Dict[Any, Any]] = None,
     ) -> Dict[str, Any]:
+        """评估告警规则是否触发。"""
         if isinstance(rule, PriceAlert):
             return await self._evaluate_price(rule, monitor)
         if isinstance(rule, PriceChangeAlert):
@@ -248,10 +257,12 @@ class AlertService:
         payloads: List[RuntimeAlertPayload],
         monitor: EventMonitor,
     ) -> List[Dict[str, Any]]:
+        """评估一批运行时规则载荷。"""
         semaphore = asyncio.Semaphore(8)
         daily_cache: Dict[Any, Any] = {}
 
         async def _evaluate_one(payload: RuntimeAlertPayload) -> Dict[str, Any]:
+            """评估单条规则载荷。"""
             async with semaphore:
                 try:
                     result = await asyncio.wait_for(
@@ -310,6 +321,7 @@ class AlertService:
 
     @staticmethod
     def _dry_run_response_for_single(payload: RuntimeAlertPayload, result: Dict[str, Any], *, target_scope: str) -> Dict[str, Any]:
+        """构造单条规则的试运行响应。"""
         target_result = result_to_target_result(payload, result)
         response = {
             "rule_id": result.get("rule_id") or 0,
@@ -327,6 +339,7 @@ class AlertService:
         return response
 
     async def _evaluate_price(self, rule: PriceAlert, monitor: EventMonitor) -> Dict[str, Any]:
+        """评估价格类条件。"""
         threshold = float(rule.price)
         try:
             quote = await monitor.get_realtime_quote(rule.stock_code)
@@ -391,6 +404,7 @@ class AlertService:
         )
 
     async def _evaluate_price_change(self, rule: PriceChangeAlert, monitor: EventMonitor) -> Dict[str, Any]:
+        """评估涨跌幅类条件。"""
         threshold = abs(float(rule.change_pct))
         try:
             quote = await monitor.get_realtime_quote(rule.stock_code)
@@ -453,7 +467,9 @@ class AlertService:
         )
 
     async def _evaluate_volume(self, rule: VolumeAlert) -> Dict[str, Any]:
+        """评估成交量类条件。"""
         def _fetch_daily_data():
+            """拉取日线数据。"""
             if self._daily_bar_fetcher is None:
                 raise RuntimeError(
                     "AlertService.daily_bar_fetcher is required for volume alerts;"
@@ -548,10 +564,12 @@ class AlertService:
         *,
         daily_cache: Optional[Dict[tuple[str, int], Any]] = None,
     ) -> Dict[str, Any]:
+        """评估技术指标类条件。"""
         requested_days = compute_requested_days(rule.alert_type, rule.indicator_params)
         cache_key = (rule.stock_code, requested_days)
 
         def _fetch_daily_data():
+            """拉取日线数据。"""
             if self._daily_bar_fetcher is None:
                 raise RuntimeError(
                     "AlertService.daily_bar_fetcher is required for indicator alerts;"
@@ -645,6 +663,7 @@ class AlertService:
         data_source: Optional[str] = None,
         data_timestamp: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        """构造触发结果。"""
         sanitized_message = self.sanitize_text(message)
         return {
             "rule_id": self.runtime_rule_id(rule),
@@ -670,6 +689,7 @@ class AlertService:
         data_source: Optional[str] = None,
         data_timestamp: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        """构造未触发结果。"""
         sanitized_message = self.sanitize_text(message)
         return {
             "rule_id": self.runtime_rule_id(rule),
@@ -693,6 +713,7 @@ class AlertService:
         data_source: Optional[str] = None,
         data_timestamp: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        """构造评估失败结果。"""
         sanitized_message = self.sanitize_text(str(exc) or "Alert evaluation failed")
         return {
             "rule_id": self.runtime_rule_id(rule),
@@ -709,10 +730,12 @@ class AlertService:
 
     @staticmethod
     def runtime_rule_id(rule) -> int:
+        """返回运行时规则 ID。"""
         return int(rule.metadata.get("persisted_rule_id", 0) or 0)
 
     @staticmethod
     def threshold_for_rule(rule) -> Optional[float]:
+        """返回规则阈值。"""
         if isinstance(rule, PriceAlert):
             return float(rule.price)
         if isinstance(rule, PriceChangeAlert):
@@ -729,6 +752,7 @@ class AlertService:
 
     @staticmethod
     def data_source_for_rule(rule) -> Optional[str]:
+        """返回规则数据来源。"""
         if isinstance(rule, (PriceAlert, PriceChangeAlert)):
             return "realtime_quote"
         if isinstance(rule, VolumeAlert):
@@ -743,6 +767,7 @@ class AlertService:
 
     @classmethod
     def _extract_quote_datetime(cls, quote: Any) -> Optional[datetime]:
+        """从行情数据提取时间戳。"""
         for field_name in (
             "data_timestamp",
             "timestamp",
@@ -761,6 +786,7 @@ class AlertService:
 
     @staticmethod
     def _read_quote_field(quote: Any, field_name: str) -> Any:
+        """读取行情字段值。"""
         if quote is None:
             return None
         if isinstance(quote, dict):
@@ -777,6 +803,7 @@ class AlertService:
 
     @classmethod
     def _extract_daily_timestamp(cls, df: Any) -> Optional[datetime]:
+        """提取日线数据时间戳。"""
         if df is None or getattr(df, "empty", True):
             return None
 
@@ -799,6 +826,7 @@ class AlertService:
 
     @staticmethod
     def _coerce_datetime(value: Any) -> Optional[datetime]:
+        """将值规范化为 datetime。"""
         if value is None:
             return None
         if isinstance(value, datetime):
@@ -854,6 +882,7 @@ class AlertService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出告警触发记录。"""
         rows, total = self.repo.list_triggers(
             rule_id=rule_id,
             target=target,
@@ -877,6 +906,7 @@ class AlertService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出通知发送记录。"""
         rows, total = self.repo.list_notifications(
             trigger_id=trigger_id,
             channel=channel,
@@ -892,6 +922,7 @@ class AlertService:
         }
 
     def _normalize_rule_payload(self, payload: Dict[str, Any], *, source: str = "api") -> Dict[str, Any]:
+        """规范化规则载荷。"""
         target_scope = str(payload.get("target_scope") or "single_symbol").strip()
         if target_scope not in SUPPORTED_TARGET_SCOPES:
             raise AlertServiceError(f"unsupported target_scope: {target_scope}")
@@ -936,12 +967,14 @@ class AlertService:
         }
 
     def _validate_rule_update_payload(self, payload: Dict[str, Any]) -> None:
+        """校验规则更新载荷。"""
         for field_name, value in payload.items():
             if value is None and field_name not in NULLABLE_RULE_UPDATE_FIELDS:
                 raise AlertServiceError(f"{field_name} must not be null")
 
     @staticmethod
     def _validate_scope_alert_type(target_scope: str, alert_type: str) -> None:
+        """校验作用域与告警类型组合。"""
         if target_scope == "market":
             if alert_type not in MARKET_ALERT_TYPES:
                 raise AlertServiceError("market target_scope only supports market alert types")
@@ -958,6 +991,7 @@ class AlertService:
             raise UnsupportedAlertTypeError(f"unsupported alert_type for {target_scope}: {alert_type}")
 
     def _normalize_target(self, target_scope: str, target: str) -> str:
+        """规范化监控目标。"""
         if target_scope == "single_symbol":
             return target.strip()
         if target_scope == "market":
@@ -974,6 +1008,7 @@ class AlertService:
             raise AlertServiceError(str(exc)) from exc
 
     def normalize_parameters(self, alert_type: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """规范化告警参数。"""
         if not isinstance(parameters, dict):
             raise AlertServiceError("parameters must be an object")
 
@@ -1017,6 +1052,7 @@ class AlertService:
 
     @staticmethod
     def _positive_float(value: Any, field_name: str) -> float:
+        """将值安全转换为正浮点数。"""
         try:
             number = float(value)
         except (TypeError, ValueError) as exc:
@@ -1032,6 +1068,7 @@ class AlertService:
         config: Optional[Any] = None,
         include_overflow_payload: bool = True,
     ) -> List[RuntimeAlertPayload]:
+        """构建运行时规则载荷列表。"""
         data = self._serialize_rule_base(row)
         parent_key = self._semantic_key(
             data["target_scope"],
@@ -1129,6 +1166,7 @@ class AlertService:
         ]
 
     def _to_runtime_rule(self, row: AlertRuleRow, data: Optional[Dict[str, Any]] = None):
+        """转换为运行时规则对象。"""
         data = data or self._serialize_rule_base(row)
         parameters = data["parameters"]
         metadata = {
@@ -1168,10 +1206,12 @@ class AlertService:
 
     @staticmethod
     def _semantic_key(target_scope: str, target: str, alert_type: str, parameters: Dict[str, Any]) -> str:
+        """生成规则语义键。"""
         canonical_params = json.dumps(parameters or {}, ensure_ascii=False, sort_keys=True)
         return f"{target_scope}:{target}:{alert_type}:{canonical_params}"
 
     def _serialize_rule(self, row: AlertRuleRow) -> Dict[str, Any]:
+        """序列化规则对象。"""
         data = self._serialize_rule_base(row)
         cooldown_summary = self._cooldown_summary_for_rule(row)
         data.update({
@@ -1182,6 +1222,7 @@ class AlertService:
         return data
 
     def _serialize_rule_base(self, row: AlertRuleRow) -> Dict[str, Any]:
+        """序列化规则基础字段。"""
         return {
             "id": row.id,
             "name": row.name,
@@ -1199,6 +1240,7 @@ class AlertService:
         }
 
     def _cooldown_summary_for_rule(self, row: AlertRuleRow) -> Dict[str, Any]:
+        """获取规则冷却汇总。"""
         try:
             cooldown_target = (
                 portfolio_effective_target(str(row.target))
@@ -1221,6 +1263,7 @@ class AlertService:
 
     @staticmethod
     def _serialize_cooldown_summary(row: Optional[AlertCooldownRow]) -> Dict[str, Any]:
+        """序列化冷却汇总。"""
         if row is None:
             return {"last_triggered_at": None, "cooldown_until": None, "cooldown_active": False}
         cooldown_active = bool(
@@ -1235,6 +1278,7 @@ class AlertService:
         }
 
     def _serialize_trigger(self, row: AlertTriggerRow) -> Dict[str, Any]:
+        """序列化触发记录。"""
         visibility = self._parse_analysis_visibility(row.diagnostics)
         return {
             "id": row.id,
@@ -1256,6 +1300,7 @@ class AlertService:
 
     @staticmethod
     def _parse_analysis_visibility(diagnostics: Optional[str]) -> Dict[str, Any]:
+        """解析分析可见性设置。"""
         result = {
             "market_phase_summary": None,
             "analysis_context_pack_overview": None,
@@ -1286,6 +1331,7 @@ class AlertService:
         return result
 
     def _serialize_notification(self, row: AlertNotificationRow) -> Dict[str, Any]:
+        """序列化通知记录。"""
         return {
             "id": row.id,
             "trigger_id": row.trigger_id,
@@ -1301,6 +1347,7 @@ class AlertService:
 
     @staticmethod
     def _default_rule_name(*, target: str, alert_type: str, parameters: Dict[str, Any]) -> str:
+        """生成默认规则名称。"""
         if alert_type == "price_cross":
             return f"{target} price {parameters['direction']} {parameters['price']}"
         if alert_type == "price_change_percent":
@@ -1334,9 +1381,11 @@ class AlertService:
 
     @staticmethod
     def _dump_json(value: Dict[str, Any]) -> str:
+        """序列化为 JSON 字符串。"""
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
     def _dump_json_or_none(self, value: Optional[Dict[str, Any]]) -> Optional[str]:
+        """序列化为 JSON 或返回 None。"""
         if value is None:
             return None
         if not isinstance(value, dict):
@@ -1345,6 +1394,7 @@ class AlertService:
 
     @staticmethod
     def load_json(raw: Optional[str], *, default: Any) -> Any:
+        """解析 JSON 字符串。"""
         if raw is None or raw == "":
             return default
         try:
@@ -1354,4 +1404,5 @@ class AlertService:
 
     @staticmethod
     def sanitize_text(text: Any) -> str:
+        """清洗文本字段。"""
         return sanitize_diagnostic_text(text)

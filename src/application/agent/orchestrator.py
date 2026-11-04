@@ -152,6 +152,7 @@ class AgentOrchestrator:
         skill_manager=None,
         config=None,
     ):
+        """构造 Agent 编排器：装配各专家 Agent 与运行依赖。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.skill_instructions = skill_instructions
@@ -195,6 +196,7 @@ class AgentOrchestrator:
         }
 
     def _get_skill_concurrency(self) -> int:
+        """返回技能并发执行上限。"""
         raw_value = getattr(self.config, "agent_skill_concurrency", 3)
         try:
             parsed = int(raw_value or 3)
@@ -873,6 +875,7 @@ class AgentOrchestrator:
         progress_callback: Optional[Callable] = None,
         timeout_seconds: Optional[float] = None,
     ) -> SkillBatchResult:
+        """批量运行专家 Agent 并汇总各股票分析结果。"""
         sub_agent_timeout_map = self._get_sub_agent_timeout_map()
         configured_skill_timeout = sub_agent_timeout_map.get("skill", 0.0)
         budget_per_skill = self._skill_batch_timeout_slice(
@@ -1343,6 +1346,7 @@ class AgentOrchestrator:
         *,
         note: str,
     ) -> Dict[str, Any]:
+        """标记仪表盘为部分完成状态（部分 Agent 失败）。"""
         tagged = dict(dashboard)
         summary = _first_non_empty_text(tagged.get("analysis_summary"))
         prefix = "[降级结果] "

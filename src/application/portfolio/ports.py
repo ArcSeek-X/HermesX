@@ -110,21 +110,35 @@ class PortfolioRepositoryPort(Protocol):
         market: str,
         base_currency: str,
         owner_id: Optional[str] = None,
-    ) -> Any: ...
+    ) -> Any:
+        """创建组合账户。"""
+        ...
 
-    def get_account(self, account_id: int, include_inactive: bool = False) -> Any: ...
+    def get_account(self, account_id: int, include_inactive: bool = False) -> Any:
+        """按 ID 获取组合账户。"""
+        ...
 
-    def list_accounts(self, include_inactive: bool = False) -> List[Any]: ...
+    def list_accounts(self, include_inactive: bool = False) -> List[Any]:
+        """列出全部组合账户。"""
+        ...
 
     def get_account_in_session(
         self, *, session: Any, account_id: int, include_inactive: bool = False
-    ) -> Any: ...
+    ) -> Any:
+        """在指定会话内获取组合账户。"""
+        ...
 
-    def update_account(self, account_id: int, fields: Dict[str, Any]) -> Any: ...
+    def update_account(self, account_id: int, fields: Dict[str, Any]) -> Any:
+        """更新组合账户信息。"""
+        ...
 
-    def deactivate_account(self, account_id: int) -> bool: ...
+    def deactivate_account(self, account_id: int) -> bool:
+        """停用组合账户。"""
+        ...
 
-    def portfolio_write_session(self) -> Any: ...
+    def portfolio_write_session(self) -> Any:
+        """返回组合写入用的数据库会话上下文。"""
+        ...
 
     def add_trade_in_session(
         self,
@@ -143,7 +157,9 @@ class PortfolioRepositoryPort(Protocol):
         tax: float,
         note: Optional[str] = None,
         dedup_hash: Optional[str] = None,
-    ) -> Any: ...
+    ) -> Any:
+        """在会话内新增一笔交易记录。"""
+        ...
 
     def add_cash_ledger_in_session(
         self,
@@ -155,7 +171,9 @@ class PortfolioRepositoryPort(Protocol):
         amount: float,
         currency: str,
         note: Optional[str] = None,
-    ) -> Any: ...
+    ) -> Any:
+        """在会话内新增一条现金流水。"""
+        ...
 
     def add_corporate_action_in_session(
         self,
@@ -170,41 +188,69 @@ class PortfolioRepositoryPort(Protocol):
         cash_dividend_per_share: Optional[float] = None,
         split_ratio: Optional[float] = None,
         note: Optional[str] = None,
-    ) -> Any: ...
+    ) -> Any:
+        """在会话内新增一条公司行动记录。"""
+        ...
 
-    def delete_trade_in_session(self, *, session: Any, trade_id: int) -> bool: ...
+    def delete_trade_in_session(self, *, session: Any, trade_id: int) -> bool:
+        """在会话内删除一笔交易记录。"""
+        ...
 
-    def delete_cash_ledger_in_session(self, *, session: Any, entry_id: int) -> bool: ...
+    def delete_cash_ledger_in_session(self, *, session: Any, entry_id: int) -> bool:
+        """在会话内删除一条现金流水。"""
+        ...
 
-    def delete_corporate_action_in_session(self, *, session: Any, action_id: int) -> bool: ...
+    def delete_corporate_action_in_session(self, *, session: Any, action_id: int) -> bool:
+        """在会话内删除一条公司行动记录。"""
+        ...
 
-    def has_trade_uid(self, account_id: int, trade_uid: Optional[str]) -> bool: ...
+    def has_trade_uid(self, account_id: int, trade_uid: Optional[str]) -> bool:
+        """判断交易 UID 是否已存在。"""
+        ...
 
-    def has_trade_dedup_hash(self, account_id: int, dedup_hash: Optional[str]) -> bool: ...
+    def has_trade_dedup_hash(self, account_id: int, dedup_hash: Optional[str]) -> bool:
+        """判断交易去重哈希是否已存在。"""
+        ...
 
     def has_trade_uid_in_session(
         self, *, session: Any, account_id: int, trade_uid: str
-    ) -> bool: ...
+    ) -> bool:
+        """在会话内判断交易 UID 是否已存在。"""
+        ...
 
     def has_trade_dedup_hash_in_session(
         self, *, session: Any, account_id: int, dedup_hash: str
-    ) -> bool: ...
+    ) -> bool:
+        """在会话内判断交易去重哈希是否已存在。"""
+        ...
 
-    def list_trades(self, account_id: int, as_of: date) -> List[Any]: ...
+    def list_trades(self, account_id: int, as_of: date) -> List[Any]:
+        """列出交易记录。"""
+        ...
 
     def list_trades_in_session(
         self, *, session: Any, account_id: int, as_of: date
-    ) -> List[Any]: ...
+    ) -> List[Any]:
+        """在会话内列出交易记录。"""
+        ...
 
-    def list_cash_ledger(self, account_id: int, as_of: date) -> List[Any]: ...
+    def list_cash_ledger(self, account_id: int, as_of: date) -> List[Any]:
+        """列出现金流水。"""
+        ...
 
-    def list_corporate_actions(self, account_id: int, as_of: date) -> List[Any]: ...
+    def list_corporate_actions(self, account_id: int, as_of: date) -> List[Any]:
+        """列出公司行动记录。"""
+        ...
 
     def list_corporate_actions_in_session(
         self, *, session: Any, account_id: int, as_of: date
-    ) -> List[Any]: ...
+    ) -> List[Any]:
+        """在会话内列出公司行动记录。"""
+        ...
 
-    def get_first_activity_date(self, *, account_id: int, as_of: date) -> Any: ...
+    def get_first_activity_date(self, *, account_id: int, as_of: date) -> Any:
+        """返回账户首笔活动日期。"""
+        ...
 
     def query_trades(
         self,
@@ -216,7 +262,9 @@ class PortfolioRepositoryPort(Protocol):
         side: Optional[str],
         page: int,
         page_size: int,
-    ) -> Tuple[List[Any], int]: ...
+    ) -> Tuple[List[Any], int]:
+        """按条件查询交易记录。"""
+        ...
 
     def query_cash_ledger(
         self,
@@ -227,7 +275,9 @@ class PortfolioRepositoryPort(Protocol):
         direction: Optional[str],
         page: int,
         page_size: int,
-    ) -> Tuple[List[Any], int]: ...
+    ) -> Tuple[List[Any], int]:
+        """按条件查询现金流水。"""
+        ...
 
     def query_corporate_actions(
         self,
@@ -239,9 +289,13 @@ class PortfolioRepositoryPort(Protocol):
         action_type: Optional[str],
         page: int,
         page_size: int,
-    ) -> Tuple[List[Any], int]: ...
+    ) -> Tuple[List[Any], int]:
+        """按条件查询公司行动记录。"""
+        ...
 
-    def get_latest_close_with_date(self, symbol: str, as_of: date) -> Any: ...
+    def get_latest_close_with_date(self, symbol: str, as_of: date) -> Any:
+        """返回最新收盘价及其日期。"""
+        ...
 
     def save_fx_rate(
         self,
@@ -252,11 +306,15 @@ class PortfolioRepositoryPort(Protocol):
         rate: float,
         source: str = "manual",
         is_stale: bool = False,
-    ) -> None: ...
+    ) -> None:
+        """保存汇率记录。"""
+        ...
 
     def get_latest_fx_rate(
         self, *, from_currency: str, to_currency: str, as_of: date
-    ) -> Any: ...
+    ) -> Any:
+        """返回最新汇率。"""
+        ...
 
     def list_daily_snapshots_for_risk(
         self,
@@ -265,11 +323,15 @@ class PortfolioRepositoryPort(Protocol):
         cost_method: str,
         account_id: Optional[int] = None,
         lookback_days: int = 180,
-    ) -> List[Any]: ...
+    ) -> List[Any]:
+        """列出用于风险计算的每日快照。"""
+        ...
 
     def list_cached_position_identities(
         self, *, account_id: Optional[int] = None
-    ) -> List[Tuple[str, str]]: ...
+    ) -> List[Tuple[str, str]]:
+        """列出缓存的持仓标识。"""
+        ...
 
     def replace_positions_lots_and_snapshot(
         self,
@@ -290,7 +352,9 @@ class PortfolioRepositoryPort(Protocol):
         positions: Iterable[Dict[str, Any]],
         lots: Iterable[Dict[str, Any]],
         valuation_currency: str,
-    ) -> None: ...
+    ) -> None:
+        """整体替换持仓、批次与快照数据。"""
+        ...
 
 
 # ---------------------------------------------------------------------------

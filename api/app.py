@@ -63,6 +63,7 @@ _FRONTEND_INDEX_NO_CACHE_HEADERS = {
 
 
 def _frontend_index_response(static_dir: Path) -> FileResponse:
+    """构造前端首页 HTML 响应。"""
     return FileResponse(
         static_dir / "index.html",
         headers=_FRONTEND_INDEX_NO_CACHE_HEADERS,
@@ -135,6 +136,7 @@ def _register_frontend_asset_mime_types() -> None:
 
 
 def _frontend_asset_media_type(asset_path: str) -> Optional[str]:
+    """返回前端静态资源的 MIME 类型。"""
     suffix = Path(asset_path).suffix.lower()
     if suffix in _FRONTEND_ASSET_MEDIA_TYPES:
         return _FRONTEND_ASSET_MEDIA_TYPES[suffix]
@@ -151,6 +153,7 @@ def _missing_asset_media_type(asset_path: str) -> str:
 
 
 def _warn_if_open_cors_without_auth() -> None:
+    """未启用认证却开放 CORS 时发出警告。"""
     if is_auth_enabled():
         return
     logger.warning(
@@ -323,6 +326,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
         )
 
     def _stock_index_candidate_paths() -> tuple[Path, ...]:
+        """返回股票索引文件的候选路径。"""
         local_candidates = (
             static_dir / "static" / _STOCK_INDEX_FILENAME,
         )
@@ -335,6 +339,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
         )
 
     def _find_existing_stock_index_path() -> Optional[Path]:
+        """查找已存在的股票索引文件路径。"""
         remote_cache_path = get_remote_stock_index_cache_path()
         return find_existing_stock_index_path(
             _stock_index_candidate_paths(),
@@ -384,6 +389,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
             include_in_schema=False,
         )
         async def serve_asset(request: Request, asset_path: str):
+            """响应前端静态资源请求。"""
             file_path = _resolve_asset_path(assets_dir, asset_path)
             if file_path is None:
                 return Response(

@@ -1,6 +1,10 @@
 """Diagnostic classification, response extraction and redaction for configuration probes.
 
 No I/O or service state; shared by channel probes and notification tests.
+
+配置探针的诊断分类、响应抽取与脱敏工具。负责把 LLM 通道/通知测试的异常与 HTTP 错误
+分类成统一诊断结构、从响应中抽取内容与工具调用名、并对错误信息做脱敏（密钥/令牌/认证头抹除）。
+本模块只做纯函数计算，不触碰 I/O 与服务状态。
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ from src.application.runtime.llm_config_validation import (
 def _build_skipped_capability_results(
     capability_checks: Sequence[str], reason: str, message: str, *, redaction_values: Optional[Set[str]] = None
 ) -> Dict[str, Dict[str, Any]]:
+    """为一批 capability 检查生成统一的 'skipped' 结果（带 reason 与可重试=False），用于整体跳过场景。"""
     return {
         capability: _build_llm_capability_result(
             capability=capability,
@@ -47,6 +52,7 @@ def _build_llm_capability_result(
     details: Optional[Dict[str, Any]] = None,
     redaction_values: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
+    """构造单个 capability 的结果字典：对 message/details 做脱敏，并附 stage、retryable、latency_ms 等字段。"""
     return {
         "status": status,
         "message": _sanitize_llm_error_text(message, redaction_values=redaction_values),
@@ -63,6 +69,7 @@ def _build_llm_capability_result(
 def _build_llm_capability_result_from_diagnostic(
     capability: str, diagnostic: _LLMDiagnostic, error: str, *, redaction_values: Optional[Set[str]] = None
 ) -> Dict[str, Any]:
+    """由 _LLMDiagnostic 构造 failed 状态的 capability 结果：合并 error 与诊断详情。"""
     details = _merge_llm_diagnostic_details({"error": error}, diagnostic)
     return _build_llm_capability_result(
         capability=capability,
@@ -76,6 +83,7 @@ def _build_llm_capability_result_from_diagnostic(
 
 
 def _extract_llm_tool_call_names(response: Any) -> List[str]:
+    """从 LLM 响应（dict 或对象）的首个 choice.message.tool_calls 中抽取工具调用名列表（去空）。"""
     choices = response.get("choices") if isinstance(response, dict) else getattr(response, "choices", None)
     if not choices:
         return []
@@ -98,6 +106,7 @@ def _extract_llm_tool_call_names(response: Any) -> List[str]:
 
 
 def _extract_llm_stream_chunk_content(chunk: Any) -> str:
+    """从流式 chunk（dict 或对象）中提取首个 choice 的文本内容，依次看 delta/message/content，回退 choice.text。"""
     choices = chunk.get("choices") if isinstance(chunk, dict) else getattr(chunk, "choices", None)
     if not choices:
         return ""
@@ -115,6 +124,7 @@ def _extract_llm_stream_chunk_content(chunk: Any) -> str:
 
 
 def _classify_llm_capability_exception(exc: Exception, capability: str) -> _LLMDiagnostic:
+    """将能力相关异常分类为诊断：若含 'unsupported' 等标记且与该能力 token 相关，返回 capability_unsupported，否则回退通用异常分类。"""
     text = str(exc).lower()
     capability_tokens = {
         "json": ("response_format", "json_object", "json mode"),
@@ -161,6 +171,7 @@ def _build_llm_channel_result(
     capability_results: Optional[Dict[str, Any]] = None,
     redaction_values: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
+    """构造通道级探测结果字典：对 message/error/protocol/model/details 全部脱敏，并按条件附带 resolved_model/models/capability_results。"""
     payload: Dict[str, Any] = {
         "success": success,
         "message": _sanitize_llm_error_text(message, redaction_values=redaction_values),
@@ -190,6 +201,7 @@ def _build_llm_channel_result(
 
 
 def _merge_llm_diagnostic_details(base_details: Optional[Dict[str, Any]], diagnostic: _LLMDiagnostic) -> Dict[str, Any]:
+    """合并基础诊断详情与 _LLMDiagnostic：reason 仅在缺失时补入，随后用诊断自带 details 覆盖。"""
     details: Dict[str, Any] = dict(base_details or {})
     if diagnostic.reason:
         details.setdefault("reason", diagnostic.reason)
@@ -198,10 +210,12 @@ def _merge_llm_diagnostic_details(base_details: Optional[Dict[str, Any]], diagno
 
 
 def _build_redaction_values(*values: Any) -> Set[str]:
+    """便捷封装：装配 Hermes 脱敏值集合，供后续错误文本/详情抹除使用。"""
     return build_hermes_redaction_values(*values)
 
 
 def _comma_flexible_secret_pattern(secret: str) -> Optional[re.Pattern[str]]:
+    """为含逗号分隔的复合密钥生成大小写不敏感的正则：去除 authorization/bearer 前缀，仅当含多个部分时返回编译后的 pattern，否则 None。"""
     normalized = re.sub("(?i)^\\s*authorization\\s*[:=]\\s*", "", str(secret or "").strip())
     normalized = re.sub("(?i)^\\s*bearer\\s+", "", normalized)
     parts = [part.strip() for part in normalized.split(",") if part.strip()]
@@ -213,6 +227,7 @@ def _comma_flexible_secret_pattern(secret: str) -> Optional[re.Pattern[str]]:
 
 
 def _sanitize_llm_error_text(text: Any, *, redaction_values: Optional[Set[str]] = None) -> str:
+    """脱敏错误文本：按 redaction 集合（正则+精确替换）抹除密钥/令牌，再用内置模式抹除认证头/API Key/Cookie/Bearer/SK，压缩空白并截断到 300 字符。"""
     if text is None:
         return ""
     sanitized = str(text).strip()
@@ -241,6 +256,7 @@ def _sanitize_llm_error_text(text: Any, *, redaction_values: Optional[Set[str]] 
 def _sanitize_llm_details(
     details: Optional[Dict[str, Any]], *, redaction_values: Optional[Set[str]] = None
 ) -> Dict[str, Any]:
+    """脱敏详情字典：委托 _sanitize_llm_value 处理，结果非 dict 则返回空 dict。"""
     if not details:
         return {}
     sanitized = _sanitize_llm_value(details, redaction_values=redaction_values)
@@ -248,6 +264,7 @@ def _sanitize_llm_details(
 
 
 def _sanitize_llm_value(value: Any, *, redaction_values: Optional[Set[str]] = None) -> Any:
+    """递归脱敏任意值：字符串按错误文本脱敏，dict 对键与值脱敏，list/tuple 逐元素脱敏，其余原样返回。"""
     if isinstance(value, str):
         return _sanitize_llm_error_text(value, redaction_values=redaction_values)
     if isinstance(value, dict):
@@ -265,6 +282,7 @@ def _sanitize_llm_value(value: Any, *, redaction_values: Optional[Set[str]] = No
 
 
 def _classify_llm_http_error(status_code: int, error_text: str) -> _LLMDiagnostic:
+    """按 HTTP 状态码与错误文本分类 LLM 错误：覆盖模型访问拒绝/未找到/配额限流/鉴权/网络/超时等，给出统一诊断与 error_code。"""
     lowered = (error_text or "").lower()
     if _has_model_access_denied_signal(error_text or ""):
         return _LLMDiagnostic(
@@ -306,6 +324,7 @@ def _classify_llm_http_error(status_code: int, error_text: str) -> _LLMDiagnosti
 
 
 def _classify_llm_exception(exc: Exception) -> _LLMDiagnostic:
+    """将 LLM 调用抛出的异常分类为统一诊断：覆盖超时/配额/限流/模型前缀不匹配/访问拒绝/请求拦截/鉴权/DNS/连接/TLS/网络等，默认归为 network_error。"""
     exc_name = type(exc).__name__.lower()
     text = str(exc).lower()
     if isinstance(exc, TimeoutError) or "timeout" in exc_name or "timed out" in text:
@@ -364,13 +383,16 @@ def _classify_llm_exception(exc: Exception) -> _LLMDiagnostic:
 
 
 def _extract_llm_completion_content(response: Any) -> Tuple[str, Optional[str], Optional[str], Optional[str]]:
+    """从补全响应抽取正文：优先 content_blocks（多模态块），回退 message.content；返回 (content, error_code, message, stage) 四元组，无内容时给出对应错误标识。"""
 
     def _field(obj: Any, key: str) -> Any:
+        """从 dict 或对象中按 key 取值（dict 用 .get，否则 getattr）。"""
         if isinstance(obj, dict):
             return obj.get(key)
         return getattr(obj, key, None)
 
     def _text_from_blocks(blocks: Any) -> str:
+        """从内容块列表拼接文本：跳过非文本类型块，text/output_text 块取 text 或 content 并去除 think 包装。"""
         if not isinstance(blocks, list):
             return ""
         text_parts: List[str] = []

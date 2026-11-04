@@ -87,6 +87,7 @@ HealthStatus = str
 
 @dataclass(frozen=True)
 class _SmokeRequest:
+    """生成后端冒烟测试请求结构。"""
     backend_id: str
     mode: str
     timeout_seconds: int
@@ -94,6 +95,7 @@ class _SmokeRequest:
 
 @dataclass(frozen=True)
 class _NumericConfigSpec:
+    """数值型配置项的校验规格。"""
     key: str
     default: int
     minimum: int
@@ -131,6 +133,7 @@ _LITELLM_NUMERIC_SPECS = (_GENERATION_BACKEND_MAX_CONCURRENCY_SPEC,)
 
 
 def _as_error_code(value: Any) -> Optional[str]:
+    """将异常转换为错误码。"""
     if isinstance(value, GenerationErrorCode):
         return value.value
     if value is None:
@@ -139,6 +142,7 @@ def _as_error_code(value: Any) -> Optional[str]:
 
 
 def _numeric_config_error(*, backend_id: str, spec: _NumericConfigSpec, value: Any, reason: str) -> GenerationError:
+    """构造数值配置错误。"""
     return GenerationError(
         error_code=GenerationErrorCode.UNSAFE_CONFIG,
         stage="configuration",
@@ -156,6 +160,7 @@ def _numeric_config_error(*, backend_id: str, spec: _NumericConfigSpec, value: A
 
 
 def _parse_int_config_value(value: Any, spec: _NumericConfigSpec) -> int:
+    """解析整数型配置值。"""
     raw_value = "" if value is None else str(value).strip()
     if not raw_value:
         return spec.default
@@ -169,6 +174,7 @@ def _parse_int_config_value(value: Any, spec: _NumericConfigSpec) -> int:
 
 
 def _validate_int_config_value(*, backend_id: str, value: Any, spec: _NumericConfigSpec) -> Optional[GenerationError]:
+    """校验整数型配置值范围。"""
     raw_value = "" if value is None else str(value).strip()
     if not raw_value:
         return None
@@ -182,6 +188,7 @@ def _validate_int_config_value(*, backend_id: str, value: Any, spec: _NumericCon
 
 
 def _parse_smoke_timeout(value: Optional[float], *, backend_id: str) -> int:
+    """解析冒烟测试超时时间。"""
     spec = _NumericConfigSpec(
         "timeout_seconds",
         DEFAULT_LOCAL_CLI_TIMEOUT_SECONDS,
@@ -214,11 +221,13 @@ class GenerationBackendStatusService:
         validation_issues: Optional[List[Dict[str, Any]]] = None,
         analyzer_factory: Optional[Callable[[Config], GeminiAnalyzer]] = None,
     ) -> None:
+        """构造生成后端状态服务并装配依赖。"""
         self._effective_map = {str(k).upper(): "" if v is None else str(v) for k, v in effective_map.items()}
         self._validation_issues = list(validation_issues or [])
         self._analyzer_factory = analyzer_factory or (lambda config: GeminiAnalyzer(config=config))
 
     def get_status(self) -> Dict[str, Any]:
+        """返回各生成后端的状态信息。"""
         config = self._build_backend_config()
         try:
             primary_id = resolve_generation_backend_id(config)
@@ -290,6 +299,7 @@ class GenerationBackendStatusService:
         mode: str = "json",
         timeout_seconds: Optional[float] = None,
     ) -> Dict[str, Any]:
+        """执行生成后端冒烟测试。"""
         request: Optional[_SmokeRequest] = None
         try:
             request = self._normalize_smoke_request(
@@ -365,6 +375,7 @@ class GenerationBackendStatusService:
         }
 
     def _primary_backend_id(self) -> str:
+        """返回当前主生成后端标识。"""
         return normalize_backend_id(self._effective_map.get("GENERATION_BACKEND"), default=LITELLM_BACKEND_ID)
 
     def _normalize_smoke_request(
@@ -374,6 +385,7 @@ class GenerationBackendStatusService:
         mode: str,
         timeout_seconds: Optional[float],
     ) -> _SmokeRequest:
+        """规范化冒烟测试请求。"""
         config = self._build_backend_config()
         requested_backend = normalize_backend_id(backend_id, default=resolve_generation_backend_id(config))
         if requested_backend not in SUPPORTED_GENERATION_BACKENDS:
@@ -403,6 +415,7 @@ class GenerationBackendStatusService:
         return _SmokeRequest(backend_id=requested_backend, mode=normalized_mode, timeout_seconds=timeout)
 
     def _run_smoke(self, request: _SmokeRequest) -> None:
+        """执行单次冒烟测试调用。"""
         config = self.build_effective_config(
             backend_id=request.backend_id,
             timeout_seconds=request.timeout_seconds,
@@ -429,6 +442,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _json_smoke_validator(cls, text: str) -> None:
+        """构造 JSON 格式冒烟结果校验器。"""
         try:
             payload = json.loads((text or "").strip())
         except Exception as exc:
@@ -452,6 +466,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _text_smoke_validator(cls, text: str) -> None:
+        """构造文本格式冒烟结果校验器。"""
         if (text or "").strip() != "HRS_GENERATION_BACKEND_SMOKE_OK":
             raise GenerationError(
                 error_code=GenerationErrorCode.SCHEMA_VALIDATION_FAILED,
@@ -471,6 +486,7 @@ class GenerationBackendStatusService:
         health_status: HealthStatus,
         error: Optional[GenerationError] = None,
     ) -> Dict[str, Any]:
+        """构建单个后端的状态对象。"""
         config = self._build_backend_config()
         try:
             cheap_error = self._cheap_check_error(backend_id, config)
@@ -509,6 +525,7 @@ class GenerationBackendStatusService:
         fallback_target: Optional[str],
         error: GenerationError,
     ) -> Dict[str, Any]:
+        """按错误构造后端状态。"""
         return self._build_status(
             backend_id=backend_id,
             is_primary=is_primary,
@@ -518,6 +535,7 @@ class GenerationBackendStatusService:
         )
 
     def _cheap_check_error(self, backend_id: str, config: Any) -> Optional[GenerationError]:
+        """构造低成本预检错误。"""
         numeric_error = self._numeric_config_error_for_backend(backend_id)
         if numeric_error is not None:
             return numeric_error
@@ -557,6 +575,7 @@ class GenerationBackendStatusService:
         )
 
     def _litellm_route_error(self, config: Any) -> Optional[GenerationError]:
+        """构造 LiteLLM 路由错误。"""
         model = str(getattr(config, "litellm_model", "") or "").strip()
         model_list = getattr(config, "llm_model_list", []) or []
         route_models = set(get_configured_llm_models(model_list))
@@ -597,6 +616,7 @@ class GenerationBackendStatusService:
         return None
 
     def _has_litellm_runtime_source(self, model: str) -> bool:
+        """判断是否存在 LiteLLM 运行时来源。"""
         if not model or _uses_direct_env_provider(model):
             return True
         provider = _get_litellm_provider(model)
@@ -630,6 +650,7 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _litellm_runtime_source_error(*, field: str, model: str, reason: str) -> GenerationError:
+        """构造 LiteLLM 运行时来源错误。"""
         return GenerationError(
             error_code=GenerationErrorCode.UNSAFE_CONFIG,
             stage="configuration",
@@ -644,6 +665,7 @@ class GenerationBackendStatusService:
         )
 
     def _numeric_config_error_for_backend(self, backend_id: str) -> Optional[GenerationError]:
+        """构造指定后端的数值配置错误。"""
         specs = _LOCAL_CLI_NUMERIC_SPECS if backend_id in LOCAL_CLI_GENERATION_BACKEND_IDS else _LITELLM_NUMERIC_SPECS
         for spec in specs:
             error = _validate_int_config_value(
@@ -656,6 +678,7 @@ class GenerationBackendStatusService:
         return None
 
     def _validation_issue_error(self, backend_id: str) -> Optional[GenerationError]:
+        """构造配置校验问题对应的错误。"""
         if backend_id != LITELLM_BACKEND_ID:
             return None
         errors = [
@@ -680,6 +703,7 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _capabilities_for_backend(backend_id: str) -> GenerationCapabilities:
+        """返回指定后端的能力集合。"""
         if backend_id in LOCAL_CLI_GENERATION_BACKEND_IDS:
             return _get_generation_runtime_port().capabilities()
         return GenerationCapabilities(
@@ -693,6 +717,7 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _max_concurrency_for_backend(backend_id: str, config: Any) -> int:
+        """返回指定后端最大并发数。"""
         if backend_id in LOCAL_CLI_GENERATION_BACKEND_IDS:
             return effective_local_cli_concurrency(config)
         return _parse_int_config_value(
@@ -701,6 +726,7 @@ class GenerationBackendStatusService:
         )
 
     def _build_backend_config(self) -> SimpleNamespace:
+        """构建生成后端配置。"""
         model_list = self._build_litellm_model_list(self._effective_map)
         route_models = get_configured_llm_models(model_list)
         litellm_model = (self._effective_map.get("LITELLM_MODEL") or "").strip()
@@ -741,6 +767,7 @@ class GenerationBackendStatusService:
         )
 
     def _fallback_from_map(self) -> str:
+        """从配置映射解析回退后端。"""
         if "GENERATION_FALLBACK_BACKEND" not in self._effective_map:
             return LITELLM_BACKEND_ID
         return (self._effective_map.get("GENERATION_FALLBACK_BACKEND") or "").strip().lower()
@@ -751,6 +778,7 @@ class GenerationBackendStatusService:
         backend_id: Optional[str] = None,
         timeout_seconds: Optional[int] = None,
     ) -> Config:
+        """构建生效的生成配置。"""
         config = self._build_backend_config()
         primary = backend_id or config.generation_backend
         openai_keys = self._openai_keys_from_map(self._effective_map)
@@ -789,6 +817,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _build_litellm_model_list(cls, effective_map: Dict[str, str]) -> List[Dict[str, Any]]:
+        """构建 LiteLLM 模型列表配置。"""
         litellm_config_path = (effective_map.get("LITELLM_CONFIG") or "").strip()
         if litellm_config_path:
             return Config.parse_litellm_yaml(litellm_config_path)
@@ -807,6 +836,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _openai_keys_from_map(cls, effective_map: Dict[str, str]) -> List[str]:
+        """从配置映射提取 OpenAI 密钥。"""
         openai_keys = cls._split_csv(effective_map.get("OPENAI_API_KEYS") or "")
         if openai_keys:
             return openai_keys
@@ -817,6 +847,7 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _openai_base_url_from_map(effective_map: Dict[str, str]) -> Optional[str]:
+        """从配置映射提取 OpenAI Base URL。"""
         explicit = (effective_map.get("OPENAI_BASE_URL") or "").strip()
         if explicit:
             return explicit
@@ -824,6 +855,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _infer_legacy_litellm_model(cls, effective_map: Dict[str, str]) -> str:
+        """推断遗留配置中的 LiteLLM 模型。"""
         gemini_keys = cls._split_csv(effective_map.get("GEMINI_API_KEYS") or effective_map.get("GEMINI_API_KEY") or "")
         if gemini_keys:
             model = (effective_map.get("GEMINI_MODEL") or "gemini-3.1-pro-preview").strip()
@@ -854,6 +886,7 @@ class GenerationBackendStatusService:
 
     @classmethod
     def _parse_llm_channels_from_map(cls, effective_map: Dict[str, str]) -> List[Dict[str, Any]]:
+        """从配置映射解析 LLM 渠道。"""
         channels: List[Dict[str, Any]] = []
         for raw_name in cls._split_csv(effective_map.get("LLM_CHANNELS") or ""):
             name = raw_name.strip()
@@ -922,6 +955,7 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _parse_json_object(value: str) -> Optional[Dict[str, Any]]:
+        """解析 JSON 对象字符串。"""
         raw = (value or "").strip()
         if not raw:
             return None
@@ -933,4 +967,5 @@ class GenerationBackendStatusService:
 
     @staticmethod
     def _split_csv(value: str) -> List[str]:
+        """按逗号拆分配置字符串并去空白。"""
         return [item.strip() for item in (value or "").split(",") if item.strip()]

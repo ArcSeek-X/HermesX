@@ -239,6 +239,7 @@ def extract_and_persist_from_analysis_result(
 
 
 def _as_mapping(value: Any) -> Dict[str, Any]:
+    """将值安全转换为字典。"""
     return dict(value) if isinstance(value, Mapping) else {}
 
 
@@ -248,6 +249,7 @@ def _calibrated_or_raw_score(
     prefer: Literal["raw", "adjusted"],
     fallback: Optional[int] = None,
 ) -> Optional[int]:
+    """优先取校准分数，否则回退原始分数。"""
     if prefer == "raw":
         value = calibration.get("raw_score")
     else:
@@ -262,11 +264,13 @@ def _effective_signal_score(
     score: Optional[int],
     calibration: Dict[str, Any],
 ) -> Optional[int]:
+    """计算最终生效的信号评分。"""
     adjusted = _calibrated_or_raw_score(calibration, prefer="adjusted")
     return adjusted if adjusted is not None else score
 
 
 def _first_text(*values: Any) -> Optional[str]:
+    """返回首个非空文本值。"""
     for value in values:
         text = str(value or "").strip()
         if text:
@@ -275,6 +279,7 @@ def _first_text(*values: Any) -> Optional[str]:
 
 
 def _score_from_result(value: Any) -> Optional[int]:
+    """从结果对象中提取数值评分。"""
     try:
         score = int(float(value))
     except (TypeError, ValueError):
@@ -283,6 +288,7 @@ def _score_from_result(value: Any) -> Optional[int]:
 
 
 def _raw_action_from_report(result: AnalysisResult) -> Optional[str]:
+    """从分析结果中提取原始动作标识。"""
     explicit_action = normalize_decision_action(getattr(result, "action", None))
     if explicit_action:
         return explicit_action
@@ -323,6 +329,7 @@ def _extract_guardrail_reason(
     score: Optional[int],
     raw_action: Optional[str],
 ) -> Optional[str]:
+    """提取护栏拦截原因。"""
     score_calibration = _as_mapping(dashboard.get("decision_score_calibration"))
     reason = _first_text(
         score_calibration.get("guardrail_reason"),
@@ -353,6 +360,7 @@ def _extract_guardrail_reason(
 
 
 def _confidence_from_level(value: Any) -> Optional[float]:
+    """将置信度等级映射为数值。"""
     key = str(value or "").strip().lower()
     return _CONFIDENCE_MAP.get(key)
 
@@ -368,6 +376,7 @@ def _entry_range(ideal_buy: Optional[float], secondary_buy: Optional[float]) -> 
 
 
 def _extract_market_phase(context_snapshot: Optional[Mapping[str, Any]], result: AnalysisResult) -> Optional[str]:
+    """从上下文与结果中提取大盘阶段。"""
     snapshot_phase = _as_mapping(_as_mapping(context_snapshot).get("market_phase_summary")).get("phase")
     if snapshot_phase:
         return str(snapshot_phase)
@@ -379,6 +388,7 @@ def _extract_market_phase_summary(
     context_snapshot: Optional[Mapping[str, Any]],
     result: AnalysisResult,
 ) -> Optional[Dict[str, Any]]:
+    """提取大盘阶段摘要信息。"""
     raw_summary = _as_mapping(_as_mapping(context_snapshot).get("market_phase_summary"))
     if not raw_summary:
         raw_summary = _as_mapping(getattr(result, "market_phase_summary", None))
@@ -395,6 +405,7 @@ def _extract_market_structure_summary(
     context_snapshot: Optional[Mapping[str, Any]],
     result: AnalysisResult,
 ) -> Optional[Dict[str, Any]]:
+    """提取大盘结构摘要信息。"""
     payload = _as_mapping(getattr(result, "market_structure_context", None))
     if not payload:
         snapshot = _as_mapping(context_snapshot)
@@ -430,6 +441,7 @@ def _extract_market_structure_summary(
 
 
 def _extract_data_quality(context_snapshot: Optional[Mapping[str, Any]], result: AnalysisResult) -> Optional[Any]:
+    """从上下文与结果中提取数据质量信息。"""
     snapshot_quality = _as_mapping(
         _as_mapping(context_snapshot).get("analysis_context_pack_overview")
     ).get("data_quality")
@@ -439,6 +451,7 @@ def _extract_data_quality(context_snapshot: Optional[Mapping[str, Any]], result:
 
 
 def _extract_holding_state(portfolio_context: Optional[Mapping[str, Any]]) -> str:
+    """从组合上下文提取当前持仓状态。"""
     context = _as_mapping(portfolio_context)
     quantity = context.get("quantity")
     if quantity in (None, ""):
@@ -453,6 +466,7 @@ def _extract_holding_state(portfolio_context: Optional[Mapping[str, Any]]) -> st
 
 
 def _risk_summary(result: AnalysisResult, dashboard: Mapping[str, Any]) -> Optional[Any]:
+    """汇总结果中的风险摘要。"""
     risks = []
     risk_warning = getattr(result, "risk_warning", None)
     if risk_warning:
@@ -465,6 +479,7 @@ def _risk_summary(result: AnalysisResult, dashboard: Mapping[str, Any]) -> Optio
 
 
 def _catalyst_summary(dashboard: Mapping[str, Any]) -> Optional[Any]:
+    """汇总仪表盘中的催化剂摘要。"""
     catalysts = _as_mapping(dashboard.get("intelligence")).get("positive_catalysts")
     if not isinstance(catalysts, list):
         return None
@@ -473,6 +488,7 @@ def _catalyst_summary(dashboard: Mapping[str, Any]) -> Optional[Any]:
 
 
 def _watch_conditions(dashboard: Mapping[str, Any]) -> Optional[Any]:
+    """提取观察条件。"""
     phase_decision = _as_mapping(dashboard.get("phase_decision"))
     watch_conditions = phase_decision.get("watch_conditions")
     if isinstance(watch_conditions, list) and watch_conditions:
@@ -486,6 +502,7 @@ def _watch_conditions(dashboard: Mapping[str, Any]) -> Optional[Any]:
 
 
 def _evidence(result: AnalysisResult, sniper_points: Mapping[str, Any]) -> Dict[str, Any]:
+    """构造信号证据数据字典。"""
     evidence = {
         "operation_advice": getattr(result, "operation_advice", None),
         "decision_type": getattr(result, "decision_type", None),

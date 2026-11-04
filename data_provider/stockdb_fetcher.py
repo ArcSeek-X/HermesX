@@ -30,6 +30,7 @@ class StockDbError(RuntimeError):
     """StockDB 调用失败。"""
 
     def __init__(self, code: str, message: str, status_code: int = 503) -> None:
+        """构造本地股票库取数器并装配依赖。"""
         super().__init__(message)
         self.code = code
         self.status_code = status_code
@@ -63,10 +64,12 @@ class _TtlCache:
     """轻量线程安全 TTL 缓存。"""
 
     def __init__(self) -> None:
+        """构造本地股票库取数器并装配依赖。"""
         self._items: Dict[str, Tuple[float, Any]] = {}
         self._lock = RLock()
 
     def get(self, key: str) -> Any:
+        """读取缓存项。"""
         with self._lock:
             item = self._items.get(key)
             if not item:
@@ -78,6 +81,7 @@ class _TtlCache:
             return value
 
     def set(self, key: str, value: Any, ttl: int) -> None:
+        """写入缓存项。"""
         with self._lock:
             self._items[key] = (time.time() + max(ttl, 1), value)
 
@@ -86,6 +90,7 @@ class StockDbClient:
     """StockDB 只读 HTTP 客户端。"""
 
     def __init__(self, settings: StockDbSettings) -> None:
+        """构造本地股票库取数器并装配依赖。"""
         self.settings = settings
         self._cache = _TtlCache()
         self._cooldown_until = 0.0
@@ -94,12 +99,14 @@ class StockDbClient:
         self._session.proxies = {"http": None, "https": None}
 
     def _guard_enabled(self) -> None:
+        """判断访问保护是否启用。"""
         if not self.settings.enabled:
             raise StockDbError("stockdb_disabled", "本地 StockDB 数据源未启用", 503)
         if time.time() < self._cooldown_until:
             raise StockDbError("stockdb_unavailable", "本地 StockDB 正处于冷却期，请稍后重试", 503)
 
     def _request(self, params: Dict[str, Any], *, cache_key: Optional[str] = None, ttl: Optional[int] = None) -> Any:
+        """发起一次本地库请求。"""
         self._guard_enabled()
         final_params = {k: v for k, v in params.items() if v not in (None, "")}
         final_params["json"] = 1

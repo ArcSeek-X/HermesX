@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Capture immutable, low-sensitivity skill opinion samples."""
+"""Capture immutable, low-sensitivity skill opinion samples.
+
+捕获不可变、低敏感度的技能意见样本。负责校验并存持久化样本；
+（事后收益评估不在本服务职责内，由 skill_opinion_outcome_service 负责）。
+"""
 
 from __future__ import annotations
 
@@ -27,6 +31,7 @@ class SkillOpinionSampleService:
         db_manager: Optional[Any] = None,
         repo: Optional[SkillOpinionSampleRepositoryPort] = None,
     ):
+        """构造服务：持有（或默认创建）样本仓储。"""
         self.repo = repo or get_skill_opinion_sample_repository(db_manager)
 
     def persist(
@@ -37,6 +42,7 @@ class SkillOpinionSampleService:
         opinions: Iterable[SkillOpinionFact],
         data_quality_level: Optional[str] = None,
     ) -> int:
+        """校验并持久化技能意见样本：归一化 history_id/stock_code/skill_id/signal/confidence，去重插入缺失样本并返回插入数。"""
         try:
             normalized_history_id = int(analysis_history_id)
         except (TypeError, ValueError) as exc:
@@ -87,11 +93,13 @@ class SkillOpinionSampleService:
 
 
 def _optional_text(value: object, max_length: int) -> Optional[str]:
+    """将值安全化为最多 max_length 的字符串；空白/空返回 None。"""
     text = str(value or "").strip()
     return text[:max_length] if text else None
 
 
 def _timestamp_to_datetime(value: Optional[float]) -> Optional[datetime]:
+    """将正有限时间戳转为无时区的 UTC datetime；非法或越界返回 None。"""
     if value is None:
         return None
     try:

@@ -24,6 +24,7 @@ class DataFetcherManagerStockDataPort:
     """把 ``DataFetcherManager`` 的取数接口转成 ``StockDataPort``。"""
 
     def __init__(self) -> None:
+        """构造分析取数提供者并装配依赖。"""
         from data_provider import DataFetcherManager
 
         self._manager = DataFetcherManager()
@@ -33,6 +34,7 @@ class DataFetcherManagerStockDataPort:
     def get_stock_name(
         self, stock_code: str, allow_realtime: bool = True
     ) -> Optional[str]:
+        """获取股票名称。"""
         return self._manager.get_stock_name(stock_code, allow_realtime)
 
     def get_daily_data(
@@ -42,6 +44,7 @@ class DataFetcherManagerStockDataPort:
         end_date: Optional[str] = None,
         days: int = 30,
     ) -> Tuple[Any, str]:
+        """获取日线数据及来源标识。"""
         return self._manager.get_daily_data(
             stock_code,
             start_date=start_date,
@@ -52,16 +55,19 @@ class DataFetcherManagerStockDataPort:
     def get_realtime_quote(
         self, stock_code: str, *, log_final_failure: bool = True
     ) -> Any:
+        """获取实时行情。"""
         return self._manager.get_realtime_quote(
             stock_code, log_final_failure=log_final_failure
         )
 
     def get_chip_distribution(self, stock_code: str) -> Any:
+        """获取筹码分布数据。"""
         return self._manager.get_chip_distribution(stock_code)
 
     def get_fundamental_context(
         self, stock_code: str, budget_seconds: Optional[float] = None
     ) -> Dict[str, Any]:
+        """获取基本面上下文。"""
         return self._manager.get_fundamental_context(
             stock_code, budget_seconds=budget_seconds
         )
@@ -69,25 +75,31 @@ class DataFetcherManagerStockDataPort:
     def build_failed_fundamental_context(
         self, stock_code: str, reason: str
     ) -> Dict[str, Any]:
+        """构造基本面获取失败时的降级上下文。"""
         return self._manager.build_failed_fundamental_context(stock_code, reason)
 
     def get_belong_boards(self, stock_code: str) -> List[Dict[str, Any]]:
+        """获取个股所属板块列表。"""
         return self._manager.get_belong_boards(stock_code)
 
     def prefetch_daily_klines(self, stock_codes: List[str], days: int = 30) -> int:
+        """预取多只股票日线数据。"""
         return self._manager.prefetch_daily_klines(stock_codes, days=days)
 
     def prefetch_realtime_quotes(self, stock_codes: List[str]) -> int:
+        """预取多只股票实时行情。"""
         return self._manager.prefetch_realtime_quotes(stock_codes)
 
     def prefetch_stock_names(
         self, stock_codes: List[str], use_bulk: bool = False
     ) -> None:
+        """批量预取股票名称。"""
         return self._manager.prefetch_stock_names(stock_codes, use_bulk=use_bulk)
 
     # —— 可选能力透传（排行榜等动态探测入口）——
 
     def __getattr__(self, name: str) -> Any:
+        """将未定义属性访问委派给底层取数管理器。"""
         if name == "_manager":
             # __init__ 尚未完成赋值时的防御，避免 __getattr__ 无限递归。
             raise AttributeError(name)

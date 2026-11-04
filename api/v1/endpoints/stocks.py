@@ -343,6 +343,7 @@ async def parse_import(request: Request) -> ExtractFromImageResponse:
 def get_watchlist(
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
+    """获取自选股列表。"""
     try:
         codes = _read_watchlist_codes(service)
         return WatchlistResponse(stock_codes=codes, message=f"当前自选 {len(codes)} 只股票")
@@ -369,6 +370,7 @@ def add_to_watchlist(
     request: WatchlistRequest,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
+    """新增自选股。"""
     try:
         validated = _validate_and_normalize_stock_code(request.stock_code)
         codes = _read_watchlist_codes(service)
@@ -402,6 +404,7 @@ def remove_from_watchlist(
     request: WatchlistRequest,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
+    """移除自选股。"""
     try:
         validated = _validate_and_normalize_stock_code(request.stock_code)
         codes = _read_watchlist_codes(service)

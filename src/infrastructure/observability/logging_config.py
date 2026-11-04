@@ -35,11 +35,13 @@ class RelativePathFormatter(logging.Formatter):
     """自定义 Formatter，输出相对路径而非绝对路径"""
 
     def __init__(self, fmt=None, datefmt=None, relative_to=None):
+        """构造日志格式化器并初始化配置。"""
         super().__init__(fmt, datefmt)
         self.relative_to = Path(relative_to) if relative_to else Path.cwd()
 
     def format(self, record):
         # 将绝对路径转为相对路径
+        """格式化单条日志记录。"""
         try:
             record.pathname = str(Path(record.pathname).relative_to(self.relative_to))
         except ValueError:

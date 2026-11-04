@@ -19,6 +19,7 @@ StockRole = Literal["leader", "follower", "edge", "unknown"]
 
 
 class MarketStructureSource(BaseModel):
+    """大盘结构数据来源枚举。"""
     provider: str = Field(..., description="数据源标识，仅作快照元数据，不参与运行时 provider/model 路由")
     dataset: str = Field(..., description="数据集标识，仅用于历史可追溯快照")
     status: str = Field("ok", description="来源可用性快照")
@@ -26,6 +27,7 @@ class MarketStructureSource(BaseModel):
 
 
 class MarketStructureDataQuality(BaseModel):
+    """大盘结构数据质量信息。"""
     status: MarketStructureStatus = Field("unknown", description="数据质量快照状态（展示语义）")
     missing_fields: List[str] = Field(default_factory=list)
     sources: List[MarketStructureSource] = Field(default_factory=list)
@@ -33,6 +35,7 @@ class MarketStructureDataQuality(BaseModel):
 
 
 class RankedThemeItem(BaseModel):
+    """带排名的题材条目。"""
     name: str
     change_pct: Optional[float] = None
     rank: Optional[int] = None
@@ -42,12 +45,14 @@ class RankedThemeItem(BaseModel):
 
 
 class MarketThemeItem(RankedThemeItem):
+    """市场题材条目。"""
     phase: ThemePhase = "unknown"
     strength_score: Optional[int] = None
     reason: Optional[str] = None
 
 
 class ThemeBreadth(BaseModel):
+    """题材广度指标。"""
     active_count: int = 0
     leading_industry_count: int = 0
     leading_concept_count: int = 0
@@ -55,6 +60,7 @@ class ThemeBreadth(BaseModel):
 
 
 class MarketThemeContext(BaseModel):
+    """市场题材上下文。"""
     schema_version: str = MARKET_THEME_SCHEMA_VERSION
     status: MarketStructureStatus = "unknown"
     market: str = "cn"
@@ -70,6 +76,7 @@ class MarketThemeContext(BaseModel):
 
 
 class StockBoardPosition(BaseModel):
+    """个股在板块中的位置。"""
     name: str
     type: Optional[str] = None
     code: Optional[str] = None
@@ -79,6 +86,7 @@ class StockBoardPosition(BaseModel):
 
 
 class PrimaryTheme(BaseModel):
+    """主线题材信息。"""
     name: str
     source: ThemeRankSource = "unknown"
     phase: ThemePhase = "unknown"
@@ -87,11 +95,13 @@ class PrimaryTheme(BaseModel):
 
 
 class MarketStructureRiskTag(BaseModel):
+    """大盘结构风险标签。"""
     code: str
     message: str
 
 
 class StockMarketPosition(BaseModel):
+    """个股市场地位信息。"""
     schema_version: str = STOCK_MARKET_POSITION_SCHEMA_VERSION
     status: MarketStructureStatus = "unknown"
     stock_code: str
@@ -106,6 +116,7 @@ class StockMarketPosition(BaseModel):
 
 
 class MarketStructureContext(BaseModel):
+    """大盘结构完整上下文。"""
     schema_version: str = MARKET_STRUCTURE_SCHEMA_VERSION
     status: MarketStructureStatus = "unknown"
     market: str = "cn"

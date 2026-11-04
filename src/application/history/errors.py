@@ -11,6 +11,7 @@ class HistoryError(Exception):
     """分析历史用例的基类错误。"""
 
     def __init__(self, message: str, *, error_code: str) -> None:
+        """构造历史错误：保存消息与错误码。"""
         super().__init__(message)
         self.message = message
         self.error_code = error_code
@@ -24,4 +25,5 @@ class HistoryMarkdownGenerationError(HistoryError):
     """报告重建失败（内部错误，非“记录不存在”）。"""
 
     def __init__(self, message: str) -> None:
+        """构造报告重建错误：透传消息并设置 error_code=generation_failed。"""
         super().__init__(message, error_code="generation_failed")

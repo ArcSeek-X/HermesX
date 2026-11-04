@@ -97,6 +97,7 @@ class BaseSearchProvider(ABC):
 
     @property
     def name(self) -> str:
+        """返回检索提供者名称。"""
         return self._name
 
     @property

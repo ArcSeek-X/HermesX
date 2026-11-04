@@ -25,6 +25,7 @@ STATIC_INDEX_PATH = REPO_ROOT / "dist-web" / "static" / "stocks.index.json"
 
 
 def _run(command: Sequence[str]) -> None:
+    """执行命令并返回输出。"""
     print(f"[refresh_stock_index] $ {' '.join(command)}", flush=True)
     env = os.environ.copy()
     env.setdefault("PYTHONUNBUFFERED", "1")
@@ -32,6 +33,7 @@ def _run(command: Sequence[str]) -> None:
 
 
 def _has_tushare_token() -> bool:
+    """判断是否配置 Tushare token。"""
     env_path = REPO_ROOT / ".env"
     try:
         from dotenv import load_dotenv  # type: ignore
@@ -48,6 +50,7 @@ def _has_tushare_token() -> bool:
 
 
 def _sync_static_index() -> None:
+    """同步静态股票索引文件。"""
     if not WEB_INDEX_PATH.is_file():
         raise FileNotFoundError(f"generated Web index not found: {WEB_INDEX_PATH}")
     # dist-web/ 为前端构建产物目录，只有已跑过 npm run build 时才存在；此时同步刷新。
@@ -63,6 +66,7 @@ def _sync_static_index() -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """脚本入口：刷新股票索引。"""
     parser = argparse.ArgumentParser(description="刷新股票自动补全索引")
     parser.add_argument(
         "--skip-fetch",

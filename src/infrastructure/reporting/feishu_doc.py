@@ -1,5 +1,11 @@
 # feishu_doc.py
 # -*- coding: utf-8 -*-
+"""飞书云文档（docx）写入封装。
+
+基于 lark_oapi 创建文档并批量写入内容块，把分析报告转换为飞书文档段落，
+供通知链路将报告沉淀为可分享的在线文档。
+"""
+
 import logging
 import json
 import lark_oapi as lark
@@ -14,6 +20,7 @@ class FeishuDocManager:
     """飞书云文档管理器 (基于官方 SDK lark-oapi)"""
 
     def __init__(self):
+        """构造客户端：从配置读取飞书 app_id / app_secret 等凭证。"""
         self.config = get_config()
         self.app_id = self.config.feishu_app_id
         self.app_secret = self.config.feishu_app_secret

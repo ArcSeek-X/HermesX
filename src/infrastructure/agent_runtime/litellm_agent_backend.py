@@ -6,6 +6,10 @@ Infrastructure-side implementation of the backend-neutral
 application-owned ``run_agent_loop`` with the infrastructure ``LLMToolAdapter``,
 so the concrete adapter dependency lives here rather than pulling an
 ``application → infrastructure`` import back into the contract module.
+
+基于 LiteLLM 的 Agent Chat 执行后端，是后端中立 AgentBackend 契约的基础设施侧实现。
+它用基础设施层 LLMToolAdapter 包装应用层自有的 run_agent_loop，
+使具体适配器依赖留在本层，避免契约模块反向依赖基础设施。
 """
 
 from __future__ import annotations
@@ -29,10 +33,12 @@ class LiteLLMAgentBackend(AgentBackend):
     runtime_owns_loop = False
 
     def __init__(self, tool_registry: ToolRegistry, llm_adapter: LLMToolAdapter) -> None:
+        """构造后端：保存工具注册表与 LLM 工具适配器。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
 
     def run(self, request: AgentRunRequest) -> AgentRunResult:
+        """执行一次 Agent Chat：组装 system/history/user 消息并委托共享 run_agent_loop，返回结构化结果。"""
         messages: List[Dict[str, Any]] = [
             {"role": "system", "content": request.system_prompt},
             *request.history_messages,

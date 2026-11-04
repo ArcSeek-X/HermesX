@@ -22,6 +22,7 @@ class DecisionSignalOutcomeRepository:
     """DB access for signal-level outcome and feedback sidecar tables."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造信号评估仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def list_candidate_signals(
@@ -36,6 +37,7 @@ class DecisionSignalOutcomeRepository:
         offset: int = 0,
         limit: int = 100,
     ) -> List[DecisionSignalRecord]:
+        """列出待评估的候选信号。"""
         safe_limit = max(1, min(int(limit), 500))
         safe_offset = max(0, int(offset))
         conditions = []
@@ -68,6 +70,7 @@ class DecisionSignalOutcomeRepository:
         signal_ids: List[int],
         engine_version: str,
     ) -> List[DecisionSignalOutcomeRecord]:
+        """按信号批量列出评估结果。"""
         if not signal_ids:
             return []
         with self.db.get_session() as session:
@@ -87,6 +90,7 @@ class DecisionSignalOutcomeRepository:
         horizon: str,
         engine_version: str,
     ) -> Optional[DecisionSignalOutcomeRecord]:
+        """按标识获取评估结果。"""
         with self.db.get_session() as session:
             return session.execute(
                 select(DecisionSignalOutcomeRecord)
@@ -99,6 +103,7 @@ class DecisionSignalOutcomeRepository:
             ).scalar_one_or_none()
 
     def upsert_outcome(self, fields: Dict[str, Any]) -> Tuple[DecisionSignalOutcomeRecord, bool]:
+        """新增或更新评估结果。"""
         now = utc_naive_now()
         with self.db.get_session() as session:
             existing = session.execute(
@@ -137,6 +142,7 @@ class DecisionSignalOutcomeRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[DecisionSignalOutcomeRecord], int]:
+        """列出评估结果。"""
         safe_page = max(1, int(page))
         safe_page_size = max(1, min(int(page_size), 100))
         conditions = []
@@ -174,6 +180,7 @@ class DecisionSignalOutcomeRepository:
         horizons: Optional[List[str]] = None,
         statuses: Optional[List[str]] = None,
     ) -> List[OutcomeStatsRow]:
+        """列出统计明细行。"""
         conditions = [DecisionSignalOutcomeRecord.engine_version == engine_version]
         if horizons:
             conditions.append(DecisionSignalOutcomeRecord.horizon.in_(horizons))
@@ -199,6 +206,7 @@ class DecisionSignalOutcomeRepository:
             ]
 
     def get_feedback(self, *, signal_id: int) -> Optional[DecisionSignalFeedbackRecord]:
+        """获取反馈记录。"""
         with self.db.get_session() as session:
             return session.execute(
                 select(DecisionSignalFeedbackRecord)
@@ -207,6 +215,7 @@ class DecisionSignalOutcomeRepository:
             ).scalar_one_or_none()
 
     def upsert_feedback(self, fields: Dict[str, Any]) -> DecisionSignalFeedbackRecord:
+        """新增或更新反馈记录。"""
         now = utc_naive_now()
         with self.db.get_session() as session:
             existing = session.execute(

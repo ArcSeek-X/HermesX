@@ -56,6 +56,7 @@ def set_realtime_port(port: Optional[PortfolioRealtimeQuotePort]) -> None:
 
 
 def _get_realtime_port() -> Optional[PortfolioRealtimeQuotePort]:
+    """返回当前已装配的实时行情端口。"""
     return _realtime_port
 
 
@@ -72,6 +73,7 @@ def _portfolio_limitations_for_market(market: str) -> List[str]:
 
 
 def _merge_portfolio_limitations(*groups: Iterable[str]) -> List[str]:
+    """合并组合相关的限制说明。"""
     merged: List[str] = []
     seen: Set[str] = set()
     for group in groups:
@@ -97,6 +99,7 @@ class PortfolioOversellError(ValueError):
         requested_quantity: float,
         available_quantity: float,
     ) -> None:
+        """构造组合服务并装配依赖。"""
         self.symbol = symbol
         self.trade_date = trade_date
         self.requested_quantity = float(requested_quantity)
@@ -111,12 +114,14 @@ class PortfolioOversellError(ValueError):
 
 @dataclass
 class _AvgState:
+    """移动平均成本计算的状态结构。"""
     quantity: float = 0.0
     total_cost: float = 0.0
 
 
 @dataclass(frozen=True)
 class _ResolvedPositionPrice:
+    """已解析的持仓价格数据。"""
     price: float
     source: str
     price_date: Optional[date]
@@ -129,6 +134,7 @@ class PortfolioService:
     """Business logic for account CRUD, event writes, and snapshot replay."""
 
     def __init__(self, repo: Optional[PortfolioRepositoryPort] = None):
+        """构造组合服务并装配依赖。"""
         self.repo: PortfolioRepositoryPort = repo or get_portfolio_repository()
 
     # ------------------------------------------------------------------
@@ -143,6 +149,7 @@ class PortfolioService:
         base_currency: str,
         owner_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """创建组合账户。"""
         name_norm = (name or "").strip()
         if not name_norm:
             raise ValueError("name is required")
@@ -158,6 +165,7 @@ class PortfolioService:
         return self._account_to_dict(row)
 
     def list_accounts(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """列出组合账户。"""
         rows = self.repo.list_accounts(include_inactive=include_inactive)
         return [self._account_to_dict(r) for r in rows]
 
@@ -172,6 +180,7 @@ class PortfolioService:
         owner_id: Optional[str] = None,
         is_active: Optional[bool] = None,
     ) -> Optional[Dict[str, Any]]:
+        """更新组合账户。"""
         fields: Dict[str, Any] = {}
         if name is not None:
             name_norm = name.strip()
@@ -197,6 +206,7 @@ class PortfolioService:
         return self._account_to_dict(row)
 
     def deactivate_account(self, account_id: int) -> bool:
+        """停用组合账户。"""
         return self.repo.deactivate_account(account_id)
 
     # ------------------------------------------------------------------
@@ -219,6 +229,7 @@ class PortfolioService:
         dedup_hash: Optional[str] = None,
         note: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """记录一笔交易。"""
         side_norm = (side or "").strip().lower()
         if side_norm not in VALID_SIDES:
             raise ValueError("side must be buy or sell")
@@ -282,6 +293,7 @@ class PortfolioService:
         currency: Optional[str] = None,
         note: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """记录一条现金流水。"""
         direction_norm = (direction or "").strip().lower()
         if direction_norm not in VALID_CASH_DIRECTIONS:
             raise ValueError("direction must be in or out")
@@ -314,6 +326,7 @@ class PortfolioService:
         split_ratio: Optional[float] = None,
         note: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """记录一条公司行动。"""
         action_type_norm = (action_type or "").strip().lower()
         if action_type_norm not in VALID_CORPORATE_ACTIONS:
             raise ValueError("action_type must be cash_dividend or split_adjustment")
@@ -346,14 +359,17 @@ class PortfolioService:
             return {"id": int(row.id)}
 
     def delete_trade_event(self, trade_id: int) -> bool:
+        """删除交易事件。"""
         with self.repo.portfolio_write_session() as session:
             return self.repo.delete_trade_in_session(session=session, trade_id=trade_id)
 
     def delete_cash_ledger_event(self, entry_id: int) -> bool:
+        """删除现金流水事件。"""
         with self.repo.portfolio_write_session() as session:
             return self.repo.delete_cash_ledger_in_session(session=session, entry_id=entry_id)
 
     def delete_corporate_action_event(self, action_id: int) -> bool:
+        """删除公司行动事件。"""
         with self.repo.portfolio_write_session() as session:
             return self.repo.delete_corporate_action_in_session(session=session, action_id=action_id)
 
@@ -368,6 +384,7 @@ class PortfolioService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出交易事件。"""
         if account_id is not None:
             self._require_active_account(account_id)
         page, page_size = self._validate_paging(page=page, page_size=page_size)
@@ -412,6 +429,7 @@ class PortfolioService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出现金流水事件。"""
         if account_id is not None:
             self._require_active_account(account_id)
         page, page_size = self._validate_paging(page=page, page_size=page_size)
@@ -450,6 +468,7 @@ class PortfolioService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """列出公司行动事件。"""
         if account_id is not None:
             self._require_active_account(account_id)
         page, page_size = self._validate_paging(page=page, page_size=page_size)
@@ -495,6 +514,7 @@ class PortfolioService:
         cost_method: str = "fifo",
         include_realtime: bool = True,
     ) -> Dict[str, Any]:
+        """获取组合持仓快照。"""
         as_of_date = as_of or date.today()
         method = self._normalize_cost_method(cost_method)
 
@@ -679,6 +699,7 @@ class PortfolioService:
         dedup_hash: Optional[str],
         session: Optional[Any] = None,
     ) -> None:
+        """校验交易标识唯一性。"""
         if trade_uid and self._has_trade_uid(account_id=account_id, trade_uid=trade_uid, session=session):
             raise PortfolioConflictError(f"Duplicate trade_uid for account_id={account_id}: {trade_uid}")
         if dedup_hash and self._has_trade_dedup_hash(account_id=account_id, dedup_hash=dedup_hash, session=session):
@@ -695,6 +716,7 @@ class PortfolioService:
         quantity: float,
         session: Optional[Any] = None,
     ) -> None:
+        """校验卖出数量是否可满足。"""
         key = (
             self._normalize_symbol_for_position(symbol),
             self._normalize_market(market),
@@ -722,6 +744,7 @@ class PortfolioService:
         as_of_date: date,
         session: Optional[Any] = None,
     ) -> float:
+        """计算可用持仓数量。"""
         if session is None:
             trades = self.repo.list_trades(account_id, as_of=as_of_date)
             corporate_actions = self.repo.list_corporate_actions(account_id, as_of=as_of_date)
@@ -801,6 +824,7 @@ class PortfolioService:
         cost_method: str,
         include_realtime: bool,
     ) -> Dict[str, Any]:
+        """回放账户事件重建状态。"""
         trades = self.repo.list_trades(account.id, as_of=as_of_date)
         cash_ledger = self.repo.list_cash_ledger(account.id, as_of=as_of_date)
         corporate_actions = self.repo.list_corporate_actions(account.id, as_of=as_of_date)
@@ -1033,6 +1057,7 @@ class PortfolioService:
         avg_state: Dict[Tuple[str, str, str], _AvgState],
         include_realtime: bool = True,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], float, float, bool]:
+        """构建当前持仓列表。"""
         position_rows: List[Dict[str, Any]] = []
         lot_rows: List[Dict[str, Any]] = []
         market_value_base = 0.0
@@ -1165,6 +1190,7 @@ class PortfolioService:
         realtime_prices: Optional[Dict[str, Tuple[Optional[float], Optional[str]]]] = None,
         include_realtime: bool = True,
     ) -> _ResolvedPositionPrice:
+        """解析持仓计价。"""
         today = date.today()
 
         if include_realtime and as_of_date == today:
@@ -1206,6 +1232,7 @@ class PortfolioService:
         self,
         symbols: Iterable[str],
     ) -> Dict[str, Tuple[Optional[float], Optional[str]]]:
+        """批量预取持仓实时价格。"""
         unique_symbols = sorted({symbol for symbol in symbols if symbol})
         if not unique_symbols:
             return {}
@@ -1247,6 +1274,7 @@ class PortfolioService:
 
     @staticmethod
     def _fetch_realtime_position_price(symbol: str) -> Tuple[Optional[float], Optional[str]]:
+        """拉取单个持仓实时价格。"""
         port = _get_realtime_port()
         if port is None:
             # 实时行情端口未装配：与迁移前 DataFetcherManager 不可用一致降级为无价
@@ -1273,10 +1301,12 @@ class PortfolioService:
 
     @staticmethod
     def _normalize_symbol_for_storage(symbol: str) -> str:
+        """规范化存储用证券代码。"""
         return canonical_stock_code(symbol)
 
     @staticmethod
     def _normalize_symbol_for_position(symbol: str) -> str:
+        """规范化持仓用证券代码。"""
         if not (symbol or "").strip():
             return ""
 
@@ -1317,6 +1347,7 @@ class PortfolioService:
 
     @classmethod
     def _build_symbol_filter_values(cls, symbol: str) -> List[str]:
+        """构建证券代码筛选值集合。"""
         original = (symbol or "").strip().upper()
         normalized = cls.normalize_symbol(original)
         if not normalized:
@@ -1326,6 +1357,7 @@ class PortfolioService:
         values: List[str] = []
 
         def _add(value: Optional[str]) -> None:
+            """执行会话内的新增操作。"""
             candidate = (value or "").strip().upper()
             if candidate and candidate not in seen:
                 seen.add(candidate)
@@ -1389,6 +1421,7 @@ class PortfolioService:
         symbol: str,
         trade_date: Optional[date] = None,
     ) -> float:
+        """按 FIFO 消耗持仓批次。"""
         remaining = quantity
         cost_basis = 0.0
         while remaining > EPS:
@@ -1415,6 +1448,7 @@ class PortfolioService:
         symbol: str,
         trade_date: Optional[date] = None,
     ) -> float:
+        """按移动平均法消耗持仓。"""
         if state.quantity + EPS < quantity:
             raise PortfolioOversellError(
                 symbol=symbol,
@@ -1446,6 +1480,7 @@ class PortfolioService:
         fifo_lots: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
         avg_state: Dict[Tuple[str, str, str], _AvgState],
     ) -> float:
+        """返回当前持有数量。"""
         if cost_method == "fifo":
             return sum(float(lot["remaining_quantity"]) for lot in fifo_lots.get(key, []))
         return float(avg_state.get(key, _AvgState()).quantity)
@@ -1458,6 +1493,7 @@ class PortfolioService:
         to_currency: str,
         as_of_date: date,
     ) -> Tuple[float, bool, str]:
+        """按汇率换算金额。"""
         from_norm = self._normalize_currency(from_currency)
         to_norm = self._normalize_currency(to_currency)
         if abs(amount) <= EPS:
@@ -1632,12 +1668,14 @@ class PortfolioService:
         return value
 
     def _require_active_account(self, account_id: int) -> Any:
+        """校验账户存在且有效。"""
         account = self.repo.get_account(account_id, include_inactive=False)
         if account is None:
             raise ValueError(f"Active account not found: {account_id}")
         return account
 
     def _require_active_account_in_session(self, *, session: Any, account_id: int) -> Any:
+        """在会话内校验账户有效。"""
         account = self.repo.get_account_in_session(
             session=session,
             account_id=account_id,
@@ -1648,6 +1686,7 @@ class PortfolioService:
         return account
 
     def _has_trade_uid(self, *, account_id: int, trade_uid: str, session: Optional[Any] = None) -> bool:
+        """判断交易 UID 是否已存在。"""
         if session is None:
             return self.repo.has_trade_uid(account_id, trade_uid)
         return self.repo.has_trade_uid_in_session(session=session, account_id=account_id, trade_uid=trade_uid)
@@ -1659,6 +1698,7 @@ class PortfolioService:
         dedup_hash: str,
         session: Optional[Any] = None,
     ) -> bool:
+        """判断交易去重哈希是否已存在。"""
         if session is None:
             return self.repo.has_trade_dedup_hash(account_id, dedup_hash)
         return self.repo.has_trade_dedup_hash_in_session(
@@ -1669,6 +1709,7 @@ class PortfolioService:
 
     @staticmethod
     def _account_to_dict(row: Any) -> Dict[str, Any]:
+        """将账户对象转换为字典。"""
         return {
             "id": row.id,
             "owner_id": row.owner_id,
@@ -1683,6 +1724,7 @@ class PortfolioService:
 
     @staticmethod
     def _trade_row_to_dict(row: Any) -> Dict[str, Any]:
+        """将交易行转换为字典。"""
         return {
             "id": int(row.id),
             "account_id": int(row.account_id),
@@ -1702,6 +1744,7 @@ class PortfolioService:
 
     @staticmethod
     def _cash_ledger_row_to_dict(row: Any) -> Dict[str, Any]:
+        """将现金流行转换为字典。"""
         return {
             "id": int(row.id),
             "account_id": int(row.account_id),
@@ -1715,6 +1758,7 @@ class PortfolioService:
 
     @staticmethod
     def _corporate_action_row_to_dict(row: Any) -> Dict[str, Any]:
+        """将公司行动行转换为字典。"""
         return {
             "id": int(row.id),
             "account_id": int(row.account_id),
@@ -1733,6 +1777,7 @@ class PortfolioService:
 
     @staticmethod
     def _validate_paging(*, page: int, page_size: int) -> Tuple[int, int]:
+        """校验分页参数。"""
         if page < 1:
             raise ValueError("page must be >= 1")
         if page_size < 1 or page_size > 100:
@@ -1741,6 +1786,7 @@ class PortfolioService:
 
     @staticmethod
     def _normalize_market(value: str) -> str:
+        """规范化市场标识。"""
         market = (value or "").strip().lower()
         if market not in VALID_MARKETS:
             raise ValueError("market must be one of: cn, hk, us, jp, kr, tw")
@@ -1748,6 +1794,7 @@ class PortfolioService:
 
     @staticmethod
     def _normalize_currency(value: str) -> str:
+        """规范化币种。"""
         currency = (value or "").strip().upper()
         if not currency:
             raise ValueError("currency is required")
@@ -1755,6 +1802,7 @@ class PortfolioService:
 
     @staticmethod
     def _normalize_cost_method(value: str) -> str:
+        """规范化成本计算方法。"""
         method = (value or "").strip().lower()
         if method not in VALID_COST_METHODS:
             raise ValueError("cost_method must be fifo or avg")
@@ -1762,6 +1810,7 @@ class PortfolioService:
 
     @staticmethod
     def _default_currency_for_market(market: str) -> str:
+        """返回市场默认币种。"""
         if market == "hk":
             return "HKD"
         if market == "us":

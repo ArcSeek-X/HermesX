@@ -20,6 +20,7 @@ class AnalysisReportDelivery:
     """Aggregate reports and route notifications through the existing notifier."""
 
     def __init__(self, *, config, notifier, refresh_diagnostics):
+        """构造分析报告投递器：装配配置、通知器与诊断刷新函数。"""
         self.config = config
         self.notifier = notifier
         self._refresh_saved_diagnostic_snapshot = refresh_diagnostics
@@ -33,6 +34,7 @@ class AnalysisReportDelivery:
         attempts: int = 1,
         error_message: Optional[Any] = None,
     ) -> Dict[str, Any]:
+        """构造一次通知运行的快照信息。"""
         payload = {
             "channel": channel,
             "status": status,
@@ -108,6 +110,7 @@ class AnalysisReportDelivery:
                     channel_label: str,
                     send_func: Callable[[], bool],
                 ) -> tuple[bool, Optional[Exception]]:
+                    """安全发送单个渠道，异常不中断主流程。"""
                     try:
                         return bool(send_func()), None
                     except Exception as e:
@@ -124,6 +127,7 @@ class AnalysisReportDelivery:
                     error_message: Optional[Exception] = None,
                     target_results: Optional[List[AnalysisResult]] = None,
                 ) -> None:
+                    """记录单个渠道的发送结果。"""
                     notification_run = self.build_notification_run_snapshot(
                         channel=channel_label,
                         status="success" if success else "failed",
@@ -212,6 +216,7 @@ class AnalysisReportDelivery:
                 }
 
                 def _get_md2img_hint() -> str:
+                    """返回 Markdown 转图片相关的提示文案。"""
                     try:
                         engine = getattr(get_config(), "md2img_engine", "wkhtmltoimage")
                     except Exception:
@@ -241,6 +246,7 @@ class AnalysisReportDelivery:
                 if NotificationChannel.WECHAT in channels:
 
                     def _send_wechat_report() -> bool:
+                        """向企业微信渠道发送报告。"""
                         if report_type == ReportType.BRIEF:
                             dashboard_content = self.notifier.generate_brief_report(results)
                         else:
@@ -284,6 +290,7 @@ class AnalysisReportDelivery:
                     if channel == NotificationChannel.FEISHU:
 
                         def _send_feishu_report() -> bool:
+                            """向飞书渠道发送报告。"""
                             if getattr(self.notifier, "_feishu_send_as_file", False):
                                 date_str = datetime.now().strftime("%Y%m%d")
                                 filepath = self.notifier.save_report_to_file(
@@ -305,6 +312,7 @@ class AnalysisReportDelivery:
                     elif channel == NotificationChannel.TELEGRAM:
 
                         def _send_telegram_report() -> bool:
+                            """向 Telegram 渠道发送报告。"""
                             use_image = self.notifier.should_use_image_for_channel(channel, image_bytes)
                             if use_image:
                                 return self.notifier.send_channel_image(channel, image_bytes)
@@ -343,6 +351,7 @@ class AnalysisReportDelivery:
                                     group_results=group_results,
                                     receivers=receivers,
                                 ) -> bool:
+                                    """向邮件分组批量发送报告。"""
                                     grp_report = self.generate_aggregate_report(group_results, report_type)
                                     grp_image_bytes = None
                                     if channel.value in image_platform_channels and image_render_port is not None:
@@ -376,6 +385,7 @@ class AnalysisReportDelivery:
                         else:
 
                             def _send_email_report() -> bool:
+                                """向邮件渠道发送报告。"""
                                 use_image = self.notifier.should_use_image_for_channel(channel, image_bytes)
                                 if use_image:
                                     return self.notifier.send_channel_image(channel, image_bytes)
@@ -394,6 +404,7 @@ class AnalysisReportDelivery:
                     elif channel == NotificationChannel.CUSTOM:
 
                         def _send_custom_report() -> bool:
+                            """向自定义渠道发送报告。"""
                             use_image = self.notifier.should_use_image_for_channel(channel, image_bytes)
                             if use_image:
                                 return self.notifier.send_channel_image(channel, image_bytes, fallback_content=report)
@@ -489,6 +500,7 @@ class AnalysisReportDelivery:
                     elif channel == NotificationChannel.SLACK:
 
                         def _send_slack_report() -> bool:
+                            """向 Slack 渠道发送报告。"""
                             use_image = self.notifier.should_use_image_for_channel(channel, image_bytes)
                             if use_image and self.notifier.slack_image_target():
                                 return self.notifier.send_channel_image(channel, image_bytes, fallback_content=report)

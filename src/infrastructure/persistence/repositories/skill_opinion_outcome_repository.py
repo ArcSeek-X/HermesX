@@ -27,6 +27,7 @@ class SkillOpinionOutcomeRepository:
     """Read candidates and persist outcomes through the shared write guard."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造技能观点评估仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def list_candidate_keys(
@@ -118,6 +119,7 @@ class SkillOpinionOutcomeRepository:
         """Insert a missing key or update pending; never overwrite terminal rows."""
 
         def _write(session) -> Tuple[Optional[int], str]:
+            """在会话内写入评估结果。"""
             sample_id = int(fields["skill_opinion_sample_id"])
             sample_exists = session.execute(
                 select(SkillOpinionSampleRecord.id)
@@ -171,6 +173,7 @@ class SkillOpinionOutcomeRepository:
         horizon: str,
         engine_version: str,
     ) -> Optional[SkillOpinionOutcomeRecord]:
+        """按标识获取技能观点评估结果。"""
         with self.db.get_session() as session:
             return session.execute(
                 select(SkillOpinionOutcomeRecord)
@@ -184,6 +187,7 @@ class SkillOpinionOutcomeRepository:
 
     @staticmethod
     def _candidate_time(candidate: SkillOpinionOutcomeCandidate) -> datetime:
+        """提取候选记录的时间字段。"""
         outcome = candidate.existing_outcome
         return (
             (outcome.updated_at if outcome is not None else None)

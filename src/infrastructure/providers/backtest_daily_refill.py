@@ -24,6 +24,7 @@ class DataProviderDailyBarRefill:
     """:class:`~src.application.backtest.ports.DailyBarRefillPort` 的数据源实现。"""
 
     def __init__(self, db_manager: "DatabaseManager"):
+        """构造回测日线补齐器并装配依赖。"""
         self._db = db_manager
 
     def refill(
@@ -34,6 +35,7 @@ class DataProviderDailyBarRefill:
         end_date: str,
         days: int,
     ) -> None:
+        """补齐回测区间内缺失的日线数据。"""
         from data_provider.base import DataFetcherManager
 
         df, source = DataFetcherManager().get_daily_data(

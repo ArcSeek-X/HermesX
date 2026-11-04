@@ -24,14 +24,17 @@ class NtfySender:
     """Send Markdown text notifications through the ntfy JSON publish API."""
 
     def __init__(self, config: Config):
+        """构造 ntfy 发送器并装配依赖。"""
         self._ntfy_url = getattr(config, "ntfy_url", None)
         self._ntfy_token = getattr(config, "ntfy_token", None)
         self._webhook_verify_ssl = getattr(config, "webhook_verify_ssl", True)
 
     def _is_ntfy_configured(self) -> bool:
+        """判断 ntfy 配置是否完整。"""
         return bool(self._ntfy_url)
 
     def _resolve_ntfy_endpoint(self) -> Tuple[Optional[str], Optional[str]]:
+        """解析 ntfy 推送端点 URL。"""
         return resolve_ntfy_endpoint(self._ntfy_url)
 
     def send_to_ntfy(

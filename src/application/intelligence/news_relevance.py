@@ -500,6 +500,7 @@ def provider_request_size(max_results: int) -> int:
 
 
 def append_unique(values: List[str], value: Optional[str]) -> None:
+    """向列表追加去重后的非空字符串。"""
     cleaned = (value or "").strip()
     if cleaned and cleaned not in values:
         values.append(cleaned)
@@ -584,6 +585,7 @@ def company_identity_terms(stock_name: str) -> List[str]:
 
 
 def contains_identity_term(text: str, term: str) -> bool:
+    """判断文本是否包含指定主体识别词。"""
     if not text or not term:
         return False
     if contains_chinese_text(term):
@@ -605,6 +607,7 @@ def contains_identity_term(text: str, term: str) -> bool:
 
 
 def contains_stock_code_identity_term(text: str, term: str) -> bool:
+    """判断文本是否包含股票代码形式的识别词。"""
     if not text or not term:
         return False
     if _US_STOCK_RE.match(term) and term.upper() == term and (not term.startswith("$")):
@@ -619,11 +622,13 @@ def contains_stock_code_identity_term(text: str, term: str) -> bool:
 
 
 def contains_any_news_term(text: str, terms: Tuple[str, ...]) -> bool:
+    """判断文本是否命中任意新闻相关词。"""
     lower = (text or "").lower()
     return any((term.lower() in lower for term in terms))
 
 
 def contains_any_low_quality_news_term(text: str, terms: Tuple[str, ...]) -> bool:
+    """判断文本是否命中任意低质量新闻词。"""
     lower = (text or "").lower()
     if not lower:
         return False
@@ -642,6 +647,7 @@ def contains_any_low_quality_news_term(text: str, terms: Tuple[str, ...]) -> boo
 
 
 def candidate_hostname(value: Any) -> str:
+    """从候选值中提取主机名。"""
     raw = str(value or "").strip().lower()
     if not raw or re.search("\\s", raw):
         return ""
@@ -650,6 +656,7 @@ def candidate_hostname(value: Any) -> str:
 
 
 def source_resembles_hostname(value: Any) -> bool:
+    """判断来源值是否形似主机名。"""
     raw = str(value or "").strip().lower()
     if not raw or re.search("\\s", raw):
         return False
@@ -787,6 +794,7 @@ def score_news_relevance(item: SearchResult, *, stock_code: str, stock_name: str
     has_ambiguous_company_signal = False
 
     def add_reason(reason: str) -> None:
+        """追加一条相关性判定理由。"""
         if reason not in reasons and len(reasons) < 5:
             reasons.append(reason)
 
@@ -923,6 +931,7 @@ def rank_news_response(
     indexed_results = list(enumerate(scored_results))
 
     def sort_key(entry: Tuple[int, SearchResult]) -> Tuple[int, int, int, int]:
+        """生成新闻结果排序用的比较键。"""
         index, result = entry
         category = result.relevance_category or _SECTOR_NEWS_CATEGORY
         category_rank = _NEWS_CATEGORY_PRIORITY.get(category, 9)
@@ -1009,6 +1018,7 @@ def filter_ranked_news_for_context(response: SearchResponse, *, log_scope: str) 
 
 
 def news_relevance_stats(response: SearchResponse, *, prefer_chinese: bool) -> Dict[str, int]:
+    """统计检索响应中各相关性分级数量。"""
     results = response.results if response and response.results else []
     return {
         "direct_count": sum((1 for item in results if item.relevance_category == _DIRECT_NEWS_CATEGORY)),
@@ -1033,6 +1043,7 @@ def is_better_ranked_news_response(
     best_stats: Optional[Dict[str, int]],
     prefer_chinese: bool,
 ) -> bool:
+    """比较两个新闻检索响应的排序质量。"""
     if best_response is None or best_stats is None:
         return True
     if candidate_stats["direct_count"] != best_stats["direct_count"]:

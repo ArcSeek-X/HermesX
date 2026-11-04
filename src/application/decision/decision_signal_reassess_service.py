@@ -41,6 +41,7 @@ class DecisionSignalReassessGuardrailBlockedError(Exception):
     """Raised when persist recomputation has no safe signal to store."""
 
     def __init__(self, *, blocked_reason: str, warnings: list[dict[str, object]]) -> None:
+        """构造信号重评估服务并装配依赖。"""
         self.blocked_reason = blocked_reason
         self.warnings = warnings
         super().__init__(blocked_reason)
@@ -56,6 +57,7 @@ class DecisionSignalReassessService:
         history_repo: Optional[HistoryRepositoryPort] = None,
     ) -> None:
         # 分析历史读取只经窄端口；与 W4.2 收敛前同序：显式句柄 → 仓储 → bootstrap 默认来源。
+        """构造信号重评估服务并装配依赖。"""
         self.history_repo = history_repo or db or get_default_history_repo()
         # 显式 ``db`` 仍需同时下传给内层服务的仓储装配（与收敛前
         # ``DecisionSignalService(db_manager=self.db)`` 的传递面一致）；
@@ -72,6 +74,7 @@ class DecisionSignalReassessService:
         decision_profile: str,
         persist: bool = False,
     ) -> dict[str, Any]:
+        """对历史信号执行重评估并回写结果。"""
         decision_profile_norm = normalize_decision_profile(decision_profile)
         if decision_profile_norm is None:
             raise ValueError("decision_profile is required")
@@ -176,6 +179,7 @@ def _build_persist_payload(
     candidate: DecisionSignalCandidate,
     metadata: dict[str, Any],
 ) -> dict[str, Any]:
+    """构造信号持久化载荷。"""
     stock_code = str(getattr(record, "code", "") or "").strip()
     market = _infer_market(stock_code)
     if not stock_code or market is None:
@@ -212,6 +216,7 @@ def _build_candidate(
     raw_result: Mapping[str, Any],
     context_snapshot: Mapping[str, Any],
 ) -> DecisionSignalCandidate:
+    """构造待重评估的候选信号。"""
     report_type = str(getattr(record, "report_type", "") or "").strip().lower()
     if report_type == "market_review":
         raise DecisionSignalUnsupportedReportTypeError("source report is not a stock analysis report")
@@ -275,15 +280,18 @@ def _build_candidate(
 
 
 def _as_mapping(value: Any) -> dict[str, Any]:
+    """将值安全转换为字典。"""
     return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _parse_mapping(value: Any) -> Mapping[str, Any]:
+    """解析字符串形式的映射数据。"""
     parsed = parse_json_field(value)
     return parsed if isinstance(parsed, Mapping) else {}
 
 
 def _first_present(*values: Any) -> Any:
+    """返回首个存在的值。"""
     for value in values:
         if value not in (None, "", [], {}):
             return value
@@ -291,6 +299,7 @@ def _first_present(*values: Any) -> Any:
 
 
 def _first_text(*values: Any) -> Optional[str]:
+    """返回首个非空文本值。"""
     for value in values:
         if isinstance(value, list):
             joined = "；".join(str(item).strip() for item in value if str(item or "").strip())
@@ -303,6 +312,7 @@ def _first_text(*values: Any) -> Optional[str]:
 
 
 def _nested_get(value: Mapping[str, Any], path: tuple[str, ...]) -> Any:
+    """按路径读取嵌套字典字段。"""
     current: Any = value
     for key in path:
         if not isinstance(current, Mapping):
@@ -312,6 +322,7 @@ def _nested_get(value: Mapping[str, Any], path: tuple[str, ...]) -> Any:
 
 
 def _infer_market(code: str) -> Optional[str]:
+    """从股票代码推断所属市场。"""
     text = str(code or "").strip().upper()
     if not text:
         return None
@@ -336,6 +347,7 @@ def _infer_market(code: str) -> Optional[str]:
 
 
 def _score_from_value(value: Any) -> Optional[int]:
+    """从任意值提取数值评分。"""
     try:
         score = int(float(value))
     except (TypeError, ValueError):
@@ -348,6 +360,7 @@ def _effective_signal_score(
     *,
     dashboard: Mapping[str, Any],
 ) -> Optional[int]:
+    """计算最终生效的信号评分。"""
     calibration = _as_mapping(dashboard.get("decision_score_calibration"))
     adjusted = _score_from_value(calibration.get("adjusted_score"))
     return adjusted if adjusted is not None else score
@@ -359,6 +372,7 @@ def _extract_guardrail_reason(
     score: Optional[int],
     raw_action: Optional[str],
 ) -> Optional[str]:
+    """提取护栏拦截原因。"""
     dashboard = raw_result.get("dashboard") if isinstance(raw_result.get("dashboard"), Mapping) else {}
     calibration = (
         dashboard.get("decision_score_calibration")
@@ -414,6 +428,7 @@ def _extract_guardrail_reason(
 
 
 def _confidence_from_level(value: Any) -> Optional[float]:
+    """将置信度等级映射为数值。"""
     key = str(value or "").strip().lower()
     mapping = {
         "高": 0.8,
@@ -428,6 +443,7 @@ def _confidence_from_level(value: Any) -> Optional[float]:
 
 
 def _extract_persisted_sniper_points(record: AnalysisHistoryRow, raw_result: Mapping[str, Any]) -> dict[str, Optional[float]]:
+    """提取已持久化的狙击点位数据。"""
     raw_points = find_sniper_points(raw_result) or {}
     return {
         "ideal_buy": _first_price(getattr(record, "ideal_buy", None), raw_points.get("ideal_buy")),
@@ -438,6 +454,7 @@ def _extract_persisted_sniper_points(record: AnalysisHistoryRow, raw_result: Map
 
 
 def _first_price(*values: Any) -> Optional[float]:
+    """提取首个有效价格。"""
     for value in values:
         parsed = parse_sniper_value(value)
         if parsed is not None:
@@ -446,12 +463,14 @@ def _first_price(*values: Any) -> Optional[float]:
 
 
 def _entry_range(ideal_buy: Optional[float], secondary_buy: Optional[float]) -> tuple[Optional[float], Optional[float]]:
+    """构造入场价格区间。"""
     if ideal_buy is not None and secondary_buy is not None and ideal_buy > secondary_buy:
         return secondary_buy, ideal_buy
     return ideal_buy, secondary_buy
 
 
 def _extract_market_phase(raw_result: Mapping[str, Any], context_snapshot: Mapping[str, Any]) -> Optional[str]:
+    """提取大盘阶段。"""
     return _first_text(
         _nested_get(context_snapshot, ("market_phase_summary", "phase")),
         _nested_get(raw_result, ("market_phase_summary", "phase")),
@@ -465,6 +484,7 @@ def _extract_horizon(
     market_phase: Optional[str],
     action: str,
 ) -> Optional[str]:
+    """提取持有周期。"""
     explicit = _first_text(
         raw_result.get("horizon"),
         raw_result.get("holding_period"),
@@ -478,6 +498,7 @@ def _extract_horizon(
 
 
 def _extract_invalidation(raw_result: Mapping[str, Any]) -> Optional[str]:
+    """提取失效条件。"""
     return _first_text(
         raw_result.get("invalidation"),
         raw_result.get("invalid_condition"),
@@ -487,6 +508,7 @@ def _extract_invalidation(raw_result: Mapping[str, Any]) -> Optional[str]:
 
 
 def _extract_risk_summary(raw_result: Mapping[str, Any]) -> Optional[str]:
+    """提取风险摘要。"""
     return _first_text(
         raw_result.get("risk_summary"),
         raw_result.get("risk_warning"),
@@ -495,6 +517,7 @@ def _extract_risk_summary(raw_result: Mapping[str, Any]) -> Optional[str]:
 
 
 def _extract_watch_conditions(raw_result: Mapping[str, Any]) -> Optional[str]:
+    """提取观察条件。"""
     return _first_text(
         raw_result.get("watch_conditions"),
         _nested_get(raw_result, ("dashboard", "phase_decision", "watch_conditions")),

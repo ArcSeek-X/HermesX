@@ -40,6 +40,7 @@ class NewsIntelRepository:
     """``news_intel`` 与 ``fundamental_snapshot`` 的读写入口。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造情报仓储并装配依赖。"""
         self._db = db_manager
 
     def save_news_intel(
@@ -69,6 +70,7 @@ class NewsIntelRepository:
         current_query_id = (query_ctx.get("query_id") or "").strip()
 
         def _write(session: Session) -> int:
+            """在会话内写入情报记录。"""
             local_saved_count = 0
 
             for item in response.results:
@@ -187,6 +189,7 @@ class NewsIntelRepository:
 
         try:
             def _write(session: Session) -> int:
+                """在会话内写入情报记录。"""
                 session.add(
                     FundamentalSnapshot(
                         query_id=query_id,

@@ -5,6 +5,10 @@
 The harness imports the production transport and keeps only test probes and
 security sentinels here.  Its ``gate_a_nonce`` tool is never part of the
 production registry or Agent backend.
+
+Phase 6 Gate A（可行性闸门 A）验证脚本，复用生产 Codex App Server 传输层，
+仅在本文件保留测试探针与安全哨兵。验证项包括权限档选择、外部工具隔离、确定性工具往返、
+生产工具面往返、历史与指令保真、安全边界（读写/网络隔离）。gate_a_nonce 工具永不进入生产注册表或 Agent 后端。
 """
 
 from __future__ import annotations
@@ -60,6 +64,7 @@ GateAError = CodexAppServerError
 
 
 def _probe_descriptor_handler(label: str) -> dict:
+    """Gate A 描述符处理器的占位实现：仅用于注册探测工具，真正执行必须在子进程中，故直接抛错提示。"""
     raise RuntimeError(f"Gate A descriptor handler must run in a child process: {label}")
 
 
@@ -70,6 +75,7 @@ def _gate_a_process_worker(
     *,
     tokens: Dict[str, str],
 ) -> dict:
+    """Gate A 子进程工具执行体：对 gate_a_nonce 返回隐藏 token；其余工具重定向标准输出/错误后委托 ToolSurface 执行。"""
     if tool_name == "gate_a_nonce":
         time.sleep(0.5)
         result = {"label": arguments["label"], "token": tokens[arguments["label"]]}
@@ -87,6 +93,7 @@ def _gate_a_process_worker(
 
 
 def _build_probe_surface() -> ToolSurface:
+    """构造 Gate A 探测用 ToolSurface：注册仅测试用的 gate_a_nonce 工具与生产 get_analysis_context 工具（必须存在，否则抛 GateAError）。"""
     registry = ToolRegistry()
 
     registry.register(
@@ -115,6 +122,7 @@ def _build_probe_surface() -> ToolSurface:
 
 
 def _calls_overlap(calls: Sequence[ToolCallRecord]) -> bool:
+    """判断两次工具调用是否时间重叠：仅当恰好两次且第二次开始早于第一次结束时返回 True。"""
     if len(calls) != 2:
         return False
     first, second = sorted(calls, key=lambda item: item.started_at)
@@ -122,13 +130,19 @@ def _calls_overlap(calls: Sequence[ToolCallRecord]) -> bool:
 
 
 class _LoopbackSentinel:
+    """进程内回环哨兵：在 127.0.0.1 随机端口启动仅返回固定 token 的 HTTP 服务，用于验证沙箱网络出口被阻断。"""
+
     def __init__(self, token: str) -> None:
+        """构造回环哨兵：保存 token，定义返回该 token 的 HTTP Handler，并在守护线程中启动监听服务。"""
         self.token = token
         self.requested = threading.Event()
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
+            """回环哨兵的内部 HTTP 请求处理器：仅实现 GET，返回 owner.token。"""
+
             def do_GET(self) -> None:  # noqa: N802
+                """处理 GET：标记请求已到达，并将 owner.token 作为响应体返回。"""
                 owner.requested.set()
                 body = owner.token.encode("utf-8")
                 self.send_response(200)
@@ -137,6 +151,7 @@ class _LoopbackSentinel:
                 self.wfile.write(body)
 
             def log_message(self, format: str, *args: Any) -> None:
+                """禁用默认访问日志输出（静默处理请求日志）。"""
                 return
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -147,20 +162,24 @@ class _LoopbackSentinel:
         )
 
     def __enter__(self) -> "_LoopbackSentinel":
+        """进入上下文：启动哨兵服务线程并返回自身。"""
         self.thread.start()
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
+        """退出上下文：关闭 HTTP 服务并等待线程结束（最多 2 秒）。"""
         self.server.shutdown()
         self.server.server_close()
         self.thread.join(timeout=2)
 
     @property
     def url(self) -> str:
+        """返回回环哨兵的本地 URL 地址。"""
         return f"http://127.0.0.1:{self.server.server_address[1]}/gate-a"
 
 
 def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
+    """执行 Phase 6 Gate A 全部可行性探针：构造临时 token 与保留股票代码，依次验证权限档选择、外部工具隔离、确定性工具往返、生产工具面往返、历史与指令保真、安全边界（读写/网络隔离），汇总 checks 与 feasible 返回报告。"""
     nonce = secrets.token_hex(8)
     tokens = {"alpha": f"ALPHA_{nonce}", "beta": f"BETA_{nonce}"}
     reserved_stock_code = f"DSAGATEA{secrets.token_hex(6).upper()}"
@@ -381,6 +400,7 @@ def run_gate_a(command: Sequence[str], *, timeout: float = 120.0) -> dict:
 
 
 def main() -> int:
+    """CLI 入口：解析 --codex/--timeout 参数，解析并加固命令、检查版本、运行 Gate A 探针；捕获 GateAError/系统错误脱敏后输出 JSON 报告，feasible 为真返回 0 否则 1。"""
     parser = argparse.ArgumentParser(description="Run the Phase 6 Codex App Server Gate A feasibility probes")
     parser.add_argument("--codex", default="codex", help="Codex executable name or path")
     parser.add_argument("--timeout", type=float, default=120.0, help="Per request/turn timeout in seconds")

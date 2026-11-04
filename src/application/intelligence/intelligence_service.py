@@ -272,6 +272,7 @@ class IntelligenceService:
         repository: Optional[IntelligenceRepositoryPort] = None,
         config: Optional[Config] = None,
     ):
+        """构造情报服务：装配信息流解析与各数据源。"""
         self.repo = repository or _get_intelligence_repository()
         self.config = config or get_config()
 
@@ -768,6 +769,7 @@ class IntelligenceService:
         original_getaddrinfo = socket.getaddrinfo
 
         def guarded_getaddrinfo(host: Any, port: Any, *args: Any, **inner_kwargs: Any) -> Any:
+            """带防护的 getaddrinfo：限制 DNS 解析以规避阻塞。"""
             addrinfos = original_getaddrinfo(host, port, *args, **inner_kwargs)
             # 只校验目标主机，避免影响无关域名（如系统内部解析）
             if self._normalize_hostname(host) == target_hostname:
@@ -813,18 +815,23 @@ class IntelligenceService:
                 raise IntelligenceServiceError("source url must not target private or local network addresses")
 
     def _parse_feed(self, content: bytes, *, source_name: str, limit: int) -> List[FeedEntry]:
+        """解析通用信息流内容（按来源选择 RSS/Atom/NewsNow）。"""
         return FeedParser(self._validate_url).parse_feed(content=content, source_name=source_name, limit=limit)
 
     def _parse_newsnow_payload(self, payload: Any, *, source_name: str, limit: int) -> List[FeedEntry]:
+        """解析 NewsNow 负载为 FeedEntry 列表。"""
         return FeedParser(self._validate_url).parse_newsnow_payload(payload=payload, source_name=source_name, limit=limit)
 
     def _parse_rss_item(self, node: ET.Element, source_name: str) -> Optional[FeedEntry]:
+        """解析单个 RSS item 节点为 FeedEntry。"""
         return FeedParser(self._validate_url).parse_rss_item(node=node, source_name=source_name)
 
     def _parse_atom_entry(self, node: ET.Element, source_name: str) -> Optional[FeedEntry]:
+        """解析单个 Atom entry 节点为 FeedEntry。"""
         return FeedParser(self._validate_url).parse_atom_entry(node=node, source_name=source_name)
 
     def _build_entry(self, title: str, summary: str, url: str, source_name: str, published_at: Optional[datetime]) -> Optional[FeedEntry]:
+        """用标题/摘要/URL 等字段构造 FeedEntry。"""
         return FeedParser(self._validate_url).build_entry(title=title, summary=summary, url=url, source_name=source_name, published_at=published_at)
 
     def _entry_to_item_fields(self, entry: FeedEntry, source: Any, now: datetime) -> Dict[str, Any]:
@@ -1253,6 +1260,7 @@ class IntelligenceService:
         """在守护线程中执行一次全量快讯刷新（fire-and-forget，失败仅记日志）。"""
 
         def _target() -> None:
+            """后台线程目标函数：执行情报抓取任务。"""
             try:
                 IntelligenceService().refresh_live_news()
             except Exception as exc:  # noqa: BLE001 - 后台任务失败不外抛
@@ -1845,6 +1853,7 @@ class IntelligenceService:
 
     @staticmethod
     def _parse_raw_payload(raw_payload: Optional[str]) -> Dict[str, Any]:
+        """解析原始情报负载字符串为字典。"""
         if not raw_payload:
             return {}
         try:

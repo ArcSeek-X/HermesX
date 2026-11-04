@@ -106,6 +106,7 @@ def handle_webhook(
         logger.info("[BotHandler] 返回延迟 ACK，后台处理命令")
 
         def _deferred_dispatch() -> None:
+            """延迟分发消息处理。"""
             try:
                 dispatcher = get_dispatcher()
                 response = dispatcher.dispatch(message)
@@ -178,6 +179,7 @@ async def handle_webhook_async(
         logger.info("[BotHandler] 返回延迟 ACK，后台处理命令 (async)")
 
         async def _deferred_dispatch() -> None:
+            """延迟分发消息处理。"""
             try:
                 dispatcher = get_dispatcher()
                 response = await dispatcher.dispatch_async(message)

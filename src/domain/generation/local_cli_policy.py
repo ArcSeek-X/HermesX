@@ -30,6 +30,7 @@ MAX_LOCAL_CLI_BACKEND_MAX_CONCURRENCY = 4
 
 
 def _positive_int(value: Any, default: int) -> int:
+    """将值安全转换为正整数。"""
     try:
         parsed = int(value)
     except (TypeError, ValueError):

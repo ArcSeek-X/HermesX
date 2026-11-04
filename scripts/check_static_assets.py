@@ -15,6 +15,10 @@ Usage:
     python scripts/check_static_assets.py [<dist_dir>]
 
 Exits 0 when consistent, non-zero with a human-readable message otherwise.
+
+桌面端 / 服务端打包流水线的静态资源一致性检查。校验 index.html 引用的
+/assets/*.js|*.css 是否都真实存在于磁盘；不一致是「白屏 / Preparing backend」问题的主因
+（vite 重建后 hash 变了，但打包步骤拿到旧 dist 或拷贝错位，浏览器对主包拿到 404）。
 """
 
 from __future__ import annotations
@@ -33,7 +37,10 @@ _ASSET_PATTERN = re.compile(
 
 
 def _parse_referenced_assets(index_html: str) -> List[str]:
-    """Return the unique list of ``/assets/...`` paths referenced by ``index.html``."""
+    """Return the unique list of ``/assets/...`` paths referenced by ``index.html``.
+
+    从 index.html 中解析出所有被引用的 ``/assets/...`` 路径，去重后返回。
+    """
     seen: List[str] = []
     for match in _ASSET_PATTERN.finditer(index_html):
         ref = match.group(1)
@@ -49,6 +56,9 @@ def check_static_dir(static_dir: Path) -> Tuple[List[str], List[str]]:
     ``referenced`` is the list of ``/assets/...`` paths declared in
     ``index.html``. ``missing`` is the subset that does not exist on disk.
     Raises ``FileNotFoundError`` if ``index.html`` itself is missing.
+
+    检查 static_dir，返回 (被引用资源, 磁盘缺失资源) 两个列表；
+    index.html 本身缺失时抛 FileNotFoundError。
     """
     index_html_path = static_dir / "index.html"
     if not index_html_path.is_file():
@@ -68,6 +78,7 @@ def check_static_dir(static_dir: Path) -> Tuple[List[str], List[str]]:
 
 
 def main(argv: List[str]) -> int:
+    """脚本入口：检查静态资源一致性并返回退出码（0=一致，1=缺失，2=index.html 缺失）。"""
     if len(argv) > 1:
         static_dir = Path(argv[1]).resolve()
     else:

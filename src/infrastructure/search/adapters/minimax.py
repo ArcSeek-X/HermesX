@@ -34,6 +34,7 @@ class MiniMaxSearchProvider(BaseSearchProvider):
     _CB_COOLDOWN_SECONDS = 300  # 5 minutes
 
     def __init__(self, api_keys: List[str]):
+        """构造 MiniMax 检索适配器并装配依赖。"""
         super().__init__(api_keys, "MiniMax")
         # Circuit breaker state
         self._consecutive_failures = 0
@@ -52,6 +53,7 @@ class MiniMaxSearchProvider(BaseSearchProvider):
             return True
 
     def record_success(self, key: str) -> None:
+        """记录一次成功调用。"""
         with self._state_lock:
             super().record_success(key)
             # Reset circuit breaker on success
@@ -59,6 +61,7 @@ class MiniMaxSearchProvider(BaseSearchProvider):
             self._circuit_open_until = 0.0
 
     def record_error(self, key: str) -> None:
+        """记录一次失败调用。"""
         warning_message = None
         with self._state_lock:
             super().record_error(key)

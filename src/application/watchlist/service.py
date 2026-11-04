@@ -39,6 +39,7 @@ class WatchlistService:
         repository: WatchlistRepositoryPort,
         stock_code_validator: StockCodeValidatorPort,
     ) -> None:
+        """构造自选股服务：保存仓储端口与股票代码校验端口。"""
         self._repository = repository
         self._stock_code_validator = stock_code_validator
 
@@ -159,6 +160,7 @@ class WatchlistService:
 
 
 def _normalize_group_name(name: str) -> str:
+    """归一化自选股分组名；空名抛校验错误。"""
     normalized = name.strip()
     if not normalized:
         raise WatchlistValidationError("分类名称不能为空", error_code="invalid_name")

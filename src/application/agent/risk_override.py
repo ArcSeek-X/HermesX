@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Shared risk override planning for the multi-agent pipeline."""
+"""Shared risk override planning for the multi-agent pipeline.
+
+多智能体流水线的共享「风险覆盖」规划。基于风险 Agent 意见、高风险标记与风险等级，
+决定是否否决买入/降级信号，并生成可对外披露的低敏感度应用事实与原因。
+"""
 
 from __future__ import annotations
 
@@ -171,6 +175,7 @@ class RiskOverrideApplication:
     to_signal: Optional[DashboardDecisionSignal] = None
 
     def __post_init__(self) -> None:
+        """归一化枚举字段：将 trigger/reason/post_risk_signal/from_signal/to_signal 强转为对应枚举类型。"""
         object.__setattr__(self, "trigger", RiskTrigger(self.trigger))
         object.__setattr__(self, "reason", RiskApplicationReason(self.reason))
         object.__setattr__(
@@ -306,6 +311,7 @@ def build_risk_override_plan(
 
 
 def _latest_risk_raw(ctx: AgentContext) -> Dict[str, Any]:
+    """取最后一条风险 Agent 意见的 raw_data 字典；不存在或类型不符时返回空字典。"""
     risk_opinion = next((op for op in reversed(ctx.opinions) if op.agent_name == "risk"), None)
     if risk_opinion and isinstance(risk_opinion.raw_data, dict):
         return risk_opinion.raw_data
@@ -319,6 +325,7 @@ def _risk_override_reason(
     has_high_flag: bool,
     risk_level_high: bool,
 ) -> str:
+    """按优先级判定风险覆盖原因：高严重度标记 > 否决买入 > 风险等级高 > 指定调整 > 无。"""
     if has_high_flag:
         return "high_severity_flag"
     if veto_buy:
@@ -331,6 +338,7 @@ def _risk_override_reason(
 
 
 def _downgrade_signal(signal: str, steps: int = 1) -> str:
+    """按 buy→hold→sell 顺序将信号降级 steps 步（非负、封顶到 sell）；非法信号原样返回。"""
     order = ["buy", "hold", "sell"]
     try:
         index = order.index(signal)

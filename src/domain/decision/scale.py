@@ -13,6 +13,7 @@ CANONICAL_DECISION_SCALE_VERSION = "decision-scale-v1"
 
 @dataclass(frozen=True)
 class DecisionScaleBand:
+    """决策评分区间定义。"""
     min_score: int
     max_score: int
     signal_key: str
@@ -68,16 +69,19 @@ def decision_band_for_score(value: Any) -> Optional[DecisionScaleBand]:
 
 
 def signal_key_for_score(value: Any) -> Optional[str]:
+    """按评分返回信号键。"""
     band = decision_band_for_score(value)
     return band.signal_key if band else None
 
 
 def action_for_score(value: Any) -> Optional[str]:
+    """按评分返回动作标识。"""
     band = decision_band_for_score(value)
     return band.action if band else None
 
 
 def decision_type_for_score(value: Any) -> Optional[str]:
+    """按评分返回决策类型。"""
     band = decision_band_for_score(value)
     return band.decision_type if band else None
 

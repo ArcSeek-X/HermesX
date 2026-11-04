@@ -60,11 +60,13 @@ def redact_diagnostic_text(text: str, *, home: Optional[str] = None, limit: int 
 
 
 def _redact_sensitive_diagnostic_url(match: Match[str]) -> str:
+    """对诊断信息中的敏感 URL 脱敏。"""
     url = match.group(0)
     return "<redacted-url>" if _is_sensitive_diagnostic_url(url) else url
 
 
 def _is_sensitive_diagnostic_url(url: str) -> bool:
+    """判断 URL 是否含敏感信息。"""
     try:
         parsed = urlsplit(url)
     except ValueError:
@@ -80,6 +82,7 @@ def _is_sensitive_diagnostic_url(url: str) -> bool:
 
 
 def _is_webhook_diagnostic_url(hostname: str, path: str) -> bool:
+    """判断是否为 Webhook 类 URL。"""
     hostname = str(hostname or "").lower().strip(".")
     normalized_path = f"/{path.lstrip('/').lower()}"
     path_segments = {segment for segment in normalized_path.split("/") if segment}
@@ -100,6 +103,7 @@ def _is_webhook_diagnostic_url(hostname: str, path: str) -> bool:
 
 
 def _has_sensitive_url_params(params_text: str) -> bool:
+    """判断 URL 查询参数是否含敏感值。"""
     if not params_text:
         return False
     try:

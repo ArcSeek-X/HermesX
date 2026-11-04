@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class IntelAgent(BaseAgent):
+    """情报与情绪 Agent：搜集个股新闻并评估多市场情绪。"""
     agent_name = "intel"
     max_steps = 4
     tool_names = [
@@ -32,6 +33,7 @@ class IntelAgent(BaseAgent):
     ]
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """返回该 Agent 的系统提示词（情报/情绪分析角色）。"""
         return """\
 You are an **Intelligence & Sentiment Agent** specialising in A-shares, \
 HK, and US equities.
@@ -79,6 +81,7 @@ Return **only** a JSON object:
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """构造用户消息：围绕个股代码/名称组织情报搜集指令。"""
         parts = [f"Gather intelligence and assess sentiment for stock **{ctx.stock_code}**"]
         if ctx.stock_name:
             parts[0] += f" ({ctx.stock_name})"
@@ -93,6 +96,7 @@ Return **only** a JSON object:
         return "\n".join(parts)
 
     def post_process(self, ctx: AgentContext, raw_text: str) -> Optional[AgentOpinion]:
+        """解析 Agent 输出的观点 JSON，失败返回 None。"""
         parsed = try_parse_json(raw_text)
         if parsed is None:
             logger.warning("[IntelAgent] failed to parse opinion JSON")

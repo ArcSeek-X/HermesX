@@ -34,6 +34,7 @@ class StockSdkKLineSource(KLineDataSource):
     source_id = "stocksdk"
 
     def fetch(self, request: KLineRequest) -> Optional[KLineResult]:
+        """拉取 K 线数据（StockSDK 源）。"""
         client = get_stocksdk_client()
         if not client.is_available():
             return None
@@ -75,6 +76,7 @@ class StockSdkKLineSource(KLineDataSource):
 
 
 def _fetch_limit(period: str, limit: int) -> int:
+    """获取涨跌停价数据。"""
     if period == "120m":
         return max(limit * 2, limit)
     if period == "5d":
@@ -85,6 +87,7 @@ def _fetch_limit(period: str, limit: int) -> int:
 
 
 def _fqt_to_adjust_label(fqt: int) -> str:
+    """将复权参数转换为展示标签。"""
     for label, current in KLINE_ADJUSTMENT_TO_FQT.items():
         if current == fqt:
             return "" if label == "none" else label
@@ -92,6 +95,7 @@ def _fqt_to_adjust_label(fqt: int) -> str:
 
 
 def _normalize_kline_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """规范化 K 线行数据。"""
     normalized: List[Dict[str, Any]] = []
     for raw in rows:
         if not isinstance(raw, dict):
@@ -116,6 +120,7 @@ def _normalize_kline_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _normalize_date(value: Any) -> str:
+    """规范化日期字段。"""
     raw = str(value or "").strip()
     if len(raw) == 8 and raw.isdigit():
         return f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"
@@ -125,6 +130,7 @@ def _normalize_date(value: Any) -> str:
 
 
 def _first_non_empty_name(rows: List[Dict[str, Any]]) -> Optional[str]:
+    """返回首个非空名称。"""
     for raw in rows:
         if not isinstance(raw, dict):
             continue
@@ -135,6 +141,7 @@ def _first_non_empty_name(rows: List[Dict[str, Any]]) -> Optional[str]:
 
 
 def _to_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value in (None, "", "-"):
         return None
     try:

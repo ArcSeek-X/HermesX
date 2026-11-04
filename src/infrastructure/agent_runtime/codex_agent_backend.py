@@ -68,11 +68,13 @@ class CodexAgentBackend(AgentBackend):
         config: Any,
         transport_factory: Callable[..., CodexAppServerTransport] = CodexAppServerTransport,
     ) -> None:
+        """构造 Codex Agent 后端并装配依赖。"""
         self.tool_surface = tool_surface
         self.config = config
         self.transport_factory = transport_factory
 
     def run(self, request: AgentRunRequest) -> AgentRunResult:
+        """执行一次 Agent 运行并返回结果。"""
         timeout = request.max_wall_clock_seconds
         if timeout is None:
             timeout = float(getattr(self.config, "agent_orchestrator_timeout_s", 0))
@@ -86,6 +88,7 @@ class CodexAgentBackend(AgentBackend):
         deadline = time.monotonic() + timeout
 
         def remaining_timeout() -> float:
+            """返回剩余可用超时时间。"""
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise CodexAppServerError("timeout", "Codex Agent exceeded the overall timeout")
@@ -109,6 +112,7 @@ class CodexAgentBackend(AgentBackend):
         )
 
         def on_tool_event(event_type: str, record: ToolCallRecord) -> None:
+            """处理工具调用事件回调。"""
             if request.progress_callback is None:
                 return
             if event_type == "start":
@@ -244,6 +248,7 @@ class CodexAgentBackend(AgentBackend):
 
     @staticmethod
     def _normalize_error_code(code: str) -> str:
+        """规范化 Codex 错误码。"""
         if code in AGENT_BACKEND_ERROR_CODES:
             return code
         if code in {"permission_profile_mismatch", "unsupported_mcp_name", "tool_not_found"}:
@@ -258,6 +263,7 @@ class CodexAgentBackend(AgentBackend):
         *,
         total_steps: int,
     ) -> AgentRunResult:
+        """构造错误结果对象。"""
         internal_message = redact_diagnostic_value(message, limit=500)
         return AgentRunResult(
             success=False,

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""LLM usage normalization and prompt-message HMAC telemetry."""
+"""LLM usage normalization and prompt-message HMAC telemetry.
+
+LLM 用量归一化与 prompt 消息的 HMAC 遥测签名。
+"""
 
 from __future__ import annotations
 
@@ -179,6 +182,7 @@ def _extract_hidden_usage_payload(hidden_params: Any) -> Any:
 
 
 def _select_usage_payload(public_usage: Any, usage_metadata: Any, hidden_usage: Any) -> Any:
+    """从公开用量与元数据中选出非空的有效载荷用于审计。"""
     public_payloads = (public_usage, usage_metadata)
     public_payload = None
     for payload in public_payloads:
@@ -200,6 +204,7 @@ def _select_usage_payload(public_usage: Any, usage_metadata: Any, hidden_usage: 
 
 
 def _usage_payload_has_count_signal(payload: Any) -> bool:
+    """判断用量载荷是否含 token 计数信号。"""
     usage = _to_plain(payload)
     if not usage:
         return False
@@ -217,6 +222,7 @@ def _usage_payload_has_count_signal(payload: Any) -> bool:
 
 
 def _usage_payload_has_invalid_counts(payload: Any) -> bool:
+    """判断用量载荷是否含有非法的用量计数值。"""
     usage = _to_plain(payload)
     return bool(usage) and _has_invalid_usage_count_values(usage)
 
@@ -241,6 +247,7 @@ def should_persist_usage_telemetry(usage: Mapping[str, Any] | None) -> bool:
 
 
 def _provider_usage_json_has_count_signal(provider_usage_json: Any) -> bool:
+    """判断 provider 用量 JSON 是否含计数信号。"""
     if isinstance(provider_usage_json, str):
         payload_text = provider_usage_json.strip()
         if not payload_text:
@@ -602,6 +609,7 @@ def build_domain_hmac(
 
 
 def _role_hmac(secret: bytes, messages: Sequence[Mapping[str, Any]], role: str) -> Optional[str]:
+    """对指定角色的消息集合计算 HMAC 摘要。"""
     role_messages = [message for message in messages if message.get("role") == role]
     if not role_messages:
         return None
@@ -609,11 +617,13 @@ def _role_hmac(secret: bytes, messages: Sequence[Mapping[str, Any]], role: str) 
 
 
 def _hmac_json(secret: bytes, value: Any) -> str:
+    """将值规范化为可排序的 JSON 并计算 HMAC。"""
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _message_for_hmac(message: Mapping[str, Any]) -> Dict[str, Any]:
+    """归一化单条消息用于 HMAC 计算（按键排序、脱敏）。"""
     normalized: Dict[str, Any] = {}
     for key, value in message.items():
         key_text = str(key)
@@ -627,6 +637,7 @@ def _message_for_hmac(message: Mapping[str, Any]) -> Dict[str, Any]:
 def _render_legacy_audit_messages(
     messages: Sequence[Mapping[str, Any]],
 ) -> tuple[str, Dict[int, int]]:
+    """渲染遗留审计消息文本并记录各内容起始偏移。"""
     parts = []
     content_starts: Dict[int, int] = {}
     cursor = 0
@@ -650,6 +661,7 @@ def _legacy_marker_positions(
     content_starts: Mapping[int, int],
     marker_specs: Any,
 ) -> tuple[list[Dict[str, Any]], Optional[int]]:
+    """收集遗留审计标记在渲染文本中的位置与偏移。"""
     positions_with_render_offset: list[tuple[int, Dict[str, Any]]] = []
 
     for spec in _iter_marker_specs(marker_specs):
@@ -688,6 +700,7 @@ def _legacy_marker_positions(
 
 
 def _legacy_skill_config_hmac(context: Mapping[str, Any]) -> Optional[str]:
+    """对技能配置计算遗留 HMAC。"""
     skill_config = context.get("skill_config")
     if not isinstance(skill_config, Mapping):
         return None
@@ -704,6 +717,7 @@ def _legacy_skill_config_hmac(context: Mapping[str, Any]) -> Optional[str]:
 
 
 def _iter_marker_specs(marker_specs: Any) -> Iterable[Mapping[str, Any]]:
+    """安全迭代标记规格（过滤非可迭代与字符串类型）。"""
     if not isinstance(marker_specs, IterableABC) or isinstance(marker_specs, (str, bytes, Mapping)):
         return
     for spec in marker_specs:
@@ -712,6 +726,7 @@ def _iter_marker_specs(marker_specs: Any) -> Iterable[Mapping[str, Any]]:
 
 
 def _iter_marker_texts(spec: Mapping[str, Any]) -> Iterable[str]:
+    """迭代标记文本（统一遗留文本归一处理）。"""
     text = _legacy_audit_text(spec.get("text"))
     if text:
         yield text
@@ -722,6 +737,7 @@ def _find_marker_in_messages(
     requested_role: Optional[str],
     candidate_text: str,
 ) -> Optional[tuple[int, str, int]]:
+    """在消息列表中查找指定角色的标记位置。"""
     for index, message in enumerate(messages):
         role = str(message.get("role") or "")
         if requested_role and role != requested_role:
@@ -734,6 +750,7 @@ def _find_marker_in_messages(
 
 
 def _legacy_audit_text(value: Any) -> str:
+    """将任意值归一为遗留审计文本字符串。"""
     if value is None:
         return ""
     if isinstance(value, str):
@@ -748,10 +765,12 @@ def _legacy_audit_text(value: Any) -> str:
 
 
 def _estimate_chars_as_tokens(chars: int) -> int:
+    """按约 3 字符/token 估算字符数对应的 token 数。"""
     return int(math.ceil(max(chars, 0) / 3))
 
 
 def _audit_scalar(value: Any, *, max_len: int) -> Optional[str]:
+    """归一化审计标量值（None 透传）。"""
     if value is None:
         return None
     text = str(value).strip()
@@ -761,6 +780,7 @@ def _audit_scalar(value: Any, *, max_len: int) -> Optional[str]:
 
 
 def _load_usage_hmac_secret() -> Optional[bytes]:
+    """加载并缓存用量 HMAC 密钥（优先环境变量）。"""
     global _HMAC_SECRET_CACHE
     env_secret = os.getenv("LLM_USAGE_HMAC_SECRET")
     if env_secret:
@@ -797,11 +817,13 @@ def _load_usage_hmac_secret() -> Optional[bytes]:
 
 
 def _usage_hmac_secret_path() -> Path:
+    """返回用量 HMAC 密钥在数据库目录中的存储路径。"""
     db_path = os.getenv("DATABASE_PATH", "./data/stock_analysis.db")
     return Path(db_path).resolve().parent / ".llm_usage_hmac_secret"
 
 
 def _to_plain(value: Any) -> Dict[str, Any]:
+    """将用量值递归转为可序列化的纯字典。"""
     if value is None:
         return {}
     if isinstance(value, Mapping):
@@ -839,6 +861,7 @@ def _to_plain(value: Any) -> Dict[str, Any]:
 
 
 def _plain_value(value: Any) -> Any:
+    """递归把任意值规范为纯量/纯字典。"""
     if isinstance(value, Mapping):
         return {str(k): _plain_value(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -857,16 +880,19 @@ def _plain_value(value: Any) -> Any:
 
 
 def _usage_value_is_nonzero(value: Any) -> bool:
+    """判断用量值是否为非零非负整数。"""
     parsed = _as_non_negative_int(value)
     return parsed is not None and parsed != 0
 
 
 def _usage_count_is_nonzero(value: Any) -> bool:
+    """判断用量计数是否为非零非负整数。"""
     parsed = _as_non_negative_int(value)
     return parsed is not None and parsed != 0
 
 
 def _safe_provider_usage_json(usage: Mapping[str, Any]) -> Optional[str]:
+    """安全序列化 provider 用量 JSON（空值返回 None）。"""
     if not usage:
         return None
     sanitized = _sanitize_raw_usage(dict(usage))
@@ -892,6 +918,7 @@ def _safe_provider_usage_json(usage: Mapping[str, Any]) -> Optional[str]:
 
 
 def _sanitize_raw_usage(value: Any) -> Any:
+    """清洗原始用量对象为安全字典。"""
     if isinstance(value, Mapping):
         result = {}
         for key, item in value.items():
@@ -911,6 +938,7 @@ def _sanitize_raw_usage(value: Any) -> Any:
 
 
 def _sanitize_raw_usage_detail(value: Mapping[str, Any]) -> Dict[str, Any]:
+    """清洗单条原始用量明细项。"""
     result: Dict[str, Any] = {}
     for key, item in value.items():
         key_text = str(key)
@@ -923,15 +951,18 @@ def _sanitize_raw_usage_detail(value: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def _sanitize_raw_usage_count(value: Any) -> Any:
+    """清洗并校验原始用量为非负整数（越界回退默认）。"""
     parsed = _as_non_negative_int(value)
     return parsed if parsed is not None else _DROP_RAW_USAGE_VALUE
 
 
 def _has_deepseek_hit_miss_shape(usage: Mapping[str, Any]) -> bool:
+    """判断用量是否呈现 DeepSeek 命中/未命中缓存形态。"""
     return "prompt_cache_hit_tokens" in usage or "prompt_cache_miss_tokens" in usage
 
 
 def _infer_provider(model: str, provider: Optional[str]) -> str:
+    """综合模型名与 provider 推断实际 provider。"""
     normalized_model = (model or "").strip().lower()
     normalized_provider = (provider or "").strip().lower()
     try:
@@ -971,6 +1002,7 @@ def _infer_provider(model: str, provider: Optional[str]) -> str:
 
 
 def _is_glm_model(normalized_model: str) -> bool:
+    """判断归一化模型名是否为 GLM/智谱系列模型。"""
     if not normalized_model:
         return False
     return (
@@ -982,6 +1014,7 @@ def _is_glm_model(normalized_model: str) -> bool:
 
 
 def _is_native_openai_model(model: str) -> bool:
+    """判断归一化模型名是否为原生 OpenAI 模型。"""
     normalized = (model or "").strip().lower()
     if normalized.startswith("openai/"):
         normalized = normalized.split("/", 1)[1]
@@ -1006,6 +1039,7 @@ def _is_native_openai_model(model: str) -> bool:
 
 
 def _first_int(mapping: Mapping[str, Any], *keys: str) -> Optional[int]:
+    """从多个键中取首个可解析为整数的非空值。"""
     for key in keys:
         value = mapping.get(key)
         parsed = _as_non_negative_int(value)
@@ -1015,6 +1049,7 @@ def _first_int(mapping: Mapping[str, Any], *keys: str) -> Optional[int]:
 
 
 def _nested_int(mapping: Mapping[str, Any], path: Iterable[str]) -> Optional[int]:
+    """按路径从嵌套映射中取整数值。"""
     current: Any = mapping
     for key in path:
         if not isinstance(current, Mapping):
@@ -1024,6 +1059,7 @@ def _nested_int(mapping: Mapping[str, Any], path: Iterable[str]) -> Optional[int
 
 
 def _as_non_negative_int(value: Any) -> Optional[int]:
+    """将值解析为非负整数；失败返回 None。"""
     if value is None:
         return None
     if isinstance(value, bool):
@@ -1045,12 +1081,14 @@ def _as_non_negative_int(value: Any) -> Optional[int]:
 
 
 def _is_invalid_usage_count_value(value: Any) -> bool:
+    """判断单个用量计数值是否非法（负数/非整数等）。"""
     if value is None:
         return False
     return _as_non_negative_int(value) is None
 
 
 def _has_invalid_usage_count_values(usage: Mapping[str, Any]) -> bool:
+    """判断用量中各标量计数是否存在非法值。"""
     for key in _USAGE_COUNT_SCALAR_KEYS:
         if key in usage and _is_invalid_usage_count_value(usage.get(key)):
             return True
@@ -1071,6 +1109,7 @@ def _has_impossible_total_tokens(
     completion_tokens: Optional[int],
     total_tokens: Optional[int],
 ) -> bool:
+    """判断 prompt+completion 与 total token 是否矛盾。"""
     if prompt_tokens is None or completion_tokens is None or total_tokens is None:
         return False
     return total_tokens < prompt_tokens + completion_tokens
@@ -1081,6 +1120,7 @@ def _eligible_input_tokens(
     provider_min_cache_tokens: Optional[int],
     capability: str,
 ) -> Optional[int]:
+    """在能力支持时返回可作为缓存输入的 token 数。"""
     if capability != "supported" or prompt_tokens is None:
         return None
     if provider_min_cache_tokens is not None and prompt_tokens < provider_min_cache_tokens:
@@ -1093,6 +1133,7 @@ def _cache_eligibility(
     provider_min_cache_tokens: Optional[int],
     capability: str,
 ) -> str:
+    """判定提示词缓存资格（supported/unknown 等）。"""
     if capability != "supported":
         return "unknown"
     if prompt_tokens is None:
@@ -1111,6 +1152,7 @@ def _cache_observation(
     cache_miss: Optional[int],
     eligible_tokens: Optional[int],
 ) -> str:
+    """观测实际缓存使用状态（no_usage/cached 等）。"""
     if not has_usage:
         return "no_usage"
     if not cache_field_observed:
@@ -1140,6 +1182,7 @@ def _has_invalid_cache_usage(
     cache_miss: Optional[int],
     capability: str,
 ) -> bool:
+    """判断缓存用量是否非法（能力不支持却有值）。"""
     if capability != "supported":
         return False
     values = (prompt_tokens, cache_read, cache_write, cache_miss)
@@ -1160,11 +1203,13 @@ def _has_invalid_cache_usage(
 
 
 def _ratio(numerator: Optional[int], denominator: Optional[int]) -> Optional[float]:
+    """计算比值；任一为空或分母为 0 返回 None。"""
     if numerator is None or denominator is None or denominator <= 0:
         return None
     return float(numerator) / float(denominator)
 
 
 def _reset_usage_hmac_secret_cache_for_tests() -> None:
+    """测试用：清空用量 HMAC 密钥缓存。"""
     global _HMAC_SECRET_CACHE
     _HMAC_SECRET_CACHE = None

@@ -5,6 +5,9 @@ FinnhubFetcher — US market data source (Priority 2)
 Data source: Finnhub.io REST API
 Rate limit: 60 calls/min (free tier)
 Markets: US only
+
+美股行情数据源（优先级 2）。通过 Finnhub REST API 获取美股历史日线与实时报价，
+免费档限制每分钟 60 次调用；仅处理美股代码，其余市场直接返回空结果。
 """
 
 import logging
@@ -25,10 +28,13 @@ _FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
 
 
 class FinnhubFetcher(BaseFetcher):
+    """Finnhub 美股数据抓取器：实现历史日线、实时报价与股票名称查询。"""
+
     name = "FinnhubFetcher"
     priority = 2
 
     def __init__(self):
+        """构造抓取器：从配置或环境变量读取 Finnhub API key。"""
         from src.config import get_config
         config = get_config()
         self._api_key = getattr(config, 'finnhub_api_key', None) or os.getenv('FINNHUB_API_KEY')
@@ -36,9 +42,11 @@ class FinnhubFetcher(BaseFetcher):
             logger.debug("[Finnhub] API key not configured, fetcher disabled")
 
     def _is_us_stock(self, stock_code: str) -> bool:
+        """判断股票代码是否属于美股（本数据源仅支持美股）。"""
         return is_us_stock_code(stock_code)
 
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """按日期区间从 Finnhub 拉取原始 K 线数据；缺少 API key 或非美股时抛错/跳过。"""
         if not self._api_key:
             raise DataFetchError("[Finnhub] API key not configured")
         if not self._is_us_stock(stock_code):
@@ -78,6 +86,7 @@ class FinnhubFetcher(BaseFetcher):
         })
 
     def _normalize_data(self, df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
+        """将 Finnhub 原始字段归一化为标准日线列（日期、开高低收、成交量等）。"""
         if df.empty:
             return df
 
@@ -97,6 +106,7 @@ class FinnhubFetcher(BaseFetcher):
         return df
 
     def get_realtime_quote(self, stock_code: str) -> Optional[UnifiedRealtimeQuote]:
+        """获取美股实时报价并转换为统一行情结构；无 key 或非美股返回 None。"""
         if not self._api_key or not self._is_us_stock(stock_code):
             return None
 
@@ -147,6 +157,7 @@ class FinnhubFetcher(BaseFetcher):
         )
 
     def get_stock_name(self, stock_code: str) -> Optional[str]:
+        """查询美股公司名称（profile 接口）；无 key 或非美股返回 None。"""
         if not self._api_key or not self._is_us_stock(stock_code):
             return None
 

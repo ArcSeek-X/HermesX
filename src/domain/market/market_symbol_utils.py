@@ -78,14 +78,17 @@ def is_suffix_market_symbol(stock_code: str, market: Optional[str] = None) -> bo
 
 
 def is_jp_suffix_symbol(stock_code: str) -> bool:
+    """判断代码是否为日股后缀形式。"""
     return is_suffix_market_symbol(stock_code, "jp")
 
 
 def is_kr_suffix_symbol(stock_code: str) -> bool:
+    """判断代码是否为韩股后缀形式。"""
     return is_suffix_market_symbol(stock_code, "kr")
 
 
 def is_tw_suffix_symbol(stock_code: str) -> bool:
+    """判断代码是否为台股后缀形式。"""
     return is_suffix_market_symbol(stock_code, "tw")
 
 
@@ -113,5 +116,6 @@ def suffix_base_lookup_allowed(canonical_code: str) -> bool:
 
 
 def market_suffixes(market: str) -> tuple[str, ...]:
+    """返回市场对应的代码后缀集合。"""
     spec = _MARKET_TO_SPEC.get((market or "").strip().lower())
     return spec.suffixes if spec else ()

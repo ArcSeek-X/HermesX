@@ -38,6 +38,7 @@ class GracefulShutdown:
     """
 
     def __init__(self, register_signals: bool = True):
+        """构造调度器：按需注册信号量处理器。"""
         self.shutdown_requested = False
         self._lock = threading.Lock()
         if not register_signals:
@@ -306,6 +307,7 @@ class Scheduler:
             return False
 
         def _runner() -> None:
+            """调度循环线程主体：按时间触发已注册任务。"""
             try:
                 logger.info("后台任务开始执行: %s", entry["name"])
                 entry["task"]()
@@ -429,6 +431,7 @@ if __name__ == "__main__":
     )
 
     def test_task():
+        """调度测试任务入口（用于验证定时任务链路）。"""
         print(f"任务执行中... {datetime.now()}")
         time.sleep(2)
         print("任务完成!")

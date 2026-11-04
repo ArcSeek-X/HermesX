@@ -51,6 +51,7 @@ _CASHFLOW_OP_KEYS = (
 
 
 def _safe_float(value: Any) -> Optional[float]:
+    """将值安全转换为 float。"""
     if value is None:
         return None
     try:
@@ -71,6 +72,7 @@ def _ratio_to_pct(value: Any) -> Optional[float]:
 
 
 def _pick_row(df: pd.DataFrame, keys) -> Optional[pd.Series]:
+    """按条件挑选数据行。"""
     if df is None or df.empty:
         return None
     for key in keys:
@@ -83,6 +85,7 @@ def _pick_row(df: pd.DataFrame, keys) -> Optional[pd.Series]:
 
 
 def _latest_value(row: Optional[pd.Series]) -> Optional[float]:
+    """取最新一期数值。"""
     if row is None or row.empty:
         return None
     try:
@@ -109,6 +112,7 @@ def _yoy_from_row(row: Optional[pd.Series]) -> Optional[float]:
 
 
 def _epoch_to_date(value: Any) -> Optional[str]:
+    """将纪元时间戳转换为日期。"""
     raw = _safe_float(value)
     if raw is None:
         return None
@@ -144,6 +148,7 @@ class YfinanceFundamentalAdapter:
     """
 
     def get_fundamental_bundle(self, stock_code: str) -> Dict[str, Any]:
+        """获取基本面数据包。"""
         result: Dict[str, Any] = {
             "status": "not_supported",
             "growth": {},

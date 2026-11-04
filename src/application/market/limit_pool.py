@@ -33,6 +33,7 @@ class LimitPoolService:
     """涨跌停榜单用例。"""
 
     def __init__(self, provider: LimitPoolProviderPort) -> None:
+        """构造限价池服务：保存限价池数据端口。"""
         self._provider = provider
 
     def get_board(

@@ -22,14 +22,17 @@ class _WallstreetcnNewsHandle:
     """``NewsSourceHandle`` 实现：包一层 data_provider 源实例。"""
 
     def __init__(self, source: Any) -> None:
+        """构造华尔街见闻新闻端口并装配依赖。"""
         self._source = source
 
     def build_live_news_url(
         self, channel_id: str, *, limit: int, cursor: str | None = None
     ) -> str:
+        """构造实时新闻接口 URL。"""
         return self._source.build_live_news_url(channel_id, limit=limit, cursor=cursor)
 
     def fetch(self, query: NewsQuery) -> Any:
+        """拉取远端新闻内容。"""
         from data_provider.news.base import NewsRequest
         from data_provider.news.wallstreetcn_source import (
             CalendarFetchError,
@@ -56,16 +59,19 @@ class WallstreetcnNewsPort:
     """``NewsSourcePort`` 实现：元数据转发 + 运行时句柄工厂。"""
 
     def list_channels(self) -> List[Dict[str, Any]]:
+        """列出可用新闻频道。"""
         from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
 
         return WallstreetcnNewsSource.list_live_news_channels()
 
     def is_known_channel(self, channel_id: str) -> bool:
+        """判断频道标识是否已知。"""
         from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
 
         return WallstreetcnNewsSource.is_known_live_news_channel(channel_id)
 
     def channel_scope_value(self, channel_id: str) -> str:
+        """返回频道作用域值。"""
         from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
 
         return WallstreetcnNewsSource.live_news_scope_value(channel_id)
@@ -79,6 +85,7 @@ class WallstreetcnNewsPort:
         calendar_base_url: str,
         calendar_timeout: float,
     ) -> _WallstreetcnNewsHandle:
+        """创建新闻数据源访问句柄。"""
         from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
 
         source = WallstreetcnNewsSource(

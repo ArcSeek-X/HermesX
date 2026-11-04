@@ -4,6 +4,10 @@
 These types are intentionally separate from report schemas.  They describe
 what happened inside an Agent run without publishing reasoning, raw payloads,
 errors, tokens, or a user-facing final explanation.
+
+多智能体运行期产生的内部、低敏感度事实类型。这些类型刻意与报告 schema 分离，
+仅描述一次 Agent 运行内部发生了什么（基础/技能意见、降级事件、流水线终止、风险覆盖应用），
+不发布推理过程、原始载荷、错误、token 或面向用户的最终解释。
 """
 
 from __future__ import annotations
@@ -65,6 +69,7 @@ class DegradedEvent:
     boundary: DegradationBoundary
 
     def __post_init__(self) -> None:
+        """校验并归一化：要求 stage 非空（否则抛 ValueError），并对 reason 与 boundary 做归一化。"""
         normalized_stage = str(self.stage or "").strip()
         if not normalized_stage:
             raise ValueError("degraded event requires a stage")
@@ -81,6 +86,7 @@ class PipelineTerminationFact:
     last_completed_stage: Optional[str] = None
 
     def __post_init__(self) -> None:
+        """校验流水线终止事实：当前仅支持 TIMEOUT 原因（否则抛 ValueError），并归一化 reason 与 last_completed_stage。"""
         normalized_reason = normalize_stage_failure_reason(self.reason)
         if normalized_reason != StageFailureReason.TIMEOUT:
             raise ValueError("pipeline termination currently supports timeout only")
@@ -117,6 +123,7 @@ def build_agent_runtime_facts(ctx: AgentContext) -> AgentRuntimeFacts:
 
 
 def _iter_base_agent_opinions(ctx: AgentContext):
+    """遍历上下文中的基础 Agent 意见（非决策/非技能共识），计算有效信号与置信度，逐个产出 BaseAgentOpinionFact。"""
     for opinion in ctx.opinions:
         if not _is_base_agent_opinion(opinion):
             continue
@@ -131,6 +138,7 @@ def _iter_base_agent_opinions(ctx: AgentContext):
 
 
 def _is_base_agent_opinion(opinion: AgentOpinion) -> bool:
+    """判断是否为「基础 Agent 意见」：agent_name 既非 decision 也非技能共识名时为真。"""
     from src.application.agent.skills.defaults import is_skill_consensus_name
 
     agent_name = str(opinion.agent_name or "").strip().lower()
@@ -173,6 +181,7 @@ def _iter_skill_opinions(ctx: AgentContext):
 
 
 def _iter_degraded_events(ctx: AgentContext):
+    """从 ctx.meta 的 degraded_events 抽取降级事件：支持 DegradedEvent 实例或 dict，去重后逐个产出（非法项跳过）。"""
     source = ctx.meta.get("degraded_events")
     if not isinstance(source, list):
         return
@@ -200,6 +209,7 @@ def _iter_degraded_events(ctx: AgentContext):
 
 
 def _pipeline_termination(ctx: AgentContext) -> Optional[PipelineTerminationFact]:
+    """从 ctx.meta 的 pipeline_termination 抽取流水线终止事实：接受实例或 dict，构造失败时返回 None。"""
     source = ctx.meta.get("pipeline_termination")
     if isinstance(source, PipelineTerminationFact):
         return source
@@ -215,6 +225,7 @@ def _pipeline_termination(ctx: AgentContext) -> Optional[PipelineTerminationFact
 
 
 def _risk_override_application(ctx: AgentContext) -> Optional[RiskOverrideApplication]:
+    """从 ctx.meta 取风险覆盖应用实例；非 RiskOverrideApplication 类型时返回 None。"""
     from src.application.agent.risk_override import RiskOverrideApplication
 
     application = ctx.meta.get("risk_override_application")
@@ -234,10 +245,12 @@ def _effective_signal(agent_name: str, signal: Any) -> Optional[str]:
 
 
 def _is_risk_agent(agent_name: str) -> bool:
+    """判断 agent 名是否属于风险 Agent（"risk"），用于基础意见信号语义处理。"""
     return str(agent_name or "").strip().lower() in _RISK_AGENT_NAMES
 
 
 def _safe_confidence(confidence: Any) -> float:
+    """将任意置信度安全化为 0–1 的浮点数：转换失败视为 0，越界截断到 [0,1] 并保留两位小数。"""
     try:
         value = float(confidence)
     except (TypeError, ValueError):
@@ -262,6 +275,7 @@ def _valid_skill_confidence(opinion: AgentOpinion) -> Optional[float]:
 
 
 def _safe_timestamp(value: Any) -> Optional[float]:
+    """将任意值安全化为正的时间戳浮点数；转换失败或非正时返回 None。"""
     try:
         timestamp = float(value)
     except (TypeError, ValueError):

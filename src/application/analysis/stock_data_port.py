@@ -30,40 +30,50 @@ class StockDataPort(Protocol):
 
     def get_stock_name(
         self, stock_code: str, allow_realtime: bool = True
-    ) -> Optional[str]: ...
-
+    ) -> Optional[str]:
+        """获取股票名称；允许实时查询时优先实时、回退缓存。"""
+        ...
     def get_daily_data(
         self,
         stock_code: str,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         days: int = 30,
-    ) -> Tuple[Any, str]: ...
-
+    ) -> Tuple[Any, str]:
+        """获取日线数据，返回（数据, 来源标识）元组。"""
+        ...
     def get_realtime_quote(
         self, stock_code: str, *, log_final_failure: bool = True
-    ) -> Any: ...
-
-    def get_chip_distribution(self, stock_code: str) -> Any: ...
-
+    ) -> Any:
+        """获取实时行情；失败时记录并最终回退。"""
+        ...
+    def get_chip_distribution(self, stock_code: str) -> Any:
+        """获取筹码分布数据。"""
+        ...
     def get_fundamental_context(
         self, stock_code: str, budget_seconds: Optional[float] = None
-    ) -> Dict[str, Any]: ...
-
+    ) -> Dict[str, Any]:
+        """获取基本面上下文；可带耗时预算。"""
+        ...
     def build_failed_fundamental_context(
         self, stock_code: str, reason: str
-    ) -> Dict[str, Any]: ...
-
-    def get_belong_boards(self, stock_code: str) -> List[Dict[str, Any]]: ...
-
-    def prefetch_daily_klines(self, stock_codes: List[str], days: int = 30) -> int: ...
-
-    def prefetch_realtime_quotes(self, stock_codes: List[str]) -> int: ...
-
+    ) -> Dict[str, Any]:
+        """构造基本面获取失败时的降级上下文。"""
+        ...
+    def get_belong_boards(self, stock_code: str) -> List[Dict[str, Any]]:
+        """获取股票所属板块列表。"""
+        ...
+    def prefetch_daily_klines(self, stock_codes: List[str], days: int = 30) -> int:
+        """预取多只股票日线，返回预取数量。"""
+        ...
+    def prefetch_realtime_quotes(self, stock_codes: List[str]) -> int:
+        """预取多只股票实时行情，返回预取数量。"""
+        ...
     def prefetch_stock_names(
         self, stock_codes: List[str], use_bulk: bool = False
-    ) -> None: ...
-
+    ) -> None:
+        """批量预取股票名称（可走批量接口）。"""
+        ...
 
 # —— 取数端口的 bootstrap seam（R3-S15b）——
 #

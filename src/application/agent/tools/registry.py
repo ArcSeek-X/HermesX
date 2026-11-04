@@ -6,6 +6,9 @@ Provides:
 - ToolParameter / ToolDefinition dataclasses
 - ToolRegistry: central tool registry with multi-provider schema generation
 - @tool decorator for easy tool registration
+
+Agent 框架的工具注册表。定义 ToolParameter / ToolDefinition 数据类与 ToolPolicy 策略，
+提供集中式工具注册、多供应商（OpenAI/Anthropic 等）schema 生成、以及 @tool 便捷注册装饰器。
 """
 
 import json
@@ -47,6 +50,7 @@ class ToolPolicy:
 
     @classmethod
     def unknown(cls) -> "ToolPolicy":
+        """构造「策略未知」的默认 ToolPolicy（各字段取默认值，policy_status 为 unknown）。"""
         return cls()
 
     @classmethod
@@ -59,6 +63,7 @@ class ToolPolicy:
         scope_dimensions: Optional[List[str]] = None,
         cancellation_safe: bool = False,
     ) -> "ToolPolicy":
+        """构造「已声明」策略：按给定只读性、副作用、权限、作用域维度与可取消性生成 ToolPolicy。"""
         return cls(
             read_only=read_only,
             side_effects=list(side_effects or []),
@@ -69,6 +74,7 @@ class ToolPolicy:
         )
 
     def to_public_dict(self) -> Dict[str, Any]:
+        """将工具策略转为可对外披露的字典（只读性、副作用、权限、状态、可取消性等）。"""
         return {
             "read_only": self.read_only,
             "side_effects": list(self.side_effects),
@@ -173,6 +179,7 @@ class ToolRegistry:
     """
 
     def __init__(self):
+        """构造空注册表：初始化按工具名索引的 ToolDefinition 字典。"""
         self._tools: Dict[str, ToolDefinition] = {}
 
     # ----- Registration -----
@@ -210,9 +217,11 @@ class ToolRegistry:
         return list(self._tools.keys())
 
     def __len__(self) -> int:
+        """返回已注册工具数量。"""
         return len(self._tools)
 
     def __contains__(self, name: str) -> bool:
+        """判断给定工具名是否已注册。"""
         return name in self._tools
 
     # ----- Schema generation -----
@@ -328,6 +337,7 @@ def tool(
             ...
     """
     def decorator(func: Callable) -> Callable:
+        """@tool 内部装饰器：从类型提示推断参数（未提供时），构造 ToolDefinition 并注册到默认注册表，返回原函数。"""
         # Infer parameters from type hints if not provided
         params = parameters
         if params is None:

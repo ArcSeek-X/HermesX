@@ -103,10 +103,12 @@ SENSITIVE_MARKERS = (
 def normalize_analysis_context_pack_language(report_language: str = "zh") -> str:
     # Korean reuses the English structural context labels; the model is
     # constrained to Korean output via the analysis output-language directive.
+    """规范化分析上下文包的语言标识。"""
     return "en" if str(report_language or "").lower() in {"en", "ko"} else "zh"
 
 
 def get_analysis_context_pack_block_labels(report_language: str = "zh") -> Dict[str, str]:
+    """返回上下文包各区块的展示标签。"""
     return (
         BLOCK_LABELS_EN
         if normalize_analysis_context_pack_language(report_language) == "en"
@@ -115,6 +117,7 @@ def get_analysis_context_pack_block_labels(report_language: str = "zh") -> Dict[
 
 
 def iter_analysis_context_pack_block_keys(blocks: Mapping[str, Any]) -> List[str]:
+    """迭代上下文包的区块键。"""
     ordered_keys = [key for key in BLOCK_LABELS_ZH if key in blocks]
     ordered_keys.extend(key for key in blocks if key not in ordered_keys)
     return ordered_keys
@@ -145,6 +148,7 @@ def format_analysis_context_pack_prompt_section(
 
 
 def analysis_context_pack_to_dict(pack: Any) -> Dict[str, Any]:
+    """将上下文包对象转换为字典。"""
     if pack is None:
         return {}
     if isinstance(pack, Mapping):
@@ -165,6 +169,7 @@ _pack_to_dict = analysis_context_pack_to_dict
 
 
 def _format_zh(payload: Dict[str, Any]) -> str:
+    """格式化中文版上下文包提示词。"""
     lines = ["", "## 分析上下文包摘要"]
     lines.extend(_subject_lines(payload, lang="zh"))
     block_lines = _block_lines(payload, lang="zh")
@@ -182,6 +187,7 @@ def _format_zh(payload: Dict[str, Any]) -> str:
 
 
 def _format_en(payload: Dict[str, Any]) -> str:
+    """格式化英文版上下文包提示词。"""
     lines = ["", "## Analysis Context Pack Summary"]
     lines.extend(_subject_lines(payload, lang="en"))
     block_lines = _block_lines(payload, lang="en")
@@ -199,6 +205,7 @@ def _format_en(payload: Dict[str, Any]) -> str:
 
 
 def _subject_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
+    """生成主体信息说明行。"""
     subject = payload.get("subject") if isinstance(payload.get("subject"), Mapping) else {}
     code = _safe_text(subject.get("code"))
     name = _safe_text(subject.get("stock_name"))
@@ -234,6 +241,7 @@ def _subject_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
 
 
 def _block_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
+    """生成单个区块的说明行。"""
     blocks = payload.get("blocks")
     if not isinstance(blocks, Mapping):
         return []
@@ -272,6 +280,7 @@ def _block_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
 
 
 def _metadata_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
+    """生成元数据说明行。"""
     metadata = payload.get("metadata")
     if not isinstance(metadata, Mapping):
         return []
@@ -286,6 +295,7 @@ def _metadata_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
 
 
 def _data_limitation_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
+    """生成数据限制说明行。"""
     lines = ["", "## Data Limitations" if lang == "en" else "## 数据限制"]
     data_quality = payload.get("data_quality")
     if not isinstance(data_quality, Mapping):
@@ -351,6 +361,7 @@ def _data_limitation_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
 
 
 def _localized_limitations(limitations: List[str], *, lang: str) -> List[str]:
+    """按语言本地化限制说明。"""
     labels = get_analysis_context_pack_block_labels(lang)
     status_labels = STATUS_LABELS_EN if lang == "en" else STATUS_LABELS_ZH
     result: List[str] = []
@@ -372,6 +383,7 @@ def _localized_limitations(limitations: List[str], *, lang: str) -> List[str]:
 
 
 def _has_core_degraded_block(payload: Dict[str, Any]) -> bool:
+    """判断核心数据是否降级。"""
     blocks = payload.get("blocks")
     if not isinstance(blocks, Mapping):
         return False
@@ -386,6 +398,7 @@ def _has_core_degraded_block(payload: Dict[str, Any]) -> bool:
 
 
 def _phase_data_quality_constraint_lines(payload: Dict[str, Any], *, lang: str) -> List[str]:
+    """生成阶段数据质量约束说明行。"""
     if not _has_core_degraded_block(payload):
         return []
 
@@ -431,6 +444,7 @@ def _phase_data_quality_constraint_lines(payload: Dict[str, Any], *, lang: str) 
 
 
 def _phase_value(payload: Dict[str, Any]) -> str:
+    """安全提取阶段取值。"""
     phase_payload = payload.get("phase")
     if not isinstance(phase_payload, Mapping):
         return ""
@@ -439,11 +453,13 @@ def _phase_value(payload: Dict[str, Any]) -> str:
 
 
 def _quality_level_label(level: str, *, lang: str) -> str:
+    """返回数据质量等级的展示标签。"""
     labels = QUALITY_LEVEL_LABELS_EN if lang == "en" else QUALITY_LEVEL_LABELS_ZH
     return labels.get(level, "")
 
 
 def _safe_score(value: Any) -> Optional[int]:
+    """安全提取数值评分。"""
     if isinstance(value, bool) or not isinstance(value, int):
         return None
     if 0 <= value <= 100:
@@ -452,6 +468,7 @@ def _safe_score(value: Any) -> Optional[int]:
 
 
 def _first_item_field(items: Any, field: str) -> Optional[str]:
+    """读取首个条目的指定字段。"""
     if not isinstance(items, Mapping):
         return None
     for item in items.values():
@@ -464,6 +481,7 @@ def _first_item_field(items: Any, field: str) -> Optional[str]:
 
 
 def _item_missing_reasons(items: Any) -> List[str]:
+    """列出条目缺失原因。"""
     if not isinstance(items, Mapping):
         return []
     reasons: List[str] = []
@@ -477,6 +495,7 @@ def _item_missing_reasons(items: Any) -> List[str]:
 
 
 def _nested(value: Any, *keys: str) -> Any:
+    """安全读取嵌套字典字段。"""
     current = value
     for key in keys:
         if not isinstance(current, Mapping):
@@ -486,6 +505,7 @@ def _nested(value: Any, *keys: str) -> Any:
 
 
 def _list_strings(value: Any) -> List[str]:
+    """安全提取字符串列表。"""
     if not isinstance(value, list):
         return []
     result: List[str] = []
@@ -497,6 +517,7 @@ def _list_strings(value: Any) -> List[str]:
 
 
 def _first_non_empty(*values: Any) -> Optional[str]:
+    """返回首个非空值。"""
     for value in values:
         text = _safe_text(value)
         if text:
@@ -505,6 +526,7 @@ def _first_non_empty(*values: Any) -> Optional[str]:
 
 
 def _safe_text(value: Any) -> str:
+    """将任意值安全转换为文本。"""
     if value is None:
         return ""
     text = str(value).strip()
@@ -517,5 +539,6 @@ def _safe_text(value: Any) -> str:
 
 
 def _join_text(values: Iterable[str], *, lang: str) -> str:
+    """拼接多行文本为单段。"""
     separator = ", " if lang == "en" else "、"
     return separator.join(values)

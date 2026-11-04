@@ -99,6 +99,7 @@ _ALPHASIFT_RUNTIME_ENV_LOCK = threading.RLock()
 
 
 def _summarize_hotspot_news_event_with_llm(*, topic: str, text: str, config: Config) -> str:
+    """借助 LLM 总结热点新闻事件。"""
     model, _fallback_models = _resolve_alphasift_llm_models(config)
     if not _env_text(model) or not text:
         return ""
@@ -129,6 +130,7 @@ def _summarize_hotspot_news_event_with_llm(*, topic: str, text: str, config: Con
 
 
 def _extract_litellm_message_content(response: Any) -> str:
+    """从 LiteLLM 响应中提取消息正文。"""
     try:
         choices = response.get("choices") if isinstance(response, dict) else getattr(response, "choices", None)
         if choices:
@@ -143,6 +145,7 @@ def _extract_litellm_message_content(response: Any) -> str:
 
 
 def _clean_hotspot_llm_summary(text: str) -> str:
+    """清洗 LLM 生成的热点摘要。"""
     summary = _normalize_inline_text(text).strip(" 　\"'“”‘’")
     summary = re.sub(r"^(摘要|总结|消息催化|事件催化)\s*[:：]\s*", "", summary)
     return summary
@@ -150,6 +153,7 @@ def _clean_hotspot_llm_summary(text: str) -> str:
 
 @contextmanager
 def _alphasift_runtime_env(config: Config, *, max_results: Optional[int] = None) -> Iterator[None]:
+    """返回 AlphaSift 运行时环境变量。"""
     updates = _build_alphasift_runtime_env(config, max_results=max_results)
     if not updates:
         yield
@@ -171,6 +175,7 @@ def _alphasift_runtime_env(config: Config, *, max_results: Optional[int] = None)
 
 @contextmanager
 def _alphasift_hrs_daily_history_provider() -> Iterator[None]:
+    """返回 HRS 日线历史数据提供者。"""
     try:
         daily_module = importlib.import_module("alphasift.daily")
     except Exception:
@@ -189,6 +194,7 @@ def _alphasift_hrs_daily_history_provider() -> Iterator[None]:
         source: str = "akshare",
         retries: int = 2,
     ) -> Any:
+        """通过 HRS 拉取日线历史。"""
         try:
             hrs_df, hrs_source = get_hrs_daily_history(code, lookback_days=lookback_days)
             normalized = _normalize_hrs_daily_history(hrs_df)
@@ -213,6 +219,7 @@ def _alphasift_hrs_daily_history_provider() -> Iterator[None]:
 
 
 def _resolve_alphasift_snapshot_source_priority(config: Config) -> str:
+    """解析快照数据源优先级。"""
     token = _env_text(getattr(config, "tushare_token", None) or os.getenv("TUSHARE_TOKEN"))
     if token:
         return HRS_ALPHASIFT_SNAPSHOT_SOURCE_PRIORITY_WITH_TUSHARE
@@ -225,14 +232,17 @@ def _build_alphasift_runtime_env(config: Config, *, max_results: Optional[int] =
     # 与 LiteLLM provider/model、openai-compatible `api_base` 与 headers 注入语义保持一致，
     # 参见 https://docs.litellm.ai/docs/providers 与
     # https://docs.litellm.ai/docs/proxy/configs#the-model_list-key
+    """构建 AlphaSift 运行时环境变量映射。"""
     env: Dict[str, str] = {}
 
     def put(key: str, value: Any) -> None:
+        """注册一个提供者实例。"""
         text = _env_text(value)
         if text:
             env[key] = text
 
     def put_default(key: str, value: Any) -> None:
+        """注册默认提供者实例。"""
         if os.getenv(key) not in (None, ""):
             return
         put(key, value)
@@ -403,6 +413,7 @@ class HrsEastMoneyHotspotProvider:
     }
 
     def __init__(self) -> None:
+        """构造 HRS 数据源桥接实例并初始化状态。"""
         import requests
 
         self._board_changes_raw_cache: Any = None
@@ -414,6 +425,7 @@ class HrsEastMoneyHotspotProvider:
         self._min_request_interval = 0.25
 
     def _eastmoney_get_once(self, url: str, **kwargs: Any) -> Any:
+        """执行单次东财接口请求。"""
         with self._request_lock:
             elapsed = time.monotonic() - self._last_request_ts
             if elapsed < self._min_request_interval:
@@ -424,6 +436,7 @@ class HrsEastMoneyHotspotProvider:
                 self._last_request_ts = time.monotonic()
 
     def _eastmoney_get(self, url: str, **kwargs: Any) -> Any:
+        """带重试的东财接口请求。"""
         import requests
 
         retryable_errors = (
@@ -450,6 +463,7 @@ class HrsEastMoneyHotspotProvider:
         raise last_error
 
     def stock_board_concept_name_em(self) -> Any:
+        """获取东财概念板块名称列表。"""
         frame = self._fetch_board_changes_with_fallback()
         if frame is not None and not frame.empty:
             return frame
@@ -459,6 +473,7 @@ class HrsEastMoneyHotspotProvider:
         return self._fetch_board_names(source_fs="m:90 t:3 f:!50")
 
     def stock_board_industry_name_em(self) -> Any:
+        """获取东财行业板块名称列表。"""
         concept_frame = self._fetch_board_changes_with_fallback()
         if concept_frame is not None and not concept_frame.empty:
             import pandas as pd
@@ -470,6 +485,7 @@ class HrsEastMoneyHotspotProvider:
         return self._fetch_board_names(source_fs="m:90 t:2 f:!50")
 
     def hotspot_rows(self, *, top: int = 12) -> List[Dict[str, Any]]:
+        """返回热点题材行数据。"""
         import pandas as pd
 
         frame = self.stock_board_concept_name_em()
@@ -519,6 +535,7 @@ class HrsEastMoneyHotspotProvider:
         return rows
 
     def stock_board_concept_cons_em(self, symbol: str = "") -> Any:
+        """获取东财概念板块成分股。"""
         cached = self._get_constituent_cache("concept", symbol)
         if cached is not None:
             return cached
@@ -538,6 +555,7 @@ class HrsEastMoneyHotspotProvider:
         return frame
 
     def stock_board_industry_cons_em(self, symbol: str = "") -> Any:
+        """获取东财行业板块成分股。"""
         cached = self._get_constituent_cache("industry", symbol)
         if cached is not None:
             return cached
@@ -549,6 +567,7 @@ class HrsEastMoneyHotspotProvider:
         return frame
 
     def hotspot_detail(self, topic: str) -> Dict[str, Any]:
+        """获取单个热点题材详情。"""
         try:
             summary = self._find_board_change(topic)
         except Exception as exc:
@@ -595,6 +614,7 @@ class HrsEastMoneyHotspotProvider:
         })
 
     def _fetch_board_changes(self) -> Any:
+        """拉取板块涨跌数据。"""
         import pandas as pd
 
         if self._board_changes_frame_cache is not None:
@@ -637,6 +657,7 @@ class HrsEastMoneyHotspotProvider:
         return frame.copy()
 
     def _fetch_board_changes_raw(self) -> Any:
+        """拉取板块涨跌原始数据。"""
         import akshare as ak
 
         if self._board_changes_raw_cache is not None:
@@ -646,6 +667,7 @@ class HrsEastMoneyHotspotProvider:
         return df.copy() if df is not None else df
 
     def _fetch_board_changes_with_fallback(self) -> Any:
+        """带降级的板块涨跌拉取。"""
         import pandas as pd
 
         try:
@@ -655,9 +677,11 @@ class HrsEastMoneyHotspotProvider:
             return pd.DataFrame()
 
     def _is_broad_board(self, name: str) -> bool:
+        """判断是否为宽泛板块。"""
         return any(keyword in name for keyword in self._BROAD_BOARD_KEYWORDS)
 
     def _fetch_rankings(self, source: str) -> Any:
+        """拉取板块排行数据。"""
         import pandas as pd
 
         manager = _get_hrs_fetcher_manager()
@@ -676,6 +700,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(rows)
 
     def _fetch_rankings_with_fallback(self, source: str) -> Any:
+        """带降级的板块排行拉取。"""
         import pandas as pd
 
         try:
@@ -685,6 +710,7 @@ class HrsEastMoneyHotspotProvider:
             return pd.DataFrame()
 
     def _fetch_board_names(self, *, source_fs: str) -> Any:
+        """拉取板块名称列表。"""
         import pandas as pd
 
         params = dict(self._COMMON_PARAMS)
@@ -717,6 +743,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(normalized)
 
     def _find_board_change(self, topic: str) -> Dict[str, Any]:
+        """查找指定板块的涨跌记录。"""
         df = self._fetch_board_changes_raw()
         if df is None or df.empty:
             return {}
@@ -730,6 +757,7 @@ class HrsEastMoneyHotspotProvider:
     def _is_industry_hotspot(self, topic: str) -> bool:
         # EastMoney board-change rows are concept-like hot boards; if the topic is
         # already in that live change set, avoid an extra industry request.
+        """判断热点是否属于行业题材。"""
         try:
             concept_frame = self._fetch_board_changes_with_fallback()
             if self._board_frame_contains_topic(concept_frame, topic):
@@ -748,14 +776,17 @@ class HrsEastMoneyHotspotProvider:
         return self._board_frame_contains_topic(frame, topic)
 
     def _derive_trend_score(self, *, change_pct: Optional[float], event_count: int) -> float:
+        """推导题材趋势评分。"""
         change_component = max(change_pct or 0.0, 0.0) * 12.0
         event_component = min(event_count / 8.0, 45.0)
         return round(min(99.0, max(1.0, change_component + event_component)), 1)
 
     def _derive_persistence_score(self, *, event_count: int) -> float:
+        """推导题材持续性评分。"""
         return round(min(99.0, max(1.0, event_count / 3.0)), 1)
 
     def _derive_hotspot_stage(self, *, change_pct: Optional[float], event_count: int) -> str:
+        """推导热点所处阶段。"""
         positive_change = max(change_pct or 0.0, 0.0)
         if event_count >= 180 and positive_change >= 3.0:
             return "加速发酵"
@@ -766,6 +797,7 @@ class HrsEastMoneyHotspotProvider:
         return "初次异动"
 
     def _hotspot_group(self, topic: str) -> str:
+        """返回热点所属分组。"""
         topic_text = _env_text(topic)
         for keyword, group in self._METAL_TOPIC_GROUPS.items():
             if keyword and keyword in topic_text:
@@ -773,6 +805,7 @@ class HrsEastMoneyHotspotProvider:
         return ""
 
     def _display_hotspot_name(self, topic: str) -> str:
+        """返回热点展示名称。"""
         topic_text = _env_text(topic)
         group = self._hotspot_group(topic_text)
         if group and topic_text != group:
@@ -780,6 +813,7 @@ class HrsEastMoneyHotspotProvider:
         return topic_text
 
     def _board_frame_contains_topic(self, frame: Any, topic: str) -> bool:
+        """判断板块数据是否包含指定题材。"""
         import pandas as pd
 
         topic_text = _env_text(topic)
@@ -797,6 +831,7 @@ class HrsEastMoneyHotspotProvider:
         return False
 
     def _build_hotspot_summary(self, topic: str, summary: Dict[str, Any]) -> str:
+        """构建热点摘要文本。"""
         if not summary:
             return f"{topic} 当前暂无可用的板块异动摘要。"
         change_pct = _safe_float(summary.get("涨跌幅"))
@@ -811,10 +846,12 @@ class HrsEastMoneyHotspotProvider:
         return "，".join(parts) + "。"
 
     def _build_hotspot_route(self, topic: str, summary: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """构建热点事件路由。"""
         route_by_date: Dict[str, Dict[str, Any]] = {}
         today = datetime.now().date().isoformat()
 
         def put_daily_item(*, date: str, title: str, description: str, source: str) -> None:
+            """写入一条日线数据项。"""
             day = date or today
             existing = route_by_date.get(day)
             if existing:
@@ -866,6 +903,7 @@ class HrsEastMoneyHotspotProvider:
         return route
 
     def _extract_route_date(self, text: str) -> str:
+        """从路由中提取日期。"""
         match = re.search(r"(20\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})", text or "")
         if not match:
             return ""
@@ -873,6 +911,7 @@ class HrsEastMoneyHotspotProvider:
         return f"{year}-{int(month):02d}-{int(day):02d}"
 
     def _parse_change_events(self, raw: Any) -> List[Dict[str, Any]]:
+        """解析涨跌事件列表。"""
         if isinstance(raw, str):
             try:
                 import ast
@@ -896,6 +935,7 @@ class HrsEastMoneyHotspotProvider:
         return sorted(events, key=lambda item: item["count"], reverse=True)
 
     def _fetch_ths_summary_event(self, topic: str) -> str:
+        """拉取同花顺摘要事件。"""
         import akshare as ak
 
         try:
@@ -920,6 +960,7 @@ class HrsEastMoneyHotspotProvider:
         return f"{date}：{event}" if date and event else event
 
     def _fetch_ths_info(self, topic: str) -> Dict[str, str]:
+        """拉取同花顺题材信息。"""
         import akshare as ak
 
         try:
@@ -935,6 +976,7 @@ class HrsEastMoneyHotspotProvider:
         }
 
     def _fetch_eastmoney_constituents(self, topic: str, *, source: str) -> Any:
+        """拉取东财成分股。"""
         import akshare as ak
 
         try:
@@ -945,6 +987,7 @@ class HrsEastMoneyHotspotProvider:
             return None
 
     def _fetch_ths_constituents(self, topic: str) -> Any:
+        """拉取同花顺成分股。"""
         import pandas as pd
         import requests
 
@@ -973,6 +1016,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(rows)
 
     def _resolve_ths_concept_code(self, topic: str) -> str:
+        """解析同花顺概念代码。"""
         import akshare as ak
 
         try:
@@ -992,6 +1036,7 @@ class HrsEastMoneyHotspotProvider:
         return _env_text(rows.iloc[0].get("code"))
 
     def _fallback_constituents(self, topic: str) -> Any:
+        """返回降级成分股数据。"""
         import pandas as pd
 
         try:
@@ -1015,6 +1060,7 @@ class HrsEastMoneyHotspotProvider:
         }])
 
     def _related_hotspot_constituents(self, topic: str) -> Any:
+        """返回关联热点成分股。"""
         import pandas as pd
 
         group = self._hotspot_group(topic)
@@ -1054,6 +1100,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(rows)
 
     def _get_constituent_cache(self, source: str, topic: str) -> Any:
+        """读取成分股缓存。"""
         import pandas as pd
 
         if not hasattr(self, "_constituent_cache"):
@@ -1064,6 +1111,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(frame).copy()
 
     def _set_constituent_cache(self, source: str, topic: str, frame: Any) -> None:
+        """写入成分股缓存。"""
         import pandas as pd
 
         if not hasattr(self, "_constituent_cache"):
@@ -1071,6 +1119,7 @@ class HrsEastMoneyHotspotProvider:
         self._constituent_cache[(source, _env_text(topic))] = pd.DataFrame(frame).copy()
 
     def _merge_constituent_frames(self, frames: List[Any]) -> Any:
+        """合并多来源成分股数据框。"""
         import pandas as pd
 
         merged: List[Dict[str, Any]] = []
@@ -1095,6 +1144,7 @@ class HrsEastMoneyHotspotProvider:
         return pd.DataFrame(merged)
 
     def _enrich_constituent_quotes(self, stocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """为成分股补充行情。"""
         codes = [str(item.get("code") or "").strip() for item in stocks if item.get("code")]
         codes = [code for code in codes if code][:12]
         if len(codes) < 4:
@@ -1135,6 +1185,7 @@ class HrsEastMoneyHotspotProvider:
         return enriched
 
     def _normalize_constituent_records(self, frame: Any) -> List[Dict[str, Any]]:
+        """规范化成分股记录。"""
         import pandas as pd
 
         df = pd.DataFrame(frame)
@@ -1162,6 +1213,7 @@ class HrsEastMoneyHotspotProvider:
 def _build_alphasift_context(config: Config, *, max_results: Optional[int] = None) -> Dict[str, Any]:
     # context.llm.model/fallback/model_list 与 LiteLLM 路由语义保持一致，
     # 参见 https://docs.litellm.ai/docs/proxy/configs#the-model_list-key
+    """构建 AlphaSift 运行上下文。"""
     channels = _normalize_hrs_llm_channels(config)
     litellm_model, fallback_models = _resolve_alphasift_llm_models(config)
     return {
@@ -1198,6 +1250,7 @@ def _build_alphasift_context(config: Config, *, max_results: Optional[int] = Non
 
 @contextmanager
 def _alphasift_litellm_headers(config: Config) -> Iterator[None]:
+    """返回 AlphaSift 使用的 LiteLLM 请求头。"""
     header_routes = _build_alphasift_litellm_header_routes(config)
     if not header_routes:
         yield
@@ -1228,6 +1281,7 @@ def _alphasift_litellm_headers(config: Config) -> Iterator[None]:
     original_completion = completion
 
     def completion_with_hrs_headers(*args: Any, **kwargs: Any) -> Any:
+        """携带 HRS 请求头执行模型调用。"""
         routes = _ALPHASIFT_LITELLM_COMPLETION_ROUTES.get()
         if routes:
             headers = _match_alphasift_litellm_headers(args, kwargs, routes)
@@ -1262,6 +1316,7 @@ def _alphasift_litellm_headers(config: Config) -> Iterator[None]:
 
 
 def _build_alphasift_litellm_model_list(config: Config, channels: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """构建 AlphaSift 的 LiteLLM 模型列表。"""
     explicit_model_list = _to_plain(config.llm_model_list or [])
     if isinstance(explicit_model_list, list) and explicit_model_list:
         return explicit_model_list
@@ -1269,6 +1324,7 @@ def _build_alphasift_litellm_model_list(config: Config, channels: List[Dict[str,
 
 
 def _channel_litellm_model_list(channels: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """按渠道构建 LiteLLM 模型列表。"""
     model_list_builder = getattr(Config, "channels_to_model_list", None)
     if callable(model_list_builder):
         return _to_plain(model_list_builder(channels))
@@ -1291,6 +1347,7 @@ def _channel_litellm_model_list(channels: List[Dict[str, Any]]) -> List[Dict[str
 
 
 def _build_alphasift_litellm_header_routes(config: Config) -> List[Dict[str, Any]]:
+    """构建 LiteLLM 请求头路由映射。"""
     channels = _normalize_hrs_llm_channels(config)
     model_list = _build_alphasift_litellm_model_list(config, channels)
     routes: List[Dict[str, Any]] = []
@@ -1325,6 +1382,7 @@ def _match_alphasift_litellm_headers(
     kwargs: Dict[str, Any],
     routes: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
+    """按模型匹配 LiteLLM 请求头。"""
     model = _env_text(kwargs.get("model"))
     if not model and args:
         model = _env_text(args[0])
@@ -1348,6 +1406,7 @@ def _match_alphasift_litellm_headers(
 
 
 def _resolve_hrs_llm_max_candidates(max_results: Optional[int]) -> int:
+    """解析 HRS LLM 最大候选数。"""
     requested = max_results if isinstance(max_results, int) and max_results > 0 else HRS_ENRICHMENT_MAX_CANDIDATES
     return min(
         HRS_ALPHASIFT_LLM_MAX_CANDIDATES,
@@ -1356,6 +1415,7 @@ def _resolve_hrs_llm_max_candidates(max_results: Optional[int]) -> int:
 
 
 def _resolve_alphasift_llm_models(config: Config) -> Tuple[str, List[str]]:
+    """解析 AlphaSift 可用的 LLM 模型。"""
     primary = _env_text(config.litellm_model)
     configured_models = get_configured_llm_models(config.llm_model_list or [])
     configured_model_set = set(configured_models)
@@ -1388,6 +1448,7 @@ def _resolve_alphasift_llm_models(config: Config) -> Tuple[str, List[str]]:
 
 
 def _is_managed_litellm_model(model: str) -> bool:
+    """判断模型是否由托管 LiteLLM 提供。"""
     text = _env_text(model)
     if not text:
         return False
@@ -1396,6 +1457,7 @@ def _is_managed_litellm_model(model: str) -> bool:
 
 
 def _normalize_hrs_llm_channels(config: Config) -> List[Dict[str, Any]]:
+    """规范化 HRS LLM 渠道配置。"""
     channels: List[Dict[str, Any]] = []
     for index, raw in enumerate(config.llm_channels or []):
         if not isinstance(raw, dict):
@@ -1418,6 +1480,7 @@ def _normalize_hrs_llm_channels(config: Config) -> List[Dict[str, Any]]:
 
 
 def _channel_keys_for_provider(channels: List[Dict[str, Any]], providers: set[str]) -> List[str]:
+    """返回指定供应商的渠道键集合。"""
     keys: List[str] = []
     for channel in channels:
         protocol = _env_text(channel.get("protocol")).lower()
@@ -1433,6 +1496,7 @@ def _channel_keys_for_provider(channels: List[Dict[str, Any]], providers: set[st
 
 
 def _first_channel_base_url(channels: List[Dict[str, Any]], providers: set[str]) -> str:
+    """返回首个渠道的 Base URL。"""
     for channel in channels:
         protocol = _env_text(channel.get("protocol")).lower()
         base_url = _env_text(channel.get("base_url"))
@@ -1442,6 +1506,7 @@ def _first_channel_base_url(channels: List[Dict[str, Any]], providers: set[str])
 
 
 def _put_provider_keys(env: Dict[str, str], provider: str, keys: List[str]) -> None:
+    """写入供应商密钥到环境变量。"""
     if not keys:
         return
     env[f"{provider}_API_KEYS"] = ",".join(keys)
@@ -1449,6 +1514,7 @@ def _put_provider_keys(env: Dict[str, str], provider: str, keys: List[str]) -> N
 
 
 def _get_hrs_fetcher_manager() -> Any:
+    """返回 HRS 取数管理器。"""
     global _HRS_FETCHER_MANAGER
     if _HRS_FETCHER_MANAGER is None:
         with _HRS_FETCHER_MANAGER_LOCK:
@@ -1460,12 +1526,14 @@ def _get_hrs_fetcher_manager() -> Any:
 
 
 def _get_hrs_search_service() -> Any:
+    """返回 HRS 检索服务。"""
     from src.application.intelligence.search_service import get_search_service
 
     return get_search_service()
 
 
 def get_hrs_daily_history(stock_code: str, *, lookback_days: int = 120) -> Tuple[Any, str]:
+    """获取 HRS 日线历史数据。"""
     from src.application.history.loader import load_history_df
 
     normalized_code = _env_text(stock_code).zfill(6)
@@ -1474,6 +1542,7 @@ def get_hrs_daily_history(stock_code: str, *, lookback_days: int = 120) -> Tuple
 
 
 def _normalize_hrs_daily_history(raw_df: Any) -> Any:
+    """规范化 HRS 日线历史数据。"""
     if raw_df is None:
         return None
 
@@ -1517,6 +1586,7 @@ def _normalize_hrs_daily_history(raw_df: Any) -> Any:
 
 
 def _normalize_daily_date_value(value: Any) -> str:
+    """规范化日线日期字段。"""
     text = _env_text(value)
     if len(text) == 8 and text.isdigit():
         return f"{text[:4]}-{text[4:6]}-{text[6:]}"
@@ -1524,6 +1594,7 @@ def _normalize_daily_date_value(value: Any) -> str:
 
 
 def get_hrs_realtime_quote(stock_code: str) -> Dict[str, Any]:
+    """获取 HRS 实时行情。"""
     manager = _get_hrs_fetcher_manager()
     quote = manager.get_realtime_quote(stock_code, log_final_failure=False)
     if quote is None:
@@ -1535,12 +1606,14 @@ def get_hrs_realtime_quote(stock_code: str) -> Dict[str, Any]:
 
 
 def get_hrs_fundamental_context(stock_code: str) -> Dict[str, Any]:
+    """获取 HRS 基本面上下文。"""
     manager = _get_hrs_fetcher_manager()
     context = manager.get_fundamental_context(stock_code, budget_seconds=4.0)
     return _compact_fundamental_context(_remove_non_finite_json_values(_to_plain(context)))
 
 
 def search_hrs_stock_news(stock_code: str, stock_name: str = "", max_results: int = 3) -> Dict[str, Any]:
+    """检索 HRS 个股新闻。"""
     service = _get_hrs_search_service()
     if not getattr(service, "is_available", False):
         return {
@@ -1580,6 +1653,7 @@ def get_hrs_candidate_context(
     include_fundamentals: bool = True,
     mode: str = "pre_rank_light",
 ) -> Dict[str, Any]:
+    """获取 HRS 候选股上下文。"""
     candidate = {"code": stock_code, "name": stock_name, "raw": {}}
     context = _build_hrs_candidate_context(
         candidate,
@@ -1591,6 +1665,7 @@ def get_hrs_candidate_context(
 
 
 def _enrich_candidates_with_hrs(candidates: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """用 HRS 数据补充候选股信息。"""
     enriched_count = 0
     warnings: List[str] = []
     limit = min(len(candidates), HRS_ENRICHMENT_MAX_CANDIDATES)
@@ -1642,6 +1717,7 @@ def _enrich_candidates_with_hrs(candidates: List[Dict[str, Any]]) -> Tuple[List[
 
 
 def _candidate_has_hrs_news(candidate: Dict[str, Any]) -> bool:
+    """判断候选股是否含 HRS 新闻。"""
     news_items = candidate.get("hrs_news")
     if isinstance(news_items, list) and any(isinstance(item, dict) for item in news_items):
         return True
@@ -1652,6 +1728,7 @@ def _candidate_has_hrs_news(candidate: Dict[str, Any]) -> bool:
 
 
 def _news_has_results(news: Any) -> bool:
+    """判断新闻检索是否有结果。"""
     if isinstance(news, dict):
         results = news.get("results")
         return isinstance(results, list) and any(isinstance(item, dict) for item in results)
@@ -1667,6 +1744,7 @@ def _build_hrs_candidate_context(
     include_fundamentals: bool = True,
     profile: str = "post_rank_full",
 ) -> Dict[str, Any]:
+    """构建 HRS 候选股上下文。"""
     code = _env_text(candidate.get("code"))
     name = _env_text(candidate.get("name"))
     warnings: List[str] = []
@@ -1763,6 +1841,7 @@ def _build_hrs_candidate_context(
 
 
 def _compact_fundamental_context(context: Any) -> Dict[str, Any]:
+    """压缩基本面上下文体积。"""
     if not isinstance(context, dict):
         return {}
     compact: Dict[str, Any] = {
@@ -1787,30 +1866,39 @@ class AlphaSiftRuntimeAdapter:
     """``AlphaSiftRuntimePort`` 的 litellm/EastMoney/data_provider 适配实现。"""
 
     def runtime_env(self, config: Config, *, max_results: Optional[int] = None):
+        """返回当前运行时环境映射。"""
         return _alphasift_runtime_env(config, max_results=max_results)
 
     def daily_history_env(self):
+        """返回日线历史环境配置。"""
         return _alphasift_hrs_daily_history_provider()
 
     def litellm_headers(self, config: Config):
+        """返回 LiteLLM 请求头。"""
         return _alphasift_litellm_headers(config)
 
     def screen_context(self, config: Config, *, max_results: int) -> Dict[str, Any]:
+        """返回选股筛选上下文。"""
         return _build_alphasift_context(config, max_results=max_results)
 
     def enrich_candidates(self, candidates: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """补充候选股信息。"""
         return _enrich_candidates_with_hrs(candidates)
 
     def create_hotspot_provider(self) -> Any:
+        """创建热点数据提供者实例。"""
         return HrsEastMoneyHotspotProvider()
 
     def is_eastmoney_hotspot_provider(self, provider: Any) -> bool:
+        """判断提供者是否为东财热点源。"""
         return isinstance(provider, HrsEastMoneyHotspotProvider)
 
     def is_exact_eastmoney_hotspot_provider(self, provider: Any) -> bool:
         # hotspot_detail 主取数路径原语义为 ``type(...) is 类``（严格类型、排除子类），
         # 与 isinstance 站点区分，FakeProvider 子类在 tests 中依赖该差异走 fallback 分支。
+        """判断提供者是否为精确东财热点源。"""
         return type(provider) is HrsEastMoneyHotspotProvider
 
     def summarize_event_with_llm(self, *, topic: str, text: str, config: Config) -> str:
+        """使用 LLM 总结事件。"""
         return _summarize_hotspot_news_event_with_llm(topic=topic, text=text, config=config)

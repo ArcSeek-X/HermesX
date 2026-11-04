@@ -60,6 +60,7 @@ WRITABLE_TRIGGER_STATUSES = frozenset({"triggered", "skipped", "degraded", "fail
 
 @dataclass
 class RuntimeAlertRule:
+    """运行时告警规则的数据结构。"""
     key: str
     rule: Any
     source: str
@@ -71,6 +72,7 @@ class RuntimeAlertRule:
 
 @dataclass
 class DBCooldownDecision:
+    """数据库冷却判定的结果结构。"""
     suppressed: bool = False
     fallback_key: Optional[str] = None
     fallback_ttl_seconds: Optional[int] = None
@@ -78,6 +80,7 @@ class DBCooldownDecision:
 
 @dataclass
 class TriggerWriteResult:
+    """告警触发写入结果。"""
     trigger_id: Optional[int] = None
     created: bool = False
 
@@ -95,6 +98,7 @@ class AlertWorker:
         now_provider: Optional[Callable[[], float]] = None,
         fingerprint_ttl_seconds: int = ALERT_WORKER_FINGERPRINT_TTL_SECONDS,
     ) -> None:
+        """构造告警执行器并装配依赖。"""
         self.config_provider = config_provider or self._default_config_provider
         self.service = service
         self.decision_signal_service = decision_signal_service or DecisionSignalService()
@@ -107,6 +111,7 @@ class AlertWorker:
 
     @staticmethod
     def _default_config_provider():
+        """返回默认配置提供者。"""
         from src.config import get_config
 
         return get_config()
@@ -208,6 +213,7 @@ class AlertWorker:
         return stats
 
     def _load_runtime_rules(self, config: Any) -> List[RuntimeAlertRule]:
+        """加载运行时告警规则。"""
         runtime_rules: List[RuntimeAlertRule] = []
         seen_keys = set()
 
@@ -248,6 +254,7 @@ class AlertWorker:
         return runtime_rules
 
     def _load_legacy_rules(self, config: Any) -> List[Tuple[str, Any]]:
+        """加载遗留格式告警规则。"""
         raw_rules = getattr(config, "agent_event_alert_rules_json", "")
         try:
             parsed_rules = parse_event_alert_rules(raw_rules)
@@ -293,10 +300,12 @@ class AlertWorker:
 
     @staticmethod
     def _semantic_key(target_scope: str, target: str, alert_type: str, parameters: Dict[str, Any]) -> str:
+        """生成规则语义键用于去重。"""
         canonical_params = json.dumps(parameters or {}, ensure_ascii=False, sort_keys=True)
         return f"{target_scope}:{target}:{alert_type}:{canonical_params}"
 
     def _record_trigger(self, runtime_rule: RuntimeAlertRule, result: Dict[str, Any], status: str) -> TriggerWriteResult:
+        """记录一次告警触发。"""
         try:
             rule_id = int(result.get("rule_id") or 0) or None
         except (TypeError, ValueError):
@@ -327,6 +336,7 @@ class AlertWorker:
         result: Dict[str, Any],
         status: str,
     ) -> TriggerWriteResult:
+        """安全记录触发，异常不中断主流程。"""
         try:
             return self._record_trigger(runtime_rule, result, status)
         except Exception as exc:
@@ -339,6 +349,7 @@ class AlertWorker:
 
     @staticmethod
     def _should_deduplicate_trigger(runtime_rule: RuntimeAlertRule, fields: Dict[str, Any]) -> bool:
+        """判断触发是否应被去重抑制。"""
         return (
             runtime_rule.source == "db"
             and fields.get("status") == "triggered"
@@ -348,6 +359,7 @@ class AlertWorker:
 
     @staticmethod
     def _optional_float(value: Any) -> Optional[float]:
+        """将值转换为可选浮点数。"""
         if value is None:
             return None
         try:
@@ -361,6 +373,7 @@ class AlertWorker:
         result: Dict[str, Any],
         runtime_rule: RuntimeAlertRule,
     ) -> Optional[str]:
+        """按状态构造诊断信息。"""
         if status == "triggered":
             payload = self._diagnostics_payload(result.get("diagnostics"))
             payload["analysis_visibility"] = self._build_analysis_visibility(runtime_rule, result)
@@ -369,6 +382,7 @@ class AlertWorker:
 
     @staticmethod
     def _diagnostics_payload(value: Any) -> Dict[str, Any]:
+        """构造诊断载荷字典。"""
         if isinstance(value, dict):
             return dict(value)
         if isinstance(value, str) and value.strip():
@@ -384,6 +398,7 @@ class AlertWorker:
         runtime_rule: RuntimeAlertRule,
         result: Dict[str, Any],
     ) -> None:
+        """安全附加决策信号摘要，异常可降级。"""
         try:
             summary = self._resolve_decision_signal_summary(runtime_rule, result)
             if not summary:
@@ -403,6 +418,7 @@ class AlertWorker:
         runtime_rule: RuntimeAlertRule,
         result: Dict[str, Any],
     ) -> Optional[Dict[str, Any]]:
+        """解析决策信号摘要。"""
         identity = self._symbol_identity_for_decision_signal(runtime_rule)
         if identity is None:
             return None
@@ -428,6 +444,7 @@ class AlertWorker:
         return summarize_decision_signal(item)
 
     def _symbol_identity_for_decision_signal(self, runtime_rule: RuntimeAlertRule) -> Optional[Tuple[str, str]]:
+        """构造决策信号对应的标的标识。"""
         rule = getattr(runtime_rule, "rule", runtime_rule)
         metadata = getattr(rule, "metadata", None)
         if not isinstance(metadata, dict):
@@ -463,6 +480,7 @@ class AlertWorker:
         stock_code: str,
         market: str,
     ) -> Dict[str, Any]:
+        """构造告警中的决策信号载荷。"""
         rule = getattr(runtime_rule, "rule", runtime_rule)
         metadata = getattr(rule, "metadata", None)
         if not isinstance(metadata, dict):
@@ -495,6 +513,7 @@ class AlertWorker:
 
     @staticmethod
     def _public_alert_type(value: Any) -> str:
+        """返回对外的告警类型标识。"""
         raw = getattr(value, "value", value)
         return str(raw or "").strip()[:64]
 
@@ -504,6 +523,7 @@ class AlertWorker:
         result: Dict[str, Any],
         alert_type: str,
     ) -> str:
+        """提取告警中的观察条件。"""
         threshold = result.get("threshold")
         observed = result.get("observed_value")
         target = self._display_target(runtime_rule)
@@ -515,12 +535,14 @@ class AlertWorker:
         return " | ".join(str(part) for part in parts)
 
     def _alert_risk_summary(self, runtime_rule: RuntimeAlertRule, result: Dict[str, Any]) -> str:
+        """提取告警中的风险摘要。"""
         severity = str(runtime_rule.severity or "warning")
         reason = result.get("reason") or result.get("message") or "Alert triggered"
         return f"{severity}: {reason}"
 
     @staticmethod
     def _iso_or_text(value: Any) -> Optional[str]:
+        """将时间值转换为 ISO 字符串或文本。"""
         if value in (None, ""):
             return None
         if hasattr(value, "isoformat"):
@@ -532,6 +554,7 @@ class AlertWorker:
         runtime_rule: RuntimeAlertRule,
         result: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """构建分析可见性信息。"""
         phase_summary = self._alert_market_phase_summary(runtime_rule)
         overview = self._evaluator_pack_overview(result)
         source = "evaluator_snapshot" if overview is not None else None
@@ -546,6 +569,7 @@ class AlertWorker:
         }
 
     def _alert_market_phase_summary(self, runtime_rule: RuntimeAlertRule) -> Optional[Dict[str, Any]]:
+        """提取告警中的大盘阶段摘要。"""
         try:
             rule = getattr(runtime_rule, "rule", runtime_rule)
             target_scope = str(getattr(rule, "target_scope", "") or "")
@@ -568,6 +592,7 @@ class AlertWorker:
 
     @staticmethod
     def _evaluator_pack_overview(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """构造评估包概览。"""
         overview = result.get("analysis_context_pack_overview")
         if overview is None:
             diagnostics = result.get("diagnostics")
@@ -581,6 +606,7 @@ class AlertWorker:
         return extract_analysis_context_pack_overview({ANALYSIS_CONTEXT_PACK_OVERVIEW_KEY: overview})
 
     def _recent_history_pack_overview(self, runtime_rule: RuntimeAlertRule) -> Optional[Dict[str, Any]]:
+        """构造近期历史包概览。"""
         rule = getattr(runtime_rule, "rule", runtime_rule)
         target_scope = str(getattr(rule, "target_scope", "") or "")
         if target_scope in {"market", "portfolio_account"}:
@@ -607,6 +633,7 @@ class AlertWorker:
         return overview
 
     def _should_notify(self, rule_key: str, *, ttl_seconds: Optional[int] = None) -> bool:
+        """判断本次触发是否应发送通知。"""
         now = self.now_provider()
         last_seen = self._trigger_fingerprints.get(rule_key)
         ttl = self._fingerprint_ttl(rule_key, ttl_seconds=ttl_seconds)
@@ -615,6 +642,7 @@ class AlertWorker:
         return True
 
     def _mark_notified(self, rule_key: str, *, ttl_seconds: Optional[int] = None) -> None:
+        """标记触发已完成通知。"""
         self._trigger_fingerprints[rule_key] = self.now_provider()
         if ttl_seconds is None:
             self._trigger_fingerprint_ttls.pop(rule_key, None)
@@ -622,6 +650,7 @@ class AlertWorker:
             self._trigger_fingerprint_ttls[rule_key] = max(1, int(ttl_seconds))
 
     def _prune_fingerprints(self) -> None:
+        """清理过期的去重指纹。"""
         now = self.now_provider()
         expired_keys = [
             key
@@ -633,15 +662,18 @@ class AlertWorker:
             self._trigger_fingerprint_ttls.pop(key, None)
 
     def _fingerprint_ttl(self, rule_key: str, *, ttl_seconds: Optional[int] = None) -> int:
+        """返回去重指纹有效期。"""
         if ttl_seconds is not None:
             return max(1, int(ttl_seconds))
         return self._trigger_fingerprint_ttls.get(rule_key, self.fingerprint_ttl_seconds)
 
     @staticmethod
     def _db_cooldown_fallback_key(rule_key: str) -> str:
+        """构造数据库冷却回退键。"""
         return f"db_cooldown:{rule_key}"
 
     def _send_notification(self, runtime_rule: RuntimeAlertRule, result: Dict[str, Any]) -> "NotificationDispatchResult":
+        """发送告警通知。"""
         from src.application.notification.notification import NotificationBuilder, NotificationService
 
         notification_service = self.notifier or NotificationService()
@@ -666,6 +698,7 @@ class AlertWorker:
         return notification_service.send_with_results(alert_text, route_type="alert")
 
     def _send_notification_safely(self, runtime_rule: RuntimeAlertRule, result: Dict[str, Any]) -> "NotificationDispatchResult":
+        """安全发送通知，异常不中断主流程。"""
         try:
             return self._send_notification(runtime_rule, result)
         except Exception as exc:
@@ -698,6 +731,7 @@ class AlertWorker:
         trigger_id: Optional[int],
         dispatch: "NotificationDispatchResult",
     ) -> int:
+        """安全记录通知尝试。"""
         try:
             return self._record_notification_attempts(trigger_id, dispatch)
         except Exception as exc:
@@ -708,6 +742,7 @@ class AlertWorker:
             return 0
 
     def _record_notification_attempts(self, trigger_id: Optional[int], dispatch: "NotificationDispatchResult") -> int:
+        """批量记录通知发送尝试。"""
         channel_results = list(dispatch.channel_results or [])
         if not channel_results:
             channel_results = [self._synthetic_attempt_for_dispatch(dispatch)]
@@ -730,6 +765,7 @@ class AlertWorker:
 
     @staticmethod
     def _synthetic_attempt_for_dispatch(dispatch: "NotificationDispatchResult") -> "ChannelAttemptResult":
+        """为分发结果构造合成尝试记录。"""
         from src.application.notification.notification import ChannelAttemptResult
 
         status = str(dispatch.status or "unknown")
@@ -749,6 +785,7 @@ class AlertWorker:
 
     @staticmethod
     def _optional_int(value: Any) -> Optional[int]:
+        """将值转换为可选整数。"""
         if value is None:
             return None
         try:
@@ -758,6 +795,7 @@ class AlertWorker:
 
     @staticmethod
     def _dispatch_has_real_channel_success(dispatch: "NotificationDispatchResult") -> bool:
+        """判断分发是否存在真实渠道成功。"""
         if not dispatch.dispatched:
             return False
         for item in dispatch.channel_results or []:
@@ -834,6 +872,7 @@ class AlertWorker:
         return DBCooldownDecision(suppressed=True)
 
     def _record_cooldown_read_failure_suppression(self, trigger_id: Optional[int], exc: Exception) -> None:
+        """记录冷却读取失败导致的抑制。"""
         from src.application.notification.notification import ChannelAttemptResult, NotificationDispatchResult
 
         sanitized = self.service.sanitize_text(str(exc) or "cooldown read failed")
@@ -857,6 +896,7 @@ class AlertWorker:
         )
 
     def _upsert_db_cooldown_safely(self, runtime_rule: RuntimeAlertRule, result: Dict[str, Any]) -> None:
+        """安全更新数据库冷却记录。"""
         cooldown_seconds = self._cooldown_seconds(runtime_rule)
         if cooldown_seconds <= 0:
             return
@@ -883,14 +923,17 @@ class AlertWorker:
 
     @staticmethod
     def _effective_target(runtime_rule: RuntimeAlertRule) -> str:
+        """返回生效的监控目标。"""
         return str(runtime_rule.effective_target or getattr(runtime_rule.rule, "stock_code", "") or "?")
 
     @staticmethod
     def _display_target(runtime_rule: RuntimeAlertRule) -> str:
+        """返回监控目标的展示文本。"""
         return str(runtime_rule.display_target or runtime_rule.effective_target or getattr(runtime_rule.rule, "stock_code", "") or "?")
 
     @staticmethod
     def _cooldown_seconds(runtime_rule: RuntimeAlertRule) -> int:
+        """返回冷却秒数。"""
         policy = runtime_rule.cooldown_policy if isinstance(runtime_rule.cooldown_policy, dict) else None
         if not policy or "cooldown_seconds" not in policy:
             return DEFAULT_DB_ALERT_COOLDOWN_SECONDS
@@ -900,4 +943,5 @@ class AlertWorker:
             return 0
 
     def _now_datetime(self) -> datetime:
+        """返回当前 datetime（便于测试注入）。"""
         return datetime.fromtimestamp(self.now_provider())

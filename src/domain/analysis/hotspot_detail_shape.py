@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 
 def _extract_nested_hotspot_leader_stocks(payload: Dict[str, Any]) -> List[Any]:
+    """从嵌套结构中提取热点龙头股。"""
     for key in ("summary_detail", "summary"):
         summary = payload.get(key)
         if not isinstance(summary, dict):

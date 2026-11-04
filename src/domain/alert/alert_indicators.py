@@ -30,6 +30,7 @@ MAX_REQUESTED_DAYS = 365
 
 @dataclass
 class TechnicalIndicatorAlert:
+    """技术指标告警配置结构。"""
     stock_code: str
     alert_type: str
     indicator_params: Dict[str, Any]
@@ -38,6 +39,7 @@ class TechnicalIndicatorAlert:
 
 @dataclass
 class IndicatorEvaluation:
+    """指标评估结果结构。"""
     status: str
     observed_value: Optional[float]
     threshold: Optional[float]
@@ -46,6 +48,7 @@ class IndicatorEvaluation:
 
 
 def normalize_indicator_parameters(alert_type: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """规范化指标告警参数。"""
     if not isinstance(parameters, dict):
         raise ValueError("parameters must be an object")
 
@@ -93,6 +96,7 @@ def normalize_indicator_parameters(alert_type: str, parameters: Dict[str, Any]) 
 
 
 def compute_required_bars(alert_type: str, params: Dict[str, Any]) -> int:
+    """计算指标所需 K 线根数。"""
     if alert_type == "ma_price_cross":
         return int(params["window"]) + 1
     if alert_type == "rsi_threshold":
@@ -107,11 +111,13 @@ def compute_required_bars(alert_type: str, params: Dict[str, Any]) -> int:
 
 
 def compute_requested_days(alert_type: str, params: Dict[str, Any]) -> int:
+    """计算需要请求的交易日天数。"""
     required_bars = compute_required_bars(alert_type, params)
     return min(max(required_bars * 3, required_bars + 30), MAX_REQUESTED_DAYS)
 
 
 def threshold_for_indicator(alert_type: str, params: Dict[str, Any]) -> Optional[float]:
+    """返回指标对应阈值。"""
     if alert_type in {"rsi_threshold", "cci_threshold"}:
         return float(params["threshold"])
     if alert_type in {"macd_cross", "kdj_cross"}:
@@ -127,6 +133,7 @@ def evaluate_indicator_alert(
     *,
     now: Optional[datetime] = None,
 ) -> IndicatorEvaluation:
+    """评估技术指标告警是否触发。"""
     columns = ("close",)
     if alert_type in {"kdj_cross", "cci_threshold"}:
         columns = ("high", "low", "close")
@@ -185,6 +192,7 @@ def normalize_ohlcv(
     required_columns: tuple[str, ...],
     now: Optional[datetime] = None,
 ) -> pd.DataFrame:
+    """规范化 OHLCV 数据。"""
     if df is None or getattr(df, "empty", True):
         return pd.DataFrame()
     if not isinstance(df, pd.DataFrame):
@@ -215,6 +223,7 @@ def normalize_ohlcv(
 
 
 def _evaluate_ma(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> IndicatorEvaluation:
+    """评估均线类指标条件。"""
     window = int(params["window"])
     direction = str(params["direction"])
     series = df["close"].rolling(window=window).mean()
@@ -242,6 +251,7 @@ def _evaluate_ma(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> I
 
 
 def _evaluate_rsi(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> IndicatorEvaluation:
+    """评估 RSI 指标条件。"""
     period = int(params["period"])
     threshold = float(params["threshold"])
     direction = str(params["direction"])
@@ -267,6 +277,7 @@ def _evaluate_rsi(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> 
 
 
 def _evaluate_macd(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> IndicatorEvaluation:
+    """评估 MACD 指标条件。"""
     fast_period = int(params["fast_period"])
     slow_period = int(params["slow_period"])
     signal_period = int(params["signal_period"])
@@ -297,6 +308,7 @@ def _evaluate_macd(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) ->
 
 
 def _evaluate_kdj(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> IndicatorEvaluation:
+    """评估 KDJ 指标条件。"""
     period = int(params["period"])
     k_period = int(params["k_period"])
     d_period = int(params["d_period"])
@@ -329,6 +341,7 @@ def _evaluate_kdj(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> 
 
 
 def _evaluate_cci(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> IndicatorEvaluation:
+    """评估 CCI 指标条件。"""
     period = int(params["period"])
     threshold = float(params["threshold"])
     direction = str(params["direction"])
@@ -360,6 +373,7 @@ def _evaluate_cci(stock_code: str, params: Dict[str, Any], df: pd.DataFrame) -> 
 
 
 def _ensure_required_bars_fetchable(alert_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """确保所需 K 线数量可获取。"""
     required_bars = compute_required_bars(alert_type, params)
     if required_bars > MAX_REQUESTED_DAYS:
         raise ValueError(
@@ -370,6 +384,7 @@ def _ensure_required_bars_fetchable(alert_type: str, params: Dict[str, Any]) -> 
 
 
 def _direction(value: Any, allowed: frozenset[str], *, default: str) -> str:
+    """返回指标比较方向。"""
     direction = str(value or default).strip().lower()
     if direction not in allowed:
         raise ValueError(f"invalid direction: {direction}")
@@ -377,6 +392,7 @@ def _direction(value: Any, allowed: frozenset[str], *, default: str) -> str:
 
 
 def _int_in_range(value: Any, field_name: str, *, default: int, minimum: int = 2, maximum: int = 250) -> int:
+    """判断整数是否落在范围内。"""
     raw_value = default if value is None or value == "" else value
     try:
         number = int(raw_value)
@@ -390,6 +406,7 @@ def _int_in_range(value: Any, field_name: str, *, default: int, minimum: int = 2
 
 
 def _finite_float(value: Any, field_name: str) -> float:
+    """将值转换为有限浮点数。"""
     try:
         number = float(value)
     except (TypeError, ValueError) as exc:
@@ -406,6 +423,7 @@ def _float_in_range(
     minimum: float,
     maximum: float,
 ) -> float:
+    """判断浮点数是否落在范围内。"""
     number = _finite_float(value, field_name)
     if number < minimum or number > maximum:
         raise ValueError(f"{field_name} must be between {minimum:g} and {maximum:g}")
@@ -413,6 +431,7 @@ def _float_in_range(
 
 
 def calculate_rsi(close: pd.Series, period: int) -> pd.Series:
+    """计算 RSI 指标序列。"""
     delta = close.diff()
     gain = delta.where(delta > 0, 0)
     loss = -delta.where(delta < 0, 0)
@@ -424,6 +443,7 @@ def calculate_rsi(close: pd.Series, period: int) -> pd.Series:
 
 
 def _crossed_threshold(prev_value: float, curr_value: float, threshold: float, direction: str) -> bool:
+    """判断是否穿越阈值。"""
     if direction == "above":
         return prev_value <= threshold < curr_value
     if direction == "below":
@@ -432,6 +452,7 @@ def _crossed_threshold(prev_value: float, curr_value: float, threshold: float, d
 
 
 def _crossed_zero(prev_delta: float, curr_delta: float, direction: str) -> bool:
+    """判断是否穿越零轴。"""
     if direction == "above":
         return prev_delta <= 0 < curr_delta
     if direction == "below":
@@ -440,6 +461,7 @@ def _crossed_zero(prev_delta: float, curr_delta: float, direction: str) -> bool:
 
 
 def _crossed_cross_direction(prev_delta: float, curr_delta: float, direction: str) -> bool:
+    """判断金叉/死叉方向。"""
     if direction == "bullish_cross":
         return prev_delta <= 0 < curr_delta
     if direction == "bearish_cross":
@@ -453,6 +475,7 @@ def _indicator_unavailable(
     *,
     threshold: Optional[float] = None,
 ) -> IndicatorEvaluation:
+    """构造指标不可用结果。"""
     return IndicatorEvaluation(
         status="degraded",
         observed_value=None,
@@ -463,6 +486,7 @@ def _indicator_unavailable(
 
 
 def _find_column(df: pd.DataFrame, canonical: str) -> Optional[Any]:
+    """按候选名查找数据列。"""
     candidates = {
         "date": ("date", "trade_date", "datetime", "time", "日期", "交易日期"),
         "open": ("open", "open_price", "开盘", "开盘价"),
@@ -480,6 +504,7 @@ def _find_column(df: pd.DataFrame, canonical: str) -> Optional[Any]:
 
 
 def _date_series(df: pd.DataFrame) -> pd.Series:
+    """提取日期序列。"""
     date_column = _find_column(df, "date")
     if date_column is not None:
         return pd.to_datetime(df[date_column], errors="coerce")
@@ -490,6 +515,7 @@ def _date_series(df: pd.DataFrame) -> pd.Series:
 
 
 def _drop_partial_today(df: pd.DataFrame, *, now: Optional[datetime] = None) -> pd.DataFrame:
+    """剔除当日未完成的 K 线。"""
     current = now or datetime.now()
     if current.time() >= time(16, 0):
         return df
@@ -506,6 +532,7 @@ def _drop_partial_today(df: pd.DataFrame, *, now: Optional[datetime] = None) -> 
 
 
 def _latest_timestamp(df: pd.DataFrame) -> Optional[datetime]:
+    """返回最新时间戳。"""
     try:
         raw_value = df["date"].iloc[-1]
         if pd.isna(raw_value):

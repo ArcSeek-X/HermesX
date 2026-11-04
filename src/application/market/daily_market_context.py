@@ -77,6 +77,7 @@ class DailyMarketContext:
     full_report: Optional[str] = None
 
     def to_safe_dict(self) -> Dict[str, Any]:
+        """转换为可安全序列化的字典。"""
         payload: Dict[str, Any] = {
             "region": self.region,
             "trade_date": self.trade_date.isoformat(),
@@ -98,6 +99,7 @@ class DailyMarketContextService:
         *,
         today_fn: Optional[Callable[[], date]] = None,
     ) -> None:
+        """构造每日大盘上下文服务并装配依赖。"""
         self.history_repo = history_repo
         self._today_fn = today_fn or date.today
         self._cache: Dict[Tuple[Any, ...], DailyMarketContext] = {}
@@ -118,6 +120,7 @@ class DailyMarketContextService:
         current_query_id: Optional[str] = None,
         require_query_id_match: bool = False,
     ) -> Optional[DailyMarketContext]:
+        """获取指定查询的大盘上下文。"""
         normalized_region = _normalize_context_region(region)
         if normalized_region is None:
             logger.info(
@@ -248,6 +251,7 @@ class DailyMarketContextService:
         require_query_id_match: bool = False,
         report_language: str = "zh",
     ) -> Optional[DailyMarketContext]:
+        """加载当日的大盘历史记录。"""
         try:
             history_days = _history_lookup_days(
                 target_date=target_date,
@@ -311,6 +315,7 @@ class DailyMarketContextService:
         context: DailyMarketContext,
         current_query_id: Optional[str] = None,
     ) -> bool:
+        """判断查询级缓存是否可复用。"""
         if not isinstance(current_query_id, str) or not current_query_id.strip():
             return True
 
@@ -332,6 +337,7 @@ class DailyMarketContextService:
         require_query_id_match: bool = False,
         report_language: str = "zh",
     ) -> Tuple[Any, ...]:
+        """构造缓存键。"""
         if (
             require_query_id_match
             and isinstance(current_query_id, str)
@@ -354,6 +360,7 @@ class DailyMarketContextService:
         require_query_id_match: bool = False,
         report_language: str = "zh",
     ) -> Optional[DailyMarketContext]:
+        """加载当前查询的运行时缓存。"""
         if not isinstance(current_query_id, str) or not current_query_id.strip():
             return None
 
@@ -399,6 +406,7 @@ class DailyMarketContextService:
         require_query_id_match: bool = False,
         lock_token: Optional[Any] = None,
     ) -> Optional[DailyMarketContext]:
+        """执行大盘复盘上下文构建。"""
         owns_lock = lock_token is None
         if lock_token is None:
             lock_token = try_acquire_market_review_lock(config)
@@ -512,6 +520,7 @@ class DailyMarketContextService:
         search_service: Any = None,
         persist_market_review_history: bool = True,
     ) -> Optional[DailyMarketContext]:
+        """加锁后等待大盘复盘历史落库。"""
         wait_interval = _MARKET_REVIEW_LOCK_WAIT_INITIAL_INTERVAL_SECONDS
         for attempt in range(_MARKET_REVIEW_LOCK_WAIT_MAX_ATTEMPTS):
             context = self._load_same_day_history(
@@ -587,6 +596,7 @@ class DailyMarketContextService:
 
     @staticmethod
     def _record_supports_region(payload: Any, record_region: Any, region: str) -> bool:
+        """判断记录是否支持指定区域。"""
         if isinstance(payload, Mapping):
             markets = payload.get("markets")
             if isinstance(markets, Mapping) and region in markets:
@@ -609,6 +619,7 @@ class DailyMarketContextService:
         history_id: Optional[int] = None,
         query_id: Optional[str] = None,
     ) -> Optional[DailyMarketContext]:
+        """从载荷构建大盘上下文。"""
         normalized_region = _normalize_region(region)
         scoped_payload = _payload_for_region(payload, normalized_region)
         summary = _extract_summary(scoped_payload, fallback_summary)
@@ -705,6 +716,7 @@ def format_daily_market_context_prompt_section(
 
 
 def _escape_untrusted_market_summary_sentinels(summary: str) -> str:
+    """转义大盘摘要中不可信的哨兵标记。"""
     escaped = summary
     for sentinel in _UNTRUSTED_MARKET_SUMMARY_SENTINELS:
         escaped = escaped.replace(sentinel, sentinel.replace("_", r"\_"))
@@ -712,11 +724,13 @@ def _escape_untrusted_market_summary_sentinels(summary: str) -> str:
 
 
 def _normalize_region(region: str) -> str:
+    """规范化市场区域标识。"""
     normalized = str(region or "cn").strip().lower()
     return normalized if normalized in _VALID_REGIONS else "cn"
 
 
 def _normalize_context_region(region: str) -> Optional[str]:
+    """规范化上下文中的区域标识。"""
     normalized = str(region or "cn").strip().lower()
     if normalized in _VALID_REGIONS:
         return normalized
@@ -724,6 +738,7 @@ def _normalize_context_region(region: str) -> Optional[str]:
 
 
 def _loads_mapping(value: Any) -> Dict[str, Any]:
+    """解析字符串为映射对象。"""
     if isinstance(value, Mapping):
         return dict(value)
     if not isinstance(value, str) or not value.strip():
@@ -736,6 +751,7 @@ def _loads_mapping(value: Any) -> Dict[str, Any]:
 
 
 def _payload_from_raw_record(record: Any) -> Dict[str, Any]:
+    """从原始历史记录提取载荷。"""
     raw = _loads_mapping(getattr(record, "raw_result", None))
     text = raw.get("raw_response") or raw.get("market_review_report") or getattr(record, "news_content", None)
     if isinstance(text, str) and text.strip():
@@ -748,6 +764,7 @@ def _extract_full_market_report(
     scoped_payload: Mapping[str, Any],
     fallback_full_report: Optional[str] = None,
 ) -> Optional[str]:
+    """提取完整大盘报告文本。"""
     candidates: List[Any] = [
         scoped_payload.get("market_review_report"),
         scoped_payload.get("markdown_report"),
@@ -775,6 +792,7 @@ def _extract_full_market_report(
 
 
 def _coerce_date(value: Any) -> Optional[date]:
+    """将值安全转换为 date。"""
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
@@ -788,6 +806,7 @@ def _coerce_date(value: Any) -> Optional[date]:
 
 
 def _payload_trade_date(payload: Mapping[str, Any], region: str) -> Optional[date]:
+    """从载荷提取交易日。"""
     scoped_payload = _payload_for_region(payload, region)
     market_light = scoped_payload.get("market_light")
     candidates: List[Any] = [
@@ -810,6 +829,7 @@ def _payload_trade_date(payload: Mapping[str, Any], region: str) -> Optional[dat
 
 
 def _record_matches_query_id(record: Any, current_query_id: Optional[str]) -> bool:
+    """判断记录是否匹配查询 ID。"""
     if not isinstance(current_query_id, str) or not current_query_id.strip():
         return False
     record_query_id = getattr(record, "query_id", None)
@@ -829,6 +849,7 @@ def _record_matches_target_date(
     require_query_id_match: bool = False,
     report_language: str = "zh",
 ) -> bool:
+    """判断记录是否匹配目标日期。"""
     payload_date = _payload_trade_date(payload, region)
     language_matches = _record_report_language_matches(record, report_language)
     if payload_date is not None:
@@ -848,6 +869,7 @@ def _record_matches_target_date(
 
 
 def _record_report_language_matches(record: Any, report_language: str) -> bool:
+    """判断记录报告语言是否匹配。"""
     snapshot = _loads_mapping(getattr(record, "context_snapshot", None))
     return normalize_report_language(snapshot.get("report_language")) == normalize_report_language(
         report_language,
@@ -855,10 +877,12 @@ def _record_report_language_matches(record: Any, report_language: str) -> bool:
 
 
 def _history_lookup_days(*, target_date: date, today: date) -> int:
+    """返回历史回溯查询天数。"""
     return max(2, (today - target_date).days + 2)
 
 
 def _region_matches(value: Any, region: str) -> bool:
+    """判断区域是否匹配。"""
     if not value:
         return False
     text = str(value).strip().lower()
@@ -869,6 +893,7 @@ def _region_matches(value: Any, region: str) -> bool:
 
 
 def _payload_for_region(payload: Mapping[str, Any], region: str) -> Mapping[str, Any]:
+    """按区域提取对应载荷。"""
     markets = payload.get("markets")
     if isinstance(markets, Mapping):
         market_payload = markets.get(region)
@@ -878,6 +903,7 @@ def _payload_for_region(payload: Mapping[str, Any], region: str) -> Mapping[str,
 
 
 def _extract_summary(payload: Mapping[str, Any], fallback_summary: Optional[str]) -> str:
+    """提取大盘摘要文本。"""
     candidates: List[Any] = [
         payload.get("summary"),
         payload.get("analysis_summary"),
@@ -898,6 +924,7 @@ def _extract_summary(payload: Mapping[str, Any], fallback_summary: Optional[str]
 
 
 def _extract_market_light_signal_text(payload: Mapping[str, Any]) -> str:
+    """提取大盘轻量信号文本。"""
     market_light = payload.get("market_light")
     if not isinstance(market_light, Mapping):
         return ""
@@ -917,10 +944,12 @@ def _extract_market_light_signal_text(payload: Mapping[str, Any]) -> str:
 
 
 def _join_text_parts(*parts: str) -> str:
+    """拼接多段文本。"""
     return " ".join(part.strip() for part in parts if isinstance(part, str) and part.strip())
 
 
 def _first_meaningful_line(value: Any) -> str:
+    """返回首个有效文本行。"""
     if not isinstance(value, str):
         return ""
     for line in value.splitlines():
@@ -935,12 +964,14 @@ def _first_meaningful_line(value: Any) -> str:
 
 
 def _truncate(text: str, limit: int) -> str:
+    """按长度上限截断文本。"""
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
 
 
 def _extract_risk_tags(text: str) -> List[str]:
+    """提取风险标签列表。"""
     lowered = text.lower()
     tags: List[str] = []
     for tag, patterns in _RISK_PATTERNS:
@@ -950,6 +981,7 @@ def _extract_risk_tags(text: str) -> List[str]:
 
 
 def _extract_position_cap(text: str) -> Optional[str]:
+    """提取仓位上限信息。"""
     if not text:
         return None
     cap_match = re.search(r"(?:仓位上限|仓位不超过|position cap|position limit)[^0-9%]{0,12}(\d{1,3}\s*%)", text, re.IGNORECASE)
@@ -960,6 +992,7 @@ def _extract_position_cap(text: str) -> Optional[str]:
 
 
 def _coerce_context_mapping(context: Any) -> Dict[str, Any]:
+    """将上下文值安全转换为映射。"""
     if isinstance(context, DailyMarketContext):
         return context.to_safe_dict()
     if isinstance(context, Mapping):

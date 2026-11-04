@@ -38,16 +38,19 @@ _RESULTS = []
 
 
 def record(name, passed, detail=""):
+    """记录一条走查结果。"""
     _RESULTS.append((name, passed, detail))
     tag = "PASS" if passed else "FAIL"
     print(f"[{tag}] {name} {detail}".strip())
 
 
 def is_number(v):
+    """判断值是否为数值。"""
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 def main():
+    """脚本入口：执行模板生成的接口走查。"""
     try:
         app = create_app()
     except Exception as e:  # noqa: BLE001

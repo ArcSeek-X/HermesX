@@ -175,6 +175,7 @@ class WallstreetcnLiveNewsFetcher:
         timeout: float = 8.0,
         request_get: Optional[Callable[..., Any]] = None,
     ):
+        """构造华尔街见闻实时新闻抓取器。"""
         self.base_url = (base_url or "https://api-one.wallstcn.com").strip().rstrip("/")
         # 超时收敛在 1~30 秒，避免配置异常导致无限等待或瞬时失败
         self.timeout = max(1.0, min(float(timeout), 30.0))

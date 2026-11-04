@@ -37,6 +37,7 @@ class HermesConfigIssue:
     severity: str = "error"
 
     def as_dict(self) -> Dict[str, str]:
+        """将路由信息转换为字典。"""
         return {
             "field": self.field,
             "code": self.code,
@@ -76,22 +77,27 @@ class RouteDeploymentOrigins:
 
     @property
     def is_hermes_only(self) -> bool:
+        """判断是否仅含 Hermes 部署。"""
         return self.has_hermes and not self.has_non_hermes
 
     @property
     def is_mixed(self) -> bool:
+        """判断是否混用 Hermes 与非 Hermes 部署。"""
         return self.has_hermes and self.has_non_hermes
 
 
 def is_reserved_hermes_name(name: str) -> bool:
+    """判断名称是否为 Hermes 保留名。"""
     return (name or "").strip().lower() == HERMES_CHANNEL_NAME
 
 
 def is_masked_secret_placeholder(value: str) -> bool:
+    """判断值是否为脱敏占位符。"""
     return str(value or "").strip() in MASKED_SECRET_TOKENS
 
 
 def build_hermes_redaction_values(*values: Any) -> Set[str]:
+    """构建 Hermes 脱敏值集合。"""
     redactions: Set[str] = set()
     for value in values:
         if value is None:
@@ -111,6 +117,7 @@ def build_hermes_redaction_values(*values: Any) -> Set[str]:
 
 
 def _comma_flexible_secret_pattern(secret: str) -> Optional[re.Pattern[str]]:
+    """构造容忍逗号的密钥匹配模式。"""
     normalized = re.sub(r"(?i)^\s*authorization\s*[:=]\s*", "", str(secret or "").strip())
     normalized = re.sub(r"(?i)^\s*bearer\s+", "", normalized)
     parts = [part.strip() for part in normalized.split(",") if part.strip()]
@@ -127,6 +134,7 @@ def sanitize_hermes_error_text(
     *,
     redaction_values: Optional[Iterable[str]] = None,
 ) -> str:
+    """清洗 Hermes 错误文本中的密钥。"""
     if text is None:
         return ""
     sanitized = str(text).strip()
@@ -153,6 +161,7 @@ def sanitize_hermes_error_text(
 
 
 def canonicalize_hermes_protocol(protocol: str) -> str:
+    """规范化 Hermes 协议标识。"""
     normalized = (protocol or HERMES_DEFAULT_PROTOCOL).strip().lower() or HERMES_DEFAULT_PROTOCOL
     if normalized != HERMES_DEFAULT_PROTOCOL:
         raise ValueError("Hermes only supports PROTOCOL=openai")
@@ -255,6 +264,7 @@ def route_identity_candidates(model: str) -> set[str]:
 
 
 def normalize_hermes_models(models: Sequence[str]) -> Tuple[List[HermesModelRef], List[str]]:
+    """规范化 Hermes 模型列表。"""
     normalized: List[HermesModelRef] = []
     seen = set()
     errors: List[str] = []
@@ -376,6 +386,7 @@ def parse_hermes_channel(
 
 
 def hermes_model_info(display_model: str = "") -> Dict[str, str]:
+    """返回 Hermes 模型信息。"""
     info = {HERMES_DEPLOYMENT_MARKER_KEY: HERMES_DEPLOYMENT_MARKER_VALUE}
     if display_model:
         info["hrs_display_model"] = display_model
@@ -383,6 +394,7 @@ def hermes_model_info(display_model: str = "") -> Dict[str, str]:
 
 
 def is_hermes_deployment(deployment: Dict[str, Any]) -> bool:
+    """判断部署是否属于 Hermes。"""
     model_info = deployment.get("model_info") if isinstance(deployment, dict) else None
     if not isinstance(model_info, dict):
         return False
@@ -390,6 +402,7 @@ def is_hermes_deployment(deployment: Dict[str, Any]) -> bool:
 
 
 def route_deployment_origins(model_list: Sequence[Dict[str, Any]], route_name: str) -> RouteDeploymentOrigins:
+    """解析路由的部署来源。"""
     hermes: List[Dict[str, Any]] = []
     non_hermes: List[Dict[str, Any]] = []
     candidates = route_identity_candidates(route_name)
@@ -413,6 +426,7 @@ def route_deployment_origins(model_list: Sequence[Dict[str, Any]], route_name: s
 
 
 def build_route_provenance_map(model_list: Sequence[Dict[str, Any]]) -> Dict[str, RouteDeploymentOrigins]:
+    """构建路由来源映射。"""
     route_names: List[str] = []
     seen = set()
     for deployment in model_list or []:
@@ -435,4 +449,5 @@ def route_has_hermes(model_list: Sequence[Dict[str, Any]], route_name: str) -> b
 
 
 def filter_non_hermes_deployments(model_list: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """过滤掉非 Hermes 部署。"""
     return [deployment for deployment in (model_list or []) if not is_hermes_deployment(deployment)]

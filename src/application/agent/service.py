@@ -17,6 +17,7 @@ class AgentConversationService:
     """对话会话的读取与删除。"""
 
     def __init__(self, repository: AgentConversationPort) -> None:
+        """构造 Agent 会话服务：保存会话仓储端口。"""
         self._repository = repository
 
     def list_sessions(

@@ -108,6 +108,7 @@ _SUPPORTED_FREE_TEXT_RE = re.compile(r"^[A-Za-z0-9.*\-+\u3400-\u9fff\s]+$")
 
 
 def _get_task_trace_id(task: Any) -> Optional[str]:
+    """返回任务的链路追踪 ID。"""
     trace_id = getattr(task, "trace_id", None)
     if isinstance(trace_id, str) and trace_id.strip():
         return trace_id
@@ -118,10 +119,12 @@ def _get_task_trace_id(task: Any) -> Optional[str]:
 
 
 def _market_review_lock_path(config: Config) -> Path:
+    """返回大盘复盘锁文件路径。"""
     return market_review_lock_path(config)
 
 
 def _build_market_review_runtime(config: Config, source_message: Optional[Any] = None) -> tuple[Any, Any, Any]:
+    """构建大盘复盘运行上下文。"""
     return _runtime_build_market_review_runtime(config, source_message)
 
 
@@ -182,6 +185,7 @@ def _run_market_review_background(
 
 
 def _coalesce_text(*values: Any) -> Optional[str]:
+    """返回首个非空文本值。"""
     for value in values:
         if value is None:
             continue
@@ -192,6 +196,7 @@ def _coalesce_text(*values: Any) -> Optional[str]:
 
 
 def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
+    """提取护栏拦截原因。"""
     if not isinstance(raw_result, dict):
         return None
     for reason in (
@@ -214,6 +219,7 @@ def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
 
 
 def _invalid_analysis_input_error() -> HTTPException:
+    """构造无效分析入参的错误响应。"""
     return api_error(400, "validation_error", "请输入有效的股票代码或股票名称")
 
 
@@ -696,6 +702,7 @@ async def task_stream():
         StreamingResponse: SSE 事件流
     """
     async def event_generator():
+        """生成分析进度的 SSE 事件流。"""
         task_queue = get_task_queue()
         event_queue: asyncio.Queue = asyncio.Queue()
         
@@ -760,6 +767,7 @@ def _load_history_run_flow_by_query_id(
     report_type: Optional[str] = None,
     fail_open: bool = False,
 ) -> Optional[RunFlowSnapshot]:
+    """按查询 ID 加载历史运行流程。"""
     try:
         return history_service.get_run_flow(
             query_id,
@@ -835,6 +843,7 @@ def get_task_run_flow(
 
 
 def _safe_task_flow_text(value: Any, *, max_length: int) -> Optional[str]:
+    """安全提取任务流程文本。"""
     if value is None:
         return None
     text = str(value).strip()
@@ -844,6 +853,7 @@ def _safe_task_flow_text(value: Any, *, max_length: int) -> Optional[str]:
 
 
 def _history_report_type_for_task_flow(value: Any) -> Optional[str]:
+    """返回历史记录的报告类型。"""
     text = _safe_task_flow_text(value, max_length=64)
     if text is None:
         return None
@@ -860,6 +870,7 @@ def _history_report_type_for_task_flow(value: Any) -> Optional[str]:
 
 
 def _datetime_to_iso(value: Any) -> Optional[str]:
+    """将 datetime 转换为 ISO 字符串。"""
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, str) and value.strip():
@@ -868,6 +879,7 @@ def _datetime_to_iso(value: Any) -> Optional[str]:
 
 
 def _extract_report_created_at(payload: Dict[str, Any]) -> Optional[str]:
+    """提取报告创建时间。"""
     report = payload.get("report")
     if not isinstance(report, dict):
         return None
@@ -880,6 +892,7 @@ def _extract_report_created_at(payload: Dict[str, Any]) -> Optional[str]:
 
 
 def _display_stock_code_from_index(stock_code: Any) -> str:
+    """从股票索引提取展示代码。"""
     code = str(stock_code or "").strip()
     if not code:
         return code
@@ -887,6 +900,7 @@ def _display_stock_code_from_index(stock_code: Any) -> str:
 
 
 def _display_market_phase_summary(stock_code: Any, context_snapshot: Any) -> Any:
+    """返回展示用大盘阶段摘要。"""
     return rebuild_market_phase_summary_for_stock_code(
         _display_stock_code_from_index(stock_code),
         context_snapshot,
@@ -897,6 +911,7 @@ def _prepare_report_for_task_enrichment(
     report_data: Dict[str, Any],
     created_at: Optional[str],
 ) -> Dict[str, Any]:
+    """为任务富化处理准备报告数据。"""
     enriched_report = dict(report_data)
     meta = dict(enriched_report.get("meta") or {})
     if created_at and not _datetime_to_iso(meta.get("created_at")):
@@ -906,6 +921,7 @@ def _prepare_report_for_task_enrichment(
 
 
 def _first_non_empty_report_value(*values: Any) -> Any:
+    """返回报告中首个非空取值。"""
     for value in values:
         if value is None:
             continue
@@ -916,6 +932,7 @@ def _first_non_empty_report_value(*values: Any) -> Any:
 
 
 def _ensure_report_action_fields(report_data: Dict[str, Any]) -> Dict[str, Any]:
+    """确保报告含完整决策动作字段。"""
     enriched_report = dict(report_data)
     meta = dict(enriched_report.get("meta") or {})
     summary = dict(enriched_report.get("summary") or {})
@@ -1328,6 +1345,7 @@ def _load_sync_fundamental_sources(
 
 
 def _stringify_report_strategy_value(value: Any) -> Optional[str]:
+    """将报告策略值转换为字符串。"""
     if value is None:
         return None
     if isinstance(value, str):
@@ -1405,6 +1423,7 @@ def _build_analysis_report(
     )
 
     def _looks_like_raw_result_payload(candidate: Any) -> bool:
+        """判断载荷是否形似原始结果数据。"""
         return (
             isinstance(candidate, dict)
             and (

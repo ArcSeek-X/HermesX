@@ -37,6 +37,7 @@ class QuoteService:
     """行情用例。"""
 
     def __init__(self, provider: QuoteProviderPort) -> None:
+        """构造行情服务：保存行情数据端口。"""
         self._provider = provider
 
     def search_codes(self, *, keyword: str, limit: int = 10) -> List[Dict[str, Any]]:

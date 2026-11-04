@@ -52,6 +52,7 @@ class CodexAppServerError(RuntimeError):
     """Structured App Server transport failure."""
 
     def __init__(self, code: str, message: str, *, turn_started: bool = False) -> None:
+        """构造 Codex 契约错误：保存错误码、消息与回合是否已开始标志。"""
         super().__init__(message)
         self.code = code
         self.turn_started = turn_started

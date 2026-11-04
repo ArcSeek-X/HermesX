@@ -23,6 +23,7 @@ class TwInstitutionalSource(InstitutionalDataSource):
     source_id = "tw"
 
     def __init__(self) -> None:
+        """构造台股机构数据源。"""
         self.fetcher = TwInstitutionalFetcher()
 
     def fetch(self, request: InstitutionalRequest) -> Optional[InstitutionalResult]:

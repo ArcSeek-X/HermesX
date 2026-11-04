@@ -96,6 +96,7 @@ def _infer_cn_exchange(base: str) -> str:
 
 
 def _valid_exchange_code(exchange: str, base: str, digit_lens: tuple[int, ...]) -> bool:
+    """校验交易所代码与基础代码位数是否合法。"""
     if not (base.isdigit() and len(base) in digit_lens):
         return False
     if exchange in {"SH", "SS"}:
@@ -230,6 +231,7 @@ def _build_market_code_variants(
     normalized_upper = normalized_code.upper() if normalized_code else ""
 
     def _add_us_variants(code: str) -> None:
+        """将美股代码的常见变体加入候选集合。"""
         if not code:
             return
         if code.endswith(".US"):

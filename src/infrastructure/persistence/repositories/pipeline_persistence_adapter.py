@@ -25,12 +25,15 @@ class DatabaseManagerPipelinePersistenceAdapter:
     """把 ``DatabaseManager`` 适配为 pipeline 所需的持久化端口。"""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None) -> None:
+        """构造流水线持久化适配器并装配依赖。"""
         self._db = db_manager or DatabaseManager.get_instance()
 
     def has_today_data(self, code: str, target_date: Optional[date] = None) -> bool:
+        """判断当日数据是否已存在。"""
         return self._db.has_today_data(code, target_date)
 
     def save_daily_data(self, df: Any, code: str, data_source: str = "Unknown") -> int:
+        """保存日线数据。"""
         return self._db.save_daily_data(df, code, data_source)
 
     def save_fundamental_snapshot(
@@ -41,6 +44,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
         source_chain: Optional[Any] = None,
         coverage: Optional[Any] = None,
     ) -> int:
+        """保存基本面快照。"""
         return self._db.save_fundamental_snapshot(
             query_id=query_id,
             code=code,
@@ -52,6 +56,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
     def get_data_range(
         self, code: str, start_date: date, end_date: date
     ) -> List[Any]:
+        """返回已存数据的日期范围。"""
         return self._db.get_data_range(code, start_date, end_date)
 
     def save_news_intel(
@@ -63,6 +68,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
         response: Any,
         query_context: Optional[Dict[str, str]] = None,
     ) -> int:
+        """保存新闻情报数据。"""
         return self._db.save_news_intel(
             code=code,
             name=name,
@@ -81,6 +87,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
         context_snapshot: Optional[Dict[str, Any]] = None,
         save_snapshot: bool = True,
     ) -> int:
+        """保存分析历史记录。"""
         return self._db.save_analysis_history(
             result=result,
             query_id=query_id,
@@ -98,6 +105,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
         limit: int = 50,
         exclude_query_id: Optional[str] = None,
     ) -> List[Any]:
+        """获取分析历史记录。"""
         return self._db.get_analysis_history(
             code=code,
             query_id=query_id,
@@ -114,6 +122,7 @@ class DatabaseManagerPipelinePersistenceAdapter:
         diagnostics: Optional[Dict[str, Any]] = None,
         notification_runs: Optional[List[Dict[str, Any]]] = None,
     ) -> int:
+        """更新分析历史的诊断信息。"""
         return self._db.update_analysis_history_diagnostics(
             query_id=query_id,
             code=code,
@@ -124,7 +133,9 @@ class DatabaseManagerPipelinePersistenceAdapter:
     def get_analysis_context(
         self, code: str, target_date: Optional[date] = None
     ) -> Optional[Dict[str, Any]]:
+        """获取分析上下文。"""
         return self._db.get_analysis_context(code, target_date)
 
     def analyze_ma_status(self, data: Any) -> str:
+        """分析均线状态。"""
         return self._db.analyze_ma_status(data)

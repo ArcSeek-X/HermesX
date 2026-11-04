@@ -69,6 +69,7 @@ __all__ = list(_SYMBOL_MODULE)
 
 
 def __getattr__(name: str) -> Any:  # PEP 562 惰性再导出
+    """惰性导入决策域符号。"""
     module_path = _SYMBOL_MODULE.get(name)
     if module_path is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -78,4 +79,5 @@ def __getattr__(name: str) -> Any:  # PEP 562 惰性再导出
 
 
 def __dir__() -> list[str]:
+    """返回决策域可导出符号列表。"""
     return sorted(__all__)

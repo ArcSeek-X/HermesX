@@ -29,6 +29,7 @@ class BraveSearchProvider(BaseSearchProvider):
     API_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 
     def __init__(self, api_keys: List[str]):
+        """构造 Brave 检索适配器并装配依赖。"""
         super().__init__(api_keys, "Brave")
 
     def _do_search(

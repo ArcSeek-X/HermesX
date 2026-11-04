@@ -22,9 +22,11 @@ class AlertRepository:
     """DB access layer for alert rules and read-only alert history."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """构造告警仓储并装配依赖。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def create_rule(self, fields: Dict[str, Any]) -> AlertRuleRecord:
+        """创建告警规则。"""
         with self.db.get_session() as session:
             row = AlertRuleRecord(**fields)
             session.add(row)
@@ -33,12 +35,14 @@ class AlertRepository:
             return row
 
     def get_rule(self, rule_id: int) -> Optional[AlertRuleRecord]:
+        """按 ID 获取告警规则。"""
         with self.db.get_session() as session:
             return session.execute(
                 select(AlertRuleRecord).where(AlertRuleRecord.id == rule_id).limit(1)
             ).scalar_one_or_none()
 
     def update_rule(self, rule_id: int, fields: Dict[str, Any]) -> Optional[AlertRuleRecord]:
+        """更新告警规则。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(AlertRuleRecord).where(AlertRuleRecord.id == rule_id).limit(1)
@@ -53,6 +57,7 @@ class AlertRepository:
             return row
 
     def delete_rule(self, rule_id: int) -> bool:
+        """删除告警规则。"""
         with self.db.get_session() as session:
             result = session.execute(delete(AlertRuleRecord).where(AlertRuleRecord.id == rule_id))
             session.commit()
@@ -69,6 +74,7 @@ class AlertRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[AlertRuleRecord], int]:
+        """列出全部告警规则。"""
         conditions = []
         if enabled is not None:
             conditions.append(AlertRuleRecord.enabled.is_(enabled))
@@ -97,6 +103,7 @@ class AlertRepository:
             return list(rows), int(total)
 
     def list_enabled_rules(self, *, limit: int = 1000) -> List[AlertRuleRecord]:
+        """列出已启用的告警规则。"""
         safe_limit = max(1, min(int(limit), 1000))
         with self.db.get_session() as session:
             rows = session.execute(
@@ -108,6 +115,7 @@ class AlertRepository:
             return list(rows)
 
     def create_trigger(self, fields: Dict[str, Any]) -> AlertTriggerRecord:
+        """创建告警触发记录。"""
         self._validate_trigger_fields(fields)
 
         with self.db.get_session() as session:
@@ -160,12 +168,14 @@ class AlertRepository:
 
     @staticmethod
     def _validate_trigger_fields(fields: Dict[str, Any]) -> None:
+        """校验触发记录字段。"""
         if not fields.get("target"):
             raise ValueError("alert trigger target is required")
         if not fields.get("status"):
             raise ValueError("alert trigger status is required")
 
     def record_notification_attempt(self, fields: Dict[str, Any]) -> AlertNotificationRecord:
+        """记录一次通知发送尝试。"""
         if not fields.get("channel"):
             raise ValueError("alert notification channel is required")
 
@@ -184,6 +194,7 @@ class AlertRepository:
         severity: Optional[str],
         now: Optional[datetime] = None,
     ) -> Optional[AlertCooldownRecord]:
+        """获取仍处于生效期的冷却记录。"""
         now_value = now or datetime.now()
         with self.db.get_session() as session:
             return session.execute(
@@ -211,6 +222,7 @@ class AlertRepository:
         reason: Optional[str] = None,
         state: str = "active",
     ) -> AlertCooldownRecord:
+        """新增或更新冷却记录。"""
         with self.db.get_session() as session:
             row = session.execute(
                 select(AlertCooldownRecord)
@@ -246,6 +258,7 @@ class AlertRepository:
         target: str,
         severity: Optional[str],
     ) -> Optional[AlertCooldownRecord]:
+        """获取规则级冷却汇总信息。"""
         with self.db.get_session() as session:
             return session.execute(
                 select(AlertCooldownRecord)
@@ -267,6 +280,7 @@ class AlertRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[AlertTriggerRecord], int]:
+        """列出告警触发记录。"""
         conditions = []
         if rule_id is not None:
             conditions.append(AlertTriggerRecord.rule_id == rule_id)
@@ -299,6 +313,7 @@ class AlertRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[AlertNotificationRecord], int]:
+        """列出通知发送记录。"""
         conditions = []
         if trigger_id is not None:
             conditions.append(AlertNotificationRecord.trigger_id == trigger_id)

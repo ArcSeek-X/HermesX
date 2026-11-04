@@ -19,6 +19,7 @@ class StockIndexCodeValidator:
     """以 ``stocks.index.json`` 的规范代码集合核验股票代码。"""
 
     def is_known(self, stock_code: str) -> bool:
+        """判断股票代码是否存在于已知代码库。"""
         try:
             return stock_code in get_stock_name_index_map()
         except Exception as exc:  # pragma: no cover - 索引加载异常时降级

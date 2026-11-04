@@ -13,6 +13,7 @@ MarketValue = Literal["cn", "hk", "us", "jp", "kr", "tw", "global"]
 
 
 class IntelligenceSourceCreateRequest(BaseModel):
+    """创建情报数据源的请求体。"""
     name: str = Field(..., min_length=1, max_length=100)
     url: str = Field(..., min_length=1, max_length=1000)
     source_type: SourceTypeValue = "rss"
@@ -24,6 +25,7 @@ class IntelligenceSourceCreateRequest(BaseModel):
 
 
 class IntelligenceSourceTemplateCreateRequest(BaseModel):
+    """按模板创建数据源的请求体。"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     enabled: Optional[bool] = None
     scope_type: Optional[ScopeTypeValue] = None
@@ -33,10 +35,12 @@ class IntelligenceSourceTemplateCreateRequest(BaseModel):
 
 
 class IntelligenceDefaultSourcesCreateRequest(BaseModel):
+    """创建默认数据源集合的请求体。"""
     enabled: Optional[bool] = None
 
 
 class IntelligenceSourceItem(BaseModel):
+    """情报数据源条目。"""
     id: int
     name: str
     source_type: str
@@ -54,6 +58,7 @@ class IntelligenceSourceItem(BaseModel):
 
 
 class IntelligenceSourceTemplateItem(BaseModel):
+    """情报数据源模板条目。"""
     template_id: str
     name: str
     source_type: str
@@ -65,6 +70,7 @@ class IntelligenceSourceTemplateItem(BaseModel):
 
 
 class IntelligenceSourceListResponse(BaseModel):
+    """情报数据源列表响应体。"""
     items: List[IntelligenceSourceItem] = Field(default_factory=list)
     total: int
     page: int
@@ -72,22 +78,26 @@ class IntelligenceSourceListResponse(BaseModel):
 
 
 class IntelligenceSourceTemplateListResponse(BaseModel):
+    """情报数据源模板列表响应体。"""
     items: List[IntelligenceSourceTemplateItem] = Field(default_factory=list)
     total: int
 
 
 class IntelligenceDefaultSourceResult(BaseModel):
+    """默认数据源创建结果。"""
     created: bool
     source: IntelligenceSourceItem
 
 
 class IntelligenceDefaultSourceCreateResponse(BaseModel):
+    """默认数据源集合创建响应体。"""
     items: List[IntelligenceDefaultSourceResult] = Field(default_factory=list)
     created_count: int
     total: int
 
 
 class IntelligenceItem(BaseModel):
+    """情报条目。"""
     id: int
     source_id: Optional[int] = None
     source_name: Optional[str] = None
@@ -104,6 +114,7 @@ class IntelligenceItem(BaseModel):
 
 
 class IntelligenceSampleItem(BaseModel):
+    """情报样本条目。"""
     title: str
     summary: Optional[str] = None
     url: str
@@ -112,6 +123,7 @@ class IntelligenceSampleItem(BaseModel):
 
 
 class IntelligenceItemListResponse(BaseModel):
+    """情报条目列表响应体。"""
     items: List[IntelligenceItem] = Field(default_factory=list)
     total: int
     page: int
@@ -119,6 +131,7 @@ class IntelligenceItemListResponse(BaseModel):
 
 
 class IntelligenceFetchResponse(BaseModel):
+    """情报抓取响应体。"""
     ok: bool
     source_id: Optional[int] = None
     source_count: Optional[int] = None
@@ -132,6 +145,7 @@ class IntelligenceFetchResponse(BaseModel):
 
 
 class IntelligenceSourceTestResponse(BaseModel):
+    """情报数据源测试响应体。"""
     ok: bool
     source: dict
     fetched_count: int

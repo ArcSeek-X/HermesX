@@ -63,10 +63,12 @@ FQTS = [0, 1, 2]
 
 
 def emit(summary_line: str, status: str) -> None:
+    """输出一条走查结果记录。"""
     print(f"[SUMMARY] 后端|{summary_line}|{status}")
 
 
 def _check(name: str, cond: bool, detail: str = ""):
+    """校验接口响应是否符合预期。"""
     if cond:
         print(f"[PASS] {name}：{detail}")
     else:
@@ -75,10 +77,12 @@ def _check(name: str, cond: bool, detail: str = ""):
 
 
 def _is_number(v):
+    """判断值是否为数值。"""
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 def test_search(client: "TestClient"):
+    """走查股票代码搜索接口。"""
     print("[INFO] === 股票搜索 /api/v1/kline/search ===")
     r = client.get(f"{PREFIX}/search", params={"q": "茅台"})
     ok = _check("search q=茅台", r.status_code == 200, f"status={r.status_code}")
@@ -108,6 +112,7 @@ def test_search(client: "TestClient"):
 
 
 def test_kline(client: "TestClient"):
+    """走查 K 线数据接口。"""
     print("[INFO] === K 线数据 /api/v1/kline/{code}/kline（多周期 + 复权 + 全量 + 分页）===")
     # 多周期矩阵
     for period in PERIODS:
@@ -165,6 +170,7 @@ def test_kline(client: "TestClient"):
 
 
 def test_info(client: "TestClient"):
+    """走查个股信息接口。"""
     print("[INFO] === 股票实时信息 /api/v1/kline/{code}/info ===")
     r = client.get(f"{PREFIX}/{SAMPLE_CODE}/info")
     ok = _check("info", r.status_code == 200, f"status={r.status_code}")
@@ -184,6 +190,7 @@ def test_info(client: "TestClient"):
 
 
 def main():
+    """脚本入口：依次执行各接口走查。"""
     if not _APP_AVAILABLE:
         emit("应用不可用（环境）", "FAIL")
         print("[FAIL] K 线后端走查：应用无法构建")

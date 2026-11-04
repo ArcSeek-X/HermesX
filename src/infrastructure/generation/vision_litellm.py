@@ -39,6 +39,7 @@ class LitellmVisionAdapter:
         api_base: Optional[str] = None,
         extra_headers: Optional[Dict[str, str]] = None,
     ) -> str:
+        """调用视觉模型完成一次多模态生成。"""
         global litellm
 
         data_url = f"data:{mime_type};base64,{image_b64}"

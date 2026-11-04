@@ -171,6 +171,7 @@ def delete_history_by_code(
     stock_code: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> DeleteHistoryResponse:
+    """按股票代码删除分析历史。"""
     try:
         return DeleteHistoryResponse(deleted=service.delete_by_code(stock_code))
     except HistoryValidationError as e:
@@ -244,6 +245,7 @@ def get_stock_bar(
     limit: int = Query(200, ge=1, le=500, description="最大返回数量"),
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> StockBarResponse:
+    """获取股票 K 线数据。"""
     try:
         items = [
             StockBarItem(**item)

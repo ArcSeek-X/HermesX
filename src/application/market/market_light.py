@@ -26,6 +26,7 @@ MARKET_LIGHT_ALERT_REGIONS = frozenset({"cn", "hk", "us"})
 
 
 def normalize_market_region(region: str) -> str:
+    """归一化市场区域为合法枚举（cn/hk/us/jp/kr）。"""
     value = str(region or "").strip().lower()
     if value not in MARKET_LIGHT_REGIONS:
         raise ValueError(f"market target must be one of cn, hk, us, jp, kr: {region}")
@@ -33,6 +34,7 @@ def normalize_market_region(region: str) -> str:
 
 
 def normalize_market_alert_region(region: str) -> str:
+    """归一化市场预警区域为合法枚举（cn/hk/us）。"""
     value = str(region or "").strip().lower()
     if value not in MARKET_LIGHT_ALERT_REGIONS:
         raise ValueError(f"market alert target must be one of cn, hk, us: {region}")
@@ -111,6 +113,7 @@ def load_previous_snapshot(
 
 
 def _extract_region_snapshot(raw_context_snapshot: Any, region: str) -> Optional[Dict[str, Any]]:
+    """从原始上下文快照中提取指定区域的快照数据。"""
     if not raw_context_snapshot:
         return None
     try:

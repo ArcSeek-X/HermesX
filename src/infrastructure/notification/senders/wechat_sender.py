@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class WechatSender:
     
+    """企业微信渠道通知发送适配器。"""
     def __init__(self, config: Config):
         """
         初始化企业微信配置

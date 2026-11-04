@@ -25,6 +25,7 @@ class AnspireSearchProvider(BaseSearchProvider):
     """
 
     def __init__(self, api_keys: List[str]):
+        """构造 Anspire 检索适配器并装配依赖。"""
         super().__init__(api_keys, "Anspire")
 
     def _do_search(

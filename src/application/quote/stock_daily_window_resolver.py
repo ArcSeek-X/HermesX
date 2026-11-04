@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Resolve one coherent local daily-bar window across equivalent stock codes."""
+"""Resolve one coherent local daily-bar window across equivalent stock codes.
+
+在多个等价股票代码（不同后缀 / 市场形态）间选出一段连贯的本地日线窗口，
+用于回测 / 评估时锚定到期望交易日；start 与 forward bars 绝不跨代码形状拼接。
+"""
 
 from __future__ import annotations
 
@@ -13,7 +17,10 @@ from src.domain.backtest.engine import DailyBarLike
 
 @dataclass(frozen=True)
 class StockDailyWindow:
-    """A start bar and its forward bars from one stored stock-code shape."""
+    """A start bar and its forward bars from one stored stock-code shape.
+
+    来自同一存储代码形态的一段窗口（起始 bar + 其后的 forward bars），frozen 不可变。
+    """
 
     code: str
     start_bar: DailyBarLike
@@ -37,6 +44,10 @@ def resolve_stock_daily_window(
     ``stock_repo`` only needs the two read methods declared by
     :class:`~src.application.backtest.ports.StockRepositoryPort`; callers pass
     whatever port-conforming storage they already hold.
+
+    在候选代码里，只保留「期望交易日当天有 bar」的代码；完整窗口优先于残缺窗口，
+    平局时 forward bars 越多越优先、其次按候选顺序；评分 (完整?, forward数, -rank) 取最大者。
+    ``stock_repo`` 仅需 StockRepositoryPort 声明的两个读方法，调用方传入任意符合端口的存储。
     """
     best_window: Optional[StockDailyWindow] = None
     best_key: Optional[Tuple[bool, int, int]] = None

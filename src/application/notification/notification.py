@@ -267,72 +267,95 @@ class NotificationService:
     # 以保住 src/application/analysis/pipeline.py、scripts/check_env.py 及 60 处 patch.object 的调用/替换锚点。
     # 统一 *args/**kwargs 透传，不重写签名，保证任意调用形状与 autospec 兼容。
     def send_to_wechat(self, *args: Any, **kwargs: Any) -> bool:
+        """向企业微信推送消息。"""
         return self._send_port.send_wechat(*args, **kwargs)
 
     def send_to_dingtalk(self, *args: Any, **kwargs: Any) -> bool:
+        """向钉钉推送消息。"""
         return self._send_port.send_dingtalk(*args, **kwargs)
 
     def send_to_feishu(self, *args: Any, **kwargs: Any) -> bool:
+        """向飞书推送消息。"""
         return self._send_port.send_feishu(*args, **kwargs)
 
     def send_to_telegram(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Telegram 推送消息。"""
         return self._send_port.send_telegram(*args, **kwargs)
 
     def send_to_email(self, *args: Any, **kwargs: Any) -> bool:
+        """向邮件渠道推送消息。"""
         return self._send_port.send_email(*args, **kwargs)
 
     def send_to_pushover(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Pushover 推送消息。"""
         return self._send_port.send_pushover(*args, **kwargs)
 
     def send_to_ntfy(self, *args: Any, **kwargs: Any) -> bool:
+        """向 ntfy 推送消息。"""
         return self._send_port.send_ntfy(*args, **kwargs)
 
     def send_to_gotify(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Gotify 推送消息。"""
         return self._send_port.send_gotify(*args, **kwargs)
 
     def send_to_pushplus(self, *args: Any, **kwargs: Any) -> bool:
+        """向 PushPlus 推送消息。"""
         return self._send_port.send_pushplus(*args, **kwargs)
 
     def send_to_serverchan3(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Server酱³ 推送消息。"""
         return self._send_port.send_serverchan3(*args, **kwargs)
 
     def send_to_custom(self, *args: Any, **kwargs: Any) -> bool:
+        """向自定义渠道推送消息。"""
         return self._send_port.send_custom(*args, **kwargs)
 
     def send_to_discord(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Discord 推送消息。"""
         return self._send_port.send_discord(*args, **kwargs)
 
     def send_to_slack(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Slack 推送消息。"""
         return self._send_port.send_slack(*args, **kwargs)
 
     def send_to_astrbot(self, *args: Any, **kwargs: Any) -> bool:
+        """向 AstrBot 推送消息。"""
         return self._send_port.send_astrbot(*args, **kwargs)
 
     def send_feishu_file(self, *args: Any, **kwargs: Any) -> bool:
+        """向飞书发送文件。"""
         return self._send_port.send_feishu_file(*args, **kwargs)
 
     def get_all_email_receivers(self) -> Any:
+        """返回全部邮件收件人。"""
         return self._send_port.all_email_receivers()
 
     def get_receivers_for_stocks(self, *args: Any, **kwargs: Any) -> Any:
+        """返回指定股票对应的邮件收件人。"""
         return self._send_port.receivers_for_stocks(*args, **kwargs)
 
     def _send_wechat_image(self, *args: Any, **kwargs: Any) -> bool:
+        """向企业微信发送图片。"""
         return self._send_port.send_wechat_image(*args, **kwargs)
 
     def _send_telegram_photo(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Telegram 发送图片。"""
         return self._send_port.send_telegram_photo(*args, **kwargs)
 
     def _send_email_with_inline_image(self, *args: Any, **kwargs: Any) -> bool:
+        """发送内嵌图片的邮件。"""
         return self._send_port.send_email_with_inline_image(*args, **kwargs)
 
     def _send_custom_webhook_image(self, *args: Any, **kwargs: Any) -> bool:
+        """通过自定义 Webhook 发送图片。"""
         return self._send_port.send_custom_webhook_image(*args, **kwargs)
 
     def _send_slack_image(self, *args: Any, **kwargs: Any) -> bool:
+        """向 Slack 发送图片。"""
         return self._send_port.send_slack_image(*args, **kwargs)
 
     def _send_dingtalk_chunked(self, *args: Any, **kwargs: Any) -> bool:
+        """分片发送钉钉消息。"""
         return self._send_port.send_dingtalk_chunked(*args, **kwargs)
 
     def _normalize_report_type(self, report_type: Any) -> ReportType:
@@ -342,15 +365,19 @@ class NotificationService:
         return ReportType.from_str(report_type)
 
     def _get_report_language(self, payload: Optional[Any] = None) -> str:
+        """返回当前报告语言。"""
         return self._report_renderer().get_report_language(payload=payload)
 
     def _get_labels(self, payload: Optional[Any] = None) -> Dict[str, str]:
+        """返回当前语言的报告标签。"""
         return get_report_labels(self._get_report_language(payload))
 
     def _get_display_name(self, result: AnalysisResult, language: Optional[str] = None) -> str:
+        """返回股票展示名称。"""
         return self._report_renderer().get_display_name(result=result, language=language)
 
     def _get_history_compare_context(self, results: List[AnalysisResult]) -> Dict[str, Any]:
+        """获取历史对比上下文。"""
         return self._report_renderer().get_history_compare_context(results=results)
 
     def generate_aggregate_report(
@@ -366,12 +393,15 @@ class NotificationService:
         return self.generate_dashboard_report(results, report_date=report_date)
 
     def _collect_models_used(self, results: List[AnalysisResult]) -> List[str]:
+        """汇总报告使用的模型。"""
         return self._report_renderer().collect_models_used(results=results)
 
     def _public_phase_pack_excerpt(self, result: AnalysisResult, report_language: str) -> str:
+        """返回对外阶段上下文包摘要。"""
         return self._report_renderer().public_phase_pack_excerpt(result=result, report_language=report_language)
 
     def _public_market_status_line(self, results: List[AnalysisResult], report_language: str) -> str:
+        """返回对外大盘状态描述行。"""
         return self._report_renderer().public_market_status_line(results=results, report_language=report_language)
 
     def _append_market_status_line(
@@ -380,9 +410,11 @@ class NotificationService:
         results: List[AnalysisResult],
         report_language: str,
     ) -> None:
+        """追加大盘状态描述行。"""
         return self._report_renderer().append_market_status_line(lines=lines, results=results, report_language=report_language)
 
     def _should_show_llm_model(self) -> bool:
+        """判断是否展示 LLM 模型。"""
         return self._report_renderer().should_show_llm_model()
 
     @staticmethod
@@ -699,6 +731,7 @@ class NotificationService:
         return self._send_port.send_stream_reply(chat_id, content)
 
     def _report_renderer(self) -> AnalysisReportRenderer:
+        """返回报告渲染器实例。"""
         return AnalysisReportRenderer(
             config=getattr(self, "_config", None),
             show_llm_model=getattr(self, "_report_show_llm_model", True),
@@ -712,6 +745,7 @@ class NotificationService:
         results: List[AnalysisResult],
         report_date: Optional[str] = None
     ) -> str:
+        """生成每日汇总报告。"""
         return self._report_renderer().generate_daily_report(results=results, report_date=report_date)
 
     _escape_md = staticmethod(AnalysisReportRenderer.escape_md)
@@ -720,10 +754,12 @@ class NotificationService:
 
     @staticmethod
     def _phase_decision_list(value: Any) -> List[str]:
+        """提取阶段决策列表。"""
         return _phase_decision_list_impl(value)
 
     @classmethod
     def _phase_decision_has_content(cls, phase_decision: Dict[str, Any]) -> bool:
+        """判断阶段决策是否有内容。"""
         return _phase_decision_has_content_impl(phase_decision)
 
     def _append_phase_decision_block(
@@ -732,6 +768,7 @@ class NotificationService:
         dashboard: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """追加阶段决策段落。"""
         return self._report_renderer().append_phase_decision_block(report_lines=report_lines, dashboard=dashboard, labels=labels)
 
     def _get_display_operation_advice(
@@ -739,6 +776,7 @@ class NotificationService:
         result: AnalysisResult,
         report_language: Optional[str] = None,
     ) -> str:
+        """返回展示用操作建议。"""
         return self._report_renderer().get_display_operation_advice(result=result, report_language=report_language)
 
     def _count_display_decisions(
@@ -746,9 +784,11 @@ class NotificationService:
         results: List[AnalysisResult],
         report_language: Optional[str] = None,
     ) -> Tuple[int, int, int]:
+        """统计展示决策条目数。"""
         return self._report_renderer().count_display_decisions(results=results, report_language=report_language)
 
     def _get_signal_level(self, result: AnalysisResult) -> tuple:
+        """返回信号级别。"""
         return self._report_renderer().get_signal_level(result=result)
 
     def generate_dashboard_report(
@@ -756,12 +796,15 @@ class NotificationService:
         results: List[AnalysisResult],
         report_date: Optional[str] = None
     ) -> str:
+        """生成仪表盘报告。"""
         return self._report_renderer().generate_dashboard_report(results=results, report_date=report_date)
 
     def generate_wechat_dashboard(self, results: List[AnalysisResult]) -> str:
+        """生成企业微信仪表盘内容。"""
         return self._report_renderer().generate_wechat_dashboard(results=results)
 
     def generate_wechat_summary(self, results: List[AnalysisResult]) -> str:
+        """生成企业微信摘要内容。"""
         return self._report_renderer().generate_wechat_summary(results=results)
 
     def generate_brief_report(
@@ -769,15 +812,19 @@ class NotificationService:
         results: List[AnalysisResult],
         report_date: Optional[str] = None,
     ) -> str:
+        """生成简报。"""
         return self._report_renderer().generate_brief_report(results=results, report_date=report_date)
 
     def generate_single_stock_report(self, result: AnalysisResult) -> str:
+        """生成单只股票报告。"""
         return self._report_renderer().generate_single_stock_report(result=result)
 
     def _get_source_display_name(self, source: Any, language: Optional[str]) -> str:
+        """返回数据来源展示名称。"""
         return self._report_renderer().get_source_display_name(source=source, language=language)
 
     def _append_market_snapshot(self, lines: List[str], result: AnalysisResult) -> None:
+        """追加大盘快照段落。"""
         return self._report_renderer().append_market_snapshot(lines=lines, result=result)
 
     _format_amount_cn = staticmethod(AnalysisReportRenderer.format_amount_cn)
@@ -789,9 +836,11 @@ class NotificationService:
     _format_text = staticmethod(AnalysisReportRenderer.format_text)
 
     def _get_fundamental_blocks(self, result: AnalysisResult) -> Dict[str, Any]:
+        """获取基本面信息块。"""
         return self._report_renderer().get_fundamental_blocks(result=result)
 
     def _append_fundamental_blocks(self, lines: List[str], result: AnalysisResult) -> None:
+        """追加基本面信息块。"""
         return self._report_renderer().append_fundamental_blocks(lines=lines, result=result)
 
     def _append_financial_summary(
@@ -800,6 +849,7 @@ class NotificationService:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """追加财务摘要段落。"""
         return self._report_renderer().append_financial_summary(lines=lines, blocks=blocks, labels=labels)
 
     def _append_shareholder_return(
@@ -808,6 +858,7 @@ class NotificationService:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """追加股东回报段落。"""
         return self._report_renderer().append_shareholder_return(lines=lines, blocks=blocks, labels=labels)
 
     _format_net_shares = staticmethod(AnalysisReportRenderer.format_net_shares)
@@ -818,6 +869,7 @@ class NotificationService:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """追加机构资金流向段落。"""
         return self._report_renderer().append_institutional_flow(lines=lines, blocks=blocks, labels=labels)
 
     def _append_related_boards(
@@ -826,6 +878,7 @@ class NotificationService:
         blocks: Dict[str, Any],
         labels: Dict[str, str],
     ) -> None:
+        """追加关联板块段落。"""
         return self._report_renderer().append_related_boards(lines=lines, blocks=blocks, labels=labels)
 
     # —— 公开图像路由面（R3-S15a）——
@@ -903,6 +956,7 @@ class NotificationService:
 
     @staticmethod
     def _sanitize_notification_diagnostics(text: Any) -> str:
+        """清洗通知诊断信息。"""
         return sanitize_diagnostic_text(text)
 
     def _send_to_static_channel(
@@ -915,6 +969,7 @@ class NotificationService:
         email_send_to_all: bool,
         route_type: Optional[str] = None,
     ) -> bool:
+        """向静态配置渠道发送消息。"""
         use_image = self._should_use_image_for_channel(channel, image_bytes)
         if channel == NotificationChannel.WECHAT:
             if use_image:

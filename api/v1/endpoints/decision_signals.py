@@ -60,6 +60,7 @@ AUTH_RESPONSE = {
 
 
 def _bad_request(exc: Exception, *, error: str = "validation_error") -> HTTPException:
+    """构造请求参数错误响应。"""
     return HTTPException(
         status_code=400,
         detail={"error": error, "message": str(exc)},
@@ -67,6 +68,7 @@ def _bad_request(exc: Exception, *, error: str = "validation_error") -> HTTPExce
 
 
 def _not_found(exc: Exception) -> HTTPException:
+    """构造资源不存在响应。"""
     return HTTPException(
         status_code=404,
         detail={"error": "not_found", "message": str(exc)},
@@ -74,6 +76,7 @@ def _not_found(exc: Exception) -> HTTPException:
 
 
 def _error(status_code: int, exc: Exception, *, error: str) -> HTTPException:
+    """构造通用错误响应。"""
     return HTTPException(
         status_code=status_code,
         detail={"error": error, "message": str(exc)},
@@ -81,6 +84,7 @@ def _error(status_code: int, exc: Exception, *, error: str) -> HTTPException:
 
 
 def _internal_error(message: str, exc: Exception) -> HTTPException:
+    """构造内部错误响应。"""
     logger.error("%s: %s", message, exc, exc_info=True)
     return HTTPException(
         status_code=500,
@@ -89,6 +93,7 @@ def _internal_error(message: str, exc: Exception) -> HTTPException:
 
 
 def _guardrail_blocked(exc: DecisionSignalReassessGuardrailBlockedError) -> HTTPException:
+    """构造护栏拦截响应。"""
     response = DecisionSignalReassessErrorResponse(
         error="guardrail_blocked",
         message="Reassessed decision signal was blocked by guardrail.",
@@ -118,6 +123,7 @@ def _guardrail_blocked(exc: DecisionSignalReassessGuardrailBlockedError) -> HTTP
     operation_id="createDecisionSignal",
 )
 def create_signal(request: DecisionSignalCreateRequest) -> DecisionSignalMutationResponse:
+    """创建决策信号。"""
     service = DecisionSignalService()
     try:
         payload = request.model_dump(exclude_unset=True)
@@ -175,6 +181,7 @@ def list_signals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> DecisionSignalListResponse:
+    """列出决策信号。"""
     service = DecisionSignalService()
     try:
         return DecisionSignalListResponse(
@@ -226,6 +233,7 @@ def list_signals(
     operation_id="runDecisionSignalOutcomes",
 )
 def run_outcomes(request: DecisionSignalOutcomeRunRequest) -> DecisionSignalOutcomeRunResponse:
+    """执行信号结果评估。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeRunResponse(
@@ -271,6 +279,7 @@ def list_outcomes(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> DecisionSignalOutcomeListResponse:
+    """列出信号评估结果。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeListResponse(
@@ -308,6 +317,7 @@ def get_outcome_stats(
     engine_version: Optional[str] = Query(None),
     statuses: Optional[List[str]] = Query(None),
 ) -> DecisionSignalOutcomeStatsResponse:
+    """获取信号评估统计。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeStatsResponse(
@@ -341,6 +351,7 @@ def get_outcome_stats(
     operation_id="reassessDecisionSignalPreview",
 )
 def reassess_signal(request: DecisionSignalReassessRequest) -> DecisionSignalReassessResponse:
+    """重评估指定信号。"""
     service = DecisionSignalReassessService()
     try:
         return DecisionSignalReassessResponse(
@@ -380,6 +391,7 @@ def get_latest_active(
     market: Optional[str] = Query(None, description="Optional market filter: cn/hk/us/jp/kr/tw"),
     limit: int = Query(1, ge=1, le=100),
 ) -> DecisionSignalListResponse:
+    """获取最新有效信号。"""
     service = DecisionSignalService()
     try:
         return DecisionSignalListResponse(
@@ -411,6 +423,7 @@ def get_latest_active(
     operation_id="getDecisionSignal",
 )
 def get_signal(signal_id: int) -> DecisionSignalItem:
+    """按 ID 获取信号。"""
     service = DecisionSignalService()
     try:
         return DecisionSignalItem(**service.get_signal(signal_id))
@@ -436,6 +449,7 @@ def get_signal(signal_id: int) -> DecisionSignalItem:
     operation_id="listDecisionSignalOutcomesBySignal",
 )
 def list_signal_outcomes(signal_id: int) -> DecisionSignalOutcomeListResponse:
+    """列出指定信号的结果记录。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeListResponse(**service.list_signal_outcomes(signal_id))
@@ -459,6 +473,7 @@ def list_signal_outcomes(signal_id: int) -> DecisionSignalOutcomeListResponse:
     operation_id="getDecisionSignalFeedback",
 )
 def get_feedback(signal_id: int) -> DecisionSignalFeedbackItem:
+    """获取信号反馈。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalFeedbackItem(**service.get_feedback(signal_id))
@@ -483,6 +498,7 @@ def get_feedback(signal_id: int) -> DecisionSignalFeedbackItem:
     operation_id="putDecisionSignalFeedback",
 )
 def put_feedback(signal_id: int, request: DecisionSignalFeedbackRequest) -> DecisionSignalFeedbackItem:
+    """提交信号反馈。"""
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalFeedbackItem(
@@ -521,6 +537,7 @@ def put_feedback(signal_id: int, request: DecisionSignalFeedbackRequest) -> Deci
     operation_id="updateDecisionSignalStatus",
 )
 def update_status(signal_id: int, request: DecisionSignalStatusUpdateRequest) -> DecisionSignalItem:
+    """更新信号状态。"""
     service = DecisionSignalService()
     try:
         return DecisionSignalItem(

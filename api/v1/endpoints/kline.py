@@ -53,6 +53,7 @@ PERIOD_DEFAULT_LIMITS = {
 
 
 def _cache_valid(cache_item: Optional[Dict[str, object]], ttl: int) -> bool:
+    """判断 K 线缓存是否仍有效。"""
     if not cache_item:
         return False
     return (time.time() - float(cache_item.get("timestamp", 0))) < ttl

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Assembler for the internal AnalysisContextPack P2 contract."""
+"""Assembler for the internal AnalysisContextPack P2 contract.
+
+将股票分析流水线已有的产物（实时行情、日线、技术面、筹码、基本面、新闻、持仓等）
+组装为内部契约 AnalysisContextPack（P2 版）。仅消费既有产物、不发起新的取数；
+逐 block 判定字段状态（可用/缺失/降级/过期/部分），并据此加权计算整体数据质量。
+"""
 
 from __future__ import annotations
 
@@ -79,6 +84,7 @@ class AnalysisContextBuilder:
 
     @staticmethod
     def build(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextPack:
+        """把流水线产物组装为一个 AnalysisContextPack：构建各数据块、汇总质量告警，并加权计算 DataQuality。"""
         metadata = dict(artifacts.metadata or {})
         if artifacts.news_result_count is not None:
             metadata["news_result_count"] = artifacts.news_result_count
@@ -113,10 +119,12 @@ class AnalysisContextBuilder:
 
     @staticmethod
     def build_batch(items: Sequence[PipelineAnalysisArtifacts]) -> List[AnalysisContextPack]:
+        """批量版 build：对一组产物分别调用 build 并收集结果列表。"""
         return [AnalysisContextBuilder.build(item) for item in items]
 
 
 def _build_quote_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBlock:
+    """构建实时行情块：缺失行情→MISSING；有行情时按来源/回落/过期标记决定 AVAILABLE/FALLBACK/STALE，并记录告警与来源时间戳。"""
     quote = _to_dict(artifacts.realtime_quote)
     if not quote:
         return AnalysisContextBlock(
@@ -178,6 +186,7 @@ def _build_quote_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextB
 
 
 def _build_daily_bars_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBlock:
+    """构建日线块：从 base_context 取 today/yesterday/date；整体 data_missing 或两者皆空→MISSING，部分可用→PARTIAL，否则 AVAILABLE。"""
     context = artifacts.base_context or {}
     date_value = context.get("date")
     metadata = {
@@ -243,6 +252,7 @@ def _build_daily_bars_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisCon
 def _build_technical_block(
     artifacts: PipelineAnalysisArtifacts,
 ) -> tuple[AnalysisContextBlock, List[str]]:
+    """构建技术面块：趋势结果缺失→MISSING；存在盘中叠加(intraday overlay)则块状态为 PARTIAL 并带告警，否则 AVAILABLE；返回 (block, warnings)。"""
     trend = _to_dict(artifacts.trend_result)
     if not trend:
         return (
@@ -315,6 +325,7 @@ def _build_technical_block(
 
 
 def _build_chip_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBlock:
+    """构建筹码块：无筹码数据时，按 metadata.chip_not_supported 决定 NOT_SUPPORTED 或 MISSING；有数据则逐字段 AVAILABLE。"""
     chip = _to_dict(artifacts.chip_data)
     if not chip:
         not_supported = bool((artifacts.metadata or {}).get("chip_not_supported"))
@@ -355,6 +366,7 @@ def _build_chip_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBl
 
 
 def _build_fundamentals_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBlock:
+    """构建基本面块：按 fundamental_context.status 映射块状态（ok→AVAILABLE / failed→FETCH_FAILED / not_supported→NOT_SUPPORTED 等），并拆出 status/coverage/source_chain 三项及各自缺失原因。"""
     context = artifacts.fundamental_context if isinstance(artifacts.fundamental_context, dict) else None
     if not context:
         return AnalysisContextBlock(
@@ -420,6 +432,7 @@ def _build_fundamentals_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisC
 
 
 def _build_news_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBlock:
+    """构建新闻块：新闻文本为空→MISSING，否则 AVAILABLE；可选带上 news_result_count 元数据。"""
     content = (artifacts.news_context or "").strip()
     metadata: Dict[str, Any] = {}
     if artifacts.news_result_count is not None:
@@ -450,6 +463,7 @@ def _build_news_block(artifacts: PipelineAnalysisArtifacts) -> AnalysisContextBl
 
 
 def _build_portfolio_block(artifacts: PipelineAnalysisArtifacts) -> Optional[AnalysisContextBlock]:
+    """构建持仓块（可选）：无持仓上下文返回 None；按 price_available/price_stale 决定 AVAILABLE/MISSING/STALE，暴露持仓明细字段；无有效字段也返回 None。"""
     context = _to_dict(artifacts.portfolio_context)
     if not context:
         return None
@@ -506,6 +520,7 @@ def _build_data_quality(
     *,
     warnings: List[str],
 ) -> DataQuality:
+    """汇总数据质量：按各块权重加权得分得到 overall_score，映射质量等级，收集核心/辅助块的局限项，组装 DataQuality。"""
     block_scores: Dict[str, int] = {}
     weighted_sum = 0
     for key, weight in _QUALITY_BLOCK_WEIGHTS.items():
@@ -528,6 +543,7 @@ def _quality_block_status(
     blocks: Dict[str, AnalysisContextBlock],
     key: str,
 ) -> ContextFieldStatus:
+    """读取某数据块的状态：块缺失或非枚举值→MISSING，否则返回其 ContextFieldStatus。"""
     block = blocks.get(key)
     if block is None:
         return ContextFieldStatus.MISSING
@@ -541,6 +557,7 @@ def _quality_block_status(
 
 
 def _quality_level(score: int) -> str:
+    """将 0–100 的质量分映射为等级：≥85 good、≥70 usable、≥55 limited、其余 poor。"""
     if score >= 85:
         return "good"
     if score >= 70:
@@ -551,6 +568,7 @@ def _quality_level(score: int) -> str:
 
 
 def _quality_limitations(blocks: Dict[str, AnalysisContextBlock]) -> List[str]:
+    """收集核心块(quote/daily_bars/technical)与辅助块(news/fundamentals/chip)的局限项，格式为 'key: status'，最多保留 5 条。"""
     limitations: List[str] = []
     for key in ("quote", "daily_bars", "technical"):
         status = _quality_block_status(blocks, key)
@@ -566,6 +584,7 @@ def _quality_limitations(blocks: Dict[str, AnalysisContextBlock]) -> List[str]:
 
 
 def _to_dict(value: Optional[Any]) -> Dict[str, Any]:
+    """将任意产物（Mapping / 带 to_dict 的对象 / 带 __dict__ 的对象）统一转 dict；无法转换返回空 dict。"""
     if value is None:
         return {}
     if isinstance(value, Mapping):
@@ -585,6 +604,7 @@ def _to_dict(value: Optional[Any]) -> Dict[str, Any]:
 
 
 def _source_text(value: Any) -> Optional[str]:
+    """把来源值（枚举或字符串）规范化为去空字符串；空值返回 None。"""
     if value is None:
         return None
     enum_value = getattr(value, "value", None)
@@ -595,6 +615,7 @@ def _source_text(value: Any) -> Optional[str]:
 
 
 def _metadata_value(metadata: Dict[str, Any], *keys: str) -> Optional[str]:
+    """从 metadata 中按候选键顺序取第一个非空字符串值，全缺返回 None。"""
     for key in keys:
         value = (metadata or {}).get(key)
         if value not in (None, ""):
@@ -603,6 +624,7 @@ def _metadata_value(metadata: Dict[str, Any], *keys: str) -> Optional[str]:
 
 
 def _metadata_iso_datetime_value(metadata: Dict[str, Any], *keys: str) -> Optional[str]:
+    """从 metadata 取 ISO datetime 字符串：支持 datetime 直接转、'Z' 结尾与含 'T' 的 ISO 文本校验；非 ISO 则跳过，全缺返回 None。"""
     for key in keys:
         value = (metadata or {}).get(key)
         if value in (None, ""):
@@ -627,6 +649,7 @@ def _quote_timestamp(
     artifacts: PipelineAnalysisArtifacts,
     quote: Dict[str, Any],
 ) -> Optional[str]:
+    """解析行情时间戳：依次从 quote、artifacts.metadata 中取 provider_timestamp/quote_timestamp/fetched_at 等 ISO 字段，命中第一个即返回。"""
     return _metadata_iso_datetime_value(
         quote,
         "provider_timestamp",
@@ -651,6 +674,7 @@ def _has_explicit_quote_stale_marker(
     artifacts: PipelineAnalysisArtifacts,
     quote: Dict[str, Any],
 ) -> bool:
+    """判断行情是否显式标记为过期：检查 metadata 与 quote 中的 price_stale/quote_stale/is_stale/quote_stale_seconds 等标记。"""
     metadata = artifacts.metadata or {}
     for key in ("price_stale", "quote_stale", "is_stale"):
         if bool(metadata.get(key)) or bool(quote.get(key)):
@@ -666,6 +690,7 @@ def _quote_metadata(
     artifacts: PipelineAnalysisArtifacts,
     quote: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """收集行情相关元数据：过期标记与回落来源优先取 metadata 再回退 quote，时间戳字段用 ISO 规范化；仅保留非空项。"""
     metadata: Dict[str, Any] = {}
     for key in (
         "price_stale",
@@ -691,11 +716,13 @@ def _quote_metadata(
 
 
 def _today_dict(enhanced_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """从 enhanced_context 取 today 字段并返回 dict；非 dict 返回 None。"""
     today = (enhanced_context or {}).get("today")
     return today if isinstance(today, dict) else None
 
 
 def _today_metadata_value(enhanced_context: Dict[str, Any], *keys: str) -> Any:
+    """从 enhanced_context.today 中按候选键取第一个非空值；无 today 或未命中返回 None。"""
     today = _today_dict(enhanced_context)
     if today is None:
         return None
@@ -707,6 +734,7 @@ def _today_metadata_value(enhanced_context: Dict[str, Any], *keys: str) -> Any:
 
 
 def _has_explicit_intraday_overlay(enhanced_context: Dict[str, Any]) -> bool:
+    """判断是否为显式盘中叠加：today 含 is_partial_bar/is_estimated 标记或 estimated_fields 非空。"""
     today = _today_dict(enhanced_context)
     if today is None:
         return False
@@ -719,6 +747,7 @@ def _has_explicit_intraday_overlay(enhanced_context: Dict[str, Any]) -> bool:
 
 
 def _has_realtime_overlay(enhanced_context: Dict[str, Any]) -> bool:
+    """判断是否为实时数据叠加：today.data_source 以 'realtime:' 开头。"""
     today = _today_dict(enhanced_context)
     if today is None:
         return False
@@ -727,6 +756,7 @@ def _has_realtime_overlay(enhanced_context: Dict[str, Any]) -> bool:
 
 
 def _realtime_overlay_source(enhanced_context: Dict[str, Any]) -> Optional[str]:
+    """返回实时叠加的数据来源（today.data_source 经规范化）；无 today 或非字符串返回 None。"""
     today = _today_dict(enhanced_context)
     if today is None:
         return None
@@ -735,6 +765,7 @@ def _realtime_overlay_source(enhanced_context: Dict[str, Any]) -> Optional[str]:
 
 
 def _fundamental_status(status: str) -> ContextFieldStatus:
+    """将基本面原始 status 文本映射为 ContextFieldStatus（ok/available→AVAILABLE、not_supported→NOT_SUPPORTED、failed→FETCH_FAILED 等）。"""
     if status in {"ok", "available"}:
         return ContextFieldStatus.AVAILABLE
     if status == "not_supported":
@@ -750,6 +781,7 @@ def _fundamental_payload_status(
     block_status: ContextFieldStatus,
     has_payload: bool,
 ) -> ContextFieldStatus:
+    """决定基本面子项（coverage/source_chain）的状态：有载荷沿用块状态；无载荷时，块为 NOT_SUPPORTED/FETCH_FAILED 则沿用，否则 MISSING。"""
     if has_payload:
         return block_status
     if block_status in {
@@ -765,6 +797,7 @@ def _fundamental_payload_missing_reason(
     has_payload: bool,
     missing_reason: str,
 ) -> Optional[str]:
+    """决定基本面子项的缺失原因：failed→fundamental_pipeline_failed，not_supported→fundamentals_not_supported，有载荷→None，否则用传入的默认缺失原因。"""
     if raw_status == "failed":
         return _FUNDAMENTAL_FAILED_REASON
     if raw_status == "not_supported":
@@ -775,6 +808,7 @@ def _fundamental_payload_missing_reason(
 
 
 def _source_from_chain(source_chain: Any) -> Optional[str]:
+    """从 source_chain 列表取首个来源：元素为 dict 时取 provider/source，否则用元素本身，规范化后返回；空/非列表返回 None。"""
     if not isinstance(source_chain, list) or not source_chain:
         return None
     first = source_chain[0]

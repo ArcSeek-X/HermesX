@@ -56,6 +56,7 @@ def is_valid_strategy_signal(signal: Any) -> bool:
 
 
 def strategy_signal_score(signal: str) -> float:
+    """将策略信号映射为数值评分。"""
     scores = {
         "strong_buy": 5.0,
         "buy": 4.0,
@@ -157,6 +158,7 @@ class AgentContext:
         self.opinions.append(opinion)
 
     def add_risk_flag(self, category: str, description: str, severity: str = "medium") -> None:
+        """追加一条风险标记（类别/描述/级别）。"""
         self.risk_flags.append({
             "category": category,
             "description": description,
@@ -165,13 +167,16 @@ class AgentContext:
         })
 
     def get_data(self, key: str, default: Any = None) -> Any:
+        """从扩展数据字典中读取指定键。"""
         return self.data.get(key, default)
 
     def set_data(self, key: str, value: Any) -> None:
+        """向扩展数据字典写入指定键。"""
         self.data[key] = value
 
     @property
     def has_risk_flags(self) -> bool:
+        """返回是否存在风险标记。"""
         return len(self.risk_flags) > 0
 
 
@@ -216,6 +221,7 @@ class AgentOpinion:
 
     @confidence_input_valid.setter
     def confidence_input_valid(self, value: bool) -> None:
+        """设置置信度输入是否有效。"""
         self._confidence_input_valid = value
 
     @property
@@ -245,6 +251,7 @@ class StrategyOpinion:
     invalid_signal: bool = False
 
     def __post_init__(self) -> None:
+        """数据类后处理：执行字段规范化与校验。"""
         self.confidence = max(0.0, min(1.0, float(self.confidence)))
 
 
@@ -284,6 +291,7 @@ class StageResult:
 
     @property
     def success(self) -> bool:
+        """返回执行是否成功。"""
         return self.status == StageStatus.COMPLETED
 
 
@@ -330,6 +338,7 @@ class AgentRunStats:
         # RUNNING / PENDING are counted in total_stages but not in any sub-counter
 
     def to_dict(self) -> Dict[str, Any]:
+        """将对象转换为字典表示。"""
         return {
             "total_stages": self.total_stages,
             "completed_stages": self.completed_stages,

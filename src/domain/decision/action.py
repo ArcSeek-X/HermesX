@@ -22,6 +22,7 @@ DecisionAction = Literal["buy", "add", "hold", "reduce", "sell", "watch", "avoid
 
 
 class DecisionActionFields(TypedDict):
+    """决策动作展示字段集合。"""
     action: Optional[DecisionAction]
     action_label: Optional[str]
 
@@ -236,10 +237,12 @@ _FINANCIAL_COMPOUND_SENTINEL = "financialcompound"
 
 
 def _normalize_key(value: Any) -> str:
+    """规范化动作匹配键。"""
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
 
 
 def _mask_english_financial_compounds(text: str) -> str:
+    """屏蔽英文金融复合词避免误匹配。"""
     text = re.sub(
         r"(?<![a-z0-9_])buy\s*back(?![a-z0-9_])",
         _FINANCIAL_COMPOUND_SENTINEL,
@@ -253,6 +256,7 @@ def _mask_english_financial_compounds(text: str) -> str:
 
 
 def _word_or_substring_match(text: str, phrase: str) -> bool:
+    """按单词或子串匹配文本。"""
     if not text or not phrase:
         return False
     normalized_phrase = _normalize_key(phrase)
@@ -262,6 +266,7 @@ def _word_or_substring_match(text: str, phrase: str) -> bool:
 
 
 def _english_negated_action_matches(text: str) -> set[DecisionAction]:
+    """匹配英文否定式动作表述。"""
     matches: set[DecisionAction] = set()
     negation_prefix = (
         r"(?:not\s+(?:a\s+|an\s+|to\s+)?|"
@@ -278,11 +283,13 @@ def _english_negated_action_matches(text: str) -> set[DecisionAction]:
 
 
 def _has_english_avoided_hold_action(text: str) -> bool:
+    """判断含英文「避免持有」表述。"""
     terms = "|".join(re.escape(term) for term in _ENGLISH_AVOIDED_HOLD_ACTION_TERMS)
     return bool(re.search(rf"(?<![a-z0-9_])avoid\s+(?:{terms})(?![a-z0-9_])", text))
 
 
 def _has_english_deferred_action(text: str) -> bool:
+    """判断含英文「暂缓行动」表述。"""
     terms = "|".join(re.escape(term) for term in _ENGLISH_DEFERRED_ACTION_TERMS)
     if re.search(rf"(?<![a-z0-9_])wait(?:ing)?\s+to\s+(?:{terms})(?![a-z0-9_])", text):
         return True
@@ -295,6 +302,7 @@ def _has_english_deferred_action(text: str) -> bool:
 
 
 def _explicit_action(value: Any) -> Optional[DecisionAction]:
+    """识别文本中的显式动作。"""
     normalized = _normalize_key(value)
     if not normalized:
         return None
@@ -402,6 +410,7 @@ def build_action_fields(
 
 
 def _result_guardrail_reason(result: Any) -> Optional[str]:
+    """返回结果中的护栏原因。"""
     return extract_decision_guardrail_reason(
         {
             "guardrail_reason": getattr(result, "guardrail_reason", None),
@@ -444,6 +453,7 @@ def _display_result_kwargs(
     report_language: Optional[str] = None,
     report_type: Any = None,
 ) -> dict[str, Any]:
+    """构造展示字段的关键字参数。"""
     return {
         "operation_advice": getattr(result, "operation_advice", None),
         "explicit_action": getattr(result, "action", None),
@@ -461,6 +471,7 @@ def display_action_fields_for_result(
     report_language: Optional[str] = None,
     report_type: Any = None,
 ) -> DecisionActionFields:
+    """生成结果的展示用决策动作字段。"""
     return display_action_fields(
         **_display_result_kwargs(result, report_language=report_language, report_type=report_type)
     )

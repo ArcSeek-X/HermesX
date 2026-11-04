@@ -30,6 +30,7 @@ def set_market_data_port(port) -> None:
 
 
 def _get_market_data_port():
+    """返回当前已装配的市场数据端口单例。"""
     return _market_data_port
 
 

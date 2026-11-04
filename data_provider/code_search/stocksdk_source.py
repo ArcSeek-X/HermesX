@@ -24,6 +24,7 @@ class StockSdkCodeSearchSource(CodeSearchSource):
     source_id = "stocksdk"
 
     def search(self, query: str, limit: int = 10) -> Optional[List[CodeSearchResult]]:
+        """按关键词搜索股票代码（StockSDK 源）。"""
         client = get_stocksdk_client()
         if not client.is_available():
             return None
@@ -60,6 +61,7 @@ class StockSdkCodeSearchSource(CodeSearchSource):
 
 
 def _normalize_search_code(raw_code: str, market: str) -> str:
+    """规范化搜索用代码。"""
     upper = raw_code.upper()
     if upper.startswith(("SH", "SZ", "BJ")) and upper[2:].isdigit():
         return upper[2:]
@@ -73,6 +75,7 @@ def _normalize_search_code(raw_code: str, market: str) -> str:
 
 
 def _normalize_market(raw_market: str, code: str) -> str:
+    """规范化市场标识。"""
     market = raw_market.lower()
     if market in {"sh", "sz", "bj", "hk", "us"}:
         return market.upper()

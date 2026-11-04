@@ -21,6 +21,7 @@ class TickflowRealtimeSource(RealtimeSource):
     source_id = "tickflow"
 
     def __init__(self) -> None:
+        """构造实时行情数据源（TickFlow）。"""
         config = get_config()
         self.fetcher = (
             TickFlowFetcher(

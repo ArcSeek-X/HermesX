@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Generation backend factory."""
+"""Generation backend factory.
+
+按 backend_id 创建对应的生成后端（LiteLLM 或本地 CLI），并注入所需的可调用对象与配置。
+"""
 
 from __future__ import annotations
 

@@ -194,6 +194,7 @@ def set_provider_cache_port(port) -> None:
 
 
 def _get_generation_backend_factory_port():
+    """返回当前已装配的生成后端工厂端口。"""
     if _generation_backend_factory_port is None:  # pragma: no cover
         raise RuntimeError(
             "GenerationBackendFactoryPort 未装配：请经 configure_generation_runtime() 完成 bootstrap 装配。"
@@ -202,6 +203,7 @@ def _get_generation_backend_factory_port():
 
 
 def _get_generation_runtime_port():
+    """返回当前已装配的生成运行时端口。"""
     if _generation_runtime_port is None:  # pragma: no cover
         raise RuntimeError(
             "GenerationRuntimePort 未装配：请经 configure_generation_runtime() 完成 bootstrap 装配。"
@@ -210,6 +212,7 @@ def _get_generation_runtime_port():
 
 
 def _get_generation_usage_port():
+    """返回当前已装配的生成用量端口。"""
     if _generation_usage_port is None:  # pragma: no cover
         raise RuntimeError(
             "GenerationUsagePort 未装配：请经 configure_generation_runtime() 完成 bootstrap 装配。"
@@ -218,6 +221,7 @@ def _get_generation_usage_port():
 
 
 def _get_provider_cache_port():
+    """返回当前已装配的供应商缓存端口。"""
     if _provider_cache_port is None:  # pragma: no cover
         raise RuntimeError(
             "ProviderCachePort 未装配：请经 configure_generation_runtime() 完成 bootstrap 装配。"
@@ -254,6 +258,7 @@ def call_litellm_with_param_recovery(
 
 
 def _legacy_market_group(stock_code: Any) -> str:
+    """返回遗留配置中的市场分组。"""
     code = str(stock_code or "").strip()
     if not code or code.lower() == "unknown":
         return "unknown"
@@ -270,9 +275,11 @@ def _legacy_audit_marker_specs(
     news_context: Optional[str],
     analysis_context_pack_summary: Optional[str],
 ) -> List[Dict[str, Any]]:
+    """返回遗留审计标记规格。"""
     markers: List[Dict[str, Any]] = []
 
     def add(marker_name: str, value: Any) -> None:
+        """追加一条审核结果项。"""
         if value is None:
             return
         text = str(value).strip()
@@ -309,6 +316,7 @@ class _LiteLLMStreamError(RuntimeError):
     """Internal error wrapper that records whether any text was streamed."""
 
     def __init__(self, message: str, *, partial_received: bool = False):
+        """构造分析器并装配生成相关依赖。"""
         super().__init__(message)
         self.partial_received = partial_received
 
@@ -335,6 +343,7 @@ class _AllModelsFailedError(Exception):
         last_model: Optional[str] = None,
         last_usage: Optional[Dict[str, Any]] = None,
     ):
+        """构造分析器并装配生成相关依赖。"""
         super().__init__(message)
         self.last_response_text = last_response_text
         self.last_model = last_model
@@ -679,9 +688,11 @@ class GeminiAnalyzer:
         return self._litellm_runtime_available()
 
     def _litellm_runtime_available(self) -> bool:
+        """判断 LiteLLM 运行时是否可用。"""
         return self._router is not None or self._litellm_available
 
     def _can_use_generation_fallback(self, backend_error: GenerationError) -> bool:
+        """判断是否可启用生成后端回退。"""
         if not backend_error.fallbackable:
             return False
         try:
@@ -722,6 +733,7 @@ class GeminiAnalyzer:
         return None
 
     def _get_hermes_config_error(self, config: Config) -> Optional[GenerationError]:
+        """返回 Hermes 配置错误信息。"""
         issues = list(getattr(config, "llm_channel_config_issues", []) or [])
         if not getattr(config, "llm_blocks_legacy_fallback", False) or not issues:
             return None
@@ -776,6 +788,7 @@ class GeminiAnalyzer:
         )
 
     def _get_mixed_hermes_route_error(self, config: Config, model: str) -> Optional[GenerationError]:
+        """返回混用 Hermes 路由的配置错误。"""
         if not model:
             return None
         origins = route_deployment_origins(getattr(config, "llm_model_list", []) or [], model)
@@ -797,6 +810,7 @@ class GeminiAnalyzer:
         )
 
     def _hermes_redaction_values_for_model(self, config: Config, model: str = "") -> set[str]:
+        """收集 Hermes 异常文本需脱敏的值。"""
         redactions: set[str] = set()
         deployments = list(getattr(config, "llm_model_list", []) or [])
         selected_deployments = deployments
@@ -822,6 +836,7 @@ class GeminiAnalyzer:
         config: Optional[Config] = None,
         model: str = "",
     ) -> str:
+        """清洗 Hermes 异常文本中的敏感信息。"""
         runtime_config = config or self._get_runtime_config()
         redactions = self._hermes_redaction_values_for_model(runtime_config, model)
         if not redactions:
@@ -829,6 +844,7 @@ class GeminiAnalyzer:
         return sanitize_hermes_error_text(exc, redaction_values=redactions)
 
     def _litellm_redaction_values_for_model(self, config: Config, model: str = "") -> set[str]:
+        """收集 LiteLLM 异常文本需脱敏的值。"""
         redactions = self._hermes_redaction_values_for_model(config, model)
         try:
             redactions.update(build_hermes_redaction_values(*get_api_keys_for_model(model, config)))
@@ -848,6 +864,7 @@ class GeminiAnalyzer:
         config: Optional[Config] = None,
         model: str = "",
     ) -> str:
+        """清洗 LiteLLM 异常文本中的敏感信息。"""
         runtime_config = config or self._get_runtime_config()
         redactions = self._litellm_redaction_values_for_model(runtime_config, model)
         sanitized = sanitize_hermes_error_text(exc, redaction_values=redactions)
@@ -1269,6 +1286,7 @@ class GeminiAnalyzer:
                     usage: Dict[str, Any],
                     messages: List[Dict[str, Any]],
                 ) -> Dict[str, Any]:
+                    """附加本次生成的用量审计信息。"""
                     if audit_context is None:
                         return _get_provider_cache_port().filter_telemetry(
                             _get_generation_usage_port().attach_hmacs(usage, messages),
@@ -1504,6 +1522,7 @@ class GeminiAnalyzer:
             AnalysisResult 对象
         """
         def _emit_progress(progress: int, message: str) -> None:
+            """上报分析进度事件。"""
             if progress_callback is None:
                 return
             try:
@@ -1812,6 +1831,7 @@ class GeminiAnalyzer:
         report_language: str = "zh",
         analysis_context_pack_summary: Optional[str] = None,
     ) -> str:
+        """格式化最终提交给模型的提示词。"""
         return AnalysisPromptBuilder(self._get_runtime_config, self._get_skill_prompt_sections).format_prompt(context=context, name=name, news_context=news_context, report_language=report_language, analysis_context_pack_summary=analysis_context_pack_summary)
 
     _format_volume = staticmethod(AnalysisPromptBuilder.format_volume)
@@ -1823,6 +1843,7 @@ class GeminiAnalyzer:
     _format_price = staticmethod(AnalysisPromptBuilder.format_price)
 
     def _build_market_snapshot(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """构建大盘快照信息块。"""
         return AnalysisPromptBuilder(self._get_runtime_config, self._get_skill_prompt_sections).build_market_snapshot(context=context)
 
     def _check_content_integrity(
@@ -1835,6 +1856,7 @@ class GeminiAnalyzer:
         return check_content_integrity(result, require_phase_decision=require_phase_decision)
 
     def _build_integrity_complement_prompt(self, missing_fields: List[str], report_language: str = "zh") -> str:
+        """构建完整性补充提示词。"""
         return AnalysisPromptBuilder(self._get_runtime_config, self._get_skill_prompt_sections).build_integrity_complement_prompt(missing_fields=missing_fields, report_language=report_language)
 
     def _build_integrity_retry_prompt(
@@ -1844,6 +1866,7 @@ class GeminiAnalyzer:
         missing_fields: List[str],
         report_language: str = "zh",
     ) -> str:
+        """构建完整性重试提示词。"""
         return AnalysisPromptBuilder(self._get_runtime_config, self._get_skill_prompt_sections).build_integrity_retry_prompt(base_prompt=base_prompt, previous_response=previous_response, missing_fields=missing_fields, report_language=report_language)
 
     def _apply_placeholder_fill(self, result: AnalysisResult, missing_fields: List[str]) -> None:
@@ -1851,14 +1874,17 @@ class GeminiAnalyzer:
         apply_placeholder_fill(result, missing_fields)
 
     def _extract_analysis_json_object(self, response_text: str) -> Tuple[str, Dict[str, Any]]:
+        """从模型输出中提取分析结果 JSON 对象。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).extract_analysis_json_object(response_text=response_text)
 
     def _load_analysis_json_candidate(self, json_str: str) -> Dict[str, Any]:
+        """加载并校验候选分析 JSON。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).load_analysis_json_candidate(json_str=json_str)
 
     _contains_embedded_json_object = staticmethod(AnalysisResponseParser.contains_embedded_json_object)
 
     def _validate_analysis_minimal_contract(self, data: Dict[str, Any]) -> None:
+        """校验分析结果是否满足最小字段契约。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).validate_analysis_minimal_contract(data=data)
 
     def _generation_validation_error(
@@ -1868,6 +1894,7 @@ class GeminiAnalyzer:
         reason: str,
         message: str,
     ) -> GenerationError:
+        """构造生成结果校验错误。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).generation_validation_error(error_code=error_code, reason=reason, message=message)
 
     def _parse_response(
@@ -1876,12 +1903,15 @@ class GeminiAnalyzer:
         code: str,
         name: str
     ) -> AnalysisResult:
+        """解析模型响应为结构化结果。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).parse_response(response_text=response_text, code=code, name=name)
 
     def _fix_json_string(self, json_str: str) -> str:
+        """修复常见的 JSON 字符串格式问题。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).fix_json_string(json_str=json_str)
 
     def _validate_json_response(self, text: str) -> None:
+        """校验 JSON 响应的结构合法性。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).validate_json_response(text=text)
 
     def _parse_text_response(
@@ -1890,6 +1920,7 @@ class GeminiAnalyzer:
         code: str,
         name: str
     ) -> AnalysisResult:
+        """解析纯文本形式的模型响应。"""
         return AnalysisResponseParser(self._get_runtime_config, self._resolve_generation_backend_config).parse_text_response(response_text=response_text, code=code, name=name)
 
     def batch_analyze(

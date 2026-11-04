@@ -103,6 +103,7 @@ class _DatabaseManagerMeta(type):
     """Serialize DatabaseManager construction across __new__ and __init__."""
 
     def __call__(cls, *args, **kwargs):
+        """执行数据库迁移入口。"""
         with cls._init_lock:
             return super().__call__(*args, **kwargs)
 
@@ -229,45 +230,59 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     # ------------------------------------------------------------------
 
     def _ensure_schema_migration_record(self) -> None:
+        """确保存在 schema 迁移记录表。"""
         schema_compat.ensure_schema_migration_record(self._session)
 
     def _ensure_decision_signal_profile_schema(self) -> None:
+        """确保决策信号档案字段存在。"""
         schema_compat.ensure_decision_signal_profile_schema(self._session)
 
     def _ensure_decision_signal_profile_indexes(self) -> None:
+        """确保决策信号档案索引存在。"""
         schema_compat.ensure_decision_signal_profile_indexes(self._session)
 
     def _backfill_decision_signal_profile_from_metadata(self) -> None:
+        """从元数据回填决策信号档案。"""
         schema_compat.backfill_decision_signal_profile_from_metadata(self._session)
 
     def _ensure_intelligence_items_unique_index(self) -> None:
+        """确保情报条目唯一索引存在。"""
         schema_compat.ensure_intelligence_items_unique_index(self._session)
 
     def _rebuild_intelligence_items_table(self) -> None:
+        """重建情报条目表结构。"""
         schema_compat.rebuild_intelligence_items_table(self._session)
 
     def _ensure_intelligence_items_scoped_unique_index_once(self) -> None:
+        """确保作用域唯一索引只创建一次。"""
         schema_compat.ensure_intelligence_items_scoped_unique_index_once(self._session)
 
     def _list_sqlite_unique_indexes(self, table_name: str):
+        """列出 SQLite 表的唯一索引。"""
         return schema_compat.list_sqlite_unique_indexes(self._session, table_name)
 
     def _ensure_llm_usage_telemetry_columns(self) -> None:
+        """确保 LLM 用量遥测字段存在。"""
         schema_compat.ensure_llm_usage_telemetry_columns(self._session)
 
     def _ensure_intelligence_item_scope_values(self) -> None:
+        """确保情报条目作用域取值合法。"""
         schema_compat.ensure_intelligence_item_scope_values(self._session)
 
     def _ensure_intelligence_item_importance_column(self) -> None:
+        """确保情报条目重要性字段存在。"""
         schema_compat.ensure_intelligence_item_importance_column(self._session)
 
     def _ensure_intelligence_item_importance_indexes(self) -> None:
+        """确保情报条目重要性索引存在。"""
         schema_compat.ensure_intelligence_item_importance_indexes(self._session)
 
     def _ensure_live_news_importance_rescaled(self) -> None:
+        """确保实时新闻重要性已重标定。"""
         schema_compat.ensure_live_news_importance_rescaled(self._session)
 
     def _is_duplicate_column_error(self, exc: Exception, column: str) -> bool:
+        """判断是否为重复列错误。"""
         return schema_compat.is_duplicate_column_error(self._session, exc, column)
 
     @classmethod
@@ -994,6 +1009,7 @@ def persist_llm_usage(
 
 
 def _coerce_llm_usage_non_negative_int(value: Any) -> Optional[int]:
+    """将 LLM 用量值安全转换为非负整数。"""
     if value is None:
         return None
     if isinstance(value, bool):

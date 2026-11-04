@@ -39,6 +39,7 @@ ENTERPRISE_ID = "01"
 
 
 def _now() -> datetime:
+    """返回当前时间。"""
     return datetime.now()
 
 
@@ -60,11 +61,13 @@ class SqlAlchemyWatchlistRepository:
     """基于 SQLAlchemy 的自选股仓储实现。"""
 
     def __init__(self, db_manager: "DatabaseManager") -> None:
+        """构造自选股仓储并装配依赖。"""
         self._db = db_manager
 
     # === 分类 ===
 
     def list_groups(self) -> List[Dict[str, Any]]:
+        """列出全部分组。"""
         with self._db.get_session() as session:
             rows = session.execute(
                 select(WatchlistGroup)
@@ -92,7 +95,9 @@ class SqlAlchemyWatchlistRepository:
         sort_order: Optional[int],
         description: Optional[str],
     ) -> Dict[str, Any]:
+        """创建分组。"""
         def _write(session: Session) -> Dict[str, Any]:
+            """在会话内写入自选股数据。"""
             existing = session.execute(
                 select(WatchlistGroup.id).where(WatchlistGroup.name == name)
             ).first()
@@ -136,7 +141,9 @@ class SqlAlchemyWatchlistRepository:
         description: Optional[str],
         sort_order: Optional[int],
     ) -> Dict[str, Any]:
+        """更新分组。"""
         def _write(session: Session) -> Dict[str, Any]:
+            """在会话内写入自选股数据。"""
             group = session.execute(
                 select(WatchlistGroup).where(
                     WatchlistGroup.group_code == group_code,
@@ -171,7 +178,9 @@ class SqlAlchemyWatchlistRepository:
         return self._db._run_write_transaction("watchlist.update_group", _write)
 
     def delete_group(self, group_code: str) -> None:
+        """删除分组。"""
         def _write(session: Session) -> None:
+            """在会话内写入自选股数据。"""
             group = session.execute(
                 select(WatchlistGroup).where(
                     WatchlistGroup.group_code == group_code,
@@ -202,6 +211,7 @@ class SqlAlchemyWatchlistRepository:
         offset: int,
         limit: int,
     ) -> Tuple[List[Dict[str, Any]], int]:
+        """列出分组内的自选股条目。"""
         with self._db.get_session() as session:
             group = session.get(WatchlistGroup, group_id)
             if group is None:
@@ -235,7 +245,9 @@ class SqlAlchemyWatchlistRepository:
         stock_name: Optional[str],
         description: Optional[str],
     ) -> Dict[str, Any]:
+        """新增自选股条目。"""
         def _write(session: Session) -> Dict[str, Any]:
+            """在会话内写入自选股数据。"""
             group = session.get(WatchlistGroup, group_id)
             if group is None:
                 raise WatchlistNotFoundError("分类不存在", error_code="not_found")
@@ -276,7 +288,9 @@ class SqlAlchemyWatchlistRepository:
         stock_name: Optional[str],
         description: Optional[str],
     ) -> Dict[str, Any]:
+        """更新自选股条目。"""
         def _write(session: Session) -> Dict[str, Any]:
+            """在会话内写入自选股数据。"""
             item = session.get(WatchlistItem, item_id)
             if item is None:
                 raise WatchlistNotFoundError("自选股不存在", error_code="not_found")
@@ -292,7 +306,9 @@ class SqlAlchemyWatchlistRepository:
         return self._db._run_write_transaction("watchlist.update_item", _write)
 
     def delete_item(self, item_id: int) -> None:
+        """删除自选股条目。"""
         def _write(session: Session) -> None:
+            """在会话内写入自选股数据。"""
             item = session.get(WatchlistItem, item_id)
             if item is None:
                 raise WatchlistNotFoundError("自选股不存在", error_code="not_found")
@@ -307,7 +323,9 @@ class SqlAlchemyWatchlistRepository:
         item_id: int,
         target_group_id: int,
     ) -> Dict[str, Any]:
+        """移动自选股条目到其他分组。"""
         def _write(session: Session) -> Dict[str, Any]:
+            """在会话内写入自选股数据。"""
             item = session.get(WatchlistItem, item_id)
             if item is None:
                 raise WatchlistNotFoundError("自选股不存在", error_code="not_found")

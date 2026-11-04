@@ -34,6 +34,7 @@ ANALYZE_STEP_NAME = "执行股票分析"
 
 @dataclass(frozen=True)
 class EnvTableRow:
+    """环境变量表格行的数据结构。"""
     key: str
     tier: str
     channels: tuple[str, ...]
@@ -57,6 +58,7 @@ def load_daily_analysis_env(workflow_path: Path = WORKFLOW_PATH) -> dict[str, st
 
 
 def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
+    """按首次出现顺序去重。"""
     seen: set[str] = set()
     ordered: list[str] = []
     for value in values:
@@ -68,6 +70,7 @@ def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
 
 
 def _key_metadata() -> dict[str, tuple[str, tuple[str, ...]]]:
+    """返回配置键的元信息。"""
     grouped: dict[str, dict[str, list[str]]] = {}
     for spec in KEY_SPECS:
         entry = grouped.setdefault(spec.key, {"tiers": [], "channels": []})
@@ -84,6 +87,7 @@ def _key_metadata() -> dict[str, tuple[str, tuple[str, ...]]]:
 
 
 def _extract_default(expression: str) -> str:
+    """提取配置键的默认值。"""
     matches = re.findall(r"\|\|\s*'([^']*)'", expression)
     if not matches:
         return "-"
@@ -105,6 +109,7 @@ def classify_actions_source(expression: str, key: str) -> str:
 
 
 def _markdown_cell(value: str) -> str:
+    """构造 Markdown 表格单元格。"""
     return value.replace("|", "\\|").replace("\n", " ").strip()
 
 
@@ -156,10 +161,12 @@ def render_markdown_table(rows: Iterable[EnvTableRow]) -> str:
 
 
 def normalize_markdown_block(content: str) -> str:
+    """规范化 Markdown 托管块文本。"""
     return "\n".join(line.rstrip() for line in content.strip().splitlines())
 
 
 def extract_managed_block(markdown: str) -> str:
+    """提取 Markdown 中的托管块。"""
     start = markdown.find(TABLE_START)
     end = markdown.find(TABLE_END)
     if start == -1 or end == -1 or end < start:
@@ -171,6 +178,7 @@ def extract_managed_block(markdown: str) -> str:
 
 
 def replace_managed_block(markdown: str, table: str) -> str:
+    """替换 Markdown 中的托管块。"""
     start = markdown.find(TABLE_START)
     end = markdown.find(TABLE_END)
     if start == -1 or end == -1 or end < start:
@@ -183,6 +191,7 @@ def replace_managed_block(markdown: str, table: str) -> str:
 
 
 def validate_required_mappings(env: dict[str, str]) -> None:
+    """校验必需的变量映射是否齐全。"""
     required = (
         set(P0_ACTIONS_ENV_KEYS)
         | set(P3_ROUTE_ENV_KEYS)
@@ -198,12 +207,14 @@ def validate_required_mappings(env: dict[str, str]) -> None:
 
 
 def generate_table() -> str:
+    """生成环境变量说明表格。"""
     env = load_daily_analysis_env()
     validate_required_mappings(env)
     return render_markdown_table(build_notification_actions_env_rows(env))
 
 
 def main(argv: list[str] | None = None) -> int:
+    """脚本入口。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="Update docs/notifications.md in place")
     parser.add_argument("--check", action="store_true", help="Fail if docs/notifications.md is stale")

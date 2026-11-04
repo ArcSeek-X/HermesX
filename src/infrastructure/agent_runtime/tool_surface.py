@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Internal HRS Tool Surface for future external Agent runtimes."""
+"""Internal HRS Tool Surface for future external Agent runtimes.
+
+面向未来外部 Agent 运行时的内部工具面：校验参数与作用域契约、执行工具调用并施加
+取消/超时控制，对结果做字节截断与密钥脱敏，最后生成可对外披露的低敏感度载荷与审计记录。
+"""
 
 from __future__ import annotations
 
@@ -47,6 +51,7 @@ class ToolSurface:
     """
 
     def __init__(self, registry: ToolRegistry) -> None:
+        """构造工具面：持有工具注册表。"""
         self._registry = registry
 
     @classmethod
@@ -279,6 +284,7 @@ class ToolSurface:
         result_text: Optional[str] = None,
         arguments: Any = None,
     ) -> Dict[str, Any]:
+        """构造统一的工具错误结果：含耗时、脱敏文本、错误码/可重试标记与审计信息。"""
         duration = time.time() - started_at
         safe_text = result_text or json.dumps(
             {"error": message, "code": code, "retriable": retriable},
@@ -320,6 +326,7 @@ def _execute_with_control(
     arguments: Dict[str, Any],
     context: ToolAccessContext,
 ) -> Any:
+    """在绑定执行上下文后调用工具，并在执行前检查取消/截止时间，结束后重置上下文。"""
     token = bind_tool_execution_context(context)
     try:
         check_tool_execution()
@@ -331,6 +338,7 @@ def _execute_with_control(
 
 
 def _validate_arguments(tool_def: ToolDefinition, arguments: Any) -> Optional[str]:
+    """校验调用参数：必须是对象、必填项齐全且类型/枚举合法；返回错误说明或 None。"""
     if not isinstance(arguments, dict):
         return "arguments must be an object"
 
@@ -355,14 +363,17 @@ def _validate_arguments(tool_def: ToolDefinition, arguments: Any) -> Optional[st
 
 
 def _handler_accepts_extra_kwargs(tool_def: ToolDefinition) -> bool:
+    """判断工具处理函数是否接受额外的上下文关键字参数。"""
     return tool_def.accepts_extra_arguments()
 
 
 def _requires_stock_scope(tool_def: ToolDefinition) -> bool:
+    """判断工具策略是否声明了股票作用域约束。"""
     return "stock" in tool_def.policy.scope_dimensions
 
 
 def _validate_scope_contract(tool_def: ToolDefinition) -> Optional[Dict[str, Any]]:
+    """校验工具的作用域契约是否与参数声明一致；不一致时返回结构化错误载荷。"""
     dimensions = list(tool_def.policy.scope_dimensions)
     has_stock_param = any(param.name == "stock_code" for param in tool_def.parameters)
     declares_stock_scope = "stock" in dimensions
@@ -400,6 +411,7 @@ def _validate_scope_contract(tool_def: ToolDefinition) -> Optional[Dict[str, Any
 
 
 def _validate_parameter_value(param: ToolParameter, value: Any) -> Optional[str]:
+    """校验单个参数值（非空、枚举、类型等）；返回错误说明或 None。"""
     if value is None:
         return f"argument {param.name} must not be null"
     if param.enum and value not in param.enum:
@@ -421,6 +433,7 @@ def _validate_parameter_value(param: ToolParameter, value: Any) -> Optional[str]
 
 
 def _truncate_text_bytes(text: str, max_bytes: int) -> tuple[str, bool]:
+    """按 UTF-8 字节数截断文本且不切坏字符，返回 (截断后文本, 是否发生截断)。"""
     raw = text.encode("utf-8")
     if len(raw) <= max_bytes:
         return text, False
@@ -435,6 +448,7 @@ def _truncate_text_bytes(text: str, max_bytes: int) -> tuple[str, bool]:
 
 
 def _public_payload_from_result_text(result_text: str) -> Any:
+    """将结果文本解析为 JSON 对象作为公开载荷；解析失败时返回原始文本。"""
     try:
         return json.loads(result_text)
     except (TypeError, ValueError, json.JSONDecodeError):

@@ -23,10 +23,12 @@ KNOWN_AUTHOR_LOGINS = {
 
 
 def _run_git(*args: str) -> str:
+    """执行 git 命令并返回输出。"""
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True, encoding="utf-8").strip()
 
 
 def _section_for(version: str) -> str:
+    """返回提交所属的发版说明章节。"""
     text = CHANGELOG.read_text(encoding="utf-8")
     pattern = re.compile(rf"^## \[{re.escape(version)}\].*?$", re.MULTILINE)
     match = pattern.search(text)
@@ -38,6 +40,7 @@ def _section_for(version: str) -> str:
 
 
 def _highlights(section: str) -> list[str]:
+    """提取本次发版亮点。"""
     release_highlights = re.search(
         r"^### 发布亮点\s*(.*?)(?=^### |\Z)",
         section,
@@ -58,6 +61,7 @@ def _highlights(section: str) -> list[str]:
 
 
 def _previous_tag(tag: str) -> str:
+    """返回上一个版本 tag。"""
     tags = _run_git("tag", "--sort=-v:refname").splitlines()
     semver_tags = [t for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t)]
     for current, previous in zip(semver_tags, semver_tags[1:]):
@@ -67,18 +71,21 @@ def _previous_tag(tag: str) -> str:
 
 
 def _commit_subjects(previous_tag: str, tag: str) -> list[str]:
+    """列出区间内的提交标题。"""
     rev_range = f"{previous_tag}..{tag}" if previous_tag else tag
     output = _run_git("log", "--format=%s", rev_range)
     return [line for line in output.splitlines() if line.strip()]
 
 
 def _commit_authors(previous_tag: str, tag: str) -> list[str]:
+    """列出区间内的提交作者。"""
     rev_range = f"{previous_tag}..{tag}" if previous_tag else tag
     output = _run_git("log", "--format=%an <%ae>", rev_range)
     return [line for line in output.splitlines() if line.strip()]
 
 
 def _github_login_from_pr(repo: str, token: str, pr_number: str) -> str | None:
+    """从 PR 信息提取 GitHub 登录名。"""
     if not token:
         return None
 
@@ -131,6 +138,7 @@ def _github_login_from_pr(repo: str, token: str, pr_number: str) -> str | None:
 
 
 def _fallback_login(author: str) -> str | None:
+    """返回回退的贡献者标识。"""
     for key, login in KNOWN_AUTHOR_LOGINS.items():
         if key in author:
             return login
@@ -144,6 +152,7 @@ def _fallback_login(author: str) -> str | None:
 
 
 def _contributors(previous_tag: str, tag: str) -> list[str]:
+    """汇总贡献者列表。"""
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     token = os.environ.get("GITHUB_TOKEN", "")
     logins: list[str] = []
@@ -164,6 +173,7 @@ def _contributors(previous_tag: str, tag: str) -> list[str]:
 
 
 def build(tag: str) -> str:
+    """构建发版说明文本。"""
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
         raise SystemExit(f"Unsupported release tag: {tag}")
     version = tag[1:]
@@ -197,6 +207,7 @@ def build(tag: str) -> str:
 
 
 def main() -> None:
+    """脚本入口。"""
     tag = os.environ.get("RELEASE_TAG") or os.environ.get("GITHUB_REF_NAME") or ""
     body = build(tag)
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/release_body.md")

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""DecisionSignal feedback, forward outcome, and stats service."""
+"""DecisionSignal feedback, forward outcome, and stats service.
+
+决策信号（DecisionSignal）的「结果回测 / 统计 / 反馈」服务。
+负责按 horizon 评估信号的前向收益结果（命中 hit / 落空 miss / 中性 neutral / 无法评估 unable），
+提供分页查询、聚合统计与多维度拆解、profile 校准，以及用户反馈的写入与读取。
+"""
 
 from __future__ import annotations
 
@@ -88,6 +93,7 @@ class DecisionSignalOutcomeService:
         stock_repo: Optional[StockRepositoryPort] = None,
         db_manager: Optional[Any] = None,
     ):
+        """依赖组装：未显式传入时按 db_manager 惰性获取各仓储实现。"""
         self.repo = repo or get_decision_signal_outcome_repository(db_manager)
         self.signal_repo = signal_repo or get_decision_signal_repository(db_manager)
         self.stock_repo = stock_repo or get_stock_repository(db_manager)
@@ -105,6 +111,7 @@ class DecisionSignalOutcomeService:
         status: Optional[str] = None,
         limit: int = 100,
     ) -> Dict[str, Any]:
+        """运行结果评估：对候选信号按 horizon 计算前向收益，upsert 结果行，返回新建/更新/跳过统计与序列化列表。"""
         signal_id_norm = self._optional_positive_int(signal_id, "signal_id")
         market_norm = DecisionSignalService.normalize_optional_market(market)
         action_norm = DecisionSignalService.normalize_optional_action(action)
@@ -186,6 +193,7 @@ class DecisionSignalOutcomeService:
         requested_horizons: Optional[List[str]],
         limit: int,
     ) -> List[DecisionSignalRow]:
+        """分页扫描候选信号：优先选『缺结果』者填满 limit，不足时补『可重试(unable 且原因可重试)』者。"""
         selected: List[DecisionSignalRow] = []
         selected_ids = set()
         retryable_reserve: List[Tuple[datetime, int, DecisionSignalRow]] = []
@@ -255,6 +263,7 @@ class DecisionSignalOutcomeService:
         requested_horizons: Optional[List[str]],
         outcomes_by_key: Dict[Tuple[int, str], DecisionSignalOutcomeRow],
     ) -> Tuple[Optional[str], Optional[datetime]]:
+        """判断单个信号相对请求 horizon 的『动作性』：缺结果→('missing',None)，可重试→('retryable',最早重试时间)，否则 (None,None)。"""
         retryable_times: List[datetime] = []
         signal_id = int(signal.id)
         for horizon in self._horizons_for_signal(signal, requested_horizons):
@@ -269,10 +278,12 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _outcome_retryable_sort_time(row: DecisionSignalOutcomeRow) -> datetime:
+        """返回结果行的重试排序时间（updated_at 优先，回退 created_at，再回退 datetime.min）。"""
         return row.updated_at or row.created_at or datetime.min
 
     @staticmethod
     def _should_recompute_outcome(row: DecisionSignalOutcomeRow) -> bool:
+        """判断结果是否应重算：仅当 eval_status=unable 且 unable_reason 属于可重试集合时为真。"""
         return row.eval_status == "unable" and row.unable_reason in RETRYABLE_UNABLE_REASONS
 
     def list_outcomes(
@@ -286,6 +297,7 @@ class DecisionSignalOutcomeService:
         page: int = 1,
         page_size: int = 20,
     ) -> Dict[str, Any]:
+        """分页查询信号结果，支持 horizon/eval_status/outcome 过滤，返回 items 与分页信息。"""
         signal_id_norm = self._optional_positive_int(signal_id, "signal_id")
         horizon_norm = self._normalize_optional_enum(horizon, HORIZONS, "horizon")
         engine_version_norm = str(engine_version or DECISION_SIGNAL_OUTCOME_ENGINE_VERSION).strip()
@@ -310,6 +322,7 @@ class DecisionSignalOutcomeService:
         }
 
     def list_signal_outcomes(self, signal_id: int) -> Dict[str, Any]:
+        """便捷封装：按 signal_id 拉取该信号在所有 horizon 上的结果（单页最多 100 条）。"""
         signal_id_norm = self._require_existing_signal(signal_id).id
         return self.list_outcomes(
             signal_id=signal_id_norm,
@@ -325,6 +338,7 @@ class DecisionSignalOutcomeService:
         engine_version: Optional[str] = None,
         statuses: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
+        """聚合统计：计算总命中率/收益率，并按 action/market/来源/质量等多维度拆解，附 profile 校准明细。"""
         engine_version_norm = str(engine_version or DECISION_SIGNAL_OUTCOME_ENGINE_VERSION).strip()
         horizons_norm = self._normalize_horizons(horizons)
         statuses_norm = (
@@ -362,6 +376,7 @@ class DecisionSignalOutcomeService:
         }
 
     def get_feedback(self, signal_id: int) -> Dict[str, Any]:
+        """读取某信号的用户反馈；无反馈则返回全部字段为 None 的占位结构。"""
         signal = self._require_existing_signal(signal_id)
         row = self.repo.get_feedback(signal_id=signal.id)
         if row is None:
@@ -385,6 +400,7 @@ class DecisionSignalOutcomeService:
         note: Optional[str] = None,
         source: str = "api",
     ) -> Dict[str, Any]:
+        """写入/更新某信号的用户反馈（值/原因码/备注/来源），做枚举与长度校验并对文本脱敏。"""
         signal = self._require_existing_signal(signal_id)
         fields = {
             "signal_id": signal.id,
@@ -397,6 +413,7 @@ class DecisionSignalOutcomeService:
         return self._serialize_feedback(row)
 
     def _evaluate_signal_horizon(self, signal: DecisionSignalRow, horizon: str) -> Dict[str, Any]:
+        """对单信号单 horizon 做前向收益评估：解析方向、锚定日期与起始价，调用回测引擎；任一前置条件缺失则返回 unable 字段。"""
         base = self._snapshot_fields(signal, horizon)
         direction = self._direction_for_action(signal.action)
         if direction is None:
@@ -464,6 +481,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _direction_for_action(action: Optional[str]) -> Optional[str]:
+        """将动作映射为预期方向：buy/add→up，hold→not_down，reduce/sell/avoid→not_up，其它返回 None。"""
         if action in {"buy", "add"}:
             return "up"
         if action == "hold":
@@ -473,6 +491,7 @@ class DecisionSignalOutcomeService:
         return None
 
     def _snapshot_fields(self, signal: DecisionSignalRow, horizon: str) -> Dict[str, Any]:
+        """截取信号快照字段（动作/市场/相位/来源/质量/持仓等），供结果行落库与统计拆解。"""
         data_quality_level = self._data_quality_level(signal)
         holding_state = self._holding_state(signal)
         return {
@@ -499,6 +518,7 @@ class DecisionSignalOutcomeService:
         eval_window_days: Optional[int] = None,
         start_price: Optional[float] = None,
     ) -> Dict[str, Any]:
+        """构造 eval_status='unable' 的结果字段：在基准快照上填充无法评估原因与已探明的上下文。"""
         return {
             **base,
             "eval_status": "unable",
@@ -516,6 +536,7 @@ class DecisionSignalOutcomeService:
         }
 
     def _anchor_date(self, signal: DecisionSignalRow) -> Optional[date]:
+        """解析评估锚定日：优先用 metadata 中 market_phase_summary.session_date，回退到信号创建日。"""
         metadata = self._json_loads(signal.metadata_json)
         if isinstance(metadata, dict):
             summary = metadata.get("market_phase_summary")
@@ -526,6 +547,7 @@ class DecisionSignalOutcomeService:
         return self._parse_date(signal.created_at)
 
     def _data_quality_level(self, signal: DecisionSignalRow) -> str:
+        """从 data_quality_summary 或 metadata 推导数据质量等级，无效/缺失时返回 'unknown'。"""
         raw_summary = signal.data_quality_summary_json
         if raw_summary and raw_summary.strip():
             try:
@@ -543,6 +565,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _explicit_data_quality_level(value: Any) -> Optional[Any]:
+        """从 data_quality 对象提取显式质量等级（level/quality_level 或嵌套 data_quality.level）。"""
         if isinstance(value, dict):
             for key in ("level", "quality_level"):
                 level = value.get(key)
@@ -557,6 +580,7 @@ class DecisionSignalOutcomeService:
         return None
 
     def _holding_state(self, signal: DecisionSignalRow) -> str:
+        """从 metadata.holding_state 读取持仓状态，不在已知集合内时返回 'unknown'。"""
         metadata = self._json_loads(signal.metadata_json)
         if isinstance(metadata, dict):
             value = str(metadata.get("holding_state") or "").strip().lower()
@@ -566,11 +590,13 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _short_label(value: Any) -> str:
+        """将质量等级值截断为 24 字符小写标签，空值回退 'unknown'。"""
         text = str(value or "").strip().lower()
         return text[:24] or "unknown"
 
     @staticmethod
     def _json_loads(value: Optional[str]) -> Any:
+        """安全解析 JSON 字符串：空值或解析失败返回 None（仅记日志不抛异常）。"""
         if not value:
             return None
         try:
@@ -581,6 +607,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _parse_date(value: Any) -> Optional[date]:
+        """将 datetime/date/ISO 日期字符串解析为 date；空或非法返回 None。"""
         if value in (None, ""):
             return None
         if isinstance(value, datetime):
@@ -599,6 +626,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _is_positive_finite(value: Any) -> bool:
+        """判断值是否为有限正数（>0 且非 NaN/Inf）。"""
         try:
             number = float(value)
         except (TypeError, ValueError):
@@ -606,6 +634,7 @@ class DecisionSignalOutcomeService:
         return math.isfinite(number) and number > 0
 
     def _horizons_for_signal(self, signal: DecisionSignalRow, requested: Optional[List[str]]) -> List[str]:
+        """确定要评估的 horizon 列表：优先请求值，其次信号自带 horizon，回退全部支持的 horizon。"""
         if requested:
             return requested
         horizon = str(signal.horizon or "").strip()
@@ -614,6 +643,7 @@ class DecisionSignalOutcomeService:
         return list(SUPPORTED_OUTCOME_HORIZONS.keys())
 
     def _require_existing_signal(self, signal_id: int) -> DecisionSignalRow:
+        """校验 signal_id 并加载信号行，不存在则抛 DecisionSignalNotFoundError。"""
         signal_id_norm = self._optional_positive_int(signal_id, "signal_id")
         row = self.signal_repo.get(signal_id_norm)
         if row is None:
@@ -622,6 +652,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _optional_positive_int(value: Any, field_name: str) -> Optional[int]:
+        """将可选值转为正整数；空值返回 None，非整数或非正抛 ValueError。"""
         if value in (None, ""):
             return None
         try:
@@ -634,6 +665,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _normalize_enum(value: Any, allowed: Iterable[str], field_name: str) -> str:
+        """将值规范化为允许的枚举字符串；不在集合内则抛 ValueError。"""
         text = str(value or "").strip()
         allowed_set = set(allowed)
         if text not in allowed_set:
@@ -643,11 +675,13 @@ class DecisionSignalOutcomeService:
 
     @classmethod
     def _normalize_optional_enum(cls, value: Any, allowed: Iterable[str], field_name: str) -> Optional[str]:
+        """可选枚举规范化：空值返回 None，否则委托 _normalize_enum。"""
         if value in (None, ""):
             return None
         return cls._normalize_enum(value, allowed, field_name)
 
     def _normalize_horizons(self, values: Optional[List[str]]) -> Optional[List[str]]:
+        """将 horizon 列表规范化为去重的合法枚举列表；空输入返回 None。"""
         if not values:
             return None
         out: List[str] = []
@@ -659,6 +693,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _optional_public_text(value: Any, field_name: str, *, max_length: int) -> Optional[str]:
+        """可选公开文本：脱敏后非空且不超过 max_length 才返回，否则返回 None 或抛长度错误。"""
         if value in (None, ""):
             return None
         text = sanitize_decision_signal_text(value)
@@ -670,6 +705,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _serialize_outcome(row: DecisionSignalOutcomeRow) -> Dict[str, Any]:
+        """将结果行序列化为 API 友好字典（日期/时间转 ISO 字符串）。"""
         return {
             "id": row.id,
             "signal_id": row.signal_id,
@@ -701,6 +737,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _serialize_feedback(row: DecisionSignalFeedbackRow) -> Dict[str, Any]:
+        """将反馈行序列化为 API 友好字典（时间转 ISO 字符串）。"""
         return {
             "signal_id": row.signal_id,
             "feedback_value": row.feedback_value,
@@ -712,6 +749,7 @@ class DecisionSignalOutcomeService:
         }
 
     def _profile_calibration(self, stats_rows: List[OutcomeStatsRow]) -> Dict[str, Any]:
+        """构建 profile 校准数据：按多个维度拆解样本并聚合，给出最小样本量与各维度明细。"""
         samples: List[Dict[str, Any]] = []
         for stats_row in stats_rows:
             outcome = stats_row.outcome
@@ -738,6 +776,7 @@ class DecisionSignalOutcomeService:
         samples: List[Dict[str, Any]],
         dimensions: Tuple[str, ...],
     ) -> List[Dict[str, Any]]:
+        """按给定维度组合对样本分组并聚合，输出按样本量降序排列的校准明细。"""
         grouped: Dict[Tuple[str, ...], List[DecisionSignalOutcomeRow]] = defaultdict(list)
         for sample in samples:
             key = tuple(str(sample.get(dimension) or "unknown") for dimension in dimensions)
@@ -762,6 +801,7 @@ class DecisionSignalOutcomeService:
         self,
         rows: List[DecisionSignalOutcomeRow],
     ) -> Dict[str, Any]:
+        """对一组结果行做校准聚合：在基础聚合上补充样本是否充足、命中率/收益率/最大不利偏移等（不足则置 None）。"""
         aggregate = self._aggregate(rows)
         sample_sufficient = int(aggregate["completed"]) >= MIN_PROFILE_CALIBRATION_SAMPLE_SIZE
         direction_denominator = int(aggregate["hit"]) + int(aggregate["miss"])
@@ -802,6 +842,7 @@ class DecisionSignalOutcomeService:
         cls,
         row: DecisionSignalOutcomeRow,
     ) -> Optional[float]:
+        """计算单条结果的最大不利偏移百分比：多头看 min_low 跌幅，空头看 max_high 涨幅；前置价缺失则返回 None。"""
         if not cls._is_positive_finite(row.start_price):
             return None
         start_price = float(row.start_price)
@@ -817,10 +858,12 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _profile_dimension(value: Any) -> str:
+        """将值规范化为合法的决策 profile 维度标签，非法值回退 'unknown'。"""
         profile = str(value or "").strip().lower()
         return profile if profile in VALID_DECISION_PROFILES else "unknown"
 
     def _profile_source(self, metadata_json: Optional[str]) -> str:
+        """从 metadata.profile_source 读取 profile 来源，不在已知集合内时返回 'unknown'。"""
         metadata = self._json_loads(metadata_json)
         if not isinstance(metadata, dict):
             return "unknown"
@@ -828,6 +871,7 @@ class DecisionSignalOutcomeService:
         return profile_source if profile_source in PROFILE_SOURCES else "unknown"
 
     def _breakdown(self, rows: List[DecisionSignalOutcomeRow], dimension: str) -> List[Dict[str, Any]]:
+        """按单一维度对结果行分组并聚合，返回按总量降序排列的拆解明细。"""
         grouped: Dict[str, List[DecisionSignalOutcomeRow]] = defaultdict(list)
         for row in rows:
             value = getattr(row, dimension, None)
@@ -845,6 +889,7 @@ class DecisionSignalOutcomeService:
 
     @staticmethod
     def _aggregate(rows: List[DecisionSignalOutcomeRow]) -> Dict[str, Any]:
+        """对结果行做基础聚合：总量/完成数/无法评估数/命中/落空/中性，以及命中率与平均收益率、无法评估原因分布。"""
         total = len(rows)
         completed = [row for row in rows if row.eval_status == "completed"]
         unable = [row for row in rows if row.eval_status == "unable"]

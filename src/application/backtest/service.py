@@ -53,6 +53,7 @@ class BacktestService:
         # 回测/日线仓储与日线补数端口均由装配口（src.bootstrap.backtest.build_backtest_service）
         # 显式注入；application 层只依赖 ports.py 声明的端口，不直接 import
         # src.repositories / src.storage / src.infrastructure。
+        """构造回测服务并装配依赖。"""
         self.repo = backtest_repository
         self.stock_repo = stock_repository
         self.daily_refill = daily_refill
@@ -68,6 +69,7 @@ class BacktestService:
         analysis_date_to: Optional[date] = None,
         limit: int = 200,
     ) -> Dict[str, Any]:
+        """执行信号回测并返回结果。"""
         config = get_config()
 
         if analysis_date_from and analysis_date_to and analysis_date_from > analysis_date_to:
@@ -338,6 +340,7 @@ class BacktestService:
         analysis_date_from: Optional[date],
         analysis_date_to: Optional[date],
     ) -> List[Any]:
+        """获取待回测的分析记录候选。"""
         if limit <= 0:
             return []
 
@@ -424,6 +427,7 @@ class BacktestService:
         analysis_date_from: Optional[date],
         analysis_date_to: Optional[date],
     ) -> List[Any]:
+        """按分析日期过滤候选记录。"""
         if analysis_date_from is None and analysis_date_to is None:
             return candidates
 
@@ -441,6 +445,7 @@ class BacktestService:
 
     @staticmethod
     def _normalize_code(code: Optional[str]) -> Optional[str]:
+        """规范化股票代码用于查询。"""
         if not code:
             return None
 
@@ -451,6 +456,7 @@ class BacktestService:
 
     @classmethod
     def _normalize_code_for_display(cls, code: Optional[str]) -> Optional[str]:
+        """规范化股票代码用于展示。"""
         return cls._normalize_code(code)
 
     @staticmethod
@@ -470,6 +476,7 @@ class BacktestService:
         has_matching_analysis: bool = False,
         aligned_existing_result_dates: int = 0,
     ) -> Dict[str, Any]:
+        """构造回测运行诊断信息。"""
         diagnostics: Dict[str, Any] = {
             "code": code,
             "eval_window_days": eval_window_days,
@@ -514,6 +521,7 @@ class BacktestService:
         analysis_date_to: Optional[date] = None,
         analysis_phase: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """获取最近的信号评估记录。"""
         config = get_config()
         engine_version = str(getattr(config, "backtest_engine_version", "v1"))
         code = self._normalize_code(code)
@@ -576,6 +584,7 @@ class BacktestService:
         analysis_date_to: Optional[date] = None,
         analysis_phase: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
+        """获取回测汇总统计。"""
         config = get_config()
         engine_version = str(getattr(config, "backtest_engine_version", "v1"))
         code = self._normalize_code(code)
@@ -700,6 +709,7 @@ class BacktestService:
         analysis_date_from: Optional[date],
         analysis_date_to: Optional[date],
     ) -> Optional[int]:
+        """推断查询使用的评估窗口。"""
         windows = self.repo.get_distinct_eval_windows(
             code=code,
             engine_version=engine_version,
@@ -720,6 +730,7 @@ class BacktestService:
         analysis_date_to: Optional[date],
         phase_bucket: str,
     ) -> Dict[str, Any]:
+        """按大盘阶段分组获取近期评估记录。"""
         page_offset = max(page - 1, 0) * limit
         batch_size = max(100, min(500, limit * 4))
         sql_offset = 0
@@ -796,6 +807,7 @@ class BacktestService:
 
     @staticmethod
     def _normalize_phase_filter(value: Optional[str]) -> Optional[str]:
+        """规范化阶段筛选条件。"""
         if value is None:
             return None
         text = str(value or "").strip().lower()
@@ -808,16 +820,19 @@ class BacktestService:
 
     @staticmethod
     def _phase_bucket_from_summary(summary: Optional[Dict[str, Any]]) -> str:
+        """从摘要中提取阶段分桶。"""
         if not isinstance(summary, dict):
             return "unknown"
         return normalize_analysis_phase_bucket(summary.get("phase"))
 
     @classmethod
     def _phase_bucket_from_snapshot(cls, context_snapshot: Optional[str]) -> str:
+        """从快照中提取阶段分桶。"""
         return cls._phase_bucket_from_summary(extract_market_phase_summary(context_snapshot))
 
     @classmethod
     def _phase_counts_from_contexts(cls, snapshots: List[Optional[str]]) -> Dict[str, Dict[str, int]]:
+        """统计各阶段在上下文中的出现次数。"""
         phase_breakdown = {"premarket": 0, "intraday": 0, "postmarket": 0, "unknown": 0}
         raw_phase_counts: Dict[str, int] = {}
         for snapshot in snapshots:
@@ -829,6 +844,7 @@ class BacktestService:
         return {"phase_breakdown": phase_breakdown, "raw_phase_counts": raw_phase_counts}
 
     def _resolve_analysis_date(self, analysis) -> Optional[date]:
+        """解析分析日期。"""
         parsed = self.repo.parse_analysis_date_from_snapshot(analysis.context_snapshot)
         if parsed:
             return parsed
@@ -838,6 +854,7 @@ class BacktestService:
         return None
 
     def _try_fill_daily_data(self, *, code: str, analysis_date: date, eval_window_days: int) -> None:
+        """尝试补齐缺失的日线数据。"""
         refill_code = str(code or "").strip()
         if not refill_code:
             return
@@ -856,6 +873,7 @@ class BacktestService:
 
     def _recompute_summaries(self, *, touched_codes: List[str], eval_window_days: int, engine_version: str) -> None:
         # overall
+        """重新计算汇总统计。"""
         overall_rows = self.repo.list_results_for_recompute(
             code=None,
             eval_window_days=eval_window_days,
@@ -893,6 +911,7 @@ class BacktestService:
 
     @staticmethod
     def _build_summary_model(summary_data: Dict[str, Any]) -> BacktestSummaryRecord:
+        """构造汇总模型对象。"""
         return BacktestSummaryRecord(
             scope=summary_data.get("scope"),
             code=summary_data.get("code"),
@@ -932,6 +951,7 @@ class BacktestService:
         report_type: Optional[str] = None,
         analysis_sentiment_score: Optional[int] = None,
     ) -> Dict[str, Any]:
+        """将回测结果转换为字典。"""
         parsed_raw_result = parse_json_field(raw_result)
         raw = parsed_raw_result if isinstance(parsed_raw_result, dict) else {}
         action_fields = build_action_fields(
@@ -988,6 +1008,7 @@ class BacktestService:
 
     @staticmethod
     def _summary_to_dict(row: BacktestSummaryRecord) -> Dict[str, Any]:
+        """将汇总模型转换为字典。"""
         return {
             "scope": row.scope,
             "code": None if row.code == OVERALL_SENTINEL_CODE else row.code,
@@ -1036,6 +1057,7 @@ class BacktestService:
 
     @staticmethod
     def _pct_to_ratio(value: Optional[float], default: float = 0.0) -> float:
+        """将百分比转换为比率。"""
         try:
             return float(value) / 100.0
         except (TypeError, ValueError):
@@ -1043,6 +1065,7 @@ class BacktestService:
 
     @staticmethod
     def _actual_movement_from_return(value: Optional[float]) -> Optional[str]:
+        """由收益率推断实际涨跌方向。"""
         if value is None:
             return None
         try:
@@ -1067,6 +1090,7 @@ class BacktestService:
         phase_breakdown: Optional[Dict[str, int]] = None,
         raw_phase_counts: Optional[Dict[str, int]] = None,
     ) -> Dict[str, Any]:
+        """构造动态汇总文本。"""
         filtered_rows = [row for row in rows if getattr(row, "engine_version", None) == engine_version]
         if eval_window_days is not None:
             summary_window_days = int(eval_window_days)

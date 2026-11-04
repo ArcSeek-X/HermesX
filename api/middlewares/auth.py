@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Auth middleware: protect /api/v1/* when admin auth is enabled.
+
+管理鉴权中间件：启用 ADMIN_AUTH 时保护 /api/v1/* 路由，对未放行的路径校验凭证，
+未启用时直接透传请求。
 """
 
 from __future__ import annotations
@@ -42,6 +45,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable,
     ):
+        """拦截请求：鉴权未启用直接放行；对需保护的路径校验凭证，失败返回 401。"""
         if not is_auth_enabled():
             return await call_next(request)
 
