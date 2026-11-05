@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: history.py
+@description: 分析历史端点：列表、删除、个股栏、报告详情、Markdown 导出、运行诊断与运行流、关联新闻；由 api.v1.router 挂到 /api/v1/history，查询与报告组装在 src.application.history。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 历史记录接口
 ===================================
@@ -59,8 +63,10 @@ from src.application.analysis.context_pack_overview import (
 )
 from src.application.market.phase_summary import extract_market_phase_summary
 
+# 模块级日志器，记录历史查询与报告组装失败。
 logger = logging.getLogger(__name__)
 
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/history。
 router = APIRouter()
 
 
@@ -83,22 +89,22 @@ def get_history_list(
     limit: int = Query(20, ge=1, le=100, description="每页数量"),
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> HistoryListResponse:
-    """
-    获取历史分析列表
-    
-    分页获取历史分析记录摘要，支持按股票代码和日期范围筛选
-    
+    """获取历史分析列表。
+
+    同步函数由 FastAPI 放入线程池执行，避免报告字段解析阻塞事件循环。
+
     Args:
-        stock_code: 股票代码筛选
-        report_type: 报告类型筛选
-        start_date: 开始日期
-        end_date: 结束日期
-        page: 页码
-        limit: 每页数量
-        service: 分析历史用例
-        
+        stock_code: 股票代码过滤。
+        report_type: 报告类型过滤。
+        start_date / end_date: 分析日期区间（含端点）。
+        page / limit: 分页参数。
+        service: 历史查询用例，由 Depends(get_history_query_service) 装配。
+
     Returns:
-        HistoryListResponse: 历史记录列表
+        HistoryListResponse: 总数、分页参数与记录列表。
+
+    Raises:
+        HTTPException: 查询失败返回 500。
     """
     try:
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
@@ -171,7 +177,21 @@ def delete_history_by_code(
     stock_code: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> DeleteHistoryResponse:
-    """按股票代码删除分析历史。"""
+    """按股票代码删除分析历史。
+
+    Args:
+        stock_code: 股票代码，来自查询参数。
+        service: 历史查询用例，由 Depends 装配。
+
+    Returns:
+        DeleteHistoryResponse: 实际删除条数。
+
+    Raises:
+        HTTPException: 参数缺失或删除失败。
+
+    Side Effects:
+        删除该股票的全部历史分析记录。
+    """
     try:
         return DeleteHistoryResponse(deleted=service.delete_by_code(stock_code))
     except HistoryValidationError as e:
@@ -202,8 +222,20 @@ def delete_history_records(
     request: DeleteHistoryRequest = Body(...),
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> DeleteHistoryResponse:
-    """
-    按主键 ID 批量删除历史分析记录。
+    """按主键 ID 批量删除历史分析记录。
+
+    Args:
+        request: 删除请求体，含待删除主键列表。
+        service: 历史查询用例，由 Depends 装配。
+
+    Returns:
+        DeleteHistoryResponse: 实际删除条数。
+
+    Raises:
+        HTTPException: 参数非法或删除失败。
+
+    Side Effects:
+        批量删除历史记录。
     """
     record_ids = sorted({record_id for record_id in request.record_ids if record_id is not None})
     if not record_ids:
@@ -245,7 +277,21 @@ def get_stock_bar(
     limit: int = Query(200, ge=1, le=500, description="最大返回数量"),
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> StockBarResponse:
-    """获取股票 K 线数据。"""
+    """获取股票 K 线数据。
+
+    返回按股票去重后的最新分析摘要，供侧栏个股栏展示。
+
+    Args:
+        start_date / end_date: 统计日期区间。
+        limit: 返回个股数量上限。
+        service: 历史查询用例，由 Depends 装配。
+
+    Returns:
+        StockBarResponse: 去重个股数与该股最新分析摘要列表。
+
+    Raises:
+        HTTPException: 查询失败返回 500。
+    """
     try:
         items = [
             StockBarItem(**item)
@@ -283,24 +329,23 @@ def get_history_detail(
     record_id: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> AnalysisReport:
-    """
-    获取历史报告详情
-    
-    根据分析历史记录主键 ID 或 query_id 获取完整的历史分析报告。
-    优先尝试按主键 ID（整数）查询，若参数不是合法整数则按 query_id 查询。
-    
+    """获取历史报告详情。
+
+    把持久化的原始结果与上下文快照组装成 meta/summary/strategy/details 四区；旧记录缺字段时走兼容回退，避免历史报告打不开。
+
     Args:
-        record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
-        service: 分析历史用例
-        
+        record_id: 历史记录标识，可为数字主键或 query_id。
+        service: 历史查询用例，由 Depends 装配。
+
     Returns:
-        AnalysisReport: 完整分析报告
-        
+        AnalysisReport: 规范化后的完整报告。
+
     Raises:
-        HTTPException: 404 - 报告不存在
+        HTTPException: 记录不存在 404、组装失败 500。
     """
     try:
         # Try integer ID first, fall back to query_id string lookup
+        # 兼容两种历史标识：优先按数字主键查，查不到再按 query_id 字符串回退，保证旧链接与批量分析产生的重复 query_id 仍可定位报告。
         result = service.get_detail(record_id)
         
         if result is None:
@@ -450,8 +495,17 @@ def get_history_diagnostics(
     record_id: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> RunDiagnosticSummaryResponse:
-    """
-    获取历史报告运行诊断摘要。
+    """获取历史报告运行诊断摘要。
+
+    Args:
+        record_id: 历史记录标识。
+        service: 历史查询用例，由 Depends 装配。
+
+    Returns:
+        RunDiagnosticSummaryResponse: 脱敏的总体状态、原因与关键链路组件。
+
+    Raises:
+        HTTPException: 记录不存在 404。
     """
     try:
         summary = service.get_diagnostics(record_id)
@@ -492,8 +546,17 @@ def get_history_run_flow(
     record_id: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> RunFlowSnapshot:
-    """
-    获取历史报告运行流。
+    """获取历史报告运行流。
+
+    Args:
+        record_id: 历史记录标识。
+        service: 历史查询用例，由 Depends 装配。
+
+    Returns:
+        RunFlowSnapshot: 本次分析的链路节点快照。
+
+    Raises:
+        HTTPException: 记录不存在或无运行流数据。
     """
     try:
         snapshot = service.get_run_flow(record_id)
@@ -534,19 +597,18 @@ def get_history_news(
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> NewsIntelResponse:
-    """
-    获取历史报告关联新闻
-
-    根据分析历史记录 ID 或 query_id 获取关联的新闻情报列表。
-    在内部完成 record_id → query_id 的解析。
+    """获取历史报告关联新闻。
 
     Args:
-        record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
-        limit: 返回数量限制
-        service: 分析历史用例
+        record_id: 历史记录标识。
+        limit: 返回新闻条数上限。
+        service: 历史查询用例，由 Depends 装配。
 
     Returns:
-        NewsIntelResponse: 新闻情报列表
+        NewsIntelResponse: 新闻条数与条目列表。
+
+    Raises:
+        HTTPException: 记录不存在 404。
     """
     try:
         items = service.get_news(record_id=record_id, limit=limit)
@@ -591,21 +653,17 @@ def get_history_markdown(
     record_id: str,
     service: HistoryQueryService = Depends(get_history_query_service),
 ) -> MarkdownReportResponse:
-    """
-    获取历史报告的 Markdown 格式内容
-
-    根据分析历史记录 ID 或 query_id 生成与推送通知格式一致的 Markdown 报告。
+    """获取历史报告的 Markdown 格式内容。
 
     Args:
-        record_id: 分析历史记录主键 ID（整数）或 query_id（字符串）
-        service: 分析历史用例
+        record_id: 历史记录标识。
+        service: 历史查询用例，由 Depends 装配。
 
     Returns:
-        MarkdownReportResponse: Markdown 格式的完整报告
+        MarkdownReportResponse: 可直接渲染或复制的整篇 Markdown。
 
     Raises:
-        HTTPException: 404 - 报告不存在
-        HTTPException: 500 - 报告生成失败（服务器内部错误）
+        HTTPException: 记录不存在 404。
     """
     try:
         markdown_content = service.get_markdown(record_id)

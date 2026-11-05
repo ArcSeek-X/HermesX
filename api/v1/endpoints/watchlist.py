@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: watchlist.py
+@description: 自选股管理端点：分组与条目的增删改查、分页查询与移动归类；由 api.v1.router 挂到 /api/v1/watchlist，业务规则在 src.application.watchlist.WatchlistService。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 自选股管理 API
 ===================================
@@ -43,18 +47,25 @@ from src.application.watchlist import (
 )
 from src.utils.pagination import paginate_response
 
+# 模块级日志器，记录自选股操作异常。
 logger = logging.getLogger(__name__)
 
 # 路由前缀统一在 api/v1/router.py 的 include_router(prefix="/watchlist") 处添加，
 # 此处不再重复加前缀，避免形成 /api/v1/watchlist/watchlist/... 的双重前缀。
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/watchlist。
 router = APIRouter(tags=["watchlist"])
 
 
 def _to_http_error(exc: WatchlistError) -> HTTPException:
     """把业务错误映射为 HTTP 状态码。
 
-    ``UnknownStockCodeError`` 是 ``WatchlistValidationError`` 的子类：格式合法但主数据
-    未收录按 400 返回，与既有前端对 ``invalid_code`` 的处理保持一致。
+    统一走 api.v1.errors.api_error，保证错误体形状与全局异常处理器一致。
+
+    Args:
+        exc: 服务层抛出的业务异常，携带 error_code 与可读消息。
+
+    Returns:
+        HTTPException: 带统一 error/message 错误体的异常对象。
     """
     if isinstance(exc, UnknownStockCodeError):
         status_code = 400
@@ -80,7 +91,14 @@ def _to_http_error(exc: WatchlistError) -> HTTPException:
 def get_watchlist_groups(
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> List[dict]:
-    """获取自选股分组列表。"""
+    """获取自选股分组列表。
+
+    Args:
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        List[dict]: 分组列表，含每组的条目数量。
+    """
     return service.list_groups()
 
 
@@ -94,7 +112,23 @@ def create_watchlist_group(
     payload: WatchlistGroupCreate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """创建自选股分组。"""
+    """创建自选股分组。
+
+    分组编码由服务端生成，请求体只含用户可编辑字段。
+
+    Args:
+        payload: 新建分组请求体（名称、描述、排序权重）。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 创建后的分组数据。
+
+    Raises:
+        HTTPException: 业务校验失败时由 _to_http_error 映射。
+
+    Side Effects:
+        写入分组记录。
+    """
     try:
         return service.create_group(
             name=payload.name,
@@ -115,7 +149,21 @@ def update_watchlist_group(
     payload: WatchlistGroupUpdate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """更新自选股分组。"""
+    """更新自选股分组。
+
+    Args:
+        payload: 更新请求体，按 group_code 定位且仅修改显式提供的字段。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 更新后的分组数据。
+
+    Raises:
+        HTTPException: 分组不存在或校验失败。
+
+    Side Effects:
+        修改分组记录。
+    """
     try:
         return service.update_group(
             group_code=payload.group_code,
@@ -137,7 +185,21 @@ def delete_watchlist_group(
     group_code: str,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """删除自选股分组。"""
+    """删除自选股分组。
+
+    Args:
+        group_code: 分组唯一编码，来自路径参数。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 删除结果。
+
+    Raises:
+        HTTPException: 分组不存在或分组非空等业务错误。
+
+    Side Effects:
+        删除分组记录。
+    """
     try:
         service.delete_group(group_code)
     except WatchlistError as exc:
@@ -159,8 +221,15 @@ def get_watchlist_items(
 ) -> dict:
     """分页查询某分类下的自选股。
 
-    入参（body）：group_id, pageSize, pageNum
-    出参：list, total, pageSize, pages, pageNum
+    Args:
+        payload: 分页查询请求体（group_id、pageNum、pageSize）。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 通用分页结构，list 为当前页条目。
+
+    Raises:
+        HTTPException: 分组不存在或查询失败。
     """
     try:
         page = service.list_items(
@@ -188,7 +257,22 @@ def create_watchlist_item(
     payload: WatchlistItemCreate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """新增自选股条目。"""
+    """新增自选股条目。
+
+    Args:
+        id: 目标分组标识，来自路径参数。
+        payload: 新增请求体（股票代码、名称、备注）。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 创建后的条目数据。
+
+    Raises:
+        HTTPException: 重复添加或代码非法。
+
+    Side Effects:
+        写入自选股记录。
+    """
     try:
         return service.create_item(
             group_id=id,
@@ -211,7 +295,22 @@ def update_watchlist_item(
     payload: WatchlistItemUpdate,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """更新自选股条目。"""
+    """更新自选股条目。
+
+    Args:
+        id: 条目主键，来自路径参数。
+        payload: 更新请求体（备注、冗余名称）。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 更新后的条目数据。
+
+    Raises:
+        HTTPException: 条目不存在或校验失败。
+
+    Side Effects:
+        修改自选股记录。
+    """
     try:
         return service.update_item(
             item_id=id,
@@ -232,7 +331,21 @@ def delete_watchlist_item(
     id: int,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """删除自选股条目。"""
+    """删除自选股条目。
+
+    Args:
+        id: 条目主键，来自路径参数。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 删除结果。
+
+    Raises:
+        HTTPException: 条目不存在。
+
+    Side Effects:
+        删除自选股记录。
+    """
     try:
         service.delete_item(id)
     except WatchlistError as exc:
@@ -254,7 +367,22 @@ def move_watchlist_item(
     payload: WatchlistItemMove,
     service: WatchlistService = Depends(get_watchlist_service),
 ) -> dict:
-    """移动自选股条目到其他分组。"""
+    """移动自选股条目到其他分组。
+
+    Args:
+        id: 条目主键，来自路径参数。
+        payload: 移动请求体，含目标分组 ID。
+        service: 自选股用例，由 Depends(get_watchlist_service) 装配。
+
+    Returns:
+        dict: 移动后的条目数据。
+
+    Raises:
+        HTTPException: 条目或目标分组不存在。
+
+    Side Effects:
+        修改条目的分组归属。
+    """
     try:
         return service.move_item(
             item_id=id,

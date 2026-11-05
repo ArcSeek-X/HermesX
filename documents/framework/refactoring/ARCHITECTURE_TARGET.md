@@ -7,6 +7,7 @@
 | 已落地代码依据 | `ad7274e0`（服务端职责拆分）、`6eb298aa`（测试整理）；当前 HEAD 与工作区状态以 Git 为准 |
 | 当前状态总览 | [ARCHITECTURE_MIGRATION_STATUS.md](./ARCHITECTURE_MIGRATION_STATUS.md) |
 | 服务端大文件拆分实施延续 | [ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md](./ARCHITECTURE_TARGET_LARGE_FILE_REFACTORING.md)：§4.3 的服务端大文件第二轮拆分结果、验证证据与交接记录 |
+| 数据源内部优化初步方案 | [ARCHITECTURE_TARGET_DATA_PROVIDER_REFACTORING.md](./ARCHITECTURE_TARGET_DATA_PROVIDER_REFACTORING.md)：保留根目录，按能力收敛管理器、具体源及公共机制；v0.3 已穷举目标路径、72 个原文件去向和 B00–B23 批次，设计阶段尚未实施 |
 | 仓库根目录 | `HermesX/`；沿用现有可导入的 Python 包 `src`，不增加 `src/hermesx/` |
 | 主要改造范围 | `src/`、`api/`、`bot/`、`data_provider/`、根目录 Python 入口和相应测试 |
 | 联动范围 | 当导入路径或契约变化时，同步修改 Web、Desktop、脚本、Docker、CI、文档 |

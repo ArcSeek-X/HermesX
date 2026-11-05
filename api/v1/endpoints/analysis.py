@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: analysis.py
+@description: 股票分析端点：同步/异步分析任务、批量提交与重复任务处理、大盘复盘后台任务、任务列表与 SSE 状态流、任务运行流与结果规范化；由 api.v1.router 挂到 /api/v1/analysis。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 股票分析接口
 ===================================
@@ -100,15 +104,25 @@ from src.utils.data_processing import (
 )
 from src.utils.market_review_region import normalize_market_review_region_lenient
 
+# 模块级日志器，记录任务提交、复盘与报告组装异常。
 logger = logging.getLogger(__name__)
 
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/analysis。
 router = APIRouter()
 
+# 允许进入解析器的自由文本字符规则；用于尽早排除乱码与不支持符号。
 _SUPPORTED_FREE_TEXT_RE = re.compile(r"^[A-Za-z0-9.*\-+\u3400-\u9fff\s]+$")
 
 
 def _get_task_trace_id(task: Any) -> Optional[str]:
-    """返回任务的链路追踪 ID。"""
+    """返回任务的链路追踪 ID。
+
+    Args:
+        task: 任务对象或任务字典。
+
+    Returns:
+        Optional[str]: trace ID；旧任务未记录时为 None。
+    """
     trace_id = getattr(task, "trace_id", None)
     if isinstance(trace_id, str) and trace_id.strip():
         return trace_id
@@ -119,17 +133,46 @@ def _get_task_trace_id(task: Any) -> Optional[str]:
 
 
 def _market_review_lock_path(config: Config) -> Path:
-    """返回大盘复盘锁文件路径。"""
+    """返回大盘复盘锁文件路径。
+
+    锁文件用于跨进程互斥，避免多个 worker 同时执行复盘。
+
+    Args:
+        config: 运行时配置，决定数据目录位置。
+
+    Returns:
+        Path: 复盘锁文件路径。
+    """
     return market_review_lock_path(config)
 
 
 def _build_market_review_runtime(config: Config, source_message: Optional[Any] = None) -> tuple[Any, Any, Any]:
-    """构建大盘复盘运行上下文。"""
+    """构建大盘复盘运行上下文。
+
+    把配置、来源消息与运行时依赖打包，供后台任务在无请求上下文时执行。
+
+    Args:
+        config: 运行时配置。
+        source_message: 触发来源说明，写入运行上下文便于追溯。
+
+    Returns:
+        tuple[Any, Any, Any]: 运行上下文所需的组件三元组。
+    """
     return _runtime_build_market_review_runtime(config, source_message)
 
 
 def _with_request_report_language(config: Config, report_language: Optional[str]) -> Config:
-    """Return a request-scoped config copy when the caller overrides report language."""
+    """Return a request-scoped config copy when the caller overrides report language.
+
+    调用方指定报告语言时返回请求级配置副本，避免修改进程级全局配置影响并发的其他任务。
+
+    Args:
+        config: 全局配置。
+        report_language: 请求指定的语言；None 表示沿用全局配置。
+
+    Returns:
+        Config: 原配置或带语言覆盖的请求级副本。
+    """
     normalized = normalize_report_language(report_language, default="")
     if not normalized:
         return config
@@ -146,7 +189,23 @@ def _run_market_review_background(
     config: Optional[Config] = None,
     query_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Run market review after the API response has been accepted."""
+    """Run market review after the API response has been accepted.
+
+    在响应已返回后执行复盘，避免长耗时任务阻塞 HTTP 请求；锁令牌用于释放跨进程互斥。
+
+    Args:
+        send_notification: 完成后是否发送通知。
+        effective_region: 规范化后的市场范围。
+        lock_token: 复盘锁令牌，结束时释放。
+        config: 运行时配置。
+        query_id: 本次复盘关联的记录 ID。
+
+    Returns:
+        Dict[str, Any]: 复盘执行结果，由任务队列保存。
+
+    Side Effects:
+        生成报告、可能发送通知，并释放复盘锁。
+    """
     from src.application.market.market_review import run_market_review
 
     runtime_config = config or get_config_dep()
@@ -185,7 +244,16 @@ def _run_market_review_background(
 
 
 def _coalesce_text(*values: Any) -> Optional[str]:
-    """返回首个非空文本值。"""
+    """返回首个非空文本值。
+
+    把 None、空串与纯空白统一视为无值，避免下游拿到空字符串写入报告。
+
+    Args:
+        *values: 任意数量的候选值。
+
+    Returns:
+        Optional[str]: 首个去空白后非空的字符串；全为空时返回 None。
+    """
     for value in values:
         if value is None:
             continue
@@ -196,7 +264,16 @@ def _coalesce_text(*values: Any) -> Optional[str]:
 
 
 def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
-    """提取护栏拦截原因。"""
+    """提取护栏拦截原因。
+
+    从原始结果中识别护栏结构化字段，供状态接口给出可读的拦截说明。
+
+    Args:
+        raw_result: 分析结果字典，结构可能随版本变化。
+
+    Returns:
+        Optional[str]: 拦截原因；未拦截或无原因时为 None。
+    """
     if not isinstance(raw_result, dict):
         return None
     for reason in (
@@ -219,12 +296,28 @@ def _extract_guardrail_reason(raw_result: Any) -> Optional[str]:
 
 
 def _invalid_analysis_input_error() -> HTTPException:
-    """构造无效分析入参的错误响应。"""
+    """构造无效分析入参的错误响应。
+
+    Args:
+        无参数。
+
+    Returns:
+        HTTPException: 400 错误对象，提示输入无法解析为股票代码。
+    """
     return api_error(400, "validation_error", "请输入有效的股票代码或股票名称")
 
 
 def _is_obviously_invalid_analysis_input(text: str) -> bool:
-    """Reject mixed alphanumeric noise and unsupported symbols early."""
+    """Reject mixed alphanumeric noise and unsupported symbols early.
+
+    在调用解析器与提交任务前拦截明显的乱码与不支持符号，避免把无效输入送进昂贵的解析与队列流程。
+
+    Args:
+        text: 用户输入的原始文本。
+
+    Returns:
+        bool: 明显无效返回 True。
+    """
     if not text or is_code_like(text):
         return False
 
@@ -237,12 +330,22 @@ def _is_obviously_invalid_analysis_input(text: str) -> bool:
 
 
 def _resolve_and_normalize_input(raw_value: str) -> str:
-    """
-    Resolve and normalize a stock input for analysis requests.
+    """Resolve and normalize a stock input for analysis requests.
 
     Code-like values keep the existing canonical path.
     Non-code inputs must resolve to a known stock code. Obvious garbage
     input is rejected before expensive resolver and task-queue work.
+
+    形似代码的值走既有规范化路径；中文名、拼音等非代码输入必须能解析到已知股票代码。明显乱码在解析器与任务队列之前就拒绝。
+
+    Args:
+        raw_value: 用户输入的股票代码或名称。
+
+    Returns:
+        str: 规范化后的股票代码。
+
+    Raises:
+        HTTPException: 输入为空、明显无效或无法解析时返回 400。
     """
     text = (raw_value or "").strip()
     if not text:
@@ -291,29 +394,31 @@ def trigger_analysis(
         config: Config = Depends(get_config_dep),
         history_service: HistoryQueryService = Depends(get_history_query_service),
 ) -> Union[AnalysisResultResponse, JSONResponse]:
-    """
-    触发股票分析
-    
+    """触发股票分析
+
     启动 AI 智能分析任务，支持单只或多只股票批量分析
-    
+
     流程：
     1. 校验请求参数
     2. 异步模式：检查重复 -> 提交任务队列 -> 返回 202
     3. 同步模式：直接执行分析 -> 返回 200
-    
+
     Args:
         request: 分析请求参数
         config: 配置依赖
         history_service: 分析历史用例（同步模式回填上下文与基本面快照）
-        
+
     Returns:
         AnalysisResultResponse: 分析结果（同步模式）
         TaskAccepted | BatchTaskAcceptedResponse: 任务已接受（异步模式，返回 202）
-        
+
     Raises:
         HTTPException: 400 - 请求参数错误
         HTTPException: 409 - 股票正在分析中
         HTTPException: 500 - 分析失败
+
+    Side Effects:
+        异步模式提交后台任务并占用去重槽位；同步模式写入分析历史与报告。
     """
     # 校验请求参数
     stock_codes = []
@@ -326,6 +431,7 @@ def trigger_analysis(
         raise api_error(400, "validation_error", "必须提供 stock_code 或 stock_codes 参数")
 
     # Normalize and de-duplicate inputs while preserving compatibility.
+    # 在保持旧入参兼容的前提下统一规范化并去重，避免同一标的被重复提交任务。
     resolved = [_resolve_and_normalize_input(c) for c in stock_codes]
     
     seen = set()
@@ -334,6 +440,7 @@ def trigger_analysis(
         if not code:
             continue
         # Use normalize_stock_code to ensure '600519' and '600519.SH' are merged
+        # 用统一代码规范化把带后缀与不带后缀的写法合并，否则会被当成两只股票各起一个任务。
         norm = normalize_stock_code_for_analysis(code)
         if norm not in seen:
             seen.add(norm)
@@ -342,6 +449,7 @@ def trigger_analysis(
     stock_codes = unique_codes
 
     # Limit the number of stocks in a single request to prevent DoS
+    # 限制单次请求的股票数量，防止一次提交压满任务队列与数据源配额。
     MAX_BATCH_SIZE = 50
     if len(stock_codes) > MAX_BATCH_SIZE:
         raise api_error(400, "validation_error", f"单次分析请求最多支持 {MAX_BATCH_SIZE} 只股票")
@@ -350,6 +458,7 @@ def trigger_analysis(
         raise api_error(400, "validation_error", "股票代码不能为空或仅包含空白字符")
 
     # Sync mode only supports single-stock analysis.
+    # 同步模式会阻塞到分析完成，多标的批量请求必须走异步模式。
     if not request.async_mode:
         if len(stock_codes) > 1:
             raise api_error(
@@ -360,6 +469,7 @@ def trigger_analysis(
         return _handle_sync_analysis(stock_codes[0], request, history_service)
 
     # Async mode submits one task per stock.
+    # 异步模式按标的逐个提交任务，单只重复不影响其余标的入队。
     return _handle_async_analysis_batch(stock_codes, request)
 
 
@@ -367,14 +477,26 @@ def _handle_async_analysis_batch(
     stock_codes: list,
     request: AnalyzeRequest
 ) -> JSONResponse:
-    """
-    Handle asynchronous analysis requests, including batch submission.
+    """Handle asynchronous analysis requests, including batch submission.
+
+    逐标的检查是否已有进行中任务，通过的提交队列、重复的回传已有 task_id，单只重复不会导致整批失败。
+
+    Args:
+        stock_codes: 已规范化并去重的股票代码列表。
+        request: 原始分析请求，用于透传报告类型、语言与阶段等参数。
+
+    Returns:
+        JSONResponse: 202 响应，体为 BatchTaskAcceptedResponse 或 TaskAccepted。
+
+    Side Effects:
+        向任务队列提交若干后台任务。
     """
     task_queue = get_task_queue()
     
     # Preserve metadata for single-stock requests. For batch requests,
     # only carry through metadata that semantically applies to the whole
     # batch, such as import/image source tracking.
+    # 单股请求完整保留来源元数据；批量请求只透传语义上属于整批的字段（如导入/图片来源），避免把单股的 stock_name、original_query 错贴到每一只股票上。
     is_single = len(stock_codes) == 1
     preserve_batch_metadata = request.selection_source in {"import", "image"}
 
@@ -468,10 +590,23 @@ def _handle_sync_analysis(
     request: AnalyzeRequest,
     history_service: HistoryQueryService,
 ) -> AnalysisResultResponse:
-    """
-    处理同步分析请求
-    
-    直接执行分析，等待完成后返回结果
+    """处理同步分析请求。
+
+    执行完整分析链路并把原始结果组装为公开响应结构；基本面与上下文快照由历史用例按 query_id 回填。
+
+    Args:
+        stock_code: 规范化后的股票代码。
+        request: 分析请求参数。
+        history_service: 分析历史用例，由 Depends 注入。
+
+    Returns:
+        AnalysisResultResponse: 报告正文、查询 ID 与诊断摘要。
+
+    Raises:
+        HTTPException: 分析失败或报告组装失败。
+
+    Side Effects:
+        写入分析历史与报告数据。
     """
     import uuid
     from src.application.analysis.analysis_service import AnalysisService
@@ -549,7 +684,23 @@ def trigger_market_review(
     request: Optional[MarketReviewRequest] = Body(None),
     config: Config = Depends(get_config_dep),
 ) -> MarketReviewAccepted:
-    """Trigger market review from Web/API without blocking the request."""
+    """Trigger market review from Web/API without blocking the request.
+
+    先取得跨进程复盘锁再提交后台任务，重复触发返回已有任务 ID 而非再起一个任务。
+
+    Args:
+        request: 大盘复盘请求体，region 已严格校验并规范化。
+        config: 运行时配置，由 Depends 注入。
+
+    Returns:
+        MarketReviewAccepted: 任务接受状态与规范化后的市场范围。
+
+    Raises:
+        HTTPException: 区域非法 400、已有复盘进行中 409。
+
+    Side Effects:
+        获取复盘锁并提交后台任务。
+    """
     request = request or MarketReviewRequest()
 
     runtime_config = _with_request_report_language(config, request.report_language)
@@ -618,15 +769,14 @@ def get_task_list(
     ),
     limit: int = Query(20, description="返回数量限制", ge=1, le=100),
 ) -> TaskListResponse:
-    """
-    获取分析任务列表
-    
+    """获取分析任务列表。
+
     Args:
-        status: 状态筛选（可选）
-        limit: 返回数量限制
-        
+        status: 任务状态过滤；None 表示不限。
+        limit: 返回条数上限。
+
     Returns:
-        TaskListResponse: 任务列表响应
+        TaskListResponse: 总数、待处理/执行中计数与任务明细。
     """
     task_queue = get_task_queue()
     
@@ -686,9 +836,8 @@ def get_task_list(
     description="通过 Server-Sent Events 实时推送任务状态变化"
 )
 async def task_stream():
-    """
-    SSE 任务状态流
-    
+    """SSE 任务状态流
+
     事件类型：
     - connected: 连接成功
     - task_created: 新任务创建
@@ -697,12 +846,28 @@ async def task_stream():
     - task_completed: 任务完成
     - task_failed: 任务失败
     - heartbeat: 心跳（每 30 秒）
-    
+
+    Args:
+        无参数。
+
     Returns:
         StreamingResponse: SSE 事件流
+
+    Side Effects:
+        订阅任务队列事件；连接断开时释放订阅，心跳用于穿透代理空闲超时。
     """
     async def event_generator():
-        """生成分析进度的 SSE 事件流。"""
+        """生成任务状态 SSE 事件流。
+
+        Args:
+            无显式参数；捕获外层订阅与请求上下文。
+
+        Returns:
+            Iterator[str]: 由 _format_sse_event 格式化的事件文本。
+
+        Side Effects:
+            在连接关闭时取消订阅。
+        """
         task_queue = get_task_queue()
         event_queue: asyncio.Queue = asyncio.Queue()
         
@@ -746,15 +911,14 @@ async def task_stream():
 
 
 def _format_sse_event(event_type: str, data: Dict[str, Any]) -> str:
-    """
-    格式化 SSE 事件
-    
+    """格式化 SSE 事件。
+
     Args:
-        event_type: 事件类型
-        data: 事件数据
-        
+        event_type: 事件类型名。
+        data: 可 JSON 序列化的事件载荷。
+
     Returns:
-        SSE 格式字符串
+        str: 含 event 与 data 行、以空行结尾的 SSE 文本块。
     """
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -767,7 +931,20 @@ def _load_history_run_flow_by_query_id(
     report_type: Optional[str] = None,
     fail_open: bool = False,
 ) -> Optional[RunFlowSnapshot]:
-    """按查询 ID 加载历史运行流程。"""
+    """按查询 ID 加载历史运行流程。
+
+    历史运行流可能缺失；fail_open=True 时静默降级返回 None，不阻断状态查询。
+
+    Args:
+        query_id: 分析记录关联 ID。
+        history_service: 分析历史用例。
+        code: 股票代码，用于缩小回查范围。
+        report_type: 报告类型，用于匹配历史记录。
+        fail_open: 读取失败时是否降级而不抛错。
+
+    Returns:
+        Optional[RunFlowSnapshot]: 运行流快照；无记录或降级时为 None。
+    """
     try:
         return history_service.get_run_flow(
             query_id,
@@ -800,11 +977,22 @@ def get_task_run_flow(
     task_id: str,
     history_service: HistoryQueryService = Depends(get_history_query_service),
 ) -> RunFlowSnapshot:
-    """
-    查询分析任务运行流。
+    """查询分析任务运行流。
 
     Active tasks are served from the in-memory task queue. Completed tasks try
     to hydrate from persisted history diagnostics using the same task_id/query_id.
+
+    进行中任务直接读内存队列；已完成任务用同一 task_id/query_id 回查历史诊断并补齐运行流。
+
+    Args:
+        task_id: 任务 ID，来自路径参数。
+        history_service: 分析历史用例，由 Depends 注入。
+
+    Returns:
+        RunFlowSnapshot: 任务运行流快照。
+
+    Raises:
+        HTTPException: 任务不存在或无可用运行流时返回 404。
     """
     task_queue = get_task_queue()
     task = task_queue.get_task(task_id)
@@ -843,7 +1031,17 @@ def get_task_run_flow(
 
 
 def _safe_task_flow_text(value: Any, *, max_length: int) -> Optional[str]:
-    """安全提取任务流程文本。"""
+    """安全提取任务流程文本。
+
+    对非字符串值做转换并截断到最大长度，避免异常文案撑爆 SSE 事件。
+
+    Args:
+        value: 任意候选值。
+        max_length: 允许的最大字符数。
+
+    Returns:
+        Optional[str]: 截断后的文本；空值返回 None。
+    """
     if value is None:
         return None
     text = str(value).strip()
@@ -853,7 +1051,14 @@ def _safe_task_flow_text(value: Any, *, max_length: int) -> Optional[str]:
 
 
 def _history_report_type_for_task_flow(value: Any) -> Optional[str]:
-    """返回历史记录的报告类型。"""
+    """返回历史记录的报告类型。
+
+    Args:
+        value: 历史记录中的报告类型候选值。
+
+    Returns:
+        Optional[str]: 受支持的报告类型标识；无法识别时返回 None。
+    """
     text = _safe_task_flow_text(value, max_length=64)
     if text is None:
         return None
@@ -870,7 +1075,14 @@ def _history_report_type_for_task_flow(value: Any) -> Optional[str]:
 
 
 def _datetime_to_iso(value: Any) -> Optional[str]:
-    """将 datetime 转换为 ISO 字符串。"""
+    """将 datetime 转换为 ISO 字符串。
+
+    Args:
+        value: datetime 或其他候选值。
+
+    Returns:
+        Optional[str]: ISO 8601 字符串；无法转换时为 None。
+    """
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, str) and value.strip():
@@ -879,7 +1091,16 @@ def _datetime_to_iso(value: Any) -> Optional[str]:
 
 
 def _extract_report_created_at(payload: Dict[str, Any]) -> Optional[str]:
-    """提取报告创建时间。"""
+    """提取报告创建时间。
+
+    兼容不同版本报告中 created_at 的字段位置与类型。
+
+    Args:
+        payload: 报告或历史记录字典。
+
+    Returns:
+        Optional[str]: 规范化后的创建时间字符串。
+    """
     report = payload.get("report")
     if not isinstance(report, dict):
         return None
@@ -892,7 +1113,14 @@ def _extract_report_created_at(payload: Dict[str, Any]) -> Optional[str]:
 
 
 def _display_stock_code_from_index(stock_code: Any) -> str:
-    """从股票索引提取展示代码。"""
+    """从股票索引提取展示代码。
+
+    Args:
+        stock_code: 内部规范股票代码。
+
+    Returns:
+        str: 适合前端展示的代码；索引无对应项时回退原代码。
+    """
     code = str(stock_code or "").strip()
     if not code:
         return code
@@ -900,7 +1128,17 @@ def _display_stock_code_from_index(stock_code: Any) -> str:
 
 
 def _display_market_phase_summary(stock_code: Any, context_snapshot: Any) -> Any:
-    """返回展示用大盘阶段摘要。"""
+    """返回展示用大盘阶段摘要。
+
+    只取低敏字段，避免把完整上下文快照下发到状态接口。
+
+    Args:
+        stock_code: 股票代码，用于确定市场。
+        context_snapshot: 分析上下文快照；可为 None。
+
+    Returns:
+        Any: 可公开的阶段摘要；不可得时为 None。
+    """
     return rebuild_market_phase_summary_for_stock_code(
         _display_stock_code_from_index(stock_code),
         context_snapshot,
@@ -911,7 +1149,17 @@ def _prepare_report_for_task_enrichment(
     report_data: Dict[str, Any],
     created_at: Optional[str],
 ) -> Dict[str, Any]:
-    """为任务富化处理准备报告数据。"""
+    """为任务富化处理准备报告数据。
+
+    补齐创建时间并把报告归一为可安全改写的字典，避免修改任务队列中的原始对象。
+
+    Args:
+        report_data: 任务结果中的报告数据。
+        created_at: 回退使用的创建时间。
+
+    Returns:
+        Dict[str, Any]: 富化处理用的报告字典副本。
+    """
     enriched_report = dict(report_data)
     meta = dict(enriched_report.get("meta") or {})
     if created_at and not _datetime_to_iso(meta.get("created_at")):
@@ -921,7 +1169,14 @@ def _prepare_report_for_task_enrichment(
 
 
 def _first_non_empty_report_value(*values: Any) -> Any:
-    """返回报告中首个非空取值。"""
+    """返回报告中首个非空取值。
+
+    Args:
+        *values: 按优先级排列的候选值。
+
+    Returns:
+        Any: 首个非 None、非空串的值；全为空时返回 None。
+    """
     for value in values:
         if value is None:
             continue
@@ -932,7 +1187,19 @@ def _first_non_empty_report_value(*values: Any) -> Any:
 
 
 def _ensure_report_action_fields(report_data: Dict[str, Any]) -> Dict[str, Any]:
-    """确保报告含完整决策动作字段。"""
+    """确保报告含完整决策动作字段。
+
+    旧版报告只有 operation_advice，需要据此补齐 action 与 action_label，避免前端对历史任务显示空白动作。
+
+    Args:
+        report_data: 报告字典。
+
+    Returns:
+        Dict[str, Any]: 补齐动作字段后的报告字典。
+
+    Side Effects:
+        原地修改传入的报告字典。
+    """
     enriched_report = dict(report_data)
     meta = dict(enriched_report.get("meta") or {})
     summary = dict(enriched_report.get("summary") or {})
@@ -964,12 +1231,20 @@ def _build_task_analysis_result(
     *,
     history_service: HistoryQueryService,
 ) -> AnalysisResultResponse:
-    """
-    Normalize an in-memory completed task result to the public API contract.
+    """Normalize an in-memory completed task result to the public API contract.
 
     Older AnalysisService payloads contain stock_code/stock_name/report only.
     The status endpoint owns the task metadata, so it can supply the missing
     response fields without waiting for the database fallback path.
+
+    把内存中的已完成任务结果规范化为公开响应：旧版载荷只有代码、名称与报告，缺失的元数据由状态端点持有的任务信息补齐，无需等数据库回退路径。
+
+    Args:
+        task: 内存中的任务对象。
+        history_service: 分析历史用例，用于可选的历史回查。
+
+    Returns:
+        AnalysisResultResponse: 符合公开契约的分析结果。
     """
     payload = dict(task.result)
     if not payload.get("query_id"):
@@ -1071,19 +1346,19 @@ def get_analysis_status(
     task_id: str,
     history_service: HistoryQueryService = Depends(get_history_query_service),
 ) -> TaskStatus:
-    """
-    查询分析任务状态
-    
-    优先从任务队列查询，如果不存在则从数据库查询历史记录
-    
+    """查询分析任务状态。
+
+    进行中任务读内存队列；已完成任务优先用内存结果，必要时回查历史记录补齐报告字段。
+
     Args:
-        task_id: 任务 ID
-        
+        task_id: 任务 ID，来自路径参数。
+        history_service: 分析历史用例，由 Depends 注入。
+
     Returns:
-        TaskStatus: 任务状态信息
-        
+        TaskStatus: 状态、进度、结果与诊断信息。
+
     Raises:
-        HTTPException: 404 - 任务不存在
+        HTTPException: 任务不存在或已过期时返回 404。
     """
     # 1. 先从任务队列查询
     task_queue = get_task_queue()
@@ -1318,8 +1593,17 @@ def _load_sync_fundamental_sources(
     *,
     history_service: HistoryQueryService,
 ) -> tuple[Optional[Any], Optional[Dict[str, Any]], Optional[Any]]:
-    """
-    Load report enrichment payloads for sync analyze response.
+    """Load report enrichment payloads for sync analyze response.
+
+    为同步分析响应加载基本面快照与原始结果载荷，找不到时逐项返回 None 而不中断响应。
+
+    Args:
+        query_id: 分析记录关联 ID。
+        stock_code: 股票代码。
+        history_service: 分析历史用例。
+
+    Returns:
+        tuple[Optional[Any], Optional[Dict[str, Any]], Optional[Any]]: 上下文快照、基本面载荷与原始结果载荷。
     """
     try:
         latest_record = history_service.get_latest_by_query_id(query_id, code=stock_code)
@@ -1345,7 +1629,16 @@ def _load_sync_fundamental_sources(
 
 
 def _stringify_report_strategy_value(value: Any) -> Optional[str]:
-    """将报告策略值转换为字符串。"""
+    """将报告策略值转换为字符串。
+
+    保留区间、单位与「--」等原始表达，无法转换时返回 None。
+
+    Args:
+        value: 策略字段的任意值。
+
+    Returns:
+        Optional[str]: 可直接展示的字符串。
+    """
     if value is None:
         return None
     if isinstance(value, str):
@@ -1362,9 +1655,8 @@ def _build_analysis_report(
         fallback_fundamental_payload: Optional[Dict[str, Any]] = None,
         fallback_raw_result_payload: Optional[Any] = None,
 ) -> AnalysisReport:
-    """
-    构建符合 API 规范的分析报告
-    
+    """构建符合 API 规范的分析报告
+
     Args:
         report_data: 原始报告数据
         query_id: 查询 ID
@@ -1373,9 +1665,12 @@ def _build_analysis_report(
         context_snapshot: 上下文快照（可选）
         fallback_fundamental_payload: 基本面快照 payload（可选）
         fallback_raw_result_payload: 原始分析结果 payload（可选）
-        
+
     Returns:
         AnalysisReport: 结构化的分析报告
+
+    Side Effects:
+        无；基于回退载荷补齐详情区，但不修改持久化记录。
     """
     meta_data = report_data.get("meta", {})
     summary_data = report_data.get("summary", {})
@@ -1423,7 +1718,16 @@ def _build_analysis_report(
     )
 
     def _looks_like_raw_result_payload(candidate: Any) -> bool:
-        """判断载荷是否形似原始结果数据。"""
+        """判断载荷是否形似原始结果数据。
+
+        用于在多个回退来源中区分「原始分析结果」与「上下文快照」，避免填错详情字段。
+
+        Args:
+            candidate: 待判定的字典或任意值。
+
+        Returns:
+            bool: 含原始结果特征字段时返回 True。
+        """
         return (
             isinstance(candidate, dict)
             and (

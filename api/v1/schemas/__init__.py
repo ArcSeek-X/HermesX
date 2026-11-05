@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: __init__.py
+@description: API v1 Schema 包的公共导出清单：把核心业务域的请求/响应模型集中转出，供端点与 api.v1.schemas 的调用方按名字引用；字段定义仍留在各自叶子模块。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 API v1 Schemas 模块初始化
 ===================================
@@ -129,21 +133,22 @@ from api.v1.schemas.decision_signals import (
     DecisionSignalStatusUpdateRequest,
 )
 
+# 核心业务域模型的显式导出清单；并非全量导出，intelligence / kline / usage 等模块需按叶子路径导入。分组注释仅用于阅读，不影响导出顺序。
 __all__ = [
-    # common
+    # common / 通用响应、错误与分页基类
     "RootResponse",
     "HealthResponse",
     "ErrorResponse",
     "SuccessResponse",
-    # market phase
+    # market phase / 市场阶段摘要
     "MarketPhaseSummary",
-    # analysis
+    # analysis / 分析请求与异步任务状态
     "AnalyzeRequest",
     "AnalysisResultResponse",
     "TaskAccepted",
     "BatchTaskAcceptedResponse",
     "TaskStatus",
-    # history
+    # history / 历史记录与完整分析报告
     "HistoryItem",
     "HistoryListResponse",
     "DeleteHistoryRequest",
@@ -155,17 +160,17 @@ __all__ = [
     "ReportSummary",
     "ReportStrategy",
     "ReportDetails",
-    # stocks
+    # stocks / 行情、K 线与代码提取
     "StockQuote",
     "StockHistoryResponse",
     "KLineData",
-    # backtest
+    # backtest / 回测运行与表现指标
     "BacktestRunRequest",
     "BacktestRunResponse",
     "BacktestResultItem",
     "BacktestResultsResponse",
     "PerformanceMetrics",
-    # system config
+    # system config / 系统配置读写与连通性测试
     "SystemConfigFieldSchema",
     "SystemConfigCategorySchema",
     "SystemConfigSchemaResponse",
@@ -185,7 +190,7 @@ __all__ = [
     "TestLLMChannelResponse",
     "SystemConfigValidationErrorResponse",
     "SystemConfigConflictResponse",
-    # portfolio
+    # portfolio / 组合账户、交易、快照与风险
     "PortfolioAccountCreateRequest",
     "PortfolioAccountUpdateRequest",
     "PortfolioAccountItem",
@@ -213,7 +218,7 @@ __all__ = [
     "PortfolioDecisionSignalRiskBlock",
     "PortfolioDecisionSignalRiskItem",
     "PortfolioRiskResponse",
-    # alerts
+    # alerts / 告警规则、触发与通知记录
     "AlertDeleteResponse",
     "AlertNotificationItem",
     "AlertNotificationListResponse",
@@ -224,7 +229,7 @@ __all__ = [
     "AlertRuleUpdateRequest",
     "AlertTriggerItem",
     "AlertTriggerListResponse",
-    # decision signals
+    # decision signals / 决策信号、结果统计与画像校准
     "DecisionProfile",
     "DecisionSignalCreateRequest",
     "DecisionSignalFeedbackItem",

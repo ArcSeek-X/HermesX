@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Portfolio endpoints (P0 core account + snapshot workflow)."""
+"""
+@file: portfolio.py
+@description: 投资组合端点：账户、交易、资金流水、公司行动的增删改查，持仓与账户快照、券商 CSV 导入、汇率刷新及组合风险；由 api.v1.router 挂到 /api/v1/portfolio，业务规则在组合应用服务层。
+@author: Lensgcx (GaoCangxiong)
+
+Portfolio endpoints (P0 core account + snapshot workflow).
+
+Covers account CRUD, event ledgers, snapshot valuation, broker
+CSV import, FX refresh and portfolio risk blocks.
+"""
 
 from __future__ import annotations
 
@@ -45,29 +54,64 @@ from src.application.portfolio.portfolio_service import (
     PortfolioService,
 )
 
+# 模块级日志器，记录组合服务异常与堆栈。
 logger = logging.getLogger(__name__)
 
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/portfolio。
 router = APIRouter()
 
 
 def _bad_request(exc: Exception) -> HTTPException:
-    """构造请求参数错误响应。"""
+    """构造请求参数错误响应。
+
+    Args:
+        exc: 服务层校验异常。
+
+    Returns:
+        HTTPException: 400 错误对象。
+    """
     return api_error(400, "validation_error", str(exc))
 
 
 def _internal_error(message: str, exc: Exception) -> HTTPException:
-    """构造内部错误响应。"""
+    """构造内部错误响应（堆栈只进日志）。
+
+    Args:
+        message: 日志上下文。
+        exc: 原始异常。
+
+    Returns:
+        HTTPException: 500 错误对象。
+
+    Side Effects:
+        写一条 ERROR 级日志。
+    """
     logger.error(f"{message}: {exc}", exc_info=True)
     return api_error(500, "internal_error", f"{message}: {str(exc)}")
 
 
 def _conflict_error(*, error: str, message: str) -> HTTPException:
-    """构造资源冲突响应。"""
+    """构造资源冲突响应。
+
+    Args:
+        error: 机器可识别错误码。
+        message: 面向用户的说明。
+
+    Returns:
+        HTTPException: 409 错误对象。
+    """
     return api_error(409, error, message)
 
 
 def _serialize_import_record(item: dict) -> PortfolioImportTradeItem:
-    """序列化单条导入记录。"""
+    """把服务层导入记录序列化为响应模型。
+
+    Args:
+        item: 服务层解析出的单条导入记录。
+
+    Returns:
+        PortfolioImportTradeItem: 含去重哈希的预览条目。
+    """
     payload = dict(item)
     trade_date = payload.get("trade_date")
     if isinstance(trade_date, date):
@@ -84,7 +128,20 @@ def _serialize_import_record(item: dict) -> PortfolioImportTradeItem:
     summary="Create portfolio account",
 )
 def create_account(request: PortfolioAccountCreateRequest) -> PortfolioAccountItem:
-    """创建组合账户。"""
+    """创建组合账户。
+
+    Args:
+        request: 账户创建请求体。
+
+    Returns:
+        PortfolioAccountItem: 新建账户详情。
+
+    Raises:
+        HTTPException: 参数错误 400、名称冲突 409。
+
+    Side Effects:
+        写入账户记录。
+    """
     service = PortfolioService()
     try:
         row = service.create_account(
@@ -110,7 +167,14 @@ def create_account(request: PortfolioAccountCreateRequest) -> PortfolioAccountIt
 def list_accounts(
     include_inactive: bool = Query(False, description="Whether to include inactive accounts"),
 ) -> PortfolioAccountListResponse:
-    """列出组合账户。"""
+    """列出组合账户。
+
+    Args:
+        include_inactive: 是否包含已停用账户，默认 False。
+
+    Returns:
+        PortfolioAccountListResponse: 账户列表。
+    """
     service = PortfolioService()
     try:
         rows = service.list_accounts(include_inactive=include_inactive)
@@ -126,7 +190,21 @@ def list_accounts(
     summary="Update portfolio account",
 )
 def update_account(account_id: int, request: PortfolioAccountUpdateRequest) -> PortfolioAccountItem:
-    """更新组合账户。"""
+    """更新组合账户。
+
+    Args:
+        account_id: 账户主键，来自路径参数。
+        request: 更新请求体，未提供的字段保持不变。
+
+    Returns:
+        PortfolioAccountItem: 更新后的账户。
+
+    Raises:
+        HTTPException: 不存在 404、参数错误 400。
+
+    Side Effects:
+        修改账户记录。
+    """
     service = PortfolioService()
     try:
         updated = service.update_account(
@@ -155,7 +233,20 @@ def update_account(account_id: int, request: PortfolioAccountUpdateRequest) -> P
     summary="Deactivate portfolio account",
 )
 def delete_account(account_id: int):
-    """删除组合账户。"""
+    """删除组合账户。
+
+    Args:
+        account_id: 账户主键，来自路径参数。
+
+    Returns:
+        删除结果与快照更新状态。
+
+    Raises:
+        HTTPException: 不存在 404。
+
+    Side Effects:
+        删除账户记录；关联事件由服务层按规则处理。
+    """
     service = PortfolioService()
     try:
         ok = service.deactivate_account(account_id)
@@ -175,7 +266,20 @@ def delete_account(account_id: int):
     summary="Record trade event",
 )
 def create_trade(request: PortfolioTradeCreateRequest) -> PortfolioEventCreatedResponse:
-    """新增交易记录。"""
+    """新增交易记录。
+
+    Args:
+        request: 交易创建请求体。
+
+    Returns:
+        PortfolioEventCreatedResponse: 新记录 ID。
+
+    Raises:
+        HTTPException: 卖出数量超持仓等业务错误。
+
+    Side Effects:
+        写入交易并使持仓快照失效。
+    """
     service = PortfolioService()
     try:
         data = service.record_trade(
@@ -220,7 +324,18 @@ def list_trades(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioTradeListResponse:
-    """列出交易记录。"""
+    """分页查询交易记录。
+
+    Args:
+        account_id: 账户过滤；为空表示跨账户。
+        date_from / date_to: 成交日期区间。
+        symbol: 股票代码过滤。
+        side: 买卖方向过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        PortfolioTradeListResponse: 当前页交易与总数。
+    """
     service = PortfolioService()
     try:
         data = service.list_trade_events(
@@ -246,7 +361,17 @@ def list_trades(
     summary="Delete trade event",
 )
 def delete_trade(trade_id: int) -> PortfolioDeleteResponse:
-    """删除交易记录。"""
+    """删除交易记录。
+
+    Args:
+        trade_id: 交易主键，来自路径参数。
+
+    Returns:
+        PortfolioDeleteResponse: 实际删除条数。
+
+    Side Effects:
+        删除交易并使持仓快照失效。
+    """
     service = PortfolioService()
     try:
         ok = service.delete_trade_event(trade_id)
@@ -268,7 +393,17 @@ def delete_trade(trade_id: int) -> PortfolioDeleteResponse:
     summary="Record cash event",
 )
 def create_cash_ledger(request: PortfolioCashLedgerCreateRequest) -> PortfolioEventCreatedResponse:
-    """新增现金流水。"""
+    """新增现金流水（入金/出金）。
+
+    Args:
+        request: 资金流水创建请求体。
+
+    Returns:
+        PortfolioEventCreatedResponse: 新记录 ID。
+
+    Side Effects:
+        写入流水并影响账户现金余额。
+    """
     service = PortfolioService()
     try:
         data = service.record_cash_ledger(
@@ -302,7 +437,17 @@ def list_cash_ledger(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioCashLedgerListResponse:
-    """列出现金流水。"""
+    """分页查询现金流水。
+
+    Args:
+        account_id: 账户过滤。
+        date_from / date_to: 发生日期区间。
+        direction: 资金方向过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        PortfolioCashLedgerListResponse: 当前页流水与总数。
+    """
     service = PortfolioService()
     try:
         data = service.list_cash_ledger_events(
@@ -327,7 +472,17 @@ def list_cash_ledger(
     summary="Delete cash ledger event",
 )
 def delete_cash_ledger(entry_id: int) -> PortfolioDeleteResponse:
-    """删除现金流水。"""
+    """删除现金流水。
+
+    Args:
+        entry_id: 流水主键，来自路径参数。
+
+    Returns:
+        PortfolioDeleteResponse: 实际删除条数。
+
+    Side Effects:
+        删除流水并影响账户现金余额。
+    """
     service = PortfolioService()
     try:
         ok = service.delete_cash_ledger_event(entry_id)
@@ -349,7 +504,17 @@ def delete_cash_ledger(entry_id: int) -> PortfolioDeleteResponse:
     summary="Record corporate action event",
 )
 def create_corporate_action(request: PortfolioCorporateActionCreateRequest) -> PortfolioEventCreatedResponse:
-    """新增公司行动记录。"""
+    """新增公司行动记录（分红/拆合股）。
+
+    Args:
+        request: 公司行动创建请求体。
+
+    Returns:
+        PortfolioEventCreatedResponse: 新记录 ID。
+
+    Side Effects:
+        写入公司行动并触发持仓成本重算。
+    """
     service = PortfolioService()
     try:
         data = service.record_corporate_action(
@@ -387,7 +552,18 @@ def list_corporate_actions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PortfolioCorporateActionListResponse:
-    """列出公司行动记录。"""
+    """分页查询公司行动。
+
+    Args:
+        account_id: 账户过滤。
+        date_from / date_to: 生效日期区间。
+        symbol: 股票代码过滤。
+        action_type: 行动类型过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        PortfolioCorporateActionListResponse: 当前页记录与总数。
+    """
     service = PortfolioService()
     try:
         data = service.list_corporate_action_events(
@@ -413,7 +589,17 @@ def list_corporate_actions(
     summary="Delete corporate action event",
 )
 def delete_corporate_action(action_id: int) -> PortfolioDeleteResponse:
-    """删除公司行动记录。"""
+    """删除公司行动。
+
+    Args:
+        action_id: 公司行动主键，来自路径参数。
+
+    Returns:
+        PortfolioDeleteResponse: 实际删除条数。
+
+    Side Effects:
+        删除记录并触发持仓成本重算。
+    """
     service = PortfolioService()
     try:
         ok = service.delete_corporate_action_event(action_id)
@@ -443,7 +629,22 @@ def get_snapshot(
         description="Whether today's snapshot should try realtime quotes before historical close fallback",
     ),
 ) -> PortfolioSnapshotResponse:
-    """获取组合持仓快照。"""
+    """获取组合持仓快照。
+
+    按账户聚合，跨境持仓按汇率折算到基准货币；估值口径由 cost_method 决定。
+
+    Args:
+        account_id: 指定账户；为空表示跨账户汇总。
+        as_of: 快照基准日；为空表示当前。
+        cost_method: 持仓成本计算方法。
+        include_realtime: 是否拉取实时价格；关闭时使用缓存价。
+
+    Returns:
+        PortfolioSnapshotResponse: 组合总览与逐账户快照。
+
+    Side Effects:
+        include_realtime=True 时可能刷新行情与汇率缓存。
+    """
     service = PortfolioService()
     try:
         data = service.get_portfolio_snapshot(
@@ -467,7 +668,23 @@ def get_snapshot(
     summary="Submit manual analysis for a held portfolio position",
 )
 def analyze_position(symbol: str, request: PortfolioPositionAnalysisRequest) -> TaskAccepted | JSONResponse:
-    """分析单只持仓。"""
+    """分析单只持仓。
+
+    先解析持仓上下文（账户、代码、市场），再提交异步分析任务；多账户持有同一标的且未指定账户时要求明确选择。
+
+    Args:
+        symbol: 股票代码，来自路径参数。
+        request: 持仓分析请求体。
+
+    Returns:
+        TaskAccepted | JSONResponse: 任务 ID 与状态，或已有任务的复用结果。
+
+    Raises:
+        HTTPException: 持仓不存在或无法唯一定位时返回 4xx。
+
+    Side Effects:
+        提交后台分析任务。
+    """
     service = PortfolioService()
     try:
         context = _resolve_position_analysis_context(service, symbol=symbol, account_id=request.account_id)
@@ -517,7 +734,21 @@ def _resolve_position_analysis_context(
     symbol: str,
     account_id: Optional[int],
 ) -> dict:
-    """解析持仓分析所需上下文。"""
+    """解析持仓分析所需上下文。
+
+    把路径中的 symbol 与请求中的 account_id 归一化为分析任务所需的账户、代码与市场信息。
+
+    Args:
+        service: 组合服务实例。
+        symbol: 股票代码。
+        account_id: 指定账户；为空时需检查是否唯一。
+
+    Returns:
+        dict: 供分析任务提交的上下文字段。
+
+    Raises:
+        HTTPException: 持仓不存在或多账户歧义。
+    """
     target = service._normalize_symbol_for_position(symbol)
     if not target:
         raise ValueError("symbol must not be empty")
@@ -585,7 +816,21 @@ def parse_csv_import(
     broker: str = Form(..., description="Broker id: huatai/citic/cmb"),
     file: UploadFile = File(...),
 ) -> PortfolioImportParseResponse:
-    """解析券商交易 CSV 导入内容。"""
+    """解析券商交易 CSV 导入内容（只预览不写库）。
+
+    Args:
+        broker: 指定券商格式；为空时按文件内容自动识别。
+        file: 上传的交易流水文件。
+
+    Returns:
+        PortfolioImportParseResponse: 预览记录、识别结果与错误统计。
+
+    Raises:
+        HTTPException: 文件格式不支持或解析失败。
+
+    Side Effects:
+        无；仅解析上传文件。
+    """
     importer = PortfolioImportService()
     try:
         content = file.file.read()
@@ -611,7 +856,14 @@ def parse_csv_import(
     summary="List supported broker CSV parsers",
 )
 def list_csv_brokers() -> PortfolioImportBrokerListResponse:
-    """列出支持的券商 CSV 格式。"""
+    """列出支持的券商 CSV 格式。
+
+    Args:
+        无参数。
+
+    Returns:
+        PortfolioImportBrokerListResponse: 券商标识、别名与展示名。
+    """
     importer = PortfolioImportService()
     try:
         return PortfolioImportBrokerListResponse(brokers=importer.list_supported_brokers())
@@ -631,7 +883,22 @@ def commit_csv_import(
     dry_run: bool = Form(False),
     file: UploadFile = File(...),
 ) -> PortfolioImportCommitResponse:
-    """提交 CSV 导入记录。"""
+    """提交 CSV 导入记录。
+
+    dry_run=True 时只统计不写库；重复记录由去重哈希判定并跳过。
+
+    Args:
+        account_id: 写入的目标账户。
+        broker: 券商格式标识。
+        dry_run: 是否试运行。
+        file: 上传的交易流水文件。
+
+    Returns:
+        PortfolioImportCommitResponse: 插入/重复/失败计数。
+
+    Side Effects:
+        非 dry_run 时批量写入交易记录。
+    """
     importer = PortfolioImportService()
     try:
         content = file.file.read()
@@ -659,7 +926,18 @@ def refresh_fx_rates(
     account_id: Optional[int] = Query(None, description="Optional account id"),
     as_of: Optional[date] = Query(None, description="Rate date, default today"),
 ) -> PortfolioFxRefreshResponse:
-    """刷新汇率数据。"""
+    """刷新汇率数据。
+
+    Args:
+        account_id: 指定账户；为空表示刷新全部涉及的货币对。
+        as_of: 基准日；为空表示当前。
+
+    Returns:
+        PortfolioFxRefreshResponse: 更新/过期/失败计数与禁用原因。
+
+    Side Effects:
+        调用外部汇率源并更新本地缓存。
+    """
     service = PortfolioService()
     try:
         data = service.refresh_fx_rates(account_id=account_id, as_of=as_of)
@@ -685,7 +963,17 @@ def get_risk_report(
         description="Whether today's risk snapshot should try realtime quotes before historical close fallback",
     ),
 ) -> PortfolioRiskResponse:
-    """获取组合风险报告。"""
+    """获取组合风险报告。
+
+    Args:
+        account_id: 指定账户；为空表示跨账户汇总。
+        as_of: 基准日。
+        cost_method: 持仓成本计算方法，与快照口径保持一致。
+        include_realtime: 是否使用实时价格计算风险。
+
+    Returns:
+        PortfolioRiskResponse: 集中度、回撤、止损与信号风险各区块。
+    """
     service = PortfolioRiskService()
     try:
         data = service.get_risk_report(

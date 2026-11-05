@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: limit_pool.py
+@description: 涨跌停榜单端点：提供涨停/跌停股池查询；由 api.v1.router 挂到 /api/v1/limit-pool，取数经 LimitPoolService 与 data_provider 适配器。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 涨跌停榜单接口（limit_pool）
 ===================================
@@ -31,6 +35,7 @@ from fastapi import APIRouter, Depends, Query
 from api.deps import get_limit_pool_service
 from src.application.market import LIMIT_DOWN, LIMIT_UP, LimitPoolService
 
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/limit-pool。
 router = APIRouter()
 
 
@@ -40,7 +45,21 @@ def get_limit_up_board(
     limit: int = Query(100, ge=1, le=200, description='返回条数上限'),
     service: LimitPoolService = Depends(get_limit_pool_service),
 ):
-    """涨停榜单：返回当日（或指定交易日）涨停股池明细。"""
+    """涨停榜单：返回当日（或指定交易日）涨停股池明细。
+
+    端点只做参数透传与响应组装；失败时服务层降级为空榜，因此不把数据源异常透传为 5xx。
+
+    Args:
+        date: 交易日 YYYYMMDD；None 表示按当天取数，并回显当天日期。
+        limit: 返回条数上限，范围 1~200，默认 100。
+        service: 榜单用例，由 Depends(get_limit_pool_service) 装配。
+
+    Returns:
+        dict: 含 date 与 items；items 为按连板数降序排列的股池条目。
+
+    Side Effects:
+        无；60s TTL 缓存由数据源 Manager 维护，端点不自建缓存。
+    """
     items = service.get_board(board=LIMIT_UP, date=date, limit=limit)
     return {
         'date': date or datetime.now().strftime('%Y%m%d'),
@@ -54,7 +73,21 @@ def get_limit_down_board(
     limit: int = Query(100, ge=1, le=200, description='返回条数上限'),
     service: LimitPoolService = Depends(get_limit_pool_service),
 ):
-    """跌停榜单：返回当日（或指定交易日）跌停股池明细。"""
+    """跌停榜单：返回当日（或指定交易日）跌停股池明细。
+
+    字段与涨停榜一致，仅「涨停时间」语义变为「跌停时间」；跌停池无首次封板时间，以最后封板时间充当。
+
+    Args:
+        date: 交易日 YYYYMMDD；None 表示按当天取数，并回显当天日期。
+        limit: 返回条数上限，范围 1~200，默认 100。
+        service: 榜单用例，由 Depends(get_limit_pool_service) 装配。
+
+    Returns:
+        dict: 含 date 与 items；连板数表示连续跌停次数。
+
+    Side Effects:
+        无；缓存由数据源 Manager 维护。
+    """
     items = service.get_board(board=LIMIT_DOWN, date=date, limit=limit)
     return {
         'date': date or datetime.now().strftime('%Y%m%d'),

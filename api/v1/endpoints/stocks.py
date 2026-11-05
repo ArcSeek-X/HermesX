@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+@file: stocks.py
+@description: 股票数据端点：实时行情、历史 K 线、当日分时、图片代码识别、文件导入与自选队列；由 api.v1.router 挂到 /api/v1/stocks，分时数据复用 kline 端点的缓存约定。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 股票数据接口
 ===================================
@@ -48,28 +52,51 @@ from src.domain.market.stock_list_parser import split_stock_list
 from src.bootstrap.quote import build_stock_service
 from src.application.runtime.system_config_service import SystemConfigService
 
+# 模块级日志器，记录行情与识别失败。
 logger = logging.getLogger(__name__)
 
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/stocks。
 router = APIRouter()
 
 # 须在 /{stock_code} 路由之前定义
+# 允许上传的图片 MIME 白名单字符串，用于图片识别接口的入参校验与错误提示。
 ALLOWED_MIME_STR = ", ".join(ALLOWED_MIME)
 
 # 分时缓存（TTL 30s）：分时为当日数据，短 TTL 即可显著降低自选股列表一页 10 行的
 # 重复请求压力；上游 trends2 有全局节流（≈3 req/s），缓存同时降低限流风险。
 _timeline_cache: Dict[str, Dict[str, Any]] = {}
+# 分时数据缓存有效期（秒）；上游 trends2 有全局节流，缓存用于降低限流风险。
 _TIMELINE_CACHE_TTL = 30
 
 
 def _timeline_cache_valid(cache_item: Optional[Dict[str, Any]], ttl: int) -> bool:
-    """分时缓存项是否仍在 TTL 内（与 kline 端点同一约定）。"""
+    """分时缓存项是否仍在 TTL 内（与 kline 端点同一约定）。
+
+    无 timestamp 的旧格式条目按立即失效处理，避免永久命中。
+
+    Args:
+        cache_item: 缓存条目字典，可为 None。
+        ttl: 有效期秒数。
+
+    Returns:
+        bool: 命中且未过期返回 True。
+    """
     if not cache_item:
         return False
     return (time.time() - float(cache_item.get("timestamp", 0))) < ttl
 
 
 def _read_watchlist_codes(service: SystemConfigService) -> list:
-    """Read STOCK_LIST codes as-is (no normalization)."""
+    """Read STOCK_LIST codes as-is (no normalization).
+
+    读取 STOCK_LIST 原样返回，不做代码规范化，避免写入侧悄悄改变用户已保存的代码形式。
+
+    Args:
+        service: 配置服务，提供 STOCK_LIST 读写。
+
+    Returns:
+        list: 原始股票代码列表。
+    """
     config_data = service.get_config(include_schema=False)
     stock_list_str = ""
     for item in config_data.get("items", []):
@@ -80,7 +107,20 @@ def _read_watchlist_codes(service: SystemConfigService) -> list:
 
 
 def _write_watchlist_codes(service: SystemConfigService, codes: list) -> None:
-    """Persist stock codes to STOCK_LIST as-is (no normalization)."""
+    """Persist stock codes to STOCK_LIST as-is (no normalization).
+
+    按调用方给定顺序原样持久化，去重与规范化由业务入口负责。
+
+    Args:
+        service: 配置服务。
+        codes: 待写入的代码列表。
+
+    Returns:
+        None。
+
+    Side Effects:
+        修改 STOCK_LIST 配置。
+    """
     config_data = service.get_config(include_schema=False)
     config_version = config_data.get("config_version", "")
     service.update(
@@ -92,6 +132,8 @@ def _write_watchlist_codes(service: SystemConfigService, codes: list) -> None:
 
 
 # Stock code validation patterns (aligned with frontend validateStockCode)
+# 股票代码格式规则与前端 validateStockCode 保持一致，避免前后端对同一输入判定不同。
+# 受支持的股票代码格式正则，与前端 validateStockCode 口径对齐。
 _STOCK_CODE_RE = re.compile(
     r"^(?:\d{6}"                              # A-share 6-digit
     r"|(?:SH|SZ|BJ)\d{6}"                     # exchange-prefixed A-share
@@ -109,6 +151,17 @@ def _validate_and_normalize_stock_code(code: str) -> str:
     """Validate stock code format and return canonical form.
 
     Raises HTTPException(400) if the code does not match supported formats.
+
+    校验股票代码格式并转为规范形式；不符合 A 股/港股/美股等受支持格式时直接返回 400，避免非法代码进入下游数据源。
+
+    Args:
+        code: 原始代码字符串。
+
+    Returns:
+        str: 规范化后的股票代码。
+
+    Raises:
+        HTTPException: 格式不支持时返回 400。
     """
     stripped = code.strip()
     if not stripped:
@@ -128,7 +181,16 @@ def _validate_and_normalize_stock_code(code: str) -> str:
 
 
 def _watchlist_match_key(code: str) -> str:
-    """Return the equivalence key used for watchlist add/remove matching."""
+    """Return the equivalence key used for watchlist add/remove matching.
+
+    生成自选股增删匹配的等价键：让 600519 与 600519.SH 视为同一标的，避免重复添加。
+
+    Args:
+        code: 股票代码。
+
+    Returns:
+        str: 用于比对的等价键。
+    """
     normalized = normalize_stock_code_for_stock_list(code.strip())
     if re.fullmatch(r"\d{5}", normalized):
         return f"HK{normalized}"
@@ -150,10 +212,21 @@ def extract_from_image(
     file: Optional[UploadFile] = File(None, description="图片文件（表单字段名 file）"),
     include_raw: bool = Query(False, description="是否在结果中包含原始 LLM 响应"),
 ) -> ExtractFromImageResponse:
-    """
-    从上传的图片中提取股票代码（使用 Vision LLM）。
+    """从上传的图片中提取股票代码（使用 Vision LLM）。
 
     表单字段请使用 file 上传图片。优先级：Gemini / Anthropic / OpenAI（首个可用）。
+
+    包含原始模型输出主要用于调试，正常调用可通过 include_raw 关闭；图片类型由 ALLOWED_MIME_STR 白名单约束。
+
+    Args:
+        file: 上传的图片文件。
+        include_raw: 是否在响应中附带 LLM 原始文本。
+
+    Returns:
+        ExtractFromImageResponse: 去重代码列表与带置信度的结构化条目。
+
+    Raises:
+        HTTPException: 文件类型不支持、无可用视觉模型或识别失败。
     """
     if not file or not file.filename:
         raise HTTPException(
@@ -224,12 +297,22 @@ def extract_from_image(
     description="上传 CSV/Excel 文件或粘贴文本，自动解析股票代码。文件上限 2MB，文本上限 100KB。",
 )
 async def parse_import(request: Request) -> ExtractFromImageResponse:
-    """
-    解析 CSV/Excel 文件或剪贴板文本。
+    """解析 CSV/Excel 文件或剪贴板文本。
 
     - multipart/form-data + file: 上传文件
     - application/json + {"text": "..."}: 粘贴文本
     - 优先使用 file，若同时提供则忽略 text
+
+    统一输出与图片识别相同的响应形状，前端可复用同一结果渲染组件。
+
+    Args:
+        request: 原始请求对象，按 Content-Type 判断输入来源。
+
+    Returns:
+        ExtractFromImageResponse: 解析出的代码列表与条目明细。
+
+    Raises:
+        HTTPException: 输入为空或格式无法解析时返回 400。
     """
     content_type = (request.headers.get("content-type") or "").lower()
 
@@ -343,7 +426,14 @@ async def parse_import(request: Request) -> ExtractFromImageResponse:
 def get_watchlist(
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
-    """获取自选股列表。"""
+    """获取自选股列表。
+
+    Args:
+        service: 配置服务，由 Depends 注入。
+
+    Returns:
+        WatchlistResponse: 当前 STOCK_LIST 代码列表与提示文案。
+    """
     try:
         codes = _read_watchlist_codes(service)
         return WatchlistResponse(stock_codes=codes, message=f"当前自选 {len(codes)} 只股票")
@@ -370,7 +460,23 @@ def add_to_watchlist(
     request: WatchlistRequest,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
-    """新增自选股。"""
+    """新增自选股。
+
+    先规范化代码并计算等价键，已存在时保持列表不变，避免重复项。
+
+    Args:
+        request: 含股票代码的请求体。
+        service: 配置服务，由 Depends 注入。
+
+    Returns:
+        WatchlistResponse: 更新后的完整代码列表。
+
+    Raises:
+        HTTPException: 代码格式非法 400。
+
+    Side Effects:
+        修改 STOCK_LIST 配置。
+    """
     try:
         validated = _validate_and_normalize_stock_code(request.stock_code)
         codes = _read_watchlist_codes(service)
@@ -404,7 +510,23 @@ def remove_from_watchlist(
     request: WatchlistRequest,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> WatchlistResponse:
-    """移除自选股。"""
+    """移除自选股。
+
+    按等价键匹配删除，兼容带后缀与不带后缀的代码写法。
+
+    Args:
+        request: 含股票代码的请求体。
+        service: 配置服务，由 Depends 注入。
+
+    Returns:
+        WatchlistResponse: 更新后的完整代码列表。
+
+    Raises:
+        HTTPException: 代码格式非法 400。
+
+    Side Effects:
+        修改 STOCK_LIST 配置。
+    """
     try:
         validated = _validate_and_normalize_stock_code(request.stock_code)
         codes = _read_watchlist_codes(service)
@@ -437,19 +559,18 @@ def remove_from_watchlist(
     description="获取指定股票的最新行情数据"
 )
 def get_stock_quote(stock_code: str) -> StockQuote:
-    """
-    获取股票实时行情
-    
-    获取指定股票的最新行情数据
-    
+    """获取股票实时行情
+
+    同步端点由 FastAPI 放入线程池执行，避免阻塞数据源调用卡住事件循环。
+
     Args:
-        stock_code: 股票代码（如 600519、00700、AAPL）
-        
+        stock_code: 股票代码，来自路径参数。
+
     Returns:
-        StockQuote: 实时行情数据
-        
+        StockQuote: 实时价格、涨跌、成交量与估值快照。
+
     Raises:
-        HTTPException: 404 - 股票不存在
+        HTTPException: 代码无数据或数据源失败。
     """
     try:
         service = build_stock_service()
@@ -512,18 +633,23 @@ def get_stock_history(
     period: str = Query("daily", description="K 线周期", pattern="^(daily|weekly|monthly)$"),
     days: int = Query(30, ge=1, le=365, description="获取天数")
 ) -> StockHistoryResponse:
-    """
-    获取股票历史行情
-    
+    """获取股票历史行情
+
     获取指定股票的历史 K 线数据
-    
+
     Args:
         stock_code: 股票代码
         period: K 线周期 (daily/weekly/monthly)
         days: 获取天数
-        
+
     Returns:
         StockHistoryResponse: 历史行情数据
+
+    Raises:
+        HTTPException: period 不受支持或取数失败。
+
+    Side Effects:
+        无；数据由数据源层按需缓存。
     """
     try:
         service = build_stock_service()
@@ -592,14 +718,19 @@ def get_stock_history(
     )
 )
 def get_stock_timeline(stock_code: str) -> StockTimelineResponse:
-    """
-    获取股票当日分时明细
+    """获取股票当日分时明细
 
     Args:
         stock_code: 股票代码（如 600519、00700、AAPL）
 
     Returns:
         StockTimelineResponse: 昨收价 + 分时点（KLinePoint 形态，date 为 YYYY-MM-DD HH:mm:ss）
+
+    Raises:
+        HTTPException: 代码无数据或分时源失败。
+
+    Side Effects:
+        写入进程内分时缓存，TTL 由 _TIMELINE_CACHE_TTL 控制，用于降低上游 trends2 限流风险。
     """
     cached = _timeline_cache.get(stock_code)
     if _timeline_cache_valid(cached, ttl=_TIMELINE_CACHE_TTL):

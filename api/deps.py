@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """
+@file: deps.py
+@description: API 依赖注入统一出口：以 FastAPI Depends 可消费的函数形式转出配置、
+    服务与用例；数据库会话句柄的装配在 src.bootstrap.database，本模块只做转出，
+    无状态用例按请求装配，应用生命周期级服务缓存在 request.app.state。
+@author: Lensgcx (GaoCangxiong)
+
 ===================================
 API 依赖注入模块
 ===================================
@@ -7,6 +13,9 @@ API 依赖注入模块
 职责：
 1. 作为 API 依赖项的统一出口：数据库会话、配置、服务与用例
 2. 会话/数据库句柄的装配在 ``src.bootstrap.database``，本模块只转出
+
+使用场景：端点通过 ``Depends(get_xxx_service)`` 声明依赖；测试可用
+``app.dependency_overrides[get_db] = ...`` 替换，因此转出的函数对象必须稳定。
 """
 
 from fastapi import Request
@@ -32,20 +41,42 @@ from src.application.runtime.runtime_scheduler import RuntimeSchedulerService
 
 # ``get_db`` / ``get_database_manager`` 从 ``src.bootstrap.database`` 原样导出（不做
 # 包装），保证 ``Depends(...)`` 与 ``dependency_overrides[...]`` 拿到的是同一个函数对象。
+# 若改为包装函数，测试里的 override 键将不再匹配，数据库替换会静默失效。
 
 
 def get_config_dep() -> Config:
-    """
-    获取配置依赖
-    
+    """获取全局配置单例，作为端点的配置依赖。
+
+    Args:
+        无参数。
+
     Returns:
-        Config: 配置单例对象
+        Config: 进程级配置单例；字段由环境变量与 .env 决定，调用方不应修改。
+
+    Side Effects:
+        无；返回的是共享对象，修改其字段会影响全局运行配置。
     """
     return get_config()
 
 
 def get_system_config_service(request: Request) -> SystemConfigService:
-    """Get app-lifecycle shared SystemConfigService instance."""
+    """Get app-lifecycle shared SystemConfigService instance.
+
+    The service is created lazily on first use and cached on ``app.state`` so
+    configuration reload listeners and scheduled jobs share one coordinator.
+
+    获取应用生命周期级的系统配置服务；首次访问时惰性创建并挂到 ``app.state``，
+    保证配置变更监听与定时任务共用同一个实例。
+
+    Args:
+        request: 当前请求对象，用其 ``app.state`` 作为进程内共享容器。
+
+    Returns:
+        SystemConfigService: 与当前应用实例绑定的共享服务；同一应用内始终返回同一对象。
+
+    Side Effects:
+        首次调用时写入 ``request.app.state.system_config_service``。
+    """
     service = getattr(request.app.state, "system_config_service", None)
     if service is None:
         service = SystemConfigService()
@@ -54,7 +85,23 @@ def get_system_config_service(request: Request) -> SystemConfigService:
 
 
 def get_runtime_scheduler_service(request: Request) -> RuntimeSchedulerService:
-    """Get app-lifecycle shared RuntimeSchedulerService instance."""
+    """Get app-lifecycle shared RuntimeSchedulerService instance.
+
+    The scheduler must stay a singleton per app: duplicating it would register
+    the same cron/interval jobs twice and double-trigger analysis tasks.
+
+    获取应用生命周期级的运行时调度服务；同一应用内必须单例，否则会重复注册
+    定时任务并导致分析任务被触发多次。
+
+    Args:
+        request: 当前请求对象，用其 ``app.state`` 作为进程内共享容器。
+
+    Returns:
+        RuntimeSchedulerService: 与当前应用实例绑定的共享调度服务。
+
+    Side Effects:
+        首次调用时写入 ``request.app.state.runtime_scheduler_service``。
+    """
     service = getattr(request.app.state, "runtime_scheduler_service", None)
     if service is None:
         service = RuntimeSchedulerService()
@@ -67,6 +114,15 @@ def get_watchlist_service() -> WatchlistService:
 
     用例无状态，按请求装配即可；不在 ``app.state`` 缓存，避免
     ``DatabaseManager.reset_instance()`` 后仍持有旧管理器。
+
+    Args:
+        无参数。
+
+    Returns:
+        WatchlistService: 使用当前数据库句柄的用例实例。
+
+    Side Effects:
+        每次调用新建用例对象；不产生持久状态。
     """
     return build_watchlist_service()
 
@@ -75,6 +131,15 @@ def get_usage_service() -> UsageService:
     """获取按当前数据库单例装配的 LLM 用量用例。
 
     与自选股用例一致：无状态、按请求装配，不缓存到 ``app.state``。
+
+    Args:
+        无参数。
+
+    Returns:
+        UsageService: 使用当前数据库句柄的用量查询用例。
+
+    Side Effects:
+        每次调用新建用例对象；不产生持久状态。
     """
     return build_usage_service()
 
@@ -83,6 +148,15 @@ def get_history_query_service() -> HistoryQueryService:
     """获取按当前数据库单例装配的分析历史用例。
 
     与自选股/用量用例一致：无状态、按请求装配，不缓存到 ``app.state``。
+
+    Args:
+        无参数。
+
+    Returns:
+        HistoryQueryService: 使用当前数据库句柄的历史查询用例。
+
+    Side Effects:
+        每次调用新建用例对象；不产生持久状态。
     """
     return build_history_query_service()
 
@@ -92,6 +166,15 @@ def get_limit_pool_service() -> LimitPoolService:
 
     用例无状态、不持有数据库句柄，按请求装配即可；选源与缓存状态在
     ``data_provider`` 的 Manager 单例里，不受重建影响。
+
+    Args:
+        无参数。
+
+    Returns:
+        LimitPoolService: 涨跌停榜单用例实例。
+
+    Side Effects:
+        无；数据源缓存由 ``data_provider`` 单例自行维护。
     """
     return build_limit_pool_service()
 
@@ -101,6 +184,15 @@ def get_sector_service() -> SectorService:
 
     用例无状态、不持有数据库句柄，按请求装配即可；多来源优先级与各来源缓存
     在 ``data_provider/sector/``，可在用例层直接复用，无需端点参与选源。
+
+    Args:
+        无参数。
+
+    Returns:
+        SectorService: 板块与市场快照用例实例。
+
+    Side Effects:
+        无；跨请求复用的远程数据缓存由数据源层维护。
     """
     return build_sector_service()
 
@@ -111,6 +203,15 @@ def get_quote_service() -> QuoteService:
     用例无状态、不持有数据库句柄，按请求装配即可；可选数据源与缓存状态在
     ``data_provider`` 的各自 Manager 单例里，不受重建影响。端点持有短 TTL
     响应缓存（K 线 60s / 信息 30s / 搜索 300s），不在用例里重建。
+
+    Args:
+        无参数。
+
+    Returns:
+        QuoteService: 行情查询用例实例。
+
+    Side Effects:
+        无；缓存位于数据源 Manager 与端点层，用例本身不缓存。
     """
     return build_quote_service()
 
@@ -120,6 +221,15 @@ def get_backtest_service() -> BacktestService:
 
     与其他用例一致：按请求装配，不缓存到 ``app.state``，避免
     ``DatabaseManager.reset_instance()`` 后仍持有旧管理器。
+
+    Args:
+        无参数。
+
+    Returns:
+        BacktestService: 使用当前数据库句柄的回测服务。
+
+    Side Effects:
+        每次调用新建服务对象；不产生持久状态。
     """
     return build_backtest_service()
 
@@ -129,5 +239,14 @@ def get_agent_conversation_service() -> AgentConversationService:
 
     与其他用例一致：按请求装配，不缓存到 ``app.state``，避免
     ``DatabaseManager.reset_instance()`` 后仍持有旧管理器。
+
+    Args:
+        无参数。
+
+    Returns:
+        AgentConversationService: 使用当前数据库句柄的会话用例。
+
+    Side Effects:
+        每次调用新建用例对象；不产生持久状态。
     """
     return build_agent_conversation_service()

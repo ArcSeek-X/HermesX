@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""资讯源（情报源）API 端点。
+"""
+@file: intelligence.py
+@description: 资讯情报端点：自定义源与模板管理、默认源初始化、抓取与试抓取、情报条目查询，以及实时快讯与财经日历；由 api.v1.router 挂到 /api/v1/intelligence，快讯与日历在主源失败时降级到 NewsNow。
+@author: Lensgcx (GaoCangxiong)
+
+资讯源（情报源）API 端点。
 
 作用
 ----
@@ -68,24 +73,48 @@ from api.v1.schemas.intelligence import (
 from src.application.intelligence.intelligence_service import IntelligenceService, IntelligenceServiceError
 from src.application.runtime.run_diagnostics import sanitize_diagnostic_text
 
+# 模块级日志器，记录情报/快讯/日历抓取失败（写入前做脱敏）。
 logger = logging.getLogger(__name__)
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/intelligence。
 router = APIRouter()
 
 
 def _bad_request(exc: Exception) -> HTTPException:
-    """把服务层抛出的校验错误包装成 400 响应（保留原始可读文案）。"""
+    """把服务层抛出的校验错误包装成 400 响应（保留原始可读文案）。
+
+    Args:
+        exc: 校验异常。
+
+    Returns:
+        HTTPException: 400 错误对象，error=validation_error。
+    """
     return HTTPException(status_code=400, detail={"error": "validation_error", "message": str(exc)})
 
 
 def _not_found(message: str) -> HTTPException:
-    """把“模板/源不存在”包装成 404 响应。"""
+    """把「模板/源不存在」包装成 404 响应。
+
+    Args:
+        message: 面向用户的说明文案。
+
+    Returns:
+        HTTPException: 404 错误对象。
+    """
     return HTTPException(status_code=404, detail={"error": "not_found", "message": message})
 
 
 def _internal_error(message: str, exc: Exception) -> HTTPException:
     """未预期异常：内部记录脱敏后的错误详情，对外统一返回 500 且不泄漏内部信息。
 
-    注意：响应 message 使用泛化文案，真实细节只写入日志（已先经 sanitize）。
+    Args:
+        message: 日志上下文。
+        exc: 原始异常，写入日志前做脱敏处理。
+
+    Returns:
+        HTTPException: 500 错误对象。
+
+    Side Effects:
+        写一条 ERROR 级日志。
     """
     sanitized_error = sanitize_diagnostic_text(str(exc), max_length=300) or "internal intelligence error"
     logger.error("%s: %s", message, sanitized_error)
@@ -97,7 +126,20 @@ def _internal_error(message: str, exc: Exception) -> HTTPException:
 
 @router.post("/sources", response_model=IntelligenceSourceItem, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}}, summary="Create intelligence source")
 def create_source(request: IntelligenceSourceCreateRequest) -> IntelligenceSourceItem:
-    """创建自定义资讯源：校验失败（如 SSRF 校验不通过、名称重复）返回 400。"""
+    """创建自定义资讯源：校验失败（如 SSRF 校验不通过、名称重复）返回 400。
+
+    Args:
+        request: 数据源创建请求体。
+
+    Returns:
+        IntelligenceSourceItem: 新建的数据源。
+
+    Raises:
+        HTTPException: 校验失败 400、服务异常 500。
+
+    Side Effects:
+        写入数据源记录。
+    """
     try:
         return IntelligenceSourceItem(**IntelligenceService().create_source(request.model_dump()))
     except IntelligenceServiceError as exc:
@@ -115,7 +157,21 @@ def list_sources(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
 ) -> IntelligenceSourceListResponse:
-    """列出情报数据源。"""
+    """列出情报数据源。
+
+    Args:
+        enabled: 启用状态过滤。
+        source_type: 源类型过滤。
+        scope_type: 作用范围类型过滤。
+        market: 市场过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        IntelligenceSourceListResponse: 当前页数据源与总数。
+
+    Raises:
+        HTTPException: 查询异常 500。
+    """
     try:
         return IntelligenceSourceListResponse(**IntelligenceService().list_sources(
             enabled=enabled, source_type=source_type, scope_type=scope_type,
@@ -130,7 +186,15 @@ def list_source_templates(
     source_type: Optional[str] = Query(None),  # 按数据源类型过滤（rss/atom/newsnow）
     market: Optional[str] = Query(None),
 ) -> IntelligenceSourceTemplateListResponse:
-    """列出情报数据源模板。"""
+    """列出情报数据源模板。
+
+    Args:
+        source_type: 源类型过滤。
+        market: 市场过滤。
+
+    Returns:
+        IntelligenceSourceTemplateListResponse: 全部匹配模板与总数。
+    """
     try:
         return IntelligenceSourceTemplateListResponse(**IntelligenceService().list_source_templates(
             source_type=source_type,
@@ -145,7 +209,23 @@ def create_source_from_template(
     template_id: str,  # 内置模板标识（如 cctv-finance）
     request: IntelligenceSourceTemplateCreateRequest = IntelligenceSourceTemplateCreateRequest(),
 ) -> IntelligenceSourceItem:
-    """按模板创建情报数据源。"""
+    """按模板创建情报数据源。
+
+    URL 与源类型来自模板定义，请求体只能覆盖展示与范围类字段。
+
+    Args:
+        template_id: 模板标识，来自路径参数。
+        request: 模板创建请求体。
+
+    Returns:
+        IntelligenceSourceItem: 新建的数据源。
+
+    Raises:
+        HTTPException: 模板不存在 404、校验失败 400、服务异常 500。
+
+    Side Effects:
+        写入数据源记录。
+    """
     try:
         return IntelligenceSourceItem(**IntelligenceService().create_source_from_template(
             template_id,
@@ -165,7 +245,17 @@ def create_source_from_template(
 def create_default_sources(
     request: IntelligenceDefaultSourcesCreateRequest = IntelligenceDefaultSourcesCreateRequest(),  # 可选覆盖字段（如 enabled）
 ) -> IntelligenceDefaultSourceCreateResponse:
-    """批量创建全部内置资讯源：已存在的同名源会被跳过并保留原记录。"""
+    """批量创建全部内置资讯源：已存在的同名源会被跳过并保留原记录。
+
+    Args:
+        request: 默认源创建请求体，可统一指定启用状态。
+
+    Returns:
+        IntelligenceDefaultSourceCreateResponse: 逐项结果与新建总数。
+
+    Side Effects:
+        批量写入尚不存在的内置数据源。
+    """
     try:
         return IntelligenceDefaultSourceCreateResponse(**IntelligenceService().create_default_sources(
             request.model_dump(exclude_none=True),
@@ -178,7 +268,17 @@ def create_default_sources(
 
 @router.post("/sources/test", response_model=IntelligenceSourceTestResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}}, summary="Dry-run an intelligence source payload")
 def test_source_payload(request: IntelligenceSourceCreateRequest) -> IntelligenceSourceTestResponse:
-    """连通性试抓取：只拉取少量样本用于确认源可用，不写入数据库。"""
+    """连通性试抓取：只拉取少量样本用于确认源可用，不写入数据库。
+
+    Args:
+        request: 待测试的数据源配置（可不落库）。
+
+    Returns:
+        IntelligenceSourceTestResponse: 归一化配置、抓取条数与样本列表。
+
+    Raises:
+        HTTPException: 校验失败 400、服务异常 500。
+    """
     try:
         return IntelligenceSourceTestResponse(**IntelligenceService().test_source(request.model_dump()))
     except IntelligenceServiceError as exc:
@@ -191,7 +291,18 @@ def test_source_payload(request: IntelligenceSourceCreateRequest) -> Intelligenc
 def fetch_source(source_id: int, dry_run: bool = Query(False)) -> IntelligenceFetchResponse:
     """抓取单个资讯源并入库；dry_run=True 时只解析不落库。
 
-    源不存在映射为 404，其余校验失败（如 URL 不合法）映射为 400。
+    Args:
+        source_id: 数据源主键，来自路径参数。
+        dry_run: 是否试运行。
+
+    Returns:
+        IntelligenceFetchResponse: 抓取与入库计数、样例与错误信息。
+
+    Raises:
+        HTTPException: 源不存在 404、抓取失败 502。
+
+    Side Effects:
+        非 dry_run 时写入情报条目并可能清理过期数据。
     """
     try:
         return IntelligenceFetchResponse(**IntelligenceService().fetch_source(source_id, dry_run=dry_run))
@@ -206,7 +317,17 @@ def fetch_source(source_id: int, dry_run: bool = Query(False)) -> IntelligenceFe
 
 @router.post("/sources/fetch-enabled", response_model=IntelligenceFetchResponse, responses={500: {"model": ErrorResponse}}, summary="Fetch all enabled intelligence sources with fail-open semantics")
 def fetch_enabled_sources() -> IntelligenceFetchResponse:
-    """抓取所有已启用资讯源：单源失败不影响其他源（fail-open），整体不会抛 400。"""
+    """抓取所有已启用资讯源：单源失败不影响其他源（fail-open），整体不会抛 400。
+
+    Args:
+        无参数。
+
+    Returns:
+        IntelligenceFetchResponse: 各源汇总结果与逐源明细。
+
+    Side Effects:
+        批量写入情报条目。
+    """
     try:
         return IntelligenceFetchResponse(**IntelligenceService().fetch_enabled_sources())
     except Exception as exc:
@@ -223,7 +344,18 @@ def list_items(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
 ) -> IntelligenceItemListResponse:
-    """列出情报条目。"""
+    """列出情报条目。
+
+    Args:
+        scope_type / scope_value: 作用范围过滤。
+        market: 市场过滤。
+        query: 标题与摘要关键词。
+        days: 时间窗口天数。
+        page / page_size: 分页参数。
+
+    Returns:
+        IntelligenceItemListResponse: 当前页情报条目与总数。
+    """
     try:
         return IntelligenceItemListResponse(**IntelligenceService().list_items(
             scope_type=scope_type, scope_value=scope_value, market=market,
@@ -248,8 +380,14 @@ def list_items(
 def _parse_day_start(raw: str) -> datetime:
     """把 ``YYYY-MM-DD`` 解析为当天 00:00:00（服务端本地时区）。
 
+    Args:
+        raw: 日期字符串；非法格式由服务层拒绝。
+
+    Returns:
+        datetime: 当天起始时刻，用作闭区间下界。
+
     Raises:
-        HTTPException: 400，日期格式非法。
+        ValueError: 格式不符合 YYYY-MM-DD。
     """
     try:
         return datetime.strptime(raw.strip(), "%Y-%m-%d")
@@ -261,7 +399,17 @@ def _parse_day_start(raw: str) -> datetime:
 
 
 def _parse_day_end(raw: str) -> datetime:
-    """把 ``YYYY-MM-DD`` 解析为当天 23:59:59，用于闭区间上界。"""
+    """把 ``YYYY-MM-DD`` 解析为当天 23:59:59，用于闭区间上界。
+
+    Args:
+        raw: 日期字符串。
+
+    Returns:
+        datetime: 当天结束时刻，保证单日查询不会漏掉当天数据。
+
+    Raises:
+        ValueError: 格式不符合 YYYY-MM-DD。
+    """
     start = _parse_day_start(raw)
     return start + timedelta(days=1) - timedelta(seconds=1)
 
@@ -275,8 +423,11 @@ def _parse_day_end(raw: str) -> datetime:
 def list_live_news_channels() -> LiveNewsChannelsResponse:
     """查询快讯频道列表（前端 Tab 的数据源）。
 
-    正常模式返回全部 8 个频道；官方源不可用处于降级模式时只返回「要闻」，
-    并置 ``degraded=True``，前端据此隐藏「只看重要的」开关并展示降级提示。
+    Args:
+        无参数。
+
+    Returns:
+        LiveNewsChannelsResponse: 可用频道、降级标记与实际数据源。
     """
     try:
         return LiveNewsChannelsResponse(**IntelligenceService().live_news_channels())
@@ -300,7 +451,22 @@ def list_live_news(
     cursor: Optional[str] = Query(None, description="分页游标，取上次响应的 next_cursor"),
     limit: int = Query(30, ge=1, le=100, description="每页条数"),
 ) -> LiveNewsListResponse:
-    """分页查询已落库的快讯，支持频道 / 重要级 / 关键词 / 日期区间过滤。"""
+    """分页查询已落库的快讯，支持频道 / 重要级 / 关键词 / 日期区间过滤。
+
+    单日 date 优先于 date_from/date_to 组合；游标分页避免深翻页性能下降。
+
+    Args:
+        channel: 频道 ID 过滤。
+        important_only: 是否只看重要快讯。
+        keyword: 标题与正文关键词。
+        date: 单日过滤，优先级最高。
+        date_from / date_to: 日期区间过滤。
+        cursor: 上一页返回的游标。
+        limit: 每页条数。
+
+    Returns:
+        LiveNewsListResponse: 快讯列表、下一页游标、降级标记与服务端时间。
+    """
     # 日期区间解析：date 优先级最高，其次 date_from / date_to 组合
     published_from: Optional[datetime] = None
     published_to: Optional[datetime] = None
@@ -343,8 +509,14 @@ def list_live_news(
 def refresh_live_news(request: LiveNewsRefreshRequest) -> LiveNewsRefreshResponse:
     """手动触发快讯抓取并落库。
 
-    按频道逐个抓取（fail-open）：单频道失败不影响其他频道；
-    全部频道失败且允许降级时，自动改用 NewsNow 兜底源并标记 ``degraded=True``。
+    Args:
+        request: 刷新请求体，可指定频道列表。
+
+    Returns:
+        LiveNewsRefreshResponse: 新增条数、降级标记与逐频道错误。
+
+    Side Effects:
+        写入快讯记录；单频道失败不影响其他频道。
     """
     try:
         return LiveNewsRefreshResponse(**IntelligenceService().refresh_live_news(channels=request.channels))
@@ -363,8 +535,14 @@ def refresh_live_news(request: LiveNewsRefreshRequest) -> LiveNewsRefreshRespons
 def get_live_news_item(item_id: int) -> LiveNewsItem:
     """按快讯 ID 查询单条详情；未找到返回 404。
 
-    快讯 ID 未单独建列，但稳定出现在原文链接末尾（``.../livenews/<id>``），
-    由仓储层按 URL 后缀匹配，官方源与降级源均可命中。
+    Args:
+        item_id: 上游快讯 ID，来自路径参数。
+
+    Returns:
+        LiveNewsItem: 快讯详情。
+
+    Raises:
+        HTTPException: 不存在 404。
     """
     try:
         service = IntelligenceService()
@@ -387,7 +565,14 @@ def get_live_news_item(item_id: int) -> LiveNewsItem:
     summary="List live calendar tabs",
 )
 def list_live_calendar_tabs() -> CalendarTabsResponse:
-    """返回日历分类 Tab 列表（服务端常量，不依赖上游）。"""
+    """返回日历分类 Tab 列表（服务端常量，不依赖上游）。
+
+    Args:
+        无参数。
+
+    Returns:
+        CalendarTabsResponse: 分类 Tab 与降级标记；上游不可用时仍可返回 Tab。
+    """
     try:
         return CalendarTabsResponse(**IntelligenceService().list_calendar_tabs())
     except Exception as exc:
@@ -400,7 +585,14 @@ def list_live_calendar_tabs() -> CalendarTabsResponse:
     summary="List live calendar countries",
 )
 def list_live_calendar_countries() -> CalendarCountriesResponse:
-    """返回国家字典；上游失败时降级为空列表并置 degraded=True。"""
+    """返回国家字典；上游失败时降级为空列表并置 degraded=True。
+
+    Args:
+        无参数。
+
+    Returns:
+        CalendarCountriesResponse: 国家列表与降级标记。
+    """
     try:
         return CalendarCountriesResponse(**IntelligenceService().list_calendar_countries())
     except Exception as exc:
@@ -421,7 +613,19 @@ def list_live_calendar(
     importance_min: Optional[int] = Query(None, ge=0, le=4, description="最低重要级（统一业务量纲 0~4）"),
     include_economic_data: bool = Query(False, description="是否包含 FD 经济数据（默认不含）"),
 ) -> CalendarMonthResponse:
-    """查询指定月份的日历事件（聚合去重 + 分类 / 国家 / 重要级过滤）。"""
+    """查询指定月份的日历事件（聚合去重 + 分类 / 国家 / 重要级过滤）。
+
+    Args:
+        year: 年份。
+        month: 月份。
+        tab: 分类 Tab 过滤。
+        country_id: 国家过滤。
+        importance_min: 最低重要级。
+        include_economic_data: 是否包含经济数据类事件。
+
+    Returns:
+        CalendarMonthResponse: 当月事件、服务端时间、总数与降级标记。
+    """
     try:
         return CalendarMonthResponse(**IntelligenceService().list_calendar(
             year=year,
@@ -446,7 +650,17 @@ def list_live_calendar(
     summary="Refresh live calendar from upstream",
 )
 def refresh_live_calendar(request: CalendarRefreshRequest) -> CalendarRefreshResponse:
-    """手动触发指定月份日历抓取并落库。"""
+    """手动触发指定月份日历抓取并落库。
+
+    Args:
+        request: 刷新请求体，含年月。
+
+    Returns:
+        CalendarRefreshResponse: 新增条数、降级标记与错误列表。
+
+    Side Effects:
+        写入日历事件记录。
+    """
     try:
         return CalendarRefreshResponse(**IntelligenceService().refresh_calendar(
             year=request.year,

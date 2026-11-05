@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
-"""DecisionSignal API endpoints."""
+"""
+@file: decision_signals.py
+@description: 决策信号端点：信号创建/查询/重评估/状态更新/反馈，以及结果评估、统计与画像校准；写操作要求管理员会话，由 api.v1.router 挂到 /api/v1/decision-signals。
+@author: Lensgcx (GaoCangxiong)
+
+DecisionSignal API endpoints.
+
+Exposes CRUD-like signal operations, guardrail-aware reassessment,
+outcome evaluation, statistics and profile calibration.
+"""
 
 from __future__ import annotations
 
@@ -42,15 +51,19 @@ from src.application.decision.decision_signal_reassess_service import (
 )
 
 
+# 模块级日志器，记录信号服务异常与堆栈。
 logger = logging.getLogger(__name__)
 
+# 管理员会话 Cookie 提取器，用于写操作的 Security 依赖。
 admin_session_cookie = APIKeyCookie(
     name=COOKIE_NAME,
     scheme_name="AdminSessionCookie",
     auto_error=False,
 )
+# 本模块的 APIRouter；由 api.v1.router 挂到 /api/v1/decision-signals。
 router = APIRouter(dependencies=[Security(admin_session_cookie)])
 
+# OpenAPI 中写操作共用的 401 响应描述，避免每个路由重复声明。
 AUTH_RESPONSE = {
     401: {
         "model": ErrorResponse,
@@ -60,7 +73,15 @@ AUTH_RESPONSE = {
 
 
 def _bad_request(exc: Exception, *, error: str = "validation_error") -> HTTPException:
-    """构造请求参数错误响应。"""
+    """构造请求参数错误响应。
+
+    Args:
+        exc: 服务层校验异常。
+        error: 写入响应体的错误码。
+
+    Returns:
+        HTTPException: 400 错误对象。
+    """
     return HTTPException(
         status_code=400,
         detail={"error": error, "message": str(exc)},
@@ -68,7 +89,14 @@ def _bad_request(exc: Exception, *, error: str = "validation_error") -> HTTPExce
 
 
 def _not_found(exc: Exception) -> HTTPException:
-    """构造资源不存在响应。"""
+    """构造资源不存在响应。
+
+    Args:
+        exc: 服务层资源不存在异常。
+
+    Returns:
+        HTTPException: 404 错误对象。
+    """
     return HTTPException(
         status_code=404,
         detail={"error": "not_found", "message": str(exc)},
@@ -76,7 +104,16 @@ def _not_found(exc: Exception) -> HTTPException:
 
 
 def _error(status_code: int, exc: Exception, *, error: str) -> HTTPException:
-    """构造通用错误响应。"""
+    """构造通用错误响应。
+
+    Args:
+        status_code: HTTP 状态码。
+        exc: 原始异常，其可读文案写入 message。
+        error: 机器可识别错误码。
+
+    Returns:
+        HTTPException: 指定状态码的错误对象。
+    """
     return HTTPException(
         status_code=status_code,
         detail={"error": error, "message": str(exc)},
@@ -84,7 +121,20 @@ def _error(status_code: int, exc: Exception, *, error: str) -> HTTPException:
 
 
 def _internal_error(message: str, exc: Exception) -> HTTPException:
-    """构造内部错误响应。"""
+    """构造内部错误响应。
+
+    堆栈只进日志，对外返回统一 500 文案。
+
+    Args:
+        message: 日志上下文。
+        exc: 原始异常。
+
+    Returns:
+        HTTPException: 500 错误对象。
+
+    Side Effects:
+        写一条带堆栈的 ERROR 级日志。
+    """
     logger.error("%s: %s", message, exc, exc_info=True)
     return HTTPException(
         status_code=500,
@@ -93,7 +143,16 @@ def _internal_error(message: str, exc: Exception) -> HTTPException:
 
 
 def _guardrail_blocked(exc: DecisionSignalReassessGuardrailBlockedError) -> HTTPException:
-    """构造护栏拦截响应。"""
+    """构造护栏拦截响应。
+
+    把服务层的护栏异常转成结构化错误体，供前端展示具体拦截原因。
+
+    Args:
+        exc: 护栏拦截异常。
+
+    Returns:
+        HTTPException: 400 错误对象，detail 为 DecisionSignalReassessErrorResponse 形状。
+    """
     response = DecisionSignalReassessErrorResponse(
         error="guardrail_blocked",
         message="Reassessed decision signal was blocked by guardrail.",
@@ -123,7 +182,20 @@ def _guardrail_blocked(exc: DecisionSignalReassessGuardrailBlockedError) -> HTTP
     operation_id="createDecisionSignal",
 )
 def create_signal(request: DecisionSignalCreateRequest) -> DecisionSignalMutationResponse:
-    """创建决策信号。"""
+    """创建决策信号。
+
+    Args:
+        request: 信号创建请求体；须通过管理员会话校验。
+
+    Returns:
+        DecisionSignalMutationResponse: 信号详情与是否新建。
+
+    Raises:
+        HTTPException: 参数错误 400、未授权 401、服务异常 500。
+
+    Side Effects:
+        写入决策信号记录。
+    """
     service = DecisionSignalService()
     try:
         payload = request.model_dump(exclude_unset=True)
@@ -181,7 +253,23 @@ def list_signals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> DecisionSignalListResponse:
-    """列出决策信号。"""
+    """列出决策信号。
+
+    支持按市场、代码、动作、阶段、画像、来源、报告/跟踪 ID、触发来源、状态、创建与过期时间区间、以及持仓与账户维度组合过滤。
+
+    Args:
+        market / stock_code / action / market_phase / decision_profile / source_type: 信号属性过滤。
+        source_report_id / trace_id / trigger_source: 来源与链路过滤。
+        status / created_from / created_to / expires_from / expires_to: 状态与时间区间过滤。
+        holding_only / account_id: 与持仓账户关联的过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        DecisionSignalListResponse: 当前页信号与总数。
+
+    Raises:
+        HTTPException: 参数错误 400、服务异常 500。
+    """
     service = DecisionSignalService()
     try:
         return DecisionSignalListResponse(
@@ -233,7 +321,20 @@ def list_signals(
     operation_id="runDecisionSignalOutcomes",
 )
 def run_outcomes(request: DecisionSignalOutcomeRunRequest) -> DecisionSignalOutcomeRunResponse:
-    """执行信号结果评估。"""
+    """执行信号结果评估。
+
+    Args:
+        request: 评估请求体，可指定信号 ID、周期、强制重算与批量筛选条件。
+
+    Returns:
+        DecisionSignalOutcomeRunResponse: 结果明细与各状态计数。
+
+    Raises:
+        HTTPException: 参数错误 400、服务异常 500。
+
+    Side Effects:
+        写入或刷新结果评估记录。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeRunResponse(
@@ -279,7 +380,19 @@ def list_outcomes(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> DecisionSignalOutcomeListResponse:
-    """列出信号评估结果。"""
+    """列出信号评估结果。
+
+    Args:
+        signal_id: 指定信号 ID；为空表示不限。
+        horizon: 持有周期过滤。
+        engine_version: 引擎版本过滤。
+        eval_status: 评估状态过滤。
+        outcome: 结果值过滤。
+        page / page_size: 分页参数。
+
+    Returns:
+        DecisionSignalOutcomeListResponse: 当前页评估记录与总数。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeListResponse(
@@ -317,7 +430,16 @@ def get_outcome_stats(
     engine_version: Optional[str] = Query(None),
     statuses: Optional[List[str]] = Query(None),
 ) -> DecisionSignalOutcomeStatsResponse:
-    """获取信号评估统计。"""
+    """获取信号评估统计。
+
+    Args:
+        horizons: 统计覆盖的持有周期列表。
+        engine_version: 引擎版本过滤。
+        statuses: 参与统计的信号状态列表。
+
+    Returns:
+        DecisionSignalOutcomeStatsResponse: 总体指标、分桶明细与画像校准结果。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeStatsResponse(
@@ -351,7 +473,22 @@ def get_outcome_stats(
     operation_id="reassessDecisionSignalPreview",
 )
 def reassess_signal(request: DecisionSignalReassessRequest) -> DecisionSignalReassessResponse:
-    """重评估指定信号。"""
+    """重评估指定信号。
+
+    基于历史报告重新生成信号；护栏拦截时返回具名错误，未要求持久化时只给预览。
+
+    Args:
+        request: 重评估请求体，含报告 ID、画像与是否落库。
+
+    Returns:
+        DecisionSignalReassessResponse: 预览、落库项与持久化状态。
+
+    Raises:
+        HTTPException: 报告类型/快照不支持或护栏拦截时返回 400。
+
+    Side Effects:
+        persist=True 时写入或刷新信号记录。
+    """
     service = DecisionSignalReassessService()
     try:
         return DecisionSignalReassessResponse(
@@ -391,7 +528,18 @@ def get_latest_active(
     market: Optional[str] = Query(None, description="Optional market filter: cn/hk/us/jp/kr/tw"),
     limit: int = Query(1, ge=1, le=100),
 ) -> DecisionSignalListResponse:
-    """获取最新有效信号。"""
+    """获取最新有效信号。
+
+    按股票与市场取仍在生效期内的最新信号，供个股页直接展示。
+
+    Args:
+        stock_code: 股票代码。
+        market: 市场标识。
+        limit: 返回条数上限。
+
+    Returns:
+        DecisionSignalListResponse: 有效信号列表。
+    """
     service = DecisionSignalService()
     try:
         return DecisionSignalListResponse(
@@ -423,7 +571,17 @@ def get_latest_active(
     operation_id="getDecisionSignal",
 )
 def get_signal(signal_id: int) -> DecisionSignalItem:
-    """按 ID 获取信号。"""
+    """按 ID 获取信号。
+
+    Args:
+        signal_id: 信号主键，来自路径参数。
+
+    Returns:
+        DecisionSignalItem: 完整信号详情。
+
+    Raises:
+        HTTPException: 不存在 404。
+    """
     service = DecisionSignalService()
     try:
         return DecisionSignalItem(**service.get_signal(signal_id))
@@ -449,7 +607,14 @@ def get_signal(signal_id: int) -> DecisionSignalItem:
     operation_id="listDecisionSignalOutcomesBySignal",
 )
 def list_signal_outcomes(signal_id: int) -> DecisionSignalOutcomeListResponse:
-    """列出指定信号的结果记录。"""
+    """列出指定信号的结果记录。
+
+    Args:
+        signal_id: 信号主键，来自路径参数。
+
+    Returns:
+        DecisionSignalOutcomeListResponse: 该信号在各周期下的评估结果。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalOutcomeListResponse(**service.list_signal_outcomes(signal_id))
@@ -473,7 +638,14 @@ def list_signal_outcomes(signal_id: int) -> DecisionSignalOutcomeListResponse:
     operation_id="getDecisionSignalFeedback",
 )
 def get_feedback(signal_id: int) -> DecisionSignalFeedbackItem:
-    """获取信号反馈。"""
+    """获取信号反馈。
+
+    Args:
+        signal_id: 信号主键，来自路径参数。
+
+    Returns:
+        DecisionSignalFeedbackItem: 反馈值、原因码与备注；未反馈时字段为空。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalFeedbackItem(**service.get_feedback(signal_id))
@@ -498,7 +670,20 @@ def get_feedback(signal_id: int) -> DecisionSignalFeedbackItem:
     operation_id="putDecisionSignalFeedback",
 )
 def put_feedback(signal_id: int, request: DecisionSignalFeedbackRequest) -> DecisionSignalFeedbackItem:
-    """提交信号反馈。"""
+    """提交信号反馈。
+
+    同一信号重复提交按更新处理，不产生多条记录。
+
+    Args:
+        signal_id: 信号主键，来自路径参数。
+        request: 反馈请求体。
+
+    Returns:
+        DecisionSignalFeedbackItem: 落库后的反馈记录。
+
+    Side Effects:
+        写入或更新反馈记录。
+    """
     service = DecisionSignalOutcomeService()
     try:
         return DecisionSignalFeedbackItem(
@@ -537,7 +722,21 @@ def put_feedback(signal_id: int, request: DecisionSignalFeedbackRequest) -> Deci
     operation_id="updateDecisionSignalStatus",
 )
 def update_status(signal_id: int, request: DecisionSignalStatusUpdateRequest) -> DecisionSignalItem:
-    """更新信号状态。"""
+    """更新信号状态。
+
+    Args:
+        signal_id: 信号主键，来自路径参数。
+        request: 状态更新请求体；metadata 省略保留、null 清空、对象整体替换。
+
+    Returns:
+        DecisionSignalItem: 更新后的信号。
+
+    Raises:
+        HTTPException: 参数错误 400、不存在 404。
+
+    Side Effects:
+        修改信号状态与元数据。
+    """
     service = DecisionSignalService()
     try:
         return DecisionSignalItem(
