@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- [文档] 工程架构图册按版本归档：`documents/archify/` 下新增 `archify-V1/` 与 `archify-V2/` 并迁入两版图册产物（本地保留、不再入库），修正 V2 图册相对链接与回执路径；`api_spec.json` 从图册目录回归 `docs/architecture/`，同步契约测试、文档索引与专题文档的路径引用。
+- [文档] 工程架构图册按版本归档：`documents/archify/` 下新增 `archify-V1/` 与 `archify-V2/` 并迁入两版图册产物，修正 V2 图册相对链接与回执路径；`docs/INDEX*` 与 `decision-signals.md` 的 API 规格入口改为说明运行时 `/docs` 与 `/openapi.json`，不再指向静态文件。
+
+- [测试] 移除静态 OpenAPI 快照：`tests/api/contract/test_api_schema_pydantic.py` 与 `tests/tooling/docs/test_decision_signal_docs.py` 改为直接校验 `create_app().openapi()` 生成的运行时规格，保留决策信号端点、401 鉴权、schema/$ref 与枚举断言，消除静态快照与运行时接口漂移。
 
 - [修复] Docker 系统依赖下载增加最多 3 次重试以应对临时 502，持续失败仍中止构建；同步中英文部署排障说明，区分软件包下载与镜像加速地址 403。
 

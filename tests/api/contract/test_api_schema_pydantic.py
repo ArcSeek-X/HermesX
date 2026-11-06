@@ -2,8 +2,6 @@
 测试接口数据契约Pydantic相关功能测试
 """
 
-import json
-from tests.support.paths import get_repo_root
 from typing import Any
 
 import pytest
@@ -211,33 +209,30 @@ def test_analyze_request_rejects_invalid_analysis_phase() -> None:
         raise AssertionError("invalid analysis_phase should be rejected")
 
 
-def test_decision_signal_static_api_spec_matches_runtime_paths() -> None:
-    static_spec_path = get_repo_root() / "docs" / "architecture" / "api_spec.json"
-    static_spec = json.loads(static_spec_path.read_text(encoding="utf-8"))
-    runtime_spec = create_app().openapi()
+def test_decision_signal_runtime_api_spec_contract() -> None:
+    spec = create_app().openapi()
 
-    assert static_spec["openapi"] == runtime_spec["openapi"]
-    assert static_spec["info"]["description"] == runtime_spec["info"]["description"]
-    assert "暂无认证要求" not in static_spec["info"]["description"]
-    assert "ADMIN_AUTH_ENABLED=true" in static_spec["info"]["description"]
+    assert spec["openapi"].startswith("3.")
+    assert "暂无认证要求" not in spec["info"]["description"]
+    assert "ADMIN_AUTH_ENABLED=true" in spec["info"]["description"]
     for path in DECISION_SIGNAL_PATHS:
-        assert static_spec["paths"][path] == runtime_spec["paths"][path]
-        for operation in static_spec["paths"][path].values():
+        assert path in spec["paths"]
+        for operation in spec["paths"][path].values():
             assert "401" in operation["responses"]
             assert operation["security"] == [{"AdminSessionCookie": []}]
-    assert static_spec["components"]["securitySchemes"] == runtime_spec["components"]["securitySchemes"]
+    assert "AdminSessionCookie" in spec["components"]["securitySchemes"]
     for schema_name in DECISION_SIGNAL_SCHEMAS:
-        assert static_spec["components"]["schemas"][schema_name] == runtime_spec["components"]["schemas"][schema_name]
+        assert schema_name in spec["components"]["schemas"]
 
     for path in P6_SIGNAL_LINKED_PATHS:
-        assert static_spec["paths"][path] == runtime_spec["paths"][path]
+        assert path in spec["paths"]
     for schema_name in P6_SIGNAL_LINKED_SCHEMAS:
-        assert static_spec["components"]["schemas"][schema_name] == runtime_spec["components"]["schemas"][schema_name]
-    schema_refs = _collect_component_schema_refs(static_spec)
-    missing_schema_refs = sorted(schema_refs - set(static_spec["components"]["schemas"]))
+        assert schema_name in spec["components"]["schemas"]
+    schema_refs = _collect_component_schema_refs(spec)
+    missing_schema_refs = sorted(schema_refs - set(spec["components"]["schemas"]))
     assert missing_schema_refs == []
 
-    status_schema = static_spec["components"]["schemas"]["DecisionSignalStatusUpdateRequest"]["properties"]["status"]
+    status_schema = spec["components"]["schemas"]["DecisionSignalStatusUpdateRequest"]["properties"]["status"]
     assert status_schema["enum"] == ["active", "expired", "invalidated", "closed", "archived"]
 
 
