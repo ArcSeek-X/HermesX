@@ -21,10 +21,10 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.base import DataFetcherManager
+from data_provider.runtime.manager import DataFetcherManager
 
 _TW_FETCHER_METHOD = (
-    "data_provider.tw_institutional_fetcher.TwInstitutionalFetcher.get_institutional_net"
+    "data_provider.institutional.tw_client.TwInstitutionalFetcher.get_institutional_net"
 )
 
 # Shape mirrors TwInstitutionalFetcher._build_record (real 2330 @ 20260629).
@@ -70,7 +70,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
         with patch("src.config.get_config", return_value=_OFFSHORE_CFG), \
                 patch.object(manager, "get_realtime_quote", return_value=None), \
                 patch(
-                    "data_provider.yfinance_fundamental_adapter.YfinanceFundamentalAdapter.get_fundamental_bundle",
+                    "data_provider.fundamentals.yfinance_source.YfinanceFundamentalAdapter.get_fundamental_bundle",
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(_TW_FETCHER_METHOD, **kwargs) as tw_mock:
@@ -141,7 +141,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
         with patch("src.config.get_config", return_value=_OFFSHORE_CFG), \
                 patch.object(manager, "get_realtime_quote", return_value=None), \
                 patch(
-                    "data_provider.yfinance_fundamental_adapter.YfinanceFundamentalAdapter.get_fundamental_bundle",
+                    "data_provider.fundamentals.yfinance_source.YfinanceFundamentalAdapter.get_fundamental_bundle",
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(
@@ -179,7 +179,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
         with patch("src.config.get_config", return_value=slow_cfg), \
                 patch.object(manager, "get_realtime_quote", return_value=None), \
                 patch(
-                    "data_provider.yfinance_fundamental_adapter.YfinanceFundamentalAdapter.get_fundamental_bundle",
+                    "data_provider.fundamentals.yfinance_source.YfinanceFundamentalAdapter.get_fundamental_bundle",
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(_TW_FETCHER_METHOD, side_effect=_slow):
@@ -224,7 +224,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
         with patch("src.config.get_config", return_value=cfg), \
                 patch.object(manager, "get_realtime_quote", return_value=None), \
                 patch(
-                    "data_provider.yfinance_fundamental_adapter.YfinanceFundamentalAdapter.get_fundamental_bundle",
+                    "data_provider.fundamentals.yfinance_source.YfinanceFundamentalAdapter.get_fundamental_bundle",
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(_TW_FETCHER_METHOD, side_effect=_slowish):
@@ -248,7 +248,7 @@ class TestTwInstitutionReportWiring(unittest.TestCase):
         with patch("src.config.get_config", return_value=cfg), \
                 patch.object(manager, "get_realtime_quote", return_value=None), \
                 patch(
-                    "data_provider.yfinance_fundamental_adapter.YfinanceFundamentalAdapter.get_fundamental_bundle",
+                    "data_provider.fundamentals.yfinance_source.YfinanceFundamentalAdapter.get_fundamental_bundle",
                     return_value=_EMPTY_BUNDLE,
                 ), \
                 patch(_TW_FETCHER_METHOD, return_value=dict(_FAKE_REC)) as tw_mock:

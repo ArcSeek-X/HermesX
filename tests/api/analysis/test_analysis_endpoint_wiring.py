@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 from api.deps import get_history_query_service
 from api.v1.endpoints import analysis
-from data_provider.base import canonical_stock_code, normalize_stock_code
+from src.domain.market.stock_codes import canonical_stock_code, normalize_stock_code
 from src.application.history import HistoryQueryService
 from src.infrastructure.indexing.stock_code_normalizer import (
     DataProviderStockCodeNormalizer,

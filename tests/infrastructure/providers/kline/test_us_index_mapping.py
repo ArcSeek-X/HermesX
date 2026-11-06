@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-data_provider/us_index_mapping.py 的单元测试
+美股指数领域规则与数据源 Yahoo 符号适配的单元测试
 """
 import unittest
-import sys
 
-from tests.support.paths import get_repo_root
-
-# 确保能导入 data_provider 模块（直接导入避免加载重量级依赖）
-sys.path.insert(0, str(get_repo_root() / 'data_provider'))
-
-from us_index_mapping import (
+# 使用包限定路径；把包目录提升到顶层会使 calendar 等子包遮蔽标准库。
+from src.domain.market.us_index_symbols import (
     is_us_index_code,
     is_us_stock_code,
-    get_us_index_yf_symbol,
     US_INDEX_MAPPING,
 )
+
+from data_provider.common.symbols import get_us_index_yf_symbol
 
 
 class TestIsUsIndexCode(unittest.TestCase):

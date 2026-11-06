@@ -350,3 +350,49 @@ class ArchitectureBaselineTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProviderArchitectureScanTestCase(unittest.TestCase):
+    """Provider-specific rules cannot be hidden by the legacy outer-layer baseline."""
+
+    setUp = ArchitectureScanTestCase.setUp
+    tearDown = ArchitectureScanTestCase.tearDown
+
+    def test_provider_rejects_drivers_bootstrap_and_concrete_application(self):
+        _write(self.root, "data_provider/source.py", (
+            "import api.app\nfrom bot import commands\n"
+            "def fetch():\n    from src.bootstrap import analysis\n"
+            "    from src.application.analysis import analyzer\n"
+        ))
+        violations, errors = self.guard.scan(self.root)
+        self.assertEqual(errors, [])
+        self.assertEqual(sum(violations.values()), 4)
+
+    def test_provider_allows_only_registered_port_module(self):
+        _write(self.root, "data_provider/allowed.py", (
+            "from src.application.runtime.provider_diagnostic_ports import provider_diagnostic_callbacks\n"
+            "from src.application.runtime import provider_diagnostic_ports\n"
+            "from src.domain.market import stock_codes\nfrom src.config import get_config\n"
+        ))
+        self.assertEqual(self.guard.scan(self.root), ({}, []))
+        _write(self.root, "data_provider/bad.py", (
+            "from src.application.runtime import provider_diagnostic_ports, run_diagnostics\n"
+        ))
+        violations, _ = self.guard.scan(self.root)
+        self.assertEqual(sum(violations.values()), 1)
+
+    def test_provider_detects_aliased_and_relative_literal_dynamic_imports(self):
+        _write(self.root, "data_provider/dynamic.py", (
+            "from importlib import import_module as load\nimport importlib as il\n"
+            "load('src.application.analysis.analyzer')\n"
+            "il.import_module('.analysis', 'src.bootstrap')\n"
+            "__import__('api.app')\n"
+        ))
+        violations, errors = self.guard.scan(self.root)
+        self.assertEqual(errors, [])
+        self.assertEqual(sum(violations.values()), 3)
+
+    def test_provider_wildcard_application_import_is_not_a_port_exception(self):
+        _write(self.root, "data_provider/source.py", "from src.application.runtime import *\n")
+        violations, _ = self.guard.scan(self.root)
+        self.assertEqual(sum(violations.values()), 1)

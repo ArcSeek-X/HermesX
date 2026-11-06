@@ -19,7 +19,7 @@ from src.application.quote.stock_code_utils import (
 )
 
 
-from data_provider.base import canonical_stock_code, normalize_stock_code
+from src.domain.market.stock_codes import canonical_stock_code, normalize_stock_code
 
 
 class TestNormalizeStockCodeForBacktestSummary:

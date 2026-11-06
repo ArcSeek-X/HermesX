@@ -150,7 +150,8 @@ $pyInstallerArgs = @(
   '--collect-data', 'tiktoken',
   '--collect-data', 'akshare',
   '--collect-all', 'alphasift',
-  '--collect-all', 'futu'
+  '--collect-all', 'futu',
+  '--collect-submodules', 'data_provider'
 )
 $pyInstallerArgs += $hiddenImportArgs
 $pyInstallerArgs += 'main.py'
@@ -172,7 +173,7 @@ if (-not (Test-Path $packagedEntry)) {
 }
 $previousProbe = $env:HRS_PACKAGED_IMPORT_PROBE
 try {
-  foreach ($module in @('alphasift.dsa_adapter', 'futu', 'orjson')) {
+  foreach ($module in @('alphasift.dsa_adapter', 'futu', 'orjson', 'data_provider')) {
     $env:HRS_PACKAGED_IMPORT_PROBE = $module
     $probeProcess = Start-Process -FilePath $packagedEntry -Wait -PassThru
     if ($probeProcess.ExitCode -ne 0) {

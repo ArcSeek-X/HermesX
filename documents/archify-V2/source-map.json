@@ -2597,5 +2597,103 @@
         "data_provider/stockdb_fetcher.py"
       ]
     }
+  },
+  "token-gateway": {
+    "token-n01": {
+      "label": "配置入口与管理界面",
+      "scope": "apps/hrs-web/src/pages/SettingsPage.tsx",
+      "sources": [
+        "apps/hrs-web/src/pages/SettingsPage.tsx",
+        "api/v1/endpoints/system_config.py"
+      ]
+    },
+    "token-n02": {
+      "label": "配置字段与优先级",
+      "scope": "src/config/settings.py",
+      "sources": [
+        "src/config/settings.py",
+        "src/config/field_definitions.py"
+      ]
+    },
+    "token-n03": {
+      "label": "model_list 编译",
+      "scope": "src/config/settings.py",
+      "sources": [
+        "src/config/settings.py",
+        "src/config/llm_channels.py",
+        "src/domain/generation/wire_models.py"
+      ]
+    },
+    "token-n04": {
+      "label": "后端身份与 fallback",
+      "scope": "src/domain/generation/backend_identity.py",
+      "sources": [
+        "src/domain/generation/backend_identity.py",
+        ".env.example"
+      ]
+    },
+    "token-n05": {
+      "label": "报告生成链路",
+      "scope": "src/application/analysis/analyzer.py",
+      "sources": [
+        "src/application/analysis/analyzer.py",
+        "src/infrastructure/generation/litellm_backend.py"
+      ]
+    },
+    "token-n06": {
+      "label": "生成参数与错误恢复",
+      "scope": "src/infrastructure/generation/errors.py",
+      "sources": [
+        "src/infrastructure/generation/errors.py",
+        "src/infrastructure/generation/generation_params.py"
+      ]
+    },
+    "token-n07": {
+      "label": "LiteLLM 进程内 SDK",
+      "scope": "src/infrastructure/providers/analyzer_runtime.py",
+      "sources": [
+        "src/infrastructure/providers/analyzer_runtime.py",
+        "src/infrastructure/agent_runtime/llm_adapter.py"
+      ]
+    },
+    "token-n08": {
+      "label": "外部模型服务",
+      "scope": ".env.example",
+      "sources": [
+        ".env.example",
+        "docs/LLM_CONFIG_GUIDE.md"
+      ]
+    },
+    "token-n09": {
+      "label": "官方 Proxy / Admin UI",
+      "scope": "requirements.txt",
+      "sources": [
+        "requirements.txt",
+        "docs/LLM_CONFIG_GUIDE.md"
+      ]
+    },
+    "token-n10": {
+      "label": "结果消费与流式反馈",
+      "scope": "src/infrastructure/generation/litellm_backend.py",
+      "sources": [
+        "src/infrastructure/generation/litellm_backend.py",
+        "src/infrastructure/agent_runtime/llm_adapter.py"
+      ]
+    },
+    "token-n11": {
+      "label": "Token 记账与可观测",
+      "scope": "src/infrastructure/persistence/models/agent.py",
+      "sources": [
+        "src/infrastructure/persistence/models/agent.py",
+        "src/infrastructure/generation/usage.py"
+      ]
+    },
+    "token-n12": {
+      "label": "响应与用量归一化",
+      "scope": "src/infrastructure/generation/usage.py",
+      "sources": [
+        "src/infrastructure/generation/usage.py"
+      ]
+    }
   }
 }

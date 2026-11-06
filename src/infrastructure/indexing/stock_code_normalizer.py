@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """数据源侧的股票代码归一化实现。
 
-``normalize_stock_code`` 仍归属 ``data_provider.base``（被扫描/行情链路复用），
-应用层通过本适配器取用；导入放在方法内，避免 API 启动时加载整个数据源包。
+纯规则复用 ``src.domain.market.stock_codes``；应用层仍通过既有端口
+取用，不因股票代码转换加载数据源运行管理器。
 """
 
 from __future__ import annotations
@@ -13,6 +13,6 @@ class DataProviderStockCodeNormalizer:
 
     def normalize(self, stock_code: str) -> str:
         """将股票代码规范化为统一格式。"""
-        from data_provider.base import normalize_stock_code
+        from src.domain.market.stock_codes import normalize_stock_code
 
         return normalize_stock_code(stock_code or "")

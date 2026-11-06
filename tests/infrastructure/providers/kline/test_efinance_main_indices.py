@@ -9,7 +9,7 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.efinance_fetcher import EfinanceFetcher
+from data_provider.runtime.fetchers.efinance import EfinanceFetcher
 
 
 class TestEfinanceMainIndices(unittest.TestCase):

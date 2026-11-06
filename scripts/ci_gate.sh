@@ -9,7 +9,7 @@ syntax_check() {
   python -m py_compile src/storage.py src/application/runtime/scheduler.py src/application/intelligence/search_service.py
   python -m py_compile src/application/market/market_analyzer.py src/domain/analysis/stock_analyzer.py
   python -m py_compile src/bootstrap/*.py scripts/check_architecture.py
-  python -m py_compile data_provider/*.py
+  python -m compileall -q data_provider
 }
 
 architecture_check() {

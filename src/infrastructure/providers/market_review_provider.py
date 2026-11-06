@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-from data_provider.base import DataFetcherManager
+from data_provider.runtime.manager import DataFetcherManager
 
 
 class DataProviderMarketReviewProvider:

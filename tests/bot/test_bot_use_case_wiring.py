@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 from bot.commands.chat import ChatCommand
 from bot.commands.history import HistoryCommand
 from src.domain.notification.bot_message import BotMessage, ChatType
-from data_provider.base import canonical_stock_code
+from src.domain.market.stock_codes import canonical_stock_code
 from src.application.agent import AgentConversationService
 from src.application.quote.stock_code_utils import (
     canonical_stock_code_for_analysis,

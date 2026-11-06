@@ -14,8 +14,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping, Optional
 
-from data_provider.akshare_fetcher import AkshareFetcher
-from data_provider.limit_pool.base import (
+from data_provider.runtime.fetchers.akshare import AkshareFetcher
+from data_provider.limit_pool.source_contract import (
     LIMIT_DOWN,
     LimitPoolDataSource,
     LimitPoolEntry,

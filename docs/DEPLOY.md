@@ -292,6 +292,8 @@ find /opt/stock-analyzer/reports -mtime +30 -delete
 
 ### 1. Docker 构建失败
 
+Dockerfile 对 APT 系统依赖下载最多重试 3 次，持续失败仍会终止构建。若日志显示软件包下载 `502`，检查 Docker 容器侧网络；若拉取基础镜像返回 `403`，检查镜像加速地址。重试不会更换软件源或跳过依赖，清理构建缓存不能修复镜像加速地址的权限问题。
+
 ```bash
 # 清理缓存重新构建
 docker-compose -f ./docker/docker-compose.yml build --no-cache

@@ -11,7 +11,7 @@ import logging
 from typing import Optional
 
 from data_provider.kline.transform import normalize_stockdb_daily_rows
-from data_provider.stockdb_fetcher import StockDbError, get_stockdb_client
+from data_provider.clients.stockdb import StockDbError, get_stockdb_client
 from data_provider.stock_info.base import StockInfoResult, StockInfoSource
 from data_provider.stock_info.eastmoney_source import get_stock_name_from_eastmoney
 

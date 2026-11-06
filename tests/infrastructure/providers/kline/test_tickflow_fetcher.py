@@ -13,9 +13,9 @@ from tests.support.paths import get_repo_root
 sys.path.insert(0, str(get_repo_root()))
 
 
-from data_provider.base import DataFetchError
-from data_provider.realtime_types import RealtimeSource
-from data_provider.tickflow_fetcher import TickFlowFetcher
+from data_provider.common.errors import DataFetchError
+from data_provider.realtime.types import RealtimeSource
+from data_provider.runtime.fetchers.tickflow import TickFlowFetcher
 
 
 class _PermissionLikeError(Exception):
@@ -405,7 +405,7 @@ class TestTickFlowFetcher(unittest.TestCase):
         fetcher = TickFlowFetcher(api_key="sk-test")
         fetcher._client = _FakeClient(universe_data=_PermissionLikeError("universe forbidden"))
 
-        with patch("data_provider.tickflow_fetcher.monotonic", side_effect=[100.0, 100.0, 1001.0, 1001.0]):
+        with patch("data_provider.runtime.fetchers.tickflow.monotonic", side_effect=[100.0, 100.0, 1001.0, 1001.0]):
             self.assertIsNone(fetcher.get_market_stats())
             self.assertIsNone(fetcher.get_market_stats())
 

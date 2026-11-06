@@ -15,7 +15,7 @@ from email.header import Header
 from email.utils import formataddr
 import smtplib
 
-from data_provider.base import normalize_stock_code
+from src.domain.market.stock_codes import normalize_stock_code
 from src.config import Config
 from src.infrastructure.reporting.markdown_render import markdown_to_html_document
 

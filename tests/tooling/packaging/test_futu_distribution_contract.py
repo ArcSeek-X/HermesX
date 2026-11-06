@@ -57,6 +57,8 @@ def test_futu_sdk_is_collected_and_probed_in_desktop_backends() -> None:
     macos_script = _read("scripts/build-backend-macos.sh")
     windows_script = _read("scripts/build-backend.ps1")
 
+    assert '"--collect-submodules" "data_provider"' in macos_script
+    assert "'--collect-submodules', 'data_provider'" in windows_script
     assert "futu_packaging:" in filters
     assert "requirements.txt" in filters
     assert "src/brokers/futu/**" in filters
@@ -78,4 +80,4 @@ def test_futu_sdk_is_collected_and_probed_in_desktop_backends() -> None:
 
     assert 'Test-PythonCode -Python $pythonBin -Code "import futu"' in windows_script
     assert "'--collect-all', 'futu'" in windows_script
-    assert "@('alphasift.dsa_adapter', 'futu', 'orjson')" in windows_script
+    assert "@('alphasift.dsa_adapter', 'futu', 'orjson', 'data_provider')" in windows_script

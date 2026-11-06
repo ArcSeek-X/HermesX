@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""stock-sdk 桥接分时适配器：把 ``data_provider.stocksdk_bridge`` 转成应用端口形状。
+"""stock-sdk 桥接分时适配器：把 ``data_provider.clients.stocksdk.bridge`` 转成应用端口形状。
 
 ``data_provider/`` 原位保留为数据源能力包（ADR-001），本适配器只封装“取当日分时”这一
 用例所需能力；``get_stocksdk_client`` 惰性导入（与迁移前一致），SDK / Node 缺失或调用
@@ -23,7 +23,7 @@ class DataProviderStocksdkTimelineBridge:
     def fetch_timeline(self, *, code: str) -> Optional[Dict[str, Any]]:
         """走 stock-sdk 桥接取分时；桥接不可用或异常返回 ``None``（best-effort 回退）。"""
         try:
-            from data_provider.stocksdk_bridge import get_stocksdk_client
+            from data_provider.clients.stocksdk.bridge import get_stocksdk_client
 
             client = get_stocksdk_client()
             if not client.is_available():

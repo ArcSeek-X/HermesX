@@ -7,7 +7,8 @@ import threading
 import time
 import unittest
 
-from data_provider.realtime_types import CircuitBreaker, RealtimeSource, UnifiedRealtimeQuote
+from data_provider.common.health import CircuitBreaker
+from data_provider.realtime.types import RealtimeSource, UnifiedRealtimeQuote
 
 
 class UnifiedRealtimeQuoteMetadataTestCase(unittest.TestCase):

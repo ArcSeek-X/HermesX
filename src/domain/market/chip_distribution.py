@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """筹码分布数据模型（domain 层，纯数据结构）。
 
-R3-S15a 从 ``data_provider.realtime_types`` 下沉：pipeline 仅为参数类型注解而
+R3-S15a 从 ``data_provider.realtime.types`` 下沉：pipeline 仅为参数类型注解而
 import ``data_provider``，与 application 的分层约束冲突；该数据结构本身无 IO /
-框架 / 存储依赖，归属市场领域。``data_provider.realtime_types`` 保留同名
+框架 / 存储依赖，归属市场领域。``data_provider.realtime.types`` 保留同名
 re-export，维持旧导入面与对象身份（``is``）。
 """
 

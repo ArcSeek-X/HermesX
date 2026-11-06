@@ -34,13 +34,13 @@ class DataProviderMarketSnapshotSource:
 
     def fetch_eastmoney_snapshot(self) -> Any:
         """东财 clist 直连全市场快照（惰性导入，异常上抛由用例回退）。"""
-        from data_provider.eastmoney_quote_snapshot import fetch_eastmoney_market_snapshot
+        from data_provider.market.snapshot import fetch_eastmoney_market_snapshot
 
         return fetch_eastmoney_market_snapshot()
 
     def fetch_tencent_snapshot(self) -> Any:
         """腾讯批量行情全市场快照（惰性导入，异常上抛由用例回退）。"""
-        from data_provider.tencent_quote_snapshot import fetch_tencent_market_snapshot
+        from data_provider.market.snapshot import fetch_tencent_market_snapshot
 
         return fetch_tencent_market_snapshot()
 
@@ -54,7 +54,7 @@ class DataProviderMarketSnapshotSource:
         if self._akshare_fetcher is None:
             with self._fetcher_lock:
                 if self._akshare_fetcher is None:
-                    from data_provider.akshare_fetcher import AkshareFetcher
+                    from data_provider.runtime.fetchers.akshare import AkshareFetcher
 
                     self._akshare_fetcher = AkshareFetcher()
         return self._akshare_fetcher

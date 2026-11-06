@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from data_provider.limit_pool.base import (
+from data_provider.limit_pool.source_contract import (
     LimitPoolDataSource,
     LimitPoolEntry,
     LimitPoolRequest,

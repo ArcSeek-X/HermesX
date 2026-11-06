@@ -8,10 +8,11 @@ import unittest
 
 import pandas as pd
 
-from data_provider.base import DataFetcherManager, normalize_stock_code
-from data_provider.baostock_fetcher import BaostockFetcher
-from data_provider.pytdx_fetcher import PytdxFetcher
-from data_provider.tushare_fetcher import TushareFetcher
+from data_provider.runtime.manager import DataFetcherManager
+from src.domain.market.stock_codes import normalize_stock_code
+from data_provider.runtime.fetchers.baostock import BaostockFetcher
+from data_provider.runtime.fetchers.pytdx import PytdxFetcher
+from data_provider.runtime.fetchers.tushare import TushareFetcher
 
 
 class _RecordingDailyFetcher:

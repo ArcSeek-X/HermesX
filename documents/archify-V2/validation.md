@@ -1,6 +1,8 @@
 # Architecture atlas validation
 
-2026-11-04. 13 architecture views, 180 nodes, 812 source records, 40 manifest pages.
+2026-11-04 baseline: 13 architecture views, 180 nodes, 812 source records, 40 manifest pages.
+
+2026-11-05 supplement: added view 14 (token-gateway). The atlas now has 14 views, 192 nodes, 815 source records and 40 manifest pages. Only the new view and the atlas data structure were re-validated; the other 13 views retain their 2026-11-04 records below.
 
 All delivered views: showcase 9/9, zero errors and warnings. Browser evidence: passed at 1440x900, 1600x1000, 1920x1080, and 2048x1320. No viewport overflow. Theme loading timeout passed on retry.
 
@@ -23,7 +25,10 @@ Atlas navigation, card counts, search, empty search, source expansion, fullscree
 | delivery | 9/9 | passed | cff2426ca7c6c56faaff1e2698e66dbb52895a8cae85cbc287f7e01648147d54 |
 | control | 9/9 | passed | 1807979c5208bb24433f7c95b4e9d3391f22d04fb48fbe7c805400e70ec69d46 |
 | desktop | 9/9 | passed | 8deee18b52a18ec87be8dfeb00cc6909a946dea98af696abf752a3af7091a066 |
+| token-gateway (2026-11-05) | 9/9 | passed | c22b33b4d549379c0ec88705db8f47f7a9c2bc9fca0da2e1fb45affdc6ec9fd8 |
 
 Specification SHA-256 and byte counts: see individual *.receipt.json. Temporary screenshots and full browser receipts: /tmp/hermesx-archify-V2-detailed-evidence/ (outside the repository).
 
-Docs only, tests not run. Application workflows, online dependencies and desktop packages were not tested. Source inventory is static extraction plus targeted semantic review, not a line-by-line audit of all 812 files.
+Docs only, tests not run. Application workflows, online dependencies and desktop packages were not tested. Source inventory is static extraction plus targeted semantic review, not a line-by-line audit of all 815 files.
+
+2026-11-05 token-gateway: showcase 9/9, zero errors and warnings; automated browser evidence passed at 1440x900, 1600x1000, 1920x1080 and 2048x1320 (light containment plus light/dark captures). Perceptual review inspected the delivered 1440x900 light and 2048x1320 dark screenshots: no visible clipping or label obstruction. Atlas navigation was checked structurally only (14 graphs, 12 new nodes, edge indices, source evidence and chapter ordering); the other 13 views were not re-opened in a browser. Temporary screenshots and browser receipts: /tmp/hermesx-archify-V2-token-gateway-evidence/ (outside the repository).

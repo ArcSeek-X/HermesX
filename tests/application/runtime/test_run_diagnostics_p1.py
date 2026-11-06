@@ -14,7 +14,8 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from data_provider.base import BaseFetcher, DataFetcherManager
+from data_provider.common.fetcher_contract import BaseFetcher
+from data_provider.runtime.manager import DataFetcherManager
 from src.application.runtime.run_diagnostics import (
     RunDiagnosticContext,
     activate_run_diagnostic_context,

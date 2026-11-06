@@ -648,7 +648,7 @@ class BacktestServiceTestCase(_BacktestServiceTestCaseFixture, unittest.TestCase
 
         service = self._service(daily_refill=DataProviderDailyBarRefill(self.db))
         with patch(
-            "data_provider.base.DataFetcherManager",
+            "data_provider.runtime.manager.DataFetcherManager",
             ControlledDataFetcherManager,
         ):
             stats = service.run_backtest(

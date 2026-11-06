@@ -17,7 +17,7 @@ from pathlib import Path
 from fastapi import HTTPException
 
 from api.v1.endpoints import stocks as stocks_endpoint
-from data_provider.base import normalize_stock_code
+from src.domain.market.stock_codes import normalize_stock_code
 from src.application.quote.stock_code_utils import (
     normalize_stock_code_for_analysis,
     normalize_stock_code_for_stock_list,

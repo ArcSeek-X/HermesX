@@ -269,7 +269,7 @@ def _em_clist_df() -> pd.DataFrame:
 
 def test_eastmoney_quote_snapshot_parse_and_paginate(monkeypatch):
     """直连 clist 模块：f-field 解析、停牌行跳过、列契约与单位。"""
-    from data_provider import eastmoney_quote_snapshot as em
+    from data_provider.market import eastmoney_source as em
 
     pages = {
         1: {"data": {"total": 2, "diff": [
@@ -333,7 +333,7 @@ def test_eastmoney_quote_snapshot_paginates_past_first_page(monkeypatch):
     曾因用「请求页大小(500)」判断结束、而东财每页只回 100，导致只拿到涨幅最高的
     前 100 只、尾盘选股 0 结果。此处模拟请求 500 但每页只回 100，断言翻满 3 页。
     """
-    from data_provider import eastmoney_quote_snapshot as em
+    from data_provider.market import eastmoney_source as em
 
     total = 250
     cap = 100  # 东财实际每页上限
@@ -472,8 +472,8 @@ def test_adapter_snapshot_sources_passthrough(monkeypatch):
 
     frame_e = pd.DataFrame([{"代码": "600000"}])
     frame_t = pd.DataFrame([{"代码": "600001"}])
-    import data_provider.eastmoney_quote_snapshot as em_mod
-    import data_provider.tencent_quote_snapshot as tx_mod
+    import data_provider.market.eastmoney_source as em_mod
+    import data_provider.market.tencent_source as tx_mod
 
     monkeypatch.setattr(em_mod, "fetch_eastmoney_market_snapshot", lambda: frame_e)
     monkeypatch.setattr(tx_mod, "fetch_tencent_market_snapshot", lambda: frame_t)
@@ -499,7 +499,7 @@ def test_adapter_akshare_fetcher_singleton_reuse(monkeypatch):
             return pd.DataFrame([{"代码": "600000"}])
 
     fake_mod = types.SimpleNamespace(AkshareFetcher=_FakeFetcher)
-    monkeypatch.setitem(__import__("sys").modules, "data_provider.akshare_fetcher", fake_mod)
+    monkeypatch.setitem(__import__("sys").modules, "data_provider.runtime.fetchers.akshare", fake_mod)
 
     adapter = DataProviderMarketSnapshotSource()
     df1 = adapter.fetch_akshare_snapshot()

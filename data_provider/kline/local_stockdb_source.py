@@ -19,7 +19,7 @@ from data_provider.kline.transform import (
     resample_rows,
     trim_rows,
 )
-from data_provider.stockdb_fetcher import StockDbError, get_stockdb_client
+from data_provider.clients.stockdb import StockDbError, get_stockdb_client
 
 logger = logging.getLogger(__name__)
 

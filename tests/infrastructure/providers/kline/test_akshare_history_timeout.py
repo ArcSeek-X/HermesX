@@ -15,7 +15,7 @@ from tests.support.stubs.litellm_stub import ensure_litellm_stub
 
 ensure_litellm_stub()
 
-from data_provider.akshare_fetcher import AkshareFetcher, _akshare_call_with_timeout
+from data_provider.runtime.fetchers.akshare import AkshareFetcher, _akshare_call_with_timeout
 
 
 def _sleep_for(seconds: float) -> None:
@@ -86,11 +86,11 @@ def test_akshare_call_with_timeout_uses_spawn_context(monkeypatch) -> None:
         call_order.append("freeze_support")
 
     monkeypatch.setattr(
-        "data_provider.akshare_fetcher.multiprocessing.get_context",
+        "data_provider.clients.akshare.client.multiprocessing.get_context",
         fake_get_context,
     )
     monkeypatch.setattr(
-        "data_provider.akshare_fetcher.multiprocessing.freeze_support",
+        "data_provider.clients.akshare.client.multiprocessing.freeze_support",
         fake_freeze_support,
     )
 
@@ -174,7 +174,7 @@ def test_sina_and_tencent_history_calls_use_timeout_wrapper(
     fake_api_func = object()
     fake_akshare = SimpleNamespace(**{api_name: fake_api_func})
     monkeypatch.setitem(sys.modules, "akshare", fake_akshare)
-    monkeypatch.setattr("data_provider.akshare_fetcher._akshare_call_with_timeout", fake_call)
+    monkeypatch.setattr("data_provider.runtime.fetchers.akshare._akshare_call_with_timeout", fake_call)
 
     fetcher = AkshareFetcher(sleep_min=0, sleep_max=0)
     fetcher._history_call_timeout = 7

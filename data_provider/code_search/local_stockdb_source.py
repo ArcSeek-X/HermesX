@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from data_provider.code_search.base import CodeSearchResult, CodeSearchSource
 from data_provider.common.normalize import code_to_secid, stock_market_label
-from data_provider.stockdb_fetcher import StockDbError, get_stockdb_client
+from data_provider.clients.stockdb import StockDbError, get_stockdb_client
 from src.data.stock_index_loader import get_stock_name_index_map
 from src.data.stock_mapping import STOCK_NAME_MAP
 

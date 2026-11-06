@@ -7,7 +7,7 @@ must route to ``.HK`` rather than fall through to the ``.SZ`` default,
 otherwise Yahoo Finance returns 404 and the daily-data chain breaks.
 """
 
-from data_provider.yfinance_fetcher import YfinanceFetcher
+from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
 
 
 class TestHKPrefixStillRoutesToHK:

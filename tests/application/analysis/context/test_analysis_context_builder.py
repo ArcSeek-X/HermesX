@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from data_provider.realtime_types import RealtimeSource, UnifiedRealtimeQuote
+from data_provider.realtime.types import RealtimeSource, UnifiedRealtimeQuote
 from src.domain.analysis.context_pack import ContextFieldStatus
 import src.application.analysis.analysis_context_builder as builder_module
 from src.application.analysis.analysis_context_builder import (

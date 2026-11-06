@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Optional
 
 from data_provider.institutional.base import (
@@ -14,7 +15,15 @@ from data_provider.institutional.base import (
     InstitutionalRequest,
     InstitutionalResult,
 )
-from data_provider.tw_institutional_fetcher import TwInstitutionalFetcher
+
+
+def __getattr__(name: str):
+    """保留原客户端替换点，按需解析，避免首次导入永久绑定测试替身。"""
+    if name == "TwInstitutionalFetcher":
+        from data_provider.institutional.tw_client import TwInstitutionalFetcher
+
+        return TwInstitutionalFetcher
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class TwInstitutionalSource(InstitutionalDataSource):
@@ -24,7 +33,8 @@ class TwInstitutionalSource(InstitutionalDataSource):
 
     def __init__(self) -> None:
         """构造台股机构数据源。"""
-        self.fetcher = TwInstitutionalFetcher()
+        # 在装配时解析客户端，避免首次导入发生在 mock 范围内后永久绑定替身。
+        self.fetcher = getattr(sys.modules[__name__], "TwInstitutionalFetcher")()
 
     def fetch(self, request: InstitutionalRequest) -> Optional[InstitutionalResult]:
         """获取单只台股的三大法人买卖超数据。"""

@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
 
 from api.v1.schemas.history import ReportDetails
-from data_provider.base import DataFetcherManager
+from data_provider.runtime.manager import DataFetcherManager
 from src.application.analysis.pipeline import StockAnalysisPipeline
 from src.application.market.market_hotspot import MarketHotspotService
 from src.application.market.market_structure import MarketStructureService

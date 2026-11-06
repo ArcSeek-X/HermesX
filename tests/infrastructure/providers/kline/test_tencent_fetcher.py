@@ -17,13 +17,13 @@ from unittest.mock import patch
 import pandas as pd
 import requests
 
-from data_provider.tencent_fetcher import TencentFetcher, _to_tencent_symbol
+from data_provider.kline.daily_tencent_source import TencentFetcher, _to_tencent_symbol
 from tests.support.paths import get_repo_root
 
 @contextmanager
 def _stub_tencent_http(get):
     """Replace this adapter's client without patching process-wide requests.get."""
-    with patch("data_provider.tencent_fetcher.requests", SimpleNamespace(get=get)):
+    with patch("data_provider.kline.daily_tencent_source.requests", SimpleNamespace(get=get)):
         yield
 
 
@@ -38,7 +38,7 @@ def _read_priority_from_fresh_process(value: str | None) -> int:
             sys.executable,
             "-c",
             (
-                "from data_provider.tencent_fetcher import TencentFetcher; "
+                "from data_provider.kline.daily_tencent_source import TencentFetcher; "
                 "print(TencentFetcher().priority)"
             ),
         ],
@@ -421,3 +421,18 @@ def test_tencent_http_stub_keeps_other_provider_requests_isolated() -> None:
     assert len(tencent_calls) == 1
     assert len(df) == 1
     assert float(df.iloc[0]["close"]) == 10.5
+
+
+def test_public_daily_entry_uses_canonical_type_and_pickle_round_trips():
+    import pickle
+    import data_provider
+    from data_provider.kline import daily_tencent_source as canonical
+
+    assert data_provider.TencentFetcher is canonical.TencentFetcher
+    assert canonical.logger.name == "data_provider.tencent_fetcher"
+    fetcher = data_provider.TencentFetcher()
+    serialized = pickle.dumps(fetcher, protocol=0)
+    assert b"data_provider.kline.daily_tencent_source" in serialized
+    restored = pickle.loads(serialized)
+    assert type(restored) is canonical.TencentFetcher
+    assert restored.priority == fetcher.priority

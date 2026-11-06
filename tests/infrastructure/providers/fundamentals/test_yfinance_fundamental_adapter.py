@@ -14,10 +14,7 @@ from unittest.mock import patch, MagicMock
 
 import pandas as pd
 
-from data_provider.yfinance_fundamental_adapter import (
-    YfinanceFundamentalAdapter,
-    _convert_to_yf_symbol,
-)
+from data_provider.fundamentals.yfinance_source import YfinanceFundamentalAdapter, _convert_to_yf_symbol
 
 
 def _build_mock_ticker(

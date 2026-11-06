@@ -13,7 +13,7 @@ from typing import List, Optional
 
 from data_provider.code_search.base import CodeSearchResult, CodeSearchSource
 from data_provider.common.normalize import code_to_secid
-from data_provider.stocksdk_bridge import StockSdkBridgeError, get_stocksdk_client
+from data_provider.clients.stocksdk.bridge import StockSdkBridgeError, get_stocksdk_client
 
 logger = logging.getLogger(__name__)
 

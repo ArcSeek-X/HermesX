@@ -7,32 +7,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Dict, Iterable, Optional
 
-from data_provider.common.base import DataSource, DataSourceManager
-
-
-@dataclass
-class SectorRankingRequest:
-    """板块排行请求。"""
-
-    limit: int = 5
-    ranking_type: str = "sector"
-
-
-@dataclass
-class SectorRankingResult:
-    """板块排行结果。"""
-
-    top_sectors: List[Dict[str, Any]]
-    bottom_sectors: List[Dict[str, Any]]
-    source: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-class SectorDataSource(DataSource[SectorRankingRequest, SectorRankingResult]):
-    """板块能力 source 公共抽象。"""
+from data_provider.common.base import DataSourceManager
+from data_provider.sector.source_contract import (  # noqa: F401
+    SectorRankingRequest,
+    SectorRankingResult,
+    SectorDataSource,
+)
 
 
 class SectorDataSourceManager(DataSourceManager[SectorRankingRequest, SectorRankingResult]):

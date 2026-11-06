@@ -20,10 +20,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 from unittest.mock import patch
 
-from data_provider.wallstreetcn_live_news_fetcher import (
-    LiveNewsFetchError,
-    WallstreetcnLiveNewsFetcher,
-)
+from data_provider.news.wallstreetcn_live import LiveNewsFetchError, WallstreetcnLiveNewsFetcher
 from api.v1.endpoints.intelligence import (
     get_live_news_item,
     list_live_news,

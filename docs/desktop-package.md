@@ -10,6 +10,8 @@
 - 桌面端会自动从本机 `8000-8100` 选择可用端口，并把实际选择的端口同步给内置后端；桌面端不依赖 `.env` 里的 `WEBUI_PORT` 来决定窗口连接地址，避免用户改端口后 Electron 仍等待旧端口导致启动超时
 - Desktop backend 默认随 `requirements.txt` 安装并冻结 `futu-api==10.8.6808`；Windows/macOS 构建脚本会在源码环境和 PyInstaller 产物中分别执行 `import futu`，防止发布包只安装但未携带 SDK。
 
+数据源包使用按需公开导出和旧路径兼容入口。Windows/macOS 后端构建均显式收集 `data_provider` 子模块，产物中的 `HRS_PACKAGED_IMPORT_PROBE=data_provider` 检查会解析公开导出并导入全部能力/兼容子模块，避免只验证轻量包根而漏掉冻结依赖。它只验证导入，不代表行情联网、模型调用或桌面窗口端到端已通过。复制 PyInstaller 目录或制作安装包时必须保留符号链接，避免 Python.framework 被平铺后产生签名歧义。
+
 ## 本地开发
 
 一键启动（开发模式）：
@@ -233,7 +235,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-backend.ps1
 bash scripts/build-backend-macos.sh
 ```
 
-该脚本会在安装依赖后执行 `--collect-all alphasift`、`--collect-all futu` 和 `--collect-data akshare`。构建完成后会通过冻结可执行文件校验 `alphasift.hrs_adapter`、`futu`、`orjson` 均可导入，并确认 AkShare 的 `file_fold/calendar.json` 已进入冻结产物，避免发行包在热点题材、Futu 持仓导入或日线增强路径中因缺少依赖/package data 降级。PR 主 CI 在 `requirements.txt`、Futu broker、Desktop 打包入口或相关 workflow 变化时，会分别运行 `desktop-futu-package-windows` 与 `desktop-futu-package-macos` 阻断检查。
+该脚本会在安装依赖后执行 `--collect-all alphasift`、`--collect-all futu`、`--collect-data akshare` 和 `--collect-submodules data_provider`。构建完成后会通过冻结可执行文件校验 `alphasift.dsa_adapter`、`futu`、`orjson` 及 `data_provider` 均可导入，并确认 AkShare 的 `file_fold/calendar.json` 已进入冻结产物，避免发行包在热点题材、Futu 持仓导入或日线增强路径中因缺少依赖/package data 降级。PR 主 CI 在 `requirements.txt`、Futu broker、Desktop 打包入口或相关 workflow 变化时，会分别运行 `desktop-futu-package-windows` 与 `desktop-futu-package-macos` 阻断检查。
 
 3) 打包 Electron 桌面应用
 

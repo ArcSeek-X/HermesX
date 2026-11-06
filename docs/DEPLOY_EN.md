@@ -280,6 +280,8 @@ find /opt/stock-analyzer/reports -mtime +30 -delete
 
 ### 1. Docker build failed
 
+The Dockerfile retries APT system dependency downloads up to three times and still fails if downloads remain unavailable. For package download `502` errors, check networking from Docker containers; for base image `403` errors, check the configured registry mirror. Retries do not change package sources or skip dependencies. Clearing build caches does not resolve registry mirror permission errors.
+
 ```bash
 # Clear cache and rebuild
 docker-compose -f ./docker/docker-compose.yml build --no-cache

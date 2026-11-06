@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-import data_provider.base as dp_base
+import data_provider.runtime.manager as dp_base
 from src.application.portfolio import portfolio_service as ps
 from src.application.portfolio.portfolio_service import PortfolioService
 from src.infrastructure.providers.portfolio_realtime_provider import (

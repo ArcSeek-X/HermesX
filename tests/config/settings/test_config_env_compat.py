@@ -14,6 +14,24 @@ from tests.support.paths import get_repo_root
 
 
 class ConfigEnvCompatibilityTestCase(unittest.TestCase):
+    def setUp(self):
+        # 每个用例独立捕获启动环境；不能继承前一个测试/会话装配的状态。
+        Config.reset_instance()
+        from src.config import settings
+
+        original_reader = settings.dotenv_values
+        local_env = (get_repo_root() / ".env").resolve()
+
+        def read_test_env(path, *args, **kwargs):
+            # 显式临时文件仍走真实解析；环境变量用例不读取维护者本机配置。
+            if Path(path).resolve() == local_env:
+                return {}
+            return original_reader(path, *args, **kwargs)
+
+        reader_patch = patch("src.config.settings.dotenv_values", side_effect=read_test_env)
+        reader_patch.start()
+        self.addCleanup(reader_patch.stop)
+
     def tearDown(self):
         Config.reset_instance()
 

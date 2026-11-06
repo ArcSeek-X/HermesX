@@ -15,8 +15,8 @@ from tests.support.paths import get_repo_root
 sys.path.insert(0, str(get_repo_root()))
 
 
-from data_provider.base import DataFetcherManager
-from data_provider.realtime_types import RealtimeSource, UnifiedRealtimeQuote
+from data_provider.runtime.manager import DataFetcherManager
+from data_provider.realtime.types import RealtimeSource, UnifiedRealtimeQuote
 from src.config import Config
 
 
@@ -53,7 +53,7 @@ class _FailingDailyFetcher:
     priority = 0
 
     def get_daily_data(self, stock_code, start_date=None, end_date=None, days=30):
-        from data_provider.base import DataFetchError
+        from data_provider.common.errors import DataFetchError
 
         raise DataFetchError("TickFlow daily K-line response may be truncated by count")
 
@@ -140,7 +140,7 @@ class TestTickFlowManagerRouting(unittest.TestCase):
         self.assertEqual(len(fallback.calls), 1)
 
     def test_tickflow_priority_is_read_for_new_instances_after_module_import(self):
-        from data_provider.tickflow_fetcher import TickFlowFetcher
+        from data_provider.runtime.fetchers.tickflow import TickFlowFetcher
 
         with patch.dict(os.environ, {"TICKFLOW_PRIORITY": "7"}, clear=False):
             first = TickFlowFetcher(api_key="sk-test")

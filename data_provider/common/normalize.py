@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
-from data_provider.base import canonical_stock_code, normalize_stock_code
+from typing import Any, Optional
+
+from src.domain.market.stock_codes import canonical_stock_code, normalize_stock_code
 
 
 def _bare_stock_code(stock_code: str) -> str:
@@ -55,3 +57,57 @@ __all__ = [
     "code_to_sina_symbol",
     "stock_market_label",
 ]
+
+
+def try_scalar_isna(value: Any, context: str, *, logger) -> Optional[bool]:
+    import numpy as np
+    import pandas as pd
+    """Return scalar ``pd.isna`` result, or ``None`` when callers should use fallback logic."""
+    if isinstance(value, (dict, list, tuple, set, pd.DataFrame, pd.Series, pd.Index)):
+        return None
+
+    if isinstance(value, np.ndarray):
+        if value.ndim != 0:
+            return None
+        value = value.item()
+
+    try:
+        isna_result = pd.isna(value)
+    except (TypeError, ValueError) as exc:
+        if hasattr(value, "__array__"):
+            logger.debug(
+                "[%s] pd.isna failed for array-like object; re-raise: value_type=%s error_type=%s",
+                context,
+                type(value).__name__,
+                type(exc).__name__,
+            )
+            raise
+        logger.debug(
+            "[%s] pd.isna fallback: value_type=%s error_type=%s",
+            context,
+            type(value).__name__,
+            type(exc).__name__,
+        )
+        return None
+
+    if isinstance(isna_result, (bool, np.bool_)):
+        return bool(isna_result)
+
+    if isinstance(isna_result, np.ndarray):
+        if isna_result.ndim == 0:
+            return bool(isna_result.item())
+        logger.debug(
+            "[%s] pd.isna returned non-scalar result: value_type=%s result_type=%s",
+            context,
+            type(value).__name__,
+            type(isna_result).__name__,
+        )
+        return None
+
+    logger.debug(
+        "[%s] pd.isna returned unexpected result type: value_type=%s result_type=%s",
+        context,
+        type(value).__name__,
+        type(isna_result).__name__,
+    )
+    return None

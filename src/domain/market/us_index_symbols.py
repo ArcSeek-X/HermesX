@@ -3,8 +3,8 @@
 
 Moved out of ``data_provider.us_index_mapping`` so application/quote code can
 detect US index and stock symbols without importing the data provider layer.
-``us_index_mapping`` re-imports the three names below for its Yahoo-symbol
-helpers and existing consumers; this module is the single source of truth.
+Provider-side Yahoo-symbol adaptation reuses this mapping via
+``data_provider.common.symbols``; this module is the single source of truth.
 
 R3-S14 additionally moved ``is_us_stock_code`` here (previously defined in
 the data provider layer) so ``src/domain/market/trading_calendar.py`` can

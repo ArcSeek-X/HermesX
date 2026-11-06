@@ -108,3 +108,10 @@
 | ADR-006 | §6 P5「清理确无引用的旧模块」与「收紧 import 守卫」的取舍结论 |
 | ADR-007 | §2 L41 domain 依赖方向、§9.2-4 进程模型已决的领域层落地口径 |
 | ADR-008 | §5.1 schema 升级路径、§9.2.1-1（W6 保守路线：保留 + 备份重建） |
+
+
+### ADR-003 实施续篇：数据源根目录收敛（2026-11-06）
+
+继续保持 data_provider 原位、应用层通过端口访问的决定。内部落点按[数据源专项 §11](./refactoring/ARCHITECTURE_TARGET_DATA_PROVIDER_REFACTORING.md#root-convergence)继续收敛：厂商装配位于 runtime/fetchers，管理器位于 runtime/manager.py，StockSDK 唯一客户端位于 clients/stocksdk/bridge.py。旧根级深路径退出，根仅保留 __init__.py/base.py；17 项包级惰性导出保持，base 的公开类型/异常兼容保留。
+
+本条是现有边界下的实施更新，不修改上文历史批次记录；对应结构守卫采用当前规范路径，完整验证及环境限制见专项验收附件 §7。

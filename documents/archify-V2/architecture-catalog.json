@@ -4073,6 +4073,234 @@
         ]
       ],
       "profile": "showcase"
+    },
+    {
+      "id": "token-gateway",
+      "title": "14 · Token 流量网关管理",
+      "chapter": "Token 流量网关管理",
+      "nodes": [
+        {
+          "id": "token-n01",
+          "label": "配置入口与管理界面",
+          "sublabel": "SettingsPage / system_config API",
+          "path": "apps/hrs-web/src/pages/SettingsPage.tsx",
+          "facts": "Web 设置页展示 GENERATION_BACKEND / LITELLM_MODEL / LITELLM_CONFIG 状态，提供渠道编辑器、状态预览与 smoke test；配置写入与草稿校验经后端 API，测试不写 .env。",
+          "sources": [
+            "apps/hrs-web/src/pages/SettingsPage.tsx",
+            "api/v1/endpoints/system_config.py"
+          ]
+        },
+        {
+          "id": "token-n02",
+          "label": "配置字段与优先级",
+          "sublabel": "LITELLM_CONFIG > LLM_CHANNELS > 单 Key",
+          "path": "src/config/settings.py",
+          "facts": "Config 集中字段默认值与解析，field_definitions 决定设置页可编辑项；优先级为 LITELLM_CONFIG（YAML）> LLM_CHANNELS（渠道）> 传统单 Key 环境变量。",
+          "sources": [
+            "src/config/settings.py",
+            "src/config/field_definitions.py"
+          ]
+        },
+        {
+          "id": "token-n03",
+          "label": "model_list 编译",
+          "sublabel": "channels_to_model_list / wire model",
+          "path": "src/config/settings.py",
+          "facts": "channels_to_model_list 把模型 × API Key 展开为 deployment（litellm_params.model / api_base / extra_headers）；parse_litellm_yaml 只读取 model_list 并解析 os.environ/ 密钥引用；别名到 wire model 由 wire_models 解析。",
+          "sources": [
+            "src/config/settings.py",
+            "src/config/llm_channels.py",
+            "src/domain/generation/wire_models.py"
+          ]
+        },
+        {
+          "id": "token-n04",
+          "label": "后端身份与 fallback",
+          "sublabel": "GENERATION_BACKEND / AGENT_BACKEND",
+          "path": "src/domain/generation/backend_identity.py",
+          "facts": "litellm 是唯一 agent-capable 后端，也是唯一允许的 generation fallback 后端；本地 CLI 后端仅用于生成。GENERATION_BACKEND 默认为 litellm，AGENT_BACKEND 默认为 auto。",
+          "sources": [
+            "src/domain/generation/backend_identity.py",
+            ".env.example"
+          ]
+        },
+        {
+          "id": "token-n05",
+          "label": "报告生成链路",
+          "sublabel": "analyzer / LiteLLMGenerationBackend",
+          "path": "src/application/analysis/analyzer.py",
+          "facts": "分析流水线经 analyzer.analyze() → LiteLLMGenerationBackend.generate() → 注入的补全实现；主模型失败按 fallback 列表重试，最终由 Router.completion 或 litellm.completion 发出。",
+          "sources": [
+            "src/application/analysis/analyzer.py",
+            "src/infrastructure/generation/litellm_backend.py"
+          ]
+        },
+        {
+          "id": "token-n06",
+          "label": "生成参数与错误恢复",
+          "sublabel": "generation_params / errors / cache",
+          "path": "src/infrastructure/generation/errors.py",
+          "facts": "apply_litellm_generation_params 统一温度与思考开关；错误分类识别仅支持特定参数并做一次性修正重试（进程内缓存，不写 .env）；provider_cache 处理 prompt cache 遥测。",
+          "sources": [
+            "src/infrastructure/generation/errors.py",
+            "src/infrastructure/generation/generation_params.py"
+          ]
+        },
+        {
+          "id": "token-n07",
+          "label": "LiteLLM 进程内 SDK",
+          "sublabel": "completion / Router · simple-shuffle",
+          "path": "src/infrastructure/providers/analyzer_runtime.py",
+          "facts": "全仓直接构造 Router / 直调 litellm.completion 的运行时位置；routing_strategy=simple-shuffle、num_retries=2，签名不兼容时降级直调。Agent 侧 LLMToolAdapter 复用同一 SDK。",
+          "sources": [
+            "src/infrastructure/providers/analyzer_runtime.py",
+            "src/infrastructure/agent_runtime/llm_adapter.py"
+          ]
+        },
+        {
+          "id": "token-n08",
+          "label": "外部模型服务",
+          "sublabel": "OpenAI 兼容 / Gemini / Anthropic / Ollama",
+          "path": ".env.example",
+          "facts": "OpenAI 兼容端点、Gemini / Anthropic / DeepSeek / Ollama / Hermes 等按渠道配置，由应用进程直接发起 HTTPS 请求；不经过独立代理服务。",
+          "sources": [
+            ".env.example",
+            "docs/LLM_CONFIG_GUIDE.md"
+          ]
+        },
+        {
+          "id": "token-n09",
+          "label": "官方 Proxy / Admin UI",
+          "sublabel": "litellm --config :4000 /ui · 未接入",
+          "path": "requirements.txt",
+          "facts": "官方管理平台是独立服务（litellm[proxy]、LITELLM_MASTER_KEY、数据库、:4000 /ui）；本仓库只声明 litellm SDK，全仓无 master key、proxy 启动脚本或 Dashboard 接入。",
+          "sources": [
+            "requirements.txt",
+            "docs/LLM_CONFIG_GUIDE.md"
+          ]
+        },
+        {
+          "id": "token-n10",
+          "label": "结果消费与流式反馈",
+          "sublabel": "GenerationResult / stream events",
+          "path": "src/infrastructure/generation/litellm_backend.py",
+          "facts": "生成结果归一为 GenerationResult（text / model / provider / usage）；Agent 侧流式事件与 provider trace 把响应交给会话、页面与用量记录。",
+          "sources": [
+            "src/infrastructure/generation/litellm_backend.py",
+            "src/infrastructure/agent_runtime/llm_adapter.py"
+          ]
+        },
+        {
+          "id": "token-n11",
+          "label": "Token 记账与可观测",
+          "sublabel": "llm_usage / provider trace / 日志",
+          "path": "src/infrastructure/persistence/models/agent.py",
+          "facts": "每次 litellm.completion() 的用量写入 llm_usage；provider trace、日志与脱敏诊断承担成本与来源追踪，而不是由 Proxy Dashboard 记账。",
+          "sources": [
+            "src/infrastructure/persistence/models/agent.py",
+            "src/infrastructure/generation/usage.py"
+          ]
+        },
+        {
+          "id": "token-n12",
+          "label": "响应与用量归一化",
+          "sublabel": "usage / usage_metadata / _hidden_params",
+          "path": "src/infrastructure/generation/usage.py",
+          "facts": "优先读 LiteLLM 公开 usage / usage_metadata，兜底 _hidden_params[\"usage\"]；按 provider 归一化 token、cache token 与费用，并附加 prompt HMAC（不落 prompt 正文）。",
+          "sources": [
+            "src/infrastructure/generation/usage.py"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          1,
+          2,
+          "字段注册与草稿校验"
+        ],
+        [
+          2,
+          3,
+          "解析 YAML / 渠道 / 单 Key"
+        ],
+        [
+          3,
+          4,
+          "别名与 fallback 解析"
+        ],
+        [
+          5,
+          6,
+          "统一生成参数"
+        ],
+        [
+          6,
+          7,
+          "completion / Router 调用"
+        ],
+        [
+          7,
+          8,
+          "HTTPS · wire model"
+        ],
+        [
+          8,
+          12,
+          "响应与 usage"
+        ],
+        [
+          12,
+          11,
+          "归一化 token / provider"
+        ],
+        [
+          11,
+          10,
+          "记账进入结果视图"
+        ],
+        [
+          9,
+          10,
+          "可选形态 · 当前不经过"
+        ],
+        [
+          1,
+          5,
+          "配置驱动分析任务"
+        ],
+        [
+          3,
+          7,
+          "model_list 注入 Router"
+        ]
+      ],
+      "notes": [
+        [
+          "cyan",
+          "对接形态",
+          [
+            "litellm 是进程内 Python SDK：应用自己构造 Router 并直连厂商 API。",
+            "全仓无 LITELLM_MASTER_KEY、:4000 服务或 Proxy /ui 接入。"
+          ]
+        ],
+        [
+          "violet",
+          "流量与记账",
+          [
+            "主/兜底模型与多 Key deployment 由 model_list 编译；simple-shuffle + num_retries=2。",
+            "usage / usage_metadata / _hidden_params 归一后写入 llm_usage；Web 设置页提供状态与 smoke test。"
+          ]
+        ],
+        [
+          "amber",
+          "管理边界",
+          [
+            "官方 LiteLLM Proxy + Admin UI 需独立服务、master key 与数据库；本仓库未部署。",
+            "LITELLM_CONFIG 只借用 model_list 格式；router_settings 在本仓库不生效。"
+          ]
+        ]
+      ],
+      "profile": "showcase"
     }
   ],
   "evidence": {
@@ -38104,6 +38332,27 @@
         "@heroui/react",
         "react"
       ]
+    },
+    ".env.example": {
+      "sha256": "57cd49906fe618b6abf8c88d840da944964f96cff6ea515b128407641a4467aa",
+      "lines": 1036,
+      "summary": "环境与生成后端配置样例：GENERATION_BACKEND=litellm、GENERATION_FALLBACK_BACKEND=litellm、LITELLM_CONFIG / LLM_CHANNELS 渠道样例与厂商 API Key 占位。",
+      "symbols": [],
+      "imports": []
+    },
+    "requirements.txt": {
+      "sha256": "1ffc90286e59316745e0826a5c6eb1e40ca01178e81db2d9a045a85e2d8563e7",
+      "lines": 75,
+      "summary": "Python 依赖清单：litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0，配套 openai、tiktoken、PyYAML 与 orjson；未声明 litellm[proxy]。",
+      "symbols": [],
+      "imports": []
+    },
+    "docs/LLM_CONFIG_GUIDE.md": {
+      "sha256": "35381aa13e8cf96240f5faae6a245d2cedf831c3be972ca3f0e5aaf6472ed6ec",
+      "lines": 503,
+      "summary": "LLM 配置指南：LITELLM_CONFIG、LLM_CHANNELS 与 LiteLLM Python SDK 的配置说明。",
+      "symbols": [],
+      "imports": []
     }
   },
   "pages": [

@@ -25,9 +25,9 @@ count is higher than the baseline count (or that is missing from the baseline
 entirely). Private member accesses use the ``private:<name>`` key namespace so
 they never collide with import keys.
 
-Known limitation: dynamically resolved imports (``importlib.import_module`` and
-``__import__``) are not detected. Keep them out of the layers listed here, or
-extend the scanner when a real use case appears.
+Known limitation: computed dynamic imports require a separate registry audit.
+Literal importlib/__import__ calls are checked in data_provider; dynamic calls
+in the other layers are not resolved by this scanner.
 
 HermesX 后端的依赖方向守护脚本（ARCHITECTURE_TARGET.md 分层规则的可执行形式）。
 用 ast 扫描工作区，与已签入的基线对比，使既有技术债不阻塞开发、但任何新增的跨层依赖都会被发现。
@@ -51,7 +51,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BASELINE = Path(__file__).resolve().parent / "architecture_baseline.json"
 BASELINE_VERSION = 1
 
-SCAN_ROOTS: tuple[str, ...] = ("api", "bot", "src")
+SCAN_ROOTS: tuple[str, ...] = ("api", "bot", "src", "data_provider")
 SKIP_DIR_NAMES = frozenset({
     "__pycache__",
     ".git",
@@ -79,6 +79,11 @@ class Rule:
 
 # Keep this table in sync with ARCHITECTURE_TARGET.md section 2.
 RULES: tuple[Rule, ...] = (
+    Rule(
+        "data_provider/",
+        ("api", "bot", "src.bootstrap", "src.application"),
+        "Providers use domain/config and registered application ports, never drivers or concrete use cases",
+    ),
     Rule(
         "api/",
         ("src.storage", "src.repositories", "src.infrastructure", "data_provider"),
@@ -181,6 +186,55 @@ RULES: tuple[Rule, ...] = (
         "Backend layers must not depend on entry drivers",
     ),
 )
+
+# Explicit port contracts only; importing a sibling implementation stays forbidden.
+PROVIDER_APPLICATION_PORTS = ("src.application.runtime.provider_diagnostic_ports",)
+
+
+def _provider_port_import(node: ast.AST, targets: list[str]) -> bool:
+    if isinstance(node, ast.ImportFrom) and all(a.name != "*" for a in node.names):
+        leaves = [target for target in targets if not any(other.startswith(target + ".") for other in targets)]
+    else:
+        leaves = targets
+    return bool(leaves) and all(
+        any(_matches(target, port) for port in PROVIDER_APPLICATION_PORTS) for target in leaves
+    )
+
+
+def _provider_dynamic_targets(tree: ast.AST) -> dict[int, list[str]]:
+    """Resolve literal dynamic imports, including aliases; computed registries remain an audit concern."""
+    from importlib.util import resolve_name
+
+    functions = {"__import__"}
+    modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update(a.asname or a.name for a in node.names if a.name == "importlib")
+        elif isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            functions.update(a.asname or a.name for a in node.names if a.name == "import_module")
+    result = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not node.args:
+            continue
+        fn = node.func
+        known = isinstance(fn, ast.Name) and fn.id in functions
+        known = known or (
+            isinstance(fn, ast.Attribute) and fn.attr == "import_module"
+            and isinstance(fn.value, ast.Name) and fn.value.id in modules
+        )
+        arg = node.args[0]
+        if not known or not isinstance(arg, ast.Constant) or not isinstance(arg.value, str):
+            continue
+        target = arg.value
+        if target.startswith("."):
+            package = node.args[1] if len(node.args) > 1 else next(
+                (kw.value for kw in node.keywords if kw.arg == "package"), None
+            )
+            if not isinstance(package, ast.Constant) or not isinstance(package.value, str):
+                continue
+            target = resolve_name(target, package.value)
+        result[id(node)] = [target]
+    return result
 
 
 def _matches(module: str, forbidden: str) -> bool:
@@ -291,13 +345,16 @@ def scan(root: Path) -> tuple[Counter[tuple[str, str]], list[str]]:
             parse_errors.append(f"{relative}: {exc}")
             continue
 
+        dynamic = _provider_dynamic_targets(tree) if relative.startswith("data_provider/") else {}
         for node in ast.walk(tree):
             if rule.forbid_private_members:
                 private_target = _private_member_target(node)
                 if private_target:
                     violations[(relative, private_target)] += 1
-            targets = _statement_targets(node, relative_path)
+            targets = _statement_targets(node, relative_path) or dynamic.get(id(node), [])
             if not targets:
+                continue
+            if relative.startswith("data_provider/") and _provider_port_import(node, targets):
                 continue
             matched: list[str] = []
             for target in targets:

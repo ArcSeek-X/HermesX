@@ -7,32 +7,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional
 
-from data_provider.common.base import DataSource, DataSourceManager
-
-
-@dataclass
-class FundamentalsRequest:
-    """基本面请求。"""
-
-    stock_code: str
-    budget_seconds: float = 4.0
-
-
-@dataclass
-class FundamentalsResult:
-    """基本面结果。"""
-
-    stock_code: str
-    payload: Dict[str, Any]
-    source: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-class FundamentalsDataSource(DataSource[FundamentalsRequest, FundamentalsResult]):
-    """基本面能力 source 公共抽象。"""
+from data_provider.common.base import DataSourceManager
+from data_provider.fundamentals.source_contract import (
+    FundamentalsDataSource,
+    FundamentalsRequest,
+    FundamentalsResult,
+)
 
 
 class FundamentalsDataSourceManager(DataSourceManager[FundamentalsRequest, FundamentalsResult]):
@@ -74,9 +56,7 @@ _MANAGER = FundamentalsDataSourceManager(
 
 def get_fundamental_context(stock_code: str, budget_seconds: float = 4.0) -> FundamentalsResult:
     """按配置顺序获取个股基本面上下文。"""
-    return _MANAGER.get_fundamentals(
-        FundamentalsRequest(stock_code=stock_code, budget_seconds=budget_seconds)
-    )
+    return _MANAGER.get_fundamentals(FundamentalsRequest(stock_code=stock_code, budget_seconds=budget_seconds))
 
 
 def resolve_fundamentals_source_order() -> Iterable[str]:

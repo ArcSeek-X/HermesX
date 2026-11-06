@@ -63,7 +63,7 @@ class PortfolioServiceTestCase(unittest.TestCase):
         self.db = DatabaseManager.get_instance()
         self.service = PortfolioService()
         # S2f-3 实时取数改经 PortfolioRealtimeQuotePort：装配真实适配器后，用例对
-        # `data_provider.base.DataFetcherManager` 的 patch 仍贯穿 app→port→adapter→manager
+        # `data_provider.runtime.manager.DataFetcherManager` 的 patch 仍贯穿 app→port→adapter→manager
         # 全链路（与迁移前直连 DataFetcherManager 行为等价）。
         portfolio_service_module.set_realtime_port(DataProviderPortfolioRealtimeQuote())
 
@@ -318,7 +318,7 @@ class PortfolioServiceTestCase(unittest.TestCase):
                         fetch_state["active"] -= 1
                     return SimpleNamespace(price=125.0, source="unit-test")
 
-        with patch("data_provider.base.DataFetcherManager", new=FakeDataFetcherManager):
+        with patch("data_provider.runtime.manager.DataFetcherManager", new=FakeDataFetcherManager):
             snapshot = self.service.get_portfolio_snapshot(account_id=aid, as_of=today, cost_method="fifo")
 
         positions = snapshot["accounts"][0]["positions"]
@@ -386,7 +386,7 @@ class PortfolioServiceTestCase(unittest.TestCase):
                         fetch_state["active"] -= 1
                     return SimpleNamespace(price=125.0, source="unit-test")
 
-        with patch("data_provider.base.DataFetcherManager", new=FakeDataFetcherManager):
+        with patch("data_provider.runtime.manager.DataFetcherManager", new=FakeDataFetcherManager):
             snapshot = self.service.get_portfolio_snapshot(account_id=aid, as_of=today, cost_method="fifo")
 
         positions = snapshot["accounts"][0]["positions"]

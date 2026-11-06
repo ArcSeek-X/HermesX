@@ -14,7 +14,7 @@ if "litellm" not in sys.modules:
 if "json_repair" not in sys.modules:
     sys.modules["json_repair"] = MagicMock()
 
-from data_provider.base import DataFetcherManager
+from data_provider.runtime.manager import DataFetcherManager
 
 
 class _DummyFetcher:

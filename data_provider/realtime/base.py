@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List
 
-from data_provider.base import normalize_stock_code
-from data_provider.common.base import DataSource, DataSourceManager
-from data_provider.realtime_types import UnifiedRealtimeQuote
+from src.domain.market.stock_codes import normalize_stock_code
+from data_provider.common.base import DataSourceManager
+from data_provider.realtime.types import UnifiedRealtimeQuote
 
 
-class RealtimeSource(DataSource[str, UnifiedRealtimeQuote]):
-    """实时行情 source 公共抽象。"""
+from data_provider.realtime.source_contract import RealtimeSource  # noqa: F401
 
 
 class RealtimeDataSourceManager(DataSourceManager[str, UnifiedRealtimeQuote]):

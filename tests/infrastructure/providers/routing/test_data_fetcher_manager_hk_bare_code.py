@@ -22,12 +22,10 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from data_provider.base import (
-    BaseFetcher,
-    DataFetchError,
-    DataFetcherManager,
-    _is_hk_market,
-)
+from data_provider.common.fetcher_contract import BaseFetcher
+from data_provider.common.errors import DataFetchError
+from data_provider.runtime.manager import DataFetcherManager
+from data_provider.common.symbols import _is_hk_market
 
 
 class _FakeFetcher(BaseFetcher):
@@ -104,8 +102,8 @@ class TestIsHkMarketAcceptsFourDigitBareCodes:
 class TestManagerRoutesFourDigitBareHkAwayFromCnOnlyFetchers:
     """``DataFetcherManager.get_daily_data("0001")`` must skip CN-only fetchers."""
 
-    @patch("data_provider.base.record_provider_run_started")
-    @patch("data_provider.base.record_provider_run")
+    @patch("data_provider.runtime.manager.record_provider_run_started")
+    @patch("data_provider.runtime.manager.record_provider_run")
     def test_four_digit_bare_hk_does_not_hit_cn_only_fetchers(
         self, _record_run, _record_started
     ) -> None:
@@ -143,8 +141,8 @@ class TestManagerRoutesFourDigitBareHkAwayFromCnOnlyFetchers:
         hk_capable_calls = akshare.calls + tushare.calls + yfinance.calls
         assert hk_capable_calls == ["0001"]
 
-    @patch("data_provider.base.record_provider_run_started")
-    @patch("data_provider.base.record_provider_run")
+    @patch("data_provider.runtime.manager.record_provider_run_started")
+    @patch("data_provider.runtime.manager.record_provider_run")
     def test_four_digit_bare_hk_uses_yfinance_when_akshare_tushare_unavailable(
         self, _record_run, _record_started
     ) -> None:
@@ -169,8 +167,8 @@ class TestManagerRoutesFourDigitBareHkAwayFromCnOnlyFetchers:
 class TestManagerRoutesFiveDigitBareHkUnchanged:
     """5-digit bare HK codes must keep their pre-fix behavior (regression)."""
 
-    @patch("data_provider.base.record_provider_run_started")
-    @patch("data_provider.base.record_provider_run")
+    @patch("data_provider.runtime.manager.record_provider_run_started")
+    @patch("data_provider.runtime.manager.record_provider_run")
     def test_five_digit_bare_hk_still_skips_cn_only_fetchers(
         self, _record_run, _record_started
     ) -> None:
@@ -192,8 +190,8 @@ class TestManagerRoutesFiveDigitBareHkUnchanged:
 class TestManagerStillRoutesSixDigitToCn:
     """6-digit numeric codes must continue routing to the A-share chain."""
 
-    @patch("data_provider.base.record_provider_run_started")
-    @patch("data_provider.base.record_provider_run")
+    @patch("data_provider.runtime.manager.record_provider_run_started")
+    @patch("data_provider.runtime.manager.record_provider_run")
     def test_six_digit_a_share_goes_to_cn_only_fetchers(
         self, _record_run, _record_started
     ) -> None:
@@ -236,27 +234,27 @@ class TestAkshareFetcherIsHkCodeContract:
     """
 
     def test_four_digit_bare_hk_accepted(self) -> None:
-        from data_provider.akshare_fetcher import _is_hk_code
+        from data_provider.runtime.fetchers.akshare import _is_hk_code
 
         # 长和 0001 / 中国移动 0941 — issue #2091 core 4-digit examples
         assert _is_hk_code("0001") is True
         assert _is_hk_code("0941") is True
 
     def test_five_digit_bare_hk_unchanged(self) -> None:
-        from data_provider.akshare_fetcher import _is_hk_code
+        from data_provider.runtime.fetchers.akshare import _is_hk_code
 
         assert _is_hk_code("00700") is True
         assert _is_hk_code("02513") is True
 
     def test_six_digit_bare_remains_cn(self) -> None:
-        from data_provider.akshare_fetcher import _is_hk_code
+        from data_provider.runtime.fetchers.akshare import _is_hk_code
 
         # 6 位裸数字是 A 股 / BSE，绝不能被 akshare 误判为港股
         assert _is_hk_code("600519") is False
         assert _is_hk_code("000001") is False
 
     def test_prefixed_and_suffixed_four_digit_hk(self) -> None:
-        from data_provider.akshare_fetcher import _is_hk_code
+        from data_provider.runtime.fetchers.akshare import _is_hk_code
 
         assert _is_hk_code("HK0001") is True
         assert _is_hk_code("hk0001") is True
@@ -281,7 +279,7 @@ class TestAkshareFetcherRoutingCallsHkBranch:
     """
 
     def test_four_digit_bare_hk_routes_to_hk_branch(self) -> None:
-        from data_provider.akshare_fetcher import AkshareFetcher
+        from data_provider.runtime.fetchers.akshare import AkshareFetcher
 
         fetcher = AkshareFetcher()
         calls: list[tuple[str, str, str]] = []
@@ -317,7 +315,7 @@ class TestAkshareFetcherRoutingCallsHkBranch:
         )
 
     def test_six_digit_bare_remains_cn_branch(self) -> None:
-        from data_provider.akshare_fetcher import AkshareFetcher
+        from data_provider.runtime.fetchers.akshare import AkshareFetcher
 
         fetcher = AkshareFetcher()
         calls: list[tuple[str, str]] = []

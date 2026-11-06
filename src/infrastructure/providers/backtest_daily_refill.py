@@ -36,7 +36,7 @@ class DataProviderDailyBarRefill:
         days: int,
     ) -> None:
         """补齐回测区间内缺失的日线数据。"""
-        from data_provider.base import DataFetcherManager
+        from data_provider.runtime.manager import DataFetcherManager
 
         df, source = DataFetcherManager().get_daily_data(
             stock_code=code,

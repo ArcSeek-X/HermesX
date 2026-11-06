@@ -5541,3 +5541,540 @@ P3 切片 13 后 `src/core/pipeline.py` 的 `bot.models` 依赖已消除（入�
 - 旧目录盘点明确为历史基线，迁移前 API 直连示例不再冒充当前事实；修正 schema、架构守卫和安全基线测试的活动路径。原实施流水、专项验证数字与未完成的平台验收保持。
 - 验证：核对新增现状路径、装配引用与本地文档链接，检查 Markdown 差异和 Unreleased 扁平格式；Docs only, tests not run。本次没有对应英文内部文档，不新增平行译本；未修改 README。
 - 回滚：仅撤回本节及本次三份其他文档中的对应改动，不覆盖已有未提交内容，不涉及数据库或运行资产。未 commit / push / tag。
+
+## 0.180 data_provider 首批公共契约提取（2026-11-05）
+
+实施起点 main / `984f338b`，工作区干净，未 commit / push / tag。本批对应数据源专项 B02；B00/B01 已完成第一轮静态盘点和测试基线，但完整动态消费者/能力矩阵尚未收口，不标记整个 DP0 完成。专项其余批次未实施。
+
+- 盘点 72 个原 Python 文件；src/api/bot/scripts/tests 中 85 个消费文件有 176 处静态 from-import；DataFetcherManager 的 24 个公开方法均保留。静态扫描不代表已覆盖动态导入及全部运行场景。
+- 提取 common/errors.py：3 个异常类与 unwrap_exception、summarize_exception；提取 common/fetcher_contract.py：BaseFetcher 和标准列。旧 base 重新导出同一对象，旧异常 pickle 路径仍可加载；保留日志名称 data_provider.base。
+- AST 对照确认六个提取定义及 DataFetcherManager 类体未改变；本批不改具体厂商、优先级、缓存、并发、回退、API 或客户端页面。日线清洗/指标函数随基类原样提取，尚未实施 domain 归位。
+- 新增 test_fetcher_contract_compatibility.py 的 4 个收集用例，覆盖跨旧/新入口异常捕获、异常层级、旧 pickle 加载与回写、Fetcher 继承及类型/标准列对象身份。
+- 修改前完整后端门禁（种子 20261105）：架构、严重静态检查等前置阶段通过；离线 5719 passed / 2 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（383.54s）。原失败为 API 静态规范与新 docstring 描述不一致，以及市场热点实例并发测试 0.2s 等待超时；不宣称完整基线全绿。
+- 修改后数据源离线子集（相同种子）：473 passed / 1 skipped / 2 deselected / 88 subtests（20.83s）。市场结构及 API 契约联合子集 50 passed / 1 failed（7.03s），唯一失败仍为原 API 静态规范描述；并发用例此次通过不代表已确认其历史失败根因。
+- 修改后架构守卫通过；改动件 flake8 E9/F63/F7/F82/F401 无问题；新旧定义 AST 对照通过。本批未重跑修改后完整门禁，未验收冻结包、Docker、真实第三方网络或跨平台，因此不标记 DP6 完成。日志 /tmp/hermesx-dp-baseline.log、/tmp/hermesx-dp-b02-providers.log、/tmp/hermesx-dp-b02-consumers.log 为临时证据。
+- 下一批先补齐诊断上下文与动态消费者的契约，再执行 B03；基本面旧聚合依赖解环仍须按 B05 处理，不借此批直接替换 Manager。
+- 回滚：恢复 base 原定义，同时撤回两份提取模块和新增兼容测试；保留后续改动，不涉及配置/数据库/用户文件。新模块路径的打包导入尚待后续验收。
+
+## 0.181 data_provider B03 诊断解耦与 B04 默认源构造提取（2026-11-05）
+
+延续 `984f338b` 上尚未提交的 B02 改动；不覆盖前批成果，不 commit / push / tag。本批没有改 Web、API schema、配置默认值、数据库或实际源回退策略。
+
+### 依赖及状态所有权
+
+- `data_provider/base.py` 不再导入具体的 application/runtime/run_diagnostics 服务，改为导入 common/diagnostics.py；后者仅消费新增的 application/runtime/provider_diagnostic_ports.py 窄回调端口。
+- 原诊断模块在 activate_run_diagnostic_context 创建 trace 前绑定原 started/finished 函数。回调不捕获某个 trace，仍通过唯一的原 ContextVar 在实际调用线程读取上下文。不是把上下文或脱敏实现下沉 domain，也没有另建诊断存储。
+- 相比初稿预想的 bootstrap 接线，本批以 trace 激活作为绑定边界，覆盖 CLI/API/测试及无需 bootstrap 的直接库调用；未激活 trace 的普通取数沿用原不记录行为。开始/完成字段、脱敏、事件配对和记录失败的既有 fail-open 均由原记录函数负责。
+- 新增 runtime/fetcher_factory.py 提取默认源的构造；AST 对照仅将相对导入改成绝对导入，源构造代码不变。Manager 继续拥有排序、索引、锁、缓存、资源和回退；未改变构造时机或将实例统一成单例。
+- resources.py 暂不创建：当前关闭职责仍有明确宿主，不为目录树造空抽象。独立核对并发/重复 close、自有临时客户端只关闭一次、借用源不被关闭，以及关闭失败的原有行为。
+
+### 验证与边界
+
+- 新增 7 条诊断回归：成功/失败字段与脱敏、started/finished 配对、复制上下文与无 trace 工作线程、嵌套恢复、记录失败、独立库进程直接激活，以及两个并发 trace 隔离。
+- 添加并发双 trace 用例前，数据源 + runtime 诊断/流程联合子集先后为 531 passed / 1 skipped / 2 deselected / 88 subtests（25.47s、24.43s）；后者已包括默认源工厂提取。
+- AST 对照确认 Manager 的方法清单不变，只有 _init_default_fetchers 方法变化；原诊断上下文类、两个记录函数、reset 和转发签名不变。关闭方法及其他取数方法未重写。
+- 收集 5737（15.32s）= 前批 5730 + 7 条诊断回归。当前数据源模块 77，测试模块 399；不把增加文件数作为完成率。
+- 本轮完整后端门禁结果另在本节末尾追加；原始日志为 /tmp/hermesx-dp-b04-gate.log。相关子集 /tmp/hermesx-dp-b04-related.log、资源核对 /tmp/hermesx-dp-b04-resources.log、收集 /tmp/hermesx-dp-b04-collect.log 均为可清理的本机临时证据。
+- 未执行真实第三方网络、冻结包构建、Docker 或客户端构建。本批没有改变客户端契约；新增模块在实际冻结可执行文件内的导入仍属后续验收项。
+
+### 后续及回滚
+
+B00/B01 的完整动态消费者/逐能力矩阵仍需继续收敛，B05 的基本面旧聚合依赖解环尚未实施，不将本批写成整个专项完成。方案同步了实际回调绑定及 resources.py 按需保留的处理决定。
+
+回滚 B03 时原子恢复 base 的诊断导入、trace 激活绑定、端口及转发模块和诊断回归；回滚 B04 时恢复原构造方法并移除工厂及空包入口。保留前批 B02，不能只删除新模块而留下导入；不改用户配置、数据库或运行产物。内部中文专项无对应英文版，本轮不新增平行译本或更新 README。
+
+完整门禁最终结果（种子 20261105）：syntax、architecture、critical flake8 与 deterministic 阶段通过；离线 **5731 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（418.20s）**，总收集 5737。唯一失败仍是改造前已有的 `test_decision_signal_static_api_spec_matches_runtime_paths`（静态 schema 缺少新 docstring 的 description）。原市场热点 0.2s 并发等待失败本轮未复现，不认定其根因已关闭。全部 7 条新增诊断回归及前批兼容回归已纳入本次全量；本次完整门禁仍为失败状态，不能写“全绿”。
+
+## 0.182 B05 基本面单向加载边界与 B06 腾讯日线归位试点（2026-11-05）
+
+延续 `984f338b` 上尚未提交的 B02–B04；本次未 commit / push / tag，不修改 API/Web/数据库/默认源配置。B05 完成过渡解环边界；B06 仅完成具体源归位试点，日线协调器和清洗职责进一步收敛尚未完成，B11 的多源聚合职责拆分仍未实施。
+
+### B05：保留唯一聚合实现的单向接线
+
+- 原 `fundamentals/tushare_source.py` 构造完整 DataFetcherManager，并在 fetch 时调用其公共 get_fundamental_context；该名称包装多源聚合，不代表只调用 Tushare。保留 source_id、Token 门控、payload、metadata 和预算传递，不顺便改变配置语义。
+- 新增 fundamentals/aggregate.py 的 FundamentalContextLoader 窄 callable 与过渡工厂；Source 可注入 loader，默认仍按原构造时机建立一个旧聚合实例。Source 不再持有/访问完整 fetcher_manager 属性，仓内未发现其外部消费者；聚合实例由 bound callable 保持相同存活与缓存作用域。
+- Manager 的 load_legacy_fundamental_context 显式绑定原算法函数，与现有公共入口当前是同一对象，不复制算法、缓存或超时状态。Source 绑定叶入口，而不是运行时可能委托新能力的公共门面。该绑定是过渡边界，B11 迁出真实聚合实现时须连同旧工厂/别名原子替换，不能只把原算法方法体改成委托后保留旧绑定。
+- 原 get_fundamental_context 算法 AST 与 HEAD 一致。本批没有将 300 行聚合算法机械搬成大组件，也未声称所有基本面职责已拆完。
+- 新增 6 条回归：0/1.25s 预算与 payload 对象/来源/metadata、合法空结果、异常传播、Token 门控，以及真实能力 Manager + 旧叶实现下“公共门面委托能力”的回路保护。
+- 反证：临时恢复 Source 通过公共门面的动态回调，回路回归按预期失败（保护断言限制重复进入）；恢复后 6 条边界回归通过（4.01s）。基本面全组 79 passed（11.39s），旧组最初 73 passed（12.10s）。本次新测试最初配置 mock 指向定义处而非实际消费处的问题已纠正，未改生产门控或放宽断言。
+
+### B06：分析日线具体实现归位
+
+- 腾讯分析日线唯一实现迁入 kline/daily_tencent_source.py；保留 TencentFetcher 类名、name、优先级、空结果和 800 条上限语义，所有类/函数定义 AST 与原模块一致，日志名仍是 data_provider.tencent_fetcher。
+- 原 tencent_fetcher.py 仅再导出类、全部原定义辅助函数和上限常量；旧工厂/旧类导入不需要一次切换，维持同一对象。现有 kline/tencent_source.py 是页面多周期契约，本批不合并或替换。
+- 腾讯测试局部 HTTP 替身改为 patch 实际消费模块，仍只替换该模块 requests 引用，不修改进程共享 requests.get。未削弱 799/800、短历史、日期或并发隔离断言。
+- 新增 1 条回归验证旧/新类与辅助函数对象身份、日志名，以及旧模块路径的 TencentFetcher pickle 仍可加载。迁移后定向 30 passed（7.56s，早于新增该条）；最终相关联合子集已包含新增用例。
+
+### 验证、后续与回滚
+
+- 数据源 + pipeline + 市场结构联合离线子集：632 passed / 1 skipped / 2 deselected / 88 subtests（38.43s），种子 20261105。
+- 最终完整后端门禁：前置阶段通过；离线 **5738 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（389.81s）**。唯一失败仍为改造前已存在的 test_decision_signal_static_api_spec_matches_runtime_paths（静态 schema 缺少 docstring description），不声明全绿。
+- 总收集应为 5744 = 前批 5737 + 基本面 6 + 腾讯兼容 1；数据源模块 79，测试模块 400。以本轮 collect 日志复核，历史数字不覆盖。
+- 架构守卫、改动件严重 flake8/F401、定义 AST 与文档差异检查通过。未执行真实第三方网络、冻结包、Docker 或客户端构建；新增模块在冻结可执行文件中的实际导入仍待验收。
+- 日志：/tmp/hermesx-dp-b05-boundary.log、/tmp/hermesx-dp-b05-negative.log、/tmp/hermesx-dp-b06-tencent.log、/tmp/hermesx-dp-b06-related.log、/tmp/hermesx-dp-b06-gate.log、/tmp/hermesx-dp-b06-collect.log，均为可清理临时证据。
+- 下一步先补齐 B00/B01 剩余矩阵、完成 B06 的日线协调职责评估，再按 B07 逐厂商推进；不得将本次叶实现归位当作整个取数体系收敛完成。能力外层基本面缓存键当前未含预算，原门控/来源标签也保留为旧行为，本批不借解环改变；后续公共机制/基本面切片需单独评估。
+- 回滚 B05 时一并恢复 Source 的原默认构造/调用、撤回 loader/叶绑定及相关回归；B06 回滚恢复旧腾讯模块的唯一实现、移除新叶模块并恢复测试 patch 位置及兼容回归。不要只删模块留下导入；保留前批 B02–B04 和用户后续改动，不回滚用户配置或数据库。
+
+## 0.183 B06 分析日线协调与清洗提取（2026-11-05）
+
+继续 `984f338b` 上未提交的 B02–B06 试点，保留已有修改，不 commit / push / tag。按维护者新增要求，后续每批同步专项进度百分比、当前批次/子步骤及验证边界；统计规则见数据源方案 §7.4。验收前仍为 4/24 = 16.7%，本节完成验收后再更新 B06 状态。
+
+### 职责、依赖和状态
+
+- 新增 kline/daily_history.py，将分析日线的路由尝试、空结果、诊断、异常汇总和失败回退提取为协调函数。
+- Manager 保留代码归一、市场识别、源快照、能力过滤，并通过 DailyHistoryRequest + DailyHistoryOperations 显式传入日线所需操作。协调器不接收整个 Manager，不创建 SDK、锁、缓存、熔断器或第二套源注册表，也不反向调用 get_daily_data 门面。
+- 真实调用、每源锁、健康可用性、成功/失败标记和长桥优先判断仍调用原管理器方法；诊断转发保留原消费位置的可替换性，日志名称仍是 data_provider.base。
+- 协调循环经明确定义的 self 接收者 → operations 字段替换后，AST 与原循环一致；新旧比较中时钟字段不做恒等断言。
+- 新增 kline/daily_normalize.py 提取字段清洗；BaseFetcher._clean_data 保留可覆写的原入口，委托唯一实现。现有 domain 的均线/量比公式与旧 Fetcher 的 min_periods、shift 与列名不完全等价，本批不强行替换；原指标计算没有复制或改写。
+
+### 验证
+
+- 提取后数据源/pipeline/市场结构联合子集 632 passed / 1 skipped / 2 deselected / 88 subtests（26.82s），当时尚未添加本批 3 条新回归。
+- 新增 3 条回归：清洗不修改原输入、无效必需值剔除及排序；同一 Manager 的并发请求沿用同一源锁；失败源健康状态跨请求保留且诊断显示真实回退尝试。独立 3 passed（6.71s）。
+- 临时差异对照脚本从 HEAD 取得原 get_daily_data 并执行真实管理器操作，覆盖 11 个代码/市场样本 × 4 类成功/失败/空结果，共 44 组，返回、源调用顺序/参数与诊断字段一致（排除耗时/生成时间）。脚本和日志分别为 /tmp/hermesx_dp_daily_differential.py、/tmp/hermesx-dp-b06-differential.log，不作为仓内平行实现。
+- 修改件严重 flake8/F401、架构守卫及差异格式检查通过。完整门禁结果在本节末尾追加，日志 /tmp/hermesx-dp-b06-complete-gate.log；不把子集或 AST 对照替代全量门禁。
+
+### 回滚和下一步
+
+同时恢复 Manager.get_daily_data 和 BaseFetcher._clean_data 的旧实现，撤回协调/清洗两个模块、相关导入及本批 3 条回归；保留前批具体源归位与基本面/诊断改动。资源拥有者没有迁移，不操作用户配置/数据库/运行资产。新路径的实际冻结包导入仍待部署专项验收，不能由开发环境测试替代。
+
+B06 验收收口后下一批为 B07 的 Efinance 日线切片；拆供应商能力前要核对其日线与实时等能力是否共享节流、SDK 和实例状态，不能为了目录归位把状态复制。B00/B01 的完整动态消费者与逐能力矩阵仍需补齐，不能用首轮静态盘点代替。
+
+B06 最终门禁结果：5741 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（388.23s，种子 20261105）；唯一失败仍为已有 API 静态 schema 描述不同步。本轮新增 3 条协调回归已纳入全量；B06 范围内未新增失败，不将全门禁记作全绿。按 24 包等权口径完成 B02–B06 共 5 包，整体 **20.8%**；当前进入 B07/Efinance，另两个厂商尚未开始。实际冻结打包、Docker 和网络验收未补，本次未提交。
+
+## 0.184 B07 Efinance / AkShare / Tushare 日线职责提取（2026-11-05）
+
+延续 `984f338b` 上未提交的 B02–B06，未 commit / push / tag。三个厂商按顺序处理并各自验收；不修改 API/Web/DB/默认配置。整体完成 B02–B07 共 6/24，专项进度 **25.0%**；B00/B01 仍为部分完成，不混入分母或完成数。
+
+### Efinance 子步骤
+
+- 新增 kline/daily_efinance_source.py，接收历史 SDK 调用、请求准备、错误格式化和 ETF secid 转换，承接股票/ETF 日线协议和字段标准化。
+- 根 EfinanceFetcher 保留原继承入口、市场拒绝规则、tenacity 装饰器、SDK 导入时机、共享 UA/节流、全局实时缓存和其他能力。日线与实时/ETF 仍共享同一个 _last_request_time，不另建实例状态。
+- SDK 仍先于请求准备导入；历史回调在原调用点读取 ef.stock.get_quote_history 和 _ef_call_with_timeout，旧测试 patch 位置不需要迁移。标准化使用静态本地方法，不要求 SDK 安装。
+- 协议常量由叶模块定义、根模块导出同一值；日志仍为 data_provider.efinance_fetcher。历史错误分类器、共享超时执行器仍保留原实现，不复制公共机制。
+- 首轮原数据源组 490 passed / 1 skipped / 2 deselected / 88 subtests（23.16s）；新增 2 条状态回归独立 2 passed（4.14s）。本子步骤完整门禁 5743 passed / 1 failed / 1 skipped / 4 deselected / 511 subtests（389.77s），仅既有 API schema 描述失败。
+
+### AkShare 子步骤
+
+- 新增 kline/daily_akshare_source.py，提取 A 股渠道回退、EM/Sina/Tencent、ETF、港股协议及字段标准化。旧 _fetch_* 覆盖点继续委托，不绕开原有 monkeypatch/子类覆盖点。
+- 保留东方财富→新浪→腾讯次序与各方法原有 UA/节流差异；共享超时执行器和当前超时值通过窄回调读取，Sina/Tx 的 timeout/call_name 不变。
+- 旧原始入口、重试装饰器、_last_request_time 和 SDK/并发状态仍在根 Fetcher；未为归位而更换 HTTP 策略或增加超时。原不被标准日线路由使用的 US 私有辅助暂留，未顺手删除。
+- 旧数据源组 492 passed / 1 skipped / 2 deselected / 88 subtests（24.35s，含 Efinance 新增两条）。补充回归验证 Sina/Tx 同实例节流和动态超时。
+
+### Tushare 子步骤
+
+- 新增 kline/daily_tushare_source.py，提取 A 股/ETF/港股日线分发、异常包装与单位换算。
+- _api 通过 getter 在原访问点读取，不在组件构造时复制 SDK；_check_rate_limit、_call_count、_minute_start、date_list 与 SDK/HTTP 模式仍由原 Fetcher 持有。
+- 原重试只保留在根 _fetch_raw_data 装饰器上，叶方法不叠加第二次重试。保留原 HK 不缩放、A 股/ETF vol×100 和 amount×1000 的规则。
+- 旧数据源组 492 passed / 1 skipped / 2 deselected / 88 subtests（23.76s）；新增回归验证日线/股票清单共享计数、等待限流后读取当前 SDK。
+
+### 最终验证与范围
+
+- 三个供应商的协议/标准化定义分别进行 AST 对照，排除明确的接收者/窄回调替换、静态方法形参调整；原算法、字面量、错误及重试策略未改。Efinance 原 docstring 的空白也保留，不把文案整理误当算法变化。
+- 合计新增 5 条状态回归（Efinance 2 + AkShare/Tushare 3），后者独立 3 passed（4.03s）。完整门禁覆盖所有新增用例：**5746 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（363.37s，种子 20261105）**。
+- 唯一失败仍是改造前已有的 test_decision_signal_static_api_spec_matches_runtime_paths：静态 schema 未同步 docstring description。完整门禁仍为失败状态，不宣称全绿；未修改相关 API 来掩盖基线问题。
+- 当前总收集 5752 = B06 后 5747 + 5。数据源 Python 文件 84，测试模块 403。三个根供应商文件行数由 1297/2519/1363 变为 1102/2232/1258（含注释和空行，以当前工作树为准）；行数不是完成标准。
+- 架构守卫、改动件严重 flake8、新叶模块及新增测试 F401、差异格式检查通过；根模块原有未用标准库导入不在本批清理范围。最终长行格式调整经 AST 相同校验，不改变运行语义。
+- 共享 clients 目录尚未迁移：本批重用原宿主的单一 SDK/执行器与限额机制，避免复制状态；其他能力及公共客户端迁移按后续 B10–B20 继续，不把日线拆分冒充整个供应商模块已重构完。
+- 未执行真实第三方网络、冻结包、Docker 或客户端构建；新增叶模块在实际冻结可执行文件内的导入仍是 B23 缺口。
+- 临时证据：/tmp/hermesx-dp-b07-efinance.log、/tmp/hermesx-dp-b07-shared-state.log、/tmp/hermesx-dp-b07-efinance-gate.log、/tmp/hermesx-dp-b07-akshare.log、/tmp/hermesx-dp-b07-tushare.log、/tmp/hermesx-dp-b07-supplier-state.log、/tmp/hermesx-dp-b07-final-gate.log、/tmp/hermesx-dp-b07-collect.log。均非永久 CI artifact。
+
+### B00 增量核对与后续
+
+原 72 文件仍全部有去向，新增 12 个模块均在目标树登记；当前 src/api/bot/scripts/tests 中有 193 处 from-import（91 个文件），普通 import 6 处（5 个测试文件）。API/Bot 没有直接导入数据源；含 data_provider 字样的字符串候选仍需区分真实动态入口、测试 patch 与 docstring，不据 AST 数量认定全包矩阵完成。
+
+已额外核对 main 的打包导入探针、StockDataPort 适配器的可选能力 __getattr__、默认源工厂的显式导入，以及 Docker COPY data_provider 路径。StockSDK REPO_ROOT 使用 __file__.parents[1]，未来迁移桥接文件时必须一并调整仓库根定位，不能只移动文件。实际打包仍未验证。
+
+下一步 B08 先处理 Yfinance，再按 Baostock/Pytdx/Longbridge/Finnhub/AlphaVantage/Tickflow 逐个推进；分别保留登录、会话、共享 SDK、熔断、预取和缓存作用域。B00/B01 完整矩阵继续补齐。
+
+回滚按单个厂商原子恢复根方法/原常量定义，并撤回对应叶模块、导入和本批回归；不单独删叶模块留下根委托。原类身份、重试装饰器、原共享状态及其他能力需同步核对。保留 B02–B06，不操作用户配置或数据库。
+
+
+## 0.185 B08 其余七供应商日线职责提取（2026-11-05）
+
+继续基于 `984f338b` 的未提交工作树，未 commit/push/tag。B08 按 Yfinance → Baostock → Pytdx → Longbridge → Finnhub → AlphaVantage → TickFlow 顺序实施，原根 Fetcher 的类型、名称、优先级和公开入口保持；只将日线请求与标准化委托到 `kline/daily_<vendor>_source.py`。专项 **29.2%（7/24，B02–B08）**，B00/B01 仍部分完成；下一批 B09。
+
+### 职责与资源所有权
+
+| 厂商 | 新日线组件 | 原宿主继续维护的能力及共享状态 |
+| --- | --- | --- |
+| Yfinance | `kline/daily_yfinance_source.py` | 原代码转换、原重试装饰器、实时与指数入口；download 的 ticker 筛选、复权与 MultiIndex 逻辑不变 |
+| Baostock | `kline/daily_baostock_source.py` | 原延迟模块、登录/登出上下文、代码/市场检查与重试；异常查询仍走同一 finally 清理 |
+| Pytdx | `kline/daily_pytdx_source.py` | 原连接上下文、主机选择、冷却、断开、代码/市场判断与重试；count 上限和日期裁剪保持 |
+| Longbridge | `kline/daily_longbridge_source.py` | 同一 QuoteContext、可用性与冷却、连接失效清理；日线连接失败继续使实时请求进入原冷却 |
+| Finnhub | `kline/daily_finnhub_source.py` | 同一凭证与随机等待入口、原 HTTP 替换点；保持 candle 参数、15 秒超时及异常包装 |
+| AlphaVantage | `kline/daily_alphavantage_source.py` | 同一凭证与等待/HTTP 入口；保持 compact 参数、30 秒超时、Note/Error Message 判定及日期/排序语义 |
+| TickFlow | `kline/daily_tickflow_source.py` | 同一 SDK、锁、预取/单次日线缓存、复权配置及辅助转换；无第二份客户端或缓存，缓存命中仍早于客户端请求 |
+
+组件显式接收日线所需回调，不传入整个 Manager/Fetcher；动态凭证、HTTP 函数、SDK getter 和复权读取仍在原语句处解析。TickFlow 的批量预取、缓存准备及其他能力暂留原宿主，后续 B19 再按已迁能力收敛；没有本轮提前新建 clients 空壳。原始方法与新 Source 做 AST 对照，在声明的回调替换外主体一致；七个根类的其他方法 AST 均未变，前三供应商的重试装饰器原样保留。旧日志名称仍沿用原宿主（有日志的 Yfinance/Baostock/Pytdx）。
+
+### 验证与边界
+
+- 前三供应商及七供应商切片各跑数据源离线子集：分别 495 passed / 1 skipped / 2 deselected（23.81s / 23.28s）。
+- 新增 `tests/infrastructure/providers/kline/test_daily_source_lifecycle.py`：8 passed（5.15s），覆盖真实 Baostock/Pytdx 上下文的成功与异常清理、Pytdx 主机选择、Yfinance 多 ticker 隔离、Longbridge 日线失败对实时共享冷却的影响、两 HTTP 源的动态凭证与局部传输替换。只替换 SDK/网络边界，不 mock 掉生产会话与冷却逻辑。
+- 随机序子集 seed=20261106：503 passed / 1 skipped / 2 deselected（26.33s），保留原 TickFlow 预取/缓存/单位/关闭等覆盖。
+- 完整后端门禁 seed=20261105：**5754 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（432.77s）**。架构守卫、语法和关键静态检查通过；唯一失败仍为改造前存在的 DecisionSignalCreateRequest 静态 API schema 缺描述，不宣称全绿。
+- 当前收集 **5760 = 5752 + 8**；测试模块 404；数据源 Python 文件 91。源码与测试新增文件的关键静态检查通过。
+- 本批不改前端、公开 API/schema、数据库、配置或默认优先级。未执行真实网络、Docker 镜像及 PyInstaller/Electron 安装包；静态新导入不替代真实打包验收。前端全量 lint 按维护者安排暂缓。
+
+回滚按厂商将原根文件的两个方法及其重试装饰器、导入/装配入口与对应新日线组件一起恢复，相关回归同步恢复；不要只删新组件留下委托。保留此前 B02–B07 的边界，不重置或覆盖工作树其他改动。现有静态 API 失败不在本批掩盖或跳过。
+
+
+## 0.186 B09 实时类型与公共熔断归位（2026-11-05）
+
+延续 `984f338b` 上未提交的 B02–B08，未 commit/push/tag。专项 **33.3%（8/24，B02–B09）**；B00/B01 仍部分完成，下一批 B10 的实时源、补全与预取职责提取尚未实施。
+
+### 归属与兼容
+
+- `realtime/types.py` 唯一定义原 safe_float/safe_int、RealtimeSource 枚举及 UnifiedRealtimeQuote。原字段、默认值、字典输出与方法主体 AST 保持；ChipDistribution 仍从 domain 真源再导出。
+- `common/health.py` 在**保留原 SourceHealthState、HealthProbeRegistry、get_health_probe_registry 及锁/惰性单例**的基础上，承接原 CircuitBreaker 和实时/筹码两个独立实例。原探针和两类熔断的状态、阈值、锁、重置及故障域不合并；日线管理器已有 breaker 仍按旧生命周期创建。
+- `realtime_types.py` 保留旧兼容入口，直接再导出同一类型、函数和熔断实例；不创建另一份类或单例。旧模块路径的序列化载荷仍可读取，新载荷使用新定义模块路径；没有持久化数据迁移。
+- `realtime/__init__.py` 保留同名包级 Manager/Source 导出，使用时才加载 base。否则旧根类型入口导入新的 realtime.types 时，会经包初始化提前加载 Manager/base，形成循环依赖。未知属性仍抛 AttributeError；枚举 RealtimeSource 与能力协议 RealtimeSource 各保留原身份，不混为同类。
+- 纯类型和原熔断/探针方法分别做 AST 对照，原逻辑不变；日志仍为 `data_provider.realtime_types`。迁移会改变定义位置和相应 traceback/类型模块来源，业务 DTO 输出与配置语义不变。
+
+### 实施中发现及验证
+
+首次提取曾遗漏 common/health.py 的原健康探针实现，导入 smoke 及子集立即报告缺失 HealthProbeRegistry、4 个收集错误；已恢复该原实现并合入熔断，随后重跑。下列为修正后的最终证据，不将首次失败算作验收通过。
+
+- 原数据源子集 seed=20261105：503 passed / 1 skipped / 2 deselected（23.40s）。
+- 新增 `tests/infrastructure/providers/realtime/test_realtime_type_compatibility.py`：9 passed（7.09s）；覆盖新旧对象身份、旧路径 pickle 载荷 2 项、实时/筹码/健康探针状态隔离、4 种新进程导入顺序及未知包属性。原并发半开探测、状态更新及重置测试继续保留。
+- 新源码及新测试关键静态检查通过；额外核对原健康探针方法 AST 无改动，熔断器及 getter 与原实现 AST 一致。
+- 修正后完整门禁 seed=20261105：**5762 passed / 2 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（475.08s）**。两项失败均在改造前基线出现：静态 API schema 描述不同步，以及热点并发测试 `sector_started.wait(timeout=0.2)` 超时。架构、语法和关键静态检查通过；门禁未全绿。
+- 热点失败和改造前基线日志逐项对照，同为同一文件第 436 行的 0.2 秒事件等待；本轮未修改其服务和测试。热点全文件与新增兼容文件合跑 37 passed（13.52s）。未确认该偶发失败唯一根因，不靠放宽超时或重跑通过关闭。
+- 当前收集 **5769 = 5760 + 9**，测试模块 **405**，数据源 Python 文件 **92**（health 已存在，仅 types 为新增）。随机序子集 seed=20261106 为 512 passed / 1 skipped / 2 deselected（44.90s），收集用时 13.31s。未以改变全局健康状态方式绕过失败。
+- 不改前端、公开 API、数据库、配置、默认优先级；未执行真实联网、Docker、冻结打包或客户端构建。DTO 字典输出主体不变，不以本轮证明安装包验收。前端全量 lint 仍按维护者安排暂缓。
+
+回滚须一起恢复 realtime_types 原唯一实现、common/health 原探针模块、realtime 包初始化及相关兼容测试；不能单独恢复类型文件并留下另一套熔断单例，也不能删 health 原有探针。其他 B02–B08 未提交改动保留，不重置工作树。
+
+
+## 0.187 B10 实时源、字段补全与预取职责提取（2026-11-05）
+
+在 `984f338b` 的未提交 B02–B09 工作树上继续，未 commit/push/tag。B10 实现、定向回归、完整门禁对照及台账已收口；专项 **37.5%（9/24，B02–B10）**。B00/B01 完整矩阵仍部分完成，不能把本批单项测试数量当作专项全部完成。下一批 B11 为基本面聚合/资金流及真实源边界。
+
+### 职责与状态所有权
+
+| 落点 | 提取范围 | 继续保留的行为及所有权 |
+| --- | --- | --- |
+| `realtime/enrichment.py` | UTC 时间、时间戳解析、源 token、新鲜度元数据、缺字段判定/合并及补全协调 | 原 Manager 的可覆盖方法保留委托；传入原时钟/解析/取数方法及动态 `_SUPPLEMENT_FIELDS`，不覆盖已有非空值，零值仍有效 |
+| `realtime/prefetch.py` | 原实时预取条件、源位置/批量数量判断及 TickFlow/首次查询触发策略 | 原配置读取顺序、代码归一、批量阈值、计数及日志不变；取数经原管理器锁，原缓存归供应商所有 |
+| `realtime/akshare_source.py` | 普通股 EM/Sina/Tencent、ETF、港股路由和取数、全市场快照 | 原实例限流/UA，原模块股票/ETF/港股缓存及港股锁、熔断、HTTP/时间与辅助函数替换入口；getter 每次读取原对象，不复制缓存 |
+| `realtime/tickflow_source.py` | 实时报价、批量预取、报价标准化 | 原 SDK、日线/名称共用报价缓存、锁、TTL、批量大小及单位转换；保留现有能力 Source 包装 |
+| `realtime/efinance_source.py` | 股票/ETF 实时取数和载荷映射 | 同一模块缓存、熔断、实例限流、原超时执行器与超时值；股票和 ETF 原有差异不强行统一 |
+| `realtime/tushare_source.py` | Pro 实时与旧接口降级、原字段转换 | 仍用同一 API/配额和原代码转换；保留原港股跳过、Pro 失败降级及旧版成交量换算，不在重构中改口径 |
+| `realtime/pytdx_source.py` | 原实时字典取数 | 仍用原会话/主机选择/清理和北交所拒绝；保持字典结果，不虚构 UnifiedRealtimeQuote 适配或默认源注册 |
+| `realtime/longbridge_source.py` | 原实时查询、估值/量比字段适配 | 日线与实时共用原 QuoteContext、静态信息缓存、连接失效与冷却、量比辅助方法 |
+| `realtime/finnhub_source.py` / `alphavantage_source.py` | 原美股报价请求与字段转换 | 原动态凭证、URL/HTTP 替换点、随机等待、超时与失败行为；不新增市场覆盖或重试 |
+| `realtime/yfinance_source.py` | 原实时股票/指数及 Stooq 降级 | 保留源内 SDK、名称映射、后缀市场、指数符号、HTTP 替换点及已有返回字段；不改变兜底顺序 |
+
+上述厂商根 Fetcher 继续保留同名方法和惰性 `_realtime_source` 装配，兼容既有继承/patch；新 Operations 只接收实际所需回调，不传整个宿主、不新建 SDK/缓存/限流/熔断。AkShare/TickFlow 的现有能力包装继续工作；其余源只提取已有实现，未注册为新的默认能力源。原默认注册仍是 tickflow/tencent/akshare_sina/akshare_em，默认选源及跨市场路由不变。
+
+当前回调仍由原宿主装配，是保留共享状态和旧替换入口的过渡边界；后续 B19 按真实共享能力提取 client、B20 收敛外层门面，不把本批当作整个数据源包收官。管理器的 `get_realtime_quote` 主路由及诊断留在原处，补全/预取已委托新模块；不另造两套重试或诊断上下文。
+
+### 轻量协议与计划增补
+
+原实时 Source 协议定义在 `realtime/base.py`，而该模块导入时创建默认 Manager 并导入具体 Source。具体 Source 承接原 Fetcher 实现后，独立使用具体源会遇到 Source → base → 默认注册 → 同一 Source 的循环依赖。增补 **`realtime/source_contract.py`**，只承接原空协议类，base 再导出同一对象；两个已有 Source 包装依赖轻量协议。没有改原 base 默认 Manager 的创建时点、配置键、TTL 或注册内容；单独导入具体源不再顺带创建默认 Manager。
+
+该有实际依赖边界用途的文件已列入目标树，规划从 124 增为 **125 个 Python 文件，仍 18 个下级目录**；不是新增并行 Manager 或空壳客户端。独立子进程用当前源码仅恢复旧协议导入（不修改生产文件），重现缺失 AkshareRealtimeSource 的循环导入；当前两条 source-first 新进程回归通过。
+
+### 实施检查和最终验证
+
+提取脚本对各供应商原方法与新方法做 AST 主体对照，只允许显式宿主/模块回调及原相对导入等价改为绝对导入；旧方法以相同签名委托。根供应商的非本批方法保持，Facade 格式化另做整文件 AST 一致核验。代码评审中发现并修正回调字段与方法重名的 dataclass 初始化错误（首次子集 8 失败），以及 Efinance 新模块漏导入 safe_float/safe_int（随后子集 1 失败），最终以下结果均在修正后取得；未通过放松断言、跳过用例或修改产品行为消除失败。
+
+- 补全/预取提取后数据源子集：512 passed / 1 skipped / 2 deselected（26.94s）；AkShare/TickFlow 修正后子集 512 passed（23.10s）；七个其他源补齐导入后 512 passed（23.27s）。
+- 新增 `tests/infrastructure/providers/realtime/test_realtime_responsibility_boundaries.py`：**11 passed（4.50s）**，覆盖 5 组时间/时区/TTL/未来时间边界、子类补全字段策略与零值、预取/查询共用真实 RLock、AkShare 跨实例及当前全局缓存、TickFlow 预取/名称/实时共用客户端、2 种具体源优先导入及旧注册内容。
+- 数据源随机序 seed=20261106：**523 passed / 1 skipped / 2 deselected（25.97s）**。原 DTO/序列化/并发熔断、港股/日韩台、美股指数、全失败日志、HTTP 隔离和日线/预取回归均保留。
+- 完整后端门禁 seed=20261105：**5774 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（374.40s）**。本轮失败仅为改造前已存在的静态 API schema 描述不同步。B09 的热点并发 0.2 秒超时本轮未重现，仍不据此关闭偶发根因调查。 架构守卫、语法及关键静态检查通过；门禁未全绿，不与上一轮范围混用。
+- 全量门禁后仅整理两个既有实时 Source 的顶层 import；全部非 import AST 节点不变，额外 E402/关键静态检查通过，最终数据源子集 seed=20261106 再验 523 passed / 1 skipped / 2 deselected（25.12s），包括 source-first 新进程验证。
+- 收集 **5780 = 5769 + 11（6.92s）**；测试模块 **406**，顶层为 0；数据源 Python 文件 **102**（本批新增 10）。本批实时模块及新增测试额外 F401/未定义名称检查通过，diff 空白检查通过。
+- 本批未修改 Web/Desktop、API/schema、数据库或配置；未执行真实联网、Docker、冻结包/桌面包构建或安装；不以静态导入、已有本机依赖替代 B22 的真实打包验收。前端全量 lint 按维护者安排继续暂缓。
+
+回滚须按厂商一起恢复对应根方法/工厂和 Source 实现；补全/预取连同原 Manager 委托恢复；协议位置、base 再导出及两个已有 Source 引用一起恢复，避免恢复半边后留下循环导入。保留 B02–B09 和维护者改动，不做整个工作树 reset。台账为内部中文实施记录，无对应英文双语版本。
+
+
+## 0.188 B11 基本面独立聚合、辅助块与厂商适配归位（2026-11-05）
+
+继续在 `984f338b` 的未提交专项工作树实施，未 commit/push/tag。专项 **41.7%（10/24，B02–B11）**；B00/B01 完整矩阵仍部分完成。下一批 B12 名称与清单边界，不能将当前结果当作专项全部完成。
+
+### 唯一实现与装配边界
+
+| 路径 | 当前职责与保持项 |
+| --- | --- |
+| `fundamentals/aggregate.py` | 唯一基本面 CN/海外聚合、失败上下文及板块块装配；预算截止、局部失败、缓存键/TTL/淘汰、覆盖与来源链保持原算法。显式回调原适配器、缓存/锁、超时/重试和其他能力，不接收整个 Manager，不另建共享状态 |
+| `fundamentals/flow_source.py` | 原资金流及龙虎榜块协调，包括预算、超时、来源链和状态组装；具体原始接口保留在同目录 AkShare 实现，避免复制请求算法。板块块回到 aggregate，不让 flow 承担板块排序实现 |
+| `fundamentals/akshare_source.py` | 原 AkshareFundamentalAdapter 与其全部财报/分红/资金流/龙虎榜接口探测及标准化 helper 的唯一实现 |
+| `fundamentals/yfinance_source.py` | 原 YfinanceFundamentalAdapter 与其 helper/常量的唯一实现；币种、TTM、时间窗口、财务/分红、板块和 fail-open 保持 |
+| 根 `fundamental_adapter.py` / `yfinance_fundamental_adapter.py` | 旧类、helper 及常量再导出同一对象；旧类方法 patch 和旧 pickle 类引用继续生效，日志仍沿用旧模块名称 |
+| `fundamentals/source_contract.py` | 原 FundamentalsRequest、FundamentalsResult、FundamentalsDataSource 唯一定义，类体/字段/默认值保持；base 与 Source 再导出/引用同一对象 |
+| `fundamentals/base.py` / `__init__.py` | base 保留原 Manager、默认注册及缓存/配置键，改为协议再导出；包级公开对象按需加载，单独导入厂商/聚合模块不提前装配默认 Manager |
+| `fundamentals/tushare_source.py` | 保留历史 `tushare` id、Token 门控、payload/source/metadata 和空数据/错误行为；明确它实际包装多源聚合，不虚构单厂商实现 |
+| 根 `DataFetcherManager` | 保留同名公开/私有委托及原状态所有权；一个能力 Source 仍拥有一个原资源所有者，原 SDK/缓存/锁/超时槽不复制。绑定后的聚合对象通过动态回调读取当前资源，保留运行期替换及继承 seam |
+
+B05 的 `load_legacy_fundamental_context` 别名与 `build_legacy_fundamental_context_loader` 已原子撤下。新 `build_fundamental_context_loader` 直接绑定独立 `FundamentalAggregation.get_fundamental_context`，不绑定可能再委托能力入口的公开 Manager 方法；原反递归回归仍通过。缓存/预算实际状态暂由原宿主持有，B19/B20 再收敛资源与门面，不在本批另造一套客户端。
+
+保留历史兼容边界：能力外层缓存仍按股票代码，内层聚合缓存保留预算桶；未借本轮改变外层预算缓存语义。仍不为 Finnhub/AlphaVantage 新增不存在的基本面能力，不改 Tushare 标签/门控、DTO 字段、API 或数据库。将 flow_source 的具体落点明确为资金流/龙虎榜块协调、厂商 raw 取数统一留 vendor Source，是避免重复实现的职责调整；已同步目标树。
+
+### 协议解环与计划增补
+
+厂商实现迁入能力目录后，原包初始化会过早创建默认 Source；改为包级延迟导出。随后独立进程确实复现 Tushare Source → base 默认注册 → 同一 Source 的循环导入，不能仅靠普通进程缓存掩盖。增补 source_contract，将两个 DTO 与空协议类从注册模块分离；旧 base 再导出同一对象，显式导入 base 时的原默认 Manager 构造/配置保持。
+
+新增文件有实际依赖用途，目标树从 125 增为 **126 个 Python 文件，仍 18 个下级目录**；未创建无业务用途的 models/service。旧路径序列化读取和包级对象身份均有回归；新序列化定义路径随唯一实现归位，不需要数据库迁移。
+
+### 验证与纠错记录
+
+- 首轮基本面子集因缺 datetime/timezone/Tuple 导入有 4 项失败，关键静态检查定位后补齐；未放宽断言或跳过用例。板块块归属调整时同步移动 Tuple 依赖，最终新模块静态检查通过。
+- 修正后原数据源子集 seed=20261105：523 passed / 1 skipped / 2 deselected（31.03s）。早期新增 6 项边界测试通过后，进一步补查并修正 Source 优先导入环，再增加对应入口和旧 DTO 序列化覆盖。
+- 最终基本面子集 **88 passed（14.11s）**；新增 `test_fundamental_aggregation_boundaries.py` 共 **9 项**：2 组旧适配器/类序列化身份、绑定后当前资源与共享预算缓存、4 种基本面模块优先导入、2 组旧 DTO 序列化。原 source 反递归、预算截止、超时槽与局部失败回归全部保留。
+- 最终随机序数据源子集 seed=20261106：**532 passed / 1 skipped / 2 deselected（30.38s）**；测试收集 **5789 = 5780 + 9（8.45s）**，测试模块 **407**；数据源 Python 文件 **106**。
+- 提取前后算法主体按明确资源回调替换做 AST 对照；两厂商类/函数 AST 原样，协议/DTO 类体原样；仅新增委托方法格式化另做整文件 AST 一致核验。旧算法不复制，当前代码已无两项 B05 临时绑定。
+- 协议最终修正前启动的中途门禁不作为最终验收：修正期间存在磁盘版本变化并发出中断，日志 `/tmp/hermesx-dp-b11-gate.log` 仅供排查。以下使用最终稳定源码重新执行的独立日志，未将前轮结果冒充最终结果。
+- **最终完整后端门禁** seed=20261105：**5783 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（376.32s）**。本轮仅有既有静态 API schema 描述失败；热点并发 0.2 秒偶发超时未重现，仍保留根因待查。 架构守卫、语法与关键静态检查通过；完整门禁仍未全绿。
+- 本批无 Web/Desktop/API/schema/数据库/配置改动。未执行真实联网、Docker、冻结/桌面包构建安装；部署验收仍属后续 B22。前端全量 lint 继续按维护者安排暂缓。内部中文方案无对应英文双语版本。
+
+回滚必须一起恢复两个旧适配器主体与对应兼容导出、根基本面委托和独立聚合/flow、包级加载及 source_contract/base/Source 引用；若回退到 B05，还要原子恢复旧叶别名和旧加载工厂。不得只恢复公开门面绑定造成递归，或删合同却保留新导入。保留 B02–B10 与维护者修改，不重置整个工作树。
+
+
+## 0.189 B12 名称查询与股票清单职责归位（2026-11-05）
+
+继续在 `984f338b` 的未提交专项工作树上实施，未 commit/push/tag。专项 **45.8%（11/24，B02–B12）**；B00/B01 完整矩阵仍部分完成，下一批 B13 全市场快照/指数/统计。不将本批当作 data_provider 全部改造完成。
+
+### 唯一实现及资源边界
+
+| 路径 / 组件 | 提取范围 | 原行为及状态所有者 |
+| --- | --- | --- |
+| `stock_info/name_lookup.py` / StockNameLookup | Manager 的单名称回退、轻量预取、批量名称协调 | 保留缓存 → 本地映射 → 索引 → 按需实时 → 合法厂商查询顺序，Root 的缓存/锁/并发 guard、原调用锁及动态替换 seam 不变 |
+| 同文件 / TushareNameLookup | 缓存、HK/ETF/A 股基础名称接口 | 原 API、限额计数、代码转换与惰性名称缓存；读取同一当前对象，不复制配额或缓存 |
+| 同文件 / PytdxNameLookup | 名称缓存 → 原会话下的列表缓存 → 财务信息降级 | 原连接/服务器/冷却/关闭、两类缓存作用域及港股跳过保留 |
+| 同文件 / BaostockNameLookup | 基础信息精确查询及缓存 | 原登录/登出上下文、异常清理与惰性缓存保持 |
+| 同文件 / TickflowNameLookup | 报价缓存、报价请求、instrument 名称降级 | 与实时、预取、清单共用同一 SDK/报价缓存/锁，不新增客户端或 TTL |
+| 同文件 / LongbridgeNameLookup | 原 static_info 的 name_cn/name_en 选择 | 原静态信息缓存及 Context 共用，无额外注册或请求路径 |
+| 同文件 / FinnhubNameLookup、AlphaVantageNameLookup | 原搜索端点中筛选精确 symbol 的名称 | 虽使用 search 端点，仍只返回精确 symbol；原 URL、参数、动态 key、10 秒超时和错误行为不变，不接入模糊代码搜索 |
+| `stock_info/catalog.py` / TushareCatalog | 原 A 股清单与列标准化、名称缓存预热 | 原 SDK/配额/名称缓存共享；不扩展港股清单能力 |
+| 同文件 / BaostockCatalog | 原全量基础信息清单及名称缓存预热 | 同一会话上下文；查询失败返回 None 并原样登出 |
+| 同文件 / TickflowCatalog | 原 universe 查询和 A 股筛选/列标准化 | 原共享客户端、权限判断及失败时空 DataFrame 列契约；不另建负缓存或权限规则 |
+| 同文件 / PytdxCatalog | 私有 `_build_stock_list_cache` 的两市场分页加载 | 原 page_size、分页参数、列表缓存替换和逐名称缓存区分；不虚构公共 get_stock_list 能力 |
+
+只迁移真实存在的七个厂商名称方法、三个公开清单方法和一个内部分页方法；AkShare/Efinance/Yfinance 没有新增原本不存在的名称/清单覆写。BaseFetcher 契约、代码搜索、stock_info 默认源注册、索引生成脚本与数据库未改。
+
+根 Manager/Fetcher 保留同名入口及 `_stock_names`/`_stock_catalog` 惰性装配。组件显式接收窄回调，不传整个宿主；缓存 getter/setter/存在性检查映射原属性，晚绑定后的缓存/API 替换仍生效；SDK、登录生命周期、锁和关闭继续归原宿主。后续 B19/B20 再收敛客户端与外层门面。
+
+保留重要细节：`prefetch_stock_names(..., use_bulk=False)` 仍归一代码并调用 allow_realtime=False，跳过的是实时行情入口，不承诺名称源本身无网络；use_bulk=True 才启用批量清单。`batch_get_stock_names` 保持原请求 key，不额外归一批量 key，清单中其他行仍预热同一缓存。原 None/空字符串/空表差异、缓存 TTL 和有效名称判断不擅改。
+
+### 验证与回滚
+
+- 提取时逐方法 AST 主体对照，只允许宿主回调、缓存读写/存在性检查及相对导入等价改为绝对导入；根非本批方法未改。仅格式化新增委托/工厂，另做整文件 AST 一致校验。
+- 原数据源子集 seed=20261105：**532 passed / 1 skipped / 2 deselected（53.91s）**。
+- 新增 `tests/infrastructure/providers/stock_info/test_name_catalog_boundaries.py`：**10 passed（9.68s）**。覆盖绑定后当前 Manager 缓存、原始批量请求 key 和额外行缓存、Tushare 清单/名称/日线共用当前 API 和配额、Baostock 成功/异常会话清理、Pytdx 当前 page_size 与两市场分页、两美股源精确匹配和动态 HTTP/key、2 种叶模块导入不额外加载 stock_info/code_search 默认 Manager。
+- 最终随机序数据源 seed=20261106：**542 passed / 1 skipped / 2 deselected（57.39s）**，保留原轻量预取、线程安全批量清单及多市场等回归。
+- 最终完整后端门禁 seed=20261105：**5793 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（397.43s）**。本轮仅有既有静态 API schema 描述失败；历史热点并发 0.2 秒偶发超时未重现，仍保留待查状态。 架构、语法、关键静态检查通过；门禁未全绿。新模块和新增测试额外 F401/未定义名称检查、diff 空白检查通过。
+- 收集 **5799 = 5789 + 10（24.74s）**；测试模块 **408**，顶层为 0；数据源 Python 文件 **108**。目标规划仍为 126 文件/18 下级目录，本批只新增已规划的 name_lookup/catalog，不造空壳或新配置。
+- 未改 Web/Desktop、API/schema、数据库/索引持久化、默认配置或搜索能力；未执行真实联网、性能压测、Docker 或冻结/桌面包构建安装。前端全量 lint 继续暂缓；导入检查与本机测试不替代 B22 真正打包验收。内部中文记录无对应英文双语版本。
+
+回滚按资源边界同时恢复根名称/清单方法与两个新模块及其回归；保留原缓存/API 对象和根签名，不只删除新模块留下委托。保留 B02–B11 和维护者改动，不执行整个工作树 reset。
+
+
+## 0.190 B13 市场快照、指数及统计职责归位（2026-11-05）
+
+继续 `984f338b` 的未提交工作树，未 commit/push/tag。专项 **50.0%（12/24，B02–B13）**；B00/B01 完整矩阵仍部分完成，下一批 B14 板块/卡片/涨跌停源。不将当前结果当作整个专项验收。
+
+### 职责与资源
+
+| 路径 | 本批落点与契约 |
+| --- | --- |
+| `market/__init__.py` | 轻量能力包标识，不装配默认 Manager、启动线程或创建客户端 |
+| `market/indices.py` | Manager 原指数回退与 AkShare/Efinance/Tushare/TickFlow/Yfinance 原有指数实现；Yfinance 原 CN/US/HK/JP/KR/TW 辅助及 ticker 读取归位，不新增市场支持 |
+| `market/statistics.py` | Manager 原市场统计回退与四供应商原统计取数；TickFlow 首选且只尝试一次、purpose 日志、失败语义、原并发调用方式不变；保留各源配额/缓存/日期与权限策略 |
+| 同文件 / calculate_market_stats | AkShare/Efinance/Tushare 三份**逐 AST 相同**的公式收敛为一份；输入复制、ST/科创/创业板/北交所判定、舍入容差、停牌过滤及成交额亿元口径保持；三个旧方法仍传入本模块原规则 helper，保留替换 seam |
+| `market/eastmoney_source.py` | 原东财 clist 快照的唯一实现：同一个 Session、页大小上限 100、按代码分页、首页失败/后页重试及部分结果、去重和字段/单位保持 |
+| `market/tencent_source.py` | 原腾讯索引加载、市场过滤、批量 HTTP/解析与线程池唯一实现；本地索引路径按新模块深度修正，仍锚定原仓库/打包根的 apps/hrs-web/public/stocks.index.json |
+| `market/snapshot.py` | 对应外层 MarketSnapshotPort 的两源惰性透传入口，只调用指定源，不增加重试/回退/缓存，不构造 AkShare 实例 |
+| 根两个 quote_snapshot.py | 旧函数、helper、常量与 Session 再导出同一对象，旧公开函数签名/默认值保持，无另一份抓取算法或 Session |
+| `src/infrastructure/providers/market_snapshot_provider.py` | 东财/腾讯接到新的 snapshot 入口，仍返回同一个 DataFrame/None，异常语义不变；原 AkShare 单例/锁保持，不把外层回退移到本层 |
+
+根 Manager/各 Fetcher 保留同名方法及按需装配；显式回调原 SDK、缓存、配额、时钟、日期选择、权限状态与辅助方法。原非本批方法未改，不引入另一套源排序、重试或诊断；市场原直接调用的并发方式保持，没有擅自添加/移除锁改变行为。
+
+### 与 sector 及应用回退的对账
+
+快照是 EOD 过滤所需的逐股 DataFrame，指数/涨跌统计是复盘所需原始列表/字典，sector 市场辅助则服务 market_cards 的卡片/缓存、陈旧返回和后台预热。三类返回形状、单位与生命周期并不等价，不强行替换。B13 对账并保持这些接口；**sector 卡片辅助和它拥有的缓存/预热留在 B14 一起收敛**，已在批次表与目标树明确，避免为搬函数复制缓存或触发双重刷新。
+
+东财快照流通市值为元、腾讯仍为亿元；腾讯成交额仍由万元转元，成交量保留源快照口径，不能直接套用日线/实时「股」转换。应用 EOD 原有归一及东财 → 腾讯 → AkShare 回退继续保留。Source-first 原始 HTTP 与外层应用回退没有新增叠加重试。
+
+### 验证和纠错
+
+- 各源/Manager 方法逐项 AST 主体对照，只允许资源回调；三个公式先证实相同再收敛，共享公式主体另按 helper 参数替换核对 AST。两快照函数也做 AST 对照，除索引根定位外算法保持；根新增委托的格式化通过整文件 AST 一致检查。
+- 首轮「数据源 + 选股」子集 564 passed / 2 failed：两分页测试仍替换旧模块私有 _fetch_page，未覆盖新唯一实现；已将这两处及适配器测试的具体源替换点指向 canonical 模块，保留原断言，不 mock 掉分页/解析风险层。
+- 新增 `tests/infrastructure/providers/market/test_market_data_boundaries.py` **8 项**；与原选股文件合跑 **32 passed（7.39s）**。覆盖旧入口/Session 身份、原索引路径、三旧统计入口的涨跌停/单位/输入不变、TickFlow 单次尝试与回退、适配层无新增回退、后页原重试与部分结果、腾讯索引过滤/去重/批量请求与单位。
+- 最终随机序 seed=20261106「数据源 + 选股」：**574 passed / 1 skipped / 2 deselected（49.07s）**。保留原多市场指数、负权限缓存、market review 回退和卡片缓存等其他回归。
+- 最终完整后端门禁 seed=20261105：**5801 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（464.42s）**。本轮仅有既有静态 API schema 描述失败；热点并发 0.2 秒偶发超时未重现，仍保留待查。 架构、语法与关键静态检查通过；门禁未全绿。
+- 全仓收集 **5807 = 5799 + 8（17.30s）**，测试模块 **409**，顶层 0；数据源 Python 文件 **114**。本批六文件均在原 market 目标树，规划仍为 126 文件/18 下级目录。新代码/测试 F401 与未定义名称、diff 空白检查通过。
+- 本批仅服务端及一个现有测试替换点文件，未改 Web/Desktop、API/schema/数据库/配置；客户端不受接口字段变化影响，未执行客户端构建。未执行真实联网、性能压测、Docker 或冻结/桌面包构建安装，不将模块导入当作 B22 打包验收。前端全量 lint 继续暂缓；内部中文台账无对应英文双语版本。
+
+回滚需一起恢复六个根类的市场方法/工厂与公式委托、两个根快照实现/兼容导出及新 market 实现、外层适配器 import 和测试替换点；腾讯索引定位随实现位置一起恢复。不能只改旧 shim 私有变量期待新实现读取另一份绑定，也不能删新模块留下委托。保留 B02–B12 与维护者修改，不 reset 整个工作树。
+
+
+## 0.191 B14 板块/榜单/涨跌停与卡片辅助职责归位（2026-11-05）
+
+继续 `984f338b` 的未提交专项工作树，未 commit/push/tag。专项 **54.2%（13/24，B02–B14）**；B00/B01 完整矩阵仍部分完成，下一批 B15 筹码分布。不将本批当作整个 data_provider 收官。
+
+### 唯一实现与资源所有权
+
+| 路径 / 组件 | 已提取范围及保持项 |
+| --- | --- |
+| `sector/coordination.py` | Root Manager 的所属板块、行业及来源链、概念排行、人气股协调；诊断回调、原回退与失败语义、原类级概念缓存/锁/TTL/返回副本保持。纯归一 helper 继续原唯一实现，经窄回调使用，不复制算法 |
+| `sector/akshare_source.py` | 原行业 EM→Sina、概念、人气榜/飙升榜→雪球；原 SDK/UA/实例节流及字段转换，不改候选顺序 |
+| `sector/efinance_source.py` | 原行业排行及所属板块接口；同一原超时执行器、超时值、SDK、节流与异常类型 |
+| `sector/tushare_source.py` | 原行业排行；同一 API 调用/限额和交易时间入口，不新增不存在的概念/热股实现 |
+| `sector/tickflow_source.py` | 原 SW1 行业排行、均值与升降序、结果复制；同一 SDK/权限标记、缓存/锁/单调时钟，缓存重新赋值回原宿主 |
+| `limit_pool/akshare_source.py` | 原 AkShare 涨/跌停池；原日期、排序、时间/数值字段、轻量节流与 None 语义，不替换为新的直接 HTTP 通道 |
+| 两包 `source_contract.py` | 原板块 2 DTO/Source 协议、原涨跌停 3 DTO/Source 协议及常量；base 再导出同一对象，字段/默认值/to_dict 原样，旧 pickle 路径可读 |
+| 两包 `base.py` / `__init__.py` | 原 Manager、配置键、默认注册/TTL/冷却保留，包级公开入口按需加载。具体源只导入轻量协议，不触发默认装配或循环导入 |
+| `market/indices.py` / CardIndices | 接续 B13：东财/StockSDK 的指数与缓存辅助唯一实现；原 sector 函数以同签名委托，读写原缓存，不把卡片形状混成复盘指数形状 |
+| `market/statistics.py` / CardStatistics | 接续 B13：东财/StockSDK 概览、北向、大盘主力及其缓存辅助唯一实现；原 Session/桥接 getter、缓存字典及时间戳仍由 sector 模块持有，不改变重试、字段和单位 |
+| 现有 sector 原模块 | EastMoneySectorSource 能力包装、board list/资金流历史等已有本域实现继续保留；市场辅助改为惰性委托，旧替换点与缓存变量不失效；Shidaotec 原实现不改 |
+| `sector/market_cards_source.py` | 原卡片组成、TAB、缓存/锁、fresh/stale 时间窗、后台刷新、超时、退避和全部 TAB 预热**未改**；其既有函数别名自然转到原 sector 包装后的唯一市场辅助 |
+
+Source 只接收实际所需回调，不接收整个 Manager/Fetcher 或复制 class/cache。Root 的概念类级缓存通过逐字段 getter 保留继承与晚绑定；TickFlow 的实例缓存 setter 仍写回原属性；卡片原模块 Session 与 `_INDEX_CACHE`/`_OVERVIEW_CACHE`/`_FLOW_CACHE`（包括原共享 timestamp）不迁成第二份。Root 私有归一/缓存清理 helper 和运行资源仍唯一存在，后续 B19–B21 再审计资源/门面。
+
+默认 sector 注册仍只有 `eastmoney`；limit_pool 仍为 eastmoney/stocksdk，后者保持原 **is_available=False**，未虚构桥接不支持的涨跌停能力。公开配置、请求/响应、来源 id、原可用市场范围和重试次数不变。
+
+### 必要的协议与协调文件增补
+
+原包初始化会加载 base，而 base 又导入具体源注册。具体实现归位后，必须隔离协议与注册，才能避免 Source-first 循环依赖和无关默认客户端提前创建。两包独立 source_contract，原 base 保留类型别名；包级按需导出保持原 __all__。板块协调独立 coordination，避免把跨厂商路由塞入某一厂商 Source，或为了使用它导入默认注册表。
+
+三文件均有真实依赖用途，已先列入目标树；规划由 126 增为 **129 Python 文件、仍 18 下级目录**。DTO/常量 AST 原样，旧序列化载荷与旧 import 对象身份有回归；新序列化路径随唯一定义归位，不涉及数据库迁移或新产品配置。
+
+### 验证
+
+- 各方法/函数主体逐项 AST 对照：只允许声明的资源/诊断/时钟回调、类级缓存逐字段 getter 和原实例缓存 setter；保留原语句顺序与错误路径。两协议的 DTO/类/常量 AST 原样；只格式化本批新增委托/工厂，根文件整 AST 一致校验通过。新代码/测试的关键静态、F401/未定义名称及 diff 空白检查通过。
+- 原数据源子集 seed=20261105：550 passed / 1 skipped / 2 deselected（61.57s）。接入市场卡片辅助后「数据源 + 板块/涨跌停 API + 相关板块流水线」：**611 passed / 1 skipped / 2 deselected / 1 warning（46.97s）**。
+- 新增 common/test_sector_limit_contract_boundaries.py 与 sector/test_sector_state_boundaries.py 共 **18 passed（11.19s）**：5 组旧 DTO 序列化/身份、6 种具体源优先导入及原默认注册（含 StockSDK 原不可用）、概念跨 Manager/类缓存与副本、两源原缓存与失败刷新、原 Session/域名回退、卡片新鲜/陈旧/过期及全部 TAB 预热、AkShare 跨能力节流、TickFlow 原缓存 setter/SDK/关闭。
+- 最终随机序相同相关范围 seed=20261106：**629 passed / 1 skipped / 2 deselected / 1 warning（37.27s）**。
+- 最终完整后端门禁 seed=20261105：**5819 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（382.73s）**。本轮仅有既有静态 API schema 描述失败；热点并发 0.2 秒偶发超时未重现，仍保留待查。 架构守卫、语法与关键静态检查通过；完整门禁未全绿。
+- 收集 **5825 = 5807 + 18（8.50s）**；测试模块 **411**、顶层 0；数据源 Python 文件 **122**（本批 8 个新增：5 既有规划源 + 3 必要边界文件）。
+- 无 Web/Desktop/API 路由/schema/数据库/配置变更。原 DTO 和卡片 payload 未改，客户端不受字段变化影响，未做客户端构建或截图。未执行真实联网、性能压测、Docker、冻结/桌面包构建安装；不以协议导入测试替代 B22 打包验收。前端全量 lint 仍暂缓，内部中文台账无对应英文版本。
+
+回滚须一起恢复 Root 板块/榜单/涨跌停方法与对应 Source、market 卡片辅助与 sector 同名委托；协议/DTO、base 引用和包导出一并恢复，避免新旧类并存或循环导入。保留原缓存/Session/桥接对象及 B02–B13/维护者改动，不 reset 工作树或停止维护者已有服务。
+
+
+## 0.192 B15 筹码协调、双源与纯计算归位（2026-11-05）
+
+继续 `984f338b` 的专项未提交工作树，未 commit/push/tag。专项 **58.3%（14/24，B02–B15）**；B00/B01 完整矩阵仍部分完成，下一批 B16 日历取数。保留维护者其他修改。
+
+### 唯一实现和兼容边界
+
+| 路径 | 职责与保持项 |
+| --- | --- |
+| `chip/__init__.py` | 轻量导出原 domain ChipDistribution；无默认 Manager、SDK 或网络创建 |
+| `chip/base.py` | 原 Manager 筹码路由的唯一实现，显式回调原 fetcher 快照/串行锁/诊断/时钟；原配置开关、候选顺序、错误与空结果、HALF_OPEN 探测名额及筹码独立熔断保持 |
+| `chip/akshare_source.py` | 原 AkShare SDK、UA、节流、市场限制、最新行选择及百分比转换；沿用 domain 模型 |
+| `chip/tushare_source.py` | 原交易时间窗口、cyq_chips→daily 顺序、限额调用、价格缺失分支及 Root 计算回调；不新建 SDK 或第二套限额 |
+| `src/domain/analysis/chip_rules.py` | 承接原 compute_cyq_metrics：排序、权重归一、获利比例、平均成本及分位成本/集中度算法原样；无 IO。两条有效性路径只共享最终数值阈值，输入解析各自保留 |
+| 根 base/AkShare/Tushare 旧入口 | 同签名窄委托，动态读取原宿主 SDK、节流、方法/全局替换点；原 _coerce_chip_metric / _is_meaningful_chip_distribution 再导出同一函数，Root compute_cyq_metrics 保留委托 |
+
+提供方校验按属性读取且只排除 None；分析侧兼容历史 dict/concentration 并保留原 truthiness 与字符串解析。不能为去重把两者混为一种解析语义。本批只收敛共同阈值：均价 > 0、至少一个非负集中度；零集中度仍有效。domain ChipDistribution 字段/健康度/本地化及原 Tushare 结果默认来源标签均未修改。
+
+### 验证与实施纠错
+
+- 提取时各方法 AST 主体对照，仅替换显式资源/诊断回调。独立复核原计算公式、共同阈值、两种不同输入解析及严格转换助手，除 docstring 缩进/尾空白外 AST 一致。新代码/测试关键静态检查、F401/未定义名称和 diff 空白检查通过。
+- 首轮收集因 chip/base 漏导入 Optional 产生 47 条收集错误，已修正；此轮不是验收证据，不把它记为既有失败。
+- 新增两个文件共 **8 passed（3.61s）**：权重两种量纲/输入不变；提供方与分析字典/falsey 对象解析差异；Tushare 日期/顺序/缺价格；真实半开熔断空结果释放与回退；AkShare 最新行/单位/模型。仅替换网络/时钟边界，保留实际计算与熔断逻辑。
+- 最终随机序 seed=20261106，数据源全目录 + 新纯计算 + 原 analyzer domain 规则：**593 passed / 1 skipped / 2 deselected（32.45s）**。
+- 最终完整后端门禁 seed=20261105：**5827 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（363.61s）**。本轮仅有既有静态 API schema 描述失败；热点并发 0.2 秒偶发超时未重现，仍保留待查。 架构、语法与关键静态检查通过；完整门禁未全绿。
+- 收集 **5833 = 5825 + 8（7.17s）**；测试模块 **413**、顶层 0；数据源 Python 文件 **126**。四个 chip 文件均为原规划，目标仍 **129 Python 文件/18 下级目录**，不是要求当前数量等于最终数量。
+- 无前端/桌面/API/schema/数据库/配置改动，客户端契约未变，未重跑客户端构建。未执行真实联网、性能压测、Docker 或冻结/桌面包构建安装；前端全量 lint 继续暂缓。内部中文方案/台账无对应英文版本。
+
+回滚须成组恢复 Root 三个筹码方法及 Tushare 计算委托、chip 实现/再导出和 domain 新算法/阈值引用；保留原 domain 分析输入兼容。不要仅删除新文件留下委托，也不覆盖 B02–B14 或维护者其他修改，不重置工作树。
+
+
+## 0.193 B16–B20 连续实施与统一验收（2026-11-05）
+
+维护者明确要求五批一次完成。继续 `984f338b` 上既有未提交工作树，保留 B02–B15 与图册等并行修改，未 commit/push/tag。专项 **79.2%（19/24，B02–B20）**；B00/B01 完整矩阵仍部分完成，下一批 B21。完整决定与资源/策略矩阵见专项方案 §7.5。
+
+- B16：calendar 国家/事件 DTO、异常及取数原样归位；秒级 UTC/全天零值不变，原接口无分页。
+- B17：快讯唯一实现及资讯 Source canonical 接线；原 request_get 安全回调、频道/scope、游标、大小限制/关闭保留，不迁应用 DNS/SSRF/落库/降级。
+- B18：台湾客户端归位；tw_source 装配时解析，保留旧工厂替换点并避免首次 import 永久捕获 mock。原市场/日期/股数/正负号、缓存/锁/熔断不变。
+- B19：StockDB/StockSDK 单例及协议原样归位，后者仓库根从新深度重新定位到原脚本/cwd；包内和分时适配器切 canonical。七厂商 36 个共享协议方法独立，无能力回退和第二份 SDK/缓存/配额；7 个残余能力方法归位。Tushare HTTP 类保持唯一身份，旧根再导出；Root 构造和原资源状态/纯助手暂留 B21 门面审计。
+- B20：原执行预算/重试/超时槽提取 common/execution，仍在真实 worker 退出后释放；增强载荷仅保留旧便利接口，确认无应用调用，不另造用例。真正基本面上下文的流水线/Agent/AlphaSift/报告消费已对账，无 API/配置/数据库变化。
+- 目标树按实际收益撤下 5 个无必要 clients 文件、增补 execution，**129−5+1=125 Python 文件/18 下级目录**；当前 145 件含旧兼容文件。不为目录齐全建立回调 Source 的 client，也不强合不同腾讯接口或非等价 TTL。
+
+### 验证与自审
+
+- 五个整模块所有类/函数、Tushare HTTP 类 AST 原样；36 共享协议方法、7 能力方法与 2 执行方法只做已声明的资源/状态/诊断替换，AST 主体对照通过；格式化仅限新增文件及本批修改的方法/类。
+- 首轮相关范围 **100 passed / 2 deselected（14.14s）**。处理中发现台湾旧工厂 patch 需保留，已补按需兼容并复核；一项新测试最初错误假设快讯也有可替换大小常量，已按实际原 4 MiB 上限验证，未改产品限制。最后数据源原范围 **574 passed / 1 skipped / 2 deselected（34.05s）**。
+- 首轮完整检查 5855 passed / 2 failed（377.64s）：除既有 API 描述外，Agent 子进程出现 handler_error。定向收集复现并从子进程堆栈确认旧指数测试提升 data_provider/ 搜索路径，calendar 子包遮蔽标准库，导致 Pandas 导入失败。已改包限定导入且保留原断言；新增独立进程回归，修正后「全仓收集 + 原 Agent 用例」1 passed / 5862 deselected（11.38s）。临时观测在 /tmp，Agent 生产代码未改；不将修正前运行当作最终验收。
+- 新增四文件共 **30 passed（5.51s）**：5 旧模块/类身份及旧 pickle、2 客户端单例重置、StockDB 缓存/请求/冷却、6 桥接失败映射及路径；日历/快讯安全回调/关闭/时间、台湾动态与旧工厂；falsey/严格到期/不同 TTL、具名配额异常释放、预算消耗和线程启动失败归还槽。
+- 最终随机序 seed=20261106：数据源 + 日历/快讯集成 + 分时适配器 **658 passed / 1 skipped / 2 deselected（53.15s）**。
+- 最终完整门禁 seed=20261105：**5857 passed / 1 failed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（376.58s）**。本轮仅有既有静态 API schema 描述失败；热点并发 0.2 秒偶发超时未重现，仍保留待查。 架构、语法、关键静态与本批新增代码/测试 F401、diff 空白检查通过；完整门禁未全绿。
+- 收集 **5863 = 5833 + 30（13.95s）**；测试模块 **417**、顶层 0，数据源 Python **145**。新增四测试文件均在规范的一二三级测试目录。
+- 本轮只改服务端、相关测试和中文内部文档，无前端/桌面 UI/API schema/数据库/配置变化；未跑客户端构建，前端全量 lint 仍暂缓。已核对后端打包脚本引用，真实网络/Node 运行、冻结导入、Docker 和安装包仍属 B21–B23 验收，不以源码 import 或模拟进程代替。内部台账无英文同名对应文档。
+
+回滚按专项 §7.5 成组撤回 canonical/alias/消费者、Root 委托/资源写回及执行预算；不单删新模块，不覆盖维护者其他改动或用户数据。未改变默认重试次数、缓存键、来源顺序和对外字段。
+
+
+## 0.194 B00/B01 与 B21–B23 收尾（2026-11-06）
+
+按维护者“继续完成剩余”指令处理。`984f338b` 上未提交工作树，保留图册等并行修改，未 commit/push/tag。B00–B22 当前范围收口，**95.8%（23/24）**；B23 未因文档写完而计完成。
+
+B00 原 72 文件、802 引用、17 项导出与 B01 的 321 调用签名/property/字段、16 能力契约矩阵见 [最终验收附件](./ARCHITECTURE_TARGET_DATA_PROVIDER_ACCEPTANCE.md)。审计脚本 scripts/check_provider_contracts.py 可复现，未创建 SDK/发请求，0 不兼容。任意计算动态字符串不作为 AST 可证明事实；当前受控注册表实际导入验证。
+
+B21 包根按需导出、不缓存 mock；原公开列表/身份保留。原日线入口、实时协调/尝试移到能力文件；初次提取遗漏私有尝试函数 **kw 转发，HK 原回归发现后已修复，原断言未改。21 根兼容文件有现有使用和旧载荷需求，故保留；runtime/resources.py 无收益不建。目标树逐路径与当前集合一致，146 Python 文件/18 下级目录；Manager 主体现 1497 行，构造/状态/窄接线保留。
+
+B22 扫描 data_provider，禁止驱动/bootstrap/具体应用实现，登记端口精确放行；字面动态导入含别名可检测。4 组反例、混合端口/实现导入、通配符边界及旧守卫通过，未改 baseline 增加豁免。B23 打包脚本显式 collect-submodules data_provider；main 既有导入探针进一步加载全部导出/子模块，Mac/Windows 脚本都纳入该探针。
+
+完整证据：最新门禁 seed=20261106 **5865 passed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（383.67s）**，全部检查通过；首轮 seed=20261105 5865 passed（372.94s）。第二随机全量初次仅配置测试失败（5864 passed/1 failed，384.81s）：继承了启动期覆盖缓存并读到本机 .env；按测试边界 reset/隔离默认本机文件，显式临时文件仍真实解析；46 项通过且最新全量复验，生产配置不改。原静态 API 失败由描述漂移造成，已同步 description，剥除描述后的 JSON 与原规范一致。
+
+Web 生产构建、Desktop 49 测试、干净 venv requirements 安装及 pip check、源码/冻结全包导入、干净新冻结产物、临时 DB + 空闲端口 health/首页 200 均通过。ARM64 DMG 实际构建/267 代码对象签名、只读挂载/校验与包内后端导入通过；临时副本须保留 symlink，首次平铺复制框架造成歧义已在验收副本纠正；工具网络/缓存/磁盘访问权限按需使用，未改系统或产品配置。
+
+标准 Dockerfile 全镜像仍在 @heroui-pro/react/css 失败，维护者已决定保留依赖/记录授权缺口。网络 1 passed/3 skipped（208.53s）：TPEx 成功，TWSE 超时、Anspire 缺 key；Windows/Intel/桌面窗口端到端未验收。前端全量 lint 继续暂缓，不声称所有平台通过。内部中文台账无英文对应文件。
+
+本轮 UI/API 字段/数据库/默认配置不变；临时打包输出均在 /tmp，未覆盖原 dist-desktop 或安装到 Applications。回滚按附件 §5、专项 §7.5 分组恢复 canonical/委托/兼容路径及打包探针，保留原资源及维护者修改，不 reset 工作树。
+
+
+## 0.195 剩余平台缺口现状复核（2026-11-06）
+
+按维护者要求重新实际验证。Docker 服务可用，标准 Dockerfile 仍在 Pro CSS 解析失败；未改依赖/授权配置。临时 Electron 副本确认 --user-data-dir 隔离生效，随后启动已打包的 ARM64 .app；窗口 170ms 判定 8000 健康，但自身后端 PID 5213 稍后因该端口不可用退出，实际监听者为既有 PID 25415，故端到端失败。
+
+Windows 无已发现的本地完整环境；Rosetta 基础 x86_64 命令/Python 3.9.6 可运行，但现有后端仅 arm64，不当作 Intel 产品通过。截图/日志存 /tmp，已关闭本次临时应用，既有服务未动；无生产代码/页面改动，无 commit/push/tag。本轮为环境与负向验收，不重复完整测试，原 5865 passed 结果保持其原范围。详见验收附件 §6，专项仍 95.8%。
+
+
+## 0.196 data_provider 根目录收敛启动：R0–R1（2026-11-06）
+
+按维护者授权开始专项 §11，新增计划 15 个等权工作包。R0 基线与契约审计完成，R1 底层反向依赖及指数工具归位完成，2/15（13.3%）；原 B23 未关闭，与本轮比例独立。
+
+基线 `984f338b` 上保留全部既有未提交与并行修改。R0：72 文件/321 契约/802 引用、0 错误；R1：72/321/809、0 错误，190 个相关测试及架构守卫通过。删除 us_index_mapping 旧内部路径；规则直接 domain、Yahoo 查询进入 common/symbols，包级 17 项惰性导出保持。低层纯函数依赖不再回引 base，审计脚本保留旧契约的新路径映射。
+
+未改 UI/API 字段、DB 或配置默认值；未读取/删除本地数据与凭据。回滚应同批恢复指数旧模块、导出注册、所有消费者与审计映射，不能只恢复旧空壳。后续 R2 与逐源 R3 结果继续追加本流水和验收附件；无对应英文内部版本。
+
+
+## 0.197 data_provider 根目录收敛 R2–R4（2026-11-06）
+
+11 个薄入口、10 个厂商根模块、指数旧路径全部退出（共 22 个旧根模块），目标清单与磁盘一致：137 Python 文件、19 下级目录，根仅 __init__.py/base.py。Manager 进入 runtime/manager，10 个资源/装配门面进入 runtime/fetchers；协议、能力与纯规则按专项 §11 分工，不把旧大文件整体当 Client。
+
+R3 各批 49/28/76/28/314/111/48/316 项通过，TickFlow 提取遗漏修正后相关 29 项通过；R4 更换测试真实替换点后 71 项通过。原 72 文件/321 契约审计全部保留并登记退出路径映射，945 静态/字面引用、17 动态导出、0 错误，架构守卫通过。详见验收附件 §7，部分失败纠正与验证边界均已记录。
+
+本轮进度 14/15（93.3%），R5 验收中。干净依赖源码 17 导出/136 子模块通过。Docker Web 构建已通过，故不能再把 Pro CSS 写作当前阻塞；镜像系统依赖下载遇到 Debian 502，正在重试。首次冻结构建受默认 SDK 日志/打包工具缓存目录权限限制，正在允许相应访问后重建；旧失败产物不作为通过证据。完整后端门禁已修正 scripts/test.sh 旧路径后重新执行，显式 seed=20261106。
+
+未修改 Web/Desktop 界面、API 字段、配置默认值或 DB schema，未动用户 CSS 与并行图册，未 commit/push/tag。回滚须同时恢复 22 模块、其消费者、工厂/导出、能力提取及测试与脚本引用；不保留两份状态所有者。
+
+
+## 0.198 data_provider 根目录收敛最终本地验收（2026-11-06）
+
+代码迁移完成；验收仍 14/15（93.3%），R5 仅标准 Docker 镜像下载 502 受阻。最新完整后端门禁显式 seed=20261106：**5866 passed / 1 skipped / 4 deselected / 27 warnings / 511 subtests（386.15s）**，all checks passed。固定序数据源/架构/打包检查 634 passed / 1 skipped / 2 deselected（42.06s）。第一轮全量只有两个 ADR 结构测试要求旧 stocksdk_bridge.py，更新规范路径及新根边界后相关 2 passed，全门禁已从头复验。
+
+独立干净依赖 pip check、源码 17 导出/136 子模块通过；新 PyInstaller 6.22.3 ARM64 冻结完成，243 对象签名、--help、AlphaSift/Futu/orjson/data_provider 导入、17/136 全包导入、冻结程序作为 spawn worker 的规范模块加载与返回/退出、临时 DB + 空闲端口 /api/health 200 均通过，仅关闭自己的探针进程。首次受限构建因 SDK 日志和 PyInstaller 缓存权限失败，已允许相应访问重建；外部 worker 驱动的 tracker 留在真实解释器，避免混合 flags，不把模拟驱动噪声算成产品修复。
+
+scripts/test.sh 的嵌入旧路径及语法清单同步；ci_gate.sh 递归编译 data_provider 全部子目录，bash -n/syntax 验证通过。标准 Docker 两次 Web 构建通过，系统依赖 apt 下载均遇 Debian HTTP 502，完整镜像/容器没有通过；网络恢复后重跑并补镜像内导入及健康，才计 R5 15/15。原 B23 的 Windows/Intel/Desktop 窗口缺口独立保留，前端全量 lint 仍暂缓。
+
+方案 v0.9、验收附件 §7、状态总览、测试台账及 ADR 补充已同步。未改前端页面/API 字段/DB/配置默认语义；维护者 CSS 与并行图册保持，未 commit/push/tag。回滚按专项 §11.6 完整恢复该批实现、路径/消费者/工厂/导出/审计/测试/脚本，保留用户本地数据。
+
+
+## 0.199 data_provider 根目录收敛 R5 Docker 验收关闭（2026-11-06）
+
+维护者启动 Docker 后续验，服务 29.8.2/aarch64 就绪。常规构建仍遇全局镜像加速地址 403/直连 EOF 与部分 Debian 包 502，未修改全局设置。导出已拉取官方 Node/Python 为 /tmp OCI 布局，校验索引 SHA 后以临时命名上下文输入当前 Dockerfile，越过标签网络解析。
+
+APT Acquire::Retries 实测不能恢复全部本次 502，最终只保留一个安装步骤重试：首次失败后最多重试 3 次（合计 4 次），更新失败或重试耗尽仍失败，成功才清理索引。受控真实 RUN shell + 入口/打包共 **17 passed（8.11s）**，中英文部署及 changelog 同步。真实构建首次下载 5 项 502，第二次补齐剩余 3971kB 后安装成功，后续 Python 安装及最终镜像构建通过。
+
+Linux/ARM64 镜像 hermesx:provider-root-r5：sha256:573862bdc2fe546f3d574525403c3def9331fbbd119b8b15fc3dda98cbd270cd。容器 hrs 用户 pip check 无冲突、17 导出/136 子模块/根两入口/类型身份通过；正式 entrypoint 主进程 UID 1000，临时宿主端口 /api/health 200（56 字节）、首页 200（1815 字节）。仅清理本次带标签容器/匿名卷，原 dev 服务保持，无用户数据挂载、Git 操作或前端代码改动。
+
+**本轮 R0–R5 15/15（100%）**。方案 v1.0、验收附件 §7、当前总览、测试台账已收口；最后完整后端门禁 5866 passed/511 subtests 作为源代码轮次证据，Docker-only 修复新增 17 项定向验证，不虚报重跑全量。原 B23 的 Windows/Intel/桌面窗口及前端全量 lint 暂缓独立保留；默认标签解析的全局网络问题不当作已修复。
+
+回滚部署重试时恢复 Dockerfile 单个安装 RUN 及对应测试/双语部署/changelog 即可；数据源代码回滚仍按专项 §11.6 的完整路径映射，不覆盖本机资产、CSS 或并行文档。OCI 输入与证据均在 /tmp，不纳入仓库。

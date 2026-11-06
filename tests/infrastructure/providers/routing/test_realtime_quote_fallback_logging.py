@@ -23,8 +23,8 @@ except ValueError:
 if not json_repair_available and "json_repair" not in sys.modules:
     sys.modules["json_repair"] = MagicMock()
 
-from data_provider.base import DataFetcherManager
-from data_provider.realtime_types import RealtimeSource, UnifiedRealtimeQuote
+from data_provider.runtime.manager import DataFetcherManager
+from data_provider.realtime.types import RealtimeSource, UnifiedRealtimeQuote
 from src.application.analysis.pipeline import StockAnalysisPipeline
 from src.domain.shared.enums import ReportType
 

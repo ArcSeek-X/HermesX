@@ -11,7 +11,7 @@ import logging
 from typing import Any, Optional
 
 from data_provider.stock_info.base import StockInfoResult, StockInfoSource
-from data_provider.stocksdk_bridge import (
+from data_provider.clients.stocksdk.bridge import (
     StockSdkBridgeError,
     get_stocksdk_client,
     resolve_stocksdk_symbol,

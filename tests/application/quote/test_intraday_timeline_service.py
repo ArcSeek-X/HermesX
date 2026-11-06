@@ -178,10 +178,10 @@ def test_fetch_intraday_timeline_empty_when_source_fails(monkeypatch):
 def test_stocksdk_bridge_adapter_best_effort_semantics(monkeypatch):
     """桥接适配器：SDK 不可用 / 调用异常均返回 None（best-effort），可用时透传原始字典。
 
-    适配器把 data_provider.stocksdk_bridge 转成 IntradayTimelineBridgePort 形状，
+    适配器把 data_provider.clients.stocksdk.bridge 转成 IntradayTimelineBridgePort 形状，
     本身不抛异常、不拖垮调用方（由应用层降级为空）。
     """
-    import data_provider.stocksdk_bridge as bridge_mod
+    import data_provider.clients.stocksdk.bridge as bridge_mod
     from src.infrastructure.providers.stocksdk_timeline_provider import (
         DataProviderStocksdkTimelineBridge,
     )

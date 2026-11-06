@@ -27,13 +27,13 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.longbridge_fetcher import (
+from data_provider.runtime.fetchers.longbridge import (
     LongbridgeFetcher,
     _to_longbridge_symbol,
     _is_us_code,
     _is_hk_code,
 )
-from data_provider.realtime_types import UnifiedRealtimeQuote, RealtimeSource
+from data_provider.realtime.types import UnifiedRealtimeQuote, RealtimeSource
 
 
 class TestSymbolConversion(unittest.TestCase):
@@ -60,7 +60,7 @@ class TestSymbolConversion(unittest.TestCase):
     def test_hk_stock_4digit_bare_code_issue_2091(self):
         """4 位裸港股码 (0001 长和 / 0941 中国移动) 必须路由到 .HK 后缀。
 
-        与 ``data_provider.base._is_hk_market`` 的 4-5 位裸港股契约一致,
+        与 ``data_provider.runtime.manager._is_hk_market`` 的 4-5 位裸港股契约一致,
         Longbridge 作为 HK-capable provider 也必须接受同一输入,避免
         上游路由判 HK、下游 provider 静默跳过的部分调用链失败。
         """
@@ -157,8 +157,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -189,8 +189,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "app-secret",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -219,8 +219,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=missing_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -252,8 +252,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ), self.assertLogs("data_provider.longbridge_fetcher", level="WARNING") as logs:
                 fetcher = LongbridgeFetcher()
@@ -280,8 +280,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=invalid_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -313,8 +313,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=invalid_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -348,8 +348,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -383,8 +383,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -415,8 +415,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "",
                     "LONGBRIDGE_ACCESS_TOKEN": "",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -450,8 +450,8 @@ class TestLongbridgeAuthSelection(unittest.TestCase):
                     "LONGBRIDGE_APP_SECRET": "app-secret",
                     "LONGBRIDGE_ACCESS_TOKEN": "access-token",
                 },
-            ), patch("data_provider.longbridge_fetcher._longbridge_config_kwargs", return_value={}), patch(
-                "data_provider.longbridge_fetcher._oauth_token_cache_path",
+            ), patch("data_provider.clients.longbridge._longbridge_config_kwargs", return_value={}), patch(
+                "data_provider.clients.longbridge._oauth_token_cache_path",
                 return_value=token_cache,
             ):
                 fetcher = LongbridgeFetcher()
@@ -597,7 +597,7 @@ class TestLongbridgeFetcherMocked(unittest.TestCase):
         fetcher, ctx = self._make_fetcher_with_mock_ctx()
         ctx.quote.side_effect = Exception("client is closed")
 
-        with patch("data_provider.longbridge_fetcher._connection_cooldown_seconds", return_value=30):
+        with patch("data_provider.clients.longbridge._connection_cooldown_seconds", return_value=30):
             first = fetcher.get_realtime_quote("AAPL")
             second = fetcher.get_realtime_quote("AAPL")
 
@@ -636,7 +636,7 @@ class TestSupplementFromLongbridge(unittest.TestCase):
 
     def test_merge_fills_missing_fields(self):
         """When yfinance quote is missing volume_ratio/turnover_rate, LB fills them."""
-        from data_provider.base import DataFetcherManager
+        from data_provider.runtime.manager import DataFetcherManager
 
         yf_quote = UnifiedRealtimeQuote(
             code="AAPL",
@@ -679,7 +679,7 @@ class TestSupplementFromLongbridge(unittest.TestCase):
 
     def test_sole_source_when_yfinance_fails(self):
         """When yfinance returns None, LB acts as sole source."""
-        from data_provider.base import DataFetcherManager
+        from data_provider.runtime.manager import DataFetcherManager
 
         lb_quote = UnifiedRealtimeQuote(
             code="AAPL",

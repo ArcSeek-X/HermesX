@@ -47,17 +47,24 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 #   gosu       : 以非 root 身份安全执行命令（entrypoint 里降权用）
 #   wkhtmltopdf: 含 wkhtmltoimage，用于把 Markdown 报告渲染成图片（Issue #289）
 #   fontconfig / libjpeg62-turbo / libxrender1 / libxext6: 渲染图片所需字体与图形库
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    curl \
-    git \
-    gosu \
-    wkhtmltopdf \
-    fontconfig \
-    libjpeg62-turbo \
-    libxrender1 \
-    libxext6 \
-    && rm -rf /var/lib/apt/lists/*
+# 安装失败最多重试 3 次；持续失败仍中止构建，不跳过任何依赖。
+RUN apt-get update && \
+    for apt_attempt in 0 1 2 3; do \
+        if apt-get install -y --no-install-recommends \
+            gcc \
+            curl \
+            git \
+            gosu \
+            wkhtmltopdf \
+            fontconfig \
+            libjpeg62-turbo \
+            libxrender1 \
+            libxext6; then \
+            break; \
+        fi; \
+        if [ "$apt_attempt" -eq 3 ]; then exit 1; fi; \
+        sleep "$((apt_attempt + 1))"; \
+    done && rm -rf /var/lib/apt/lists/*
 
 # 创建非 root 用户（固定 UID/GID 1000），运行应用不用 root，降低安全风险；
 # 后续所有可写目录都授权给该用户。注意：该用户名为： hrs。

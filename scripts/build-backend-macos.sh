@@ -124,6 +124,7 @@ pushd "${ROOT_DIR}" >/dev/null
 cmd=("${PYTHON_BIN}" -m PyInstaller --name stock_analysis --onedir --noconfirm --noconsole --distpath "dist-desktop/backend" --workpath "dist-desktop/.work" --specpath "dist-desktop/.specs" --add-data "${ROOT_DIR}/strategies:strategies" --collect-data litellm --collect-data tiktoken --collect-data akshare)
 cmd+=("--collect-all" "alphasift")
 cmd+=("--collect-all" "futu")
+cmd+=("--collect-submodules" "data_provider")
 cmd+=("${hidden_import_args[@]}" "main.py")
 
 echo "Running: ${cmd[*]}"
@@ -153,7 +154,7 @@ if ! "${packaged_entry}" --help >/tmp/hrs-packaged-help.log 2>&1; then
   exit 1
 fi
 
-for module in alphasift.dsa_adapter futu orjson; do
+for module in alphasift.dsa_adapter futu orjson data_provider; do
   if HRS_PACKAGED_IMPORT_PROBE="${module}" "${packaged_entry}" >/tmp/hrs-packaged-import.log 2>&1; then
     cat /tmp/hrs-packaged-import.log
   else

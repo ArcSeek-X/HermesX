@@ -62,11 +62,11 @@
           "Health"
         ],
         "summary": "根路径健康检查",
-        "description": "用于负载均衡器或监控系统检查服务状态；即使静态 Web 前端已构建，也返回 JSON 而不是 SPA HTML fallback。",
+        "description": "用于负载均衡器或监控系统检查服务状态",
         "operationId": "rootHealthCheck",
         "responses": {
           "200": {
-            "description": "服务健康",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -88,7 +88,7 @@
         "operationId": "healthCheck",
         "responses": {
           "200": {
-            "description": "服务健康",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -106,11 +106,11 @@
           "Health"
         ],
         "summary": "v1 健康检查",
-        "description": "API v1 前缀下的健康检查接口，用于监控系统和客户端探测服务状态。",
+        "description": "健康检查接口，用于负载均衡器或监控系统检查服务状态。\n\n只判断进程是否存活，不探测数据库或数据源，避免下游抖动导致实例被误摘除。\n\nArgs:\n    无参数。\n\nReturns:\n    HealthResponse: 包含 status=ok 与当前 ISO 时间戳。\n\nSide Effects:\n    无。",
         "operationId": "v1HealthCheck",
         "responses": {
           "200": {
-            "description": "服务健康",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -128,7 +128,7 @@
           "Analysis"
         ],
         "summary": "触发股票分析",
-        "description": "启动 AI 智能分析任务，支持单只或多只股票批量分析",
+        "description": "启动 AI 智能分析任务，支持同步和异步模式。异步模式下相同股票代码不允许重复提交。",
         "operationId": "triggerAnalysis",
         "requestBody": {
           "required": true,
@@ -207,7 +207,7 @@
           "Analysis"
         ],
         "summary": "获取分析任务列表",
-        "description": "获取当前所有分析任务，支持按状态筛选。返回进行中和最近完成的任务。",
+        "description": "获取当前所有分析任务，可按状态筛选",
         "operationId": "getAnalysisTasks",
         "parameters": [
           {
@@ -216,7 +216,8 @@
             "description": "筛选状态：pending, processing, completed, failed, cancel_requested, cancelled（支持逗号分隔多个）",
             "schema": {
               "type": "string",
-              "example": "pending,processing"
+              "example": "pending,processing",
+              "description": "筛选状态：pending, processing, completed, failed, cancel_requested, cancelled（支持逗号分隔多个）"
             }
           },
           {
@@ -227,7 +228,8 @@
               "type": "integer",
               "default": 20,
               "minimum": 1,
-              "maximum": 100
+              "maximum": 100,
+              "description": "返回数量限制"
             }
           }
         ],
@@ -251,7 +253,7 @@
           "Analysis"
         ],
         "summary": "任务状态 SSE 流",
-        "description": "通过 Server-Sent Events 实时推送任务状态变化。\n\n## 事件类型\n- `connected`: 连接成功\n- `task_created`: 新任务创建\n- `task_started`: 任务开始执行\n- `task_completed`: 任务完成\n- `task_failed`: 任务失败\n- `heartbeat`: 心跳（每 30 秒）",
+        "description": "通过 Server-Sent Events 实时推送任务状态变化",
         "operationId": "taskStream",
         "responses": {
           "200": {
@@ -274,7 +276,7 @@
           "History"
         ],
         "summary": "获取历史分析列表",
-        "description": "分页获取历史分析记录摘要，支持按股票代码、报告类型和日期范围筛选",
+        "description": "分页获取历史分析记录摘要，支持按股票代码和日期范围筛选",
         "operationId": "getHistoryList",
         "parameters": [
           {
@@ -282,15 +284,17 @@
             "in": "query",
             "description": "股票代码筛选",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "股票代码筛选"
             }
           },
           {
             "name": "report_type",
             "in": "query",
-            "description": "报告类型筛选（如 market_review）；不传则返回所有类型历史。",
+            "description": "报告类型筛选，如 market_review",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "报告类型筛选，如 market_review"
             }
           },
           {
@@ -299,7 +303,8 @@
             "description": "开始日期 (YYYY-MM-DD)",
             "schema": {
               "type": "string",
-              "format": "date"
+              "format": "date",
+              "description": "开始日期 (YYYY-MM-DD)"
             }
           },
           {
@@ -308,7 +313,8 @@
             "description": "结束日期 (YYYY-MM-DD)",
             "schema": {
               "type": "string",
-              "format": "date"
+              "format": "date",
+              "description": "结束日期 (YYYY-MM-DD)"
             }
           },
           {
@@ -318,7 +324,8 @@
             "schema": {
               "type": "integer",
               "default": 1,
-              "minimum": 1
+              "minimum": 1,
+              "description": "页码（从 1 开始）"
             }
           },
           {
@@ -329,7 +336,8 @@
               "type": "integer",
               "default": 20,
               "minimum": 1,
-              "maximum": 100
+              "maximum": 100,
+              "description": "每页数量"
             }
           }
         ],
@@ -450,22 +458,23 @@
           "SystemConfig"
         ],
         "summary": "获取系统配置",
-        "description": "读取当前系统配置并返回分类后的显示值。服务端掩码的敏感字段可能返回 mask_token；客户端应结合 raw_value_exists 与 is_masked 判断。",
+        "description": "Read current configuration and return display values. Server-masked sensitive fields may return the mask token; clients should use raw_value_exists and is_masked to interpret values.",
         "operationId": "getSystemConfig",
         "parameters": [
           {
             "name": "include_schema",
             "in": "query",
-            "description": "是否携带字段元数据（默认 true）",
+            "description": "Whether to include schema metadata",
             "schema": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Whether to include schema metadata"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "配置读取成功",
+            "description": "Configuration loaded",
             "content": {
               "application/json": {
                 "schema": {
@@ -475,7 +484,7 @@
             }
           },
           "401": {
-            "description": "未认证",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -485,7 +494,7 @@
             }
           },
           "500": {
-            "description": "读取失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -501,7 +510,7 @@
           "SystemConfig"
         ],
         "summary": "更新系统配置",
-        "description": "按键更新系统配置。若字段值为掩码（如 ******），则保留原值不覆盖。",
+        "description": "Update key-value pairs in .env. Mask token preserves existing secret values.",
         "operationId": "updateSystemConfig",
         "requestBody": {
           "required": true,
@@ -515,7 +524,7 @@
         },
         "responses": {
           "200": {
-            "description": "更新成功",
+            "description": "Configuration updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -525,7 +534,7 @@
             }
           },
           "400": {
-            "description": "参数校验失败",
+            "description": "Validation failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -535,7 +544,7 @@
             }
           },
           "409": {
-            "description": "配置版本冲突",
+            "description": "Version conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -545,7 +554,7 @@
             }
           },
           "500": {
-            "description": "更新失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -563,11 +572,11 @@
           "SystemConfig"
         ],
         "summary": "导出 `.env` 备份",
-        "description": "返回当前已保存 `.env` 的原始文本内容，用于配置备份。",
+        "description": "Return the raw saved .env content for configuration backup.",
         "operationId": "exportSystemConfig",
         "responses": {
           "200": {
-            "description": "导出成功",
+            "description": "Env exported",
             "content": {
               "application/json": {
                 "schema": {
@@ -577,7 +586,7 @@
             }
           },
           "401": {
-            "description": "未登录",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -587,7 +596,7 @@
             }
           },
           "403": {
-            "description": "未开启管理员鉴权（`ADMIN_AUTH_ENABLED=false`）",
+            "description": "Env backup disabled",
             "content": {
               "application/json": {
                 "schema": {
@@ -597,7 +606,7 @@
             }
           },
           "500": {
-            "description": "导出失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -615,7 +624,7 @@
           "SystemConfig"
         ],
         "summary": "导入 `.env` 备份",
-        "description": "按键级覆盖方式把备份文本合并到当前 `.env`，并沿用现有配置版本冲突保护。",
+        "description": "Merge raw .env text into the saved configuration with config version conflict protection.",
         "operationId": "importSystemConfig",
         "requestBody": {
           "required": true,
@@ -629,7 +638,7 @@
         },
         "responses": {
           "200": {
-            "description": "导入成功",
+            "description": "Env imported",
             "content": {
               "application/json": {
                 "schema": {
@@ -639,7 +648,7 @@
             }
           },
           "400": {
-            "description": "导入文件无效或配置校验失败",
+            "description": "Import failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -656,7 +665,7 @@
             }
           },
           "401": {
-            "description": "未认证",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -666,7 +675,7 @@
             }
           },
           "403": {
-            "description": "未开启管理员鉴权（`ADMIN_AUTH_ENABLED=false`）",
+            "description": "Env backup disabled",
             "content": {
               "application/json": {
                 "schema": {
@@ -676,7 +685,7 @@
             }
           },
           "409": {
-            "description": "配置版本冲突",
+            "description": "Version conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -686,7 +695,7 @@
             }
           },
           "500": {
-            "description": "导入失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -704,7 +713,7 @@
           "SystemConfig"
         ],
         "summary": "校验配置",
-        "description": "仅校验提交内容，不写入 .env。用于前端保存前预检查。",
+        "description": "Validate submitted configuration values without writing to .env.",
         "operationId": "validateSystemConfig",
         "requestBody": {
           "required": true,
@@ -718,7 +727,7 @@
         },
         "responses": {
           "200": {
-            "description": "校验完成",
+            "description": "Validation completed",
             "content": {
               "application/json": {
                 "schema": {
@@ -728,7 +737,7 @@
             }
           },
           "500": {
-            "description": "校验失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -746,11 +755,11 @@
           "SystemConfig"
         ],
         "summary": "获取配置字段元数据",
-        "description": "返回配置分类、字段类型、校验规则和 UI 控件建议，用于前端动态渲染。",
+        "description": "Return categorized field metadata used for dynamic settings form rendering.",
         "operationId": "getSystemConfigSchema",
         "responses": {
           "200": {
-            "description": "元数据读取成功",
+            "description": "Schema loaded",
             "content": {
               "application/json": {
                 "schema": {
@@ -760,7 +769,7 @@
             }
           },
           "500": {
-            "description": "元数据读取失败",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1511,7 +1520,7 @@
           "Analysis"
         ],
         "summary": "获取分析任务运行流",
-        "description": "根据 task_id 查询活跃任务或已落库任务的运行流快照。活跃任务缺少诊断时返回 skeleton flow；完成任务可按同一 task_id/query_id 尝试读取历史诊断。",
+        "description": "根据 task_id 查询任务数据流/信息流快照；活跃任务缺少诊断时返回骨架流。",
         "operationId": "getTaskRunFlow",
         "parameters": [
           {
@@ -1536,7 +1545,7 @@
             }
           },
           "404": {
-            "description": "任务不存在或已过期",
+            "description": "任务不存在",
             "content": {
               "application/json": {
                 "schema": {
@@ -1564,7 +1573,7 @@
           "History"
         ],
         "summary": "获取历史报告运行流",
-        "description": "根据历史记录 ID 或可解析的 query_id 获取历史报告运行流快照。旧历史缺少诊断时返回 skeleton/unknown 状态，不影响报告详情读取。",
+        "description": "根据分析历史记录 ID 或 query_id 获取数据流/信息流快照。",
         "operationId": "getHistoryRunFlow",
         "parameters": [
           {
@@ -1579,7 +1588,7 @@
         ],
         "responses": {
           "200": {
-            "description": "历史报告运行流快照",
+            "description": "运行流快照",
             "content": {
               "application/json": {
                 "schema": {
@@ -2469,7 +2478,8 @@
               }
             }
           }
-        }
+        },
+        "description": "分页查询告警触发记录，支持规则 ID、目标与状态过滤。\n\nArgs:\n    rule_id: 规则 ID 过滤；None 表示不限。\n    target: 触发目标过滤。\n    status: 触发状态过滤。\n    page: 页码，从 1 开始。\n    page_size: 每页条数。\n\nReturns:\n    AlertTriggerListResponse: 当前页触发记录与总数。\n\nRaises:\n    HTTPException: 查询异常 500。"
       }
     },
     "/api/v1/portfolio/risk": {
@@ -2583,7 +2593,8 @@
               }
             }
           }
-        }
+        },
+        "description": "获取组合风险报告。\n\nArgs:\n    account_id: 指定账户；为空表示跨账户汇总。\n    as_of: 基准日。\n    cost_method: 持仓成本计算方法，与快照口径保持一致。\n    include_realtime: 是否使用实时价格计算风险。\n\nReturns:\n    PortfolioRiskResponse: 集中度、回撤、止损与信号风险各区块。"
       }
     },
     "/api/v1/decision-signals/reassess": {
@@ -2697,16 +2708,19 @@
         "properties": {
           "status": {
             "type": "string",
-            "example": "ok"
+            "example": "ok",
+            "description": "服务状态"
           },
           "timestamp": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "时间戳"
           }
         },
         "required": [
           "status"
-        ]
+        ],
+        "description": "健康检查响应。\n\n使用场景：/health、/api/health 与 /api/v1/health 探活。刻意不检查数据库等外部依赖，避免依赖抖动导致负载均衡误摘实例。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalyzeRequest": {
         "type": "object",
@@ -2759,7 +2773,8 @@
             "default": "auto",
             "description": "分析阶段覆盖：auto(自动推断) / premarket(盘前) / intraday(盘中) / postmarket(盘后)"
           }
-        }
+        },
+        "description": "Analysis request parameters.\n\n使用场景：POST /api/v1/analysis 触发分析。stock_code 与 stock_codes 二选一；report_language / skills 同时接受驼峰别名，兼容旧前端。未传的语言与区域参数回退到运行时全局配置。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisResult": {
         "type": "object",
@@ -2802,11 +2817,13 @@
               "pending",
               "processing"
             ],
-            "example": "pending"
+            "example": "pending",
+            "description": "任务状态"
           },
           "message": {
             "type": "string",
-            "example": "Analysis task accepted"
+            "example": "Analysis task accepted",
+            "description": "提示信息"
           },
           "analysis_phase": {
             "type": "string",
@@ -2823,7 +2840,8 @@
         "required": [
           "task_id",
           "status"
-        ]
+        ],
+        "description": "异步任务接受响应。\n\n使用场景：任务入队后返回，前端用 task_id 轮询 / SSE 订阅；status 仅允许 pending / processing，完成态由状态接口给出。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "BatchTaskAcceptedItem": {
         "type": "object",
@@ -2841,10 +2859,12 @@
             "enum": [
               "pending",
               "processing"
-            ]
+            ],
+            "description": "任务状态"
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "提示信息"
           },
           "analysis_phase": {
             "type": "string",
@@ -2862,7 +2882,8 @@
           "task_id",
           "stock_code",
           "status"
-        ]
+        ],
+        "description": "批量异步任务中单个成功提交项。\n\n使用场景：与 TaskAccepted 类似但额外带 stock_code，让前端按标的逐项更新提交结果。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "BatchDuplicateTaskItem": {
         "type": "object",
@@ -2884,7 +2905,8 @@
           "stock_code",
           "existing_task_id",
           "message"
-        ]
+        ],
+        "description": "批量异步任务中因重复而跳过的项。\n\n使用场景：同一股票已有进行中任务时返回，existing_task_id 让前端可跳转到已有任务而非报错。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "BatchTaskAcceptedResponse": {
         "type": "object",
@@ -2893,13 +2915,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BatchTaskAcceptedItem"
-            }
+            },
+            "description": "成功提交的任务列表"
           },
           "duplicates": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BatchDuplicateTaskItem"
-            }
+            },
+            "description": "重复而跳过的任务列表"
           },
           "message": {
             "type": "string",
@@ -2910,13 +2934,15 @@
           "accepted",
           "duplicates",
           "message"
-        ]
+        ],
+        "description": "批量异步任务接受响应。\n\n使用场景：一次提交多只股票；成功与重复分别列出，单只重复不应导致整批失败。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "TaskStatus": {
         "type": "object",
         "properties": {
           "task_id": {
-            "type": "string"
+            "type": "string",
+            "description": "任务 ID"
           },
           "status": {
             "type": "string",
@@ -2925,14 +2951,16 @@
               "processing",
               "completed",
               "failed"
-            ]
+            ],
+            "description": "任务状态"
           },
           "progress": {
             "type": "integer",
             "description": "进度百分比 (0-100)"
           },
           "result": {
-            "$ref": "#/components/schemas/AnalysisResult"
+            "$ref": "#/components/schemas/AnalysisResult",
+            "description": "分析结果（仅在 completed 时存在）"
           },
           "error": {
             "type": "string",
@@ -2953,11 +2981,12 @@
         "required": [
           "task_id",
           "status"
-        ]
+        ],
+        "description": "Task status model.\n\n使用场景：任务状态轮询与 SSE 事件；同时容纳个股分析结果与大盘复盘结果，互不相关的字段以 None 区分，历史 DB 缺列时 analysis_phase 也可能为空。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "TaskInfo": {
         "type": "object",
-        "description": "任务详情（用于任务列表和 SSE 事件）",
+        "description": "Task details model.\n\nUsed for task list and SSE event delivery.\n\n使用场景：任务列表与 SSE 事件推送；相比 TaskStatus 增加时间戳与提交参数，便于前端还原任务上下文而无需回查数据库。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "task_id": {
             "type": "string",
@@ -2985,7 +3014,7 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "进度百分比"
+            "description": "进度百分比 (0-100)"
           },
           "message": {
             "type": "string",
@@ -3016,7 +3045,7 @@
           },
           "error": {
             "type": "string",
-            "description": "错误信息"
+            "description": "错误信息（仅在 failed 时存在）"
           },
           "analysis_phase": {
             "type": "string",
@@ -3039,7 +3068,7 @@
       },
       "TaskListResponse": {
         "type": "object",
-        "description": "任务列表响应",
+        "description": "任务列表响应模型。\n\n使用场景：任务中心首页；pending / processing 计数让前端直接展示队列概览，无需遍历 tasks 自行统计。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "total": {
             "type": "integer",
@@ -3108,16 +3137,19 @@
             "description": "总记录数"
           },
           "page": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前页码"
           },
           "limit": {
-            "type": "integer"
+            "type": "integer",
+            "description": "每页数量"
           },
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HistoryItem"
-            }
+            },
+            "description": "记录列表"
           }
         },
         "required": [
@@ -3125,11 +3157,12 @@
           "page",
           "limit",
           "items"
-        ]
+        ],
+        "description": "历史记录列表响应。\n\n使用场景：历史列表分页接口；total 为符合条件的总数，items 为空列表表示无匹配而非请求失败。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "NewsIntelItem": {
         "type": "object",
-        "description": "新闻情报条目",
+        "description": "新闻情报条目。\n\n使用场景：报告详情的新闻区；snippet 允许为空字符串，保证无摘要时标题与链接仍可展示。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "title": {
             "type": "string",
@@ -3137,7 +3170,7 @@
           },
           "snippet": {
             "type": "string",
-            "description": "新闻摘要（最多50字）"
+            "description": "新闻摘要（最多200字）"
           },
           "url": {
             "type": "string",
@@ -3151,7 +3184,7 @@
       },
       "NewsIntelResponse": {
         "type": "object",
-        "description": "新闻情报响应",
+        "description": "新闻情报响应。\n\n使用场景：新闻检索结果；items 为空列表表示无命中。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "total": {
             "type": "integer",
@@ -3172,27 +3205,33 @@
       },
       "HistoryItem": {
         "type": "object",
-        "description": "历史记录摘要（列表展示用）",
+        "description": "历史记录摘要（列表展示用）。\n\n使用场景：历史列表页；字段是报告结论的扁平快照，避免为渲染列表逐条解析完整报告。部分字段来自旧数据，故统一允许 None。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "query_id": {
-            "type": "string"
+            "type": "string",
+            "description": "分析记录关联 query_id（批量分析时重复）"
           },
           "stock_code": {
-            "type": "string"
+            "type": "string",
+            "description": "股票代码"
           },
           "stock_name": {
-            "type": "string"
+            "type": "string",
+            "description": "股票名称"
           },
           "report_type": {
-            "type": "string"
+            "type": "string",
+            "description": "报告类型"
           },
           "sentiment_score": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 100
+            "maximum": 100,
+            "description": "情绪评分（历史数据可能超出 0-100 范围，读取时不做约束）"
           },
           "operation_advice": {
-            "type": "string"
+            "type": "string",
+            "description": "操作建议"
           },
           "action": {
             "type": "string",
@@ -3216,11 +3255,12 @@
           },
           "model_used": {
             "type": "string",
-            "description": "历史记录中展示的模型快照，仅用于展示与排障，不影响 provider/model/base URL 运行时路由"
+            "description": "分析历史记录中的模型快照，仅用于展示历史元数据；不参与模型配置或运行时路由决策"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "创建时间"
           }
         },
         "required": [
@@ -3231,7 +3271,7 @@
       },
       "AnalysisReport": {
         "type": "object",
-        "description": "完整分析报告",
+        "description": "完整分析报告。\n\n使用场景：历史报告详情接口；按 meta / summary / strategy / details 分区，后两区允许缺失以兼容精简报告。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "meta": {
             "type": "object",
@@ -3261,7 +3301,7 @@
           },
           "summary": {
             "type": "object",
-            "description": "概览区（首屏展示）",
+            "description": "概览区",
             "properties": {
               "analysis_summary": {
                 "type": "string",
@@ -3336,7 +3376,7 @@
           },
           "details": {
             "type": "object",
-            "description": "详情区（可折叠）",
+            "description": "详情区",
             "properties": {
               "news_content": {
                 "type": "string",
@@ -3364,16 +3404,19 @@
       },
       "StockQuote": {
         "type": "object",
-        "description": "股票实时行情",
+        "description": "单只股票的实时行情快照。\n\n使用场景：列表与详情页的价格展示；估值、换手等字段在部分市场缺失，因此除代码与最新价外统一允许 None。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "stock_code": {
-            "type": "string"
+            "type": "string",
+            "description": "股票代码"
           },
           "stock_name": {
-            "type": "string"
+            "type": "string",
+            "description": "股票名称"
           },
           "current_price": {
-            "type": "number"
+            "type": "number",
+            "description": "当前价格"
           },
           "change": {
             "type": "number",
@@ -3384,16 +3427,20 @@
             "description": "涨跌幅 (%)"
           },
           "open": {
-            "type": "number"
+            "type": "number",
+            "description": "开盘价"
           },
           "high": {
-            "type": "number"
+            "type": "number",
+            "description": "最高价"
           },
           "low": {
-            "type": "number"
+            "type": "number",
+            "description": "最低价"
           },
           "prev_close": {
-            "type": "number"
+            "type": "number",
+            "description": "昨收价"
           },
           "volume": {
             "type": "number",
@@ -3405,7 +3452,8 @@
           },
           "update_time": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "更新时间"
           }
         },
         "required": [
@@ -3415,16 +3463,16 @@
       },
       "SystemConfigFieldSchema": {
         "type": "object",
-        "description": "系统配置字段元数据",
+        "description": "Metadata schema for a single config field.\n\n使用场景：驱动设置页动态表单的渲染与校验；is_sensitive 决定值是否掩码，options / validation / docs 均由后端下发，保证表单与服务端校验规则同源。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "key": {
             "type": "string",
-            "description": "配置键名（ENV 变量）",
+            "description": "Configuration key name",
             "example": "GEMINI_API_KEY"
           },
           "title": {
             "type": "string",
-            "description": "前端展示标题",
+            "description": "Display title",
             "example": "Gemini API Key"
           },
           "description": {
@@ -3510,7 +3558,7 @@
       },
       "SystemConfigCategorySchema": {
         "type": "object",
-        "description": "配置分类元数据",
+        "description": "Category grouping metadata.\n\n使用场景：设置页按分类折叠字段；display_order 控制分类顺序，fields 为该类下的字段元数据列表。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "category": {
             "type": "string"
@@ -3540,7 +3588,7 @@
       },
       "SystemConfigSchemaResponse": {
         "type": "object",
-        "description": "配置元数据响应",
+        "description": "Metadata response for dynamic frontend rendering.\n\n使用场景：设置页初始化拉取整份表单描述；schema_version 供前端判断是否需要刷新缓存的表单元数据。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "schema_version": {
             "type": "string",
@@ -3560,7 +3608,7 @@
       },
       "SystemConfigItem": {
         "type": "object",
-        "description": "系统配置项（含脱敏显示值）",
+        "description": "Config value entry with optional schema metadata.\n\n使用场景：读取当前配置值；敏感值以 mask_token 替换，raw_value_exists 区分「未配置」与「已配置但被掩码」。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "key": {
             "type": "string"
@@ -3590,7 +3638,7 @@
       },
       "SystemConfigResponse": {
         "type": "object",
-        "description": "系统配置读取响应",
+        "description": "Read response for current configuration values.\n\n使用场景：设置页读取全部配置；config_version 是后续更新的乐观锁凭据。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "config_version": {
             "type": "string",
@@ -3620,7 +3668,7 @@
       },
       "ExportSystemConfigResponse": {
         "type": "object",
-        "description": "`.env` 原文导出响应",
+        "description": "Export payload for raw `.env` backups.\n\n使用场景：导出配置备份；content 为可直接保存的 .env 文本，敏感值已按导出策略处理。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "content": {
             "type": "string",
@@ -3642,7 +3690,7 @@
       },
       "SystemConfigUpdateItem": {
         "type": "object",
-        "description": "配置更新项",
+        "description": "Single key-value update item.\n\n使用场景：更新、校验、预览与导入预览共用的最小键值对；值统一为字符串，类型转换由服务端按字段元数据执行。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "key": {
             "type": "string",
@@ -3660,7 +3708,7 @@
       },
       "UpdateSystemConfigRequest": {
         "type": "object",
-        "description": "系统配置更新请求",
+        "description": "Update request payload.\n\n使用场景：保存设置表单；config_version 做乐观锁，items 至少一项，掩码值由服务端跳过以免写回占位符。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "config_version": {
             "type": "string"
@@ -3688,7 +3736,7 @@
       },
       "ImportSystemConfigRequest": {
         "type": "object",
-        "description": "`.env` 导入请求",
+        "description": "Import request payload for raw `.env` backups.\n\n使用场景：从备份文本恢复配置；同样以 config_version 做并发保护。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "config_version": {
             "type": "string"
@@ -3709,7 +3757,7 @@
       },
       "UpdateSystemConfigResponse": {
         "type": "object",
-        "description": "系统配置更新结果",
+        "description": "Update operation result payload.\n\n使用场景：保存后回传实际生效数量；skipped_masked_count 说明有多少项因仍是掩码而未改动。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "success": {
             "type": "boolean"
@@ -3750,7 +3798,7 @@
       },
       "ValidateSystemConfigRequest": {
         "type": "object",
-        "description": "配置校验请求",
+        "description": "Validation request payload.\n\n使用场景：保存前校验草稿；不写配置，只返回逐项问题。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "items": {
             "type": "array",
@@ -3766,7 +3814,7 @@
       },
       "ConfigValidationIssue": {
         "type": "object",
-        "description": "配置校验问题",
+        "description": "Validation issue details.\n\n使用场景：定位某个配置键的校验失败原因；severity 为 warning 时不阻断保存，error 才阻断。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "key": {
             "type": "string"
@@ -3801,7 +3849,7 @@
       },
       "ValidateSystemConfigResponse": {
         "type": "object",
-        "description": "配置校验结果",
+        "description": "Validation result payload.\n\n使用场景：校验端点返回总体是否通过及全部问题列表。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "valid": {
             "type": "boolean"
@@ -3820,7 +3868,7 @@
       },
       "SystemConfigValidationErrorResponse": {
         "type": "object",
-        "description": "配置更新校验失败响应",
+        "description": "Error payload for failed update validation.\n\n使用场景：更新请求校验失败时返回逐项问题，前端可直接高亮对应字段。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "error": {
             "type": "string",
@@ -3844,7 +3892,7 @@
       },
       "SystemConfigConflictResponse": {
         "type": "object",
-        "description": "配置版本冲突响应",
+        "description": "Error payload for optimistic lock conflict.\n\n使用场景：配置已被他人修改时拒绝当前提交，current_config_version 供前端提示刷新后重试。\n\n@author: Lensgcx (GaoCangxiong)",
         "properties": {
           "error": {
             "type": "string",
@@ -4271,7 +4319,8 @@
           "trigger_source",
           "action"
         ],
-        "title": "DecisionSignalCreateRequest"
+        "title": "DecisionSignalCreateRequest",
+        "description": "创建决策信号的请求体。\n\n使用场景：外部系统或手动入口写入信号；价格字段要求正数且拒绝 inf/nan，decision_profile 省略时由服务端回退默认值，但显式传 null 会被拒绝。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalStatusUpdateRequest": {
         "properties": {
@@ -4304,7 +4353,8 @@
         "required": [
           "status"
         ],
-        "title": "DecisionSignalStatusUpdateRequest"
+        "title": "DecisionSignalStatusUpdateRequest",
+        "description": "更新决策信号状态的请求体。\n\n使用场景：手动归档、作废或关闭信号；metadata 省略保留原值、显式 null 清空、对象则整体替换，三种语义不可混淆。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalItem": {
         "properties": {
@@ -4626,7 +4676,8 @@
           "plan_quality",
           "status"
         ],
-        "title": "DecisionSignalItem"
+        "title": "DecisionSignalItem",
+        "description": "决策信号详情项。\n\n使用场景：信号列表与详情；同时包含原始结论、交易计划、质量标记与生命周期状态，供前端完整还原一条信号。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalMutationResponse": {
         "properties": {
@@ -4643,7 +4694,8 @@
           "item",
           "created"
         ],
-        "title": "DecisionSignalMutationResponse"
+        "title": "DecisionSignalMutationResponse",
+        "description": "决策信号创建或变更响应（含是否为新建）。\n\n使用场景：幂等写入端点返回，created 区分新建与命中已有记录。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalListResponse": {
         "properties": {
@@ -4673,7 +4725,8 @@
           "page",
           "page_size"
         ],
-        "title": "DecisionSignalListResponse"
+        "title": "DecisionSignalListResponse",
+        "description": "决策信号分页列表响应。\n\n使用场景：信号列表按页拉取，total 为符合条件的信号总数。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "ErrorResponse": {
         "properties": {
@@ -4706,7 +4759,7 @@
           "message"
         ],
         "title": "ErrorResponse",
-        "description": "错误响应",
+        "description": "统一错误响应契约。\n\n使用场景：在 OpenAPI 文档中声明错误体形状；运行时由 api.v1.errors.error_body 与全局异常处理器产出同构字典，前端可固定按 error / message / detail 解析。\n\n@author: Lensgcx (GaoCangxiong)",
         "example": {
           "error": "not_found",
           "message": "资源不存在"
@@ -4714,19 +4767,19 @@
       },
       "RunFlowLane": {
         "type": "object",
-        "description": "运行流泳道定义",
+        "description": "A fixed visual lane for the run-flow topology.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "稳定泳道 ID"
+            "description": "Stable lane id"
           },
           "label": {
             "type": "string",
-            "description": "展示标签"
+            "description": "Display label"
           },
           "order": {
             "type": "integer",
-            "description": "展示顺序"
+            "description": "Display order"
           }
         },
         "required": [
@@ -4737,15 +4790,15 @@
       },
       "RunFlowNode": {
         "type": "object",
-        "description": "运行流中的一个节点",
+        "description": "One node in the task run-flow topology.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "稳定节点 ID"
+            "description": "Stable node id"
           },
           "lane": {
             "type": "string",
-            "description": "所属泳道 ID"
+            "description": "Lane id"
           },
           "kind": {
             "type": "string",
@@ -4758,11 +4811,11 @@
               "artifact",
               "notification"
             ],
-            "description": "节点类型"
+            "description": "Node kind"
           },
           "label": {
             "type": "string",
-            "description": "展示标签"
+            "description": "Display label"
           },
           "status": {
             "type": "string",
@@ -4779,49 +4832,49 @@
               "skipped",
               "unknown"
             ],
-            "description": "节点状态"
+            "description": "Node status"
           },
           "provider": {
             "type": "string",
             "nullable": true,
-            "description": "Provider、模型或通知渠道名称"
+            "description": "Provider/model/channel name"
           },
           "started_at": {
             "type": "string",
             "nullable": true,
-            "description": "开始时间 ISO 字符串"
+            "description": "ISO timestamp when the node started"
           },
           "ended_at": {
             "type": "string",
             "nullable": true,
-            "description": "结束时间 ISO 字符串"
+            "description": "ISO timestamp when the node ended"
           },
           "duration_ms": {
             "type": "integer",
             "nullable": true,
             "minimum": 0,
-            "description": "耗时毫秒数"
+            "description": "Node duration in milliseconds"
           },
           "attempts": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
-            "description": "节点代表的尝试次数"
+            "description": "Attempt count represented by this node"
           },
           "record_count": {
             "type": "integer",
             "nullable": true,
             "minimum": 0,
-            "description": "返回记录数"
+            "description": "Returned record count"
           },
           "message": {
             "type": "string",
             "nullable": true,
-            "description": "短脱敏状态说明"
+            "description": "Short sanitized status message"
           },
           "metadata": {
             "type": "object",
-            "description": "脱敏后的低敏元数据",
+            "description": "Sanitized low-sensitivity metadata",
             "additionalProperties": true
           }
         },
@@ -4835,19 +4888,19 @@
       },
       "RunFlowEdge": {
         "type": "object",
-        "description": "运行流中的有向连线",
+        "description": "One directed edge in the task run-flow topology.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "稳定连线 ID"
+            "description": "Stable edge id"
           },
           "from": {
             "type": "string",
-            "description": "来源节点 ID"
+            "description": "Source node id"
           },
           "to": {
             "type": "string",
-            "description": "目标节点 ID"
+            "description": "Target node id"
           },
           "kind": {
             "type": "string",
@@ -4857,7 +4910,7 @@
               "fallback",
               "retry"
             ],
-            "description": "连线类型"
+            "description": "Edge kind"
           },
           "status": {
             "type": "string",
@@ -4874,21 +4927,21 @@
               "skipped",
               "unknown"
             ],
-            "description": "连线状态"
+            "description": "Edge status"
           },
           "label": {
             "type": "string",
             "nullable": true,
-            "description": "短展示标签"
+            "description": "Short display label"
           },
           "message": {
             "type": "string",
             "nullable": true,
-            "description": "短脱敏说明"
+            "description": "Short sanitized edge message"
           },
           "metadata": {
             "type": "object",
-            "description": "脱敏后的低敏元数据",
+            "description": "Sanitized low-sensitivity metadata",
             "additionalProperties": true
           }
         },
@@ -4902,16 +4955,16 @@
       },
       "RunFlowEvent": {
         "type": "object",
-        "description": "运行流事件",
+        "description": "One chronological event backing the run-flow view.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "稳定事件 ID"
+            "description": "Stable event id"
           },
           "timestamp": {
             "type": "string",
             "nullable": true,
-            "description": "事件时间 ISO 字符串"
+            "description": "ISO timestamp"
           },
           "severity": {
             "type": "string",
@@ -4921,29 +4974,29 @@
               "warning",
               "danger"
             ],
-            "description": "事件严重级别"
+            "description": "Event severity"
           },
           "type": {
             "type": "string",
-            "description": "稳定事件类型"
+            "description": "Stable event type"
           },
           "node_id": {
             "type": "string",
             "nullable": true,
-            "description": "关联节点 ID"
+            "description": "Related node id"
           },
           "title": {
             "type": "string",
-            "description": "短标题"
+            "description": "Short event title"
           },
           "message": {
             "type": "string",
             "nullable": true,
-            "description": "短脱敏说明"
+            "description": "Short sanitized event message"
           },
           "metadata": {
             "type": "object",
-            "description": "脱敏后的低敏元数据",
+            "description": "Sanitized low-sensitivity metadata",
             "additionalProperties": true
           }
         },
@@ -4956,43 +5009,43 @@
       },
       "RunFlowSummary": {
         "type": "object",
-        "description": "运行流摘要指标",
+        "description": "Compact summary metrics for the run-flow view.",
         "properties": {
           "elapsed_ms": {
             "type": "integer",
             "nullable": true,
             "minimum": 0,
-            "description": "观测到的总耗时毫秒数"
+            "description": "Observed elapsed time"
           },
           "bottleneck_node_id": {
             "type": "string",
             "nullable": true,
-            "description": "耗时最长节点 ID"
+            "description": "Node with the longest observed duration"
           },
           "failed_attempts": {
             "type": "integer",
             "minimum": 0,
-            "description": "失败尝试次数"
+            "description": "Failed provider/model/history/notification attempts"
           },
           "fallback_count": {
             "type": "integer",
             "minimum": 0,
-            "description": "fallback 或 retry 转换次数"
+            "description": "Fallback or retry transitions"
           },
           "model": {
             "type": "string",
             "nullable": true,
-            "description": "诊断中观测到的脱敏模型名"
+            "description": "Sanitized model name observed in diagnostics"
           },
           "data_source_count": {
             "type": "integer",
             "minimum": 0,
-            "description": "数据来源节点数量"
+            "description": "Data source nodes represented in the graph"
           },
           "event_count": {
             "type": "integer",
             "minimum": 0,
-            "description": "事件数量"
+            "description": "Event count"
           }
         },
         "required": [
@@ -5004,25 +5057,25 @@
       },
       "RunFlowSnapshot": {
         "type": "object",
-        "description": "任务或历史报告运行流快照",
+        "description": "Public run-flow snapshot returned by task and history endpoints.",
         "properties": {
           "task_id": {
             "type": "string",
-            "description": "任务 ID 或 query_id"
+            "description": "Task id or query id"
           },
           "trace_id": {
             "type": "string",
             "nullable": true,
-            "description": "诊断 trace ID"
+            "description": "Diagnostic trace id"
           },
           "stock_code": {
             "type": "string",
-            "description": "股票代码"
+            "description": "Stock code"
           },
           "stock_name": {
             "type": "string",
             "nullable": true,
-            "description": "股票名称"
+            "description": "Stock name"
           },
           "status": {
             "type": "string",
@@ -5039,7 +5092,7 @@
               "skipped",
               "unknown"
             ],
-            "description": "整体运行流状态"
+            "description": "Overall run-flow status"
           },
           "summary": {
             "$ref": "#/components/schemas/RunFlowSummary"
@@ -5070,7 +5123,7 @@
           },
           "generated_at": {
             "type": "string",
-            "description": "快照生成时间 ISO 字符串"
+            "description": "ISO timestamp when this snapshot was generated"
           }
         },
         "required": [
@@ -5153,7 +5206,8 @@
           "by_model",
           "recent_calls"
         ],
-        "title": "UsageDashboardResponse"
+        "title": "UsageDashboardResponse",
+        "description": "用量看板响应。\n\n使用场景：继承汇总字段并附带最近调用明细，一次请求即可渲染看板全部区块。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "UsageCallRecord": {
         "properties": {
@@ -5208,7 +5262,8 @@
           "completion_tokens",
           "total_tokens"
         ],
-        "title": "UsageCallRecord"
+        "title": "UsageCallRecord",
+        "description": "单次 LLM 调用的明细记录。\n\n使用场景：看板的近期调用列表；stock_code 允许 None，因为大盘复盘等非个股任务没有标的维度。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "CallTypeBreakdown": {
         "properties": {
@@ -5242,7 +5297,8 @@
           "calls",
           "total_tokens"
         ],
-        "title": "CallTypeBreakdown"
+        "title": "CallTypeBreakdown",
+        "description": "按调用类型汇总的用量与 token 数。\n\n使用场景：用量看板中区分 analysis / agent / market_review 的消耗，便于定位哪类任务带来主要成本。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "ModelBreakdown": {
         "properties": {
@@ -5280,7 +5336,8 @@
           "calls",
           "total_tokens"
         ],
-        "title": "ModelBreakdown"
+        "title": "ModelBreakdown",
+        "description": "按模型汇总的调用次数与 token 数。\n\n使用场景：对比不同模型的调用规模与上下文长度，max_total_tokens 用于识别接近上下文上限的长请求。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "UsageSummaryResponse": {
         "properties": {
@@ -5342,7 +5399,8 @@
           "by_call_type",
           "by_model"
         ],
-        "title": "UsageSummaryResponse"
+        "title": "UsageSummaryResponse",
+        "description": "用量汇总响应。\n\n使用场景：/api/v1/usage/summary 按统计周期返回总量与两个维度的分项；from_date / to_date 明确统计区间，避免前端按本地时区自行推算。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalFeedbackItem": {
         "properties": {
@@ -5429,7 +5487,8 @@
         "required": [
           "signal_id"
         ],
-        "title": "DecisionSignalFeedbackItem"
+        "title": "DecisionSignalFeedbackItem",
+        "description": "单条决策信号反馈记录。\n\n使用场景：反馈历史展示；旧记录可能只保留部分字段，故均可为 None。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalFeedbackRequest": {
         "properties": {
@@ -5479,7 +5538,8 @@
         "required": [
           "feedback_value"
         ],
-        "title": "DecisionSignalFeedbackRequest"
+        "title": "DecisionSignalFeedbackRequest",
+        "description": "提交决策信号反馈的请求体（反馈值、原因码与备注）。\n\n使用场景：用户对信号质量做有用/无用评价；source 标注 web 或 api，便于区分反馈入口。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeItem": {
         "properties": {
@@ -5737,7 +5797,8 @@
           "eval_status",
           "holding_state"
         ],
-        "title": "DecisionSignalOutcomeItem"
+        "title": "DecisionSignalOutcomeItem",
+        "description": "单条决策信号的结果评估记录。\n\n使用场景：结果列表与统计明细；除状态与引擎版本外均为可选，因为历史数据或缺行情时会无法评估。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeListResponse": {
         "properties": {
@@ -5767,7 +5828,8 @@
           "page",
           "page_size"
         ],
-        "title": "DecisionSignalOutcomeListResponse"
+        "title": "DecisionSignalOutcomeListResponse",
+        "description": "结果评估记录的分页列表响应。\n\n使用场景：结果页按页拉取，total 为记录总数。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeRunRequest": {
         "properties": {
@@ -5908,7 +5970,8 @@
           }
         },
         "type": "object",
-        "title": "DecisionSignalOutcomeRunRequest"
+        "title": "DecisionSignalOutcomeRunRequest",
+        "description": "触发决策信号结果回测评估的请求体。\n\n使用场景：批量评估信号在其后行情中的表现；各筛选条件可组合，未指定 signal_id 时按条件扫描，limit 上限 500。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeRunResponse": {
         "properties": {
@@ -5948,7 +6011,8 @@
           "skipped",
           "engine_version"
         ],
-        "title": "DecisionSignalOutcomeRunResponse"
+        "title": "DecisionSignalOutcomeRunResponse",
+        "description": "结果回测运行响应（含处理键数与各状态计数）。\n\n使用场景：一次评估任务的结果汇总；created / updated / skipped 之和对应处理的信号数。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeStatsBucket": {
         "properties": {
@@ -6025,7 +6089,8 @@
           "miss",
           "neutral"
         ],
-        "title": "DecisionSignalOutcomeStatsBucket"
+        "title": "DecisionSignalOutcomeStatsBucket",
+        "description": "结果统计中的单个分桶指标。\n\n使用场景：按维度（市场、动作、周期等）聚合命中率；比率类字段无样本时为 None，避免用 0 掩盖空样本。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalOutcomeStatsResponse": {
         "properties": {
@@ -6132,7 +6197,8 @@
           "neutral",
           "profile_calibration"
         ],
-        "title": "DecisionSignalOutcomeStatsResponse"
+        "title": "DecisionSignalOutcomeStatsResponse",
+        "description": "结果回测统计汇总响应（含引擎版本、跨度与完成度）。\n\n使用场景：统计页一次返回总体指标、按维度分桶与画像校准结果；engine_version 提示不同版本结果不可直接混合比较。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalProfileCalibration": {
         "properties": {
@@ -6150,7 +6216,8 @@
           "minimum_completed_sample_size",
           "breakdowns"
         ],
-        "title": "DecisionSignalProfileCalibration"
+        "title": "DecisionSignalProfileCalibration",
+        "description": "决策信号的画像校准结果。\n\n使用场景：统计接口返回样本量门槛与各维分解，门槛用于判断分桶结论是否具备统计意义。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalProfileCalibrationBreakdowns": {
         "properties": {
@@ -6198,7 +6265,8 @@
           }
         },
         "type": "object",
-        "title": "DecisionSignalProfileCalibrationBreakdowns"
+        "title": "DecisionSignalProfileCalibrationBreakdowns",
+        "description": "画像校准结果的多维分解明细。\n\n使用场景：同一批样本按画像、动作、周期、阶段、数据质量与画像来源分别分桶，便于定位偏差来源。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalProfileCalibrationBucket": {
         "properties": {
@@ -6303,7 +6371,8 @@
           "neutral",
           "sample_sufficient"
         ],
-        "title": "DecisionSignalProfileCalibrationBucket"
+        "title": "DecisionSignalProfileCalibrationBucket",
+        "description": "按决策画像划分的校准统计分桶。\n\n使用场景：评估不同画像口径的信号质量；sample_sufficient 标记样本量是否达到可解释门槛。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AlertTriggerItem": {
         "properties": {
@@ -6458,7 +6527,8 @@
           "target",
           "status"
         ],
-        "title": "AlertTriggerItem"
+        "title": "AlertTriggerItem",
+        "description": "告警触发记录条目。\n\n使用场景：触发历史页；只暴露可公开的分析上下文摘要，analysis_visibility_source 说明摘要来源，便于判断可信度。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AlertTriggerListResponse": {
         "properties": {
@@ -6488,7 +6558,8 @@
           "page",
           "page_size"
         ],
-        "title": "AlertTriggerListResponse"
+        "title": "AlertTriggerListResponse",
+        "description": "告警触发记录分页列表响应体。\n\n使用场景：触发历史按页拉取，total 为记录总数。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "PortfolioDecisionSignalRiskBlock": {
         "properties": {
@@ -6518,7 +6589,8 @@
           }
         },
         "type": "object",
-        "title": "PortfolioDecisionSignalRiskBlock"
+        "title": "PortfolioDecisionSignalRiskBlock",
+        "description": "组合决策信号风险的分块汇总。\n\n使用场景：风险响应中的独立区块；available=False 表示信号数据不可用，此时计数不应被解读为零风险。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "PortfolioDecisionSignalRiskItem": {
         "properties": {
@@ -6552,7 +6624,8 @@
           "symbol",
           "market"
         ],
-        "title": "PortfolioDecisionSignalRiskItem"
+        "title": "PortfolioDecisionSignalRiskItem",
+        "description": "组合内单个决策信号对应的风险项。\n\n使用场景：把信号与持仓标的关联；account_id 可为 None 表示跨账户汇总。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "PortfolioRiskResponse": {
         "properties": {
@@ -6614,7 +6687,8 @@
           "cost_method",
           "currency"
         ],
-        "title": "PortfolioRiskResponse"
+        "title": "PortfolioRiskResponse",
+        "description": "组合风险查询响应。\n\n使用场景：风险页一次返回集中度、行业集中度、回撤、止损与信号风险；各区块用字典承载以便按配置扩展指标而不改响应结构。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "MarketPhaseSummary": {
         "properties": {
@@ -6778,7 +6852,7 @@
           "phase"
         ],
         "title": "MarketPhaseSummary",
-        "description": "Low-sensitivity market phase metadata exposed on report meta."
+        "description": "Low-sensitivity market phase metadata exposed on report meta.\n\n使用场景：附加在分析结论与告警记录上，帮助调用方判断数据是否来自未收盘日线、以及阶段推断是否发生降级；仅含公开可展示字段，不携带持仓或账户信息。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverview": {
         "properties": {
@@ -6842,7 +6916,7 @@
           "counts"
         ],
         "title": "AnalysisContextPackOverview",
-        "description": "历史/API 可见的低敏 AnalysisContextPack 摘要"
+        "description": "历史/API 可见的低敏 AnalysisContextPack 摘要。\n\n使用场景：报告详情与历史记录展示分析输入质量；pack_version 用于兼容不同版本的上下文包结构。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverviewSubject": {
         "properties": {
@@ -6881,7 +6955,7 @@
           "code"
         ],
         "title": "AnalysisContextPackOverviewSubject",
-        "description": "AnalysisContextPack 可见摘要标的信息"
+        "description": "AnalysisContextPack 可见摘要的标的信息。\n\n使用场景：说明上下文包描述的是哪只标的；仅含可公开字段，避免泄露账户与持仓。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverviewBlock": {
         "properties": {
@@ -6946,7 +7020,7 @@
           "status"
         ],
         "title": "AnalysisContextPackOverviewBlock",
-        "description": "AnalysisContextPack 可见摘要数据块"
+        "description": "AnalysisContextPack 可见摘要的单个数据块。\n\n使用场景：报告详情展示各输入数据的质量状态；status 取值逐一标明降级原因，用户可据此判断结论可信度。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverviewCounts": {
         "properties": {
@@ -6993,7 +7067,7 @@
         },
         "type": "object",
         "title": "AnalysisContextPackOverviewCounts",
-        "description": "AnalysisContextPack 可见摘要状态计数"
+        "description": "AnalysisContextPack 可见摘要的状态计数。\n\n使用场景：概览区按状态聚合数据块数量，与 AnalysisContextPackOverviewBlock.status 的取值一一对应。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverviewDataQuality": {
         "properties": {
@@ -7048,7 +7122,7 @@
         },
         "type": "object",
         "title": "AnalysisContextPackOverviewDataQuality",
-        "description": "AnalysisContextPack 可见摘要数据质量评分"
+        "description": "AnalysisContextPack 可见摘要的数据质量评分。\n\n使用场景：给出输入数据整体质量分与等级；limitations 以低敏文案说明局限，不暴露原始内部细节。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "AnalysisContextPackOverviewMetadata": {
         "properties": {
@@ -7079,7 +7153,7 @@
         },
         "type": "object",
         "title": "AnalysisContextPackOverviewMetadata",
-        "description": "AnalysisContextPack 可见摘要元数据"
+        "description": "AnalysisContextPack 可见摘要元数据。\n\n使用场景：说明上下文包的触发来源与新闻样本量，用于解释数据为何偏少。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "HTTPValidationError": {
         "properties": {
@@ -7155,7 +7229,8 @@
           "source_report_id",
           "decision_profile"
         ],
-        "title": "DecisionSignalReassessRequest"
+        "title": "DecisionSignalReassessRequest",
+        "description": "重新评估决策信号的请求体。\n\n使用场景：基于指定历史报告重新生成信号；extra=forbid 拒绝未知字段，避免调用方误以为传了会生效的参数。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalReassessResponse": {
         "properties": {
@@ -7220,7 +7295,8 @@
           }
         },
         "type": "object",
-        "title": "DecisionSignalReassessResponse"
+        "title": "DecisionSignalReassessResponse",
+        "description": "决策信号重评估响应（预览、落库项与持久化状态）。\n\n使用场景：重评估端点；未要求持久化时只有 preview，blocked_reason 说明护栏为何拒绝落库。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalReassessErrorResponse": {
         "properties": {
@@ -7261,7 +7337,8 @@
           "error",
           "message"
         ],
-        "title": "DecisionSignalReassessErrorResponse"
+        "title": "DecisionSignalReassessErrorResponse",
+        "description": "决策信号重评估的错误响应（不支持的报告类型/快照或护栏拦截）。\n\n使用场景：重评估失败时返回具名错误码；error 限定三种原因，便于前端给出针对性提示。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalWarning": {
         "properties": {
@@ -7297,7 +7374,8 @@
         "required": [
           "code"
         ],
-        "title": "DecisionSignalWarning"
+        "title": "DecisionSignalWarning",
+        "description": "决策信号生成或重评估过程中的警告项。\n\n使用场景：非阻断性问题（如快照缺字段）以警告码回传，params 提供模板参数，前端可本地化展示。\n\n@author: Lensgcx (GaoCangxiong)"
       },
       "DecisionSignalPreview": {
         "properties": {
@@ -7437,7 +7515,8 @@
           "action",
           "metadata"
         ],
-        "title": "DecisionSignalPreview"
+        "title": "DecisionSignalPreview",
+        "description": "决策信号预览结果（尚未落库）。\n\n使用场景：重评估的 dry-run 与前端确认页；结构贴近信号详情但不含数据库主键与时间戳。\n\n@author: Lensgcx (GaoCangxiong)"
       }
     },
     "securitySchemes": {

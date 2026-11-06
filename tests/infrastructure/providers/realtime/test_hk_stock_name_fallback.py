@@ -24,8 +24,8 @@ except ImportError:
     if "json_repair" not in sys.modules:
         sys.modules["json_repair"] = MagicMock()
 
-from data_provider import akshare_fetcher as akshare_fetcher_module
-from data_provider.akshare_fetcher import AkshareFetcher
+from data_provider.runtime.fetchers import akshare as akshare_fetcher_module
+from data_provider.runtime.fetchers.akshare import AkshareFetcher
 
 
 class _DummyCircuitBreaker:
@@ -100,7 +100,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.fetcher._enforce_rate_limit = lambda: None
         self.fetcher._set_random_user_agent = lambda: None
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_em_success_returns_quote_with_name(self, mock_cb):
         """stock_hk_spot_em 成功时直接返回含名称的 quote。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -114,7 +114,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.assertEqual(quote.name, "腾讯控股")
         self.assertAlmostEqual(quote.price, 370.0)
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_repeated_em_lookup_uses_hot_cache_without_network_delay(self, mock_cb):
         """首次拉取后，TTL 内查询不应再次调用接口或执行限速等待。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -133,7 +133,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.fetcher._set_random_user_agent.assert_called_once()
         self.fetcher._enforce_rate_limit.assert_called_once()
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_parallel_cold_lookups_share_one_em_request(self, mock_cb):
         """组合快照并发冷查询时，全市场主接口只能由一个线程刷新。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -166,7 +166,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         ak_mock.stock_hk_spot_em.assert_called_once()
         ak_mock.stock_hk_spot.assert_not_called()
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_em_failure_falls_back_to_spot(self, mock_cb):
         """stock_hk_spot_em 抛异常时应 fallback 到 stock_hk_spot 并返回名称。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -182,7 +182,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.assertAlmostEqual(quote.price, 368.0)
         ak_mock.stock_hk_spot.assert_called_once()
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_parallel_em_failure_reuses_negative_cache_before_fallback(self, mock_cb):
         """并发冷启动失败时应只尝试一次主接口，其余线程复用失败结果后走备用链路。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -216,7 +216,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.assertEqual(ak_mock.stock_hk_spot.call_count, len(codes))
         self.assertEqual(akshare_fetcher_module._hk_realtime_cache["last_result"], "failure")
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_both_fail_returns_none(self, mock_cb):
         """stock_hk_spot_em 和 stock_hk_spot 都失败时返回 None，不抛异常。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -229,7 +229,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
 
         self.assertIsNone(quote)
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_em_returns_empty_df_falls_back_to_spot(self, mock_cb):
         """stock_hk_spot_em 返回空 DataFrame 时应 fallback 到 stock_hk_spot。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -250,7 +250,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         ak_mock.stock_hk_spot_em.assert_called_once()
         self.assertEqual(ak_mock.stock_hk_spot.call_count, 2)
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_em_missing_code_column_falls_back_without_poisoning_cache(self, mock_cb):
         """主接口结构异常时应保留 fallback，且异常结果不得写入缓存。"""
         cb = _DummyCircuitBreaker()
@@ -271,7 +271,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.assertIsNone(akshare_fetcher_module._hk_realtime_cache["data"])
         self.assertTrue(any(source == "akshare_hk_em" for source, _ in cb.failures))
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_malformed_hot_cache_falls_back_without_refetching_em(self, mock_cb):
         """缓存解析失败时应跳过昂贵的主接口重拉，并使用备用接口。"""
         mock_cb.return_value = _DummyCircuitBreaker()
@@ -294,7 +294,7 @@ class TestHKRealtimeFallback(unittest.TestCase):
         self.fetcher._set_random_user_agent.assert_called_once()
         self.fetcher._enforce_rate_limit.assert_called_once()
 
-    @patch("data_provider.akshare_fetcher.get_realtime_circuit_breaker")
+    @patch("data_provider.runtime.fetchers.akshare.get_realtime_circuit_breaker")
     def test_circuit_breaker_open_returns_none(self, mock_cb):
         """熔断状态下直接返回 None。"""
         cb = _DummyCircuitBreaker()

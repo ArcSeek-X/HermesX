@@ -28,7 +28,7 @@ class DataProviderPortfolioRealtimeQuote:
 
     def prefetch_quotes(self, *, codes: List[str]) -> None:
         """批量预热实时行情缓存；仅暖缓存、返回值不被消费，异常上抛由用例降级。"""
-        from data_provider.base import DataFetcherManager
+        from data_provider.runtime.manager import DataFetcherManager
 
         DataFetcherManager().prefetch_realtime_quotes(list(codes))
 
@@ -36,7 +36,7 @@ class DataProviderPortfolioRealtimeQuote:
         self, *, code: str
     ) -> Optional[Tuple[Any, Optional[str]]]:
         """取单票实时价与来源，返回 ``(原始 price, provider 字符串)``；无数据返回 ``None``。"""
-        from data_provider.base import DataFetcherManager
+        from data_provider.runtime.manager import DataFetcherManager
 
         quote = DataFetcherManager().get_realtime_quote(code, log_final_failure=False)
         if quote is None:

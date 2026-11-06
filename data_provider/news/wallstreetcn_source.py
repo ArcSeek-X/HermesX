@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from data_provider.news.base import NewsDataSource, NewsRequest, NewsResult
-from data_provider.wallstreetcn_calendar_fetcher import CalendarFetchError, WallstreetcnCalendarFetcher
-from data_provider.wallstreetcn_live_news_fetcher import LiveNewsFetchError, WallstreetcnLiveNewsFetcher
+from data_provider.calendar.wallstreetcn_source import CalendarFetchError, WallstreetcnCalendarFetcher
+from data_provider.news.wallstreetcn_live import LiveNewsFetchError, WallstreetcnLiveNewsFetcher
 from src.config import get_config
 
 

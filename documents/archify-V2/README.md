@@ -1,8 +1,8 @@
 # HermesX 工程架构图册 V2
 
-**入口：[打开交互图册](index.html)。** 图册包含系统、前端、后端总图，以及路由、页面、主题、分析、Agent、行情、持久化、报告通知、运行支撑和桌面端专题。统一入口提供视图切换、节点搜索、职责卡片、源码符号与行号、静态导入、关系登记和完整路由页面清单。每张 Archify 图也可独立打开。
+**入口：[打开交互图册](index.html)。** 图册包含系统、前端、后端总图，以及路由、页面、主题、分析、Agent、行情、持久化、报告通知、运行支撑、桌面端专题和 Token 流量网关管理章节。统一入口提供视图切换、节点搜索、职责卡片、源码符号与行号、静态导入、关系登记和完整路由页面清单。每张 Archify 图也可独立打开。
 
-分析日期：2026-11-04。基线为本地 HEAD `bcab0218613d8985600a66ac1b9857931a8b312c` **加当时未提交的工作树内容**；单独检出该提交不能复现全部源码证据。当前目录记录 13 个视图、180 个分层节点、812 个关联源码文件、40 个 `MENU_MANIFEST` 页面入口。节点按视图计数，同一模块可以出现在总图与专题中；关联文件按路径去重。
+分析日期：2026-11-04；第 14 章「Token 流量网关管理」于 2026-11-05 增补，沿用同一源码基线。基线为本地 HEAD `bcab0218613d8985600a66ac1b9857931a8b312c` **加当时未提交的工作树内容**；单独检出该提交不能复现全部源码证据。当前目录记录 14 个视图、192 个分层节点、815 个关联源码文件、40 个 `MENU_MANIFEST` 页面入口。节点按视图计数，同一模块可以出现在总图与专题中；关联文件按路径去重。
 
 ## 视图导航
 
@@ -23,6 +23,7 @@
 | 11 | [报告、通知与 Bot 闭环](delivery.html) | 内容、格式、接收方、渠道、来源会话回复与投递诊断如何分离？ |
 | 12 | [交易、风险、任务与配置支撑](control.html) | 决策、持仓、告警、回测、调度、诊断、运行配置与认证如何协作？ |
 | 13 | [Electron 启动与本地运行边界](desktop.html) | 主进程、preload、Web 渲染进程与 Python 后端如何启动和通信？ |
+| 14 | [Token 流量网关管理](token-gateway.html) | LiteLLM 如何接入、AI 调用走哪两条路径、Token 流量如何回流记账，以及自建管理面与官方 Proxy 的边界？ |
 
 ## 图的语义与阅读边界
 
@@ -71,19 +72,27 @@ Props / callback 连接父子组件，URL 与路由定位页面，Store / Contex
 
 模型服务、搜索、市场数据、消息通道与经纪商均按配置启用。架构图描述实现位置与能力范围，不表示配置已启用、网络可达或线上调用成功。Bot 入站平台、通知出站渠道与源会话回复的覆盖范围也不同。
 
+## Token 流量网关管理
+
+第 14 章单独登记 LiteLLM 与项目的关系：`litellm` 是**进程内 Python SDK 依赖**，由应用自己构造 `Router` / 直调 `litellm.completion` 并向各厂商 API 发请求；本仓库没有部署 LiteLLM Proxy Server，也没有接入官方 Admin UI（`LITELLM_MASTER_KEY`、`:4000`、`/ui`、master key 均无对应实现）。`LITELLM_CONFIG` 只借用 Proxy 的 `model_list` YAML 格式，由 `parse_litellm_yaml` 在进程内读取；`router_settings` 在本仓库不生效。
+
+配置链为 `LITELLM_CONFIG` > `LLM_CHANNELS` > 传统单 Key 环境变量，编译后的 `model_list` 决定主模型、fallback wire model 与多 Key deployment（`simple-shuffle` + `num_retries=2`）。AI 调用有两条路径：报告生成经 `analyzer` → `LiteLLMGenerationBackend` → 注入的补全实现；Agent / Chat 经 `LiteLLMAgentBackend` → `LLMToolAdapter` → `Router.completion`，两者共用生成参数、错误恢复与 provider cache 适配。
+
+外部响应回到 `usage` 归一化（`usage` / `usage_metadata` / `_hidden_params`），再写入 `llm_usage` 并结合 provider trace 与日志形成 Token 记账；Web 设置页与配置 API 承担配置校验、状态预览和 smoke test。也就是说，官方 Proxy 的 Key 管理、模型管理、花费追踪能力在本项目由自建配置层、Web 管理面和业务库承担，图中用虚线标出「可选形态 · 当前不经过」以免误读为已部署网关。
+
 ## 源码证据与维护方式
 
 | 文件 | 用途 |
 | --- | --- |
 | [index.html](index.html) | 图册导航、职责卡片、源码核对与页面目录；内嵌目录数据，可在本地直接打开 |
-| `*.html` | 13 张独立 Archify 交互架构图 |
+| `*.html` | 14 张独立 Archify 交互架构图 |
 | `*.json`（图名对应） | 各图类型化规格：节点、坐标、边、归组与图内卡片 |
 | [architecture-catalog.json](architecture-catalog.json) | 视图、职责、关系、页面、源码摘要、公开符号、行号、静态导入与文件 SHA-256 |
 | [source-map.json](source-map.json) | 节点到源码范围和文件的映射 |
 | `*.receipt.json` | 绑定规格与 HTML SHA-256、字节数及确定性检查结果的 Archify 交付回执 |
 | [validation.md](validation.md) | 本次验证状态与临时浏览器证据位置；以该记录说明的范围为准 |
 
-源码证据包含静态提取结果：Python 使用语法树提取公开定义和导入，前端文件提取导出与导入文本。**812 个关联文件不表示对全部文件进行了逐行人工审计。** 动态导入、反射、工厂装配、条件执行与跨函数调用不能仅凭清单完整还原；静态导入也不能直接证明运行时可达。主要职责与接线结合入口代码、关键实现和文档分析，证据用于核对与进一步追踪。
+源码证据包含静态提取结果：Python 使用语法树提取公开定义和导入，前端文件提取导出与导入文本。**815 个关联文件不表示对全部文件进行了逐行人工审计。** 动态导入、反射、工厂装配、条件执行与跨函数调用不能仅凭清单完整还原；静态导入也不能直接证明运行时可达。主要职责与接线结合入口代码、关键实现和文档分析，证据用于核对与进一步追踪。
 
 文件 SHA-256 对应提取时的工作树字节；行号和符号可能随后续代码改动漂移。维护时应同时更新图规格、目录、映射和图册内嵌数据，再重新生成受影响图的回执。不要将旧图的回执或截图用于证明新图通过验证。
 
@@ -99,13 +108,14 @@ Props / callback 连接父子组件，URL 与路由定位页面，Store / Contex
 - [Agent 流式事件](../../docs/agent-stream-events.md)
 - [决策信号](../../docs/decision-signals.md)
 - [通知说明](../../docs/notifications.md)
+- [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)
 
 ADR 的四层业务职责视角与后续五层代码依赖视角分别解释。文档出现目标目录、历史落点或旧接口时，以当前可执行代码与专项权威规则核对；本图册不修改原始迁移历史。新增图册与说明使用中文，当前没有对应英文页需要同步。
 
 ## 验证范围、风险与回滚
 
-图册为文档产物，未改变应用业务逻辑。已核对本说明引用的主要目录、文件与实际实现；确定性图检查、浏览器布局及图册交互的最终状态分别记录在 [validation.md](validation.md)，不能互相替代。
+图册为文档产物，未改变应用业务逻辑。已核对本说明引用的主要目录、文件与实际实现；确定性图检查、浏览器布局及图册交互的最终状态分别记录在 [validation.md](validation.md)，不能互相替代。第 14 章只重新验证新增图与图册数据结构，其余 13 张图沿用 2026-11-04 的记录。
 
 Docs only, application tests not run。未执行行情、LLM、搜索、通知、经纪商在线验证，也未执行应用端到端、Docker 或桌面安装包验收。主要维护风险是工作树继续变化导致职责、行号或摘要过时，以及把归组关系误读为直接调用或已部署拓扑。
 
-回滚仅涉及本任务新增 `documents/archify-V2/` 图册产物及 `documents/CHANGELOG.md` 中对应的一条记录。若目录之后已有其他人的修改，应逐项核对后回退本次内容；不回退仓库原有未提交改动，不操作业务数据库、凭据和运行文件。
+回滚仅涉及本任务新增 `documents/archify-V2/` 图册产物及 `documents/CHANGELOG.md` 中对应的一条记录。回滚第 14 章时删除 `token-gateway.json` / `.html` / `.receipt.json`，并从 `index.html`、`architecture-catalog.json`、`source-map.json`、README 与 validation 中移除对应章节数据；保留其余 13 张图和原有证据。若目录之后已有其他人的修改，应逐项核对后回退本次内容；不回退仓库原有未提交改动，不操作业务数据库、凭据和运行文件。

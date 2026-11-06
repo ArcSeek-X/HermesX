@@ -44,7 +44,20 @@ if _packaged_import_probe:
     import sys
 
     try:
-        importlib.import_module(_packaged_import_probe)
+        _probed_module = importlib.import_module(_packaged_import_probe)
+        if _packaged_import_probe == "data_provider":
+            # Exercise lazy exports and every bundled capability/compatibility path,
+            # rather than treating the lightweight package import as sufficient.
+            import pkgutil
+
+            for _export in _probed_module.__all__:
+                getattr(_probed_module, _export)
+            _provider_modules = list(pkgutil.walk_packages(
+                _probed_module.__path__, _probed_module.__name__ + "."
+            ))
+            for _provider_module in _provider_modules:
+                importlib.import_module(_provider_module.name)
+            print(f"OK: provider exports and {len(_provider_modules)} submodules loaded")
     except Exception as exc:
         print(
             f"ERROR: packaged import failed for {_packaged_import_probe}: {exc}",

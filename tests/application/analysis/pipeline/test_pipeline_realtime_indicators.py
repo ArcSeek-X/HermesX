@@ -17,7 +17,7 @@ import pandas as pd
 
 from tests.support.paths import get_repo_root
 
-from data_provider.realtime_types import UnifiedRealtimeQuote, RealtimeSource
+from data_provider.realtime.types import UnifiedRealtimeQuote, RealtimeSource
 from src.domain.analysis.stock_analyzer import StockTrendAnalyzer, TrendAnalysisResult, TrendStatus
 from src.application.analysis.pipeline import StockAnalysisPipeline
 

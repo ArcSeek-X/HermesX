@@ -16,7 +16,7 @@ import logging
 import time
 from typing import Dict, List, Optional
 
-from data_provider.stocksdk_bridge import StockSdkBridgeError, get_stocksdk_client
+from data_provider.clients.stocksdk.bridge import StockSdkBridgeError, get_stocksdk_client
 
 logger = logging.getLogger(__name__)
 
@@ -43,146 +43,35 @@ _COLOR_PALETTE = [
 
 
 def fetch_market_indices(market: str = "a") -> Optional[List[Dict]]:
-    """获取 StockSDK 市场指数数据。"""
-    client = get_stocksdk_client()
-    if not client.is_available():
-        return None
-
-    try:
-        rows = client.fetch_market_indices(market)
-    except StockSdkBridgeError as exc:
-        logger.warning("[StockSDK][sector] market indices failed: market=%s error=%s", market, exc)
-        return None
-
-    normalized = []
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        code = str(row.get("code") or "").strip()
-        name = str(row.get("name") or "").strip()
-        if not code or not name:
-            continue
-        normalized.append(
-            {
-                "name": name,
-                "code": code,
-                "price": _to_float(row.get("price")),
-                "changePercent": _to_float(row.get("changePercent")),
-                "change": _to_float(row.get("change")),
-                "amount": _to_float(row.get("amount")),
-                "high": _to_float(row.get("high")),
-                "low": _to_float(row.get("low")),
-                "preClose": _to_float(row.get("preClose")),
-            }
-        )
-    return normalized or None
+    return _market_card_indices().fetch_market_indices(market)
 
 
 def get_cached_market_indices(market: str = "a") -> Optional[List[Dict]]:
-    """获取带缓存的 StockSDK 市场指数数据。"""
-    cache = _INDEX_CACHE.setdefault(market, {"data": None, "timestamp": 0.0, "ttl": 60})
-    if cache["data"] is None or (time.time() - float(cache["timestamp"])) > int(cache["ttl"]):
-        data = fetch_market_indices(market)
-        if data:
-            cache["data"] = data
-            cache["timestamp"] = time.time()
-    return cache["data"]  # type: ignore[return-value]
+    return _market_card_indices().get_cached_market_indices(market)
 
 
 def fetch_market_overview() -> Optional[Dict]:
-    """获取 StockSDK A 股市场概览。"""
-    client = get_stocksdk_client()
-    if not client.is_available():
-        return None
-    try:
-        data = client.fetch_market_overview()
-    except StockSdkBridgeError as exc:
-        logger.warning("[StockSDK][sector] market overview failed: %s", exc)
-        return None
-    if not isinstance(data, dict):
-        return None
-    return {
-        "riseCount": int(_to_float(data.get("riseCount")) or 0),
-        "fallCount": int(_to_float(data.get("fallCount")) or 0),
-        "flatCount": int(_to_float(data.get("flatCount")) or 0),
-        "totalAmount": _to_float(data.get("totalAmount")) or 0.0,
-        "volumeRatio": _to_float(data.get("volumeRatio")),
-        "limitUpCount": int(_to_float(data.get("limitUpCount")) or 0),
-        "limitDownCount": int(_to_float(data.get("limitDownCount")) or 0),
-    }
+    return _market_card_statistics().fetch_market_overview()
 
 
 def get_cached_market_overview() -> Optional[Dict]:
-    """获取带缓存的 StockSDK 市场概览。"""
-    if _OVERVIEW_CACHE["data"] is None or (time.time() - float(_OVERVIEW_CACHE["timestamp"])) > int(_OVERVIEW_CACHE["ttl"]):
-        data = fetch_market_overview()
-        if data:
-            _OVERVIEW_CACHE["data"] = data
-            _OVERVIEW_CACHE["timestamp"] = time.time()
-    return _OVERVIEW_CACHE["data"]  # type: ignore[return-value]
+    return _market_card_statistics().get_cached_market_overview()
 
 
 def fetch_northbound_flow() -> Optional[Dict]:
-    """获取 StockSDK 北向资金汇总。"""
-    client = get_stocksdk_client()
-    if not client.is_available():
-        return None
-    try:
-        data = client.fetch_northbound_summary()
-    except StockSdkBridgeError as exc:
-        logger.warning("[StockSDK][sector] northbound failed: %s", exc)
-        return None
-    if not isinstance(data, dict):
-        return None
-    return {
-        "netInflow": _to_float(data.get("netInflow")),
-        "name": str(data.get("name") or "北向资金"),
-        "date": str(data.get("date") or "").strip() or None,
-        "riseCount": _to_int(data.get("riseCount")),
-        "fallCount": _to_int(data.get("fallCount")),
-    }
+    return _market_card_statistics().fetch_northbound_flow()
 
 
 def get_cached_northbound_flow() -> Optional[Dict]:
-    """获取带缓存的 StockSDK 北向资金数据。"""
-    if _FLOW_CACHE["northbound"] is None or (time.time() - float(_FLOW_CACHE["timestamp"])) > int(_FLOW_CACHE["ttl"]):
-        data = fetch_northbound_flow()
-        if data:
-            _FLOW_CACHE["northbound"] = data
-            _FLOW_CACHE["timestamp"] = time.time()
-    return _FLOW_CACHE["northbound"]  # type: ignore[return-value]
+    return _market_card_statistics().get_cached_northbound_flow()
 
 
 def fetch_market_fund_flow() -> Optional[Dict]:
-    """获取 StockSDK 大盘主力资金。"""
-    client = get_stocksdk_client()
-    if not client.is_available():
-        return None
-    try:
-        data = client.fetch_market_fund_flow()
-    except StockSdkBridgeError as exc:
-        logger.warning("[StockSDK][sector] market fund flow failed: %s", exc)
-        return None
-    if not isinstance(data, dict):
-        return None
-    return {
-        "mainNetInflow": _to_float(data.get("mainNetInflow")),
-        "mainNetInflowPercent": _to_float(data.get("mainNetInflowPercent")),
-        "date": str(data.get("date") or "").strip() or None,
-    }
+    return _market_card_statistics().fetch_market_fund_flow()
 
 
 def get_cached_market_fund_flow() -> Optional[Dict]:
-    """获取带缓存的 StockSDK 大盘主力资金。"""
-    if (
-        _FLOW_CACHE["market_fund_flow"] is None
-        or (time.time() - float(_FLOW_CACHE["timestamp"])) > int(_FLOW_CACHE["ttl"])
-    ):
-        data = fetch_market_fund_flow()
-        if data:
-            _FLOW_CACHE["market_fund_flow"] = data
-            _FLOW_CACHE["timestamp"] = time.time()
-    return _FLOW_CACHE["market_fund_flow"]  # type: ignore[return-value]
+    return _market_card_statistics().get_cached_market_fund_flow()
 
 
 def fetch_board_list(sector_type: str = "industry") -> Optional[List[Dict]]:
@@ -380,3 +269,49 @@ def _to_int(value: object) -> Optional[int]:
         return None
     return int(numeric)
 
+
+
+def _market_card_indices():
+    """显式接线原模块运行资源，不复制缓存或提前创建桥接客户端。"""
+    from data_provider.market.indices import StockSdkCardIndices
+
+    return StockSdkCardIndices(
+        call_to_float=lambda *args, **kwargs: _to_float(*args, **kwargs),
+        call_fetch_market_indices=lambda *args, **kwargs: fetch_market_indices(
+            *args, **kwargs
+        ),
+        call_get_stocksdk_client=lambda *args, **kwargs: get_stocksdk_client(
+            *args, **kwargs
+        ),
+        read_stocksdkbridgeerror=lambda: StockSdkBridgeError,
+        read_index_cache=lambda: _INDEX_CACHE,
+        read_logger=lambda: logger,
+        read_time=lambda: time,
+    )
+
+
+def _market_card_statistics():
+    """显式接线原模块运行资源，不复制缓存或提前创建桥接客户端。"""
+    from data_provider.market.statistics import StockSdkCardStatistics
+
+    return StockSdkCardStatistics(
+        call_to_float=lambda *args, **kwargs: _to_float(*args, **kwargs),
+        call_to_int=lambda *args, **kwargs: _to_int(*args, **kwargs),
+        call_fetch_market_fund_flow=lambda *args, **kwargs: fetch_market_fund_flow(
+            *args, **kwargs
+        ),
+        call_fetch_market_overview=lambda *args, **kwargs: fetch_market_overview(
+            *args, **kwargs
+        ),
+        call_fetch_northbound_flow=lambda *args, **kwargs: fetch_northbound_flow(
+            *args, **kwargs
+        ),
+        call_get_stocksdk_client=lambda *args, **kwargs: get_stocksdk_client(
+            *args, **kwargs
+        ),
+        read_stocksdkbridgeerror=lambda: StockSdkBridgeError,
+        read_flow_cache=lambda: _FLOW_CACHE,
+        read_overview_cache=lambda: _OVERVIEW_CACHE,
+        read_logger=lambda: logger,
+        read_time=lambda: time,
+    )

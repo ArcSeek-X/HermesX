@@ -1,43 +1,55 @@
-# -*- coding: utf-8 -*-
-"""
-数据源对接层包入口。
+"""数据源公开兼容入口；按需解析，导入包本身不加载全部厂商。"""
 
-说明：
-1. 按 ADR-001，新的能力入口已逐步收敛到 `data_provider/<capability>/base.py`
-   与 `<source>_source.py`。
-2. 本文件当前仅保留顶层兼容导出，供仍未完成切换的旧调用方使用。
-3. 新代码应优先依赖能力包入口，而不是继续扩散对本文件的直接依赖。
-"""
+from importlib import import_module
 
-from .base import BaseFetcher, DataFetcherManager
-from .efinance_fetcher import EfinanceFetcher
-from .tencent_fetcher import TencentFetcher
-from .akshare_fetcher import AkshareFetcher, is_hk_stock_code
-from .tushare_fetcher import TushareFetcher
-from .pytdx_fetcher import PytdxFetcher
-from .baostock_fetcher import BaostockFetcher
-from .yfinance_fetcher import YfinanceFetcher
-from .longbridge_fetcher import LongbridgeFetcher
-from .finnhub_fetcher import FinnhubFetcher
-from .alphavantage_fetcher import AlphaVantageFetcher
-from .us_index_mapping import is_us_index_code, is_us_stock_code, get_us_index_yf_symbol, US_INDEX_MAPPING
+_EXPORTS = {
+    "BaseFetcher": ("data_provider.common.fetcher_contract", "BaseFetcher"),
+    "DataFetcherManager": ("data_provider.runtime.manager", "DataFetcherManager"),
+    "EfinanceFetcher": ("data_provider.runtime.fetchers.efinance", "EfinanceFetcher"),
+    "TencentFetcher": ("data_provider.kline.daily_tencent_source", "TencentFetcher"),
+    "AkshareFetcher": ("data_provider.runtime.fetchers.akshare", "AkshareFetcher"),
+    "TushareFetcher": ("data_provider.runtime.fetchers.tushare", "TushareFetcher"),
+    "PytdxFetcher": ("data_provider.runtime.fetchers.pytdx", "PytdxFetcher"),
+    "BaostockFetcher": ("data_provider.runtime.fetchers.baostock", "BaostockFetcher"),
+    "YfinanceFetcher": ("data_provider.runtime.fetchers.yfinance", "YfinanceFetcher"),
+    "LongbridgeFetcher": ("data_provider.runtime.fetchers.longbridge", "LongbridgeFetcher"),
+    "FinnhubFetcher": ("data_provider.runtime.fetchers.finnhub", "FinnhubFetcher"),
+    "AlphaVantageFetcher": ("data_provider.runtime.fetchers.alphavantage", "AlphaVantageFetcher"),
+    "is_us_index_code": ("src.domain.market.us_index_symbols", "is_us_index_code"),
+    "is_us_stock_code": ("src.domain.market.us_index_symbols", "is_us_stock_code"),
+    "is_hk_stock_code": ("data_provider.runtime.fetchers.akshare", "is_hk_stock_code"),
+    "get_us_index_yf_symbol": ("data_provider.common.symbols", "get_us_index_yf_symbol"),
+    "US_INDEX_MAPPING": ("src.domain.market.us_index_symbols", "US_INDEX_MAPPING"),
+}
 
 __all__ = [
-    'BaseFetcher',
-    'DataFetcherManager',
-    'EfinanceFetcher',
-    'TencentFetcher',
-    'AkshareFetcher',
-    'TushareFetcher',
-    'PytdxFetcher',
-    'BaostockFetcher',
-    'YfinanceFetcher',
-    'LongbridgeFetcher',
-    'FinnhubFetcher',
-    'AlphaVantageFetcher',
-    'is_us_index_code',
-    'is_us_stock_code',
-    'is_hk_stock_code',
-    'get_us_index_yf_symbol',
-    'US_INDEX_MAPPING',
+    "BaseFetcher",
+    "DataFetcherManager",
+    "EfinanceFetcher",
+    "TencentFetcher",
+    "AkshareFetcher",
+    "TushareFetcher",
+    "PytdxFetcher",
+    "BaostockFetcher",
+    "YfinanceFetcher",
+    "LongbridgeFetcher",
+    "FinnhubFetcher",
+    "AlphaVantageFetcher",
+    "is_us_index_code",
+    "is_us_stock_code",
+    "is_hk_stock_code",
+    "get_us_index_yf_symbol",
+    "US_INDEX_MAPPING",
 ]
+
+
+def __getattr__(name):
+    try:
+        module, symbol = _EXPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    return getattr(import_module(module), symbol)
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from data_provider.common.normalize import code_to_secid
 from data_provider.kline.base import KLINE_ADJUSTMENT_TO_FQT, KLineDataSource, KLineRequest, KLineResult
 from data_provider.kline.transform import ensure_change_percent, resample_rows, sort_kline_rows, trim_rows
-from data_provider.stocksdk_bridge import (
+from data_provider.clients.stocksdk.bridge import (
     StockSdkBridgeError,
     get_stocksdk_client,
     resolve_stocksdk_symbol,

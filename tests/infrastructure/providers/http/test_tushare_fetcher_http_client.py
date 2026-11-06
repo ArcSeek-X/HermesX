@@ -22,7 +22,7 @@ except ValueError:
 if not json_repair_available and "json_repair" not in sys.modules:
     sys.modules["json_repair"] = MagicMock()
 
-from data_provider.tushare_fetcher import (
+from data_provider.runtime.fetchers.tushare import (
     TushareFetcher,
     _TushareHttpClient,
     _resolve_tushare_http_url,
@@ -47,7 +47,7 @@ class TestTushareHttpClient(unittest.TestCase):
             ),
         )
 
-        with patch("data_provider.tushare_fetcher.requests.post", return_value=response) as post_mock:
+        with patch("data_provider.runtime.fetchers.tushare.requests.post", return_value=response) as post_mock:
             df = client.daily(ts_code="600519.SH", start_date="20260320", end_date="20260325")
 
         post_mock.assert_called_once_with(
@@ -73,7 +73,7 @@ class TestTushareFetcherInit(unittest.TestCase):
     def test_init_builds_http_client_when_token_present(self) -> None:
         config = SimpleNamespace(tushare_token="demo-token")
 
-        with patch("data_provider.tushare_fetcher.get_config", return_value=config):
+        with patch("data_provider.runtime.fetchers.tushare.get_config", return_value=config):
             fetcher = TushareFetcher()
 
         self.assertIsInstance(fetcher._api, _TushareHttpClient)
@@ -115,7 +115,7 @@ class TestTushareFetcherCustomHttpUrl(unittest.TestCase):
     def test_fetcher_uses_custom_url_when_env_set(self) -> None:
         config = SimpleNamespace(tushare_token="demo-token")
 
-        with patch("data_provider.tushare_fetcher.get_config", return_value=config), \
+        with patch("data_provider.runtime.fetchers.tushare.get_config", return_value=config), \
                 patch.dict("os.environ", {"TUSHARE_HTTP_URL": "http://gw.example.com/tushare"}):
             fetcher = TushareFetcher()
 
@@ -126,7 +126,7 @@ class TestTushareFetcherCustomHttpUrl(unittest.TestCase):
         config = SimpleNamespace(tushare_token="demo-token")
 
         env = {k: v for k, v in __import__("os").environ.items() if k != "TUSHARE_HTTP_URL"}
-        with patch("data_provider.tushare_fetcher.get_config", return_value=config), \
+        with patch("data_provider.runtime.fetchers.tushare.get_config", return_value=config), \
                 patch.dict("os.environ", env, clear=True):
             fetcher = TushareFetcher()
 
@@ -137,7 +137,7 @@ class TestTushareFetcherCustomHttpUrl(unittest.TestCase):
         """端到端确保自定义 url 真正驱动 requests.post 的目标地址。"""
         config = SimpleNamespace(tushare_token="demo-token")
 
-        with patch("data_provider.tushare_fetcher.get_config", return_value=config), \
+        with patch("data_provider.runtime.fetchers.tushare.get_config", return_value=config), \
                 patch.dict("os.environ", {"TUSHARE_HTTP_URL": "http://gw.example.com/tushare"}):
             fetcher = TushareFetcher()
 
@@ -154,7 +154,7 @@ class TestTushareFetcherCustomHttpUrl(unittest.TestCase):
             ),
         )
 
-        with patch("data_provider.tushare_fetcher.requests.post", return_value=response) as post_mock:
+        with patch("data_provider.runtime.fetchers.tushare.requests.post", return_value=response) as post_mock:
             fetcher._api.daily(ts_code="600519.SH", start_date="20260320", end_date="20260325")
 
         post_mock.assert_called_once_with(

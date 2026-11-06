@@ -14,8 +14,8 @@ from typing import Dict, List, Optional
 
 import requests
 
-from data_provider.akshare_fetcher import AkshareFetcher
-from data_provider.sector.base import SectorDataSource, SectorRankingRequest, SectorRankingResult
+from data_provider.runtime.fetchers.akshare import AkshareFetcher
+from data_provider.sector.source_contract import SectorDataSource, SectorRankingRequest, SectorRankingResult
 
 logger = logging.getLogger(__name__)
 
@@ -124,284 +124,35 @@ class EastMoneySectorSource(SectorDataSource):
 
 
 def fetch_market_indices(market: str = "a") -> Optional[List[Dict]]:
-    """获取市场指数数据，主域名失败则回退到 delay 域名。"""
-    if market == "us":
-        indices_cfg = MARKET_INDICES_US
-    elif market == "jp-kr":
-        indices_cfg = MARKET_INDICES_JP_KR
-    else:
-        indices_cfg = MARKET_INDICES
-    secids = ",".join(item["secid"] for item in indices_cfg)
-    code_name_map = {item["code"]: item["name"] for item in indices_cfg}
-    for url in [EASTMONEY_INDEX_URL, EASTMONEY_INDEX_URL_DELAY]:
-        try:
-            resp = _session.get(
-                url,
-                params={
-                    "fltt": "2",
-                    "fields": "f2,f3,f4,f5,f6,f12,f14,f15,f16,f18",
-                    "secids": secids,
-                },
-                timeout=REQUEST_TIMEOUT,
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            diff = result.get("data", {}).get("diff", [])
-            if result.get("rc") != 0 or not diff:
-                logger.warning("东方财富指数接口(%s)返回异常：%s", url, result)
-                continue
-            indices = []
-            for item in diff:
-                amount = item.get("f6", "-")
-                amount_val = amount
-                if amount_val in ("-", "", 0, "0", "0.0", "0.00", None):
-                    amount_val = None
-                else:
-                    try:
-                        amount_val = float(amount_val)
-                        if amount_val <= 0:
-                            amount_val = None
-                    except (TypeError, ValueError):
-                        amount_val = None
-                code = item.get("f12", "")
-                indices.append({
-                    "name": code_name_map.get(code, item.get("f14", "")),
-                    "code": code,
-                    "price": item.get("f2") if item.get("f2") != "-" else None,
-                    "changePercent": item.get("f3") if item.get("f3") != "-" else None,
-                    "change": item.get("f4") if item.get("f4") != "-" else None,
-                    "amount": amount_val,
-                    "high": item.get("f15") if item.get("f15") != "-" else None,
-                    "low": item.get("f16") if item.get("f16") != "-" else None,
-                    "preClose": item.get("f18") if item.get("f18") != "-" else None,
-                })
-            return indices
-        except Exception as exc:
-            logger.error("东方财富指数接口(%s)异常：%s", url, exc, exc_info=True)
-    return None
+    return _market_card_indices().fetch_market_indices(market)
 
 
 def get_cached_market_indices(market: str = "a") -> Optional[List[Dict]]:
-    """获取带缓存的市场指数数据。"""
-    cache = _INDEX_CACHE.setdefault(market, {"data": None, "timestamp": 0, "ttl": 60})
-    if cache["data"] is None or (time.time() - cache["timestamp"]) > cache["ttl"]:
-        data = fetch_market_indices(market)
-        if data:
-            cache["data"] = data
-            cache["timestamp"] = time.time()
-    return cache["data"]
+    return _market_card_indices().get_cached_market_indices(market)
 
 
 def fetch_market_overview() -> Optional[Dict]:
-    """获取全市场涨跌家数、涨跌停与成交额概览。"""
-    try:
-        all_stocks = []
-        for page in range(1, 60):
-            resp = _session.get(
-                EASTMONEY_MARKET_URL,
-                params={
-                    "pn": str(page),
-                    "pz": "100",
-                    "po": "1",
-                    "np": "1",
-                    "ut": "bd1d9ddb04089700cf9c27f6f7426281",
-                    "fltt": "2",
-                    "invt": "2",
-                    "fid": "f3",
-                    "fs": A_SHARE_FILTER,
-                    "fields": "f2,f3,f5,f6,f10,f12,f14,f17",
-                },
-                timeout=REQUEST_TIMEOUT,
-            )
-            resp.raise_for_status()
-            diff = resp.json().get("data", {}).get("diff", [])
-            if not diff:
-                break
-            all_stocks.extend(diff)
-        if not all_stocks:
-            logger.warning("东方财富全市场接口返回空数据")
-            return None
-        rise_count = 0
-        fall_count = 0
-        flat_count = 0
-        limit_up_count = 0
-        limit_down_count = 0
-        total_amount = 0.0
-        weighted_volume_ratio_sum = 0.0
-        total_amount_for_ratio = 0.0
-        for stock in all_stocks:
-            change_pct = stock.get("f3")
-            if change_pct in (None, "-"):
-                continue
-            try:
-                change_pct = float(change_pct)
-            except (TypeError, ValueError):
-                continue
-            if change_pct > 0:
-                rise_count += 1
-            elif change_pct < 0:
-                fall_count += 1
-            else:
-                flat_count += 1
-            limit_ratio = _get_limit_ratio(str(stock.get("f12", "")), str(stock.get("f14", "")))
-            if change_pct >= limit_ratio - 0.1:
-                limit_up_count += 1
-            elif change_pct <= -(limit_ratio - 0.1):
-                limit_down_count += 1
-            amount = stock.get("f6")
-            if amount in (None, "-"):
-                continue
-            try:
-                amount_val = float(amount)
-            except (TypeError, ValueError):
-                continue
-            total_amount += amount_val
-            volume_ratio = stock.get("f10")
-            if volume_ratio in (None, "-"):
-                continue
-            try:
-                vr = float(volume_ratio)
-            except (TypeError, ValueError):
-                continue
-            weighted_volume_ratio_sum += vr * amount_val
-            total_amount_for_ratio += amount_val
-        volume_ratio = None
-        if total_amount_for_ratio > 0:
-            volume_ratio = round(weighted_volume_ratio_sum / total_amount_for_ratio, 2)
-        return {
-            "riseCount": rise_count,
-            "fallCount": fall_count,
-            "flatCount": flat_count,
-            "totalAmount": total_amount,
-            "volumeRatio": volume_ratio,
-            "limitUpCount": limit_up_count,
-            "limitDownCount": limit_down_count,
-        }
-    except Exception as exc:
-        logger.error("东方财富全市场接口异常：%s", exc, exc_info=True)
-        return None
+    return _market_card_statistics().fetch_market_overview()
 
 
 def get_cached_market_overview() -> Optional[Dict]:
-    """获取带缓存的市场概览。"""
-    if _OVERVIEW_CACHE["data"] is None or (time.time() - _OVERVIEW_CACHE["timestamp"]) > _OVERVIEW_CACHE["ttl"]:
-        data = fetch_market_overview()
-        if data:
-            _OVERVIEW_CACHE["data"] = data
-            _OVERVIEW_CACHE["timestamp"] = time.time()
-    return _OVERVIEW_CACHE["data"]
+    return _market_card_statistics().get_cached_market_overview()
 
 
 def fetch_northbound_flow() -> Optional[Dict]:
-    """获取北向资金净流入。"""
-    try:
-        resp = _session.get(
-            EASTMONEY_NORTHBOUND_URL,
-            params={"fields1": "f1,f2,f3,f4", "fields2": "f51,f52,f53,f54,f55,f56"},
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-        data = resp.json().get("data") or {}
-        net_inflow_wan = 0.0
-        found = False
-        for item_key in ("hk2sh", "hk2sz"):
-            raw = (data.get(item_key) or {}).get("dayNetAmtIn")
-            if raw in (None, "-"):
-                continue
-            try:
-                net_inflow_wan += float(raw)
-                found = True
-            except (TypeError, ValueError):
-                continue
-        if not found or net_inflow_wan == 0:
-            logger.warning("北向资金接口返回空数据（2024-08 后可能停披露）")
-            return {"netInflow": None, "name": "北向资金", "date": None}
-        return {
-            "netInflow": round(net_inflow_wan * 1e4, 2),
-            "name": "北向资金",
-            "date": (data.get("hk2sh") or {}).get("date2"),
-        }
-    except Exception as exc:
-        logger.error("北向资金接口异常：%s", exc, exc_info=True)
-        return None
+    return _market_card_statistics().fetch_northbound_flow()
 
 
 def get_cached_northbound_flow() -> Optional[Dict]:
-    """获取带缓存的北向资金数据。"""
-    if _FLOW_CACHE["northbound"] is None or (time.time() - _FLOW_CACHE["timestamp"]) > _FLOW_CACHE["ttl"]:
-        data = fetch_northbound_flow()
-        if data:
-            _FLOW_CACHE["northbound"] = data
-            _FLOW_CACHE["timestamp"] = time.time()
-    return _FLOW_CACHE["northbound"]
+    return _market_card_statistics().get_cached_northbound_flow()
 
 
 def fetch_market_fund_flow() -> Optional[Dict]:
-    """获取大盘主力资金净流入。"""
-    try:
-        resp = _session.get(
-            EASTMONEY_FFLOW_DAYKLINE_URL,
-            params={
-                "lmt": "1",
-                "klt": "101",
-                "secid": "1.000001",
-                "fields1": "f1,f2,f3,f7",
-                "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
-            },
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-        klines = resp.json().get("data", {}).get("klines") or []
-        if klines:
-            items = klines[-1].split(",")
-            net_inflow = float(items[1]) if items[1] not in ("", "-") else None
-            percent = float(items[6]) if items[6] not in ("", "-") else None
-            return {
-                "mainNetInflow": round(net_inflow, 2) if net_inflow is not None else None,
-                "mainNetInflowPercent": round(percent, 2) if percent is not None else None,
-                "date": items[0] or None,
-            }
-        logger.warning("大盘资金流日线接口返回空数据")
-    except Exception as exc:
-        logger.error("大盘资金流日线接口异常：%s", exc, exc_info=True)
-    for url in [EASTMONEY_INDEX_URL, EASTMONEY_INDEX_URL_DELAY]:
-        try:
-            resp = _session.get(
-                url,
-                params={"fltt": "2", "fields": "f2,f3,f12,f14,f62", "secids": "1.000001,0.399001"},
-                timeout=REQUEST_TIMEOUT,
-            )
-            resp.raise_for_status()
-            diff = resp.json().get("data", {}).get("diff", [])
-            if not diff:
-                continue
-            net_inflow = 0.0
-            for item in diff:
-                raw_flow = item.get("f62", "-")
-                if raw_flow in (None, "-"):
-                    continue
-                try:
-                    net_inflow += float(raw_flow)
-                except (TypeError, ValueError):
-                    continue
-            return {
-                "mainNetInflow": round(net_inflow, 2) if net_inflow else None,
-                "mainNetInflowPercent": None,
-                "date": None,
-            }
-        except Exception as exc:
-            logger.error("东方财富主力资金接口(%s)异常：%s", url, exc, exc_info=True)
-    return None
+    return _market_card_statistics().fetch_market_fund_flow()
 
 
 def get_cached_market_fund_flow() -> Optional[Dict]:
-    """获取带缓存的大盘主力资金数据。"""
-    if _FLOW_CACHE["market_fund_flow"] is None or (time.time() - _FLOW_CACHE["timestamp"]) > _FLOW_CACHE["ttl"]:
-        data = fetch_market_fund_flow()
-        if data:
-            _FLOW_CACHE["market_fund_flow"] = data
-            _FLOW_CACHE["timestamp"] = time.time()
-    return _FLOW_CACHE["market_fund_flow"]
+    return _market_card_statistics().get_cached_market_fund_flow()
 
 
 def fetch_sector_fund_flow_rank(
@@ -674,3 +425,54 @@ def _yuan_to_yi(value: Optional[float]) -> Optional[float]:
     if value is None:
         return None
     return round(value / 1e8, 2)
+
+
+def _market_card_indices():
+    """显式接线原模块运行资源，不复制缓存或提前创建桥接客户端。"""
+    from data_provider.market.indices import EastmoneyCardIndices
+
+    return EastmoneyCardIndices(
+        call_fetch_market_indices=lambda *args, **kwargs: fetch_market_indices(
+            *args, **kwargs
+        ),
+        read_eastmoney_index_url=lambda: EASTMONEY_INDEX_URL,
+        read_eastmoney_index_url_delay=lambda: EASTMONEY_INDEX_URL_DELAY,
+        read_market_indices=lambda: MARKET_INDICES,
+        read_market_indices_jp_kr=lambda: MARKET_INDICES_JP_KR,
+        read_market_indices_us=lambda: MARKET_INDICES_US,
+        read_request_timeout=lambda: REQUEST_TIMEOUT,
+        read_index_cache=lambda: _INDEX_CACHE,
+        read_session=lambda: _session,
+        read_logger=lambda: logger,
+        read_time=lambda: time,
+    )
+
+
+def _market_card_statistics():
+    """显式接线原模块运行资源，不复制缓存或提前创建桥接客户端。"""
+    from data_provider.market.statistics import EastmoneyCardStatistics
+
+    return EastmoneyCardStatistics(
+        call_get_limit_ratio=lambda *args, **kwargs: _get_limit_ratio(*args, **kwargs),
+        call_fetch_market_fund_flow=lambda *args, **kwargs: fetch_market_fund_flow(
+            *args, **kwargs
+        ),
+        call_fetch_market_overview=lambda *args, **kwargs: fetch_market_overview(
+            *args, **kwargs
+        ),
+        call_fetch_northbound_flow=lambda *args, **kwargs: fetch_northbound_flow(
+            *args, **kwargs
+        ),
+        read_a_share_filter=lambda: A_SHARE_FILTER,
+        read_eastmoney_fflow_daykline_url=lambda: EASTMONEY_FFLOW_DAYKLINE_URL,
+        read_eastmoney_index_url=lambda: EASTMONEY_INDEX_URL,
+        read_eastmoney_index_url_delay=lambda: EASTMONEY_INDEX_URL_DELAY,
+        read_eastmoney_market_url=lambda: EASTMONEY_MARKET_URL,
+        read_eastmoney_northbound_url=lambda: EASTMONEY_NORTHBOUND_URL,
+        read_request_timeout=lambda: REQUEST_TIMEOUT,
+        read_flow_cache=lambda: _FLOW_CACHE,
+        read_overview_cache=lambda: _OVERVIEW_CACHE,
+        read_session=lambda: _session,
+        read_logger=lambda: logger,
+        read_time=lambda: time,
+    )

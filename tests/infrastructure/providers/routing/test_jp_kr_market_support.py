@@ -6,9 +6,12 @@
 from unittest.mock import patch
 
 import pandas as pd
-from data_provider.base import BaseFetcher, DataFetchError, DataFetcherManager, normalize_stock_code
-from data_provider.yfinance_fetcher import YfinanceFetcher
-from data_provider.realtime_types import UnifiedRealtimeQuote
+from data_provider.common.fetcher_contract import BaseFetcher
+from data_provider.common.errors import DataFetchError
+from data_provider.runtime.manager import DataFetcherManager
+from src.domain.market.stock_codes import normalize_stock_code
+from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
+from data_provider.realtime.types import UnifiedRealtimeQuote
 from src.domain.market.trading_calendar import MARKET_EXCHANGE, MARKET_TIMEZONE, get_market_for_stock
 from src.domain.market.context import detect_market, get_market_guidelines
 from src.application.quote.stock_code_utils import is_code_like, normalize_code
@@ -109,7 +112,7 @@ def test_data_fetcher_manager_routes_jp_kr_daily_only_to_yfinance() -> None:
     yfinance = _FakeFetcher("YfinanceFetcher")
     manager = DataFetcherManager(fetchers=[efinance, akshare, yfinance])
 
-    with patch("data_provider.base.record_provider_run_started"), patch("data_provider.base.record_provider_run"):
+    with patch("data_provider.runtime.manager.record_provider_run_started"), patch("data_provider.runtime.manager.record_provider_run"):
         jp_df, jp_source = manager.get_daily_data("7203.T")
         kr_df, kr_source = manager.get_daily_data("005930.KS")
 

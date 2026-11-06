@@ -8,7 +8,7 @@ from src.application.runtime.run_diagnostics import (
     current_diagnostic_snapshot,
     reset_run_diagnostic_context,
 )
-from data_provider.base import DataFetcherManager
+from data_provider.runtime.manager import DataFetcherManager
 
 
 class _BoardFetcher:

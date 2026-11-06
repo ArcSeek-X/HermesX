@@ -14,12 +14,7 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.fundamental_adapter import (
-    AkshareFundamentalAdapter,
-    _build_dividend_payload,
-    _extract_latest_row,
-    _parse_dividend_plan_to_per_share,
-)
+from data_provider.fundamentals.akshare_source import AkshareFundamentalAdapter, _build_dividend_payload, _extract_latest_row, _parse_dividend_plan_to_per_share
 
 
 class TestFundamentalAdapter(unittest.TestCase):

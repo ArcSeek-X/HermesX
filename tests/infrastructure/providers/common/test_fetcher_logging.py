@@ -11,8 +11,10 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.base import BaseFetcher, DataFetchError, DataFetcherManager
-from data_provider.efinance_fetcher import EfinanceFetcher
+from data_provider.common.fetcher_contract import BaseFetcher
+from data_provider.common.errors import DataFetchError
+from data_provider.runtime.manager import DataFetcherManager
+from data_provider.runtime.fetchers.efinance import EfinanceFetcher
 
 
 def _sample_df() -> pd.DataFrame:
@@ -113,7 +115,7 @@ class TestFetcherLogging(unittest.TestCase):
         self.assertEqual(akshare.calls, ["HK01211"])
         self.assertEqual(yfinance.calls, [])
 
-    @patch("data_provider.efinance_fetcher.get_config")
+    @patch("data_provider.runtime.fetchers.efinance.get_config")
     def test_efinance_rejects_hk_daily_without_calling_eastmoney(self, mock_get_config):
         mock_get_config.return_value = types.SimpleNamespace(enable_eastmoney_patch=False)
         fetcher = EfinanceFetcher(sleep_min=0, sleep_max=0)

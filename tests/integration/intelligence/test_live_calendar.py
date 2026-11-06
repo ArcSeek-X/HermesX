@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 from data_provider.news.base import NewsRequest
 from data_provider.news.wallstreetcn_source import WallstreetcnNewsSource
-from data_provider.wallstreetcn_calendar_fetcher import CalendarEventEntry
+from data_provider.calendar.wallstreetcn_source import CalendarEventEntry
 from src.config import Config
 from src.infrastructure.persistence.repositories.intelligence_repository import (
     IntelligenceRepository,

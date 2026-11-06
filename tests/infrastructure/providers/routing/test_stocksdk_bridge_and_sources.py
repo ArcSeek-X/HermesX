@@ -14,11 +14,7 @@ from data_provider.code_search.stocksdk_source import StockSdkCodeSearchSource
 from data_provider.kline.base import KLineRequest
 from data_provider.kline.stocksdk_source import StockSdkKLineSource
 from data_provider.stock_info.stocksdk_source import StockSdkStockInfoSource
-from data_provider.stocksdk_bridge import (
-    StockSdkBridgeClient,
-    StockSdkSettings,
-    resolve_stocksdk_symbol,
-)
+from data_provider.clients.stocksdk.bridge import StockSdkBridgeClient, StockSdkSettings, resolve_stocksdk_symbol
 
 
 def test_resolve_stocksdk_symbol_normalizes_cn_hk_and_us_codes() -> None:
@@ -40,8 +36,8 @@ def test_stocksdk_bridge_invokes_node_script(monkeypatch) -> None:
             stderr="",
         )
 
-    monkeypatch.setattr("data_provider.stocksdk_bridge.shutil.which", lambda _: "/usr/bin/node")
-    monkeypatch.setattr("data_provider.stocksdk_bridge.subprocess.run", fake_run)
+    monkeypatch.setattr("data_provider.clients.stocksdk.bridge.shutil.which", lambda _: "/usr/bin/node")
+    monkeypatch.setattr("data_provider.clients.stocksdk.bridge.subprocess.run", fake_run)
 
     client = StockSdkBridgeClient(
         StockSdkSettings(

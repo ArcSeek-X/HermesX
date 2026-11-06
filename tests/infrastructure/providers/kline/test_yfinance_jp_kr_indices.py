@@ -40,7 +40,7 @@ def _make_mock_yf(hist_df: pd.DataFrame):
 
 class TestJpKrIndexMappings(unittest.TestCase):
     def setUp(self):
-        from data_provider.yfinance_fetcher import YfinanceFetcher
+        from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
         self.fetcher = YfinanceFetcher()
 
     def test_jp_indices_use_expected_yahoo_symbols(self):

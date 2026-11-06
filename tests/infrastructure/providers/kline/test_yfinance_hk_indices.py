@@ -48,7 +48,7 @@ class TestHkIndexSymbolMapping(unittest.TestCase):
     """验证港股指数 Yahoo Finance 符号映射的正确性"""
 
     def setUp(self):
-        from data_provider.yfinance_fetcher import YfinanceFetcher
+        from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
         self.fetcher = YfinanceFetcher()
 
     def test_hk_indices_mapping_symbols(self):
@@ -86,7 +86,7 @@ class TestGetHkMainIndices(unittest.TestCase):
     """_get_hk_main_indices 港股指数批量获取测试"""
 
     def setUp(self):
-        from data_provider.yfinance_fetcher import YfinanceFetcher
+        from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
         self.fetcher = YfinanceFetcher()
 
     def test_returns_list_when_all_succeed(self):
@@ -188,7 +188,7 @@ class TestGetMainIndicesDispatch(unittest.TestCase):
     """get_main_indices region 分发测试"""
 
     def setUp(self):
-        from data_provider.yfinance_fetcher import YfinanceFetcher
+        from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
         self.fetcher = YfinanceFetcher()
 
     def test_region_hk_dispatches_to_hk_method(self):

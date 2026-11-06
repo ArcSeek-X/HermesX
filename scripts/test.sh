@@ -171,7 +171,7 @@ test_code_recognition() {
     python3 << 'PYTEST'
 import sys
 sys.path.insert(0, '.')
-from data_provider.akshare_fetcher import _is_hk_code, _is_us_code
+from data_provider.runtime.fetchers.akshare import _is_hk_code, _is_us_code
 
 test_cases = [
     # (代码, 预期HK, 预期US, 描述)
@@ -212,7 +212,7 @@ test_yfinance_convert() {
     python3 << 'PYTEST'
 import sys
 sys.path.insert(0, '.')
-from data_provider.yfinance_fetcher import YfinanceFetcher
+from data_provider.runtime.fetchers.yfinance import YfinanceFetcher
 
 fetcher = YfinanceFetcher()
 
@@ -251,8 +251,8 @@ test_syntax() {
 
     python3 -m py_compile main.py src/config/__init__.py src/config/settings.py \
         src/config/env_file.py src/config/registry.py src/application/notification/notification.py \
-        data_provider/akshare_fetcher.py \
-        data_provider/yfinance_fetcher.py \
+        data_provider/runtime/fetchers/akshare.py \
+        data_provider/runtime/fetchers/yfinance.py \
         bot/commands/analyze.py
 
     success "语法检查通过"

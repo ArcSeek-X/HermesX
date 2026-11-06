@@ -519,6 +519,16 @@ def activate_run_diagnostic_context(
     event_sink: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Token:
     """Activate a diagnostic context and return its reset token."""
+    # trace 生命周期负责接上记录端口；直接库调用同样覆盖，避免只在 CLI/API 装配。
+    # 回调不捕获 context，仍由原 ContextVar 在调用线程读取。
+    from src.application.runtime.provider_diagnostic_ports import (
+        bind_provider_diagnostic_callbacks,
+    )
+
+    bind_provider_diagnostic_callbacks(
+        started=record_provider_run_started,
+        finished=record_provider_run,
+    )
     context = RunDiagnosticContext(
         trace_id=trace_id or query_id or task_id or build_trace_id(),
         task_id=task_id,

@@ -25,23 +25,7 @@ from tests.support.paths import get_repo_root
 
 sys.path.insert(0, str(get_repo_root()))
 
-from data_provider.tw_institutional_fetcher import (  # noqa: E402
-    TwInstitutionalFetcher,
-    _to_int,
-    _T86_CORE,
-    _T86_CODE,
-    _T86_FOREIGN,
-    _T86_TRUST,
-    _T86_DEALER,
-    _T86_TOTAL,
-    _T86_URL,
-    _TPEX_URL,
-    _TPEX_FOREIGN_EXCL,
-    _TPEX_TRUST,
-    _TPEX_DEALER,
-    _TPEX_TOTAL,
-    _UA,
-)
+from data_provider.institutional.tw_client import TwInstitutionalFetcher, _to_int, _T86_CORE, _T86_CODE, _T86_FOREIGN, _T86_TRUST, _T86_DEALER, _T86_TOTAL, _T86_URL, _TPEX_URL, _TPEX_FOREIGN_EXCL, _TPEX_TRUST, _TPEX_DEALER, _TPEX_TOTAL, _UA
 
 import requests  # noqa: E402
 
