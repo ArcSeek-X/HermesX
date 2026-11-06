@@ -100,4 +100,5 @@ docs/specs/
 
 # 工程架构图册（Archify 本地生成产物，不入库；本地文件保留）
 # 两版图册分别位于 documents/archify/archify-V1/ 与 archify-V2/
-# /documents/archify/
+/documents/archify/
+
