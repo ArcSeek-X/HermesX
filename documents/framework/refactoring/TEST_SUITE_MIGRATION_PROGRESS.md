@@ -171,7 +171,7 @@
 | --- | --- |
 | `config/settings/test_config_env_compat.py` | 读 `.env.example` |
 | `config/deployment/test_docker_entrypoint.py`（新建） | 读 docker/*、requirements、docs |
-| `api/contract/test_api_schema_pydantic.py`（新建） | 读 documents/archify/api_spec.json |
+| `api/contract/test_api_schema_pydantic.py`（新建） | 读 docs/architecture/api_spec.json |
 | `infrastructure/providers/kline/test_tencent_fetcher.py` | 子进程 cwd（daily K-line fetcher） |
 
 暂缓（跨切 CI/文档契约，归主边界就近不清晰，待 integration/docs-contract 桶）：`test_daily_analysis_workflow_notification_env`、`test_decision_signal_docs`。验证：`--collect-only` **5717**；4 件定向 **92 passed**；**累计 90 文件**后全量离线门禁 `5713 passed, 4 deselected, 0 failed`（255s）、**零回归**。顶层 `test_*.py` 降至 204。未提交。

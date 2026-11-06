@@ -28,7 +28,7 @@ def test_decision_signal_topic_references_live_api_schema_and_docs() -> None:
     full_guide_en = _read("docs/full-guide_EN.md")
     index = _read("docs/INDEX.md")
     index_en = _read("docs/INDEX_EN.md")
-    api_spec = json.loads(_read("documents/archify/api_spec.json"))
+    api_spec = json.loads(_read("docs/architecture/api_spec.json"))
 
     for path in (
         "/api/v1/decision-signals",

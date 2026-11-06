@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 工程架构图册按版本归档：`documents/archify/` 下新增 `archify-V1/` 与 `archify-V2/` 并迁入两版图册产物（本地保留、不再入库），修正 V2 图册相对链接与回执路径；`api_spec.json` 从图册目录回归 `docs/architecture/`，同步契约测试、文档索引与专题文档的路径引用。
+
 - [修复] Docker 系统依赖下载增加最多 3 次重试以应对临时 502，持续失败仍中止构建；同步中英文部署排障说明，区分软件包下载与镜像加速地址 403。
 
 - [测试] 数据源根目录收敛通过固定序相关检查、全量随机序后端门禁及干净冻结导入/worker/健康验证；同步结构守卫、递归语法检查与验收台账，补齐 Linux/ARM64 Docker 构建、全包导入及非 root 容器健康/首页验收，镜像加速网络差异另记。

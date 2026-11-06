@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "08 · Agent 内部编排、工具与生成",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      710
+    ]
+  },
+  "components": [
+    {
+      "id": "agent-n01",
+      "type": "backend",
+      "label": "会话与对话执行",
+      "sublabel": "service / conversation / chat_executor",
+      "pos": [
+        30,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n02",
+      "type": "backend",
+      "label": "Agent 编排与预算",
+      "sublabel": "AgentOrchestrator",
+      "pos": [
+        380,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n03",
+      "type": "backend",
+      "label": "专长 Agent 集合",
+      "sublabel": "technical / intel / risk / portfolio",
+      "pos": [
+        730,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n04",
+      "type": "backend",
+      "label": "Skills / Strategies",
+      "sublabel": "router / scheduler / aggregator",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n05",
+      "type": "backend",
+      "label": "工具注册与执行",
+      "sublabel": "registry / execution / tools",
+      "pos": [
+        30,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n06",
+      "type": "backend",
+      "label": "LLM 与运行端口",
+      "sublabel": "AgentLLMPort / AgentBackend",
+      "pos": [
+        380,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n07",
+      "type": "backend",
+      "label": "运行适配后端",
+      "sublabel": "LiteLLM / Codex transport",
+      "pos": [
+        730,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n08",
+      "type": "backend",
+      "label": "上下文与历史记忆",
+      "sublabel": "chat_context / memory / stock_scope",
+      "pos": [
+        1080,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n09",
+      "type": "backend",
+      "label": "决策、风控与最终解释",
+      "sublabel": "decision / risk_override / final",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n10",
+      "type": "backend",
+      "label": "运行流与 Provider trace",
+      "sublabel": "stream_events / provider_trace",
+      "pos": [
+        380,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n11",
+      "type": "backend",
+      "label": "会话、历史与用量持久化",
+      "sublabel": "Conversation / Usage repositories",
+      "pos": [
+        730,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "agent-n12",
+      "type": "external",
+      "label": "外部智能与工具依赖",
+      "sublabel": "LLM / CLI / 搜索 / 市场数据",
+      "pos": [
+        1080,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "agent-n01",
+      "to": "agent-n02",
+      "label": "准备与执行回合"
+    },
+    {
+      "from": "agent-n02",
+      "to": "agent-n03",
+      "label": "阶段链调用"
+    },
+    {
+      "from": "agent-n03",
+      "to": "agent-n04",
+      "label": "技能与策略意见"
+    },
+    {
+      "from": "agent-n01",
+      "to": "agent-n05",
+      "label": "回合工具需求",
+      "labelAt": [
+        165,
+        210.0
+      ]
+    },
+    {
+      "from": "agent-n02",
+      "to": "agent-n06",
+      "label": "模型能力调用",
+      "labelAt": [
+        515,
+        210.0
+      ]
+    },
+    {
+      "from": "agent-n03",
+      "to": "agent-n07",
+      "label": "通过运行适配",
+      "labelAt": [
+        865,
+        210.0
+      ]
+    },
+    {
+      "from": "agent-n05",
+      "to": "agent-n09",
+      "label": "工具结果参与决策",
+      "labelAt": [
+        165,
+        410.0
+      ]
+    },
+    {
+      "from": "agent-n06",
+      "to": "agent-n10",
+      "label": "调用事件与追踪",
+      "labelAt": [
+        515,
+        410.0
+      ]
+    },
+    {
+      "from": "agent-n07",
+      "to": "agent-n11",
+      "label": "用量与会话记录",
+      "labelAt": [
+        865,
+        410.0
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "阶段与预算",
+      "items": [
+        "全局预算和阶段最低预算会触发 timeout / budget skip，结果须保留降级事实。"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "运行后端",
+      "items": [
+        "应用编排、Agent runtime 和通用生成后端是不同职责，不合并成一个 LLM 方框。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "可追溯输出",
+      "items": [
+        "最终解释、dashboard、来源、工具调用与用量形成不同读模型。"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "10 · 业务持久化、模型与存储契约",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      710
+    ]
+  },
+  "components": [
+    {
+      "id": "persistence-n01",
+      "type": "backend",
+      "label": "应用仓储端口",
+      "sublabel": "各域 ports / persistence_port",
+      "pos": [
+        30,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n02",
+      "type": "backend",
+      "label": "bootstrap 仓储装配",
+      "sublabel": "configure_* / repository factory",
+      "pos": [
+        380,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n03",
+      "type": "database",
+      "label": "Repository 实现集合",
+      "sublabel": "analysis / portfolio / agent 等",
+      "pos": [
+        730,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n04",
+      "type": "backend",
+      "label": "DatabaseManager 薄门面",
+      "sublabel": "src/storage.py / 生命周期",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n05",
+      "type": "backend",
+      "label": "分析与市场模型",
+      "sublabel": "Analysis / MarketData",
+      "pos": [
+        30,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n06",
+      "type": "backend",
+      "label": "交易与风险模型",
+      "sublabel": "portfolio / decision / alert",
+      "pos": [
+        380,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n07",
+      "type": "backend",
+      "label": "会话与辅助模型",
+      "sublabel": "agent / intelligence / watchlist",
+      "pos": [
+        730,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n08",
+      "type": "backend",
+      "label": "唯一 Base 与规范",
+      "sublabel": "UTC naive / 元 / 百分数",
+      "pos": [
+        1080,
+        270
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n09",
+      "type": "backend",
+      "label": "Session 与写事务",
+      "sublabel": "BEGIN IMMEDIATE / lock retry",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n10",
+      "type": "backend",
+      "label": "schema 兼容演进",
+      "sublabel": "幂等补列 / 补索引",
+      "pos": [
+        380,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n11",
+      "type": "database",
+      "label": "SQLite 业务数据库",
+      "sublabel": "Config.get_db_url",
+      "pos": [
+        730,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "persistence-n12",
+      "type": "backend",
+      "label": "业务外的文件存储",
+      "sublabel": "报告 / 凭据 / 日志 / 缓存",
+      "pos": [
+        1080,
+        470
+      ],
+      "size": [
+        270,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "persistence-n01",
+      "to": "persistence-n02",
+      "label": "绑定所需实现"
+    },
+    {
+      "from": "persistence-n02",
+      "to": "persistence-n03",
+      "label": "注入 Repository"
+    },
+    {
+      "from": "persistence-n03",
+      "to": "persistence-n04",
+      "label": "使用数据库门面"
+    },
+    {
+      "from": "persistence-n01",
+      "to": "persistence-n05",
+      "label": "分析读写契约",
+      "labelAt": [
+        165,
+        210.0
+      ]
+    },
+    {
+      "from": "persistence-n02",
+      "to": "persistence-n06",
+      "label": "装配交易仓储",
+      "labelAt": [
+        515,
+        210.0
+      ]
+    },
+    {
+      "from": "persistence-n03",
+      "to": "persistence-n07",
+      "label": "存取业务模型",
+      "labelAt": [
+        865,
+        210.0
+      ]
+    },
+    {
+      "from": "persistence-n04",
+      "to": "persistence-n08",
+      "label": "复用唯一模型基座",
+      "labelAt": [
+        1215,
+        210.0
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "不画不存在的部署",
+      "items": [
+        "当前实际数据库为 SQLite；没有在图中新增 Redis、消息队列或 PostgreSQL。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "数据安全边界",
+      "items": [
+        "这里只描述存储位置与契约，不触发迁移、清理、凭据读取或数据库打开。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据源与仓储",
+      "items": [
+        "StockDB HTTP 与业务仓储分开；源缓存规则和业务结果落盘不是同一语义。"
+      ]
+    }
+  ]
+}

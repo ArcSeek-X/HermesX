@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify/archify-V2/token-gateway.json",
+  "output": "/Users/gaocangxiong/Work/DevProject/ArcSeek-X/HermesX/documents/archify/archify-V2/token-gateway.html",
+  "specification": {
+    "sha256": "dd4e99efb71b80174e32ea3cf1c62436e79a0cda3b57f7ae445ff47d54b103c8",
+    "bytes": 6188
+  },
+  "artifact": {
+    "sha256": "c22b33b4d549379c0ec88705db8f47f7a9c2bc9fca0da2e1fb45affdc6ec9fd8",
+    "bytes": 718709
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}
