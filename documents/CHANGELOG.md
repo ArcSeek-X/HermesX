@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 市场总览「港美」新增费城半导体指数卡片：SOX 由东财 `251.SOX` 优先、新浪 `gb_sox` 兜底补充，与主指数并发取数并按代码去重合并，补充源失败时保持原有指数卡片；前端占位数量同步调整为 7。
+
 - [文档] 工程架构图册按版本归档：`documents/archify/` 下新增 `archify-V1/` 与 `archify-V2/` 并迁入两版图册产物，修正 V2 图册相对链接与回执路径；`docs/INDEX*` 与 `decision-signals.md` 的 API 规格入口改为说明运行时 `/docs` 与 `/openapi.json`，不再指向静态文件。
 
 - [测试] 移除静态 OpenAPI 快照：`tests/api/contract/test_api_schema_pydantic.py` 与 `tests/tooling/docs/test_decision_signal_docs.py` 改为直接校验 `create_app().openapi()` 生成的运行时规格，保留决策信号端点、401 鉴权、schema/$ref 与枚举断言，消除静态快照与运行时接口漂移。

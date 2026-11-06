@@ -35,6 +35,7 @@ from data_provider.sector.eastmoney_source import (
     get_cached_northbound_flow as get_cached_northbound_flow_from_eastmoney,
 )
 from data_provider.sector.shidaotec_source import get_board_card_list as get_board_card_list_from_shidaotec
+from data_provider.sector.sina_source import get_cached_sox_index as get_cached_sox_index_from_sina
 from data_provider.sector.stocksdk_source import (
     get_cached_board_list as get_cached_board_list_from_stocksdk,
     get_cached_market_fund_flow as get_cached_market_fund_flow_from_stocksdk,
@@ -51,6 +52,9 @@ _INDEX_MARKET_MAPPING = {
     "hk-us": "us",
     "jp-kr": "jp-kr",
 }
+
+# 费城半导体指数：StockSDK 美股指数注册表不含该代码，需由补充链路提供。
+_SOX_INDEX_CODE = "SOX"
 
 # ===========================================================================
 # 并发与缓存基础设施
@@ -299,11 +303,19 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
 
 
 def _build_index_cards_for_market(market: str) -> List[Dict[str, Any]]:
-    """构建指定市场的指数卡片。"""
+    """构建指定市场的指数卡片；港美额外补充费城半导体指数。"""
     futures = {"indices": _EXECUTOR.submit(_get_market_indices, market)}
     labels = {"indices": f"指数({market})"}
+    if market == "hk-us":
+        # SOX 不在 StockSDK 美股指数注册表中，单独走「东财 → 新浪」补充链路；
+        # 与主指数并发取数，避免串行累加耗时突破 _BUILD_BUDGET。
+        futures["sox"] = _EXECUTOR.submit(_get_sox_index)
+        labels["sox"] = "费城半导体指数补充"
     done = _await_all(futures, labels)
     indices = _grab(futures, done, "indices", [], f"指数({market})")
+    if "sox" in futures:
+        sox = _grab(futures, done, "sox", None, "费城半导体指数补充")
+        indices = _append_sox_index(indices or [], sox)
     return _build_index_quote_cards(indices or [])
 
 
@@ -322,6 +334,22 @@ def _build_index_quote_cards(indices: List[Dict[str, Any]]) -> List[Dict[str, An
     return cards
 
 
+def _append_sox_index(
+    indices: List[Dict[str, Any]], sox: Optional[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """把费城半导体指数追加到港美卡片末尾，按 code 去重。
+
+    东财整批兜底时列表里已含 SOX，重复追加会造成 cardKey 冲突；
+    补充源失败或主指数为空时保持原样，避免只剩一张孤立卡片。
+    """
+    if not indices or not isinstance(sox, dict):
+        return indices
+    code = str(sox.get("code") or "").strip()
+    if not code or any(str(item.get("code") or "").strip() == code for item in indices):
+        return indices
+    return [*indices, sox]
+
+
 # ---------------------------------------------------------------------------
 # 数据源入口
 # ---------------------------------------------------------------------------
@@ -334,6 +362,22 @@ def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
         lambda: get_cached_market_indices_from_stocksdk(source_market),
         lambda: get_cached_market_indices_from_eastmoney(source_market),
     )
+
+
+def _get_sox_index_from_eastmoney() -> Optional[Dict[str, Any]]:
+    """从东财美股指数列表取费城半导体指数，复用其 60s 缓存与双域名回退。"""
+    indices = get_cached_market_indices_from_eastmoney("us") or []
+    for item in indices:
+        if str(item.get("code") or "").strip().upper() != _SOX_INDEX_CODE:
+            continue
+        # 缺少点位的行不视为有效行情，交由新浪补充源接管。
+        return item if item.get("price") is not None else None
+    return None
+
+
+def _get_sox_index() -> Optional[Dict[str, Any]]:
+    """费城半导体指数补充源：东财 251.SOX 优先，新浪 gb_sox 兜底。"""
+    return _prefer_loader_chain(_get_sox_index_from_eastmoney, get_cached_sox_index_from_sina)
 
 
 def _get_market_overview() -> Optional[Dict[str, Any]]:
