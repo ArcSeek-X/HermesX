@@ -26,8 +26,8 @@ const REFRESH_INTERVAL_MS = 30_000;
 /** A股指数占位卡片数量 */
 const INDEX_PLACEHOLDER_COUNT = 10;
 
-/** 港美指数占位卡片数量（含费城半导体指数） */
-const GLOBAL_INDEX_PLACEHOLDER_COUNT = 7;
+/** 港美指数占位卡片数量（含费城半导体指数、加拿大 S&P/TSX） */
+const GLOBAL_INDEX_PLACEHOLDER_COUNT = 8;
 
 /** 日韩指数占位卡片数量 */
 const ASIA_INDEX_PLACEHOLDER_COUNT = 2;

@@ -53,7 +53,9 @@ _INDEX_MARKET_MAPPING = {
     "jp-kr": "jp-kr",
 }
 
-# 费城半导体指数：StockSDK 美股指数注册表不含该代码，需由补充链路提供。
+# 港美补充指数：StockSDK 美股指数注册表不含这两个代码，统一由东财批量行情补充。
+# SOX 另有新浪财经兜底；TSX 目前仅东财提供实时行情。
+_SUPPLEMENT_INDEX_CODES = ("SOX", "TSX")
 _SOX_INDEX_CODE = "SOX"
 
 # ===========================================================================
@@ -303,19 +305,19 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
 
 
 def _build_index_cards_for_market(market: str) -> List[Dict[str, Any]]:
-    """构建指定市场的指数卡片；港美额外补充费城半导体指数。"""
+    """构建指定市场的指数卡片；港美额外补充 SOX 与加拿大 S&P/TSX。"""
     futures = {"indices": _EXECUTOR.submit(_get_market_indices, market)}
     labels = {"indices": f"指数({market})"}
     if market == "hk-us":
-        # SOX 不在 StockSDK 美股指数注册表中，单独走「东财 → 新浪」补充链路；
+        # 补充指数不在 StockSDK 美股指数注册表中，单独走「东财 → 新浪(仅 SOX)」链路；
         # 与主指数并发取数，避免串行累加耗时突破 _BUILD_BUDGET。
-        futures["sox"] = _EXECUTOR.submit(_get_sox_index)
-        labels["sox"] = "费城半导体指数补充"
+        futures["supplement"] = _EXECUTOR.submit(_get_supplement_indices)
+        labels["supplement"] = "港美补充指数"
     done = _await_all(futures, labels)
     indices = _grab(futures, done, "indices", [], f"指数({market})")
-    if "sox" in futures:
-        sox = _grab(futures, done, "sox", None, "费城半导体指数补充")
-        indices = _append_sox_index(indices or [], sox)
+    if "supplement" in futures:
+        supplements = _grab(futures, done, "supplement", [], "港美补充指数")
+        indices = _append_supplement_indices(indices or [], supplements or [])
     return _build_index_quote_cards(indices or [])
 
 
@@ -334,20 +336,27 @@ def _build_index_quote_cards(indices: List[Dict[str, Any]]) -> List[Dict[str, An
     return cards
 
 
-def _append_sox_index(
-    indices: List[Dict[str, Any]], sox: Optional[Dict[str, Any]]
+def _append_supplement_indices(
+    indices: List[Dict[str, Any]], supplements: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    """把费城半导体指数追加到港美卡片末尾，按 code 去重。
+    """把补充指数追加到港美卡片末尾，按 code 去重。
 
-    东财整批兜底时列表里已含 SOX，重复追加会造成 cardKey 冲突；
-    补充源失败或主指数为空时保持原样，避免只剩一张孤立卡片。
+    东财整批兜底时列表里可能已含补充指数，重复追加会造成 cardKey 冲突；
+    补充源失败或主指数为空时保持原样，避免只剩孤立卡片。
     """
-    if not indices or not isinstance(sox, dict):
+    if not indices:
         return indices
-    code = str(sox.get("code") or "").strip()
-    if not code or any(str(item.get("code") or "").strip() == code for item in indices):
-        return indices
-    return [*indices, sox]
+    merged = list(indices)
+    existing = {str(item.get("code") or "").strip() for item in merged}
+    for item in supplements:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("code") or "").strip()
+        if not code or code in existing:
+            continue
+        merged.append(item)
+        existing.add(code)
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -364,20 +373,40 @@ def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
     )
 
 
-def _get_sox_index_from_eastmoney() -> Optional[Dict[str, Any]]:
-    """从东财美股指数列表取费城半导体指数，复用其 60s 缓存与双域名回退。"""
+def _get_supplement_indices_from_eastmoney() -> Dict[str, Dict[str, Any]]:
+    """从东财美股指数批量结果挑出补充指数，复用其 60s 缓存与双域名回退。"""
     indices = get_cached_market_indices_from_eastmoney("us") or []
+    found: Dict[str, Dict[str, Any]] = {}
     for item in indices:
-        if str(item.get("code") or "").strip().upper() != _SOX_INDEX_CODE:
-            continue
-        # 缺少点位的行不视为有效行情，交由新浪补充源接管。
-        return item if item.get("price") is not None else None
-    return None
+        code = str(item.get("code") or "").strip().upper()
+        # 缺少点位的行不视为有效行情，交由各自的备用源接管。
+        if code in _SUPPLEMENT_INDEX_CODES and item.get("price") is not None:
+            found[code] = item
+    return found
 
 
-def _get_sox_index() -> Optional[Dict[str, Any]]:
-    """费城半导体指数补充源：东财 251.SOX 优先，新浪 gb_sox 兜底。"""
-    return _prefer_loader_chain(_get_sox_index_from_eastmoney, get_cached_sox_index_from_sina)
+def _get_supplement_indices() -> List[Dict[str, Any]]:
+    """港美补充指数：东财批量优先，SOX 失败时回退新浪财经。
+
+    TSX 目前只有东财一个实时来源，取不到时不补该卡，不影响 SOX 与其余卡片。
+    """
+    try:
+        from_eastmoney = _get_supplement_indices_from_eastmoney()
+    except Exception as exc:  # noqa: BLE001 - 单一补充源失败不影响其余卡片
+        logger.warning("[market-cards] 补充指数东财源失败: %s", exc)
+        from_eastmoney = {}
+
+    result: List[Dict[str, Any]] = []
+    for code in _SUPPLEMENT_INDEX_CODES:
+        item = from_eastmoney.get(code)
+        if item is None and code == _SOX_INDEX_CODE:
+            try:
+                item = get_cached_sox_index_from_sina()
+            except Exception as exc:  # noqa: BLE001 - 新浪源失败不影响其余卡片
+                logger.warning("[market-cards] 补充指数新浪源失败: %s", exc)
+        if item:
+            result.append(item)
+    return result
 
 
 def _get_market_overview() -> Optional[Dict[str, Any]]:

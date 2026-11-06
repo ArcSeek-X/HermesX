@@ -55,6 +55,7 @@ MARKET_INDICES_US = [
     {"secid": "100.NDX100", "name": "纳斯达克100", "code": "NDX100"},
     {"secid": "251.HXC", "name": "纳指金龙中国", "code": "HXC"},
     {"secid": "251.SOX", "name": "费城半导体指数", "code": "SOX"},
+    {"secid": "100.TSX", "name": "加拿大S&P/TSX", "code": "TSX"},
 ]
 MARKET_INDICES_JP_KR = [
     {"secid": "100.N225", "name": "日经指数", "code": "N225"},

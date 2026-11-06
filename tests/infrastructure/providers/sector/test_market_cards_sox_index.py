@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""港美费城半导体指数补充链路的回归用例。"""
+"""港美补充指数（SOX / TSX）链路与新浪兜底源的回归用例。"""
 
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -33,11 +33,24 @@ def _hk_us_indices() -> list:
     return [_index(code) for code in ("HSI", "HSCEI", "HSTECH", "DJI", "INX", "IXIC")]
 
 
-def _run_cards(monkeypatch, main_indices, sox):
+def _supplements() -> list:
+    return [_index("SOX", 9011.14), _index("TSX", 35605.27)]
+
+
+def _run_cards(monkeypatch, main_indices, supplements):
     monkeypatch.setattr(cards, "_get_market_indices", Mock(return_value=main_indices))
-    sox_mock = Mock(return_value=sox)
-    monkeypatch.setattr(cards, "_get_sox_index", sox_mock)
-    return cards._build_index_cards_for_market("hk-us"), sox_mock
+    supplement_mock = Mock(return_value=supplements or [])
+    monkeypatch.setattr(cards, "_get_supplement_indices", supplement_mock)
+    return cards._build_index_cards_for_market("hk-us"), supplement_mock
+
+
+def _run_supplement_chain(monkeypatch, eastmoney_rows, sina_row=None):
+    monkeypatch.setattr(
+        cards, "get_cached_market_indices_from_eastmoney", Mock(return_value=eastmoney_rows)
+    )
+    sina = Mock(return_value=sina_row)
+    monkeypatch.setattr(cards, "get_cached_sox_index_from_sina", sina)
+    return cards._get_supplement_indices(), sina
 
 
 def test_parse_sox_quote_normalizes_payload() -> None:
@@ -95,84 +108,95 @@ def test_cached_sox_index_reuses_fresh_data_and_keeps_last_good(monkeypatch) -> 
     assert fetch.call_count == 2
 
 
-def test_hk_us_appends_sox_card_with_unique_keys(monkeypatch) -> None:
-    result, sox_mock = _run_cards(monkeypatch, _hk_us_indices(), _index("SOX", 9011.14))
+def test_hk_us_appends_both_supplement_cards_with_unique_keys(monkeypatch) -> None:
+    result, supplement_mock = _run_cards(monkeypatch, _hk_us_indices(), _supplements())
+    assert len(result) == 8
+    assert [card["cardKey"] for card in result[-2:]] == ["index_quote:SOX", "index_quote:TSX"]
+    assert len({card["cardKey"] for card in result}) == 8
+    supplement_mock.assert_called_once_with()
+
+
+def test_hk_us_deduplicates_supplements_from_eastmoney_fallback(monkeypatch) -> None:
+    main = _hk_us_indices() + _supplements()
+    result, _ = _run_cards(monkeypatch, main, _supplements())
+    assert len(result) == 8
+    assert len({card["cardKey"] for card in result}) == 8
+
+
+def test_hk_us_keeps_original_cards_when_supplements_unavailable(monkeypatch) -> None:
+    result, _ = _run_cards(monkeypatch, _hk_us_indices(), [])
+    assert len(result) == 6
+    assert not {"SOX", "TSX"} & {card["payload"]["code"] for card in result}
+
+
+def test_hk_us_keeps_single_supplement_when_other_missing(monkeypatch) -> None:
+    result, _ = _run_cards(monkeypatch, _hk_us_indices(), [_index("SOX", 9011.14)])
     assert len(result) == 7
     assert result[-1]["cardKey"] == "index_quote:SOX"
-    assert result[-1]["payload"]["code"] == "SOX"
-    assert len({card["cardKey"] for card in result}) == 7
-    sox_mock.assert_called_once_with()
 
 
-def test_hk_us_deduplicates_sox_from_eastmoney_fallback(monkeypatch) -> None:
-    main = _hk_us_indices() + [_index("SOX", 9011.14)]
-    result, _ = _run_cards(monkeypatch, main, _index("SOX", 9011.14))
-    assert len(result) == 7
-    assert len({card["cardKey"] for card in result}) == 7
-
-
-def test_hk_us_keeps_original_cards_when_sox_unavailable(monkeypatch) -> None:
-    result, _ = _run_cards(monkeypatch, _hk_us_indices(), None)
-    assert len(result) == 6
-    assert all(card["payload"]["code"] != "SOX" for card in result)
-
-
-def test_hk_us_does_not_show_orphan_sox_when_main_indices_empty(monkeypatch) -> None:
-    result, _ = _run_cards(monkeypatch, [], _index("SOX", 9011.14))
+def test_hk_us_does_not_show_orphan_supplements_when_main_indices_empty(monkeypatch) -> None:
+    result, _ = _run_cards(monkeypatch, [], _supplements())
     assert result == []
 
 
-def test_other_markets_do_not_touch_sox_source(monkeypatch) -> None:
+def test_other_markets_do_not_touch_supplement_source(monkeypatch) -> None:
     monkeypatch.setattr(cards, "_get_market_indices", Mock(return_value=[_index("N225")]))
-    sox_mock = Mock(return_value=_index("SOX"))
-    monkeypatch.setattr(cards, "_get_sox_index", sox_mock)
+    supplement_mock = Mock(return_value=_supplements())
+    monkeypatch.setattr(cards, "_get_supplement_indices", supplement_mock)
     assert len(cards._build_index_cards_for_market("jp-kr")) == 1
-    sox_mock.assert_not_called()
+    supplement_mock.assert_not_called()
 
 
-def test_sox_chain_prefers_eastmoney(monkeypatch) -> None:
-    monkeypatch.setattr(
-        cards,
-        "get_cached_market_indices_from_eastmoney",
-        Mock(return_value=[_index("DJIA"), _index("SOX", 9011.14)]),
-    )
-    sina = Mock(return_value=_index("SOX", 9999.0))
-    monkeypatch.setattr(cards, "get_cached_sox_index_from_sina", sina)
-    assert cards._get_sox_index()["price"] == 9011.14
+def test_supplement_chain_prefers_eastmoney_for_both(monkeypatch) -> None:
+    rows = [_index("DJIA"), _index("SOX", 9011.14), _index("TSX", 35605.27)]
+    result, sina = _run_supplement_chain(monkeypatch, rows, _index("SOX", 9999.0))
+    assert [item["code"] for item in result] == ["SOX", "TSX"]
+    assert result[0]["price"] == 9011.14
     sina.assert_not_called()
 
 
-def test_sox_chain_falls_back_to_sina_when_eastmoney_missing_sox(monkeypatch) -> None:
-    monkeypatch.setattr(
-        cards,
-        "get_cached_market_indices_from_eastmoney",
-        Mock(return_value=[_index("DJIA")]),
+def test_supplement_chain_falls_back_to_sina_when_eastmoney_missing_sox(monkeypatch) -> None:
+    result, sina = _run_supplement_chain(
+        monkeypatch, [_index("DJIA"), _index("TSX", 35605.27)], _index("SOX", 9011.14)
     )
-    sina = Mock(return_value=_index("SOX", 9011.14))
-    monkeypatch.setattr(cards, "get_cached_sox_index_from_sina", sina)
-    assert cards._get_sox_index()["code"] == "SOX"
+    assert [item["code"] for item in result] == ["SOX", "TSX"]
+    assert result[0]["price"] == 9011.14
     sina.assert_called_once_with()
 
 
-def test_sox_chain_falls_back_when_eastmoney_raises(monkeypatch) -> None:
+def test_supplement_chain_falls_back_when_eastmoney_raises(monkeypatch) -> None:
     monkeypatch.setattr(
         cards,
         "get_cached_market_indices_from_eastmoney",
         Mock(side_effect=RuntimeError("eastmoney down")),
     )
-    monkeypatch.setattr(
-        cards, "get_cached_sox_index_from_sina", Mock(return_value=_index("SOX", 9011.14))
-    )
-    assert cards._get_sox_index()["price"] == 9011.14
+    sina = Mock(return_value=_index("SOX", 9011.14))
+    monkeypatch.setattr(cards, "get_cached_sox_index_from_sina", sina)
+    # TSX 无备用源：东财整体不可用时只保留 SOX。
+    assert [item["code"] for item in cards._get_supplement_indices()] == ["SOX"]
+    sina.assert_called_once_with()
 
 
-def test_sox_chain_skips_eastmoney_row_without_price(monkeypatch) -> None:
+def test_supplement_chain_skips_eastmoney_row_without_price(monkeypatch) -> None:
     broken = _index("SOX")
     broken["price"] = None
-    monkeypatch.setattr(
-        cards, "get_cached_market_indices_from_eastmoney", Mock(return_value=[broken])
+    result, sina = _run_supplement_chain(
+        monkeypatch, [broken, _index("TSX", 35605.27)], _index("SOX", 9011.14)
     )
-    monkeypatch.setattr(
-        cards, "get_cached_sox_index_from_sina", Mock(return_value=_index("SOX", 9011.14))
+    assert [item["code"] for item in result] == ["SOX", "TSX"]
+    assert result[0]["price"] == 9011.14
+    sina.assert_called_once_with()
+
+
+def test_tsx_has_no_sina_fallback(monkeypatch) -> None:
+    result, sina = _run_supplement_chain(monkeypatch, [_index("DJIA")], _index("SOX", 9011.14))
+    assert [item["code"] for item in result] == ["SOX"]
+    sina.assert_called_once_with()
+
+
+def test_supplement_chain_keeps_configured_order(monkeypatch) -> None:
+    result, _ = _run_supplement_chain(
+        monkeypatch, [_index("TSX", 35605.27), _index("SOX", 9011.14)], None
     )
-    assert cards._get_sox_index()["price"] == 9011.14
+    assert [item["code"] for item in result] == ["SOX", "TSX"]

@@ -24,7 +24,7 @@
 | AlphaSift 日线补特征 | `DataFetcherManager` | AlphaSift 调用 HermesX provider context，优先复用 HermesX 日线与缓存链路 | HermesX 链路失败后才回到 AlphaSift 原始日线源 |
 | AlphaSift 热点题材 | HRS EastMoney provider、AlphaSift hotspot、last-good cache | 未指定 provider 时默认使用 HRS EastMoney provider | 实时失败时回退热点缓存；无缓存时返回稳定空态和可读错误 |
 | 港股 / 美股 | Longbridge、YFinance、AkShare、Tushare、Finnhub、AlphaVantage、Stooq | 配置 Longbridge 凭证后参与港美股日线/实时兜底；YFinance 保持基础兜底 | Longbridge 冷却或失败时回退 YFinance / 其他可用源 |
-| 港美指数卡片（费城半导体指数） | EastMoney push2、Sina 财经 | 主指数仍由 StockSDK / EastMoney 提供；SOX 由 EastMoney `251.SOX` 优先、Sina `gb_sox` 兜底，按代码去重后追加到港美卡片 | 两个补充源均失败时仅不展示该卡片，其余港美指数照常返回 |
+| 港美补充指数（费城半导体、加拿大 S&P/TSX） | EastMoney push2、Sina 财经 | 主指数仍由 StockSDK / EastMoney 提供；补充指数由 EastMoney 一次批量请求（`251.SOX` / `100.TSX`）提供，按代码去重后追加到港美卡片 | SOX 在东财失败时回退 Sina `gb_sox`；TSX 无备用源，取不到时仅少对应卡片，其余港美指数照常返回 |
 
 ## 总体链路图
 
