@@ -1226,7 +1226,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 | 项 | 内容 |
 |---|---|
 | 文档名 | 本地 StockDB 行情数据浏览页 · 建设方案 |
-| 文件 | `stock_data_view.md`（仓库根目录） |
+| 文件 | `stockDB_view.md`（仓库根目录） |
 | 状态 | 方案（未实现），待评审后进入 §13.2 的 P1 |
 | 适用版本 | HermesX 当前 main；Python 3.11（`requests` 已在 `requirements.txt`） |
 | 依赖文档 | `AGENTS.md`、`documents/CHANGELOG.md`、StockDB `调用方式/python/AI策略python开发接口文档.md`、StockDB `调用方式/ai_自动开发文档/AI策略界面开发纯js接口文档.md` |
