@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 股票度量视图筛选条件新增改为「显示域 + 编辑按钮 + 模态框表单」三段式：新增页面组件 `StockMetricViewConditionEditor`，显示域只读回显已保存条件，点「编辑条件」打开 `Modal` 表单批量新增 / 移除草稿条件，点「保存」才整组提交并回显，取消 / 关闭丢弃草稿；`StockMetricViewFilterBar` 去掉内联表单与草稿态，只保留市场单选 / 重置 / 查询；`useStockMetricView` 用 `setConditions`（整组替换）替代 `addFilter`，避免逐条写入的闭包覆盖；三语补充编辑 / 保存 / 空态 / 草稿标题文案。保存后仍需点「查询」触发请求，与原有契约一致。
+
+- [改进] 通用表格固定列取值类型 `TableColumnFixed` 更名为 `TableColumnFixedMode`：名称改为描述「固定模式」这一值域语义，不再与字段 `fixed` 同形；补齐 `true` / `'left'` / `'right'` / `false` 四个取值的逐项注释。不保留兼容别名，7 处引用一次性替换，`TableColumnDef.fixed` 字段与运行时行为不变。
+
+- [改进] 通用表格固定列逻辑拆分到 `components/basic/Table/fixedColumns.ts`：取值归一、按 key 生成定位属性、连续固定区边界阴影与 `ResizeObserver` 动态偏移观测全部收拢到该模块，`Table.tsx` 仅保留两处调用；删除只使用一次的方向类型别名，改为每列只归一一次方向并让属性构建与边界计算共用结果；`useStickyColumnOffsets` 更名 `useFixedColumnOffsets`，CSS Modules 类名 `sticky*` 更名 `colFixed*`、CSS 变量 `--hrs-table-sticky-*` 更名 `--hrs-table-fixed-*`。公开契约 `TableColumnDef.fixed` 与视觉效果不变（`position: sticky` 作为 CSS 属性保持原样）。
+
+- [改进] 通用表格固定列字段由 `sticky` 更名为 `fixed`，取值扩展为 `true` / `'left'` / `'right'`：`true` 归一为固定在左侧，`false` 与不传均为默认不固定；`Table.tsx` 内部统一按 left / right 方向处理，边界阴影与运行时动态偏移逻辑不变，股票度量视图 4 个固定列同步改用新字段；新增全部取值与默认不固定的归一回归测试。
+
+- [修复] 股票度量视图 `quoteAsOf` 改为本批在线快照的真实抓取时刻：`fetch_eastmoney_clist_snapshot` 缓存随行保存带 UTC 偏移的 ISO 8601 写入时刻，命中 TTL 缓存 / 回源失败沿用旧快照（stale-while-error）均回传该批缓存自己的时刻，不再用响应生成时刻冒充数据新鲜度；端口未装配 / 全部市场失败时留空，多市场取最早时刻。前端把 `quoteAsOf` 解析为 `Date` 传 `lastUpdate`（兼容旧版 UTC-naive 串按 UTC 处理），`snapshotTime` 不再传、新鲜度条回到实时模式并让倒计时归零触发刷新，`asOfDate` 以三语文案在页头单独展示；新增缓存命中 / stale / 降级留空的回归测试。
+
+- [改进] 股票度量视图原币单位（`CNY` / `HKD` / `USD`）改用小一号字号（`text-[10px]`）单独渲染：数值保持单元格原字号，单位不再与数值拼成纯文本；股价 / 每股收益 / 总市值三列统一生效，空值只显示 `—` 且不附单位，CSV 导出列与数值口径不变。
+
+- [改进] 股票度量视图页头移除与 `DataRefreshBar` 功能重复的独立「刷新」按钮，改由 `DataRefreshBar` 统一提供手动刷新入口；`DataRefreshBar` 新增可选 `refreshTitle`（默认「手动刷新」），度量视图传入 `stockMetricView.refresh` 沿用原三语文案，板块分析页不传参、行为不变。
+
+- [改进] 股票度量视图 K 线跳转代码归一改用 `utils/stock/stockCode` 的 `normalizeStockCode`（替换手写 `split('.')[0]`），与涨停榜 / 扫描 / 尾盘入口一致，可处理 SH/SZ/BJ 前缀与 `.SH` / `.SZ` / `.HK` 后缀，并新增路径归一化回归测试；核对 `utils/format.ts` 后保留本页数值格式化实现（通用函数会引入正号、`--` 占位、固定「亿」单位与缺失原币后缀），口径差异原因写入代码注释。
+
+- [改进] 股票度量视图列定义由「元数据数组 + 通用 render 分发」改为逐列显式声明的 `TableColumnDef` 数组：列头、列宽、对齐、固定列、市场可用性与渲染函数逐项写全，单元格渲染（市场国旗、K 线跳转、数值格式化、涨跌幅着色、板块 Chip）提取为命名函数；新增列清单 / 列头 i18n 键 / 按市场裁剪 / 固定列连续性回归测试，展示行为不变。
+
+- [改进] 固定列与滚动区之间新增渐淡分隔阴影：只在连续左固定区末列 / 右固定区首列渲染一条 16px 竖直渐变，用 `::before` 避开 HeroUI 已占用的列头 `::after` 分隔线，颜色取自 `--foreground` 主题令牌。
+
+- [修复] 固定列在行 hover 时透出下方滚动单元格内容：HeroUI 的 `tr:hover .table__cell` 会把单元格背景改为半透明 `bg-surface/40`，固定列单元格也随之半透明；现让固定列在常态与 hover / 选中态均使用不透明背景（`var(--surface)` / `hsl(var(--muted))`），并整体抬升列头与固定列层级，横向滚动时正确覆盖滚动区内容。
+
+- [新功能] 通用表格支持固定列：`TableColumnDef` 新增 `fixed: true | 'left' | 'right'`，横向滚动时列头与单元格同步保持可见；偏移由 `ResizeObserver` + `MutationObserver` 按运行时实际列宽累加并写入容器 CSS 变量（列宽拖动后自动更新，不写死、不触发集合重建）；股票度量视图默认固定前 4 列（序号、市场、代码、名称）。
+
+- [改进] 股票度量视图涨跌幅配色接入全站规范：`changePct` 单元格复用 `src/utils/format.ts` 的 `getChangeColorClass()`，正数 `stock-up`（红）、负数 `stock-down`（绿）、0 与空值 `text-muted-text`（灰）；色值取自 `palette.css` 的 `--stock-up` / `--stock-down` 令牌与 `global.scss` 全局类，cn / hk / us 三市场统一，不硬编码色值。
+
+- [改进] 股票度量视图表格紧凑密度：列头 / 单元格纵向内边距由 `py-2.5` / `py-3` 收紧为 `py-2` / `py-1.5`，表体字号由 `text-sm` 降为 `text-xs`，所属板块 Chip 改用 `xs` 尺寸，减少表格内滚动、一屏显示更多行；通过页面 `wrapperClassName` 的后代选择器覆盖 HeroUI 默认样式，未改动通用 `Table` 组件。
+
+- [改进] 股票度量视图列宽收紧：序号、涨跌幅、量比、市盈率、股息率按「内容刚好显示」设定紧凑 `minWidth` / `defaultWidth`（56/60、88/92、96/100、104/108、76/80），以列头与单元格默认 32px 内边距加实测文本宽度为下限，腾出的横向空间让给名称、所属板块等长内容列。
+
+- [改进] 股票度量视图列视觉统一：股票代码与股票名称在 cn / hk / us 三市场一律加粗并使用主题色（收敛为 `STOCK_METRIC_VIEW_IDENTITY_CLASS` 单一常量，是否可跳转 K 线不再影响视觉层级）；「所属板块」列整列（列头 + Chip 单元格）居中对齐。
+
+- [修复] 股票度量视图切换市场报错 `Cell count must match column count`：us（13 列）→ cn（15 列）时 React Aria 以行数据对象为 key 缓存已渲染的 `Row`，旧行复用旧 `columns`，与新表头列数不一致；`Table` 现以列 key 签名作为 `Body` / `Row` 的 `dependencies` 精确失效动态集合缓存（不重挂载整表，保留选中 / 排序 / 列宽状态），`useStockMetricView.setMarketFilter` 同步清空旧市场行；新增 `Table` 组件回归测试覆盖 13 ↔ 15 双向切换。
+
+- [改进] 股票度量视图交互与性能：市场筛选由多选改为单选（兼容历史持久化的多市场值）；`TableColumnDef.align` 支持 `left` / `right` / `center` 且列头与单元格整列一致对齐；列元数据 `kind` 更名为 `valueType`；市场列仅展示放大的国旗，序号与市场列居中、代码与名称左对齐；代码列与名称列均支持 A 股 K 线跳转，名称加粗主题色；在线快照新增按市场 20s TTL 缓存（防击穿锁 + 回源失败沿用旧快照），翻页 / 排序 / 切市场不再重复打东财，`POST /query` 新增可选 `forceRefresh` 供「刷新」按钮回源；分页栏常驻、单元格列查找 Map 化、分页 / 排序 / 空态 memo 化。
+
+- [改进] 股票度量视图列表展示与跨市场口径：新增「市场」列（国旗 + 本地化市场名）；「所属板块」改用 `Chip` 标签；名称列仅 A 股（cn）支持跳转 K 线，hk / us 暂不跳转；股价 / 每股收益 / 总市值按原币附 `CNY` / `HKD` / `USD` 单位，数字与金额列的单元格及列头统一右对齐；`TableColumnDef` 新增 `align` 供全站复用；三语 i18n 同步补充市场名与提示。
+
+- [修复] 股票度量视图跨市场排序：多市场且按股价 / 总市值 / 每股收益等原币计价字段排序时，不再把 `CNY` / `HKD` / `USD` 的绝对值直接混排，改为按 cn → hk → us 分组、组内按原币数值排序，并通过 `warnings` 明确口径（一期不做汇率折算）。
+
+- [改进] 股票度量视图后端按五层架构收敛：`src/application/quote/ports.py` 新增 `StockMetricSnapshotPort` / `StockMetricFactorsPort`，在线快照与离线因子仓储改由 `src/bootstrap/quote.py` 注入，时间工具改用 `src.utils.time`，消除 `src/application/` 的三条跨层引用并通过架构守卫；`.env.example` 补齐 `STOCK_METRIC_JOB_ENABLED` / `STOCK_METRIC_DAILY_RETENTION_DAYS`，两键登记为 `WEB_SETTINGS_HIDDEN_FROM_UI`（部署侧运维参数，不在设置页暴露）。
+
+- [修复] 股票度量视图表格市盈率整列为空：API 层移除对后端 camelCase 响应的二次 `toCamelCase`，避免 `peRatioTTM` / `psRatioTTM` 被降级成 `peRatioTtm` / `psRatioTtm`；分页器「显示 1 - 2 条」源于 `Table` 未向分页组件透传 `pageSize`，补齐透传并把 `Pagination` 默认值由 2 修正为 10。
+
+- [改进] 股票度量视图交互与代码收敛：新增首列序号、名称列按 `?stockCode=` 协议跳转个股 K 线、列宽加大且表头 / 单元格不换行、删除页面冗余结果计数；列定义收敛为表格渲染与 CSV 导出的唯一真源；三语 i18n 同步增删；解除 `hooks → pages` 反向依赖，清理未消费的字段、空壳方法与死导出。
+
+- [修复] 股票度量视图后端：修复离线因子 join 字段名错配（camelCase ↔ snake_case）与跨市场同代码误填、离线列排序失效（join 提前至排序前）、混合类型排序 / 区间筛选崩溃、`asOfDate` 伪造今日；季频财报源按接口实测字段（`REPORTDATE` / `BASIC_EPS` / `WEIGHTAVG_ROE` / `YSTZ`）重建并锁定最新报告期分页拉取；离线因子无数据时返回明确降级提示与 `degraded=true`（AC-6）。`epsGrowthTtmYoyPct` 需跨期累计 EPS 计算、`analystRating` 需接研报评级源，本期无来源，保持空值、不填 0 不估算。
+
+- [改进] 股票度量视图方案前后端命名统一为 `metric` 词根：方案文档落位 `documents/product/股票度量视图/stock_metric_view.md`，前端既有菜单 / 路由 / 空壳页面 / 三语 i18n 同步改为 `stockMetricView`（路由 `/stock/stockMetricView`，功能未上线故不做重定向），后端 `stock_metric_*` 表名与服务名不变；补充词根统一规则与「在线快照 ⊕ 离线指标」语义边界。
+
+- [新功能] 股票度量视图前端页面落地：新增 `StockMetricViewRow` 与查询 / 导出 Def（`types/stockMetricView.ts`）、API 层 `stockMetricViewApi`（query/exportCsv + 适配层补 `id` 与 industry 归一）、`useStockMetricView` 状态编排（requestId 竞态守卫 / localStorage 持久化 / CSV 导出）、静态列定义（按市场可见性裁剪）、`StockMetricViewFilterBar` 与 `StockMetricViewMetricTable` 组件及页面装配；三语 i18n 补齐 `stockMetricView.*` 命名空间（列头 / 口径 / 筛选 / 算子）。后端 `/api/v1/stock-metric` 端点尚未实现，页面可渲染，查询与导出需后端联调。
+
+- [新功能] 股票度量视图后端落地（设计文档 `documents/product/股票度量视图/stock_metric_view.md`）：`api/v1/schemas/stock_metric.py` 请求/响应模型；`api/v1/endpoints/stock_metric.py` 两个端点 `POST /stock-metric/query` 与 `POST /stock-metric/export`（CSV，UTF-8 BOM + CRLF，超 5000 行截断并带 `X-Export-Truncated`）；`src/application/quote/stock_metric_service.py` 含 `STOCK_METRIC_FIELDS` 静态注册表、filterList 解析、市场并集、三市场东财 clist 在线快照拉取（复用 `data_provider/market/eastmoney_source.py` 新增的 `fetch_eastmoney_clist_snapshot`，不改动既有 `_FS/_FIELDS`）、内存筛选/排序/分页、离线因子 join 与优雅降级；`src/infrastructure/persistence/models/stock_metric.py` 三个 ORM（`stock_metric_period/calc_run/daily`）与 `repositories/stock_metric_repo.py`；`data_provider/market/eastmoney_source.py` 扩展三市场 clist；`src/bootstrap/quote.py` 新增 `build_stock_metric_service`、`api/deps.py` 新增 `get_stock_metric_service`、`api/v1/router.py` 挂载 `/stock-metric`；`src/config/settings.py` 新增 `STOCK_METRIC_JOB_ENABLED` / `STOCK_METRIC_DAILY_RETENTION_DAYS`。季频离线因子任务函数 `run_stock_metric_quarterly_job` 已实现（best-effort 拉取东财 datacenter 财报源并写入，失败优雅降级），但其**调度注册**依赖配置驱动的 `RuntimeSchedulerService` 后台任务配置，留待联网联调阶段补齐（离线列 `epsGrowthTtmYoyPct`/`analystRating` 在任务跑批前对 cn 亦为 null，符合 AC-6 降级）。
+
 - [新功能] 市场总览「港美」新增加拿大 S&P/TSX 指数卡片：补充链路泛化为 SOX + TSX 配置表，东财一次批量请求取 `251.SOX` / `100.TSX` 并按代码去重，TSX 目前仅东财单源、SOX 保留新浪兜底；前端占位数量同步调整为 8。
 
 - [新功能] 市场总览「港美」新增费城半导体指数卡片：SOX 由东财 `251.SOX` 优先、新浪 `gb_sox` 兜底补充，与主指数并发取数并按代码去重合并，补充源失败时保持原有指数卡片；前端占位数量同步调整为 7。
