@@ -123,6 +123,7 @@ navigate(`/stock/kline?stockCode=${encodeURIComponent(code)}`);
 | 顶栏全局股票搜索 | `components/layout/ShellHeader.tsx` | `?stockCode=` | ✅ 已统一 |
 | 信号扫描结果行 | `pages/Discover/ScannerPage/components/ScannerResultRow.tsx` | `?stockCode=` | ✅ 已统一 |
 | 尾盘选股卡片 | `pages/Discover/EodPickerPage/components/EodStockCard.tsx` | `?stockCode=` | ✅ 已统一 |
+| 股票度量视图（代码 / 名称列） | `pages/Stock/StockMetricViewPage/components/stockMetricViewColumns.tsx` | `?stockCode=`（`buildStockKlinePath` 复用 `normalizeStockCode`，href 与 navigate 共用） | ✅ 已统一 |
 | 设置页「查看股票数据」 | `pages/SettingsPage.tsx` | 无 code（通用入口） | ➖ 合理保留 |
 
 <a id="sec-5"></a>
