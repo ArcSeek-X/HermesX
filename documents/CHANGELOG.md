@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 股票度量视图筛选区接入股票搜索：接入 `StockSearch`（写入 `code eq` 条件，选中跨市场股票时自动同步市场并立即查询，清除按钮 / 重置同步清空）；三语补充股票 / 代码 文案。
 - [改进] 股票度量视图筛选条件新增改为「显示域 + 编辑按钮 + 模态框表单」三段式：新增页面组件 `StockMetricViewConditionEditor`，显示域只读回显已保存条件，点「编辑条件」打开 `Modal` 表单批量新增 / 移除草稿条件，点「保存」才整组提交并回显，取消 / 关闭丢弃草稿；`StockMetricViewFilterBar` 去掉内联表单与草稿态，只保留市场单选 / 重置 / 查询；`useStockMetricView` 用 `setConditions`（整组替换）替代 `addFilter`，避免逐条写入的闭包覆盖；三语补充编辑 / 保存 / 空态 / 草稿标题文案。保存后仍需点「查询」触发请求，与原有契约一致。
+
+- [新功能] 市场总览 A 股 TAB 新增「富时中国A50」指标卡：跟踪 SGX 富时中国 A50 期货的领先风向标，A 股休市时段（SGX 夜盘）仍随行情跳动；后端经东财 `100.XIN9` 独立取数并补充到 A 股指数卡片末尾，StockSDK 作为主源胜出时卡片仍稳定出现。
 
 - [改进] 通用表格固定列取值类型 `TableColumnFixed` 更名为 `TableColumnFixedMode`：名称改为描述「固定模式」这一值域语义，不再与字段 `fixed` 同形；补齐 `true` / `'left'` / `'right'` / `false` 四个取值的逐项注释。不保留兼容别名，7 处引用一次性替换，`TableColumnDef.fixed` 字段与运行时行为不变。
 
