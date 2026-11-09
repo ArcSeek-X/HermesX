@@ -4,3 +4,4 @@
  * @author Lensgcx (GaoCangxiong)
  */
 export * from './CountryMarketSelect';
+export * from './types';
