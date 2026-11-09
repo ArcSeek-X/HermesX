@@ -354,6 +354,9 @@ function StockSearchInner({
         onChange={(raw: string) => {
           setEditingValue(raw || null);
           setDisplayText('');
+          // 键入即驱动本地模糊搜索并展开下拉：仅由外部 value 同步触发的 setQuery 路径
+          // 在 onChange 为空操作（不回写 value）时不会执行，故此处必须显式调用 setQuery。
+          setQuery(raw);
           onChange(raw);
           if (raw === '' && onClear) {
             onClear();
