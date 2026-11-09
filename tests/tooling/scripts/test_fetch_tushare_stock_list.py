@@ -15,7 +15,7 @@ import pandas as pd
 from tests.support.paths import get_repo_root
 
 ROOT = get_repo_root()
-SCRIPTS_DIR = ROOT / "scripts"
+SCRIPTS_DIR = ROOT / "scripts" / "stock_index_catalog" / "fetcher"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 

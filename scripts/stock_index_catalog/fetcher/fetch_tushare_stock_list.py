@@ -36,8 +36,8 @@ from typing import Optional, List, Dict
 import pandas as pd
 from dotenv import load_dotenv
 
-# 添加项目根目录到路径
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# 添加项目根（scripts/）到路径，保持与搬入 fetcher/ 前一致
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
     import tushare as ts
@@ -51,7 +51,7 @@ except ImportError:
 load_dotenv()
 
 TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN')
-OUTPUT_DIR = Path(__file__).parent.parent / "data"
+OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data"
 PAGE_SIZE = 5000  # 美股每页读取数量（API 最大6000，设置5000留余量）
 SLEEP_MIN = 5     # 最小睡眠时间（秒）
 SLEEP_MAX = 10    # 最大睡眠时间（秒）

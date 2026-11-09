@@ -19,13 +19,13 @@ TUSHARE_TOKEN=你的tushare_token
 ### 2. 运行脚本
 
 ```bash
-python3 scripts/fetch_tushare_stock_list.py
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py
 ```
 
 如需针对 A 股名称状态做修正，可以加上 `--a-rk`，脚本会保持 `stock_basic` 作为基础来源，再用 `rt_k` 对带 `XD`、`XR`、`DR`、`N`、`C` 前缀的名称进行回填，并覆盖输出到 `data/stock_list_a.csv`：
 
 ```bash
-python3 scripts/fetch_tushare_stock_list.py --a-rk
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py --a-rk
 ```
 
 ### 3. 查看输出
@@ -111,7 +111,7 @@ print(stock[['name', 'industry', 'list_date']])
 
 ```bash
 pip install -r requirements.txt
-python3 scripts/refresh_stock_index.py
+python3 scripts/stock_index_catalog/refresh_stock_index.py
 ```
 
 生成自动补全索引依赖 `pypinyin` 写入中文股票的完整拼音和拼音首字母字段；缺少该依赖时脚本会直接失败，避免生成无法支持拼音搜索的降级索引。
@@ -119,14 +119,14 @@ python3 scripts/refresh_stock_index.py
 如果你只想单独更新 CSV，可以先抓取数据：
 
 ```bash
-python3 scripts/fetch_tushare_stock_list.py --a-rk
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py --a-rk
 ```
 
 如果已经有新的 CSV，只想重新生成索引：
 
 ```bash
-python3 scripts/generate_index_from_csv.py --test  # 先测试
-python3 scripts/generate_index_from_csv.py         # 确认后生成
+python3 scripts/stock_index_catalog/generate_index_from_csv.py --test  # 先测试
+python3 scripts/stock_index_catalog/generate_index_from_csv.py         # 确认后生成
 ```
 
 ### 本地客户端自动获取最新索引

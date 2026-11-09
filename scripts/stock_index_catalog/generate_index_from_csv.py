@@ -32,7 +32,7 @@ generate_index_from_csv.py —— 前端股票自动补全索引生成器
 
 【输入】
     - Tushare 格式：data/stock_list_{a,hk,us}.csv
-      （缺失时回退到 scripts/stock_index_seeds/ 下的 JP/KR seed 文件）
+      （缺失时回退到 scripts/stock_index_catalog/static_markets/ 下的 JP/KR seed 文件）
     - AkShare 格式：logs/stock_basic_*.csv
 
 【输出】
@@ -58,8 +58,8 @@ import unicodedata
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-# Add the project root to sys.path.
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add the project root (scripts/) to sys.path.
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
     from pypinyin import lazy_pinyin, Style
@@ -127,8 +127,8 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
         合并后的股票列表
     """
     all_stocks = []
-    seed_dir = Path(__file__).parent / 'stock_index_seeds'
-    default_data_dir = Path(__file__).parent.parent / 'data'
+    seed_dir = Path(__file__).parent / 'static_markets'
+    default_data_dir = Path(__file__).parent.parent.parent / 'data'
     use_seed_fallback = data_dir.resolve() == default_data_dir.resolve()
 
     def _csv_path(file_name: str) -> Path:
@@ -140,7 +140,7 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
 
     # 各市场对应的 CSV 文件。
     # CN/HK/US 三个文件来自 Tushare 抓取（data/ 下）；若 data/ 里缺失，
-    # 会回退到 scripts/stock_index_seeds/ 下的 JP/KR seed 文件（见 _csv_path 的
+    # 会回退到 scripts/stock_index_catalog/static_markets/ 下的 JP/KR seed 文件（见 _csv_path 的
     # use_seed_fallback 逻辑）——所以即便没抓过数据，JP/KR 也能生成，CN/HK/US 则会被跳过
     # 并打印 Warning（这也是为什么本地缺 CSV 时索引里没有 A 股/港股/美股）。
     market_files = {
@@ -704,10 +704,10 @@ def main():
     # 加载数据
     print("\n[1/5] 读取 CSV 数据...")
     if args.source == 'tushare':
-        data_dir = Path(__file__).parent.parent / 'data'
+        data_dir = Path(__file__).parent.parent.parent / 'data'
         stocks = load_tushare_data(data_dir)
     elif args.source == 'akshare':
-        logs_dir = Path(__file__).parent.parent / 'logs'
+        logs_dir = Path(__file__).parent.parent.parent / 'logs'
         stocks = load_akshare_data(logs_dir)
     else:
         print(f"[Error] 不支持的数据源：{args.source}")
@@ -724,7 +724,7 @@ def main():
 
     # 输出路径
     output_path = (
-        Path(__file__).parent.parent / "apps" / "hrs-web" / "public" / "stocks.index.json"
+        Path(__file__).parent.parent.parent / "apps" / "hrs-web" / "public" / "stocks.index.json"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

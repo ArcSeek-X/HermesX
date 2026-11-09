@@ -12,7 +12,7 @@ from unittest.mock import patch
 from tests.support.paths import get_repo_root
 
 ROOT = get_repo_root()
-SCRIPTS_DIR = ROOT / "scripts"
+SCRIPTS_DIR = ROOT / "scripts" / "stock_index_catalog"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -30,12 +30,12 @@ def test_main_fetches_tushare_with_a_rk_by_default():
     assert exit_code == 0
     assert run.call_args_list[0].args[0] == [
         sys.executable,
-        "scripts/fetch_tushare_stock_list.py",
+        "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py",
         "--a-rk",
     ]
     assert run.call_args_list[1].args[0] == [
         sys.executable,
-        "scripts/generate_index_from_csv.py",
+        "scripts/stock_index_catalog/generate_index_from_csv.py",
         "--source",
         "tushare",
     ]

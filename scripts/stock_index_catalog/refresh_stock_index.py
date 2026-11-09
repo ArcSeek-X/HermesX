@@ -3,8 +3,8 @@
 """Refresh local stock autocomplete index assets.
 
 Default flow:
-1. Fetch Tushare stock lists into ``data/`` with ``--a-rk`` for A-share name correction.
-2. Generate ``apps/hrs-web/public/stocks.index.json`` from CSV plus JP/KR seed rows.
+1. Fetch stock lists into ``data/`` via the chosen fetcher (default Tushare) with ``--a-rk`` for A-share name correction.
+2. Generate ``apps/hrs-web/public/stocks.index.json`` from CSV plus JP/KR seed rows (``--source`` follows ``--fetch-source``).
 3. Sync the generated index to ``dist-web/static/stocks.index.json`` when the frontend has been built,
    so backend can serve the freshest copy without re-running ``npm run build``.
 """
@@ -19,9 +19,16 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 WEB_INDEX_PATH = REPO_ROOT / "apps" / "hrs-web" / "public" / "stocks.index.json"
 STATIC_INDEX_PATH = REPO_ROOT / "dist-web" / "static" / "stocks.index.json"
+
+# 抓取器：数据源 -> 对应的 fetcher 脚本（相对仓库根，cwd=REPO_ROOT 下执行）。
+# tushare 已实装；akshare 需在 fetcher/ 下自备 fetch_akshare_stock_list.py 后方可使用。
+FETCHER_SCRIPTS = {
+    "tushare": "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py",
+    "akshare": "scripts/stock_index_catalog/fetcher/fetch_akshare_stock_list.py",
+}
 
 
 def _run(command: Sequence[str]) -> None:
@@ -69,26 +76,37 @@ def main(argv: Sequence[str] | None = None) -> int:
     """脚本入口：刷新股票索引。"""
     parser = argparse.ArgumentParser(description="刷新股票自动补全索引")
     parser.add_argument(
+        "--fetch-source",
+        choices=list(FETCHER_SCRIPTS.keys()),
+        default="tushare",
+        help="抓取数据源：tushare=内置实装；akshare=需自备 fetcher/fetch_akshare_stock_list.py",
+    )
+    parser.add_argument(
         "--skip-fetch",
         action="store_true",
-        help="跳过 Tushare 抓取，仅用现有 data/stock_list_*.csv 重新生成索引",
+        help="跳过抓取，仅用现有 CSV 重新生成索引（--source 跟随 --fetch-source）",
     )
     args = parser.parse_args(argv)
 
     try:
-        if args.skip_fetch:
-            print("[refresh_stock_index] skip Tushare fetch; using existing CSV files")
-        else:
-            if not _has_tushare_token():
+        if not args.skip_fetch:
+            fetcher = FETCHER_SCRIPTS[args.fetch_source]
+            if not (REPO_ROOT / fetcher).is_file():
+                print(
+                    f"[refresh_stock_index] ERROR: 未找到抓取器 {fetcher}（{args.fetch_source} 数据源尚未实装）",
+                    file=sys.stderr,
+                )
+                return 2
+            if args.fetch_source == "tushare" and not _has_tushare_token():
                 print(
                     "[refresh_stock_index] ERROR: missing TUSHARE_TOKEN. "
                     "Set it in .env or environment, or rerun with --skip-fetch.",
                     file=sys.stderr,
                 )
                 return 2
-            _run([sys.executable, "scripts/fetch_tushare_stock_list.py", "--a-rk"])
+            _run([sys.executable, fetcher, "--a-rk"])
 
-        _run([sys.executable, "scripts/generate_index_from_csv.py", "--source", "tushare"])
+        _run([sys.executable, "scripts/stock_index_catalog/generate_index_from_csv.py", "--source", args.fetch_source])
         _sync_static_index()
 
     except subprocess.CalledProcessError as exc:
