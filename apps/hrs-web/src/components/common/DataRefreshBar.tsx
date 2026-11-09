@@ -27,6 +27,7 @@
  *     onRefresh={handleManualRefresh}
  *     onCountdownEnd={handleAutoRefresh}
  *     refreshInterval={30}
+ *     refreshTitle="刷新"
  *   />
  *
  * @author Lensgcx (GaoCangxiong)
@@ -53,6 +54,8 @@ interface DataRefreshBarProps {
   onCountdownEnd?: () => void;
   /** 自动刷新间隔（秒），仅实时模式有效；默认 30 秒，可通过该参数自定义 */
   refreshInterval?: number;
+  /** 手动刷新按钮文案；默认「手动刷新」，调用方可传入本地化文案覆盖 */
+  refreshTitle?: string;
   /** 自定义 CSS 类名，用于覆盖默认布局（如对齐、外边距） */
   className?: string;
 }
@@ -76,6 +79,7 @@ const formatTime = (date: Date): string => {
  * @param props.onCountdownEnd - 倒计时归零自动刷新回调，可选
  * @param props.refreshInterval - 自动刷新间隔秒数（默认 30，仅实时模式生效）
  * @param props.className - 可选自定义样式
+ * @param props.refreshTitle - 手动刷新按钮文案（默认「手动刷新」）
  * @returns 更新时间提示 + 手动刷新按钮的组合控件
  */
 export const DataRefreshBar: React.FC<DataRefreshBarProps> = ({
@@ -85,6 +89,7 @@ export const DataRefreshBar: React.FC<DataRefreshBarProps> = ({
   onRefresh,
   onCountdownEnd,
   refreshInterval = 60,
+  refreshTitle = '手动刷新',
   className = '',
 }) => {
   // 是否处于【快照模式】（snapshotTime 非空）；快照为历史定点，不启动自动刷新倒计时
@@ -160,7 +165,7 @@ export const DataRefreshBar: React.FC<DataRefreshBarProps> = ({
         className={cn('gap-1.5', btnActive && 'scale-95')}
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        手动刷新
+        {refreshTitle}
       </HrsButton>
     </div>
   );
