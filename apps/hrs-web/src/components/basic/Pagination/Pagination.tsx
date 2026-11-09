@@ -57,7 +57,7 @@ export interface PaginationProps {
  */
 export default function PaginationBar({
   total,
-  pageSize = 2,
+  pageSize = 10,
   pages,
   pageNum = 1,
   onPageChange,
