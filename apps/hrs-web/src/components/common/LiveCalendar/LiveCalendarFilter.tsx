@@ -18,13 +18,13 @@
  * @author Lensgcx (GaoCangxiong)
  */
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { pinyin } from 'pinyin-pro';
 import { TextField, Label } from '@heroui/react';
 import { HrsButton } from '../../basic/HrsButton';
 import { HrsInput } from '../../basic/HrsInput';
-import { HrsSelect, type HrsSelectDataSourceDef, type HrsSelectOptionDef } from '../../basic/HrsSelect';
+import { HrsSelect } from '../../basic/HrsSelect';
+import { CountryMarketSelect } from '../CountryMarketSelect';
 import { motion } from 'motion/react';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
@@ -33,22 +33,12 @@ import {
     IMPORTANCE_LABELS,
     type ImportanceLevel,
 } from '../../../constants/newsImportance';
-import type { CalendarCountryDef } from '../../../types/liveCalendar';
+import type { CountryMarketOptionDef } from '@components';
 import {
     createDefaultLiveCalendarFilter,
     type LiveCalendarFilterValue,
     type LiveCalendarTypeFilter,
 } from './LiveCalendarFilterState';
-
-/** 拼音首字母取不到（非中文名）的国家归入该分组，排在 A-Z 之后 */
-const OTHER_COUNTRY_GROUP = '#';
-
-/** 国家名 → 拼音首字母（A~Z）；取不到时归入 `#` */
-function pinyinInitialOf(name: string): string {
-    const [initial = ''] = pinyin(name, { pattern: 'first', toneType: 'none', type: 'array' });
-    const letter = initial.charAt(0).toUpperCase();
-    return /[A-Z]/.test(letter) ? letter : OTHER_COUNTRY_GROUP;
-}
 
 /** 重要度 chip 文案：`0` 无业务文案，回退到「无」 */
 function importanceLabel(level: ImportanceLevel, noneText: string): string {
@@ -63,7 +53,7 @@ export interface LiveCalendarFilterPanelProps {
     /** 已生效的筛选条件（草稿的同步源） */
     value: LiveCalendarFilterValue;
     /** 国家字典（来自 `useLiveCalendarCountries`） */
-    countries: CalendarCountryDef[];
+    countries: CountryMarketOptionDef[];
     /** 点「确认」：提交草稿 */
     onApply: (next: LiveCalendarFilterValue) => void;
     /** 点「重置」：清空全部条件 */
@@ -105,66 +95,6 @@ export const LiveCalendarFilterPanel = memo(
             setSyncedValue(next);
             setDraft(next);
             onReset();
-        };
-
-        const flagUriByCountryId = useMemo(() => {
-            const map = new Map<string, string>();
-            for (const country of countries) {
-                if (country.flagUri) map.set(country.countryId, country.flagUri);
-            }
-            return map;
-        }, [countries]);
-
-        // 国家下拉：首项「全部国家/地区」，其余按拼音首字母 A-Z 分组（组内按全拼排序），
-        // 无拼音首字母的归入 `#` 组并排在最后。选项渲染为「国旗 + 国名」。
-        const countryOptions = useMemo<HrsSelectDataSourceDef>(() => {
-            const ordered = [...countries].map((country) => ({
-                country,
-                initial: pinyinInitialOf(country.countryName),
-                full: pinyin(country.countryName, { toneType: 'none' }),
-            }));
-            ordered.sort((a, b) =>
-                a.initial === b.initial
-                    ? a.full.localeCompare(b.full)
-                    : a.initial.localeCompare(b.initial),
-            );
-
-            const groups = new Map<string, HrsSelectOptionDef[]>();
-            for (const item of ordered) {
-                const options = groups.get(item.initial);
-                if (options) {
-                    options.push({ key: item.country.countryId, label: item.country.countryName });
-                } else {
-                    groups.set(item.initial, [
-                        { key: item.country.countryId, label: item.country.countryName },
-                    ]);
-                }
-            }
-
-            return [
-                ...[...groups.entries()]
-                    .sort(([a], [b]) =>
-                        a === OTHER_COUNTRY_GROUP ? 1 : b === OTHER_COUNTRY_GROUP ? -1 : a.localeCompare(b),
-                    )
-                    .map(([initial, options]) => ({
-                        key: `country-group-${initial}`,
-                        title: initial,
-                        options,
-                    })),
-            ];
-        }, [countries]);
-
-        // 无国旗的选项不渲染占位块，直接贴左显示国名，避免下拉列表里出现一块空区域
-        const renderCountryOption = (option: HrsSelectOptionDef) => {
-            const flagUri = flagUriByCountryId.get(String(option.key));
-            return (
-                <span className="flex min-w-0 items-center gap-1.5">
-                    {flagUri ? (
-                        <img className="h-3 w-4 shrink-0 object-cover" src={flagUri} alt="countryFlag" aria-hidden />
-                    ) : null}
-                    <span className="truncate text-xs">{option.label}</span>
-                </span>
-            );
         };
 
         return (
@@ -230,37 +160,21 @@ export const LiveCalendarFilterPanel = memo(
                             />
                         </FilterField>
 
-                        {/* 国家 / 地区：多选；空数组 = 全部（显示「全部国家/地区」标签） */}
+                        {/* 国家 / 地区：多选；空数组 = 全部（显示「全部国家/地区」标签）。
+                            控件细节（拼音分组、国旗渲染、弹层限高）已封装进通用 CountryMarketSelect */}
                         <FilterField
                             label={t('component.LiveCalendar.filter.country')}
                             className="min-w-[9rem] flex-[0_1_12rem]"
                         >
-                            <HrsSelect
-                                size="sm"
-                                selectionMode="multiple"
-                                options={countryOptions}
-                                placeholder={t('component.LiveCalendar.filter.country.all')}
-                                value={draft.countryIds}
-                                onChange={(next) => {
-                                    const nextArr = Array.isArray(next)
-                                        ? (next as Array<string | number>)
-                                        : [];
-                                    // 空数组 = 全部（不筛选）；多选直接映射为国家 ID 列表
-                                    setDraft((prev) => ({
-                                        ...prev,
-                                        countryIds: nextArr.map(String),
-                                    }));
-                                }}
-                                renderItem={renderCountryOption}
+                            <CountryMarketSelect
                                 className="w-full"
-                                // 滚动容器是弹层本身（.select__popover 自带 overflow-y-auto），
-                                // list-box 不可滚动，故仅限高弹层到 ~400px，列表超出时由弹层滚动；
-                                // 末尾 ! 是 Tailwind v4 的 !important 修饰符，压制 react-aria Popover
-                                // 注入的 inline max-height（按视口自动算的高度），保证 400px 真的生效
-                                popoverClassName="countrySelectPopover max-h-[400px]! overflow-y-auto"
+                                value={draft.countryIds}
+                                options={countries}
+                                placeholder={t('component.LiveCalendar.filter.country.all')}
+                                multiple
+                                onChange={(next) =>setDraft((prev) => ({ ...prev, countryIds: next }))}
                             />
                         </FilterField>
-
                         {/* 关键词：唯一会放大的字段，吃掉行内剩余空间 */}
                         <FilterField
                             label={t('component.LiveCalendar.filter.keyword')}

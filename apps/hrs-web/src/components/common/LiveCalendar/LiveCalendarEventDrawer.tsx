@@ -27,7 +27,8 @@ import { HrsDrawer } from '../../basic/Drawer';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { IMPORTANCE_LABELS } from '../../../constants/newsImportance';
 import { eventThemeMap } from './eventTheme';
-import type { CalendarCountryDef, LiveCalendarEventDef } from '../../../types/liveCalendar';
+import type { CountryMarketOptionDef } from '@components';
+import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 import { cn } from '../../../utils/cn';
 import { formatDate, formatDateTime } from '../../../utils/format';
 
@@ -47,12 +48,12 @@ function MetricItem({ label, value }: { label: string; value: string }) {
  * 单条事件详情抽屉
  *
  * @param props.event - 要展示的事件（非空，由父组件保证）
- * @param props.countries - 国家字典，按 `countryId` 取货币符号（未就绪时降级）
+ * @param props.countries - 国家字典，按 `countryMarketId` 取货币符号（未就绪时降级）
  * @param props.onClose - 关闭回调（父组件据此清空选中事件并卸载抽屉）
  */
 export const LiveCalendarEventDrawer: React.FC<{
     event: LiveCalendarEventDef;
-    countries: CalendarCountryDef[];
+    countries: CountryMarketOptionDef[];
     onClose: () => void;
 }> = ({ event, countries, onClose }) => {
     const [isOpen, setIsOpen] = useState(true);
@@ -70,7 +71,7 @@ export const LiveCalendarEventDrawer: React.FC<{
         ? `${formatDate(event.startAt)} ${t('component.LiveCalendar.allDay')}`
         : formatDateTime(event.startAt);
 
-    const currency = countries.find((item) => item.countryId === event.countryId)?.currency;
+    const currency = countries.find((item) => item.countryMarketId === event.countryId)?.currency;
     // 重要度色板：与月/周/日日历和 List 视图共用 eventThemeMap，避免两套色板视觉漂移
     const theme = eventThemeMap(event.importance);
     const importanceLabel = IMPORTANCE_LABELS[event.importance];

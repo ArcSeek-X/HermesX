@@ -24,7 +24,8 @@ import zhTwLocale from '@fullcalendar/core/locales/zh-tw';
 import { cn } from '../../../utils/cn';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../../i18n/uiText';
-import type { CalendarCountryDef, LiveCalendarEventDef } from '../../../types/liveCalendar';
+import type { CountryMarketOptionDef } from '@components';
+import type { LiveCalendarEventDef } from '../../../types/liveCalendar';
 import { LIVE_CALENDAR_CSS_COVER } from './csscover';
 import { formatTime } from '../../../utils/format';
 // 色板下沉到 eventTheme.ts：网格视图与 List 视图共用，留在本文件会让 List 反向 import 成环。
@@ -72,7 +73,7 @@ export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
      */
     onSelectEvent?: (event: LiveCalendarEventDef) => void;
     /** 国家字典（国旗 / 货币 / 国家名），来自 Page 的 `useLiveCalendarCountries()`，供详情抽屉渲染 */
-    countries?: CalendarCountryDef[];
+    countries?: CountryMarketOptionDef[];
     /** 组件内部发起的范围请求事件：外层据此准备对应范围的数据 */
     onRangeRequest?: (payload: LiveCalendarRangeRequest) => void;
     /** 外层数据已准备好的 requestKey；月视图会等该 key 就绪后再切换实例 */
