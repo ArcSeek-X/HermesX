@@ -23,8 +23,8 @@ import {
 /** 数据自动刷新间隔：30 秒（与原板块分析页仪表盘行为保持一致） */
 const REFRESH_INTERVAL_MS = 30_000;
 
-/** A股指数占位卡片数量 */
-const INDEX_PLACEHOLDER_COUNT = 10;
+/** A股指数占位卡片数量（含富时中国A50指数卡片） */
+const INDEX_PLACEHOLDER_COUNT = 11;
 
 /** 港美指数占位卡片数量（含费城半导体指数、加拿大 S&P/TSX） */
 const GLOBAL_INDEX_PLACEHOLDER_COUNT = 8;

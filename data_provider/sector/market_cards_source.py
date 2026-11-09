@@ -28,6 +28,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from data_provider.sector.eastmoney_source import (
+    get_cached_a50_index as get_cached_a50_index_from_eastmoney,
     get_cached_board_list as get_cached_board_list_from_eastmoney,
     get_cached_market_fund_flow as get_cached_market_fund_flow_from_eastmoney,
     get_cached_market_indices as get_cached_market_indices_from_eastmoney,
@@ -234,6 +235,7 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
     """构建 A 股市场卡片。"""
     futures = {
         "indices": _EXECUTOR.submit(_get_market_indices, "a"),
+        "a50": _EXECUTOR.submit(_get_a50_index),
         "overview": _EXECUTOR.submit(_get_market_overview),
         "northbound": _EXECUTOR.submit(_get_northbound_flow),
         "fund_flow": _EXECUTOR.submit(_get_market_fund_flow),
@@ -241,6 +243,7 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
     }
     labels = {
         "indices": "指数(a)",
+        "a50": "富时中国A50",
         "overview": "市场概览",
         "northbound": "北向资金",
         "fund_flow": "大盘主力",
@@ -249,6 +252,7 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
     done = _await_all(futures, labels)
 
     indices = _grab(futures, done, "indices", [], "指数(a)")
+    a50 = _grab(futures, done, "a50", None, "富时中国A50")
     overview = _grab(futures, done, "overview", {}, "市场概览")
     northbound = _grab(futures, done, "northbound", None, "北向资金")
     fund_flow = _grab(futures, done, "fund_flow", None, "大盘主力")
@@ -257,6 +261,10 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
         # 板块源未在预算内返回，进入退避，后续轮次直连东财/神策。
         _mark_board_stocksdk_backoff()
 
+    # 富时中国 A50 指数作为 A 股休市时段（SGX 夜盘）的领先风向标，
+    # 独立于主指数批量接口单独补充到 A 股 TAB 末尾，按 code 去重避免重复。
+    if a50:
+        indices = _append_a50_index(indices or [], a50)
     cards = _build_index_quote_cards(indices or [])
     cards.extend(
         [
@@ -371,6 +379,43 @@ def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
         lambda: get_cached_market_indices_from_stocksdk(source_market),
         lambda: get_cached_market_indices_from_eastmoney(source_market),
     )
+
+
+def _get_a50_index() -> Optional[List[Dict[str, Any]]]:
+    """获取富时中国 A50 指数（100.XIN9）实时行情。
+
+    该指数跟踪 SGX 富时中国 A50 期货，是 A 股休市时段（SGX 夜盘）的领先风向标。
+    走东财单标的缓存接口，独立于 A 股主指数批量接口，
+    保证 StockSDK 作为主源胜出时 A50 卡片仍稳定出现。
+    """
+    try:
+        return get_cached_a50_index_from_eastmoney()
+    except Exception as exc:  # noqa: BLE001 - 单一补充源失败不影响其余卡片
+        logger.warning("[market-cards] 富时中国A50 取数失败: %s", exc)
+        return None
+
+
+def _append_a50_index(
+    indices: List[Dict[str, Any]], a50: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """把富时中国 A50 指数追加到 A 股指数列表末尾，按 code 去重。
+
+    a50 列表预期仅含一项；若主指数批量结果中已含 XIN9（极端兜底），
+    则跳过追加，避免 cardKey 冲突。
+    """
+    if not indices:
+        return indices
+    existing = {str(item.get("code") or "").strip() for item in indices}
+    merged = list(indices)
+    for item in a50:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("code") or "").strip()
+        if not code or code in existing:
+            continue
+        merged.append(item)
+        existing.add(code)
+    return merged
 
 
 def _get_supplement_indices_from_eastmoney() -> Dict[str, Dict[str, Any]]:

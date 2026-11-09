@@ -623,6 +623,7 @@ class EastmoneyCardIndices:
     read_eastmoney_index_url: Callable[[], Any]
     read_eastmoney_index_url_delay: Callable[[], Any]
     read_market_indices: Callable[[], Any]
+    read_market_indices_a50: Callable[[], Any]
     read_market_indices_jp_kr: Callable[[], Any]
     read_market_indices_us: Callable[[], Any]
     read_request_timeout: Callable[[], Any]
@@ -639,6 +640,19 @@ class EastmoneyCardIndices:
             indices_cfg = self.read_market_indices_jp_kr()
         else:
             indices_cfg = self.read_market_indices()
+        return self._fetch_by_config(indices_cfg)
+
+    def fetch_a50_index(self) -> Optional[List[Dict]]:
+        """获取富时中国 A50 指数（secid 100.XIN9）实时行情。
+
+        该指数跟踪 SGX 富时中国 A50 期货，是 A 股休市时段（SGX 夜盘）
+        的领先风向标，独立于 A 股 TAB 主指数批量接口单独取数，
+        保证 StockSDK 作为主源胜出时 A50 卡片仍稳定出现。
+        """
+        return self._fetch_by_config(self.read_market_indices_a50())
+
+    def _fetch_by_config(self, indices_cfg: List[Dict]) -> Optional[List[Dict]]:
+        """按给定指数配置批量拉取行情，主域名失败回退 delay 域名。"""
         secids = ",".join(item["secid"] for item in indices_cfg)
         code_name_map = {item["code"]: item["name"] for item in indices_cfg}
         for url in [self.read_eastmoney_index_url(), self.read_eastmoney_index_url_delay()]:
@@ -695,6 +709,16 @@ class EastmoneyCardIndices:
         cache = self.read_index_cache().setdefault(market, {"data": None, "timestamp": 0, "ttl": 60})
         if cache["data"] is None or (self.read_time().time() - cache["timestamp"]) > cache["ttl"]:
             data = self.call_fetch_market_indices(market)
+            if data:
+                cache["data"] = data
+                cache["timestamp"] = self.read_time().time()
+        return cache["data"]
+
+    def get_cached_a50_index(self) -> Optional[List[Dict]]:
+        """获取带缓存的富时中国 A50 指数行情（缓存键 'a50'）。"""
+        cache = self.read_index_cache().setdefault("a50", {"data": None, "timestamp": 0, "ttl": 60})
+        if cache["data"] is None or (self.read_time().time() - cache["timestamp"]) > cache["ttl"]:
+            data = self.fetch_a50_index()
             if data:
                 cache["data"] = data
                 cache["timestamp"] = self.read_time().time()
