@@ -30,6 +30,69 @@ $corner-radius: min(16px, var(--radius-xl));;
 
 // 表头：文字颜色调淡。
 // 因此必须用 :global(th) 直接选中 th 才能生效。
+// 固定列：横向滚动时保持可见。
+// 表头 th 已在 .header 里设了 position:sticky + top:0 + 不透明背景，
+// 这里补列方向定位；偏移量由 fixedColumns.ts 的 ResizeObserver 写入 CSS 变量并内联到 th/td。
+.colFixedLeft,
+.colFixedRight {
+  position: sticky;
+  z-index: 2;
+}
+
+// 固定列单元格必须始终不透明：横向滚动时下方滚动单元格会经过该区域，
+// 而 HeroUI 的 tr:hover / [data-selected] .table__cell 会把背景改成半透明
+// bg-surface/40、bg-surface/10，hover 行就会透出下方单元格的文字。
+// 选择器具体性 (0,2,2) 压过 HeroUI 的 (0,2,0)。
+:global(tr) :global(td).colFixedLeft,
+:global(tr) :global(td).colFixedRight {
+  background-color: var(--surface);
+}
+
+// hover / 选中态改用不透明主题色，保留高亮且不透视。
+:global(tr:hover) :global(td).colFixedLeft,
+:global(tr:hover) :global(td).colFixedRight,
+:global(tr[data-hovered='true']) :global(td).colFixedLeft,
+:global(tr[data-hovered='true']) :global(td).colFixedRight,
+:global(tr[data-selected='true']) :global(td).colFixedLeft,
+:global(tr[data-selected='true']) :global(td).colFixedRight {
+  background-color: hsl(var(--muted));
+}
+
+// 固定区边界：一条向滚动区渐淡的竖直阴影，把固定列与正常列区分开。
+// 用 ::before 而非 ::after —— HeroUI 已用 .table__column::after 画列头分隔线。
+// 只加在边界列（左侧连续固定区末列 / 右侧连续固定区首列），避免每列都有阴影。
+.colFixedEdgeLeft::before,
+.colFixedEdgeRight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  pointer-events: none;
+}
+
+.colFixedEdgeLeft::before {
+  right: 0;
+  transform: translateX(100%);
+  background: linear-gradient(
+    to right,
+    hsl(var(--foreground) / 0.06) 0%,
+    hsl(var(--foreground) / 0.02) 45%,
+    transparent 100%
+  );
+}
+
+.colFixedEdgeRight::before {
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    to left,
+    hsl(var(--foreground) / 0.06) 0%,
+    hsl(var(--foreground) / 0.02) 45%,
+    transparent 100%
+  );
+}
+
 .header {
   :global(th) {
     color: hsl(var(--foreground) / 0.6);
@@ -39,8 +102,14 @@ $corner-radius: min(16px, var(--radius-xl));;
     // 必须给 th 单独设置 sticky + 背景色，否则滚动时行内容会从表头下方透出。
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 3;
     background-color: hsl(var(--muted));
+  }
+
+  // 固定列的列头同时吸顶并固定列，层级需高于普通表头(3)与固定列单元格(2)
+  :global(th).colFixedLeft,
+  :global(th).colFixedRight {
+    z-index: 4;
   }
 }
 

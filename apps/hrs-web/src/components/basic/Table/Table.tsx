@@ -16,6 +16,7 @@
  *   5. 操作列：通过 column.render 插槽函数自定义单元格内容（如操作按钮）；
  *   6. 分页：通过 pagination 配置启用分页，使用独立 Pagination 组件显示页码导航和数据统计；
  *   7. 可配置：variant、className 等属性均支持外部配置。
+ *   8. 固定列：取值归一、动态偏移与边界阴影集中在同目录 fixedColumns.ts。
  *
  * 使用示例：
  *   <Table
@@ -33,7 +34,7 @@
  * @author Lensgcx (GaoCangxiong)
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { ComponentProps } from 'react';
 import { Table as HeroTable, EmptyState } from '@heroui/react';
 import type { Key, SortDescriptor, Selection } from '@heroui/react';
@@ -41,6 +42,9 @@ import { Inbox } from 'lucide-react';
 import PaginationBar from '../Pagination';
 import { cn } from '../../../utils/cn';
 import styles from './Table.module.scss';
+import { buildFixedColumnPropsByKey, useFixedColumnOffsets } from './fixedColumns';
+import type { TableColumnFixedMode } from './fixedColumns';
+export type { TableColumnFixedMode } from './fixedColumns';
 
 
 /**
@@ -92,8 +96,36 @@ export interface TableColumnDef<T> {
    * 与内置的 "border-b border-subtle" 通过 cn 合并。
    */
   cellClassName?: string;
+  /**
+   * 整列（列头 + 单元格）的对齐方式，默认 'left'。
+   * 数字 / 金额列设 'right'，序号 / 标识列设 'center'；列头与单元格同步生效。
+   */
+  align?: TableColumnAlign;
+  /**
+   * 固定列（横向滚动时保持可见），列表的列默认不固定。
+   * 取 true 等价固定在左侧；'left' / 'right' 显式指定方向；false 与不传均为不固定。
+   * 固定列必须从首列（left）或末列（right）起连续声明；
+   * 偏移量由组件按运行时实际列宽计算，可随列宽拖动自动更新。
+   */
+  fixed?: TableColumnFixedMode;
 }
 
+/** 列对齐方式：整列（列头 + 单元格）统一生效，默认 'left' */
+export type TableColumnAlign = 'left' | 'right' | 'center';
+
+/** 对齐方式 → 文本对齐 class（作用于 th / td 及非排序列头） */
+const TABLE_ALIGN_TEXT_CLASS: Record<TableColumnAlign, string> = {
+  left: 'text-left',
+  right: 'text-right',
+  center: 'text-center',
+};
+
+/** 对齐方式 → flex 主轴对齐 class（作用于可排序列头内部容器） */
+const TABLE_ALIGN_FLEX_CLASS: Record<TableColumnAlign, string> = {
+  left: 'justify-start',
+  right: 'justify-end',
+  center: 'justify-center',
+};
 
 /**
  * 分页配置接口。
@@ -220,11 +252,35 @@ export function Table<T extends { id: string | number }>({
    * 渲染单元格内容。
    * 如果列定义了 render 函数则使用自定义渲染，否则直接显示字段值。
    */
+  // 列定义按 key 建索引，避免每个单元格都做一次线性查找
+  const columnByKey = useMemo(
+    () => new Map(columns.map((column) => [column.key, column])),
+    [columns],
+  );
+
+  /**
+   * 列结构签名：列增删时让 React Aria 动态集合缓存失效。
+   * RAC 的 useCachedChildren 以行数据对象为 WeakMap key 缓存已渲染的 Row element，
+   * 仅改变 columns 时旧行会复用缓存里的 Row（其 columns 仍是旧列数），
+   * 与新表头列数不一致会抛 "Cell count must match column count"。
+   * 通过 Body / Row 的 dependencies 精确失效缓存，不重挂载整张表，
+   * 避免丢失选中、排序与列宽状态。
+   */
+  const columnSignature = useMemo(
+    () => columns.map((column) => column.key).join('|'),
+    [columns],
+  );
+
+  /** 固定列容器 ref：偏移变量写在外层 div 上 */
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useFixedColumnOffsets(wrapperRef, columns.length, columnSignature);
+
+  /** 固定列属性按 key 建索引：表头与单元格共用同一份，避免两处漂移 */
+  const fixedByKey = useMemo(() => buildFixedColumnPropsByKey(columns), [columns]);
+
   const renderCell = useCallback(
     (row: T, columnKey: string) => {
-      // 查找对应列定义
-      const colDef = columns.find((c) => c.key === columnKey);
-
+      const colDef = columnByKey.get(columnKey);
       // 如果有自定义渲染函数，使用它
       if (colDef?.render) {
         return colDef.render(row);
@@ -235,7 +291,7 @@ export function Table<T extends { id: string | number }>({
       if (value == null) return '—';
       return String(value);
     },
-    [columns],
+    [columnByKey],
   );
 
   /**
@@ -288,6 +344,7 @@ export function Table<T extends { id: string | number }>({
 
   return (
     <div
+      ref={wrapperRef}
       className={cn('hrs-table flex flex-col w-full', fillHeight && 'flex-1 min-h-0', wrapperClassName)}
       style={wrapperStyle}
     >
@@ -304,37 +361,47 @@ export function Table<T extends { id: string | number }>({
               sortDescriptor={sortDescriptor}
               onSortChange={onSortChange}
             >
-              {/* 表头 */}
+              {/* 表头：列头与单元格使用同一 align，保证整列对齐一致 */}
               <HeroTable.Header className={cn('hrs-table__header bg-muted', styles.header)}>
-                {columns.map((col) => (
-                  <HeroTable.Column
-                    key={col.key}
-                    allowsSorting={col.allowsSorting}
-                    minWidth={col.minWidth as ComponentProps<typeof HeroTable.Column>['minWidth']}
-                    defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
-                    isRowHeader={col.isRowHeader ?? col.key === columns[0].key}
-                  >
-                    {col.allowsSorting ? (
-                      <HeroTable.SortableColumnHeader
-                        sortDirection={
-                          sortDescriptor?.column === col.key
-                            ? sortDescriptor.direction
-                            : undefined
-                        }
-                      >
-                        {col.title}
-                      </HeroTable.SortableColumnHeader>
-                    ) : (
-                      col.title
-                    )}
-                  </HeroTable.Column>
-                ))}
+                {columns.map((col) => {
+                  const align = col.align ?? 'left';
+                  const fixedProps = fixedByKey.get(col.key);
+                  return (
+                    <HeroTable.Column
+                      key={col.key}
+                      allowsSorting={col.allowsSorting}
+                      minWidth={col.minWidth as ComponentProps<typeof HeroTable.Column>['minWidth']}
+                      defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
+                      isRowHeader={col.isRowHeader ?? col.key === columns[0]?.key}
+                      className={cn(TABLE_ALIGN_TEXT_CLASS[align], fixedProps?.className)}
+                      style={fixedProps?.style}
+                    >
+                      {col.allowsSorting ? (
+                        <HeroTable.SortableColumnHeader
+                          className={cn('w-full', TABLE_ALIGN_FLEX_CLASS[align])}
+                          sortDirection={
+                            sortDescriptor?.column === col.key
+                              ? sortDescriptor.direction
+                              : undefined
+                          }
+                        >
+                          {col.title}
+                        </HeroTable.SortableColumnHeader>
+                      ) : (
+                        <span className={cn('block w-full', TABLE_ALIGN_TEXT_CLASS[align])}>
+                          {col.title}
+                        </span>
+                      )}
+                    </HeroTable.Column>
+                  );
+                })}
               </HeroTable.Header>
 
               {/* 表体 */}
               <HeroTable.Body
                 className={cn('hrs-table__body', styles.body)}
                 items={displayRows}
+                dependencies={[columnSignature]}
                 renderEmptyState={renderEmptyState ?? defaultEmptyState}
               >
                 {/*
@@ -343,10 +410,14 @@ export function Table<T extends { id: string | number }>({
               */}
                 {(item) => (
                   <HeroTable.Row key={String(item.id)} columns={columns}
+                    dependencies={[columnSignature]}
                     className={cn(`hrs-table__row__${String(item.id)}`, rowClassName)}
                   >
                     {(col) => (
-                      <HeroTable.Cell className={cn('border-b border-subtle', col.cellClassName)}>
+                      <HeroTable.Cell
+                        className={cn('border-b border-subtle', TABLE_ALIGN_TEXT_CLASS[col.align ?? 'left'], col.cellClassName, fixedByKey.get(col.key)?.className)}
+                        style={fixedByKey.get(col.key)?.style}
+                      >
                         {renderCell(item, col.key)}
                       </HeroTable.Cell>
                     )}
@@ -357,12 +428,13 @@ export function Table<T extends { id: string | number }>({
           </HeroTable.ResizableContainer>
         </HeroTable.ScrollContainer>
       </HeroTable>
-      {/* 底部分页栏：加载完成（isLoading 消失）后才显示 */}
-      {pagination && !isLoading && (
+      {/* 底部分页栏常驻：刷新时保留旧数据与分页控件，避免布局跳动 */}
+      {pagination && (
         <PaginationBar
           className="hrs-table__pagination"
           size="xs"
           total={pagination.total}
+          pageSize={pagination.pageSize}
           pages={pagination.pages}
           pageNum={pagination.pageNum}
           onPageChange={pagination.onPageChange}
