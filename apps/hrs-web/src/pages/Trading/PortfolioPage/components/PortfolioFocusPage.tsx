@@ -20,12 +20,12 @@ import type { ConcentrationDimension, ConcentrationSlice } from '../types';
 const PIE_COLORS = ['#00d4ff', '#00ff88', '#ffaa00', '#ff7a45', '#7f8cff', '#ff4466'];
 
 /** 集中度面板属性：仅需风险指标，切片与维度由本组件自行派生 */
-interface PortfolioFocusPageProps {
+interface PortfolioFocusPanelProps {
   /** 风险指标数据，用于行业/持仓集中度、板块告警与 Top1 权重 */
   risk: PortfolioRiskResponse | null;
 }
 
-export const PortfolioFocusPage: React.FC<PortfolioFocusPageProps> = ({ risk }) => {
+export const PortfolioFocusPanel: React.FC<PortfolioFocusPanelProps> = ({ risk }) => {
   const { language } = useUiLanguage();
   const text = PORTFOLIO_TEXT[language];
 

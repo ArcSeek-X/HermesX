@@ -37,7 +37,7 @@ import {
   ManualEntryModal,
   PortfolioAccountViewPanel,
   PortfolioEventsPanel,
-  PortfolioFocusPage,
+  PortfolioFocusPanel,
   PortfolioOverviewPanel,
   PortfolioTablePanel,
 } from './components';
@@ -389,7 +389,7 @@ const PortfolioPage: React.FC = () => {
 
           {activePortfolioTab === 'concentration' ? (
             <div className="shrink-0">
-              <PortfolioFocusPage risk={risk} />
+              <PortfolioFocusPanel risk={risk} />
             </div>
           ) : null}
 
