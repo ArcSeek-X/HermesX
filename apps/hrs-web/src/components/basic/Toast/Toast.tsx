@@ -59,7 +59,7 @@ export interface ToastDef {
     variant?: ToastVariant;
     /** 内容区右侧操作按钮插槽 */
     action?: React.ReactNode;
-    /** 自动关闭毫秒数（毫秒）；不传默认 3000 自动关闭；传 0 则不自动关闭，需手动点 × 或调用 dismissToast */
+    /** 自动关闭毫秒数（毫秒）；不传则取宿主 Toast 的 defaultDuration（默认 3000）自动关闭；传 0 则不自动关闭，需手动点 × 或调用 dismissToast */
     duration?: number;
     /** 附加到外层卡片的 className */
     className?: string;
@@ -103,10 +103,8 @@ function placementStyle(placement: ToastPlacement): React.CSSProperties {
  *  - icon / iconBg：状态图标文字色 / 圆形底
  *  - title：标题文字色
  */
-const variantStylesConfig: Record<
-    ToastVariant,
-    { bg: string; surface: string; icon: string; iconBg: string; title: string }
-> = {
+const variantStylesConfig: Record<ToastVariant, { bg: string; surface: string; icon: string; iconBg: string; title: string }> =
+{
     default: {
         bg: 'bg-border',
         surface: 'bg-elevated/96',
@@ -243,7 +241,7 @@ const ToastContent: React.FC<{
                         type="button"
                         aria-label={t('common.close')}
                         onClick={onDismiss}
-                        className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center 
+                        className="shrink-0 inline-flex h-6 w-6  rounded-md  items-center justify-center
                             text-muted-text/60 transition-colors hover:bg-surface-2 hover:text-muted-text
                             focus:outline-none"
                     >
@@ -393,9 +391,10 @@ export function dismissErrorToast(id: string): void {
  * 内部用 useSyncExternalStore 订阅模块队列，通过 portal 把每条 toast 挂到 body 下：
  *  - placement 从 options 解构，用于视口定位；同方位多条 toast 自动堆叠（纵向累加 92px）
  *  - duration > 0 时注册自动关闭定时器；组件卸载时清理全部定时器
+ *  - 单条未传 duration 时，取 defaultDuration（默认 3000ms），传 0 则不自动关闭
  *  - 空队列时渲染 null，避免无用 DOM
  */
-export const Toast: React.FC = () => {
+export const Toast: React.FC<{ defaultDuration?: number }> = ({ defaultDuration = 3000 }) => {
     const items = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
     const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
     // 每个 placement 的堆叠计数，用于同方位多条 toast 的纵向偏移。
@@ -405,7 +404,7 @@ export const Toast: React.FC = () => {
     // 注册自动关闭定时器 / 清理已消失 toast 的定时器
     React.useEffect(() => {
         items.forEach((item) => {
-            const dur = item.options.duration ?? 3000; // 不传 duration 默认 3000ms 自动关闭；传 0 则不自动关闭
+            const dur = item.options.duration ?? defaultDuration;
             if (dur > 0 && !timers.current.has(item.id)) {
                 const handle = setTimeout(() => dismissToast(item.id), dur);
                 timers.current.set(item.id, handle);
