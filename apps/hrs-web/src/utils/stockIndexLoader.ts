@@ -118,6 +118,7 @@ function unpackTuples(tuples: StockIndexTuple[]): StockIndexItem[] {
     assetType: tuple[INDEX_FIELD.ASSET_TYPE],
     active: tuple[INDEX_FIELD.ACTIVE],
     popularity: tuple[INDEX_FIELD.POPULARITY],
+    listDate: tuple[INDEX_FIELD.LIST_DATE],
   }));
 }
 
@@ -145,6 +146,7 @@ export function compressIndex(items: StockIndexItem[]): StockIndexTuple[] {
     item.assetType,
     item.active,
     item.popularity,
+    item.listDate,
   ]);
 }
 

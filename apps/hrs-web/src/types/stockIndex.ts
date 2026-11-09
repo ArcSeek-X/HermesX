@@ -35,6 +35,8 @@ export interface StockIndexItem {
   active: boolean;
   /** Popularity */
   popularity?: number;
+  /** Listing date (上市日期), from CSV list_date, e.g. "1991-01-29" */
+  listDate?: string;
 }
 
 /**
@@ -71,6 +73,7 @@ export type StockIndexTuple = [
   AssetType,
   boolean, // active
   number | undefined, // popularity
+  string | undefined, // listDate (上市日期)
 ];
 
 /**

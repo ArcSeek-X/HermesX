@@ -19,6 +19,7 @@ export const STOCK_INDEX_FIELDS = [
   'assetType',
   'active',
   'popularity',
+  'listDate', // 新增：上市日期（来自 CSV 的 list_date 列），追加在末尾（第 11 列）
 ] as const;
 
 /**
@@ -36,6 +37,7 @@ export const INDEX_FIELD = {
   ASSET_TYPE: 7,
   ACTIVE: 8,
   POPULARITY: 9,
+  LIST_DATE: 10, // 新增：上市日期，追加在末尾，不位移已有下标
 } as const;
 
 /**

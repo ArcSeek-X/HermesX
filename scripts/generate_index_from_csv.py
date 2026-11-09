@@ -1,19 +1,52 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generate Stock Index from CSV File
+=============================================================================
+generate_index_from_csv.py —— 前端股票自动补全索引生成器
+=============================================================================
 
-Input:
-  - Tushare format: data/stock_list_{a,hk,us}.csv
-  - Seed format: scripts/stock_index_seeds/stock_list_{jp,kr}.csv
-  - AkShare format: logs/stock_basic_*.csv
+【这个文件是干嘛的？】
+    它是前端搜索框（StockSearch 组件）背后"股票字典"的离线生成工具。
+    前端在用户输入股票代码/名称/拼音时，是在一个静态文件
+    `apps/hrs-web/public/stocks.index.json` 里做本地模糊匹配的（见
+    loadStockIndex / useStockAutocomplete / searchStocks）。这个脚本的作用，
+    就是把"各数据源导出的股票列表 CSV"转换成那个静态索引文件。
 
-Output: apps/hrs-web/public/stocks.index.json
+    也就是说：前端搜索能查到哪些股票，完全取决于这个脚本最后一次生成的
+    索引文件里包含哪些股票。数据源过期，前端就查不到新股（如宇树科技）。
 
-Usage:
+【它都做了哪些事？】（数据流向总览）
+    1. 选择数据源（Tushare 或 AkShare）。
+    2. 读取对应 CSV：把每行（ts_code / symbol / name 等）解析成统一结构。
+       - Tushare：按市场读取 data/stock_list_{a,hk,us}.csv +
+                   JP/KR 的 seed 文件；美股做"复用 ticker 去重"。
+       - AkShare：读取 logs/stock_basic_*.csv（取最新一份）。
+    3. 对每只股票生成索引字段：
+       - 名称规范化（去掉 A 股的 XD/XR/DR 除权前缀等）；
+       - 用 pypinyin 生成拼音全拼 / 简拼（供拼音搜索）；
+       - 生成常见别名（如「贵州茅台」->「茅台」）；
+       - 判定市场（CN/HK/US/BSE/JP/KR）并拆出展示代码 displayCode；
+       - 标记 active=true（当前索引未区分退市/上市状态）。
+    4. 压缩成"元组数组"格式（字段顺序由 INDEX_FIELD 约定），大幅减小体积。
+    5. 写出到 apps/hrs-web/public/stocks.index.json（--test 时只校验不写盘）。
+
+【输入】
+    - Tushare 格式：data/stock_list_{a,hk,us}.csv
+      （缺失时回退到 scripts/stock_index_seeds/ 下的 JP/KR seed 文件）
+    - AkShare 格式：logs/stock_basic_*.csv
+
+【输出】
+    apps/hrs-web/public/stocks.index.json（压缩元组数组，约 3MB / 3 万条）
+
+【用法】
     python3 scripts/generate_index_from_csv.py              # 默认使用 Tushare
     python3 scripts/generate_index_from_csv.py --source akshare
-    python3 scripts/generate_index_from_csv.py --test       # 测试模式
+    python3 scripts/generate_index_from_csv.py --test       # 测试模式：只读取+校验，不写文件
+
+【依赖】
+    - pypinyin（必装，否则直接退出，无法生成索引）
+    - 注意字段顺序与前端 src/utils/stockIndexSchema.ts 的 INDEX_FIELD 必须保持一致，
+      否则前端解压（unpackTuples）会错位。
 """
 
 import argparse
@@ -105,6 +138,11 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
             return data_path
         return seed_dir / file_name
 
+    # 各市场对应的 CSV 文件。
+    # CN/HK/US 三个文件来自 Tushare 抓取（data/ 下）；若 data/ 里缺失，
+    # 会回退到 scripts/stock_index_seeds/ 下的 JP/KR seed 文件（见 _csv_path 的
+    # use_seed_fallback 逻辑）——所以即便没抓过数据，JP/KR 也能生成，CN/HK/US 则会被跳过
+    # 并打印 Warning（这也是为什么本地缺 CSV 时索引里没有 A 股/港股/美股）。
     market_files = {
         'CN': data_dir / 'stock_list_a.csv',
         'HK': data_dir / 'stock_list_hk.csv',
@@ -417,6 +455,9 @@ def parse_stock_row(row: Dict[str, str], preferred_market: Optional[str] = None)
         'name': name,
         'market': market,
         'aliases': parse_aliases(row),
+        # 上市日期：原样透传 CSV 的 list_date 列（如 "1991-01-29"），
+        # 空串表示未知；build_stock_index 会把它写入索引第 11 列。
+        'list_date': row.get('list_date', ''),
     }
 
 
@@ -469,6 +510,10 @@ def generate_aliases(name: str, market: str) -> List[str]:
 
     Returns:
         List of aliases
+
+    说明：别名用于"输入简称也能搜到"，但这里的映射是硬编码的常见股票白名单
+    （茅台/腾讯/Apple 等），只覆盖少数知名标的；不在表里的股票就没有别名。
+    若要支持更通用的简称匹配，需要换成更智能的派生规则，而非这套静态表。
     """
     aliases = []
 
@@ -553,6 +598,10 @@ def build_stock_index(stocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     Returns:
         Stock index entries
     """
+        # 把每只原始股票行，转成一条前端索引项（dict）。
+    # 这一步是"业务核心"：决定最终索引里每个字段长什么样。
+    # 注意：所有股票在这里都被统一标 active=true，索引文件本身不携带
+    # 上市/退市状态、上市日期等动态信息（list_date 虽在 CSV 里有，但没被写入索引）。
     index = []
 
     for stock in stocks:
@@ -585,6 +634,9 @@ def build_stock_index(stocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "assetType": "stock",
             "active": True,
             "popularity": 100,
+            # 上市日期：来自 CSV 的 list_date 列（Tushare/AkShare 均有），
+            # 追加为索引第 11 列（下标 10），前端 INDEX_FIELD.LIST_DATE 对应读取。
+            "listDate": stock.get('list_date', ''),
         })
 
     return index
@@ -613,6 +665,7 @@ def compress_index(index: List[Dict[str, Any]]) -> List[List]:
             item["assetType"],
             item["active"],
             item.get("popularity", 0),
+            item.get("listDate", ""),  # 第 11 列：上市日期（下标 10）
         ])
     return compressed
 
@@ -637,6 +690,13 @@ def main():
     print("股票索引生成工具（从 CSV）")
     print("=" * 60)
     print(f"数据源：{args.source}")
+
+    # 主流程（见文件顶部总览）：
+    #   [1/5] 选择数据源并读取 CSV -> 统一结构的股票列表
+    #   [2/5] 逐只生成索引项（名称规范化 + 拼音 + 别名 + 市场 + 展示代码）
+    #   [3/5] 压缩成元组数组（减小体积，字段顺序由 INDEX_FIELD 约定）
+    #   [4/5] 写出 stocks.index.json（--test 时跳过写盘，只校验）
+    #   [5/5] 读取回写文件做校验，并统计各市场数量
 
     if not require_pypinyin():
         return 1
