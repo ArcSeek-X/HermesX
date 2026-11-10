@@ -30,9 +30,11 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import requests
@@ -209,3 +211,191 @@ def fetch_eastmoney_market_snapshot(
             unique.append(r)
     logger.info("[东财clist] 全市场快照: %d 只", len(unique))
     return pd.DataFrame(unique, columns=_COLUMNS)
+
+
+# === 股票度量视图（stock_metric）：三市场 clist 快照 ===
+# 在既有 _FS / _FIELDS 之外新增，避免影响尾盘选股等既有调用方。
+_FS_BY_MARKET: Dict[str, str] = {
+    "cn": "m:0 t:6,m:0 t:80,m:1 t:2,m:1 t:23,m:0 t:81 s:2048",
+    "hk": "m:128 t:3,m:128 t:4,m:128 t:1,m:128 t:2",
+    "us": "m:105,m:106,m:107",
+}
+# 度量视图标准字段（camelCase）-> 东财 clist f-id 映射（13 列 + 额外可筛字段）
+_METRIC_FIELD_MAP: Dict[str, str] = {
+    "f2": "price",
+    "f3": "changePct",
+    "f5": "volume",
+    "f10": "relativeVolume",
+    "f12": "code",
+    "f14": "name",
+    "f20": "totalMarketCap",
+    "f23": "pbRatio",
+    "f37": "roePct",
+    "f100": "industry",
+    "f112": "epsDiluted",
+    "f115": "peRatioTTM",
+    "f130": "psRatioTTM",
+    "f133": "dividendYieldPct",
+}
+_METRIC_FIELDS = ",".join(_METRIC_FIELD_MAP.keys())
+
+
+def _fetch_metric_page(market: str, page: int, page_size: int) -> Optional[Dict[str, Any]]:
+    """拉取指定市场第 page 页 clist 原始 payload（与 _fetch_page 同构，但 fs/fields 可变）。"""
+    fs = _FS_BY_MARKET[market]
+    try:
+        resp = _SESSION.get(
+            _CLIST_URL,
+            params={
+                "pn": page,
+                "pz": page_size,
+                "po": 1,
+                "np": 1,
+                "ut": _UT,
+                "fltt": 2,
+                "invt": 2,
+                "fid": "f12",
+                "fs": fs,
+                "fields": _METRIC_FIELDS,
+            },
+            timeout=_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:  # pragma: no cover - 网络 / 限流兜底
+        logger.info("[东财clist] 市场 %s 第 %d 页失败: %s", market, page, exc)
+        return None
+
+
+def _parse_metric_item(item: Dict[str, Any], market: str) -> Optional[Dict[str, Any]]:
+    code = str(item.get("f12") or "").strip()
+    name = str(item.get("f14") or "").strip()
+    price = _to_float(item.get("f2"))
+    if not code or not name or price is None or price <= 0:
+        return None
+    row: Dict[str, Any] = {"market": market, "code": code, "name": name}
+    for fid, field in _METRIC_FIELD_MAP.items():
+        if fid in ("f12", "f14"):
+            continue
+        raw = item.get(fid)
+        if field == "industry":
+            row[field] = str(raw).strip() if raw not in (None, "", "-") else None
+        else:
+            row[field] = _to_float(raw)
+    return row
+
+
+def _collect_metric_rows(payload: Dict[str, Any], market: str) -> List[Dict[str, Any]]:
+    data = payload.get("data") or {}
+    diff = data.get("diff") or []
+    rows: List[Dict[str, Any]] = []
+    for item in diff:
+        row = _parse_metric_item(item, market)
+        if row is not None:
+            rows.append(row)
+    return rows
+
+
+def _dedup_metric_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen = set()
+    unique: List[Dict[str, Any]] = []
+    for r in rows:
+        key = f"{r['market']}:{r['code']}"
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique
+
+
+# 度量视图快照 TTL 缓存：翻页 / 排序 / 切市场复用同一次全市场抓取，
+# 避免每次查询都对东财发起 50+ 页请求（既慢又容易触发限流）。
+_METRIC_SNAPSHOT_TTL_SECONDS = 20.0
+# 缓存值 = (写入时的 monotonic 秒, 该批数据抓取时刻 ISO 8601(UTC), 行副本)。
+# monotonic 只用于 TTL 比较、无法换算墙钟时间，因此抓取时刻随缓存一起保存：
+# 命中缓存 / 回源失败沿用旧快照时都回传它，不用「当前时刻」冒充数据新鲜度。
+_METRIC_SNAPSHOT_CACHE: Dict[str, Tuple[float, str, List[Dict[str, Any]]]] = {}
+_METRIC_SNAPSHOT_CACHE_LOCK = threading.Lock()
+_METRIC_SNAPSHOT_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
+
+
+def _clone_metric_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """返回行副本，避免服务层 join / 排序改写缓存内的 dict。"""
+    return [dict(row) for row in rows]
+
+
+def _load_metric_snapshot(market: str, page_size: int, max_workers: int) -> Optional[List[Dict[str, Any]]]:
+    """实际回源拉取并解析全市场快照（无缓存）。"""
+    payload = _fetch_metric_page(market, 1, page_size)
+    if payload is None:
+        return None
+    rows = _collect_metric_rows(payload, market)
+    if not rows:
+        return None
+    total = (payload.get("data") or {}).get("total")
+    if total is None or total <= len(rows):
+        return _dedup_metric_rows(rows)
+    num_pages = math.ceil(total / page_size)
+    if num_pages > 1:
+        workers = max(1, min(max_workers, num_pages - 1))
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for page_payload in ex.map(
+                lambda pn: _fetch_metric_page(market, pn, page_size), range(2, num_pages + 1)
+            ):
+                if page_payload is None:
+                    continue
+                rows.extend(_collect_metric_rows(page_payload, market))
+    return _dedup_metric_rows(rows)
+
+
+def fetch_eastmoney_clist_snapshot(
+    market: str,
+    page_size: int = _PAGE_SIZE,
+    max_workers: int = _MAX_WORKERS,
+    force_refresh: bool = False,
+) -> Optional[Tuple[List[Dict[str, Any]], str]]:
+    """按市场拉取全市场股票度量快照，并回传本批数据的抓取时刻。
+
+    返回 ``(rows, fetched_at)``：``fetched_at`` 是本批数据写入缓存的时刻，ISO 8601
+    且带 UTC 偏移（``+00:00``），前端可 ``new Date()`` 解析后按本地时区展示。
+    同市场结果在 ``_METRIC_SNAPSHOT_TTL_SECONDS`` 内复用；按市场的细粒度锁避免并发
+    缓存击穿；回源失败时沿用最近一次成功快照（stale-while-error）。命中缓存与沿用
+    旧快照两种情况都返回该批缓存自己的抓取时刻，不伪造当前时刻；全无缓存才返回
+    None（调用方降级跳过，不抛异常）。始终返回行副本，服务层可安全改写。
+    """
+    if market not in _FS_BY_MARKET:
+        logger.warning("[东财clist] 不支持的市场: %s", market)
+        return None
+    page_size = min(page_size, _PAGE_SIZE)
+    request_start = time.monotonic()
+
+    with _METRIC_SNAPSHOT_CACHE_LOCK:
+        cached = _METRIC_SNAPSHOT_CACHE.get(market)
+        refresh_lock = _METRIC_SNAPSHOT_REFRESH_LOCKS.setdefault(market, threading.Lock())
+
+    if not force_refresh and cached and time.monotonic() - cached[0] < _METRIC_SNAPSHOT_TTL_SECONDS:
+        return _clone_metric_rows(cached[2]), cached[1]
+
+    with refresh_lock:
+        with _METRIC_SNAPSHOT_CACHE_LOCK:
+            cached = _METRIC_SNAPSHOT_CACHE.get(market)
+        # 强制刷新时只复用「等待锁期间其他线程刚回源」的新快照，避免重复打源
+        if (
+            cached
+            and (not force_refresh or cached[0] >= request_start)
+            and time.monotonic() - cached[0] < _METRIC_SNAPSHOT_TTL_SECONDS
+        ):
+            return _clone_metric_rows(cached[2]), cached[1]
+        rows = _load_metric_snapshot(market, page_size, max_workers)
+        if rows:
+            # 抓取完成 / 落缓存的墙钟时刻；与 TTL 用的 monotonic 分开记录
+            fetched_at = datetime.now(timezone.utc).isoformat()
+            with _METRIC_SNAPSHOT_CACHE_LOCK:
+                _METRIC_SNAPSHOT_CACHE[market] = (
+                    time.monotonic(), fetched_at, _clone_metric_rows(rows)
+                )
+            return rows, fetched_at
+        # 回源失败：有旧快照就用旧快照，并沿用它自己的抓取时刻，避免整页空白
+        if cached:
+            logger.info("[东财clist] 市场 %s 回源失败，沿用最近一次快照", market)
+            return _clone_metric_rows(cached[2]), cached[1]
+    return None
