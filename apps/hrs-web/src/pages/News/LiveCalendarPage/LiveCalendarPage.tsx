@@ -64,7 +64,7 @@ function createInitialRange(): LiveCalendarRange {
 const LiveCalendarPage: React.FC = () => {
   const { t } = useUiLanguage();
   const { tabs } = useLiveCalendarTabs();
-  const { items: countries, degraded: countriesDegraded } = useLiveCalendarCountries();
+  const { items: countryMarketOption, degraded: countryMarketDegraded } = useLiveCalendarCountries();
 
   /** 当前可见日期范围，由 `LiveCalendar` 的 `onRangeRequest` 驱动。 */
   const [range, setRange] = useState<LiveCalendarRange>(createInitialRange);
@@ -146,7 +146,7 @@ const LiveCalendarPage: React.FC = () => {
       <PageHeader title={t('liveCalendar.title')} description={t('liveCalendar.subtitle')}/>
 
       {/* 数据源暂不可用，当前展示本地缓存数据 */}
-      {(degraded || countriesDegraded) && (
+      {(degraded || countryMarketDegraded) && (
         <InlineToast
           variant="warning"
           className="mb-3"
@@ -217,7 +217,7 @@ const LiveCalendarPage: React.FC = () => {
             <LiveCalendarFilterPanel
               open={filterOpen}
               value={filterValue}
-              countries={countries}
+              countries={countryMarketOption}
               onApply={setFilterValue}
               onReset={handleFilterReset}
             />
@@ -241,7 +241,7 @@ const LiveCalendarPage: React.FC = () => {
                 onRangeRequest={handleCalendarRangeRequest}
                 eventsMap={eventsByDay}
                 // 国家字典透传给 LiveCalendar：详情抽屉用它渲染国旗 / 货币 / 国家名
-                countries={countries}
+                countries={countryMarketOption}
               />
             )}
           </div>

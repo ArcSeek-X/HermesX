@@ -19,7 +19,7 @@
 
 import { toDateKeyFromSeconds } from '@utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { LiveCalendarRange } from '@components';
+import type { LiveCalendarRange, CountryMarketOptionDef } from '@components';
 import { ALL_IMPORTANCE_LEVELS, type ImportanceLevel } from '../constants/newsImportance';
 import {
   getLiveCalendarCountries,
@@ -28,7 +28,6 @@ import {
   refreshLiveCalendar,
 } from '../api/liveCalendar';
 import type {
-  CalendarCountryDef,
   CalendarTabDef,
   LiveCalendarEventDef,
 } from '../types/liveCalendar';
@@ -172,7 +171,7 @@ export function useLiveCalendarTabs(): {
 /** 国家字典 Hook */
 export function useLiveCalendarCountries(): {
   /** 国家字典列表：国旗、名称、货币(ISO 代码)等，供事件卡片 / 详情抽屉展示国家信息 */
-  items: CalendarCountryDef[];
+  items: CountryMarketOptionDef[];
   /** 降级标记：后端部分字段缺失时置 true，UI 可据此弱化展示（如缺货币 / 国旗时降级为仅名称） */
   degraded: boolean;
   /** 首次加载中（数据未就绪） */
@@ -180,7 +179,7 @@ export function useLiveCalendarCountries(): {
   /** 加载失败信息；null 表示成功 */
   error: string | null;
 } {
-  const [items, setItems] = useState<CalendarCountryDef[]>([]);
+  const [items, setItems] = useState<CountryMarketOptionDef[]>([]);
   const [degraded, setDegraded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -20,15 +20,6 @@ export interface CalendarTabDef {
   order: number;
 }
 
-/** 国家字典数据契约 */
-export interface CalendarCountryDef {
-  countryId: string;
-  countryName: string;
-  currency: string;
-  currencyName: string;
-  flagUri: string;
-}
-
 /** 单条日历事件数据契约 */
 export interface LiveCalendarEventDef {
   id: number;
