@@ -24,10 +24,10 @@ WEB_INDEX_PATH = REPO_ROOT / "apps" / "hrs-web" / "public" / "stocks.index.json"
 STATIC_INDEX_PATH = REPO_ROOT / "dist-web" / "static" / "stocks.index.json"
 
 # 抓取器：数据源 -> 对应的 fetcher 脚本（相对仓库根，cwd=REPO_ROOT 下执行）。
-# tushare 已实装；akshare 需在 fetcher/ 下自备 fetch_akshare_stock_list.py 后方可使用。
+# tushare 已实装；akshare 需在 fetcher/ 下自备 fetch_akshare_stock_list_all.py 后方可使用。
 FETCHER_SCRIPTS = {
-    "tushare": "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py",
-    "akshare": "scripts/stock_index_catalog/fetcher/fetch_akshare_stock_list.py",
+    "tushare": "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py",
+    "akshare": "scripts/stock_index_catalog/fetcher/fetch_akshare_stock_list_all.py",
 }
 
 
@@ -79,7 +79,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--fetch-source",
         choices=list(FETCHER_SCRIPTS.keys()),
         default="tushare",
-        help="抓取数据源：tushare=内置实装；akshare=需自备 fetcher/fetch_akshare_stock_list.py",
+        help="抓取数据源：tushare=内置实装；akshare=需自备 fetcher/fetch_akshare_stock_list_all.py",
     )
     parser.add_argument(
         "--skip-fetch",

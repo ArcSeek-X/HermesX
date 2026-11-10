@@ -30,7 +30,7 @@ def test_main_fetches_tushare_with_a_rk_by_default():
     assert exit_code == 0
     assert run.call_args_list[0].args[0] == [
         sys.executable,
-        "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py",
+        "scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py",
         "--a-rk",
     ]
     assert run.call_args_list[1].args[0] == [

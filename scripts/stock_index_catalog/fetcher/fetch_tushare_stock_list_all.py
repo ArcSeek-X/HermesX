@@ -6,8 +6,8 @@ Tushare 股票列表获取脚本
 从 Tushare Pro 获取 A股、港股、美股列表信息，保存为 CSV 文件
 
 使用方法：
-    python3 scripts/fetch_tushare_stock_list.py
-    python3 scripts/fetch_tushare_stock_list.py --a-rk
+    python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py
+    python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py --a-rk
 
 环境要求：
     - 需要在 .env 中配置 TUSHARE_TOKEN
@@ -16,11 +16,12 @@ Tushare 股票列表获取脚本
         * A股/港股：2000积分
         * 美股：120积分试用，5000积分正式权限
 
-输出文件：
-    - data/stock_list_a.csv      A股列表（--a-rk 时会覆盖为修正后名称）
-    - data/stock_list_hk.csv     港股列表
-    - data/stock_list_us.csv     美股列表
-    - data/README_stock_list.md  数据说明文档
+输出文件（均在 data/stock_index_catalog/ 下）：
+    - stock_list_cn.csv     A股沪深列表（.SH / .SZ；--a-rk 时写入修正后名称）
+    - stock_list_bse.csv    A股北交所列表（.BJ）
+    - stock_list_hk.csv     港股列表
+    - stock_list_us.csv     美股列表
+    - README_stock_list.md  数据说明文档
 """
 
 import argparse
@@ -31,7 +32,7 @@ import random
 import re
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -51,13 +52,50 @@ except ImportError:
 load_dotenv()
 
 TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN')
-OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data"
+# 与 generate_index_from_csv.py 的默认读取目录保持一致，改动时需同步两边。
+OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data" / "stock_index_catalog"
 PAGE_SIZE = 5000  # 美股每页读取数量（API 最大6000，设置5000留余量）
 SLEEP_MIN = 5     # 最小睡眠时间（秒）
 SLEEP_MAX = 10    # 最大睡眠时间（秒）
 A_RK_BATCH_SIZE = 200
 A_RK_FIELDS = "ts_code,name,close,pre_close,trade_time"
 A_RK_NAME_PREFIX_RE = re.compile(r"^(XD|XR|DR|N|C)")
+
+# A 股按交易所拆成两份 CSV；文件名与 generate_index_from_csv.py 的 market 枚举对齐。
+CN_STOCK_LIST_FILE = "stock_list_cn.csv"    # 沪深：.SH / .SZ -> CN
+BSE_STOCK_LIST_FILE = "stock_list_bse.csv"  # 北交所：.BJ -> BSE
+
+
+def split_a_stock_list(a_df: Optional[pd.DataFrame]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """把 stock_basic 返回的 A 股全量数据拆成「沪深」与「北交所」两份。
+
+    判据为 ts_code 后缀，与 generate_index_from_csv.determine_market() 保持一致：
+    - ``.BJ`` -> 北交所（BSE）
+    - ``.SH`` / ``.SZ`` -> 沪深（CN）
+    - 其它或缺失后缀 -> 归入沪深并打印告警，不静默丢数据
+
+    两份 DataFrame 保留全部原始列（含 list_date），仅按行拆分。
+    """
+    if a_df is None or len(a_df) == 0:
+        empty = pd.DataFrame(columns=list(a_df.columns) if a_df is not None else [])
+        return empty, empty.copy()
+
+    codes = a_df["ts_code"].astype(str).str.strip()
+    upper_codes = codes.str.upper()
+    is_bse = upper_codes.str.endswith(".BJ", na=False)
+    is_known = (
+        is_bse
+        | upper_codes.str.endswith(".SH", na=False)
+        | upper_codes.str.endswith(".SZ", na=False)
+    )
+    unknown = ~is_known
+    if unknown.any():
+        samples = codes[unknown].head(5).tolist()
+        print(f"[警告] {int(unknown.sum())} 条 A 股代码非 .SH/.SZ/.BJ 后缀，归入沪深：{samples}")
+
+    cn_df = a_df.loc[~is_bse].reset_index(drop=True)
+    bse_df = a_df.loc[is_bse].reset_index(drop=True)
+    return cn_df, bse_df
 
 
 def get_tushare_api() -> Optional[ts.pro_api]:
@@ -389,17 +427,21 @@ def save_to_csv(df: pd.DataFrame, filename: str, market_name: str) -> bool:
 
 
 def generate_data_documentation(
-    a_df: Optional[pd.DataFrame],
+    cn_df: Optional[pd.DataFrame],
+    bse_df: Optional[pd.DataFrame],
     hk_df: Optional[pd.DataFrame],
     us_df: Optional[pd.DataFrame],
-    a_filename: str = "stock_list_a.csv",
-    a_title: str = "A股列表"
+    cn_filename: str = CN_STOCK_LIST_FILE,
+    bse_filename: str = BSE_STOCK_LIST_FILE,
+    cn_title: str = "A股沪深列表",
+    bse_title: str = "A股北交所列表",
 ):
     """
     生成数据说明文档
 
     Args:
-        a_df: A股数据
+        cn_df: A股沪深数据
+        bse_df: A股北交所数据
         hk_df: 港股数据
         us_df: 美股数据
     """
@@ -414,13 +456,17 @@ def generate_data_documentation(
 
 | 文件 | 说明 | 记录数 |
 |------|------|--------|
-| `{a_filename}` | {a_title} | {len(a_df) if a_df is not None else 0} |
+| `{cn_filename}` | {cn_title} | {len(cn_df) if cn_df is not None else 0} |
+| `{bse_filename}` | {bse_title} | {len(bse_df) if bse_df is not None else 0} |
 | `stock_list_hk.csv` | 港股列表 | {len(hk_df) if hk_df is not None else 0} |
 | `stock_list_us.csv` | 美股列表 | {len(us_df) if us_df is not None else 0} |
 
 ---
 
-## A股数据（{a_filename}）
+## A股数据（{cn_filename} / {bse_filename}）
+
+> A 股按交易所拆成两份：沪深 `.SH` / `.SZ` 写入 `{cn_filename}`，北交所 `.BJ` 写入 `{bse_filename}`。
+> 两份文件字段完全一致；`--a-rk` 名称修正只作用于沪深文件。
 
 ### 数据接口
 - **接口名称**：`stock_basic`
@@ -531,14 +577,17 @@ BABA,阿里巴巴,Alibaba Group Holding Ltd.,ADR,20140919,
 ```python
 import pandas as pd
 
-# 读取 A股数据
-a_stocks = pd.read_csv('data/{a_filename}')
+# 读取 A股沪深（.SH / .SZ）
+cn_stocks = pd.read_csv('data/stock_index_catalog/{cn_filename}')
+
+# 读取 A股北交所（.BJ）
+bse_stocks = pd.read_csv('data/stock_index_catalog/{bse_filename}')
 
 # 读取港股数据
-hk_stocks = pd.read_csv('data/stock_list_hk.csv')
+hk_stocks = pd.read_csv('data/stock_index_catalog/stock_list_hk.csv')
 
 # 读取美股数据
-us_stocks = pd.read_csv('data/stock_list_us.csv')
+us_stocks = pd.read_csv('data/stock_index_catalog/stock_list_us.csv')
 ```
 
 ### 代码格式说明
@@ -591,7 +640,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--a-rk",
         action="store_true",
-        help="使用 rt_k 修正 A 股中带 XD/XR/DR/N/C 前缀的名称，并覆盖输出到 stock_list_a.csv",
+        help="使用 rt_k 修正沪深 A 股中带 XD/XR/DR/N/C 前缀的名称，并覆盖输出到 stock_list_cn.csv（北交所不参与）",
     )
     return parser
 
@@ -611,18 +660,18 @@ def main(argv: Optional[List[str]] = None):
     if not api:
         return 1
 
-    # 2. 获取 A股数据
+    # 2. 获取 A股数据并按交易所拆成「沪深」「北交所」两份
     a_df = fetch_a_stock_list(api)
+    cn_df, bse_df = split_a_stock_list(a_df)
+    cn_title = 'A股沪深列表'
     if a_df is not None:
-        a_filename = 'stock_list_a.csv'
-        a_title = 'A股列表'
-        a_market_name = 'A股'
+        # rt_k 是沪深实时接口，名称修正只作用于沪深；北交所直接保存原始名称。
+        if args.a_rk and len(cn_df) > 0:
+            cn_df = fix_a_stock_names_with_rt_k(api, cn_df)
+            cn_title = 'A股沪深列表（修正后）'
 
-        if args.a_rk:
-            a_df = fix_a_stock_names_with_rt_k(api, a_df)
-            a_title = 'A股列表（修正后）'
-
-        save_to_csv(a_df, a_filename, a_market_name)
+        save_to_csv(cn_df, CN_STOCK_LIST_FILE, 'A股沪深')
+        save_to_csv(bse_df, BSE_STOCK_LIST_FILE, 'A股北交所')
 
     # 3. 获取港股数据
     random_sleep()  # 休息后再获取港股
@@ -638,9 +687,7 @@ def main(argv: Optional[List[str]] = None):
 
     # 5. 生成数据说明文档
     print("\n正在生成数据说明文档...")
-    a_filename = 'stock_list_a.csv'
-    a_title = 'A股列表（修正后）' if args.a_rk else 'A股列表'
-    generate_data_documentation(a_df, hk_df, us_df, a_filename=a_filename, a_title=a_title)
+    generate_data_documentation(cn_df, bse_df, hk_df, us_df, cn_title=cn_title)
 
     # 6. 总结
     print("\n" + "=" * 60)
@@ -648,9 +695,12 @@ def main(argv: Optional[List[str]] = None):
     print("=" * 60)
 
     total_count = 0
-    if a_df is not None:
-        total_count += len(a_df)
-        print(f"  ✓ A股：{len(a_df)} 只")
+    if cn_df is not None and len(cn_df) > 0:
+        total_count += len(cn_df)
+        print(f"  ✓ A股沪深：{len(cn_df)} 只")
+    if bse_df is not None and len(bse_df) > 0:
+        total_count += len(bse_df)
+        print(f"  ✓ A股北交所：{len(bse_df)} 只")
     if hk_df is not None:
         total_count += len(hk_df)
         print(f"  ✓ 港股：{len(hk_df)} 只")

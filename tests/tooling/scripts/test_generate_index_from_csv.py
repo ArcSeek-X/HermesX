@@ -10,10 +10,10 @@ import json
 import pytest
 from typing import Dict, List
 
-# Add scripts directory to path
+# Add the generator's directory to path
 import sys
 from tests.support.paths import get_repo_root
-sys.path.insert(0, str(get_repo_root() / 'scripts'))
+sys.path.insert(0, str(get_repo_root() / 'scripts' / 'stock_index_catalog'))
 
 from generate_index_from_csv import (
     extract_symbol_from_ts_code,
@@ -30,7 +30,40 @@ from generate_index_from_csv import (
     build_stock_index,
     load_tushare_data,
     load_akshare_data,
+    normalize_list_date,
 )
+
+
+class TestNormalizeListDate:
+    """测试索引层的上市日期统一为 YYYY-MM-DD。"""
+
+    def test_tushare_compact_date_is_converted(self):
+        assert normalize_list_date("19910403") == "1991-04-03"
+        assert normalize_list_date("20010827") == "2001-08-27"
+
+    def test_baostock_dashed_date_is_kept(self):
+        assert normalize_list_date("1991-04-03") == "1991-04-03"
+
+    def test_empty_and_none(self):
+        assert normalize_list_date("") == ""
+        assert normalize_list_date(None) == ""
+        assert normalize_list_date("   ") == ""
+
+    def test_unparseable_values_are_preserved(self):
+        assert normalize_list_date("NaT") == "NaT"
+        assert normalize_list_date("20260230") == "20260230"  # 非法日期不猜测
+        assert normalize_list_date("1991/04/03") == "1991/04/03"
+
+    def test_build_stock_index_writes_normalized_list_date(self):
+        stock = {
+            "ts_code": "000001.SZ",
+            "symbol": "000001",
+            "name": "平安银行",
+            "market": "CN",
+            "list_date": "19910403",
+        }
+        compressed = compress_index(build_stock_index([stock]))
+        assert compressed[0][10] == "1991-04-03"
 
 
 class TestExtractSymbol:
@@ -424,7 +457,7 @@ class TestOutputFormat:
         }]
 
         compressed = compress_index(index)
-        assert len(compressed[0]) == 10  # 10个字段
+        assert len(compressed[0]) == 11  # 11个字段（末列为 listDate）
 
     def test_json_serialization(self):
         """测试 JSON 序列化"""
@@ -458,7 +491,7 @@ class TestIntegration:
     def test_full_workflow_tushare(self, tmp_path):
         """测试完整的 Tushare 工作流"""
         # 创建测试 CSV 文件
-        a_csv = tmp_path / 'stock_list_a.csv'
+        a_csv = tmp_path / 'stock_list_cn.csv'
         with open(a_csv, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=['ts_code', 'symbol', 'name'])
             writer.writeheader()
@@ -530,19 +563,24 @@ class TestIntegration:
         # 验证压缩
         assert len(compressed) == 5
 
-        # 验证字段数量
+        # 验证字段数量（含末列 listDate）
         for item in compressed:
-            assert len(item) == 10
+            assert len(item) == 11
 
     def test_market_distribution(self, tmp_path):
         """测试市场分布统计"""
-        # 创建测试数据
-        csv_file = tmp_path / 'stock_list_a.csv'
-        with open(csv_file, 'w', encoding='utf-8-sig', newline='') as f:
+        # 沪深与北交所分别写入两份 CSV，验证生成器按市场分别组装
+        cn_csv = tmp_path / 'stock_list_cn.csv'
+        with open(cn_csv, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=['ts_code', 'symbol', 'name'])
             writer.writeheader()
             writer.writerow({'ts_code': '000001.SZ', 'symbol': '000001', 'name': '平安银行'})
             writer.writerow({'ts_code': '600519.SH', 'symbol': '600519', 'name': '贵州茅台'})
+
+        bse_csv = tmp_path / 'stock_list_bse.csv'
+        with open(bse_csv, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['ts_code', 'symbol', 'name'])
+            writer.writeheader()
             writer.writerow({'ts_code': '832566.BJ', 'symbol': '832566', 'name': '梓撞科技'})
 
         stocks = load_tushare_data(tmp_path)

@@ -19,22 +19,23 @@ TUSHARE_TOKEN=你的tushare_token
 ### 2. 运行脚本
 
 ```bash
-python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py
 ```
 
-如需针对 A 股名称状态做修正，可以加上 `--a-rk`，脚本会保持 `stock_basic` 作为基础来源，再用 `rt_k` 对带 `XD`、`XR`、`DR`、`N`、`C` 前缀的名称进行回填，并覆盖输出到 `data/stock_list_a.csv`：
+如需针对沪深 A 股名称状态做修正，可以加上 `--a-rk`，脚本会保持 `stock_basic` 作为基础来源，再用 `rt_k` 对带 `XD`、`XR`、`DR`、`N`、`C` 前缀的名称进行回填，并覆盖输出到 `data/stock_index_catalog/stock_list_cn.csv`（北交所 `stock_list_bse.csv` 不参与修正）：
 
 ```bash
-python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py --a-rk
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py --a-rk
 ```
 
 ### 3. 查看输出
 
-数据将保存到 `data/` 目录：
+数据将保存到 `data/stock_index_catalog/` 目录：
 
 ```
-data/
-├── stock_list_a.csv       # A股列表（--a-rk 时为修正后名称）
+data/stock_index_catalog/
+├── stock_list_cn.csv      # A股沪深列表（.SH / .SZ；--a-rk 时为修正后名称）
+├── stock_list_bse.csv     # A股北交所列表（.BJ）
 ├── stock_list_hk.csv      # 港股列表
 ├── stock_list_us.csv      # 美股列表
 └── README_stock_list.md   # 数据说明文档
@@ -52,20 +53,35 @@ data/
 
 | 市场 | 接口 | 积分要求 | 数据量 |
 |------|------|----------|--------|
-| A股 | stock_basic | 2000积分 | ~5000只 |
+| A股沪深（.SH / .SZ） | stock_basic | 2000积分 | ~5200只 |
+| A股北交所（.BJ） | stock_basic | 2000积分 | ~300只 |
 | 港股 | hk_basic | 2000积分 | ~2000只 |
 | 美股 | us_basic | 120试用/5000正式 | ~10000只 |
 
 ## 输出文件格式
 
-### A股（stock_list_a.csv）
+> CSV 保留 Tushare 接口返回的原始值，`list_date` 为 `YYYYMMDD`。生成前端索引
+> `stocks.index.json` 时，第 11 列 `listDate` 会统一规范化为 `YYYY-MM-DD`
+> （见 `scripts/stock_index_catalog/README.md` §2.2），因此可与 baostock 产出的
+> `stock_list_cn.csv`（`YYYY-MM-DD`）自由混用。
 
-执行 `--a-rk` 时，这个文件会写入修正后的 A 股名称。
+### A股沪深（stock_list_cn.csv）
+
+包含 `.SH` / `.SZ` 代码。执行 `--a-rk` 时，这个文件会写入修正后的名称。
 
 ```csv
 ts_code,symbol,name,area,industry,market,exchange,list_date,...
 000001.SZ,000001,平安银行,深圳,银行,主板,SZSE,19910403,...
 600519.SH,600519,贵州茅台,贵州,白酒,主板,SSE,20010827,...
+```
+
+### A股北交所（stock_list_bse.csv）
+
+包含 `.BJ` 代码（如 `920xxx.BJ`），字段与沪深文件完全一致；`--a-rk` 不作用于此文件。
+
+```csv
+ts_code,symbol,name,area,industry,market,exchange,list_date,...
+920000.BJ,920000,安徽凤凰,安徽,汽车零部件,北交所,BSE,20201223,...
 ```
 
 ### 港股（stock_list_hk.csv）
@@ -92,16 +108,20 @@ BABA,阿里巴巴,Alibaba Group,ADR,20140919,...
 ```python
 import pandas as pd
 
-# 读取 A股
-a_stocks = pd.read_csv('data/stock_list_a.csv')
-print(f"A股数量: {len(a_stocks)}")
+# 读取 A股沪深（.SH / .SZ）
+cn_stocks = pd.read_csv('data/stock_index_catalog/stock_list_cn.csv')
+print(f"沪深数量: {len(cn_stocks)}")
+
+# 读取 A股北交所（.BJ）
+bse_stocks = pd.read_csv('data/stock_index_catalog/stock_list_bse.csv')
+print(f"北交所数量: {len(bse_stocks)}")
 
 # 筛选主板股票
-main_board = a_stocks[a_stocks['market'] == '主板']
+main_board = cn_stocks[cn_stocks['market'] == '主板']
 print(f"主板数量: {len(main_board)}")
 
 # 查找特定股票
-stock = a_stocks[a_stocks['ts_code'] == '600519.SH']
+stock = cn_stocks[cn_stocks['ts_code'] == '600519.SH']
 print(stock[['name', 'industry', 'list_date']])
 ```
 
@@ -119,7 +139,7 @@ python3 scripts/stock_index_catalog/refresh_stock_index.py
 如果你只想单独更新 CSV，可以先抓取数据：
 
 ```bash
-python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list.py --a-rk
+python3 scripts/stock_index_catalog/fetcher/fetch_tushare_stock_list_all.py --a-rk
 ```
 
 如果已经有新的 CSV，只想重新生成索引：

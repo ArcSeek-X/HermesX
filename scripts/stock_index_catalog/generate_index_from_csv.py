@@ -18,20 +18,26 @@ generate_index_from_csv.py —— 前端股票自动补全索引生成器
 【它都做了哪些事？】（数据流向总览）
     1. 选择数据源（Tushare 或 AkShare）。
     2. 读取对应 CSV：把每行（ts_code / symbol / name 等）解析成统一结构。
-       - Tushare：按市场读取 data/stock_list_{a,hk,us}.csv +
-                   JP/KR 的 seed 文件；美股做"复用 ticker 去重"。
+       - Tushare：按市场读取 data/stock_index_catalog/ 下的
+                   stock_list_cn.csv（沪深）、stock_list_bse.csv（北交所）、
+                   stock_list_{hk,us}.csv + JP/KR 的 seed 文件；
+                   美股做"复用 ticker 去重"。
        - AkShare：读取 logs/stock_basic_*.csv（取最新一份）。
     3. 对每只股票生成索引字段：
        - 名称规范化（去掉 A 股的 XD/XR/DR 除权前缀等）；
        - 用 pypinyin 生成拼音全拼 / 简拼（供拼音搜索）；
        - 生成常见别名（如「贵州茅台」->「茅台」）；
        - 判定市场（CN/HK/US/BSE/JP/KR）并拆出展示代码 displayCode；
+       - 上市日期统一规范化为 YYYY-MM-DD，写入第 11 列 listDate；
        - 标记 active=true（当前索引未区分退市/上市状态）。
     4. 压缩成"元组数组"格式（字段顺序由 INDEX_FIELD 约定），大幅减小体积。
     5. 写出到 apps/hrs-web/public/stocks.index.json（--test 时只校验不写盘）。
 
 【输入】
-    - Tushare 格式：data/stock_list_{a,hk,us}.csv
+    - Tushare 格式（均位于 data/stock_index_catalog/）：
+        - stock_list_cn.csv    沪深 A 股（.SH / .SZ）
+        - stock_list_bse.csv   北交所 A 股（.BJ）
+        - stock_list_hk.csv / stock_list_us.csv
       （缺失时回退到 scripts/stock_index_catalog/static_markets/ 下的 JP/KR seed 文件）
     - AkShare 格式：logs/stock_basic_*.csv
 
@@ -39,9 +45,9 @@ generate_index_from_csv.py —— 前端股票自动补全索引生成器
     apps/hrs-web/public/stocks.index.json（压缩元组数组，约 3MB / 3 万条）
 
 【用法】
-    python3 scripts/generate_index_from_csv.py              # 默认使用 Tushare
-    python3 scripts/generate_index_from_csv.py --source akshare
-    python3 scripts/generate_index_from_csv.py --test       # 测试模式：只读取+校验，不写文件
+    python3 scripts/stock_index_catalog/generate_index_from_csv.py              # 默认使用 Tushare
+    python3 scripts/stock_index_catalog/generate_index_from_csv.py --source akshare
+    python3 scripts/stock_index_catalog/generate_index_from_csv.py --test       # 测试模式：只读取+校验，不写文件
 
 【依赖】
     - pypinyin（必装，否则直接退出，无法生成索引）
@@ -55,6 +61,7 @@ import json
 import re
 import sys
 import unicodedata
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -69,6 +76,10 @@ except ImportError:
     Style = None
     PYPINYIN_AVAILABLE = False
 
+# 抓取器输出目录（Tushare / baostock），与 fetcher/* 脚本的 OUTPUT_DIR 保持一致。
+# 改动时需同步两边；load_tushare_data 也用它判断是否启用 JP/KR seed 回退。
+DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "stock_index_catalog"
+
 
 def require_pypinyin() -> bool:
     """Ensure pypinyin is available before generating autocomplete assets."""
@@ -78,6 +89,22 @@ def require_pypinyin() -> bool:
     print("[Error] pypinyin not available; cannot generate stock autocomplete index.")
     print("[Info] Install dependencies with: pip install -r requirements.txt")
     return False
+
+
+def normalize_list_date(value: Optional[str]) -> str:
+    """把 CSV 的上市日期统一为前端约定的 ``YYYY-MM-DD``。
+
+    Tushare CSV 是 ``YYYYMMDD``，baostock CSV 是 ``YYYY-MM-DD``。CSV 保留各源
+    原始格式（数据留真），索引的第 11 列只输出后者，因此两类 CSV 可自由混用。
+    已是目标格式、空值或无法解析的值原样保留，不丢数据。
+    """
+    text = "" if value is None else str(value).strip()
+    if not re.fullmatch(r"\d{8}", text):
+        return text
+    try:
+        return datetime.strptime(text, "%Y%m%d").strftime("%Y-%m-%d")
+    except ValueError:
+        return text
 
 
 def load_csv_data(csv_path: Path) -> List[Dict[str, Any]]:
@@ -128,8 +155,7 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
     """
     all_stocks = []
     seed_dir = Path(__file__).parent / 'static_markets'
-    default_data_dir = Path(__file__).parent.parent.parent / 'data'
-    use_seed_fallback = data_dir.resolve() == default_data_dir.resolve()
+    use_seed_fallback = data_dir.resolve() == DEFAULT_DATA_DIR.resolve()
 
     def _csv_path(file_name: str) -> Path:
         """返回输入 CSV 文件路径。"""
@@ -139,12 +165,14 @@ def load_tushare_data(data_dir: Path) -> List[Dict[str, Any]]:
         return seed_dir / file_name
 
     # 各市场对应的 CSV 文件。
-    # CN/HK/US 三个文件来自 Tushare 抓取（data/ 下）；若 data/ 里缺失，
+    # A 股按交易所拆成两份（沪深 CN / 北交所 BSE），文件名与抓取器保持一致。
+    # CN/BSE/HK/US 四个文件来自 Tushare 抓取（DEFAULT_DATA_DIR 下）；若该目录里缺失，
     # 会回退到 scripts/stock_index_catalog/static_markets/ 下的 JP/KR seed 文件（见 _csv_path 的
-    # use_seed_fallback 逻辑）——所以即便没抓过数据，JP/KR 也能生成，CN/HK/US 则会被跳过
+    # use_seed_fallback 逻辑）——所以即便没抓过数据，JP/KR 也能生成，CN/BSE/HK/US 则会被跳过
     # 并打印 Warning（这也是为什么本地缺 CSV 时索引里没有 A 股/港股/美股）。
     market_files = {
-        'CN': data_dir / 'stock_list_a.csv',
+        'CN': data_dir / 'stock_list_cn.csv',
+        'BSE': data_dir / 'stock_list_bse.csv',
         'HK': data_dir / 'stock_list_hk.csv',
         'US': data_dir / 'stock_list_us.csv',
         'JP': _csv_path('stock_list_jp.csv'),
@@ -455,8 +483,8 @@ def parse_stock_row(row: Dict[str, str], preferred_market: Optional[str] = None)
         'name': name,
         'market': market,
         'aliases': parse_aliases(row),
-        # 上市日期：原样透传 CSV 的 list_date 列（如 "1991-01-29"），
-        # 空串表示未知；build_stock_index 会把它写入索引第 11 列。
+        # 上市日期：保留 CSV 源格式（Tushare YYYYMMDD / baostock YYYY-MM-DD），
+        # 空串表示未知；build_stock_index 统一规范化后写入索引第 11 列。
         'list_date': row.get('list_date', ''),
     }
 
@@ -601,7 +629,7 @@ def build_stock_index(stocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # 把每只原始股票行，转成一条前端索引项（dict）。
     # 这一步是"业务核心"：决定最终索引里每个字段长什么样。
     # 注意：所有股票在这里都被统一标 active=true，索引文件本身不携带
-    # 上市/退市状态、上市日期等动态信息（list_date 虽在 CSV 里有，但没被写入索引）。
+    # 上市/退市状态；list_date 会规范化为 YYYY-MM-DD 写入第 11 列 listDate。
     index = []
 
     for stock in stocks:
@@ -634,9 +662,10 @@ def build_stock_index(stocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "assetType": "stock",
             "active": True,
             "popularity": 100,
-            # 上市日期：来自 CSV 的 list_date 列（Tushare/AkShare 均有），
-            # 追加为索引第 11 列（下标 10），前端 INDEX_FIELD.LIST_DATE 对应读取。
-            "listDate": stock.get('list_date', ''),
+            # 上市日期：来自 CSV 的 list_date 列（Tushare/AkShare/baostock 均有），
+            # 统一规范化为 YYYY-MM-DD 后写入第 11 列（下标 10），
+            # 前端 INDEX_FIELD.LIST_DATE 对应读取。
+            "listDate": normalize_list_date(stock.get('list_date', '')),
         })
 
     return index
@@ -704,8 +733,7 @@ def main():
     # 加载数据
     print("\n[1/5] 读取 CSV 数据...")
     if args.source == 'tushare':
-        data_dir = Path(__file__).parent.parent.parent / 'data'
-        stocks = load_tushare_data(data_dir)
+        stocks = load_tushare_data(DEFAULT_DATA_DIR)
     elif args.source == 'akshare':
         logs_dir = Path(__file__).parent.parent.parent / 'logs'
         stocks = load_akshare_data(logs_dir)
