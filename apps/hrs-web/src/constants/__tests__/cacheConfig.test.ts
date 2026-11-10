@@ -26,6 +26,9 @@ describe('cacheConfig TTL 匹配', () => {
     expect(getCacheTTL('/api/v1/sector/market-overview')).toBe(30);
     expect(getCacheTTL('/api/v1/sector/concept-scale')).toBe(300);
   });
+  it('大盘统一卡片不缓存，避免 30 秒轮询被默认 60 秒 TTL 短路', () => {
+    expect(getCacheTTL('/api/v1/sector/market-cards')).toBe(0);
+  });
   it('回测与决策信号按规则缓存', () => {
     expect(getCacheTTL('/api/v1/backtest/tasks')).toBe(600);
     expect(getCacheTTL('/api/v1/decision-signals')).toBe(300);

@@ -54,6 +54,45 @@ describe('sectorData 市场指数字段适配', () => {
     });
   });
 
+  it('toMarketIndexItem 透传富时中国 A50 的行情时间与夜盘来源', () => {
+    const adapted = toMarketIndexItem({
+      name: '富时中国A50',
+      code: 'XIN9',
+      price: 13027,
+      changePercent: 0.94,
+      change: 121,
+      amount: null,
+      high: 13059,
+      low: 12901,
+      preClose: 12906,
+      quoteAsOf: '2026-11-10T23:47:00+08:00',
+      quoteSource: 'futures',
+    });
+
+    expect(adapted.quoteAsOf).toBe('2026-11-10T23:47:00+08:00');
+    expect(adapted.quoteSource).toBe('futures');
+    expect(adapted.changePct).toBe(0.94);
+    expect(adapted.prevClose).toBe(12906);
+  });
+
+  it('toMarketIndexItem 不给普通指数卡片挂载 A50 专属字段', () => {
+    const adapted = toMarketIndexItem({
+      name: '上证指数',
+      code: '000001',
+      price: 3719.93,
+      changePercent: -0.41,
+      change: -15.44,
+      amount: 436396170000,
+      high: 3743.08,
+      low: 3716.62,
+      preClose: 3735.37,
+      quoteAsOf: '2026-11-10T10:06:00+08:00',
+    });
+
+    expect(adapted).not.toHaveProperty('quoteSource');
+    expect(adapted).not.toHaveProperty('quoteAsOf');
+  });
+
   it('toMarketIndexItem 对缺失字段归 null，交由消费侧占位渲染', () => {
     const adapted = toMarketIndexItem({
       name: '--',

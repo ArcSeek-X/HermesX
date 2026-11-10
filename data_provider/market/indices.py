@@ -1,9 +1,16 @@
 """市场指数协调与供应商现有取数；原客户端/状态归原宿主维护。"""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 import pandas as pd
+
+# 东财 f124（行情时间）统一按 A 股 / SGX 共用的北京时间呈现。
+_QUOTE_TIMEZONE = ZoneInfo("Asia/Shanghai")
+# A50 现货指数行情超过该秒数未更新即视为 A 股停更，改用覆盖夜盘的期指连续。
+_A50_SPOT_QUOTE_MAX_AGE_SECONDS = 300.0
 
 
 @dataclass(frozen=True)
@@ -624,6 +631,7 @@ class EastmoneyCardIndices:
     read_eastmoney_index_url_delay: Callable[[], Any]
     read_market_indices: Callable[[], Any]
     read_market_indices_a50: Callable[[], Any]
+    read_market_indices_a50_futures: Callable[[], Any]
     read_market_indices_jp_kr: Callable[[], Any]
     read_market_indices_us: Callable[[], Any]
     read_request_timeout: Callable[[], Any]
@@ -643,13 +651,78 @@ class EastmoneyCardIndices:
         return self._fetch_by_config(indices_cfg)
 
     def fetch_a50_index(self) -> Optional[List[Dict]]:
-        """获取富时中国 A50 指数（secid 100.XIN9）实时行情。
+        """获取富时中国 A50 卡片行情：盘中跟现货指数，休市与夜盘跟期指连续。
 
-        该指数跟踪 SGX 富时中国 A50 期货，是 A 股休市时段（SGX 夜盘）
-        的领先风向标，独立于 A 股 TAB 主指数批量接口单独取数，
-        保证 StockSDK 作为主源胜出时 A50 卡片仍稳定出现。
+        东财 100.XIN9 是 A50 现货指数，只在 A 股交易时段随 A 股计算并更新；
+        收盘后其行情时间固定在 15:00，改用 104.CN00Y（SGX A50 期指当月连续），
+        该合约覆盖 17:00 至次日 04:45 的夜盘，夜间打开仍能看到价格变动。
+        判源依据是上游行情时间而非本地时钟，节假日与临时休市同样生效；
+        两个源都取不到时回退现货最后一份快照，避免卡片直接消失。
         """
-        return self._fetch_by_config(self.read_market_indices_a50())
+        spot_cfg = self.read_market_indices_a50() or []
+        futures_cfg = self.read_market_indices_a50_futures() or []
+        canonical = spot_cfg[0] if spot_cfg else {"name": "富时中国A50", "code": "XIN9"}
+
+        spot_quote = self._first_quote(self._fetch_by_config(spot_cfg) if spot_cfg else None)
+        if spot_quote is not None and self._is_spot_quote_fresh(spot_quote):
+            return [self._as_a50_card_quote(spot_quote, "index", canonical)]
+
+        futures_quote = self._first_quote(
+            self._fetch_by_config(futures_cfg) if futures_cfg else None
+        )
+        if futures_quote is not None:
+            return [self._as_a50_card_quote(futures_quote, "futures", canonical)]
+
+        if spot_quote is not None:
+            self.read_logger().warning(
+                "[A50] 现货指数停更且期指取数失败，回退现货快照: asOf=%s",
+                spot_quote.get("quoteAsOf"),
+            )
+            return [self._as_a50_card_quote(spot_quote, "index", canonical)]
+        return None
+
+    @staticmethod
+    def _first_quote(rows: Optional[List[Dict]]) -> Optional[Dict]:
+        """取批量行情中的第一条有效记录。"""
+        for row in rows or []:
+            if isinstance(row, dict):
+                return row
+        return None
+
+    @staticmethod
+    def _quote_as_of(value: Any) -> Optional[str]:
+        """把东财 f124（Unix 秒行情时间）转成带时区的 ISO 8601 串。"""
+        try:
+            timestamp = float(value)
+        except (TypeError, ValueError):
+            return None
+        if timestamp <= 0:
+            return None
+        try:
+            return datetime.fromtimestamp(timestamp, _QUOTE_TIMEZONE).isoformat()
+        except (OverflowError, OSError, ValueError):
+            return None
+
+    def _is_spot_quote_fresh(self, quote: Dict) -> bool:
+        """现货指数行情时间距当前不超过 5 分钟，才算仍在跟随 A 股。"""
+        as_of = quote.get("quoteAsOf")
+        if not as_of:
+            return False
+        try:
+            quote_timestamp = datetime.fromisoformat(as_of).timestamp()
+        except (TypeError, ValueError):
+            return False
+        age = self.read_time().time() - quote_timestamp
+        return -60.0 <= age <= _A50_SPOT_QUOTE_MAX_AGE_SECONDS
+
+    @staticmethod
+    def _as_a50_card_quote(quote: Dict, source: str, canonical: Dict) -> Dict:
+        """把所选行情归一为同一张 A50 卡片，避免切源时 cardKey 变化导致重挂载。"""
+        normalized = dict(quote)
+        normalized["name"] = canonical.get("name") or normalized.get("name")
+        normalized["code"] = canonical.get("code") or normalized.get("code")
+        normalized["quoteSource"] = source
+        return normalized
 
     def _fetch_by_config(self, indices_cfg: List[Dict]) -> Optional[List[Dict]]:
         """按给定指数配置批量拉取行情，主域名失败回退 delay 域名。"""
@@ -661,7 +734,7 @@ class EastmoneyCardIndices:
                     url,
                     params={
                         "fltt": "2",
-                        "fields": "f2,f3,f4,f5,f6,f12,f14,f15,f16,f18",
+                        "fields": "f2,f3,f4,f5,f6,f12,f14,f15,f16,f18,f124",
                         "secids": secids,
                     },
                     timeout=self.read_request_timeout(),
@@ -697,6 +770,7 @@ class EastmoneyCardIndices:
                             "high": item.get("f15") if item.get("f15") != "-" else None,
                             "low": item.get("f16") if item.get("f16") != "-" else None,
                             "preClose": item.get("f18") if item.get("f18") != "-" else None,
+                            "quoteAsOf": self._quote_as_of(item.get("f124")),
                         }
                     )
                 return indices

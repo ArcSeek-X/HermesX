@@ -6,7 +6,8 @@
  * 2. 最新点位 + 涨跌幅 / 涨跌点数（随涨跌同色）
  * 3. 成交额（A股）；海外指数无成交额时降级为振幅
  *
- * 行情经后端 /api/v1/sector/market-indices 代理自东方财富。
+ * 行情经后端 /api/v1/sector/market-cards 聚合自东方财富；
+ * 富时中国 A50 卡片在 A 股时段与 SGX 夜盘取不同标的，附带行情时间与来源标记。
  *
  * @author Lensgcx (GaoCangxiong)
  */
@@ -58,6 +59,22 @@ function useAmountOrAmplitudeMetric(idx: MarketIndexItem, amplitude: number | nu
 }
 
 /**
+ * 富时中国 A50 卡片的行情来源标记：盘中显示「指数 + 行情时间」，
+ * 休市 / SGX 夜盘显示「期指 + 行情时间」；其余指数卡片不展示。
+ * 时间按浏览器本地时区取到分钟，ISO 解析失败时只保留来源名。
+ */
+function formatA50QuoteBadge(idx: MarketIndexItem): string | null {
+  if (!idx.quoteSource) return null;
+  const quoteTime = idx.quoteAsOf ? new Date(idx.quoteAsOf) : null;
+  const clock =
+    quoteTime && !Number.isNaN(quoteTime.getTime())
+      ? `${String(quoteTime.getHours()).padStart(2, '0')}:${String(quoteTime.getMinutes()).padStart(2, '0')}`
+      : '';
+  const sourceLabel = idx.quoteSource === 'futures' ? '期指' : '指数';
+  return clock ? `${sourceLabel} ${clock}` : sourceLabel;
+}
+
+/**
  * 指数卡片
  *
  * 布局（自上而下）：名称 → 点位 + 涨跌 → 成交/振幅。
@@ -95,13 +112,19 @@ export default function IndexCard({ index, ordinal = 0 }: IndexCardProps) {
     safeHigh != null && safeLow != null && safePreClose != null
       ? ((safeHigh - safeLow) / safePreClose) * 100
       : null;
+  const a50QuoteBadge = formatA50QuoteBadge(idx);
 
   return (
     <AnimCard ordinal={ordinal} gradientBackground className="hrs-index-card">
       {/* 内容层置于 ::before 渐变之上，避免被 bg-card 遮盖 */}
       <div className="relative z-10 flex flex-col justify-between p-4 h-full">
-        {/* 指数名称 */}
-        <div className="text-xs text-muted-text truncate">{idx.name}</div>
+        {/* 指数名称；A50 卡片右侧标注当前行情来源与时间 */}
+        <div className="flex items-center justify-between gap-1">
+          <div className="text-xs text-muted-text truncate">{idx.name}</div>
+          {a50QuoteBadge && (
+            <span className="shrink-0 text-[10px] text-muted-text tabular-nums">{a50QuoteBadge}</span>
+          )}
+        </div>
         {/* 点位 + 涨跌幅/涨跌点数 */}
         <div>
           <div className={`text-2xl font-semibold font-mono mt-1 leading-tight tabular-nums ${getChangeColorClass(idx.changePct)}`}>

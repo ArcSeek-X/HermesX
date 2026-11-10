@@ -61,10 +61,15 @@ MARKET_INDICES_JP_KR = [
     {"secid": "100.N225", "name": "日经指数", "code": "N225"},
     {"secid": "100.KS11", "name": "韩国KOSPI", "code": "KS11"},
 ]
-# 富时中国 A50 指数：跟踪 SGX 富时中国 A50 期货，是 A 股休市时段（SGX 夜盘）的领先风向标。
-# 独立于 A 股主指数批量接口，由 market-cards 聚合层单独补充到 A 股 TAB。
+# 富时中国 A50 卡片按时段取两个不同标的：
+# 100.XIN9 是 A50 现货指数，只在 A 股交易时段随 A 股计算并更新；
+# 104.CN00Y 是 SGX A50 期指当月连续，覆盖 17:00–次日 04:45 的夜盘时段。
+# 由 market-cards 聚合层按上游行情时间选源，独立于 A 股主指数批量接口单独补充。
 MARKET_INDICES_A50 = [
     {"secid": "100.XIN9", "name": "富时中国A50", "code": "XIN9"},
+]
+MARKET_INDICES_A50_FUTURES = [
+    {"secid": "104.CN00Y", "name": "富时中国A50", "code": "CN00Y"},
 ]
 
 DEFAULT_HEADERS = {
@@ -455,6 +460,7 @@ def _market_card_indices():
         read_eastmoney_index_url_delay=lambda: EASTMONEY_INDEX_URL_DELAY,
         read_market_indices=lambda: MARKET_INDICES,
         read_market_indices_a50=lambda: MARKET_INDICES_A50,
+        read_market_indices_a50_futures=lambda: MARKET_INDICES_A50_FUTURES,
         read_market_indices_jp_kr=lambda: MARKET_INDICES_JP_KR,
         read_market_indices_us=lambda: MARKET_INDICES_US,
         read_request_timeout=lambda: REQUEST_TIMEOUT,

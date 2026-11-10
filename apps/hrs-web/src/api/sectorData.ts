@@ -198,6 +198,9 @@ export async function fetchConceptCloudMap(
   };
 }
 
+/** 富时中国 A50 卡片的行情来源：盘中现货指数 / 休市夜盘期指连续 */
+export type A50QuoteSource = 'index' | 'futures';
+
 /** 市场指数项 */
 export type MarketIndexItem = {
   name: string;
@@ -214,6 +217,10 @@ export type MarketIndexItem = {
   low: number | null;
   /** 昨收价 */
   prevClose: number | null;
+  /** 上游行情时间（ISO 8601，带时区）；仅富时中国 A50 卡片透传 */
+  quoteAsOf?: string | null;
+  /** A50 行情来源：index=盘中现货指数，futures=休市 / 夜盘期指连续 */
+  quoteSource?: A50QuoteSource | null;
 };
 
 /**
@@ -232,6 +239,10 @@ type RawMarketIndexPayload = {
   low: number | null;
   /** 昨收价——后端字段名，适配层映射为 prevClose */
   preClose: number | null;
+  /** 上游行情时间（ISO 8601，带时区）；仅富时中国 A50 卡片返回 */
+  quoteAsOf?: string | null;
+  /** A50 行情来源；仅富时中国 A50 卡片返回 */
+  quoteSource?: A50QuoteSource | null;
 };
 
 /**
@@ -242,7 +253,7 @@ type RawMarketIndexPayload = {
  * 由消费侧（IndexCard）走占位渲染。
  */
 export function toMarketIndexItem(raw: RawMarketIndexPayload): MarketIndexItem {
-  return {
+  const adapted: MarketIndexItem = {
     name: raw?.name ?? '',
     code: raw?.code ?? '',
     price: raw?.price ?? null,
@@ -253,6 +264,12 @@ export function toMarketIndexItem(raw: RawMarketIndexPayload): MarketIndexItem {
     low: raw?.low ?? null,
     prevClose: raw?.preClose ?? null,
   };
+  // A50 专属字段只在后端实际返回时挂载，保持普通指数卡片的 payload 形状不变。
+  if (raw?.quoteSource) {
+    adapted.quoteAsOf = raw.quoteAsOf ?? null;
+    adapted.quoteSource = raw.quoteSource;
+  }
+  return adapted;
 }
 
 /** 获取市场指数数据 */

@@ -261,7 +261,7 @@ def _build_a_market_cards() -> List[Dict[str, Any]]:
         # 板块源未在预算内返回，进入退避，后续轮次直连东财/神策。
         _mark_board_stocksdk_backoff()
 
-    # 富时中国 A50 指数作为 A 股休市时段（SGX 夜盘）的领先风向标，
+    # 富时中国 A50 卡片在 A 股时段跟现货指数、休市与 SGX 夜盘跟期指连续，
     # 独立于主指数批量接口单独补充到 A 股 TAB 末尾，按 code 去重避免重复。
     if a50:
         indices = _append_a50_index(indices or [], a50)
@@ -382,11 +382,11 @@ def _get_market_indices(market: str) -> Optional[List[Dict[str, Any]]]:
 
 
 def _get_a50_index() -> Optional[List[Dict[str, Any]]]:
-    """获取富时中国 A50 指数（100.XIN9）实时行情。
+    """获取富时中国 A50 卡片行情。
 
-    该指数跟踪 SGX 富时中国 A50 期货，是 A 股休市时段（SGX 夜盘）的领先风向标。
-    走东财单标的缓存接口，独立于 A 股主指数批量接口，
-    保证 StockSDK 作为主源胜出时 A50 卡片仍稳定出现。
+    A 股时段取 100.XIN9 现货指数跟随 A 股走势，收盘 / 休市 / SGX 夜盘
+    取 104.CN00Y 期指当月连续；判源与降级由东财单标的缓存接口内部完成，
+    独立于 A 股主指数批量接口，保证 StockSDK 作为主源胜出时卡片仍稳定出现。
     """
     try:
         return get_cached_a50_index_from_eastmoney()
@@ -398,15 +398,14 @@ def _get_a50_index() -> Optional[List[Dict[str, Any]]]:
 def _append_a50_index(
     indices: List[Dict[str, Any]], a50: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    """把富时中国 A50 指数追加到 A 股指数列表末尾，按 code 去重。
+    """把富时中国 A50 行情追加到 A 股指数列表末尾，按 code 去重。
 
     a50 列表预期仅含一项；若主指数批量结果中已含 XIN9（极端兜底），
-    则跳过追加，避免 cardKey 冲突。
+    则跳过追加，避免 cardKey 冲突。主指数批量失败时 A50 仍单独成卡，
+    保证夜间打开总览页不会看不到这张卡。
     """
-    if not indices:
-        return indices
-    existing = {str(item.get("code") or "").strip() for item in indices}
-    merged = list(indices)
+    merged = list(indices or [])
+    existing = {str(item.get("code") or "").strip() for item in merged}
     for item in a50:
         if not isinstance(item, dict):
             continue

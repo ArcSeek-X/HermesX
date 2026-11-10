@@ -31,6 +31,9 @@ export const CACHE_TTL_MAP: Record<string, number> = {
   '/api/v1/sector/concept-scale': 300,
   '/api/v1/sector/etf-scale': 300,
   '/api/v1/sector/indices': 30,
+  // 大盘统一卡片 — 不缓存（页面 30 秒轮询；未显式配置会回落到 DEFAULT_CACHE_TTL 60 秒，
+  // 把一半轮询短路成旧数据，夜间 A50 切源后也会延迟可见）
+  '/api/v1/sector/market-cards': 0,
 
   // 用户私有数据 — 不缓存（保证数据一致性）
   '/api/v1/portfolio': 0,
