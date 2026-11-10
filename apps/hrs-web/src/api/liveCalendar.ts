@@ -12,8 +12,8 @@
  */
 
 import apiClient from './index';
+import type { CountryMarketOptionDef } from '@components';
 import type {
-  CalendarCountryDef,
   CalendarTabDef,
   LiveCalendarEventDef,
   LiveCalendarQueryDef,
@@ -66,10 +66,10 @@ function normalizeTab(raw: RawCalendarTab): CalendarTabDef {
   };
 }
 
-function normalizeCountry(raw: RawCalendarCountry): CalendarCountryDef {
+function normalizeCountry(raw: RawCalendarCountry): CountryMarketOptionDef {
   return {
-    countryId: raw.country_id,
-    countryName: raw.country_name,
+    countryMarketId: raw.country_id,
+    countryMarketName: raw.country_name,
     currency: raw.currency ?? '',
     currencyName: raw.currency_name ?? '',
     flagUri: raw.flag_uri ?? '',
@@ -115,7 +115,7 @@ export async function getLiveCalendarTabs(): Promise<{
 
 /** 查询国家字典 */
 export async function getLiveCalendarCountries(): Promise<{
-  items: CalendarCountryDef[];
+  items: CountryMarketOptionDef[];
   degraded: boolean;
 }> {
   const response = await apiClient.get<{
