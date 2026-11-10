@@ -33,7 +33,7 @@
 ### C1 `docs(arch): record architecture baseline, layering rules and migration facts`
 
 - **内容**：36 个文件（32 改 + 4 新增）
-  - 根级：`AGENTS.md`、`ARCHITECTURE_TARGET.md`、`SKILL.md`、`stock_data_view.md`
+  - 根级：`AGENTS.md`、`ARCHITECTURE_TARGET.md`、`SKILL.md`
   - `docs/` 18 篇：`LLM_CONFIG_GUIDE(_EN)`、`agent-stream-events`、`analysis-context-pack`、`bot-command(_EN)`、`decision-signals`、`full-guide(_EN)`、`image-extract-prompt`、`intelligence-sources`、`llm-providers`、`multi-strategy-contract`、`notifications`、`run-diagnostics-p1/p2/p3`、`settings-help`
   - `documents/`：`CHANGELOG.md`、`framework/` 3 篇 ADR/进度、`product/` 6 篇中文产品文档
   - 新增：`documents/framework/refactoring/ARCHITECTURE_MIGRATION_STATUS.md`、`documents/framework/refactoring/MIGRATION_COMMIT_PLAN.md`（本文件）、`documents/framework/security_performance_baseline.md`、`documents/framework/src_migration_index.md`（4 件）
@@ -329,7 +329,7 @@ PYTHONDONTWRITEBYTECODE=1                  # 避免 __pycache__ 混入暂存区
 ### C1 —— 文档与治理资产
 
 ```bash
-git add -A -- AGENTS.md ARCHITECTURE_TARGET.md SKILL.md stock_data_view.md docs documents
+git add -A -- AGENTS.md ARCHITECTURE_TARGET.md SKILL.md docs documents
 git diff --cached --name-only | wc -l      # 期望 36（已排除 build的问题清单.md，不列入暂存）
 python scripts/check_ai_assets.py
 

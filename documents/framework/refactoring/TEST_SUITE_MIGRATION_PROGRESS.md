@@ -140,7 +140,6 @@
 | `application/runtime/test_scheduler_background.py` | run-diagnostics-p3.md（含组合命令） |
 | `infrastructure/providers/common/test_a_share_fetcher_code_conversion.py` | run-diagnostics-p0.md |
 | `infrastructure/providers/realtime/test_realtime_types.py` | run-diagnostics-p3.md |
-| `infrastructure/providers/kline/test_stockdb_transform.py` | stock_data_view.md |
 | `domain/backtest/test_backtest_engine.py` | full-guide.md + full-guide_EN.md |
 | `domain/market/test_trading_calendar.py` | market-support.md |
 | `infrastructure/generation/backends/test_llm_param_recovery.py` | LLM_CONFIG_GUIDE.md + LLM_CONFIG_GUIDE_EN.md |

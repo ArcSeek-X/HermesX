@@ -77,7 +77,6 @@ HermesX/
 ├── main.py  server.py  webui.py           REWORK，入口共享 src.bootstrap
 ├── start.sh                               SYNC，启动路径发生变化时
 ├── LOCAL_RUN_GUIDE.md                     KEEP
-├── stock_data_view.md  数据源管理.md         KEEP
 ├── switch-node.js  switch-node.sh         KEEP
 │
 ├── src/                                   REWORK，保留 src 包及 from src... 命名空间
@@ -183,7 +182,7 @@ HermesX/
 │   ├── generate_stock_index.py  refresh_stock_index.py
 │   ├── generate_longbridge_oauth_token.py  generate_notification_actions_env_table.py
 │   ├── macos-signature-audit.sh  verify-desktop-updater-artifacts.ps1
-│   ├── stock_index_seeds/  stocksdk_bridge/
+│   ├── static_markets/  stocksdk_bridge/
 │   └── ...
 ├── docker/                                KEEP：Dockerfile  docker-compose.yml  entrypoint.sh
 ├── .github/                               KEEP：CODEOWNERS  FUNDING.yml  ISSUE_TEMPLATE/
