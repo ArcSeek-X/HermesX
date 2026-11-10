@@ -34,6 +34,7 @@ from api.v1.endpoints import (
     scanner,
     sector,
     stocks,
+    stock_metric,
     system_config,
     usage,
     watchlist,
@@ -77,6 +78,13 @@ router.include_router(
     stocks.router,
     prefix="/stocks",
     tags=["Stocks"]
+)
+
+# /stock-metric：股票度量视图（查询 + 导出）。
+router.include_router(
+    stock_metric.router,
+    prefix="/stock-metric",
+    tags=["StockMetric"]
 )
 
 # /backtest：策略回测运行与结果查询。

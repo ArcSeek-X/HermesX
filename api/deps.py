@@ -31,7 +31,8 @@ from src.bootstrap.backtest import build_backtest_service
 from src.bootstrap.database import get_db, get_database_manager  # noqa: F401（对外转出）
 from src.bootstrap.history import build_history_query_service
 from src.bootstrap.market import build_limit_pool_service, build_sector_service
-from src.bootstrap.quote import build_quote_service
+from src.bootstrap.quote import build_quote_service, build_stock_metric_service
+from src.application.quote.stock_metric_service import StockMetricService
 from src.bootstrap.usage import build_usage_service
 from src.bootstrap.watchlist import build_watchlist_service
 from src.config import get_config, Config
@@ -214,6 +215,11 @@ def get_quote_service() -> QuoteService:
         无；缓存位于数据源 Manager 与端点层，用例本身不缓存。
     """
     return build_quote_service()
+
+
+def get_stock_metric_service() -> StockMetricService:
+    """获取股票度量视图服务（含可选离线因子仓储）。"""
+    return build_stock_metric_service()
 
 
 def get_backtest_service() -> BacktestService:

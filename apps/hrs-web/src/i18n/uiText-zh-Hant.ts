@@ -141,8 +141,8 @@ const zhHant = {
   'layout.nav.home.description': '股票分析與歷史報告工作臺', // 首页导航项描述
   'layout.nav.kline.title': 'K 线', // K 线導航項
   'layout.nav.kline.description': '個股 K 線走勢、技術指標與多週期分析', // K 线导航项描述
-  'layout.nav.stockDataView.title': '股票數據視圖', // 股票數據視圖導航項
-  'layout.nav.stockDataView.description': '查看個股行情、K 線與多週期數據視圖', // 股票數據視圖導航項描述
+  'layout.nav.stockMetricView.title': '股票度量視圖', // 股票度量視圖導航項
+  'layout.nav.stockMetricView.description': '瀏覽全市場股票度量數據，支援篩選、排序與匯出', // 股票度量視圖導航項描述
   'layout.nav.liveCalendar.title': '日曆', // 訊息日曆導航項
   'layout.nav.liveCalendar.description': '宏觀、財報、新股、活動等重要事件日曆', // 日曆導航項描述
   'layout.nav.liveNews.title': '快訊', // 即時快訊導航項
@@ -210,6 +210,8 @@ const zhHant = {
   'layout.nav.development.docsTextArea.description': 'TextArea 多行文本輸入組件演示與用法', // 文本域導航項描述
   'layout.nav.development.docsNumberField.title': '數字輸入框', // 數字輸入框組件文檔導航項
   'layout.nav.development.docsNumberField.description': 'NumberField 數字輸入組件演示與用法', // 數字輸入框導航項描述
+  'layout.nav.development.docsCountryMarketSelect.title': '國家/市場選擇', // 國家/市場選擇組件文檔導航項
+  'layout.nav.development.docsCountryMarketSelect.description': 'CountryMarketSelect 國家/市場單選與多選下拉組件演示與用法', // 國家市場選擇導航項描述
   'layout.nav.development.docsChip.title': '標籤芯片', // 標籤芯片組件文檔導航項
   'layout.nav.development.docsChip.description': 'Chip 圓角膠囊標籤組件演示與用法', // 標籤芯片導航項描述
   'layout.nav.development.docsEmptyState.title': '空狀態', // 空狀態組件文檔導航項
@@ -1315,7 +1317,77 @@ const zhHant = {
   'watchlist.todayStatusUnavailable': '今日狀態未知', // 【页面】自选-今日狀態未知提示
   'watchlist.todayTitle': '今日分析', // 【页面】自选-今日分析標題
   'watchlist.topScore': '最高分', // 【页面】自选-最高分標簽
-  'watchlist.watchlistCoverage': '自選覆盖' // 【页面】自选-自選覆盖率
+  'watchlist.watchlistCoverage': '自選覆盖', // 【页面】自选-自選覆盖率
+
+  // stockMetricView.*  (股票度量視圖頁面)
+  'stockMetricView.refresh': '重新整理', // 【页面】度量視圖-重新整理按鈕
+  'stockMetricView.factorAsOf': '因子基準 {date}', // 【页面】度量視圖-離線因子基準日
+  'stockMetricView.export': '匯出 CSV', // 【页面】度量視圖-匯出 CSV 按鈕
+  'stockMetricView.errorTitle': '查詢失敗', // 【页面】度量視圖-查詢錯誤標題
+  'stockMetricView.caliberTitle': '資料口徑提示', // 【页面】度量視圖-口徑/降級提示標題
+  'stockMetricView.emptyTitle': '暫無符合條件的股票', // 【页面】度量視圖-空狀態標題
+  'stockMetricView.emptyDescription': '調整篩選條件或切換市場後重試', // 【页面】度量視圖-空狀態描述
+  'stockMetricView.openKline': '查看個股 K 線', // 【页面】度量視圖-名稱列跳轉提示
+  'stockMetricView.klineOnlyCn': 'K 線圖暫僅支援 A 股', // 【页面】度量視圖-非 A 股名稱列提示
+  // stockMetricView.market.*  (市場標識)
+  'stockMetricView.market.cn': 'A股', // 【页面】度量視圖-市場：A 股
+  'stockMetricView.market.hk': '港股', // 【页面】度量視圖-市場：港股
+  'stockMetricView.market.us': '美股', // 【页面】度量視圖-市場：美股
+  // stockMetricView.column.*  (列頭)
+  'stockMetricView.column.rowNumber': '序號', // 【页面】度量視圖-列頭：序號
+  'stockMetricView.column.market': '市場', // 【页面】度量視圖-列頭：市場
+  'stockMetricView.column.code': '代碼', // 【页面】度量視圖-列頭：代碼
+  'stockMetricView.column.name': '名稱', // 【页面】度量視圖-列頭：名稱
+  'stockMetricView.column.price': '最新價', // 【页面】度量視圖-列頭：最新價
+  'stockMetricView.column.changePct': '漲跌幅', // 【页面】度量視圖-列頭：漲跌幅
+  'stockMetricView.column.volume': '成交量', // 【页面】度量視圖-列頭：成交量
+  'stockMetricView.column.relativeVolume': '量比', // 【页面】度量視圖-列頭：量比
+  'stockMetricView.column.totalMarketCap': '總市值', // 【页面】度量視圖-列頭：總市值
+  'stockMetricView.column.peRatioTTM': '市盈率(TTM)', // 【页面】度量視圖-列頭：市盈率 TTM
+  'stockMetricView.column.epsDiluted': '每股收益', // 【页面】度量視圖-列頭：每股收益（當期）
+  'stockMetricView.column.epsGrowthTtmYoyPct': 'EPS增長(TTM同比)', // 【页面】度量視圖-列頭：EPS 增長 TTM 同比
+  'stockMetricView.column.dividendYieldPct': '股息率', // 【页面】度量視圖-列頭：股息率
+  'stockMetricView.column.industry': '所屬板塊', // 【页面】度量視圖-列頭：所屬板塊
+  'stockMetricView.column.analystRating': '分析師評級', // 【页面】度量視圖-列頭：分析師評級
+  // stockMetricView.filter.*  (篩選區)
+  'stockMetricView.filter.market': '市場', // 【页面】度量視圖-篩選：市場多選標籤
+  'stockMetricView.filter.stock': '股票', // 【页面】度量視圖-篩選：股票搜索標籤
+  'stockMetricView.filter.reset': '重置', // 【页面】度量視圖-篩選：重置按鈕
+  'stockMetricView.filter.query': '查詢', // 【页面】度量視圖-篩選：查詢按鈕
+  'stockMetricView.filter.field': '欄位', // 【页面】度量視圖-篩選：欄位選擇標籤
+  'stockMetricView.filter.op': '條件', // 【页面】度量視圖-篩選：算子選擇標籤
+  'stockMetricView.filter.value': '值', // 【页面】度量視圖-篩選：單值標籤
+  'stockMetricView.filter.min': '最小', // 【页面】度量視圖-篩選：區間最小值標籤
+  'stockMetricView.filter.max': '最大', // 【页面】度量視圖-篩選：區間最大值標籤
+  'stockMetricView.filter.add': '新增條件', // 【页面】度量視圖-篩選：新增條件按鈕
+  'stockMetricView.filter.invalidRange': '最小不能大於最大', // 【页面】度量視圖-篩選：區間非法提示
+  'stockMetricView.filter.edit': '編輯條件', // 【页面】度量視圖-顯示域編輯按鈕與模態框標題
+  'stockMetricView.filter.save': '儲存', // 【页面】度量視圖-條件編輯模態框儲存按鈕
+  'stockMetricView.filter.empty': '暫無篩選條件', // 【页面】度量視圖-顯示域空態
+  'stockMetricView.filter.pending': '待儲存條件', // 【页面】度量視圖-模態框草稿條件列表標題
+  // stockMetricView.filterField.*  (篩選欄位名)
+  'stockMetricView.filterField.market': '市場', // 【页面】度量視圖-篩選欄位：市場
+  'stockMetricView.filterField.code': '代碼', // 【页面】度量視圖-篩選欄位：代碼
+  'stockMetricView.filterField.price': '最新價', // 【页面】度量視圖-篩選欄位：最新價
+  'stockMetricView.filterField.changePct': '漲跌幅', // 【页面】度量視圖-篩選欄位：漲跌幅
+  'stockMetricView.filterField.totalMarketCap': '總市值', // 【页面】度量視圖-篩選欄位：總市值
+  'stockMetricView.filterField.peRatioTTM': '市盈率', // 【页面】度量視圖-篩選欄位：市盈率
+  'stockMetricView.filterField.dividendYieldPct': '股息率', // 【页面】度量視圖-篩選欄位：股息率
+  'stockMetricView.filterField.industry': '所屬板塊', // 【页面】度量視圖-篩選欄位：所屬板塊
+  'stockMetricView.filterField.epsGrowthTtmYoyPct': 'EPS增長', // 【页面】度量視圖-篩選欄位：EPS 增長
+  'stockMetricView.filterField.roePct': 'ROE', // 【页面】度量視圖-篩選欄位：ROE
+  'stockMetricView.filterField.pbRatio': '市淨率', // 【页面】度量視圖-篩選欄位：市淨率
+  'stockMetricView.filterField.psRatioTTM': '市銷率', // 【页面】度量視圖-篩選欄位：市銷率
+  'stockMetricView.filterField.revenueGrowthYoyPct': '營收同比', // 【页面】度量視圖-篩選欄位：營收同比
+  // stockMetricView.op.*  (篩選算子)
+  'stockMetricView.op.eq': '等於', // 【页面】度量視圖-算子：等於
+  'stockMetricView.op.neq': '不等於', // 【页面】度量視圖-算子：不等於
+  'stockMetricView.op.gt': '大於', // 【页面】度量視圖-算子：大於
+  'stockMetricView.op.gte': '大於等於', // 【页面】度量視圖-算子：大於等於
+  'stockMetricView.op.lt': '小於', // 【页面】度量視圖-算子：小於
+  'stockMetricView.op.lte': '小於等於', // 【页面】度量視圖-算子：小於等於
+  'stockMetricView.op.between': '區間', // 【页面】度量視圖-算子：區間
+  'stockMetricView.op.in': '包含', // 【页面】度量視圖-算子：包含
 
 } as const;
 

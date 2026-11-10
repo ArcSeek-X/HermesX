@@ -18,5 +18,6 @@ from src.infrastructure.persistence.models import (  # noqa: F401
     market_data,
     portfolio,
     schema,
+    stock_metric,
     watchlist,
 )

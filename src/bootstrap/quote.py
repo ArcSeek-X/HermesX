@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from src.application.quote import QuoteService
 from src.application.quote.stock_service import StockService
+from src.application.quote.stock_metric_service import StockMetricService
 from src.infrastructure.providers.kline_provider import DataProviderQuoteProvider
 from src.infrastructure.providers.realtime_provider import DataProviderRealtimeQuoteProvider
 
@@ -33,6 +34,18 @@ def build_stock_service() -> StockService:
     return StockService(
         quote_service=QuoteService(provider=DataProviderQuoteProvider()),
         realtime_port=DataProviderRealtimeQuoteProvider(),
+    )
+
+
+def build_stock_metric_service() -> StockMetricService:
+    """装配股票度量视图服务：在线快照 / 离线因子端口在此绑定具体实现。"""
+    from data_provider.market.eastmoney_source import fetch_eastmoney_clist_snapshot
+    from src.bootstrap.database import get_database_manager
+    from src.infrastructure.persistence.repositories.stock_metric_repo import StockMetricRepository
+
+    return StockMetricService(
+        snapshot_port=fetch_eastmoney_clist_snapshot,
+        factors_port=StockMetricRepository(get_database_manager()),
     )
 
 

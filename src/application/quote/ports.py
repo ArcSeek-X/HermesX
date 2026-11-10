@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 
 class QuoteProviderPort(Protocol):
@@ -97,3 +97,38 @@ class MarketSnapshotPort(Protocol):
         """东财 ak.stock_zh_a_spot_em（akshare）全市场快照（中文列名 DataFrame）；
         无数据返回 ``None``；高覆盖兜底源，单次调用含随机限速。"""
 
+
+# === 股票度量视图端口（具体实现由 src/bootstrap/quote.py 注入）===
+
+class StockMetricSnapshotPort(Protocol):
+    """全市场在线快照取数能力：入参为小写市场码，失败返回 ``None`` 由用例降级。
+
+    ``force_refresh=True`` 时跳过接入层 TTL 缓存（手动刷新语义）。返回值必须携带
+    该批数据自己的抓取时刻，命中缓存 / 沿用旧快照时不得用当前时刻顶替。
+    """
+
+    def __call__(
+        self, market: str, *, force_refresh: bool = False
+    ) -> Optional[Tuple[List[Dict[str, Any]], str]]:
+        """返回 ``(该市场原始行字典列表, 本批抓取时刻 ISO 8601 带 UTC 偏移)``。"""
+
+
+class StockMetricFactorsPort(Protocol):
+    """季频离线因子的读写能力（仓储实现由装配层注入，应用层不感知 ORM）。"""
+
+    def init_tables(self) -> None:
+        """幂等建表；失败仅记录，不阻断主链路。"""
+
+    def fetch_latest_factors(self, market: str) -> Dict[str, Dict[str, Optional[float]]]:
+        """返回 ``{code: {eps_ttm_yoy_pct, analyst_rating}}``；无数据返回空字典。"""
+
+    def fetch_latest_as_of_date(self, market: str) -> Optional[str]:
+        """返回最新报告期 ISO 日期串；无数据返回 ``None``。"""
+
+    def upsert_periods(self, rows: List[Dict[str, object]]) -> int:
+        """批量写入财报期因子，返回写入行数。"""
+
+    def record_calc_run(
+        self, status: str, rows_written: int, note: Optional[str] = None, market: str = "cn"
+    ) -> None:
+        """记录一次跑批结果。"""

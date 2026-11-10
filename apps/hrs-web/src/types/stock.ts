@@ -58,6 +58,8 @@ export type StockIndexMarketTag =
 /** 各 Feature 支持范围用 Extract 表达：既单一真源，又不为不支持的市场补假 i18n */
 export type AlertSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'us'>;
 export type MarketReviewSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'us' | 'jp' | 'kr'>;
+/** 股票度量视图支持范围；与 AlertSupportedMarket 同款收窄，仅 cp/hk/us 三市场 */
+export type StockMetricViewSupportedMarket = Extract<MarketLocale, 'cn' | 'hk' | 'us'>;
 
 /* ------------------------------------------------------------------ *
  * 三层模型：L1 标识 → L2 行情核心 → L3 领域扩展

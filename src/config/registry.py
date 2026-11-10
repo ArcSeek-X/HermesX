@@ -111,6 +111,9 @@ WEB_SETTINGS_HIDDEN_FROM_UI: Set[str] = {
     "BOT_RATE_LIMIT_REQUESTS",
     "BOT_RATE_LIMIT_WINDOW",
     "DISCORD_MAX_WORDS",
+    # 股票度量视图季频跑批：开关与保留期由部署侧统一维护，不在设置页暴露。
+    "STOCK_METRIC_JOB_ENABLED",
+    "STOCK_METRIC_DAILY_RETENTION_DAYS",
 }
 
 # Web 设置页可见性契约

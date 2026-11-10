@@ -586,6 +586,10 @@ class Config:
     sqlite_write_retry_max: int = 3
     sqlite_write_retry_base_delay: float = 0.1
 
+    # 股票度量视图（stock_metric）：季频离线因子任务开关与每日复算保留期
+    stock_metric_job_enabled: bool = True
+    stock_metric_daily_retention_days: int = 90
+
     # 是否保存分析上下文快照（用于历史回溯）
     save_context_snapshot: bool = True
 
@@ -1737,6 +1741,14 @@ class Config:
                 0.1,
                 field_name='SQLITE_WRITE_RETRY_BASE_DELAY',
                 minimum=0.0,
+            ),
+            stock_metric_job_enabled=os.getenv('STOCK_METRIC_JOB_ENABLED', 'true').strip().lower()
+            in ('1', 'true', 'yes', 'on'),
+            stock_metric_daily_retention_days=parse_env_int(
+                os.getenv('STOCK_METRIC_DAILY_RETENTION_DAYS'),
+                90,
+                field_name='STOCK_METRIC_DAILY_RETENTION_DAYS',
+                minimum=1,
             ),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',

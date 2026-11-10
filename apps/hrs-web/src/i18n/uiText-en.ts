@@ -144,8 +144,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.home.description': 'Stock analysis and report workspace',
   'layout.nav.kline.title': 'K-Line',
   'layout.nav.kline.description': 'Stock K-line trends, technical indicators, and multi-period analysis',
-  'layout.nav.stockDataView.title': 'Stock Data View',
-  'layout.nav.stockDataView.description': 'Inspect individual stock quotes, K-line, and multi-period data view',
+  'layout.nav.stockMetricView.title': 'Stock Metric View',
+  'layout.nav.stockMetricView.description': 'Browse market-wide stock metrics with filtering, sorting, and CSV export',
   'layout.nav.liveCalendar.title': 'Calendar',
   'layout.nav.liveCalendar.description': 'Calendar of macro, earnings, IPO, and event items',
   'layout.nav.liveNews.title': 'Newsflash',
@@ -213,6 +213,8 @@ const en: Record<UiTextKey, string> = {
   'layout.nav.development.docsTextArea.description': 'TextArea multiline text input component demo and usage',
   'layout.nav.development.docsNumberField.title': 'Number Field',
   'layout.nav.development.docsNumberField.description': 'NumberField numeric input component demo and usage',
+  'layout.nav.development.docsCountryMarketSelect.title': 'Country / Market Select',
+  'layout.nav.development.docsCountryMarketSelect.description': 'CountryMarketSelect single & multiple country/market dropdown component demo and usage',
   'layout.nav.development.docsChip.title': 'Chip',
   'layout.nav.development.docsChip.description': 'Chip rounded capsule tag component demo and usage',
   'layout.nav.development.docsEmptyState.title': 'Empty State',
@@ -1318,7 +1320,77 @@ const en: Record<UiTextKey, string> = {
   'watchlist.todayStatusUnavailable': 'Today status unknown', // 【页面】自选-
   'watchlist.todayTitle': 'Today', // 【页面】自选-
   'watchlist.topScore': 'Top score', // 【页面】自选-
-  'watchlist.watchlistCoverage': 'Watchlist coverage' // 【页面】自选-
+  'watchlist.watchlistCoverage': 'Watchlist coverage', // 【页面】自选-
+
+  // stockMetricView.*  (Stock Metric View page)
+  'stockMetricView.refresh': 'Refresh', // 【页面】度量視圖-重新整理按鈕
+  'stockMetricView.factorAsOf': 'Factors as of {date}', // 【页面】度量視圖-離線因子基準日
+  'stockMetricView.export': 'Export CSV', // 【页面】度量視圖-匯出 CSV 按鈕
+  'stockMetricView.errorTitle': 'Query failed', // 【页面】度量視圖-查詢錯誤標題
+  'stockMetricView.caliberTitle': 'Data caliber notes', // 【页面】度量視圖-口徑/降級提示標題
+  'stockMetricView.emptyTitle': 'No matching stocks', // 【页面】度量視圖-空狀態標題
+  'stockMetricView.emptyDescription': 'Adjust filters or switch market and retry', // 【页面】度量視圖-空狀態描述
+  'stockMetricView.openKline': 'Open stock K-line', // 【页面】度量視圖-名稱列跳轉提示
+  'stockMetricView.klineOnlyCn': 'K-line charts currently support A-shares only', // 【页面】度量視圖-非 A 股名稱列提示
+  // stockMetricView.market.*  (market badges)
+  'stockMetricView.market.cn': 'A-shares', // 【页面】度量視圖-市場：A 股
+  'stockMetricView.market.hk': 'HK stocks', // 【页面】度量視圖-市場：港股
+  'stockMetricView.market.us': 'US stocks', // 【页面】度量視圖-市場：美股
+  // stockMetricView.column.*  (column headers)
+  'stockMetricView.column.rowNumber': 'No.', // 【页面】度量視圖-列頭：序號
+  'stockMetricView.column.market': 'Market', // 【页面】度量視圖-列頭：市場
+  'stockMetricView.column.code': 'Code', // 【页面】度量視圖-列頭：代碼
+  'stockMetricView.column.name': 'Name', // 【页面】度量視圖-列頭：名稱
+  'stockMetricView.column.price': 'Price', // 【页面】度量視圖-列頭：最新價
+  'stockMetricView.column.changePct': 'Change %', // 【页面】度量視圖-列頭：漲跌幅
+  'stockMetricView.column.volume': 'Volume', // 【页面】度量視圖-列頭：成交量
+  'stockMetricView.column.relativeVolume': 'Rel. Volume', // 【页面】度量視圖-列頭：量比
+  'stockMetricView.column.totalMarketCap': 'Market Cap', // 【页面】度量視圖-列頭：總市值
+  'stockMetricView.column.peRatioTTM': 'P/E (TTM)', // 【页面】度量視圖-列頭：市盈率 TTM
+  'stockMetricView.column.epsDiluted': 'EPS', // 【页面】度量視圖-列頭：每股收益（當期）
+  'stockMetricView.column.epsGrowthTtmYoyPct': 'EPS Growth (TTM YoY)', // 【页面】度量視圖-列頭：EPS 增長 TTM 同比
+  'stockMetricView.column.dividendYieldPct': 'Dividend Yield', // 【页面】度量視圖-列頭：股息率
+  'stockMetricView.column.industry': 'Industry', // 【页面】度量視圖-列頭：所屬板塊
+  'stockMetricView.column.analystRating': 'Analyst Rating', // 【页面】度量視圖-列頭：分析師評級
+  // stockMetricView.filter.*  (filter bar)
+  'stockMetricView.filter.market': 'Market', // 【页面】度量視圖-篩選：市場多選標籤
+  'stockMetricView.filter.stock': 'Stock', // 【页面】度量視圖-篩選：股票搜索標籤
+  'stockMetricView.filter.reset': 'Reset', // 【页面】度量視圖-篩選：重置按鈕
+  'stockMetricView.filter.query': 'Query', // 【页面】度量視圖-篩選：查詢按鈕
+  'stockMetricView.filter.field': 'Field', // 【页面】度量視圖-篩選：欄位選擇標籤
+  'stockMetricView.filter.op': 'Condition', // 【页面】度量視圖-篩選：算子選擇標籤
+  'stockMetricView.filter.value': 'Value', // 【页面】度量視圖-篩選：單值標籤
+  'stockMetricView.filter.min': 'Min', // 【页面】度量視圖-篩選：區間最小值標籤
+  'stockMetricView.filter.max': 'Max', // 【页面】度量視圖-篩選：區間最大值標籤
+  'stockMetricView.filter.add': 'Add condition', // 【页面】度量視圖-篩選：新增條件按鈕
+  'stockMetricView.filter.invalidRange': 'Min cannot exceed max', // 【页面】度量視圖-篩選：區間非法提示
+  'stockMetricView.filter.edit': 'Edit filters', // 【页面】度量視圖-顯示域編輯按鈕與模態框標題
+  'stockMetricView.filter.save': 'Save', // 【页面】度量視圖-條件編輯模態框儲存按鈕
+  'stockMetricView.filter.empty': 'No filters yet', // 【页面】度量視圖-顯示域空態
+  'stockMetricView.filter.pending': 'Pending conditions', // 【页面】度量視圖-模態框草稿條件列表標題
+  // stockMetricView.filterField.*  (filter field names)
+  'stockMetricView.filterField.market': 'Market', // 【页面】度量視圖-篩選欄位：市場
+  'stockMetricView.filterField.code': 'Code', // 【页面】度量視圖-篩選欄位：代碼
+  'stockMetricView.filterField.price': 'Price', // 【页面】度量視圖-篩選欄位：最新價
+  'stockMetricView.filterField.changePct': 'Change %', // 【页面】度量視圖-篩選欄位：漲跌幅
+  'stockMetricView.filterField.totalMarketCap': 'Market Cap', // 【页面】度量視圖-篩選欄位：總市值
+  'stockMetricView.filterField.peRatioTTM': 'P/E', // 【页面】度量視圖-篩選欄位：市盈率
+  'stockMetricView.filterField.dividendYieldPct': 'Dividend Yield', // 【页面】度量視圖-篩選欄位：股息率
+  'stockMetricView.filterField.industry': 'Industry', // 【页面】度量視圖-篩選欄位：所屬板塊
+  'stockMetricView.filterField.epsGrowthTtmYoyPct': 'EPS Growth', // 【页面】度量視圖-篩選欄位：EPS 增長
+  'stockMetricView.filterField.roePct': 'ROE', // 【页面】度量視圖-篩選欄位：ROE
+  'stockMetricView.filterField.pbRatio': 'P/B', // 【页面】度量視圖-篩選欄位：市淨率
+  'stockMetricView.filterField.psRatioTTM': 'P/S (TTM)', // 【页面】度量視圖-篩選欄位：市銷率
+  'stockMetricView.filterField.revenueGrowthYoyPct': 'Revenue YoY', // 【页面】度量視圖-篩選欄位：營收同比
+  // stockMetricView.op.*  (filter operators)
+  'stockMetricView.op.eq': 'equals', // 【页面】度量視圖-算子：等於
+  'stockMetricView.op.neq': 'not equals', // 【页面】度量視圖-算子：不等於
+  'stockMetricView.op.gt': 'greater than', // 【页面】度量視圖-算子：大於
+  'stockMetricView.op.gte': '≥', // 【页面】度量視圖-算子：大於等於
+  'stockMetricView.op.lt': 'less than', // 【页面】度量視圖-算子：小於
+  'stockMetricView.op.lte': '≤', // 【页面】度量視圖-算子：小於等於
+  'stockMetricView.op.between': 'between', // 【页面】度量視圖-算子：區間
+  'stockMetricView.op.in': 'in', // 【页面】度量視圖-算子：包含
 
 };
 
