@@ -11,6 +11,7 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Switch, AnimCard } from '@components';
 import { AppPage } from '@components/layout/AppPage';
+import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { StockSearch } from '@components/StockSearch/StockSearch';
 import { KLineChart } from '@components/kline/KLineChart';
 import { StockInfoHeader } from '@components/kline/StockInfoHeader';
@@ -256,7 +257,8 @@ const StockKLinePage: React.FC = () => {
   return (
     <AppPage>
       <div className="space-y-4">
-        {/* 页内股票搜索框（页面标题由顶部 header 展示） */}
+        <PageHeader title={t('layout.nav.kline.title')} description={t('layout.nav.kline.description')} />
+        {/* 页内股票搜索框 */}
         <div className="max-w-md">
           <StockSearch
             value={searchDraft}
