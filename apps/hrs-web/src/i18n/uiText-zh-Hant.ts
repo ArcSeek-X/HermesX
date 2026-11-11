@@ -791,6 +791,19 @@ const zhHant = {
   'kline.period.monthly': '月 K', // 【页面】个股K线-月 K 週期
   'kline.period.weekly': '週 K', // 【页面】个股K线-週 K 週期
   'kline.period.yearly': '年 K', // 【页面】个股K线-年 K 週期
+  'kline.recentSearch.addWatchlist': '加自選', // 【页面】个股K线-最近搜尋加自選按鈕
+  'kline.recentSearch.clear': '清空', // 【页面】个股K线-最近搜尋清空按鈕
+  'kline.recentSearch.clearConfirm': '確定清空最近搜尋？', // 【页面】个股K线-最近搜尋清空確認
+  'kline.recentSearch.empty': '暫無最近搜尋', // 【页面】个股K线-最近搜尋空態
+  'kline.recentSearch.inWatchlist': '已自選', // 【页面】个股K线-最近搜尋已自選按鈕態
+  'kline.recentSearch.stockCard.amplitude': '振幅', // 【页面】个股K线-最近搜尋卡片振幅指標
+  'kline.recentSearch.stockCard.openKline': '點擊查看個股 K 線', // 【页面】个股K线-最近搜尋卡片跳轉提示
+  'kline.recentSearch.stockCard.price': '股票價格', // 【页面】个股K线-最近搜尋卡片股票價格指標
+  'kline.recentSearch.stockCard.totalMarketCap': '總市值', // 【页面】个股K线-最近搜尋卡片總市值指標
+  'kline.recentSearch.stockCard.turnoverRate': '換手率', // 【页面】个股K线-最近搜尋卡片換手率指標
+  'kline.recentSearch.stockCard.avgPriceLegend': '均價', // 【页面】个股K线-最近搜尋卡片走勢圖均價線圖例
+  'kline.recentSearch.stockCard.priceLegend': '價格', // 【页面】个股K线-最近搜尋卡片走勢圖價格線圖例
+  'kline.recentSearch.title': '最近搜尋', // 【页面】个股K线-最近搜尋區塊標題
   'kline.tooltip.amount': '成交額', // 【页面】个股K线-tooltip 成交額
   'kline.tooltip.change': '漲跌幅', // 【页面】个股K线-tooltip 漲跌幅
   'kline.tooltip.close': '收盤', // 【页面】个股K线-tooltip 收盤价

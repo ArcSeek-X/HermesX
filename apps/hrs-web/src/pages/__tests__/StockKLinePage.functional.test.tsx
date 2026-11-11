@@ -59,7 +59,7 @@ const fetchKLineMock = vi.fn();
 const fetchStockInfoMock = vi.fn();
 const searchStocksMock = vi.fn();
 
-// 只覆盖 klineApi，保留模块其余导出（如 toStockSnapshot 适配函数），避免整体替换导致其为 undefined
+// 只覆盖 klineApi，保留模块其余导出（KLinePeriod 等类型与工具），避免整体替换
 vi.mock('../../api/kline', async () => {
   const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
   return {
@@ -71,6 +71,16 @@ vi.mock('../../api/kline', async () => {
     },
   };
 });
+
+// 最近搜索列表有独立测试；页面功能走查中隔离它及其落库请求，避免干扰页面行为断言
+vi.mock('../Stock/StockKLinePage/components/RecentSearchList', () => ({
+  default: () => <div data-testid="recent-search-list" />,
+}));
+vi.mock('../../api/recentSearch', () => ({
+  recordRecentSearch: () => Promise.resolve({}),
+  getRecentSearchList: () => Promise.resolve([]),
+  clearRecentSearch: () => Promise.resolve(),
+}));
 
 import StockKLinePage from '../Stock/StockKLinePage/StockKLinePage';
 
@@ -111,35 +121,37 @@ function makeKLineResp(beforeDate?: string) {
 
 function makeStockInfo() {
   return {
-    stock_code: '600519',
-    stock_name: '贵州茅台',
-    current_price: 1720,
+    code: '600519',
+    name: '贵州茅台',
+    price: 1720,
     change: 20,
-    change_percent: 1.2,
-    prev_close: 1700,
+    changePct: 1.2,
+    prevClose: 1700,
     open: 1701,
     high: 1730,
     low: 1690,
     volume: 1000,
     amount: 1700000,
-    turnover_rate: 0.3,
+    turnoverRate: 0.3,
     amplitude: 2.4,
-    pe_ratio_ttm: 30,
-    total_market_cap: 2100000000000,
+    peRatioTTM: 30,
+    totalMarketCap: 2100000000000,
   };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // 清掉上一用例写入 sessionStorage 的页面状态，保证「未选股」初始态可复现
+  sessionStorage.clear();
   fetchStockInfoMock.mockResolvedValue(makeStockInfo());
   fetchKLineMock.mockResolvedValue(makeKLineResp());
   searchStocksMock.mockResolvedValue([{ code: '600519', name: '贵州茅台' }]);
 });
 
 describe('K 线页面功能走查', () => {
-  it('初始渲染：未选股时显示提示', () => {
+  it('初始渲染：未选股时显示最近搜索列表（替代旧的未选股提示）', () => {
     renderPage();
-    expect(screen.getByText('请搜索并选择一只股票查看 K 线')).toBeTruthy();
+    expect(screen.getByTestId('recent-search-list')).toBeTruthy();
   });
 
   it('搜索中文名称：解析代码并加载信息头部 + K 线', async () => {

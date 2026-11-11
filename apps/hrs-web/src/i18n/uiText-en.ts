@@ -794,6 +794,19 @@ const en: Record<UiTextKey, string> = {
   'kline.period.monthly': 'Monthly', // 【页面】个股K线-
   'kline.period.weekly': 'Weekly', // 【页面】个股K线-
   'kline.period.yearly': 'Yearly', // 【页面】个股K线-
+  'kline.recentSearch.addWatchlist': 'Add to Watchlist', // 【页面】个股K线-
+  'kline.recentSearch.clear': 'Clear', // 【页面】个股K线-
+  'kline.recentSearch.clearConfirm': 'Clear all recent searches?', // 【页面】个股K线-
+  'kline.recentSearch.empty': 'No recent searches', // 【页面】个股K线-
+  'kline.recentSearch.inWatchlist': 'In Watchlist', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.amplitude': 'Amplitude', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.openKline': 'View stock K-line', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.price': 'Stock Price', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.totalMarketCap': 'Market Cap', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.turnoverRate': 'Turnover', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.avgPriceLegend': 'Avg Price', // 【页面】个股K线-
+  'kline.recentSearch.stockCard.priceLegend': 'Price', // 【页面】个股K线-
+  'kline.recentSearch.title': 'Recent Searches', // 【页面】个股K线-
   'kline.tooltip.amount': 'Amount', // 【页面】个股K线-
   'kline.tooltip.change': 'Change', // 【页面】个股K线-
   'kline.tooltip.close': 'Close', // 【页面】个股K线-

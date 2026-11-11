@@ -5,6 +5,8 @@
  * 入口：既支持页内搜索，也支持外部带 ?stockCode= 直达（自选股、顶栏搜索等统一模式）。
  * 状态：全部收敛于 PageStateStore.kline 单一对象（stockInfo 个股行情 + klineInfo 周期/数据/来源 两键），
  * 刷新后由该对象恢复；股票代码与搜索框展示标签均从恢复的 stockInfo 派生，不额外持久化。
+ * 最近搜索：未选中股票时显示搜索引导列表，查询成功后隐藏并让位给行情/K 线；显式入口加载成功时
+ * 直接落库一条记录，并把搜索到的通用股票对象（StockInfo）+ 分时插入本地列表，清空时不二次请求。
  */
 
 import type React from 'react';
@@ -18,12 +20,21 @@ import { StockInfoHeader } from '@components/kline/StockInfoHeader';
 import { PeriodSelector } from '@components/kline/PeriodSelector';
 import { useSearchParams } from 'react-router-dom';
 
-import { klineApi, toStockSnapshot, type KLinePeriod } from '../../../api/kline';
+import { klineApi, type KLinePeriod, type StockInfo, type KLinePoint } from '../../../api/kline';
+import {
+  recordRecentSearch,
+  getRecentSearchList,
+  clearRecentSearch,
+  type RecentSearchItem,
+} from '../../../api/recentSearch';
+import { stocksApi } from '../../../api/stocks';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useStockIndex } from '../../../hooks/useStockIndex';
 import { usePageState } from '../../../stores/PageStateStore';
 import type { StockIndexItem } from '../../../types/stockIndex';
 import type { StockQuoteCore } from '../../../types/stock';
+import type { RecentSearchEntry } from './components/RecentSearchCard';
+import RecentSearchList from './components/RecentSearchList';
 
 /** 新搜索/直达时默认展示分时 */
 const DEFAULT_PERIOD: KLinePeriod = '1m';
@@ -45,15 +56,70 @@ function buildSearchLabel(stockIndex: StockIndexItem[], stockInfo: StockQuoteCor
   return stockInfo.name ? `${stockInfo.name}（${stockInfo.code || code}）` : code;
 }
 
-/** 判断是否为纯数字股票代码（可带市场后缀，如 600519.SH） */
-function isNumericCode(value: string): boolean {
-  return /^\d{4,7}$/.test(value.split('.')[0].trim());
+/** 从任意输入（纯代码、带市场后缀、或「名称（代码）」展示格式）中提取纯数字股票代码 */
+function extractNumericCode(raw: string): string {
+  const cleaned = raw.replace(/[（）]/g, '');
+  const match = cleaned.match(/\d{4,7}/);
+  return match ? match[0] : '';
+}
+
+/** 最近搜索队列上限，与后端 MAX_RECENT_SEARCH_RECORDS 对齐 */
+const MAX_RECENT_SEARCHES = 10;
+
+/** 剥离交易所后缀并转大写，作为落库代码与行情纯代码的统一关联键（如 600519.SH → 600519） */
+function normalizeStockCode(stockCode: string): string {
+  return stockCode.split('.')[0].trim().toUpperCase();
+}
+
+/** 历史记录缺行情时构造占位 StockInfo（仅 code/name，数值字段置 null 降级展示） */
+function buildPlaceholderStockInfo(record: RecentSearchItem): StockInfo {
+  return {
+    code: record.stockCode,
+    name: record.stockName ?? '',
+    price: null,
+    change: null,
+    changePct: null,
+    amount: null,
+    volume: null,
+    turnoverRate: null,
+    prevClose: null,
+    open: null,
+    high: null,
+    low: null,
+    amplitude: null,
+    peRatioTTM: null,
+    totalMarketCap: null,
+    updateTime: null,
+    source: null,
+  };
+}
+
+/** 由服务端历史记录批量补齐行情与分时，组装为卡片条目（历史记录一次性补量，非清空触发） */
+async function buildRecentEntries(items: RecentSearchItem[]): Promise<RecentSearchEntry[]> {
+  const codes = items.map((it) => normalizeStockCode(it.stockCode)).filter(Boolean);
+  const [quotes, timelines] = await Promise.all([
+    codes.length ? stocksApi.batchQuote(codes) : Promise.resolve([]),
+    codes.length ? stocksApi.batchTimeline(codes) : Promise.resolve([]),
+  ]);
+  const quoteMap = new Map(quotes.map((q) => [normalizeStockCode(q.code), q]));
+  const timelineMap = new Map(timelines.map((t) => [normalizeStockCode(t.code), t]));
+  return items.slice(0, MAX_RECENT_SEARCHES).map((it) => {
+    const normalizedCode = normalizeStockCode(it.stockCode);
+    const quote = quoteMap.get(normalizedCode);
+    const tl = timelineMap.get(normalizedCode);
+    const info: StockInfo = quote ? { ...quote, updateTime: null, source: null } : buildPlaceholderStockInfo(it);
+    return {
+      info,
+      timeline: tl?.points ?? [],
+      prevClose: tl?.prevClose ?? quote?.prevClose ?? null,
+    };
+  });
 }
 
 const StockKLinePage: React.FC = () => {
   const { t } = useUiLanguage();
   const { state: pageState, setState: setPageState } = usePageState();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { index: stockIndex } = useStockIndex();
 
   // 当前股票代码：仅内存态，刷新后从已恢复的 pageState.kline.stockInfo.code 派生
@@ -61,9 +127,9 @@ const StockKLinePage: React.FC = () => {
   const [stockCode, setStockCode] = useState(() => pageState.kline.stockInfo?.code ?? '');
   // 全量数据开关：开启时按 FULL_DATA_LIMIT 拉取
   const [allDataEnabled, setAllDataEnabled] = useState(false);
-  // 行情/K 线加载状态与错误
+  // 个股行情与 K 线的加载状态；加载失败时保存错误文案用于错误态展示
   const [isStockDataLoading, setIsStockDataLoading] = useState(false);
-  const [stockLoadError, setStockLoadError] = useState<string | null>(null);
+  const [stockDataError, setStockDataError] = useState<string | null>(null);
   // 搜索框输入缓冲：仅用于受控显示，不驱动加载；加载只认解析后的规范代码
   const [searchDraft, setSearchDraft] = useState(stockCode);
   // 搜索框展示标签：以已加载行情为准生成，可由恢复的 stockInfo 直接重算，无需持久化
@@ -76,39 +142,97 @@ const StockKLinePage: React.FC = () => {
   const period = klineInfo.period;
   const prevClose = stockInfo?.prevClose ?? null;
 
-  // 以下 ref 保存最新值，规避回调/闭包捕获旧值
+  // 以下 ref 保存最新值，规避回调/闭包捕获旧值；在 commit 后用 effect 同步，
+  // 不在渲染期直接读写 ref（否则触发 react-hooks/refs 报错）
   const latestPeriodRef = useRef(period);
-  latestPeriodRef.current = period;
   const latestStockCodeRef = useRef(stockCode);
-  latestStockCodeRef.current = stockCode;
   const allDataEnabledRef = useRef(allDataEnabled);
-  allDataEnabledRef.current = allDataEnabled;
+  useEffect(() => {
+    latestPeriodRef.current = period;
+    latestStockCodeRef.current = stockCode;
+    allDataEnabledRef.current = allDataEnabled;
+  }, [period, stockCode, allDataEnabled]);
   // 已加载的股票代码，用于换股去重（避免 PageStateStore 残留旧数据导致不刷新）
-  const loadedStockCodeRef = useRef<string | null>(null);
+  const lastLoadedStockCodeRef = useRef<string | null>(null);
   // 整体加载请求序号：递增使过期结果作废
-  const fetchRequestSeqRef = useRef(0);
+  const stockDataRequestSeqRef = useRef(0);
   // 历史分页：并发锁 + 请求序号（换股/换周期时作废进行中的分页）
-  const historyFetchLockRef = useRef(false);
+  const historyLoadLockRef = useRef(false);
   const historyRequestSeqRef = useRef(0);
+  // 待记录的最近搜索代码：仅显式搜索 / ?stockCode= 直达时设置，切周期等隐式重载不设置
+  const recordPendingStockCodeRef = useRef<string | null>(null);
+  // 最近搜索：前端本地维护的卡片数据源（搜索时插入 stockInfo + 分时，清空不二次请求）
+  const [recentEntries, setRecentEntries] = useState<RecentSearchEntry[]>([]);
+  const [isRecentHistoryLoading, setIsRecentHistoryLoading] = useState(true);
+
+  // 初始化：页面 mount 一次性从服务端拉历史记录并批量补齐行情/分时（非清空触发，满足"清空不请求"）
+  useEffect(() => {
+    let active = true;
+    const init = async () => {
+      setIsRecentHistoryLoading(true);
+      try {
+        const items = await getRecentSearchList();
+        const entries = await buildRecentEntries(items);
+        if (!active) return;
+        setRecentEntries(entries);
+      } catch (error) {
+        console.error('Failed to load recent searches:', error);
+      } finally {
+        if (active) setIsRecentHistoryLoading(false);
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /**
+   * 搜索成功后把通用股票对象 + 分时插入本地列表（去重置顶、限长），供最近搜索卡片即时展示，不触发任何网络请求。
+   * 优先用行情昨收，缺失时回退分时末点（盘中可外推、收盘即收盘价）。
+   */
+  const insertRecentEntry = useCallback((info: StockInfo, timeline: KLinePoint[]) => {
+    setRecentEntries((prev) => {
+      const normalizedCode = normalizeStockCode(info.code);
+      const deduped = prev.filter((entry) => normalizeStockCode(entry.info.code) !== normalizedCode);
+      const next: RecentSearchEntry = {
+        info,
+        timeline,
+        prevClose: info.prevClose ?? (timeline.length ? timeline[timeline.length - 1].close : null),
+      };
+      return [next, ...deduped].slice(0, MAX_RECENT_SEARCHES);
+    });
+  }, []);
+
+  /** 一键清空：先清空本地（即时反馈），再同步服务端 */
+  const clearRecentSearches = useCallback(async () => {
+    try {
+      await clearRecentSearch();
+    } catch (error) {
+      console.error('Failed to clear recent searches:', error);
+      return;
+    }
+    setRecentEntries([]);
+  }, []);
 
   /** 加载指定股票的行情与 K 线数据 */
   const loadStockData = useCallback(
     async (code: string, targetPeriod: KLinePeriod, limit?: number) => {
       if (!code) return;
-      loadedStockCodeRef.current = code;
-      const requestId = ++fetchRequestSeqRef.current;
+      lastLoadedStockCodeRef.current = code;
+      const requestId = ++stockDataRequestSeqRef.current;
       historyRequestSeqRef.current++; // 整体数据即将替换，作废进行中的分页
       setIsStockDataLoading(true);
-      setStockLoadError(null);
+      setStockDataError(null);
       try {
         const [info, kline] = await Promise.all([
           klineApi.fetchStockInfo(code),
           klineApi.fetchKLine(code, targetPeriod, limit),
         ]);
-        if (requestId !== fetchRequestSeqRef.current) return; // 已有更新的请求，丢弃本次
+        if (requestId !== stockDataRequestSeqRef.current) return; // 已有更新的请求，丢弃本次
         setPageState('kline', (prev) => ({
           ...prev,
-          stockInfo: toStockSnapshot(info),
+          stockInfo: info,
           klineInfo: {
             ...prev.klineInfo,
             period: targetPeriod,
@@ -116,15 +240,24 @@ const StockKLinePage: React.FC = () => {
             klineSource: kline.source ?? null,
           },
         }));
+        // 显式入口加载成功：落库（静默 POST，不影响展示）+ 前端本地插入卡片数据
+        if (recordPendingStockCodeRef.current === code) {
+          recordPendingStockCodeRef.current = null;
+          void recordRecentSearch({ stockCode: code, stockName: info.name ?? null }).catch((error) => {
+            // 记录失败不阻断 K 线页主流程
+            console.error('Failed to record recent search:', error);
+          });
+          insertRecentEntry(info, kline.data);
+        }
       } catch (err) {
-        if (requestId !== fetchRequestSeqRef.current) return;
+        if (requestId !== stockDataRequestSeqRef.current) return;
         console.error('Failed to load stock data:', err);
-        setStockLoadError(t('kline.error'));
+        setStockDataError(t('kline.error'));
       } finally {
-        if (requestId === fetchRequestSeqRef.current) setIsStockDataLoading(false);
+        if (requestId === stockDataRequestSeqRef.current) setIsStockDataLoading(false);
       }
     },
-    [t, setPageState],
+    [t, setPageState, insertRecentEntry],
   );
 
   /** 切换当前周期：周期持久化于 pageState.kline.klineInfo.period */
@@ -142,28 +275,38 @@ const StockKLinePage: React.FC = () => {
   /** 搜索提交：解析出规范代码后切到该股票，并默认使用分时周期 */
   const handleSearchSubmit = useCallback(
     async (rawCode: string) => {
-      const input = rawCode.split('.')[0].trim();
-      let resolvedCode = input;
-      if (!isNumericCode(input)) {
-        // 非纯数字（如中文名）：经后端搜索解析为规范代码
+      // 先尝试从输入中提取纯数字代码（兼容「名称（代码）」展示格式与 .SH/.SZ 后缀）
+      let resolvedCode = extractNumericCode(rawCode);
+      if (!resolvedCode) {
+        // 纯中文名等无数字输入：经后端搜索解析为规范代码
         try {
-          const results = await klineApi.searchStocks(input);
+          const results = await klineApi.searchStocks(rawCode.trim());
           if (!results?.length) {
-            setStockLoadError(t('kline.error'));
+            setStockDataError(t('kline.error'));
             return;
           }
           resolvedCode = results[0].code;
         } catch {
-          setStockLoadError(t('kline.error'));
+          setStockDataError(t('kline.error'));
           return;
         }
       }
+      recordPendingStockCodeRef.current = resolvedCode;
       setStockCode(resolvedCode);
       changePeriod(DEFAULT_PERIOD);
       setAllDataEnabled(false); // 换股重置全量数据开关
+      // 同步 URL 的 stockCode：否则进入时若带旧代码，刷新会恢复到 URL 里的旧股票而非当前搜索的
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('stockCode', resolvedCode);
+          return next;
+        },
+        { replace: true },
+      );
       void loadStockData(resolvedCode, DEFAULT_PERIOD);
     },
-    [changePeriod, loadStockData, setStockCode, t],
+    [changePeriod, loadStockData, setStockCode, setSearchParams, t],
   );
 
   /** 切换周期：沿用当前股票与全量开关状态重新拉取 */
@@ -192,13 +335,13 @@ const StockKLinePage: React.FC = () => {
 
   /** 左滑加载更早历史：前置拼接并去重/保序，防止并发与重复 */
   const loadMoreHistory = useCallback(async () => {
-    if (historyFetchLockRef.current || klineData.length === 0) return;
+    if (historyLoadLockRef.current || klineData.length === 0) return;
     const currentPeriod = latestPeriodRef.current;
     if (MINUTE_PERIODS.includes(currentPeriod) && klineData.length >= MINUTE_KLINE_MAX_LIMIT) return;
     const earliestDate = klineData[0]?.date;
     if (!earliestDate) return;
 
-    historyFetchLockRef.current = true;
+    historyLoadLockRef.current = true;
     const requestId = ++historyRequestSeqRef.current;
     try {
       const more = await klineApi.fetchKLine(
@@ -222,13 +365,13 @@ const StockKLinePage: React.FC = () => {
     } catch (err) {
       console.error('Failed to load more history:', err);
     } finally {
-      historyFetchLockRef.current = false;
+      historyLoadLockRef.current = false;
     }
   }, [klineData, setPageState]);
 
   // stockCode 变化（页内搜索 / 外部直达）且尚未加载该代码时，拉取数据
   useEffect(() => {
-    if (!stockCode || loadedStockCodeRef.current === stockCode) return;
+    if (!stockCode || lastLoadedStockCodeRef.current === stockCode) return;
     void loadStockData(stockCode, latestPeriodRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockCode]);
@@ -239,10 +382,11 @@ const StockKLinePage: React.FC = () => {
     if (!code) return;
     const pure = code.split('.')[0].trim();
     if (!pure || pure === latestStockCodeRef.current) return;
+    // 外部页面跳转（自选股/顶栏/Scanner 等）视为显式直达；刷新后代码未变不会走到这里
+    recordPendingStockCodeRef.current = pure;
     setSearchDraft(pure);
     setSearchDisplayLabel('');
     setStockCode(pure);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // 搜索框展示标签：始终以当前已加载行情为准，行情或索引变化时重算（索引后到会自动补后缀）
@@ -251,7 +395,6 @@ const StockKLinePage: React.FC = () => {
     const code = latestStockCodeRef.current;
     if (!code) return;
     setSearchDisplayLabel(buildSearchLabel(stockIndex, stockInfo, code));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockInfo, stockIndex]);
 
   return (
@@ -267,6 +410,7 @@ const StockKLinePage: React.FC = () => {
             onChange={setSearchDraft}
             onSubmit={handleSearchSubmit}
             onClear={() => {
+              recordPendingStockCodeRef.current = null;
               setSearchDraft('');
               setStockCode('');
               setSearchDisplayLabel('');
@@ -275,9 +419,32 @@ const StockKLinePage: React.FC = () => {
                 stockInfo: null,
                 klineInfo: { ...prev.klineInfo, klineData: [], klineSource: null },
               }));
+              // 同步移除 URL 的 stockCode：否则刷新后「外部直达」逻辑会按残留代码重新恢复该股票
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('stockCode');
+                  return next;
+                },
+                { replace: true },
+              );
             }}
           />
         </div>
+
+        {/* 最近搜索：仅未选中股票时作为搜索引导，选中后让位给行情/K 线 */}
+        {!stockInfo && (
+          <>
+            {stockDataError && !isStockDataLoading && (
+              <div className="flex items-center justify-center py-6 text-muted-text">{stockDataError}</div>
+            )}
+            <RecentSearchList
+              list={recentEntries}
+              isHistoryLoading={isRecentHistoryLoading}
+              onClear={clearRecentSearches}
+            />
+          </>
+        )}
 
         {stockInfo && (
           <>
@@ -291,8 +458,8 @@ const StockKLinePage: React.FC = () => {
                   <div className="flex items-center justify-center py-20">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
                   </div>
-                ) : stockLoadError ? (
-                  <div className="flex items-center justify-center py-20 text-muted-text">{stockLoadError}</div>
+                ) : stockDataError ? (
+                  <div className="flex items-center justify-center py-20 text-muted-text">{stockDataError}</div>
                 ) : klineData.length === 0 ? (
                   <div className="flex items-center justify-center py-20 text-muted-text">暂无 K 线数据</div>
                 ) : (
@@ -323,11 +490,6 @@ const StockKLinePage: React.FC = () => {
           </>
         )}
 
-        {!stockInfo && !isStockDataLoading && (
-          <div className="flex items-center justify-center py-20 text-muted-text">
-            {t('kline.noStockSelected')}
-          </div>
-        )}
       </div>
     </AppPage>
   );

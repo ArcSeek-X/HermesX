@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 个股 K 线页新增「最近搜索」：未选中股票时在搜索框下方展示最近 10 条记录的卡片（实时价格 / 振幅 / 总市值 / 换手率、迷你分时走势、加自选），支持一键清空；查询成功后列表隐藏，让位给行情卡与 K 线卡。记录逻辑收口在 K 线页，覆盖页内搜索与所有 `?stockCode=` 直达入口，切周期 / 开全量 / 翻页不误记；新增 `stock_recent_search` 表、`/api/v1/recent-search/*` 三条接口及 `batch-quote` / `batch-timeline` 批量接口，列表挂载仅 3 次请求。
+- [修复] 修复最近搜索列表清空后不刷新（需刷新页面才看到新记录）的问题：列表 `GET /api/v1/recent-search/list` 此前未配置 L1 缓存策略、回落到默认 60s TTL，清空后重新挂载命中旧空列表；现已将该接口设为不缓存，并在记录成功后由页面驱动列表主动刷新（`refreshSignal`）。
+- [改进] 最近搜索列表改为前端本地维护：搜索成功时把通用股票对象（StockInfo）+ 分时直接插入本地列表，清空搜索框不再向服务端请求（消除重复请求）；卡片与 StockInfoHeader 共用同一 StockInfo 对象。后端 record 仍静默落库以保证刷新后历史可见，页面 mount 一次性拉取历史并批量补量恢复；清空时仍同步服务端清空。移除 useRecentSearch 数据 Hook。
+- [改进] 最近搜索卡片移除「加自选」入口：删除卡片加自选按钮、列表与页面的默认自选分组读取（`getWatchlistGroups` / `getAllWatchlistItems`）与 `addToWatchlist` 回调，页面不再请求 `watchlist/get_items_list`，并同步移除相关测试 mock；该功能为临时下线，后续将重新实现。
+- [改进] 最近搜索列表加载体验优化：后端历史记录未返回时渲染占位卡片（复用卡片结构、字段为空显示 `--`、不可点击），替代原先的空白，避免空态闪烁；清空按钮增加删除图标。
+- [修复] 修复个股 K 线页页内搜索换股后刷新恢复成进入时旧股票的问题：此前仅有外部 `?stockCode=` 直达会写入 URL，页内 `handleSearchSubmit` 换股未同步 URL，刷新时「外部直达」逻辑按 URL 残留的旧代码重新加载；现 `handleSearchSubmit` 成功解析代码后以 `replace` 方式把 `stockCode` 写回 URL，保证「URL = 当前股票」一致。
+- [改进] 股票行情字段全量收敛到 `StockQuoteCore` 规范 camelCase：`/api/v1/stocks/{code}/quote` 与 `/api/v1/kline/{code}/info` 改为 `code` / `price` / `changePct` / `prevClose` / `amplitude` / `peRatioTTM` / `totalMarketCap` 等同名输出，前端移除 `toStockSnapshot` 桥接与自选股链路的二次命名适配；属破坏性改名、无兼容层，已同步相关契约与回归测试。
+
 - [修复] 修复市场总览「富时中国A50」卡片收盘后停在昨收 0.00%、夜间无变化的问题：根因是东财 `100.XIN9` 为只在 A 股时段计算的现货指数（实测行情时间固定在上一交易日 15:00），原实现与注释误把它当作跟踪 SGX 夜盘的期货。现按上游行情时间（5 分钟新鲜度）自动切换到覆盖夜盘的 `104.CN00Y`，payload 追加 `quoteAsOf` / `quoteSource`，前端卡片显示「期指 / 指数 + 行情时间」；为 `/api/v1/sector/market-cards` 显式配置不缓存，避免 30 秒轮询被 60 秒默认 L1 缓存短路；主指数批量失败时 A50 卡片不再一并消失；新增双源判源、降级与字段适配回归测试。
 
 - [改进] 股票度量视图筛选区接入股票搜索：接入 `StockSearch`（写入 `code eq` 条件，选中跨市场股票时自动同步市场并立即查询，清除按钮 / 重置同步清空）；三语补充股票 / 代码 文案。
