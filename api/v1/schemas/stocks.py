@@ -12,6 +12,7 @@
 1. 定义股票实时行情模型
 2. 定义历史 K 线数据模型
 3. 定义单票分时（当日）数据模型
+4. 定义批量行情 / 分时请求与响应模型（最近搜索卡片列表）
 """
 
 from typing import Optional, List
@@ -20,23 +21,25 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class StockQuote(BaseModel):
-    """单只股票的实时行情快照。
+    """单只股票的实时行情快照（规范 camelCase 字段）。
 
-    使用场景：列表与详情页的价格展示；估值、换手等字段在部分市场缺失，因此除代码与最新价外统一允许 None。
+    使用场景：列表与详情页的价格展示；字段名与前端 ``types/stock.ts`` 的
+    ``StockQuoteCore`` 完全一致，前后端不再做二次命名适配。估值、换手等字段在
+    部分市场缺失，因此除代码与最新价外统一允许 None。
 
     @author: Lensgcx (GaoCangxiong)
     """
-    
+
     # 规范股票代码，标识行情归属。
-    stock_code: str = Field(..., description="股票代码")
+    code: str = Field(..., description="股票代码")
     # 股票名称；代码映射失败时为 None。
-    stock_name: Optional[str] = Field(None, description="股票名称")
+    name: Optional[str] = Field(None, description="股票名称")
     # 最新成交价，必填；停牌时可能沿用上一交易日收盘价。
-    current_price: float = Field(..., description="当前价格")
+    price: float = Field(..., description="当前价格")
     # 相对昨收的涨跌额；缺失时为 None。
     change: Optional[float] = Field(None, description="涨跌额")
     # 相对昨收的涨跌幅百分比；缺失时为 None。
-    change_percent: Optional[float] = Field(None, description="涨跌幅 (%)")
+    changePct: Optional[float] = Field(None, description="涨跌幅 (%)")
     # 今开价；集合竞价前为 None。
     open: Optional[float] = Field(None, description="开盘价")
     # 当日最高价；缺失时为 None。
@@ -44,33 +47,41 @@ class StockQuote(BaseModel):
     # 当日最低价；缺失时为 None。
     low: Optional[float] = Field(None, description="最低价")
     # 昨收价，涨跌额与涨跌幅的计算基准。
-    prev_close: Optional[float] = Field(None, description="昨收价")
+    prevClose: Optional[float] = Field(None, description="昨收价")
     # 当日成交量，单位股；缺失时为 None。
     volume: Optional[float] = Field(None, description="成交量（股）")
     # 当日成交额，单位元；缺失时为 None。
     amount: Optional[float] = Field(None, description="成交额（元）")
     # 换手率百分比；部分市场不提供。
-    turnover_rate: Optional[float] = Field(None, description="换手率（%）")
+    turnoverRate: Optional[float] = Field(None, description="换手率（%）")
+    # 振幅百分比；部分市场不提供。
+    amplitude: Optional[float] = Field(None, description="振幅（%）")
+    # 市盈率 TTM；实时源仅提供动态市盈率，作为参考值透出。
+    peRatioTTM: Optional[float] = Field(None, description="市盈率（TTM）")
     # 总市值，单位元；缺失时为 None。
-    total_mv: Optional[float] = Field(None, description="总市值（元）")
+    totalMarketCap: Optional[float] = Field(None, description="总市值（元）")
     # 行情快照时间，用于提示数据时效性。
-    update_time: Optional[str] = Field(None, description="更新时间")
-    
+    updateTime: Optional[str] = Field(None, description="更新时间")
+
     # 仅用于 OpenAPI 展示实时行情示例。
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "stock_code": "600519",
-            "stock_name": "贵州茅台",
-            "current_price": 1800.00,
+            "code": "600519",
+            "name": "贵州茅台",
+            "price": 1800.00,
             "change": 15.00,
-            "change_percent": 0.84,
+            "changePct": 0.84,
             "open": 1785.00,
             "high": 1810.00,
             "low": 1780.00,
-            "prev_close": 1785.00,
+            "prevClose": 1785.00,
             "volume": 10000000,
             "amount": 18000000000,
-            "update_time": "2024-01-01T15:00:00"
+            "turnoverRate": 0.42,
+            "amplitude": 1.68,
+            "peRatioTTM": 28.5,
+            "totalMarketCap": 2138400000000,
+            "updateTime": "2024-01-01T15:00:00"
         }
     })
 
@@ -238,3 +249,30 @@ class StockTimelineResponse(BaseModel):
             ]
         }
     })
+
+
+class BatchCodesRequest(BaseModel):
+    """批量行情请求体；重复代码由端点去重，保持首次出现顺序。"""
+
+    codes: List[str] = Field(..., min_length=1, max_length=10, description="股票代码列表（1~10 个）")
+
+
+class BatchQuoteResponse(BaseModel):
+    """批量实时行情响应；拉取失败的股票不出现在 items 中，由前端按代码降级占位。"""
+
+    items: List[StockQuote] = Field(default_factory=list, description="规范 camelCase 实时行情列表")
+
+
+class BatchTimelineItem(BaseModel):
+    """批量分时中的单只股票；points 为下采样后的点，供卡片走势图渲染。"""
+
+    code: str = Field(..., description="股票代码")
+    name: Optional[str] = Field(None, description="股票名称")
+    prevClose: Optional[float] = Field(None, description="昨收价（分时基准线）")
+    points: List[StockTimelinePoint] = Field(default_factory=list, description="下采样分时点")
+
+
+class BatchTimelineResponse(BaseModel):
+    """批量当日分时响应；拉取失败的股票返回空 points。"""
+
+    items: List[BatchTimelineItem] = Field(default_factory=list, description="各股票的下采样分时")

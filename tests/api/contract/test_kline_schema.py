@@ -4,7 +4,7 @@
 - KLinePoint：K 线数据点
 - KLineResponse：K 线数据响应（嵌套 KLinePoint 列表）
 - StockSearchResult / StockSearchResponse：股票搜索结果
-- StockInfoResponse：股票实时信息响应
+- StockInfoResponse：股票实时信息响应（规范 camelCase，与前端 StockQuoteCore 同名）
 
 测试重点：
 1. 必填字段缺失 / 类型错误时应被 Pydantic 拒绝（ValidationError）；
@@ -194,42 +194,53 @@ def test_stock_search_response_rejects_missing_results() -> None:
 
 def _valid_stock_info() -> dict[str, Any]:
     return {
-        "stock_code": "600519",
-        "stock_name": "贵州茅台",
-        "current_price": 1700.5,
+        "code": "600519",
+        "name": "贵州茅台",
+        "price": 1700.5,
     }
 
 
-def test_stock_info_response_requires_current_price() -> None:
+def test_stock_info_response_requires_price() -> None:
     info = StockInfoResponse.model_validate(_valid_stock_info())
-    assert info.stock_code == "600519"
-    assert info.current_price == 1700.5
+    assert info.code == "600519"
+    assert info.price == 1700.5
     # 其余均为可选
     assert info.change is None
-    assert info.change_percent is None
-    assert info.pe_ratio_ttm is None
-    assert info.update_time is None
+    assert info.changePct is None
+    assert info.peRatioTTM is None
+    assert info.updateTime is None
 
 
-def test_stock_info_response_rejects_missing_current_price() -> None:
+def test_stock_info_response_rejects_missing_price() -> None:
     payload = _valid_stock_info()
-    del payload["current_price"]
+    del payload["price"]
     with pytest.raises(ValidationError):
         StockInfoResponse.model_validate(payload)
 
 
-def test_stock_info_response_rejects_missing_stock_code() -> None:
+def test_stock_info_response_rejects_missing_code() -> None:
     payload = _valid_stock_info()
-    del payload["stock_code"]
+    del payload["code"]
+    with pytest.raises(ValidationError):
+        StockInfoResponse.model_validate(payload)
+
+
+def test_stock_info_response_rejects_legacy_snake_case_names() -> None:
+    """旧 snake_case 字段不再被接受：本次是全量收敛、无兼容层。"""
+    payload = {
+        "stock_code": "600519",
+        "stock_name": "贵州茅台",
+        "current_price": 1700.5,
+    }
     with pytest.raises(ValidationError):
         StockInfoResponse.model_validate(payload)
 
 
 @pytest.mark.parametrize(
     "field",
-    ["current_price", "change", "change_percent", "open", "prev_close",
-     "high", "low", "volume", "amount", "turnover_rate", "amplitude",
-     "pe_ratio_ttm", "total_market_cap"],
+    ["price", "change", "changePct", "open", "prevClose",
+     "high", "low", "volume", "amount", "turnoverRate", "amplitude",
+     "peRatioTTM", "totalMarketCap"],
 )
 def test_stock_info_response_rejects_non_numeric_metric(field: str) -> None:
     payload = _valid_stock_info()
@@ -240,27 +251,29 @@ def test_stock_info_response_rejects_non_numeric_metric(field: str) -> None:
 
 def test_stock_info_response_accepts_full_payload() -> None:
     payload = {
-        "stock_code": "600519",
-        "stock_name": "贵州茅台",
-        "current_price": 1700.5,
+        "code": "600519",
+        "name": "贵州茅台",
+        "price": 1700.5,
         "change": 12.3,
-        "change_percent": 0.73,
+        "changePct": 0.73,
         "open": 1690.0,
-        "prev_close": 1688.2,
+        "prevClose": 1688.2,
         "high": 1715.0,
         "low": 1685.0,
         "volume": 2345678.0,
         "amount": 3987654321.0,
-        "turnover_rate": 0.19,
+        "turnoverRate": 0.19,
         "amplitude": 1.77,
-        "pe_ratio_ttm": 28.5,
-        "total_market_cap": 2138400000000.0,
-        "update_time": "2024-01-02 15:00:00",
+        "peRatioTTM": 28.5,
+        "totalMarketCap": 2138400000000.0,
+        "updateTime": "2024-01-02 15:00:00",
+        "source": "eastmoney",
     }
     info = StockInfoResponse.model_validate(payload)
-    assert info.pe_ratio_ttm == 28.5
-    assert info.total_market_cap == 2138400000000.0
-    assert info.update_time == "2024-01-02 15:00:00"
+    assert info.peRatioTTM == 28.5
+    assert info.totalMarketCap == 2138400000000.0
+    assert info.updateTime == "2024-01-02 15:00:00"
+    assert info.source == "eastmoney"
 
 
 def test_stock_info_response_round_trip_dump_validate() -> None:

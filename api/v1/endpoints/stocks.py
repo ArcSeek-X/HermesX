@@ -14,11 +14,14 @@
 3. GET /api/v1/stocks/{code}/quote 实时行情接口
 4. GET /api/v1/stocks/{code}/history 历史行情接口
 5. GET /api/v1/stocks/{code}/timeline 分时（当日）明细接口
+6. POST /api/v1/stocks/batch-quote 批量实时行情（最近搜索卡片）
+7. POST /api/v1/stocks/batch-timeline 批量当日分时（下采样缩略图）
 """
 
 import logging
 import time
-from typing import Optional, Dict, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional, Dict, Any
 import re
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, Depends
@@ -26,6 +29,10 @@ from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, 
 from api.deps import get_system_config_service
 
 from api.v1.schemas.stocks import (
+    BatchCodesRequest,
+    BatchQuoteResponse,
+    BatchTimelineItem,
+    BatchTimelineResponse,
     ExtractFromImageResponse,
     ExtractItem,
     KLineData,
@@ -587,22 +594,7 @@ def get_stock_quote(stock_code: str) -> StockQuote:
                 }
             )
         
-        return StockQuote(
-            stock_code=result.get("stock_code", stock_code),
-            stock_name=result.get("stock_name"),
-            current_price=result.get("current_price", 0.0),
-            change=result.get("change"),
-            change_percent=result.get("change_percent"),
-            open=result.get("open"),
-            high=result.get("high"),
-            low=result.get("low"),
-            prev_close=result.get("prev_close"),
-            volume=result.get("volume"),
-            amount=result.get("amount"),
-            turnover_rate=result.get("turnover_rate"),
-            total_mv=result.get("total_mv"),
-            update_time=result.get("update_time")
-        )
+        return StockQuote(**result)
         
     except HTTPException:
         raise
@@ -732,41 +724,124 @@ def get_stock_timeline(stock_code: str) -> StockTimelineResponse:
     Side Effects:
         写入进程内分时缓存，TTL 由 _TIMELINE_CACHE_TTL 控制，用于降低上游 trends2 限流风险。
     """
+    return _load_timeline(stock_code)
+
+
+# 卡片分时缩略图保留的点数：全天约 240 点，等距采样后足够表现走势且显著减小 payload。
+TIMELINE_THUMBNAIL_POINTS = 48
+# 分时批量拉取的并发上限；上游 trends2 全局节流较严，与前端自选股列表保持同一口径。
+TIMELINE_BATCH_CONCURRENCY = 3
+
+
+def _load_timeline(stock_code: str) -> StockTimelineResponse:
+    """读取单只股票当日分时，命中进程内缓存时直接复用缓存对象。
+
+    Args:
+        stock_code: 股票代码。
+
+    Returns:
+        StockTimelineResponse: 昨收价与完整分时点。
+
+    Raises:
+        HTTPException: 上游取数失败时返回 500。
+
+    Side Effects:
+        未命中时拉取上游并写入 ``_timeline_cache``。
+    """
     cached = _timeline_cache.get(stock_code)
     if _timeline_cache_valid(cached, ttl=_TIMELINE_CACHE_TTL):
         return cached["data"]  # type: ignore[return-value]
 
-    # 使用 def 而非 async def：FastAPI 会自动把同步端点放进线程池执行，
-    # 避免阻塞 IO 的上游抓取占用事件循环。
     try:
         result = fetch_intraday_timeline(stock_code)
-    except Exception as e:
-        logger.error(f"获取分时数据失败: {e}", exc_info=True)
+    except Exception as exc:
+        logger.error("获取分时数据失败: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": "internal_error",
-                "message": f"获取分时数据失败: {str(e)}"
-            }
-        )
+            detail={"error": "internal_error", "message": f"获取分时数据失败: {exc}"},
+        ) from exc
 
     response = StockTimelineResponse(
         stock_code=stock_code,
         stock_name=result.get("name") or None,
         prev_close=result.get("prev_close"),
-        points=[
-            StockTimelinePoint(
-                date=point.get("date", ""),
-                open=point.get("open"),
-                close=point.get("close"),
-                high=point.get("high"),
-                low=point.get("low"),
-                volume=point.get("volume"),
-                amount=point.get("amount"),
-            )
-            for point in result.get("points", [])
-        ]
+        points=[StockTimelinePoint(**point) for point in result.get("points", [])],
     )
-
     _timeline_cache[stock_code] = {"data": response, "timestamp": time.time()}
     return response
+
+
+def _downsample_points(points: List[StockTimelinePoint]) -> List[StockTimelinePoint]:
+    """等距采样分时点到缩略图点数，始终保留首尾点。"""
+    if len(points) <= TIMELINE_THUMBNAIL_POINTS:
+        return points
+    last_index = len(points) - 1
+    return [
+        points[round(index * last_index / (TIMELINE_THUMBNAIL_POINTS - 1))]
+        for index in range(TIMELINE_THUMBNAIL_POINTS)
+    ]
+
+
+def _unique_codes(codes: List[str]) -> List[str]:
+    """裁剪空白并去重，保持请求中的首次出现顺序。"""
+    return list(dict.fromkeys(code.strip() for code in codes if code.strip()))
+
+
+@router.post(
+    "/batch-quote",
+    response_model=BatchQuoteResponse,
+    responses={500: {"description": "服务器错误", "model": ErrorResponse}},
+    summary="批量获取实时行情",
+    description="一次请求并发取最多 10 只股票的规范 camelCase 实时行情，供最近搜索卡片列表渲染。",
+)
+def get_batch_quotes(payload: BatchCodesRequest) -> BatchQuoteResponse:
+    """并发获取多只股票实时行情；单只失败跳过，不影响其它条目。"""
+    codes = _unique_codes(payload.codes)
+    service = build_stock_service()
+
+    def _fetch_one(code: str) -> Optional[StockQuote]:
+        """取单只行情并转成响应模型；失败或空数据返回 None。"""
+        try:
+            quote = service.get_realtime_quote(code)
+            if not quote:
+                return None
+            # 数据源可能回带交易所后缀的代码；批量响应统一以请求代码标识条目，
+            # 前端才能按代码把行情合并回最近搜索记录。
+            quote["code"] = code
+            return StockQuote(**quote)
+        except Exception as exc:
+            logger.warning("批量行情取数失败: code=%s, %s", code, exc)
+            return None
+
+    with ThreadPoolExecutor(max_workers=min(len(codes), 8) or 1) as executor:
+        quotes = list(executor.map(_fetch_one, codes))
+    return BatchQuoteResponse(items=[quote for quote in quotes if quote is not None])
+
+
+@router.post(
+    "/batch-timeline",
+    response_model=BatchTimelineResponse,
+    responses={500: {"description": "服务器错误", "model": ErrorResponse}},
+    summary="批量获取当日分时（下采样）",
+    description="一次请求取最多 10 只股票的分时缩略图数据，复用分时缓存并等距下采样。",
+)
+def get_batch_timelines(payload: BatchCodesRequest) -> BatchTimelineResponse:
+    """并发获取多只股票的下采样分时；单只失败降级为空 points。"""
+    codes = _unique_codes(payload.codes)
+
+    def _fetch_one(code: str) -> BatchTimelineItem:
+        """取单只分时并下采样；上游失败时保留代码、返回空点列。"""
+        try:
+            timeline = _load_timeline(code)
+        except HTTPException as exc:
+            logger.warning("批量分时取数失败: code=%s, %s", code, exc.detail)
+            return BatchTimelineItem(code=code, points=[])
+        return BatchTimelineItem(
+            code=code,
+            name=timeline.stock_name,
+            prevClose=timeline.prev_close,
+            points=_downsample_points(timeline.points),
+        )
+
+    with ThreadPoolExecutor(max_workers=min(len(codes), TIMELINE_BATCH_CONCURRENCY) or 1) as executor:
+        return BatchTimelineResponse(items=list(executor.map(_fetch_one, codes)))

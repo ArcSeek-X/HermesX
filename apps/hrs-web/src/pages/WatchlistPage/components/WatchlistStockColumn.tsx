@@ -141,7 +141,7 @@ export function buildWatchlistStockColumns(
       minWidth: 120,
       defaultWidth: '13%',
       render: (stock) => (
-        <div className="text-foreground-soft">{formatCompactAmount(stock.quote?.totalMv ?? null)}</div>
+        <div className="text-foreground-soft">{formatCompactAmount(stock.quote?.totalMarketCap ?? null)}</div>
       ),
     },
     {

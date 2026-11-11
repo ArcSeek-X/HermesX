@@ -78,8 +78,8 @@ class QuoteService:
     def get_stock_info(self, *, stock_code: str) -> Dict[str, Any]:
         """取股票基础信息。
 
-        ``update_time`` 在数据源结果里没有对应值，但属于响应契约字段，统一由
+        ``updateTime`` 在数据源结果里没有对应值，但属于响应契约字段，统一由
         用例补 ``None``，避免端点各写一份。
         """
         payload = self._provider.fetch_stock_info(stock_code=stock_code)
-        return {**payload, "update_time": None}
+        return {**payload, "updateTime": None}

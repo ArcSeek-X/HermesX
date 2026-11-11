@@ -4,8 +4,8 @@ import type { StockQuoteCore } from '../types/stock';
 /**
  * K 线（行情）相关 API。
  * 提供股票搜索、K 线数据拉取（支持周期/复权/分页/前向日期游标）、个股基础信息获取，
- * 服务于 K 线图页面。注意前端 KLinePoint 使用驼峰字段，后端为 snake_case，
- * 字段对齐由图表数据层负责。
+ * 服务于 K 线图页面。/info 响应已由后端按规范 camelCase 输出；K 线序列的
+ * snake_case 字段仍由图表数据层按 KLinePoint 契约对齐。
  */
 
 export type KLinePeriod =
@@ -46,50 +46,15 @@ export interface KLineResponse {
 }
 
 /**
- * 实时信息接口响应（蛇形字段，与 StockInfoHeader 实际读取一致）。
+ * 实时信息接口响应：字段名与 `StockQuoteCore` 规范 camelCase 完全一致，
+ * 另含行情快照时间与数据源标识。页面与 UI 层直接消费，无需边界重命名适配。
  */
-export interface StockInfo {
-  stock_code: string;
-  stock_name: string;
-  current_price: number | null;
-  change: number | null;
-  change_percent: number | null;
-  prev_close: number | null;
-  open: number | null;
-  high: number | null;
-  low: number | null;
-  volume: number | null;
-  amount: number | null;
-  turnover_rate: number | null;
-  amplitude: number | null;
-  pe_ratio_ttm: number | null;
-  total_market_cap: number | null;
+export type StockInfo = StockQuoteCore & {
+  /** 行情快照时间；后端当前固定为 null */
+  updateTime?: string | null;
+  /** 实际命中的数据源标识 */
   source?: string | null;
-}
-
-/**
- * 边界适配：将 /info 接口返回的蛇形 StockInfo 归一为 types/stock.ts 的驼峰领域类型
- * StockQuoteCore。页面状态与 UI 层统一消费驼峰领域类型，不直接依赖接口的蛇形字段形态。
- */
-export function toStockSnapshot(info: StockInfo): StockQuoteCore {
-  return {
-    code: info.stock_code,
-    name: info.stock_name,
-    price: info.current_price,
-    change: info.change,
-    changePct: info.change_percent,
-    amount: info.amount,
-    volume: info.volume,
-    turnoverRate: info.turnover_rate,
-    prevClose: info.prev_close,
-    open: info.open,
-    high: info.high,
-    low: info.low,
-    amplitude: info.amplitude,
-    peRatioTTM: info.pe_ratio_ttm,
-    totalMarketCap: info.total_market_cap,
-  };
-}
+};
 
 /** 搜索接口单条结果 */
 export interface StockSearchResult {

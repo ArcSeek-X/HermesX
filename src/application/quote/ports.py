@@ -43,7 +43,7 @@ class QuoteProviderPort(Protocol):
         """
 
     def fetch_stock_info(self, *, stock_code: str) -> Dict[str, Any]:
-        """取股票基础信息，键与 ``StockInfoResponse`` 字段一致（除 ``update_time``）。"""
+        """取股票基础信息，键为规范 camelCase，与 ``StockInfoResponse`` 一致（除 ``updateTime``）。"""
 
 
 class RealtimeQuotePort(Protocol):

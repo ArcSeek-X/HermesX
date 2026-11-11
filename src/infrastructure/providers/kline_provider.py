@@ -21,26 +21,26 @@ from data_provider.code_search.base import search_codes
 from data_provider.kline.base import KLineRequest, get_kline_data
 from data_provider.stock_info.base import get_stock_info
 
-# 与 ``api.v1.schemas.kline.StockInfoResponse`` 对齐；``update_time`` 无数据源对应值，
-# 由用例层补 ``None``。
-_STOCK_INFO_FIELDS = (
-    "stock_code",
-    "stock_name",
-    "current_price",
-    "change",
-    "change_percent",
-    "open",
-    "prev_close",
-    "high",
-    "low",
-    "volume",
-    "amount",
-    "turnover_rate",
-    "amplitude",
-    "pe_ratio_ttm",
-    "total_market_cap",
-    "source",
-)
+# 数据源 dataclass 属性 -> 规范 camelCase 字段名（与前端 StockQuoteCore 同名）。
+# 边界适配层是数据源命名的唯一转换点；``updateTime`` 无数据源对应值，由用例层补 ``None``。
+_STOCK_INFO_FIELD_MAP = {
+    "stock_code": "code",
+    "stock_name": "name",
+    "current_price": "price",
+    "change": "change",
+    "change_percent": "changePct",
+    "open": "open",
+    "prev_close": "prevClose",
+    "high": "high",
+    "low": "low",
+    "volume": "volume",
+    "amount": "amount",
+    "turnover_rate": "turnoverRate",
+    "amplitude": "amplitude",
+    "pe_ratio_ttm": "peRatioTTM",
+    "total_market_cap": "totalMarketCap",
+    "source": "source",
+}
 
 
 class DataProviderQuoteProvider:
@@ -92,4 +92,7 @@ class DataProviderQuoteProvider:
     def fetch_stock_info(self, *, stock_code: str) -> Dict[str, Any]:
         """取股票基础信息；全部 source 失败时由 Manager 抛 ``LookupError``。"""
         result = get_stock_info(stock_code)
-        return {field: getattr(result, field) for field in _STOCK_INFO_FIELDS}
+        return {
+            canonical_name: getattr(result, source_name)
+            for source_name, canonical_name in _STOCK_INFO_FIELD_MAP.items()
+        }

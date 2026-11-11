@@ -24,6 +24,7 @@ from src.application.agent import AgentConversationService
 from src.application.history import HistoryQueryService
 from src.application.market import LimitPoolService, SectorService
 from src.application.quote import QuoteService
+from src.application.recent_search import RecentSearchService
 from src.application.usage import UsageService
 from src.application.watchlist import WatchlistService
 from src.bootstrap.agent import build_agent_conversation_service
@@ -32,6 +33,7 @@ from src.bootstrap.database import get_db, get_database_manager  # noqa: F401（
 from src.bootstrap.history import build_history_query_service
 from src.bootstrap.market import build_limit_pool_service, build_sector_service
 from src.bootstrap.quote import build_quote_service, build_stock_metric_service
+from src.bootstrap.recent_search import build_recent_search_service
 from src.application.quote.stock_metric_service import StockMetricService
 from src.bootstrap.usage import build_usage_service
 from src.bootstrap.watchlist import build_watchlist_service
@@ -126,6 +128,24 @@ def get_watchlist_service() -> WatchlistService:
         每次调用新建用例对象；不产生持久状态。
     """
     return build_watchlist_service()
+
+
+def get_recent_search_service() -> RecentSearchService:
+    """获取按当前数据库单例装配的个股最近搜索用例。
+
+    与自选股用例一致按请求装配、不缓存，避免 ``DatabaseManager.reset_instance()``
+    后仍持有旧管理器。
+
+    Args:
+        无参数。
+
+    Returns:
+        RecentSearchService: 使用当前数据库句柄的用例实例。
+
+    Side Effects:
+        每次调用新建用例对象；不产生持久状态。
+    """
+    return build_recent_search_service()
 
 
 def get_usage_service() -> UsageService:

@@ -1,10 +1,12 @@
 import apiClient from './index';
 import { toCamelCase } from './utils';
 import type { KLinePoint } from './kline';
+import type { StockQuoteCore } from '../types/stock';
 
 /**
  * 股票工具类 API。
- * 提供从截图/文件中识别股票代码、解析导入文本等辅助能力，服务于自选股录入。
+ * 提供实时行情、当日分时、批量行情与分时、截图/文件识别股票代码等能力，
+ * 服务于自选股列表与个股 K 线页的最近搜索卡片。
  */
 
 /** 单只股票当日分时明细（KLinePoint 形态，date 为 'YYYY-MM-DD HH:mm:ss'） */
@@ -16,6 +18,13 @@ export interface StockTimeline {
   points: KLinePoint[];
 }
 
+/** 批量分时中的单只股票；points 已由后端等距下采样 */
+export interface BatchTimelineItem {
+  code: string;
+  name: string | null;
+  prevClose: number | null;
+  points: KLinePoint[];
+}
 
 /** 单条被识别出的股票项（含识别置信度） */
 export type ExtractItem = {
@@ -36,6 +45,18 @@ export type ExtractFromImageResponse = {
   /** 图像 OCR 原始文本（调试用） */
   rawText?: string;
 };
+
+/**
+ * 单只股票实时行情，字段名与 `StockQuoteCore` 规范完全一致。
+ * 后端已按规范 camelCase 输出，前端不再做二次命名适配。
+ */
+export type StockQuote = StockQuoteCore & {
+  /** 行情快照时间（ISO 8601），数据源未提供时为 null */
+  updateTime?: string | null;
+};
+
+/** 批量行情/分时的请求体代码上限，与后端契约保持一致 */
+const BATCH_MAX_CODES = 10;
 
 export const stocksApi = {
   /**
@@ -88,14 +109,14 @@ export const stocksApi = {
 
   /**
    * 获取单只股票实时行情（自选股列表展示用）。
-   * 后端返回 StockQuote，含现价/涨跌额/涨跌幅/成交额/换手率/总市值等。
+   * 失败 / 上游取空时返回 null，由调用方降级为占位渲染。
    */
   async getQuote(stockCode: string): Promise<StockQuote | null> {
     try {
-      const { data } = await apiClient.get<Record<string, unknown>>(
+      const { data } = await apiClient.get<StockQuote>(
         `/api/v1/stocks/${encodeURIComponent(stockCode)}/quote`,
       );
-      return toCamelCase<StockQuote>(data);
+      return data;
     } catch {
       return null;
     }
@@ -116,22 +137,40 @@ export const stocksApi = {
       return null;
     }
   },
-};
 
-/** 实时行情（与后端 StockQuote 对齐） */
-export interface StockQuote {
-  stockCode: string;
-  stockName?: string | null;
-  currentPrice: number;
-  change?: number | null;
-  changePercent?: number | null;
-  open?: number | null;
-  high?: number | null;
-  low?: number | null;
-  prevClose?: number | null;
-  volume?: number | null;
-  amount?: number | null;
-  turnoverRate?: number | null;
-  totalMv?: number | null;
-  updateTime?: string | null;
-}
+  /**
+   * 批量获取实时行情（最近搜索卡片列表用）。
+   * 一次请求替代逐卡请求；单只拉取失败的股票由后端跳过，调用方按代码降级占位。
+   */
+  async batchQuote(codes: string[]): Promise<StockQuote[]> {
+    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, BATCH_MAX_CODES);
+    if (uniqueCodes.length === 0) return [];
+    try {
+      const { data } = await apiClient.post<{ items?: StockQuote[] }>(
+        '/api/v1/stocks/batch-quote',
+        { codes: uniqueCodes },
+      );
+      return data.items ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * 批量获取当日分时（最近搜索卡片走势图用）。
+   * 后端复用分时缓存并下采样到缩略图点数；失败返回空数组。
+   */
+  async batchTimeline(codes: string[]): Promise<BatchTimelineItem[]> {
+    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, BATCH_MAX_CODES);
+    if (uniqueCodes.length === 0) return [];
+    try {
+      const { data } = await apiClient.post<{ items?: BatchTimelineItem[] }>(
+        '/api/v1/stocks/batch-timeline',
+        { codes: uniqueCodes },
+      );
+      return data.items ?? [];
+    } catch {
+      return [];
+    }
+  },
+};

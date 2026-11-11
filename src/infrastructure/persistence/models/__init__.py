@@ -17,6 +17,7 @@ from src.infrastructure.persistence.models import (  # noqa: F401
     intelligence,
     market_data,
     portfolio,
+    recent_search,
     schema,
     stock_metric,
     watchlist,

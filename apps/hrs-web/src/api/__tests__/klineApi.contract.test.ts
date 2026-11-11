@@ -7,8 +7,8 @@
  *    - K线： GET /api/v1/kline/{code}/kline?period&fqt&limit&page&before_date
  *    - 信息：GET /api/v1/kline/{code}/info
  * 2. 验证后端返回的数据结构（契约）能被前端正确解析
- *    - KLineResponse.data 为 KLinePoint[]（驼峰字段）
- *    - StockInfo 为蛇形字段
+ *    - KLineResponse.data 为 KLinePoint[]
+ *    - StockInfo 为规范 camelCase 字段（与 StockQuoteCore 一致）
  *    - searchStocks 返回 StockSearchResult[]
  *
  * 通过 mock apiClient.get 捕获真实发出的请求参数，断言前端调用契约正确。
@@ -61,21 +61,21 @@ function makeKLineResponse(): KLineResponse {
 
 function makeStockInfo(): StockInfo {
   return {
-    stock_code: '603019',
-    stock_name: '中科曙光',
-    current_price: 51.2,
+    code: '603019',
+    name: '中科曙光',
+    price: 51.2,
     change: 1.2,
-    change_percent: 2.4,
-    prev_close: 50.0,
+    changePct: 2.4,
+    prevClose: 50.0,
     open: 50.1,
     high: 51.8,
     low: 49.9,
     volume: 123456,
     amount: 6300000,
-    turnover_rate: 1.2,
+    turnoverRate: 1.2,
     amplitude: 3.8,
-    pe_ratio_ttm: 35.6,
-    total_market_cap: 75000000000,
+    peRatioTTM: 35.6,
+    totalMarketCap: 75000000000,
   };
 }
 
@@ -203,14 +203,15 @@ describe('返回数据结构契约（前端可正确解析）', () => {
     expect(resp.prev_close).toBe(50.0);
   });
 
-  it('fetchStockInfo 返回的 StockInfo 为蛇形字段（与 StockInfoHeader 读取一致）', async () => {
+  it('fetchStockInfo 返回规范 camelCase 字段（与 StockInfoHeader 读取一致）', async () => {
     const info: StockInfo = await klineApi.fetchStockInfo('603019');
-    expect(info.stock_name).toBe('中科曙光');
-    expect(info.current_price).toBe(51.2);
-    expect(info.change_percent).toBe(2.4);
-    expect(info.prev_close).toBe(50.0);
-    expect(info.pe_ratio_ttm).toBe(35.6);
-    expect(info.total_market_cap).toBe(75000000000);
+    expect(info.code).toBe('603019');
+    expect(info.name).toBe('中科曙光');
+    expect(info.price).toBe(51.2);
+    expect(info.changePct).toBe(2.4);
+    expect(info.prevClose).toBe(50.0);
+    expect(info.peRatioTTM).toBe(35.6);
+    expect(info.totalMarketCap).toBe(75000000000);
   });
 });
 

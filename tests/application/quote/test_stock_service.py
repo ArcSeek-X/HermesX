@@ -2,7 +2,7 @@
 """StockService 端口化 + get_history_data 修复的回归测试。
 
 覆盖：
-- 实时行情：端口返回源字段字典 → API 响应整形；``None`` → ``None``；
+- 实时行情：端口返回源字段字典 → 规范 camelCase 行情字典（与 ``StockQuoteCore`` 同名）；``None`` → ``None``；
 - 历史 K 线：复用 :class:`QuoteService.get_kline`（同一 ``QuoteProviderPort`` 链路），
   成交量按「手」整形、字段裁剪为 ``KLineData`` 契约键、``stock_name`` 取自取数结果；
 - ``period`` 非 daily 抛 ``ValueError``；取数异常降级为空数据（保持既有「不 500」契约）；
@@ -111,27 +111,33 @@ def test_get_history_data_falls_back_to_empty_on_provider_error():
     assert result == {"stock_code": "600519", "period": "daily", "data": []}
 
 
-def test_get_realtime_quote_maps_source_fields():
+def test_get_realtime_quote_maps_source_fields_to_canonical_names():
     quote = {
         "code": "600519", "name": "贵州茅台", "price": 1680.0, "change_amount": 12.0,
         "change_pct": 0.72, "open_price": 1670.0, "high": 1690.0, "low": 1665.0,
         "pre_close": 1668.0, "volume": 3_000_000, "amount": 5.0e9,
-        "turnover_rate": 0.24, "total_mv": 2.1e12,
+        "turnover_rate": 0.24, "amplitude": 1.5, "pe_ratio": 28.5, "total_mv": 2.1e12,
     }
     service = _make_service(_FakeQuoteProvider(rows=[]), realtime_quote=quote)
 
     result = service.get_realtime_quote("600519")
 
     assert result is not None
-    assert result["stock_code"] == "600519"
-    assert result["stock_name"] == "贵州茅台"
-    assert result["current_price"] == 1680.0
+    assert result["code"] == "600519"
+    assert result["name"] == "贵州茅台"
+    assert result["price"] == 1680.0
     assert result["change"] == 12.0
-    assert result["change_percent"] == 0.72
+    assert result["changePct"] == 0.72
     assert result["open"] == 1670.0
-    assert result["prev_close"] == 1668.0
-    assert result["total_mv"] == 2.1e12
-    assert result["update_time"]
+    assert result["prevClose"] == 1668.0
+    assert result["turnoverRate"] == 0.24
+    assert result["amplitude"] == 1.5
+    assert result["peRatioTTM"] == 28.5
+    assert result["totalMarketCap"] == 2.1e12
+    assert result["updateTime"]
+    # 源字段名不再透出：命名收敛只在服务层发生一次
+    assert "stock_code" not in result
+    assert "total_mv" not in result
 
 
 def test_get_realtime_quote_returns_none_when_port_has_no_data():
@@ -153,6 +159,8 @@ def test_realtime_provider_converges_dataclass_to_dict(monkeypatch):
         volume = 1_000_000
         amount = 1.1e7
         turnover_rate = 0.5
+        amplitude = 1.8
+        pe_ratio = 12.5
         total_mv = 2.1e11
         # 端口字段之外的属性应被忽略
         volume_ratio = 1.3
@@ -162,6 +170,8 @@ def test_realtime_provider_converges_dataclass_to_dict(monkeypatch):
 
     assert result["code"] == "000001"
     assert result["price"] == 11.0
+    assert result["amplitude"] == 1.8
+    assert result["pe_ratio"] == 12.5
     assert result["total_mv"] == 2.1e11
     assert "volume_ratio" not in result
 

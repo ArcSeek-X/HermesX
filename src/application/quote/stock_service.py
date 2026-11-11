@@ -59,34 +59,25 @@ class StockService:
                 logger.warning(f"获取 {stock_code} 实时行情失败")
                 return None
 
-            # 端口返回 UnifiedRealtimeQuote 的字段字典（源字段名），
-            # 字段映射: 源字段 -> API 响应
-            # - code -> stock_code
-            # - name -> stock_name
-            # - price -> current_price
-            # - change_amount -> change
-            # - change_pct -> change_percent
-            # - open_price -> open
-            # - high -> high
-            # - low -> low
-            # - pre_close -> prev_close
-            # - volume -> volume
-            # - amount -> amount
+            # 数据源字段名在此唯一一次收敛为规范 camelCase（与前端 StockQuoteCore 同名），
+            # 端点与前端都不再做二次命名适配。
             return {
-                "stock_code": quote.get("code", stock_code),
-                "stock_name": quote.get("name", None),
-                "current_price": quote.get("price", 0.0) or 0.0,
+                "code": quote.get("code") or stock_code,
+                "name": quote.get("name", None),
+                "price": quote.get("price", 0.0) or 0.0,
                 "change": quote.get("change_amount", None),
-                "change_percent": quote.get("change_pct", None),
+                "changePct": quote.get("change_pct", None),
                 "open": quote.get("open_price", None),
                 "high": quote.get("high", None),
                 "low": quote.get("low", None),
-                "prev_close": quote.get("pre_close", None),
+                "prevClose": quote.get("pre_close", None),
                 "volume": quote.get("volume", None),
                 "amount": quote.get("amount", None),
-                "turnover_rate": quote.get("turnover_rate", None),
-                "total_mv": quote.get("total_mv", None),
-                "update_time": datetime.now().isoformat(),
+                "turnoverRate": quote.get("turnover_rate", None),
+                "amplitude": quote.get("amplitude", None),
+                "peRatioTTM": quote.get("pe_ratio", None),
+                "totalMarketCap": quote.get("total_mv", None),
+                "updateTime": datetime.now().isoformat(),
             }
 
         except ImportError:
@@ -174,16 +165,20 @@ class StockService:
             占位行情数据
         """
         return {
-            "stock_code": stock_code,
-            "stock_name": f"股票{stock_code}",
-            "current_price": 0.0,
+            "code": stock_code,
+            "name": f"股票{stock_code}",
+            "price": 0.0,
             "change": None,
-            "change_percent": None,
+            "changePct": None,
             "open": None,
             "high": None,
             "low": None,
-            "prev_close": None,
+            "prevClose": None,
             "volume": None,
             "amount": None,
-            "update_time": datetime.now().isoformat(),
+            "turnoverRate": None,
+            "amplitude": None,
+            "peRatioTTM": None,
+            "totalMarketCap": None,
+            "updateTime": datetime.now().isoformat(),
         }

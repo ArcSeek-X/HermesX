@@ -13,7 +13,6 @@ import ast
 import inspect
 import tempfile
 import unittest
-from dataclasses import fields
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from unittest.mock import patch
@@ -238,12 +237,13 @@ class QuoteServiceContractTestCase(unittest.TestCase):
         self.assertIn("第 0 行", str(ctx.exception))
 
     def test_get_stock_info_adds_update_time_none(self) -> None:
-        provider = FakeQuoteProvider(info={"stock_code": "600519", "current_price": 1690.0})
+        provider = FakeQuoteProvider(info={"code": "600519", "price": 1690.0})
         service = QuoteService(provider=provider)
 
         payload = service.get_stock_info(stock_code="600519")
 
-        self.assertIsNone(payload["update_time"])
+        self.assertEqual(payload["code"], "600519")
+        self.assertIsNone(payload["updateTime"])
         self.assertEqual(provider.calls, [("fetch_stock_info", "600519")])
 
     def test_application_layer_imports_no_outer_packages(self) -> None:
@@ -349,15 +349,18 @@ class KlineEndpointHttpContractTestCase(unittest.TestCase):
 
     def test_info_returns_contract_fields_and_maps_errors(self) -> None:
         info = {
-            "stock_code": "600519",
-            "stock_name": "贵州茅台",
-            "current_price": 1690.0,
+            "code": "600519",
+            "name": "贵州茅台",
+            "price": 1690.0,
             "source": "local",
         }
         ok_client = self._client_with(QuoteService(provider=FakeQuoteProvider(info=info)))
         ok = ok_client.get("/api/v1/kline/600519/info")
         self.assertEqual(ok.status_code, 200)
-        self.assertIsNone(ok.json()["update_time"])
+        self.assertEqual(ok.json()["code"], "600519")
+        self.assertEqual(ok.json()["price"], 1690.0)
+        self.assertIsNone(ok.json()["peRatioTTM"])
+        self.assertIsNone(ok.json()["updateTime"])
 
         kline_endpoint._info_cache.clear()
         fail_client = self._client_with(QuoteService(provider=FakeQuoteProvider(error=LookupError("none"))))
@@ -435,12 +438,16 @@ class DataProviderQuoteAdapterTestCase(unittest.TestCase):
         self.assertEqual(payload["data"][0]["prev_close"], 1650.0)
         self.assertEqual(payload["source"], "eastmoney")
 
-    def test_fetch_stock_info_field_set_matches_result_dataclass(self) -> None:
+    def test_fetch_stock_info_maps_source_fields_to_canonical_names(self) -> None:
         with patch.object(kline_provider, "get_stock_info", return_value=_stock_info_result()):
             payload = kline_provider.DataProviderQuoteProvider().fetch_stock_info(stock_code="600519")
 
-        expected = {f.name for f in fields(StockInfoResult)} - {"metadata"}
-        self.assertEqual(set(payload), expected)
+        self.assertEqual(set(payload), set(kline_provider._STOCK_INFO_FIELD_MAP.values()))
+        self.assertEqual(payload["code"], "600519")
+        self.assertEqual(payload["price"], 1690.0)
+        self.assertEqual(payload["peRatioTTM"], 30.0)
+        self.assertEqual(payload["totalMarketCap"], 2.1e12)
+        self.assertNotIn("stock_code", payload)
 
     def test_adapter_does_not_swallow_errors(self) -> None:
         provider = kline_provider.DataProviderQuoteProvider()

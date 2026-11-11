@@ -37,14 +37,13 @@ export interface WatchlistItem {
 
 /**
  * 实时行情（前端合并到条目上展示）。
- * 通用行情字段统一 Pick 自 types/stock.ts 的 StockQuoteCore（单一真源，命名对齐 price/changePct）；
- * totalMv 为自选股特有字段，就地追加。后端 StockQuote 的 currentPrice/changePercent 由
- * useWatchlistManager 的 quoteFromStockQuote 适配为 price/changePct（见 stock_type.md §7.2）。
+ * 字段统一 Pick 自 types/stock.ts 的 StockQuoteCore 单一真源；后端 /stocks/{code}/quote
+ * 已按规范 camelCase 输出，列表侧只需挑选字段，不再做命名适配。
  */
-export type WatchlistQuote = Pick<StockQuoteCore, 'price' | 'changePct' | 'amount' | 'turnoverRate' | 'prevClose'> & {
-  /** 总市值（元） */
-  totalMv: number | null;
-};
+export type WatchlistQuote = Pick<
+  StockQuoteCore,
+  'price' | 'changePct' | 'amount' | 'turnoverRate' | 'prevClose' | 'totalMarketCap'
+>;
 
 /** 当日分时明细（KLinePoint 形态），供自选股列表分时缩略图列渲染 */
 export interface WatchlistIntraday {

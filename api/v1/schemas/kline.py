@@ -103,27 +103,29 @@ class StockSearchResponse(BaseModel):
 
 
 class StockInfoResponse(BaseModel):
-    """单只股票的实时行情快照。
+    """单只股票的实时行情快照（规范 camelCase 字段）。
 
-    使用场景：个股详情页展示价格、估值与换手等指标；估值类字段在部分市场可能缺失，故统一允许 None。
+    使用场景：个股详情页展示价格、估值与换手等指标；字段名与前端
+    ``types/stock.ts`` 的 ``StockQuoteCore`` 完全一致，前后端不再做二次命名适配。
+    估值类字段在部分市场可能缺失，故统一允许 None。
 
     @author: Lensgcx (GaoCangxiong)
     """
 
     # 请求的规范股票代码。
-    stock_code: str = Field(..., description="股票代码")
+    code: str = Field(..., description="股票代码")
     # 股票名称；未取到时为 None。
-    stock_name: Optional[str] = Field(None, description="股票名称")
+    name: Optional[str] = Field(None, description="股票名称")
     # 最新成交价，必填；停牌等场景可能沿用上一交易日收盘价。
-    current_price: float = Field(..., description="当前价格")
+    price: float = Field(..., description="当前价格")
     # 相对昨收的涨跌额；缺失时为 None。
     change: Optional[float] = Field(None, description="涨跌额")
     # 相对昨收的涨跌幅百分比；缺失时为 None。
-    change_percent: Optional[float] = Field(None, description="涨跌幅 (%)")
+    changePct: Optional[float] = Field(None, description="涨跌幅 (%)")
     # 今开价；集合竞价前或数据源缺失时为 None。
     open: Optional[float] = Field(None, description="今开")
     # 昨收价，是涨跌额与涨跌幅的计算基准。
-    prev_close: Optional[float] = Field(None, description="昨收")
+    prevClose: Optional[float] = Field(None, description="昨收")
     # 当日最高价；缺失时为 None。
     high: Optional[float] = Field(None, description="最高")
     # 当日最低价；缺失时为 None。
@@ -133,14 +135,14 @@ class StockInfoResponse(BaseModel):
     # 当日累计成交额，单位元；缺失时为 None。
     amount: Optional[float] = Field(None, description="成交额（元）")
     # 换手率百分比；部分市场或数据源不提供。
-    turnover_rate: Optional[float] = Field(None, description="换手率 (%)")
+    turnoverRate: Optional[float] = Field(None, description="换手率 (%)")
     # 振幅百分比，反映当日波动幅度；缺失时为 None。
     amplitude: Optional[float] = Field(None, description="振幅 (%)")
     # 滚动市盈率；亏损或无估值数据时为 None。
-    pe_ratio_ttm: Optional[float] = Field(None, description="市盈率（TTM）")
+    peRatioTTM: Optional[float] = Field(None, description="市盈率（TTM）")
     # 总市值，单位元；缺失时为 None。
-    total_market_cap: Optional[float] = Field(None, description="总市值（元）")
+    totalMarketCap: Optional[float] = Field(None, description="总市值（元）")
     # 行情快照时间；用于提示数据时效性，非服务器本地时间。
-    update_time: Optional[str] = Field(None, description="更新时间")
+    updateTime: Optional[str] = Field(None, description="更新时间")
     # 实际命中的数据源标识，多源降级时用于解释口径差异。
     source: Optional[str] = Field(None, description="实际命中的数据源标识")

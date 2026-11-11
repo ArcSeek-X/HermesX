@@ -31,6 +31,7 @@ from api.v1.endpoints import (
     kline,
     limit_pool,
     portfolio,
+    recent_search,
     scanner,
     sector,
     stocks,
@@ -189,4 +190,11 @@ router.include_router(
     watchlist.router,
     prefix="/watchlist",
     tags=["Watchlist"]
+)
+
+# /recent-search：个股最近搜索的列表、记录与一键清空。
+router.include_router(
+    recent_search.router,
+    prefix="/recent-search",
+    tags=["RecentSearch"]
 )

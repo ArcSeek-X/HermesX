@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional
 
 from data_provider.realtime.base import get_realtime_quote
 
-# UnifiedRealtimeQuote 中被实时行情端点消费的字段（源字段名）。
+# UnifiedRealtimeQuote 中被实时行情端点消费的字段（源字段名，命名收敛在用例层）。
 _REALTIME_FIELDS = (
     "code",
     "name",
@@ -31,6 +31,8 @@ _REALTIME_FIELDS = (
     "volume",
     "amount",
     "turnover_rate",
+    "amplitude",
+    "pe_ratio",
     "total_mv",
 )
 

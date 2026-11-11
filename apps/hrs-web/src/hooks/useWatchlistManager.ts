@@ -49,24 +49,23 @@ const EMPTY_QUOTE: WatchlistQuote = {
   changePct: null, // 涨跌幅（%）
   amount: null, // 成交额（元）
   turnoverRate: null, // 换手率（%）
-  totalMv: null, // 总市值（元）
+  totalMarketCap: null, // 总市值（元）
   prevClose: null, // 昨收价（分时缩略图基准）
 };
 
 /**
- * 把后端 stocksApi.getQuote 返回的行情对象，统一转换成列表使用的 WatchlistQuote。
- * 用 ?? 兜底，保证任何字段缺失都回到 null（而非 undefined），便于 UI 判断显示「—」。
- * @param q 后端实时行情对象，可能为 null（拉取失败）
+ * 从规范行情对象中挑选列表展示字段；用 ?? 兜底保证缺失值回到 null，便于 UI 显示「—」。
+ * @param quote 与 StockQuoteCore 同名的实时行情对象，可能为 null（拉取失败）
  */
-function quoteFromStockQuote(q: Awaited<ReturnType<typeof stocksApi.getQuote>> | null): WatchlistQuote {
-  if (!q) return { ...EMPTY_QUOTE };
+function selectWatchlistQuote(quote: Awaited<ReturnType<typeof stocksApi.getQuote>> | null): WatchlistQuote {
+  if (!quote) return { ...EMPTY_QUOTE };
   return {
-    price: q.currentPrice ?? null,
-    changePct: q.changePercent ?? null,
-    amount: q.amount ?? null,
-    turnoverRate: q.turnoverRate ?? null,
-    totalMv: q.totalMv ?? null,
-    prevClose: q.prevClose ?? null,
+    price: quote.price ?? null,
+    changePct: quote.changePct ?? null,
+    amount: quote.amount ?? null,
+    turnoverRate: quote.turnoverRate ?? null,
+    totalMarketCap: quote.totalMarketCap ?? null,
+    prevClose: quote.prevClose ?? null,
   };
 }
 
@@ -250,7 +249,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
           const merged = withQuote.map((it, i) => {
             const q = quotes[i];
             if (!q) return it;
-            return { ...it, quote: quoteFromStockQuote(q) };
+            return { ...it, quote: selectWatchlistQuote(q) };
           });
           setItems(merged);
         } finally {
@@ -352,7 +351,7 @@ export function useWatchlistManager(): UseWatchlistManagerResult {
         ]);
         const intraday = intradayFromTimeline(timeline);
         setItems((prev) => [
-          { ...item, quote: quoteFromStockQuote(quote), intraday: intraday ?? undefined },
+          { ...item, quote: selectWatchlistQuote(quote), intraday: intraday ?? undefined },
           ...prev,
         ]);
       }

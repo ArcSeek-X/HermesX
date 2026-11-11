@@ -95,7 +95,10 @@ def test_schema_examples_remain_in_openapi_schema() -> None:
         "postmarket",
     ]
     assert history_schema["example"]["stock_code"] == "600519"
-    assert quote_schema["example"]["stock_name"] == "贵州茅台"
+    # StockQuote 已收敛到规范 camelCase：示例与属性都不得再出现 snake_case 旧名
+    assert quote_schema["example"]["name"] == "贵州茅台"
+    assert quote_schema["example"]["totalMarketCap"] == 2138400000000
+    assert "stock_name" not in quote_schema["properties"]
 
 
 def test_analyze_request_supports_legacy_strategies_dict_input() -> None:
