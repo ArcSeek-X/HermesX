@@ -93,7 +93,7 @@ class KLineData(BaseModel):
 
     @author: Lensgcx (GaoCangxiong)
     """
-    
+
     # 交易日日期，前端按此升序排列。
     date: str = Field(..., description="日期")
     # 当日开盘价，必填。
@@ -110,7 +110,7 @@ class KLineData(BaseModel):
     amount: Optional[float] = Field(None, description="成交额")
     # 相对前一交易日收盘价的涨跌幅百分比；首日或缺失时为 None。
     change_percent: Optional[float] = Field(None, description="涨跌幅 (%)")
-    
+
     # 仅用于 OpenAPI 展示日线数据示例。
     model_config = ConfigDict(json_schema_extra={
         "example": {
@@ -164,7 +164,7 @@ class StockHistoryResponse(BaseModel):
 
     @author: Lensgcx (GaoCangxiong)
     """
-    
+
     # 请求的规范股票代码。
     stock_code: str = Field(..., description="股票代码")
     # 股票名称；未取到时为 None。
@@ -173,7 +173,7 @@ class StockHistoryResponse(BaseModel):
     period: str = Field(..., description="K 线周期")
     # 历史数据点列表；无数据时为空列表，区别于请求失败。
     data: List[KLineData] = Field(default_factory=list, description="K 线数据列表")
-    
+
     # 仅用于 OpenAPI 展示历史行情示例。
     model_config = ConfigDict(json_schema_extra={
         "example": {
@@ -252,9 +252,14 @@ class StockTimelineResponse(BaseModel):
 
 
 class BatchCodesRequest(BaseModel):
-    """批量行情请求体；重复代码由端点去重，保持首次出现顺序。"""
+    """批量行情请求体；重复代码由端点去重，保持首次出现顺序。
 
-    codes: List[str] = Field(..., min_length=1, max_length=10, description="股票代码列表（1~10 个）")
+    limiteSize 控制本批最多返回条数（前端默认 12）；codes 只做安全上限校验，
+    实际取数由端点按 limiteSize 截断，避免前端多传时打爆上游行情源。
+    """
+
+    codes: List[str] = Field(..., min_length=1, max_length=50, description="股票代码列表（最多 50 个）")
+    limiteSize: int = Field(default=12, ge=1, le=50, description="本批最多返回的股票条数（前端默认 12）")
 
 
 class BatchQuoteResponse(BaseModel):

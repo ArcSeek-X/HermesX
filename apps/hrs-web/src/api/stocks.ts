@@ -55,8 +55,16 @@ export type StockQuote = StockQuoteCore & {
   updateTime?: string | null;
 };
 
-/** 批量行情/分时的请求体代码上限，与后端契约保持一致 */
-const BATCH_MAX_CODES = 10;
+/** 批量行情/分时默认返回条数；调用方可通过 limiteSize 覆盖。同时为前端最近搜索卡片渲染 / 本地列表上限的唯一来源，保证「前端渲染卡片数量 == limiteSize」一致（后端 MAX_RECENT_SEARCH_RECORDS 需 ≥ 此值以供给足够 codes）。 */
+export const DEFAULT_LIMIT_SIZE = 12;
+/** 与后端 BatchCodesRequest.limiteSize 的安全上限保持一致 */
+const MAX_LIMIT_SIZE = 50;
+
+/** 归一化 limiteSize，避免越界或非法值触发后端 422 */
+function normalizeLimitSize(limiteSize: number): number {
+  const normalized = Math.trunc(limiteSize) || DEFAULT_LIMIT_SIZE;
+  return Math.min(Math.max(normalized, 1), MAX_LIMIT_SIZE);
+}
 
 export const stocksApi = {
   /**
@@ -141,14 +149,16 @@ export const stocksApi = {
   /**
    * 批量获取实时行情（最近搜索卡片列表用）。
    * 一次请求替代逐卡请求；单只拉取失败的股票由后端跳过，调用方按代码降级占位。
+   * limiteSize 控制本批最多返回条数，默认 12。
    */
-  async batchQuote(codes: string[]): Promise<StockQuote[]> {
-    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, BATCH_MAX_CODES);
+  async batchQuote(codes: string[], limiteSize: number = DEFAULT_LIMIT_SIZE): Promise<StockQuote[]> {
+    const limit = normalizeLimitSize(limiteSize);
+    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, limit);
     if (uniqueCodes.length === 0) return [];
     try {
       const { data } = await apiClient.post<{ items?: StockQuote[] }>(
         '/api/v1/stocks/batch-quote',
-        { codes: uniqueCodes },
+        { codes: uniqueCodes, limiteSize: limit },
       );
       return data.items ?? [];
     } catch {
@@ -159,14 +169,19 @@ export const stocksApi = {
   /**
    * 批量获取当日分时（最近搜索卡片走势图用）。
    * 后端复用分时缓存并下采样到缩略图点数；失败返回空数组。
+   * limiteSize 与 batchQuote 保持一致，默认 12。
    */
-  async batchTimeline(codes: string[]): Promise<BatchTimelineItem[]> {
-    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, BATCH_MAX_CODES);
+  async batchTimeline(
+    codes: string[],
+    limiteSize: number = DEFAULT_LIMIT_SIZE,
+  ): Promise<BatchTimelineItem[]> {
+    const limit = normalizeLimitSize(limiteSize);
+    const uniqueCodes = [...new Set(codes.filter(Boolean))].slice(0, limit);
     if (uniqueCodes.length === 0) return [];
     try {
       const { data } = await apiClient.post<{ items?: BatchTimelineItem[] }>(
         '/api/v1/stocks/batch-timeline',
-        { codes: uniqueCodes },
+        { codes: uniqueCodes, limiteSize: limit },
       );
       return data.items ?? [];
     } catch {

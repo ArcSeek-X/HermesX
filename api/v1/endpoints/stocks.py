@@ -20,7 +20,7 @@
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import List, Optional, Dict, Any
 import re
 
@@ -69,11 +69,11 @@ router = APIRouter()
 # 允许上传的图片 MIME 白名单字符串，用于图片识别接口的入参校验与错误提示。
 ALLOWED_MIME_STR = ", ".join(ALLOWED_MIME)
 
-# 分时缓存（TTL 30s）：分时为当日数据，短 TTL 即可显著降低自选股列表一页 10 行的
-# 重复请求压力；上游 trends2 有全局节流（≈3 req/s），缓存同时降低限流风险。
+# 分时缓存（TTL 120s）：分时为当日数据，分钟级新鲜度足够卡片缩略图使用；
+# 延长 TTL 让「最近搜索」二次进入/刷新几乎全部命中内存，不再重复回源。
 _timeline_cache: Dict[str, Dict[str, Any]] = {}
-# 分时数据缓存有效期（秒）；上游 trends2 有全局节流，缓存用于降低限流风险。
-_TIMELINE_CACHE_TTL = 30
+# 分时数据缓存有效期（秒）；上游 trends2 有全局节流，缓存用于降低限流风险与首屏延迟。
+_TIMELINE_CACHE_TTL = 120
 
 
 def _timeline_cache_valid(cache_item: Optional[Dict[str, Any]], ttl: int) -> bool:
@@ -581,10 +581,10 @@ def get_stock_quote(stock_code: str) -> StockQuote:
     """
     try:
         service = build_stock_service()
-        
+
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
         result = service.get_realtime_quote(stock_code)
-        
+
         if result is None:
             raise HTTPException(
                 status_code=404,
@@ -593,9 +593,9 @@ def get_stock_quote(stock_code: str) -> StockQuote:
                     "message": f"未找到股票 {stock_code} 的行情数据"
                 }
             )
-        
+
         return StockQuote(**result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -645,14 +645,14 @@ def get_stock_history(
     """
     try:
         service = build_stock_service()
-        
+
         # 使用 def 而非 async def，FastAPI 自动在线程池中执行
         result = service.get_history_data(
             stock_code=stock_code,
             period=period,
             days=days
         )
-        
+
         # 转换为响应模型
         data = [
             KLineData(
@@ -667,14 +667,14 @@ def get_stock_history(
             )
             for item in result.get("data", [])
         ]
-        
+
         return StockHistoryResponse(
             stock_code=stock_code,
             stock_name=result.get("stock_name"),
             period=period,
             data=data
         )
-    
+
     except ValueError as e:
         # period 参数不支持的错误（如 weekly/monthly）
         raise HTTPException(
@@ -729,15 +729,18 @@ def get_stock_timeline(stock_code: str) -> StockTimelineResponse:
 
 # 卡片分时缩略图保留的点数：全天约 240 点，等距采样后足够表现走势且显著减小 payload。
 TIMELINE_THUMBNAIL_POINTS = 48
-# 分时批量拉取的并发上限；上游 trends2 全局节流较严，与前端自选股列表保持同一口径。
-TIMELINE_BATCH_CONCURRENCY = 3
+# 批量分时并发上限：按 limiteSize（默认 12）一次并发发齐，快路径按 CDN 主机分流。
+TIMELINE_BATCH_CONCURRENCY = 10
+# 批量分时整体时间预算（秒）：超时未完成的代码返回空点列，线程池非阻塞关闭，保证接口不被上游拖垮。
+TIMELINE_BATCH_DEADLINE = 0.9
 
 
-def _load_timeline(stock_code: str) -> StockTimelineResponse:
+def _load_timeline(stock_code: str, *, fast: bool = False) -> StockTimelineResponse:
     """读取单只股票当日分时，命中进程内缓存时直接复用缓存对象。
 
     Args:
         stock_code: 股票代码。
+        fast: 批量缩略图快路径（按 CDN 主机分流、短超时、不重试）；单只分时接口仍用温和策略。
 
     Returns:
         StockTimelineResponse: 昨收价与完整分时点。
@@ -746,14 +749,14 @@ def _load_timeline(stock_code: str) -> StockTimelineResponse:
         HTTPException: 上游取数失败时返回 500。
 
     Side Effects:
-        未命中时拉取上游并写入 ``_timeline_cache``。
+        未命中且取到分时点时写入 ``_timeline_cache``；上游取空不写缓存，避免污染后续请求。
     """
     cached = _timeline_cache.get(stock_code)
     if _timeline_cache_valid(cached, ttl=_TIMELINE_CACHE_TTL):
         return cached["data"]  # type: ignore[return-value]
 
     try:
-        result = fetch_intraday_timeline(stock_code)
+        result = fetch_intraday_timeline(stock_code, fast=fast)
     except Exception as exc:
         logger.error("获取分时数据失败: %s", exc, exc_info=True)
         raise HTTPException(
@@ -767,7 +770,8 @@ def _load_timeline(stock_code: str) -> StockTimelineResponse:
         prev_close=result.get("prev_close"),
         points=[StockTimelinePoint(**point) for point in result.get("points", [])],
     )
-    _timeline_cache[stock_code] = {"data": response, "timestamp": time.time()}
+    if response.points:
+        _timeline_cache[stock_code] = {"data": response, "timestamp": time.time()}
     return response
 
 
@@ -792,11 +796,11 @@ def _unique_codes(codes: List[str]) -> List[str]:
     response_model=BatchQuoteResponse,
     responses={500: {"description": "服务器错误", "model": ErrorResponse}},
     summary="批量获取实时行情",
-    description="一次请求并发取最多 10 只股票的规范 camelCase 实时行情，供最近搜索卡片列表渲染。",
+    description="一次请求并发取多只股票的规范 camelCase 实时行情，供最近搜索卡片列表渲染；条数由 limiteSize 控制（默认 12）。",
 )
 def get_batch_quotes(payload: BatchCodesRequest) -> BatchQuoteResponse:
     """并发获取多只股票实时行情；单只失败跳过，不影响其它条目。"""
-    codes = _unique_codes(payload.codes)
+    codes = _unique_codes(payload.codes)[: payload.limiteSize]
     service = build_stock_service()
 
     def _fetch_one(code: str) -> Optional[StockQuote]:
@@ -823,18 +827,25 @@ def get_batch_quotes(payload: BatchCodesRequest) -> BatchQuoteResponse:
     response_model=BatchTimelineResponse,
     responses={500: {"description": "服务器错误", "model": ErrorResponse}},
     summary="批量获取当日分时（下采样）",
-    description="一次请求取最多 10 只股票的分时缩略图数据，复用分时缓存并等距下采样。",
+    description="一次请求取多只股票的分时缩略图数据，复用分时缓存并等距下采样；条数由 limiteSize 控制（默认 12）。",
 )
 def get_batch_timelines(payload: BatchCodesRequest) -> BatchTimelineResponse:
-    """并发获取多只股票的下采样分时；单只失败降级为空 points。"""
-    codes = _unique_codes(payload.codes)
+    """并发获取多只股票的下采样分时；整体限时，超时/失败降级为空 points。
+
+    分时上游有全局节流，逐只排队会把 10 只拖到数秒。这里一次并发发齐（快路径按 CDN
+    主机分流），并以 TIMELINE_BATCH_DEADLINE 作为硬超时：超时未完成的代码返回空点列，
+    线程池非阻塞关闭，保证接口响应不被上游拖住（卡片先渲染，分时稍后/下次补齐）。
+    """
+    codes = _unique_codes(payload.codes)[: payload.limiteSize]
+    if not codes:
+        return BatchTimelineResponse(items=[])
 
     def _fetch_one(code: str) -> BatchTimelineItem:
         """取单只分时并下采样；上游失败时保留代码、返回空点列。"""
         try:
-            timeline = _load_timeline(code)
-        except HTTPException as exc:
-            logger.warning("批量分时取数失败: code=%s, %s", code, exc.detail)
+            timeline = _load_timeline(code, fast=True)
+        except Exception as exc:
+            logger.warning("批量分时取数失败: code=%s, %s", code, exc)
             return BatchTimelineItem(code=code, points=[])
         return BatchTimelineItem(
             code=code,
@@ -843,5 +854,21 @@ def get_batch_timelines(payload: BatchCodesRequest) -> BatchTimelineResponse:
             points=_downsample_points(timeline.points),
         )
 
-    with ThreadPoolExecutor(max_workers=min(len(codes), TIMELINE_BATCH_CONCURRENCY) or 1) as executor:
-        return BatchTimelineResponse(items=list(executor.map(_fetch_one, codes)))
+    executor = ThreadPoolExecutor(max_workers=min(len(codes), TIMELINE_BATCH_CONCURRENCY))
+    try:
+        future_map = {executor.submit(_fetch_one, code): code for code in codes}
+        done, _ = wait(future_map, timeout=TIMELINE_BATCH_DEADLINE)
+        items: List[BatchTimelineItem] = []
+        for future, code in future_map.items():
+            if future not in done:
+                items.append(BatchTimelineItem(code=code, points=[]))
+                continue
+            try:
+                items.append(future.result())
+            except Exception as exc:
+                logger.warning("批量分时结果异常: code=%s, %s", code, exc)
+                items.append(BatchTimelineItem(code=code, points=[]))
+        return BatchTimelineResponse(items=items)
+    finally:
+        # 非阻塞关闭：超时线程的结果直接丢弃，不让慢请求继续拖住 HTTP 响应
+        executor.shutdown(wait=False, cancel_futures=True)

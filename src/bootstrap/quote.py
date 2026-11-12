@@ -77,12 +77,11 @@ def configure_name_to_code_resolver() -> None:
 
 
 def configure_intraday_timeline_bridge() -> None:
-    """装配单票分时服务的 stock-sdk 桥接回退端口。
+    """装配单票分时服务的 stock-sdk 桥接端口（当前为取数主路径）。
 
-    分时的主路径是直连东财 trends2（requests，仍在应用层，网络适配归位留 P4）；
-    本装配只接管“直连失败后的桥接回退”这一唯一 ``data_provider`` 依赖，使其不再直接
-    耦合数据源包。进程启动时调用一次（API lifespan / CLI 入口），setter 幂等；未装配时
-    优雅降级为“仅直连”（与原“桥接不可用→空”一致）。
+    东财 push2his 直连在部分网络会被直接断连，故分时改为「桥接优先 + 直连回退」；
+    本装配绑定唯一 ``data_provider`` 依赖，使其不再直接耦合数据源包。进程启动时调用
+    一次（API lifespan / CLI 入口），setter 幂等；未装配时优雅降级为仅直连。
     """
     from src.application.quote.intraday_timeline_service import set_timeline_bridge_port
     from src.infrastructure.providers.stocksdk_timeline_provider import (

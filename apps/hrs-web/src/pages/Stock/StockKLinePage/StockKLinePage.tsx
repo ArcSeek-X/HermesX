@@ -27,7 +27,8 @@ import {
   clearRecentSearch,
   type RecentSearchItem,
 } from '../../../api/recentSearch';
-import { stocksApi } from '../../../api/stocks';
+import { stocksApi, DEFAULT_LIMIT_SIZE } from '../../../api/stocks';
+import type { BatchTimelineItem } from '../../../api/stocks';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { useStockIndex } from '../../../hooks/useStockIndex';
 import { usePageState } from '../../../stores/PageStateStore';
@@ -63,8 +64,8 @@ function extractNumericCode(raw: string): string {
   return match ? match[0] : '';
 }
 
-/** 最近搜索队列上限，与后端 MAX_RECENT_SEARCH_RECORDS 对齐 */
-const MAX_RECENT_SEARCHES = 10;
+/** 最近搜索卡片渲染 / 本地列表上限：直接复用批量接口的默认 limiteSize（DEFAULT_LIMIT_SIZE），确保「前端渲染卡片数量 == limiteSize」一致；后端 MAX_RECENT_SEARCH_RECORDS 需 ≥ 此值以供给足够 codes。 */
+const RECENT_SEARCH_DISPLAY_LIMIT = DEFAULT_LIMIT_SIZE;
 
 /** 剥离交易所后缀并转大写，作为落库代码与行情纯代码的统一关联键（如 600519.SH → 600519） */
 function normalizeStockCode(stockCode: string): string {
@@ -94,24 +95,40 @@ function buildPlaceholderStockInfo(record: RecentSearchItem): StockInfo {
   };
 }
 
-/** 由服务端历史记录批量补齐行情与分时，组装为卡片条目（历史记录一次性补量，非清空触发） */
+/**
+ * 阶段一：历史记录 + 批量行情组装卡片（不含分时）。
+ * 首屏只需 list + batch-quote 即可渲染；分时留到阶段二异步补齐，避免被慢接口拖住整页。
+ */
 async function buildRecentEntries(items: RecentSearchItem[]): Promise<RecentSearchEntry[]> {
   const codes = items.map((it) => normalizeStockCode(it.stockCode)).filter(Boolean);
-  const [quotes, timelines] = await Promise.all([
-    codes.length ? stocksApi.batchQuote(codes) : Promise.resolve([]),
-    codes.length ? stocksApi.batchTimeline(codes) : Promise.resolve([]),
-  ]);
+  const quotes = codes.length ? await stocksApi.batchQuote(codes) : [];
   const quoteMap = new Map(quotes.map((q) => [normalizeStockCode(q.code), q]));
-  const timelineMap = new Map(timelines.map((t) => [normalizeStockCode(t.code), t]));
-  return items.slice(0, MAX_RECENT_SEARCHES).map((it) => {
+  return items.slice(0, RECENT_SEARCH_DISPLAY_LIMIT).map((it) => {
     const normalizedCode = normalizeStockCode(it.stockCode);
     const quote = quoteMap.get(normalizedCode);
-    const tl = timelineMap.get(normalizedCode);
     const info: StockInfo = quote ? { ...quote, updateTime: null, source: null } : buildPlaceholderStockInfo(it);
     return {
       info,
-      timeline: tl?.points ?? [],
-      prevClose: tl?.prevClose ?? quote?.prevClose ?? null,
+      timeline: [],
+      prevClose: quote?.prevClose ?? null,
+    };
+  });
+}
+
+/** 阶段二：把批量分时按代码回填到已渲染的卡片，不阻塞首屏。 */
+function mergeRecentTimelines(
+  entries: RecentSearchEntry[],
+  timelines: BatchTimelineItem[],
+): RecentSearchEntry[] {
+  if (timelines.length === 0) return entries;
+  const timelineMap = new Map(timelines.map((t) => [normalizeStockCode(t.code), t]));
+  return entries.map((entry) => {
+    const tl = timelineMap.get(normalizeStockCode(entry.info.code));
+    if (!tl) return entry;
+    return {
+      ...entry,
+      timeline: tl.points ?? [],
+      prevClose: tl.prevClose ?? entry.prevClose,
     };
   });
 }
@@ -165,7 +182,7 @@ const StockKLinePage: React.FC = () => {
   const [recentEntries, setRecentEntries] = useState<RecentSearchEntry[]>([]);
   const [isRecentHistoryLoading, setIsRecentHistoryLoading] = useState(true);
 
-  // 初始化：页面 mount 一次性从服务端拉历史记录并批量补齐行情/分时（非清空触发，满足"清空不请求"）
+  // 初始化：阶段一 list + 行情立即渲染卡片，阶段二分时异步回填（不阻塞首屏，满足"清空不请求"）
   useEffect(() => {
     let active = true;
     const init = async () => {
@@ -175,9 +192,27 @@ const StockKLinePage: React.FC = () => {
         const entries = await buildRecentEntries(items);
         if (!active) return;
         setRecentEntries(entries);
+        setIsRecentHistoryLoading(false); // 首屏先渲染，分时区域随后补齐
+
+        const codes = items
+          .slice(0, RECENT_SEARCH_DISPLAY_LIMIT)
+          .map((it) => normalizeStockCode(it.stockCode))
+          .filter(Boolean);
+        if (codes.length === 0) return;
+        void stocksApi
+          .batchTimeline(codes)
+          .then((timelines) => {
+            if (!active) return;
+            setRecentEntries((prev) =>
+              // 清空后 prev 为空，跳过回填，避免把旧分时写回已清空的列表
+              prev.length === 0 ? prev : mergeRecentTimelines(prev, timelines),
+            );
+          })
+          .catch((error) => {
+            console.error('Failed to load recent timelines:', error);
+          });
       } catch (error) {
         console.error('Failed to load recent searches:', error);
-      } finally {
         if (active) setIsRecentHistoryLoading(false);
       }
     };
@@ -200,7 +235,7 @@ const StockKLinePage: React.FC = () => {
         timeline,
         prevClose: info.prevClose ?? (timeline.length ? timeline[timeline.length - 1].close : null),
       };
-      return [next, ...deduped].slice(0, MAX_RECENT_SEARCHES);
+      return [next, ...deduped].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
     });
   }, []);
 

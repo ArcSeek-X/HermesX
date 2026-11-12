@@ -19,7 +19,7 @@ from src.application.recent_search.ports import RecentSearchRepositoryPort
 from src.domain.market.stock_codes import canonical_stock_code, is_hk_stock_code, normalize_stock_code
 
 DEFAULT_USER_ID = "default"
-MAX_RECENT_SEARCH_RECORDS = 10
+MAX_RECENT_SEARCH_RECORDS = 100
 
 
 def normalize_recent_search_user_id(user_id: Optional[str]) -> str:

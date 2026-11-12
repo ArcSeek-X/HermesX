@@ -6,11 +6,12 @@
    个股 K 线页、自选股列表分时缩略图等场景复用，避免各处重复对接上游分时接口。
 2. 数据源为东方财富 trends2（与参考项目 stock-sdk ``quotes.timeline`` 同源同语义），
    均价线为数据源返回的真实 VWAP（f58），不本地推导。
-3. 抓取策略「直连温和为主 + 桥接回退」：
-   - 直连 ``trends2/get``（JSON 端点；SSE 端点 ``trends2/sse`` 已被东财持续断连、
-     不可用），带全局节流（≈3 req/s）+ 多组 CDN 主机轮换 + 温和退避，避免突发并发
-     触发 push2his 限流导致级联取空；
-   - 直连失败回退 stock-sdk 桥接（同一东财数据，SDK 自带限速/主机轮换/重试）。
+3. 抓取策略「桥接优先 + 直连回退」：
+   - 优先走 stock-sdk 桥接（同一东财 trends2 数据，SDK 自带选源/限速/主机轮换/重试），
+     实测 10 只并发约 0.54s 且全部有数据；
+   - 桥接不可用时才回退直连 ``trends2/get``（JSON 端点；SSE 端点已被东财持续断连、
+     不可用），带全局节流（≈3 req/s）+ 多组 CDN 主机轮换 + 温和退避。部分网络下
+     push2his 会直接 RemoteDisconnected，此时直连仅作 best-effort。
 4. 输出 KLinePoint 形态（date/open/close/high/low/volume/amount），date 已标准化为
    ``YYYY-MM-DD HH:mm:ss``，前端 KLineChart / KLineView 可直接解析渲染。
 
@@ -65,6 +66,13 @@ _TRENDS_BACKOFF = 1.0
 _TRENDS_GATE_LOCK = threading.Lock()
 _TRENDS_NEXT_TS = 0.0
 
+# --- 批量分时缩略图「快路径」（仅 batch-timeline 使用，不改变单只分时接口的温和策略）---
+# 按 CDN 主机独立排队：单主机仍保留 0.2s 间隔（≈5 req/s），10 只按代码散列分散到 4 台
+# 主机后可于 ~0.5s 内发完，避免原全局 0.35s 节流把整批串行排到 3.5s。
+_TRENDS_FAST_MIN_INTERVAL = 0.2
+_TRENDS_FAST_TIMEOUT = (1, 2)
+_TRENDS_FAST_HOST_NEXT_TS: Dict[str, float] = {}
+
 _SESSION = requests.Session()
 _SESSION.headers.update(
     {
@@ -99,21 +107,32 @@ def _code_to_secid(code: str) -> str:
     return f"{'1' if pure.startswith('6') else '0'}.{pure}"
 
 
-def _trends_throttle() -> None:
-    """全局节流：跨线程保证 trends2 请求间隔不小于 _TRENDS_MIN_INTERVAL。
+def _trends_throttle(url: str = "", fast: bool = False) -> None:
+    """跨线程节流：普通路径全局排队；快路径按 CDN 主机独立排队。
 
-    调用方以线程池并发拉分时，若无节流，突发并发会触发东财 push2his 限流，一旦被限流
-    所有候选一起取空 → 0 结果。用「预约下一时隙」放行：锁内只算时间、锁外睡，避免长时间
-    持锁串行化。
+    用「预约下一时隙」放行：锁内只算时间、锁外睡，避免长时间持锁串行化。
+    快路径只用于批量分时缩略图，单主机仍保留间隔，靠多主机分流缩短整批耗时。
     """
     global _TRENDS_NEXT_TS
+    interval = _TRENDS_FAST_MIN_INTERVAL if fast else _TRENDS_MIN_INTERVAL
     with _TRENDS_GATE_LOCK:
         now = time.monotonic()
-        start = now if now > _TRENDS_NEXT_TS else _TRENDS_NEXT_TS
-        _TRENDS_NEXT_TS = start + _TRENDS_MIN_INTERVAL
+        if fast:
+            key = url or "_default"
+            next_ts = _TRENDS_FAST_HOST_NEXT_TS.get(key, 0.0)
+            start = now if now > next_ts else next_ts
+            _TRENDS_FAST_HOST_NEXT_TS[key] = start + interval
+        else:
+            start = now if now > _TRENDS_NEXT_TS else _TRENDS_NEXT_TS
+            _TRENDS_NEXT_TS = start + _TRENDS_MIN_INTERVAL
     delay = start - time.monotonic()
     if delay > 0:
         time.sleep(delay)
+
+
+def _fast_host_url(code: str) -> str:
+    """按代码稳定散列到 CDN 主机，让同一批并发请求分散到不同主机。"""
+    return _TRENDS_URLS[sum(ord(char) for char in code) % len(_TRENDS_URLS)]
 
 
 def _normalize_trend_date(date_str: str) -> str:
@@ -169,8 +188,13 @@ def _parse_trends_payload(inner: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], 
     return points, _safe_float(inner.get("preClose")), str(inner.get("name") or "")
 
 
-def _fetch_trends_direct(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
-    """直连东财 trends2 /get（温和节流 + 多 CDN 主机轮换 + 退避）拉分时。"""
+def _fetch_trends_direct(code: str, *, fast: bool = False) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+    """直连东财 trends2 /get 拉分时。
+
+    普通路径：全局温和节流 + 多 CDN 轮换重试 + 退避；
+    快路径（fast=True，批量缩略图）：按主机分流、单次短超时、不重试不退避，
+    由端点整体 deadline 兜底，避免单只慢请求拖住整批。
+    """
     params = {
         "secid": _code_to_secid(code),
         "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
@@ -179,19 +203,24 @@ def _fetch_trends_direct(code: str) -> Tuple[List[Dict[str, Any]], Optional[floa
         "iscr": "0",
     }
     headers = {"Referer": "https://quote.eastmoney.com/"}
+    retries = 1 if fast else _TRENDS_RETRIES
+    timeout = _TRENDS_FAST_TIMEOUT if fast else _TRENDS_TIMEOUT
     last_exc: Optional[Exception] = None
-    for attempt in range(_TRENDS_RETRIES):
-        url = _TRENDS_URLS[attempt % len(_TRENDS_URLS)]
-        _trends_throttle()
+    for attempt in range(retries):
+        url = _fast_host_url(code) if fast else _TRENDS_URLS[attempt % len(_TRENDS_URLS)]
+        if fast:
+            _trends_throttle(url, fast=True)
+        else:
+            _trends_throttle()
         try:
-            resp = _SESSION.get(url, params=params, timeout=_TRENDS_TIMEOUT, headers=headers)
+            resp = _SESSION.get(url, params=params, timeout=timeout, headers=headers)
             resp.raise_for_status()
             points, pre_close, name = _parse_trends_payload(resp.json().get("data") or {})
             if points:
                 return points, pre_close, name
         except Exception as e:  # pragma: no cover - 网络 / 限流兜底
             last_exc = e
-        if attempt < _TRENDS_RETRIES - 1:
+        if not fast and attempt < retries - 1:
             time.sleep(_TRENDS_BACKOFF * (attempt + 1))
     if last_exc is not None:
         logger.debug("[Timeline] 分时直连失败 %s: %s", code, last_exc)
@@ -238,17 +267,19 @@ def _fetch_trends_via_bridge(code: str) -> Tuple[List[Dict[str, Any]], Optional[
     return points, _safe_float(data.get("preClose")), str(data.get("name") or "")
 
 
-def fetch_intraday_trends(code: str) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
+def fetch_intraday_trends(code: str, *, fast: bool = False) -> Tuple[List[Dict[str, Any]], Optional[float], str]:
     """拉取最近一个交易日分时，返回 (分钟点列表, 昨收, 名称)。
 
-    策略「直连温和为主 + 桥接回退」：先直连东财 trends2 /get（温和节流避免限流），
-    直连失败再回退 stock-sdk 桥接（同一东财数据）。休市日两者均返回最近一个已收盘
-    交易日的全天分时。
+    策略「桥接优先 + 直连回退」：stock-sdk 桥接自带选源/限速/主机轮换，实测 10 只并发
+    约 0.54s 全部有数据；而东财 push2his 直连在部分网络会被直接断连（RemoteDisconnected），
+    旧策略「直连优先」会因 4 次重试 + 退避把整批拖到 20s 以上，故降为回退。
+    休市日两者均返回最近一个已收盘交易日的全天分时。
+    fast=True（批量缩略图）时回退直连改用单次短超时，不做重试退避。
     """
-    points, pre_close, name = _fetch_trends_direct(code)
+    points, pre_close, name = _fetch_trends_via_bridge(code)
     if points:
         return points, pre_close, name
-    return _fetch_trends_via_bridge(code)
+    return _fetch_trends_direct(code, fast=True) if fast else _fetch_trends_direct(code)
 
 
 def build_timeline_points(bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -277,7 +308,7 @@ def build_timeline_points(bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return points
 
 
-def fetch_intraday_timeline(code: str, limit: int = 240) -> Dict[str, Any]:
+def fetch_intraday_timeline(code: str, limit: int = 240, *, fast: bool = False) -> Dict[str, Any]:
     """返回单只股票的完整分时明细（KLinePoint 形态，供前端分时图渲染）。
 
     limit 参数仅为兼容既有 API 契约保留（trends2 一次返回全天分时）。
@@ -285,12 +316,16 @@ def fetch_intraday_timeline(code: str, limit: int = 240) -> Dict[str, Any]:
     Args:
         code: 股票代码（支持 600519 / 600519.SH 形式）
         limit: 兼容参数，当前不影响返回点数
+        fast: 批量缩略图快路径（按 CDN 主机分流、单次短超时、不重试）
 
     Returns:
         {"code", "name", "prev_close", "points"}；points 为 KLinePoint 形态列表
         （date/open/close/high/low/volume/amount），拉取失败时 points 为空列表。
     """
-    points, prev_close, name = fetch_intraday_trends(code)
+    if fast:
+        points, prev_close, name = fetch_intraday_trends(code, fast=True)
+    else:
+        points, prev_close, name = fetch_intraday_trends(code)
     return {
         "code": code,
         "name": name,

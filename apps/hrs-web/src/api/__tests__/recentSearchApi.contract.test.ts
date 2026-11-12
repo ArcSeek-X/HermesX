@@ -104,16 +104,31 @@ describe('recent-search 接口契约', () => {
 });
 
 describe('批量行情接口契约', () => {
-  it('batchQuote：URL 正确、代码去重且最多 10 只', async () => {
+  it('batchQuote：URL 正确、代码去重，默认 limiteSize=12', async () => {
     postMock.mockResolvedValueOnce({ data: { items: [{ code: '600519', price: 1720 }] } });
     const codes = ['600519', '600519', ...Array.from({ length: 12 }, (_, index) => `CODE${index}`)];
 
     const quotes = await stocksApi.batchQuote(codes);
 
     expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-quote', {
-      codes: ['600519', 'CODE0', 'CODE1', 'CODE2', 'CODE3', 'CODE4', 'CODE5', 'CODE6', 'CODE7', 'CODE8'],
+      codes: [
+        '600519', 'CODE0', 'CODE1', 'CODE2', 'CODE3', 'CODE4',
+        'CODE5', 'CODE6', 'CODE7', 'CODE8', 'CODE9', 'CODE10',
+      ],
+      limiteSize: 12,
     });
     expect(quotes[0].code).toBe('600519');
+  });
+
+  it('batchQuote：limiteSize 可覆盖默认条数', async () => {
+    postMock.mockResolvedValueOnce({ data: { items: [] } });
+
+    await stocksApi.batchQuote(['600519', '000001', '300750', '600036'], 3);
+
+    expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-quote', {
+      codes: ['600519', '000001', '300750'],
+      limiteSize: 3,
+    });
   });
 
   it('batchQuote：空代码或请求失败均返回空数组', async () => {
@@ -122,7 +137,7 @@ describe('批量行情接口契约', () => {
     await expect(stocksApi.batchQuote(['600519'])).resolves.toEqual([]);
   });
 
-  it('batchTimeline：URL 正确且透传下采样点列', async () => {
+  it('batchTimeline：URL 正确且透传下采样点列与默认 limiteSize', async () => {
     const points = [{ date: '2026-11-11 09:30:00', close: 1700 }];
     postMock.mockResolvedValueOnce({
       data: { items: [{ code: '600519', name: '贵州茅台', prevClose: 1690, points }] },
@@ -130,7 +145,10 @@ describe('批量行情接口契约', () => {
 
     const timelines = await stocksApi.batchTimeline(['600519', '600519']);
 
-    expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-timeline', { codes: ['600519'] });
+    expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-timeline', {
+      codes: ['600519'],
+      limiteSize: 12,
+    });
     expect(timelines[0].prevClose).toBe(1690);
     expect(timelines[0].points).toEqual(points);
   });

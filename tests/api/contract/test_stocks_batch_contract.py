@@ -4,7 +4,7 @@
 覆盖两条新增批量接口与它们共用的 schema：
 
 - ``StockQuote`` / ``BatchQuoteResponse``：响应字段必须是规范 camelCase（与 ``StockQuoteCore`` 同名）；
-- ``BatchCodesRequest``：代码列表 1~10 的边界；
+- ``BatchCodesRequest``：代码列表上限、limiteSize 默认值 12 与越界校验；
 - ``POST /api/v1/stocks/batch-quote``：请求代码去重保序、单只失败跳过、响应代码以请求代码为准；
 - ``POST /api/v1/stocks/batch-timeline``：分时下采样到 48 点且保留首尾、单只失败降级为空点列。
 
@@ -90,10 +90,21 @@ def test_stock_quote_rejects_legacy_snake_case_payload() -> None:
         StockQuote.model_validate({"stock_code": "600519", "current_price": 1680.0})
 
 
-@pytest.mark.parametrize("codes", [[], [f"code{i}" for i in range(11)]])
+@pytest.mark.parametrize("codes", [[], [f"code{i}" for i in range(51)]])
 def test_batch_codes_request_rejects_out_of_range(codes: list[str]) -> None:
     with pytest.raises(ValidationError):
         BatchCodesRequest.model_validate({"codes": codes})
+
+
+def test_batch_codes_request_defaults_limite_size_to_12() -> None:
+    payload = BatchCodesRequest.model_validate({"codes": ["600519"]})
+    assert payload.limiteSize == 12
+
+
+@pytest.mark.parametrize("limite_size", [0, -1, 51])
+def test_batch_codes_request_rejects_invalid_limite_size(limite_size: int) -> None:
+    with pytest.raises(ValidationError):
+        BatchCodesRequest.model_validate({"codes": ["600519"], "limiteSize": limite_size})
 
 
 def test_batch_quote_response_wraps_canonical_quotes() -> None:
@@ -133,6 +144,38 @@ def test_batch_quote_deduplicates_codes_and_keeps_request_code(
     assert service.calls == ["600519", "000001"]
 
 
+def test_batch_quote_defaults_to_twelve_items(
+    monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
+) -> None:
+    """不传 limiteSize 时默认最多返回 12 条。"""
+    codes = [f"6000{index:02d}" for index in range(15)]
+    service = _FakeStockService({code: _canonical_quote(code) for code in codes})
+    monkeypatch.setattr(stocks, "build_stock_service", lambda: service)
+
+    resp = batch_client.post("/api/v1/stocks/batch-quote", json={"codes": codes})
+
+    assert resp.status_code == 200
+    assert [item["code"] for item in resp.json()["items"]] == codes[:12]
+    assert service.calls == codes[:12]
+
+
+def test_batch_quote_respects_limite_size(
+    monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
+) -> None:
+    """传入 limiteSize 后只取前 N 只，超出的代码不打上游。"""
+    codes = [f"60000{index}" for index in range(5)]
+    service = _FakeStockService({code: _canonical_quote(code) for code in codes})
+    monkeypatch.setattr(stocks, "build_stock_service", lambda: service)
+
+    resp = batch_client.post(
+        "/api/v1/stocks/batch-quote", json={"codes": codes, "limiteSize": 2}
+    )
+
+    assert resp.status_code == 200
+    assert [item["code"] for item in resp.json()["items"]] == codes[:2]
+    assert service.calls == codes[:2]
+
+
 def test_batch_quote_skips_failed_stock_without_breaking_others(
     monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
 ) -> None:
@@ -165,7 +208,7 @@ def test_batch_timeline_downsamples_points_and_keeps_first_last(
     monkeypatch.setattr(
         stocks,
         "_load_timeline",
-        lambda code: StockTimelineResponse(stock_code=code, stock_name="贵州茅台", prev_close=1668.0, points=points),
+        lambda code, **_kwargs: StockTimelineResponse(stock_code=code, stock_name="贵州茅台", prev_close=1668.0, points=points),
     )
 
     resp = batch_client.post("/api/v1/stocks/batch-timeline", json={"codes": ["600519"]})
@@ -184,7 +227,7 @@ def test_batch_timeline_degrades_failed_stock_to_empty_points(
 ) -> None:
     from fastapi import HTTPException
 
-    def _raise(code: str) -> StockTimelineResponse:
+    def _raise(code: str, **_kwargs: object) -> StockTimelineResponse:
         raise HTTPException(status_code=500, detail="上游不可用")
 
     monkeypatch.setattr(stocks, "_load_timeline", _raise)
@@ -193,3 +236,26 @@ def test_batch_timeline_degrades_failed_stock_to_empty_points(
 
     assert resp.status_code == 200
     assert resp.json()["items"] == [{"code": "600519", "name": None, "prevClose": None, "points": []}]
+
+
+def test_batch_timeline_deadline_returns_promptly_with_empty_points(
+    monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
+) -> None:
+    """整体超时后未完成的股票降级为空点列，且接口不被慢上游拖住（首屏可先渲染）。"""
+    import time as _time
+
+    monkeypatch.setattr(stocks, "TIMELINE_BATCH_DEADLINE", 0.2)
+
+    def _slow(code: str, **_kwargs: object) -> StockTimelineResponse:
+        _time.sleep(1.0)
+        return StockTimelineResponse(stock_code=code, points=[])
+
+    monkeypatch.setattr(stocks, "_load_timeline", _slow)
+
+    started = _time.monotonic()
+    resp = batch_client.post("/api/v1/stocks/batch-timeline", json={"codes": ["600519"]})
+    elapsed = _time.monotonic() - started
+
+    assert resp.status_code == 200
+    assert resp.json()["items"] == [{"code": "600519", "name": None, "prevClose": None, "points": []}]
+    assert elapsed < 0.8

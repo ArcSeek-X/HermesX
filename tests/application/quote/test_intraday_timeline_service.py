@@ -231,3 +231,54 @@ def test_stocksdk_bridge_adapter_best_effort_semantics(monkeypatch):
 
     monkeypatch.setattr(bridge_mod, "get_stocksdk_client", _boom)
     assert adapter.fetch_timeline(code="600000") is None
+
+
+def test_fetch_intraday_trends_prefers_bridge_over_direct(monkeypatch):
+    """桥接有数据时不打直连：东财 push2his 在部分网络直接断连，旧策略会拖到 20s+。"""
+    bridge_result = (
+        [
+            {
+                "date": "20261112 09:30",
+                "close": 10.0,
+                "open": 10.0,
+                "high": 10.0,
+                "low": 10.0,
+                "volume": 100,
+                "amount": 1000,
+                "avg_price": 10.0,
+            }
+        ],
+        9.6,
+        "浦发银行",
+    )
+    direct_calls = []
+
+    monkeypatch.setattr(tls, "_fetch_trends_via_bridge", lambda code: bridge_result)
+    monkeypatch.setattr(
+        tls,
+        "_fetch_trends_direct",
+        lambda code, **kwargs: direct_calls.append(code) or ([], None, ""),
+    )
+
+    points, pre_close, name = tls.fetch_intraday_trends("600000", fast=True)
+
+    assert points and points[0]["close"] == 10.0
+    assert pre_close == 9.6 and name == "浦发银行"
+    assert direct_calls == []
+
+
+def test_fetch_intraday_trends_falls_back_to_direct_when_bridge_empty(monkeypatch):
+    """桥接不可用时仍回退直连，且批量快路径不做重试退避。"""
+    direct_kwargs = {}
+
+    def _direct(code, **kwargs):
+        direct_kwargs.update(kwargs)
+        return ([{"date": "20261112 09:30", "close": 10.0}], 9.6, "X")
+
+    monkeypatch.setattr(tls, "_fetch_trends_via_bridge", lambda code: ([], None, ""))
+    monkeypatch.setattr(tls, "_fetch_trends_direct", _direct)
+
+    points, _, _ = tls.fetch_intraday_trends("600000", fast=True)
+
+    assert points
+    assert direct_kwargs == {"fast": True}
