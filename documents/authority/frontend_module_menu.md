@@ -4,7 +4,7 @@
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-10-16
+> 🕒 **更新时间**：2026-11-12
 
 ## 目录
 
@@ -240,8 +240,6 @@ MENU_MANIFEST 真源
 | `components/layout/SideBar/dataFactory.ts` | 已不存在（加工逻辑已收敛到 `MenuStore`） |
 | `router/routerFactory` | 已不存在（路由配置已数据路由化） |
 | `router/Whitelist.ts` | 已移除（白名单改为 `appRouter.tsx` 内联声明，全仓 0 引用） |
-
-> 原规划"后续建议弱化或下线"的三处，均已兑现为"已移除"。
 
 ---
 

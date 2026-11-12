@@ -4,7 +4,7 @@
 
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-10-15
+> 🕒 **更新时间**：2026-11-12
 
 ## 方案目录
 
@@ -33,7 +33,6 @@
 - [8. 改动清单（代码执行指引）](#8-改动清单代码执行指引)
 - [9. 测试与验证计划](#9-测试与验证计划)
 - [10. 评审决策记录](#10-评审决策记录)
-- [11. 修订历史](#11-修订历史)
 
 | 项 | 内容 |
 |---|---|
@@ -337,15 +336,6 @@ blacklist 意味着新页面默认进缓存，新增页面时确认：
 | 5 | 滚动容器获取 | **方案 A：`Main.tsx` 经 `ScrollContainerContext` 下发 ref**（显式契约、类型安全，不耦合 CSS 类名） |
 | 6 | 登录/注册页 | **加入黑名单**（`/login`；当前无注册路由，若后续新增 `/register` 一并加入） |
 | 7 | manifest 级 per-route 开关 | 不做（避免双真源；黑名单已满足需求） |
-| 8 | 实现底座 | **采用第三方库 `keepalive-for-react` + `keepalive-for-react-router`**（2026-10-14 用户决策，v3 起取代自研 v1/v2）；代价：开发模式移除 StrictMode、LocationContext 不冻结 |
+| 8 | 实现底座 | **采用第三方库 `keepalive-for-react` + `keepalive-for-react-router`**（取代自研 v1/v2）；代价：开发模式移除 StrictMode、LocationContext 不冻结 |
 
 ---
-
-## <a id="11-修订历史"></a>11. 修订历史
-
-| 日期 | 版本 | 变更 |
-| --- | --- | --- |
-| 2026-10-14 | v1 | 初稿：按评审结论定稿——blacklist 默认、pathname 匹配、ScrollContainerContext（方案 A）、query/hash 重挂载、登录页入黑名单、无 routerKey 透传改动 |
-| 2026-10-14 | v2 | 实现完成并回写两条实现期修正；验证：新增 17 测试全过；A/B 全量对比失败数 235 vs 235 一致、通过 +17，零回归 |
-| 2026-10-14 | v3 | 实现改为第三方库 `keepalive-for-react@6` + `keepalive-for-react-router@6`：选型表新增方案 E 并标记 C 被取代；自研 `keepAliveCache.ts`、`PageActivityContext.tsx` 删除；`main.tsx` 移除 StrictMode；三个页面改 `useKeepAliveContext().active`；保留黑名单单一配置真源、`maxCacheSize=8`、query/hash 重挂载、ScrollContainerContext 滚动恢复、新页面检查清单 |
-| 2026-10-15 | v4 | 文档整体更新为库实现现状：移除 v1/v2 自研细节与 v3 补丁块；§4.2/§4.3/§4.5/§8 重写为库实际行为（`keepAliveCache`/`PageActivityContext` 已删除、`PageActivityContext` 改 `useKeepAliveContext`、配置改 `exclude`/`include`/`maxAliveTime`/`maxCacheSize`）；文件更名为 `frontend_route_keepalive.md` |
