@@ -807,6 +807,7 @@ const en: Record<UiTextKey, string> = {
   'kline.recentSearch.stockCard.avgPriceLegend': 'Avg Price', // 【页面】个股K线-
   'kline.recentSearch.stockCard.priceLegend': 'Price', // 【页面】个股K线-
   'kline.recentSearch.title': 'Recent Searches', // 【页面】个股K线-
+  'kline.stockNotFound': 'Stock not found. Please check the code or name', // 【页面】个股K线-
   'kline.tooltip.amount': 'Amount', // 【页面】个股K线-
   'kline.tooltip.change': 'Change', // 【页面】个股K线-
   'kline.tooltip.close': 'Close', // 【页面】个股K线-

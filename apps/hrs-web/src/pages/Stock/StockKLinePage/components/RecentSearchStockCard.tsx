@@ -1,11 +1,6 @@
 /**
- * @file RecentSearchCard.tsx
- * @description 个股 K 线页「最近搜索」的单只股票卡片：头部（名称/代码/涨跌幅徽章）→ 价格区
- *   → 迷你分时走势 → 指标网格（股票价格/振幅/总市值/换手率）。
- *   视觉结构对齐 EodStockCard；行情字段统一 Pick 自 StockQuoteCore，不另起命名。
- *   整卡点击由父组件注入跳转；支持占位态（字段全空、不可点击），用于列表加载中避免空白闪烁。
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-11-11
+ * 个股 K 线页「最近搜索」单卡：行情头 + 价格 + 迷你分时 + 指标网格。
+ * 支持占位态（字段全空、不可点击）以避免列表加载中空白闪烁。
  */
 
 import { memo } from 'react';
@@ -19,27 +14,27 @@ import type { KLinePoint, StockInfo } from '../../../../api/kline';
 
 /**
  * 单张卡片的数据源：通用股票对象（与 StockInfoHeader 共用）+ 迷你分时。
- * 搜索成功时由页面用 fetchStockInfo 的结果直接注入；历史记录由批量接口补齐。
+ * 卡片先以行情信息即时插入，分时统一由批量分时接口异步补齐（首屏历史与搜索插入同一口径）。
  */
-export interface RecentSearchEntry {
+export interface RecentSearchStockCardData {
   /** 通用股票对象（StockInfo），含名称/代码/行情 */
   info: StockInfo;
-  /** 迷你分时走势（搜索时已获取；历史记录由批量分时补齐） */
+  /** 迷你分时走势（当日分时缩略图，由 batch-timeline 异步补齐；未到位时为空数组） */
   timeline: KLinePoint[];
   /** 分时昨收基准价，优先取批量分时、其次取行情前收 */
   prevClose: number | null;
 }
 
 /** 最近搜索卡片组件入参 */
-export interface RecentSearchCardProps {
-  /** 卡片数据源 */
-  entry: RecentSearchEntry;
+export interface RecentSearchStockCardProps {
+  /** 卡片数据 */
+  cardData: RecentSearchStockCardData;
   /** 网格序号，用于入场动画错位延迟（从 0 起算） */
   ordinal: number;
   /** 点击整卡回调，由列表组件跳转到该股 K 线页 */
   onOpen: (stockCode: string) => void;
-  /** 加载占位态：字段全空、不可点击，用于列表加载中避免空白闪烁 */
-  isLoading?: boolean;
+  /** 占位态：字段全空、不可点击，用于列表加载中避免空白闪烁 */
+  isPlaceholder?: boolean;
 }
 
 /** 涨跌方向色：红涨绿跌，缺失涨跌幅时按涨色处理（与徽章一致） */
@@ -62,14 +57,14 @@ function RecentSearchMetric({ label, value }: { label: string; value: string }) 
  * 「加入自选」按钮当前仅 UI 占位（onClick 留空），自选逻辑尚未接入。
  * memo 化避免行情批量回填时未变化的卡片重绘走势图。
  */
-function RecentSearchCard({
-  entry,
+function RecentSearchStockCard({
+  cardData,
   ordinal,
   onOpen,
-  isLoading = false,
-}: RecentSearchCardProps) {
+  isPlaceholder = false,
+}: RecentSearchStockCardProps) {
   const { t } = useUiLanguage();
-  const { info, timeline, prevClose } = entry;
+  const { info, timeline, prevClose } = cardData;
 
   // 行情缺失时回落到分时最后一点（盘中为最新成交价，收盘后即收盘价）
   const latestTimelinePrice = timeline.length > 0 ? timeline[timeline.length - 1].close : null;
@@ -96,10 +91,10 @@ function RecentSearchCard({
   return (
     <AnimCard
       ordinal={ordinal}
-      onClick={isLoading ? undefined : () => onOpen(info.code)}
-      tooltip={isLoading ? undefined : t('kline.recentSearch.stockCard.openKline')}
+      onClick={isPlaceholder ? undefined : () => onOpen(info.code)}
+      tooltip={isPlaceholder ? undefined : t('kline.recentSearch.stockCard.openKline')}
       className={`flex h-full flex-col p-4 ${
-        isLoading ? '' : 'transition-transform duration-200 hover:-translate-y-0.5'
+        isPlaceholder ? '' : 'transition-transform duration-200 hover:-translate-y-0.5'
       }`}
     >
       {/* 头部：名称 + 代码 | 涨跌幅徽章 */}
@@ -150,7 +145,7 @@ function RecentSearchCard({
       </div>
 
       {/* 操作区：加入自选（逻辑待接入，当前仅按钮 UI 占位；占位态不渲染） */}
-      {!isLoading && (
+      {!isPlaceholder && (
         <div className="mt-3">
           {/* TODO: 接入加入自选逻辑（onAddToWatchlist） */}
           <HrsButton variant="outline" size="sm" className="w-full justify-center">
@@ -163,4 +158,4 @@ function RecentSearchCard({
   );
 }
 
-export default memo(RecentSearchCard);
+export default memo(RecentSearchStockCard);

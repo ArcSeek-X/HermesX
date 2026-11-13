@@ -36,6 +36,7 @@ import { useStockIndex } from '../../hooks/useStockIndex';
 import { useStockAutocomplete } from '../../hooks/useStockAutocomplete';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { SEARCH_CONFIG } from '../../utils/stockIndexSchema';
+import { searchStocks } from '../../utils/searchStocks';
 import { StockSearchList } from './StockSearchList';
 import { cn } from '../../utils/cn';
 import type { StockSelectionMeta } from '../../types/stock';
@@ -70,7 +71,7 @@ export interface StockSearchProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 附加 CSS 类名 */
   className?: string;
-  /** 点击清除按钮时的回调 */
+  /** 点击清除按钮（或把输入框删空）时的回调：搜索框会先清空自身展示态，再通知调用方 */
   onClear?: () => void;
   /**
    * 下拉候选列表渲染方式：
@@ -172,6 +173,8 @@ function StockSearchInner({
     highlightPrevious,
     highlightNext,
     close,
+    reset,
+    runtimeFallback,
     isComposing,
     setIsComposing,
     error: autocompleteError, // 与上方 error 区分
@@ -214,6 +217,25 @@ function StockSearchInner({
   const closeSuggestions = () => {
     close();
     setDropdownStyle(null);
+  };
+
+  // 清空去重：ClearButton 会同时触发 state.setValue('') → onChange('') 与 onClear()，
+  // 两条路径都指向 handleClear，用同步标记保证一次点击只执行一遍。
+  const clearInFlightRef = useRef(false);
+
+  /** 清空搜索框：显式清空全部内部展示态、取消挂起防抖、收起下拉，再通知调用方。 */
+  const handleClear = () => {
+    if (clearInFlightRef.current) return;
+    clearInFlightRef.current = true;
+    setEditingValue(null);
+    setDisplayText('');
+    reset();
+    closeSuggestions();
+    onChange('');
+    onClear?.();
+    queueMicrotask(() => {
+      clearInFlightRef.current = false;
+    });
   };
 
   // 外部 displayValue 变化（初始化 / 外部重置）时同步进展示通道；
@@ -273,7 +295,7 @@ function StockSearchInner({
     }
   }, [autocompleteError]);
 
-  // 键盘交互：组合输入期间忽略快捷键；↑/↓ 移动高亮；Enter 选中（无候选时提交原文）；Esc 收起。
+  // 键盘交互：组合输入期间忽略快捷键；↑/↓ 移动高亮；Enter 直接提交；Esc 收起。
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (isComposing) return;
 
@@ -286,20 +308,50 @@ function StockSearchInner({
         e.preventDefault();
         highlightPrevious();
         break;
-      case 'Enter':
+      case 'Enter': {
         e.preventDefault();
+        // 用输入框里真实可见的文本提交，而不是可能滞后的外部 value prop
+        // （快速输入后立即回车时，value 往往还是上一轮的旧值甚至空串）。
+        const raw = (editingValue ?? (displayText || undefined) ?? value ?? '').trim();
+        // 无论走哪条分支都先收起下拉：close() 内部会取消挂起防抖，否则定时器
+        // 到期后会重新把候选列表弹出来，看起来像"回车后还让我再选一次股票"。
+        closeSuggestions();
         setEditingValue(null);
+
+        const highlighted = suggestions[highlightedIndex];
+        if (highlighted) {
+          selectSuggestion(highlighted);
+          return;
+        }
+        // 防抖（200ms）尚未结算时 suggestions 为空：同步在本地索引做一次匹配，
+        // 输入完整代码/名称且精确命中即直接提交，无需等待下拉出现。
+        // 自动补全运行时降级时不走这条路径：降级契约要求 Enter 手动提交原文，
+        // 不能把补全结果伪装成 autocomplete 选中。
+        if (!runtimeFallback) {
+          // 先按原文查（支持中文名/拼音），再退化为「名称（600633.SH）」里的纯数字代码。
+          const numericCode = raw.match(/\d{4,7}/)?.[0] ?? '';
+          const candidates = raw ? searchStocks(numericCode || raw, index, { limit: 1 }) : [];
+          const exact = candidates.find((item) => item.matchType === 'exact');
+          if (exact) {
+            selectSuggestion(exact);
+            return;
+          }
+        }
         if (suggestions.length > 0) {
           // 未高亮时默认取首项，使输入中文名回车即可自动匹配为对应股票
-          selectSuggestion(suggestions[highlightedIndex] ?? suggestions[0]);
-        } else {
-          onSubmit(value);
+          selectSuggestion(suggestions[0]);
+          return;
         }
-        break;
+        if (raw) {
+          // 无任何候选：把原始文本交给调用方，由其做后端兜底搜索或给出「未找到」提醒
+          onSubmit(raw);
+        }
+        return;
+      }
       case 'Escape':
         e.preventDefault();
         closeSuggestions();
-        break;
+        return;
     }
   };
 
@@ -351,16 +403,20 @@ function StockSearchInner({
         name="stock-search"
         aria-label="stock-search-Field"
         value={inputValue}
+        // 显式接管清空：react-aria 的 ClearButton 会走 onClear，不能只依赖 onChange('')，
+        // 否则「名称（代码）」展示通道可能不被清掉，出现点清空后文字仍残留。
+        onClear={handleClear}
         onChange={(raw: string) => {
+          if (raw === '') {
+            handleClear();
+            return;
+          }
           setEditingValue(raw || null);
           setDisplayText('');
           // 键入即驱动本地模糊搜索并展开下拉：仅由外部 value 同步触发的 setQuery 路径
           // 在 onChange 为空操作（不回写 value）时不会执行，故此处必须显式调用 setQuery。
           setQuery(raw);
           onChange(raw);
-          if (raw === '' && onClear) {
-            onClear();
-          }
         }}
       >
         <SearchField.Group

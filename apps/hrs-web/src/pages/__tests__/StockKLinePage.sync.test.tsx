@@ -52,7 +52,7 @@ vi.mock('../../api/kline', async () => {
 });
 
 // 导航同步测试只关注搜索框标签，隔离最近搜索列表及其落库请求
-vi.mock('../Stock/StockKLinePage/components/RecentSearchList', () => ({
+vi.mock('../Stock/StockKLinePage/components/RecentSearchStockList', () => ({
   default: () => null,
 }));
 vi.mock('../../api/recentSearch', () => ({

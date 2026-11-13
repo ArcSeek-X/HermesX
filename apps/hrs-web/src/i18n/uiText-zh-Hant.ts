@@ -804,6 +804,7 @@ const zhHant = {
   'kline.recentSearch.stockCard.avgPriceLegend': '均價', // 【页面】个股K线-最近搜尋卡片走勢圖均價線圖例
   'kline.recentSearch.stockCard.priceLegend': '價格', // 【页面】个股K线-最近搜尋卡片走勢圖價格線圖例
   'kline.recentSearch.title': '最近搜尋', // 【页面】个股K线-最近搜尋區塊標題
+  'kline.stockNotFound': '找不到該股票，請確認股票代碼或名稱', // 【页面】个股K线-搜尋無結果提示
   'kline.tooltip.amount': '成交額', // 【页面】个股K线-tooltip 成交額
   'kline.tooltip.change': '漲跌幅', // 【页面】个股K线-tooltip 漲跌幅
   'kline.tooltip.close': '收盤', // 【页面】个股K线-tooltip 收盤价

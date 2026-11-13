@@ -89,7 +89,7 @@ vi.mock('../../api/recentSearch', () => ({
   clearRecentSearch: (...args: unknown[]) => clearMock(...args),
 }));
 
-vi.mock('../Stock/StockKLinePage/components/RecentSearchList', () => ({
+vi.mock('../Stock/StockKLinePage/components/RecentSearchStockList', () => ({
   default: () => <div data-testid="recent-search-list" />,
 }));
 
@@ -165,7 +165,7 @@ describe('K 线页最近搜索显示时机', () => {
     await waitFor(() => expect(screen.getByTestId('recent-search-list')).toBeTruthy());
 
     // 清空只清空本地数据，不再向服务端发起 getRecentSearchList
-    // （清空按钮在真实 RecentSearchList 内触发 clearRecentSearch；此处组件被隔离为占位 div，故不验证清空同步服务端）
+    // （清空按钮在真实 RecentSearchStockList 内触发 clearRecentSearch；此处组件被隔离为占位 div，故不验证清空同步服务端）
     expect(getListMock).toHaveBeenCalledTimes(1);
   });
 });

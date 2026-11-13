@@ -73,7 +73,7 @@ vi.mock('../../api/kline', async () => {
 });
 
 // 最近搜索列表有独立测试；页面功能走查中隔离它及其落库请求，避免干扰页面行为断言
-vi.mock('../Stock/StockKLinePage/components/RecentSearchList', () => ({
+vi.mock('../Stock/StockKLinePage/components/RecentSearchStockList', () => ({
   default: () => <div data-testid="recent-search-list" />,
 }));
 vi.mock('../../api/recentSearch', () => ({

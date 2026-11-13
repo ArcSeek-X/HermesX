@@ -10,7 +10,6 @@
  * - 与 useCachedState 配合使用，支持嵌套键名访问
  *
  * 使用场景：
- * - K 线页面：保存股票代码、周期、K 线数据
  * - 板块分析：保存当前 Tab、筛选条件
  * - 其他页面：保存临时状态，避免路由切换后丢失
  */
@@ -18,25 +17,8 @@
 import type React from 'react';
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { KLinePeriod, KLinePoint } from '../api/kline';
-import type { StockQuoteCore } from '../types/stock';
 
 // ============ 类型定义 ============
-
-/**
- * K 线页面状态：收敛为「个股行情」+「K 线数据」两键。
- * 字段命名与形态统一取自 types/stock.ts 的驼峰领域类型，状态层不再承载接口蛇形类型。
- */
-export interface KLinePageState {
-  /** 个股行情快照（含标识 + 行情核心，类型唯一真源 StockQuoteCore） */
-  stockInfo: StockQuoteCore | null;
-  /** K 线数据相关：当前周期、K 线点数组、数据来源 */
-  klineInfo: {
-    period: KLinePeriod;
-    klineData: KLinePoint[];
-    klineSource: string | null;
-  };
-}
 
 /** 板块分析页面状态 */
 export interface SectorPageState {
@@ -78,7 +60,6 @@ export interface AlertsPageState {
 
 /** 全局页面状态（所有页面的状态集合） */
 export interface PageStateStore {
-  kline: KLinePageState;
   sector: SectorPageState;
   screening: ScreeningPageState;
   portfolio: PortfolioPageState;
@@ -106,14 +87,6 @@ interface PageStateContextType {
 
 /** 各页面的默认状态 */
 const DEFAULT_STATE: PageStateStore = {
-  kline: {
-    stockInfo: null,
-    klineInfo: {
-      period: 'daily',
-      klineData: [],
-      klineSource: null,
-    },
-  },
   sector: {
     activeTab: 'concept',
     conceptLimit: 100,
@@ -161,15 +134,10 @@ export const PageStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = getStorageItem<Partial<PageStateStore>>('pageState', 'session');
       if (saved) {
         // 合并保存的状态和默认状态（确保新增字段有默认值）
+        // 只按已知分区逐项合并：不整体展开 saved，避免旧版本残留的字段
+        // （例如已移除的 kline 分区）被带回并继续写回 sessionStorage
         return {
           ...DEFAULT_STATE,
-          ...saved,
-          kline: {
-            ...DEFAULT_STATE.kline,
-            ...saved.kline,
-            // klineInfo 为嵌套结构，需深合并，否则旧数据缺字段时 period/klineData 恢复不到默认值
-            klineInfo: { ...DEFAULT_STATE.kline.klineInfo, ...saved.kline?.klineInfo },
-          },
           sector: { ...DEFAULT_STATE.sector, ...saved.sector },
           screening: { ...DEFAULT_STATE.screening, ...saved.screening },
           portfolio: { ...DEFAULT_STATE.portfolio, ...saved.portfolio },
@@ -242,7 +210,7 @@ export const PageStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
  * @example
  * ```typescript
  * const { state, setState, resetState } = usePageState();
- * setState('kline', { ...state.kline, stockCode: '603019' });
+ * setState('sector', { ...state.sector, activeTab: 'etf' });
  * ```
  */
 export function usePageState(): PageStateContextType {
@@ -256,13 +224,13 @@ export function usePageState(): PageStateContextType {
 /**
  * 使用指定模块的页面状态
  *
- * @param key - 模块键名（如 'kline', 'sector'）
+ * @param key - 模块键名（如 'sector', 'screening'）
  * @returns [该模块的状态, 更新函数]
  *
  * @example
  * ```typescript
- * const [klineState, setKlineState] = useModuleState('kline');
- * setKlineState({ ...klineState, stockCode: '603019' });
+ * const [sectorState, setSectorState] = useModuleState('sector');
+ * setSectorState({ ...sectorState, activeTab: 'etf' });
  * ```
  */
 export function useModuleState<K extends keyof PageStateStore>(

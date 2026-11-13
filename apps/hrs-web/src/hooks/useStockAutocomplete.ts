@@ -49,8 +49,10 @@ export interface UseStockAutocompleteResult {
   highlightNext: () => void;
   /** 选中某个候选：回填代码、收起下拉、清空高亮 */
   handleSelect: (suggestion: StockSuggestion) => void;
-  /** 关闭下拉并清空高亮 */
+  /** 关闭下拉并清空高亮（同时取消防抖） */
   close: () => void;
+  /** 取消尚未结算的防抖搜索：提交搜索但不想让下拉继续弹出时使用 */
+  cancelPendingSearch: () => void;
   /** 重置全部搜索状态（清空输入、候选、下拉、高亮） */
   reset: () => void;
   /** 是否处于输入法组合输入中（组合期间不响应回车等快捷键） */
@@ -149,13 +151,23 @@ export function useStockAutocomplete(
     }, debounceMs);
   }, [search, debounceMs, runtimeFallback]);
 
-  // 选中候选：把候选的展示代码回填到输入框，并收起下拉、清空高亮
+  // 取消防抖定时器：关闭下拉 / 选中候选 / 重置时必须调用，否则挂起的定时器到期后
+  // 会重新执行 search() 把 isOpen 置回 true，导致"回车或选中后下拉又弹出来"。
+  const cancelPendingSearch = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, []);
+
+  // 选中候选：把候选的展示代码回填到输入框，并取消防抖、收起下拉、清空高亮
   const handleSelect = useCallback((suggestion: StockSuggestion) => {
+    cancelPendingSearch();
     setQuery(suggestion.displayCode);
     setIsOpen(false);
     setSuggestions([]);
     setHighlightedIndex(-1);
-  }, []);
+  }, [cancelPendingSearch]);
 
   // 高亮上移：无候选时不动；已在首项则循环跳到最后一项
   const highlightPrevious = useCallback(() => {
@@ -173,19 +185,21 @@ export function useStockAutocomplete(
     });
   }, [suggestions.length]);
 
-  // 关闭下拉并清空高亮（如失焦、按 Esc）
+  // 关闭下拉并清空高亮（如失焦、按 Esc、提交搜索）；同时取消挂起防抖，避免下拉复活
   const close = useCallback(() => {
+    cancelPendingSearch();
     setIsOpen(false);
     setHighlightedIndex(-1);
-  }, []);
+  }, [cancelPendingSearch]);
 
   // 重置全部状态（清空输入内容与候选）
   const reset = useCallback(() => {
+    cancelPendingSearch();
     setQuery('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
-  }, []);
+  }, [cancelPendingSearch]);
 
   // 组件卸载时清理防抖定时器，防止卸载后定时器触发 setState
   useEffect(() => {
@@ -207,6 +221,7 @@ export function useStockAutocomplete(
     highlightNext,
     handleSelect,
     close,
+    cancelPendingSearch,
     reset,
     isComposing,
     setIsComposing,
