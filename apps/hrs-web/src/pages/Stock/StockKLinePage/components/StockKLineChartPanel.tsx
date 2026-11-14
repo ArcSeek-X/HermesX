@@ -33,47 +33,50 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
   const [klinePoints, setKlinePoints] = useState<KLinePoint[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<KLinePeriod>(DEFAULT_PERIOD);
   const [isFullDataEnabled, setIsFullDataEnabled] = useState(false);
-  const [isKLineLoading, setIsKLineLoading] = useState(true);
+  const [isKLineDataFetching, setIsKLineDataFetching] = useState(true);
   const [klineLoadError, setKlineLoadError] = useState<string | null>(null);
 
   const latestKLinePeriodRef = useRef(selectedPeriod);
   const latestFullDataEnabledRef = useRef(isFullDataEnabled);
-  const stockDataRequestSeqRef = useRef(0);
-  const historyRequestSeqRef = useRef(0);
-  const isEarlierDataLoadingRef = useRef(false);
+  const primaryLoadRequestSeqRef = useRef(0);
+  const historyPageRequestSeqRef = useRef(0);
+  const isHistoryPageLoadingRef = useRef(false);
   const hasReportedStockQuoteRef = useRef(false);
-  const isMountedRef = useRef(true);
 
-  const loadStockView = useCallback(
-    async (targetPeriod: KLinePeriod, limit?: number) => {
-      if (!isMountedRef.current) return;
-      const requestId = ++stockDataRequestSeqRef.current;
-      historyRequestSeqRef.current++; // 整体数据即将替换，作废进行中的分页
-      setIsKLineLoading(true);
+  const loadStockQuoteAndKLine = useCallback(
+    async (klinePeriod: KLinePeriod, limit?: number) => {
+      // 整体数据即将替换，先作废进行中的分页
+      const requestId = ++primaryLoadRequestSeqRef.current;
+      historyPageRequestSeqRef.current++;
+      setIsKLineDataFetching(true);
       setKlineLoadError(null);
       try {
-        const [quote, klineResult] = await Promise.all([
+        const [fetchedStockQuote, fetchedKLine] = await Promise.all([
           klineApi.fetchStockInfo(stockCode),
-          klineApi.fetchKLine(stockCode, targetPeriod, limit),
+          klineApi.fetchKLine(stockCode, klinePeriod, limit),
         ]);
-        if (requestId !== stockDataRequestSeqRef.current) return;
-        setStockQuote(quote);
-        setKlinePoints(klineResult.data);
+        if (requestId !== primaryLoadRequestSeqRef.current) return;
+        setStockQuote(fetchedStockQuote);
+        setKlinePoints(fetchedKLine.data);
         // 外部入口注入时 name 可能为空，行情返回后以接口名称修正持久化值
-        const persisted = getStockKLineInfo();
-        if (persisted?.code === stockCode && quote.name && persisted.name !== quote.name) {
-          updateStockKLineInfo({ name: quote.name });
+        const persistedSelection = getStockKLineInfo();
+        if (
+          persistedSelection?.code === stockCode &&
+          fetchedStockQuote.name &&
+          persistedSelection.name !== fetchedStockQuote.name
+        ) {
+          updateStockKLineInfo({ name: fetchedStockQuote.name });
         }
         if (!hasReportedStockQuoteRef.current) {
           hasReportedStockQuoteRef.current = true;
-          onStockQuoteLoaded?.(quote);
+          onStockQuoteLoaded?.(fetchedStockQuote);
         }
       } catch (error) {
-        if (requestId !== stockDataRequestSeqRef.current) return;
+        if (requestId !== primaryLoadRequestSeqRef.current) return;
         console.error('Failed to load stock data:', error);
         setKlineLoadError(t('kline.error'));
       } finally {
-        if (requestId === stockDataRequestSeqRef.current) setIsKLineLoading(false);
+        if (requestId === primaryLoadRequestSeqRef.current) setIsKLineDataFetching(false);
       }
     },
     [stockCode, onStockQuoteLoaded, t],
@@ -81,72 +84,70 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
 
   // 组件按「一次选股」实例化（页面用 key 控制），挂载时异步加载一次即可
   useEffect(() => {
-    queueMicrotask(() => void loadStockView(DEFAULT_PERIOD));
+    queueMicrotask(() => void loadStockQuoteAndKLine(DEFAULT_PERIOD));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 卸载时作废在途请求，避免清空股票后旧结果写回或触发落库
   useEffect(
     () => () => {
-      isMountedRef.current = false;
-      stockDataRequestSeqRef.current++;
-      historyRequestSeqRef.current++;
+      primaryLoadRequestSeqRef.current++;
+      historyPageRequestSeqRef.current++;
     },
     [],
   );
 
-  const handlePeriodChange = useCallback(
+  const handleKLinePeriodChange = useCallback(
     (nextPeriod: KLinePeriod) => {
       setSelectedPeriod(nextPeriod);
       latestKLinePeriodRef.current = nextPeriod;
       const limit = latestFullDataEnabledRef.current ? FULL_DATA_LIMIT : undefined;
-      void loadStockView(nextPeriod, limit);
+      void loadStockQuoteAndKLine(nextPeriod, limit);
     },
-    [loadStockView],
+    [loadStockQuoteAndKLine],
   );
 
-  const handleFullDataToggle = useCallback(
+  const handleFullKLineDataToggle = useCallback(
     (enabled: boolean) => {
       setIsFullDataEnabled(enabled);
       latestFullDataEnabledRef.current = enabled;
-      const limit = enabled ? FULL_DATA_LIMIT : undefined;
-      void loadStockView(latestKLinePeriodRef.current, limit);
+      void loadStockQuoteAndKLine(latestKLinePeriodRef.current, enabled ? FULL_DATA_LIMIT : undefined);
     },
-    [loadStockView],
+    [loadStockQuoteAndKLine],
   );
 
   /** 左滑加载更早历史：按最早日期前置拼接并去重，防止并发与重复 */
-  const loadEarlierKLinePoints = useCallback(async () => {
-    if (isEarlierDataLoadingRef.current || klinePoints.length === 0) return;
+  const loadEarlierKLineHistory = useCallback(async () => {
+    if (isHistoryPageLoadingRef.current || klinePoints.length === 0) return;
     const currentPeriod = latestKLinePeriodRef.current;
     if (MINUTE_PERIODS.includes(currentPeriod) && klinePoints.length >= MINUTE_KLINE_MAX_LIMIT) return;
     const earliestDate = klinePoints[0]?.date;
     if (!earliestDate) return;
 
-    isEarlierDataLoadingRef.current = true;
-    const requestId = ++historyRequestSeqRef.current;
+    isHistoryPageLoadingRef.current = true;
+    const requestId = ++historyPageRequestSeqRef.current;
     try {
-      const earlier = await klineApi.fetchKLine(
+      const earlierKLinePage = await klineApi.fetchKLine(
         stockCode,
         currentPeriod,
         HISTORY_PAGE_SIZE,
         earliestDate,
       );
-      if (requestId !== historyRequestSeqRef.current) return;
-      if (earlier?.data?.length) {
+      if (requestId !== historyPageRequestSeqRef.current) return;
+      if (earlierKLinePage?.data?.length) {
         setKlinePoints((currentPoints) => {
           const currentEarliest = currentPoints[0]?.date;
-          const older = currentEarliest
-            ? earlier.data.filter((point) => point.date < currentEarliest)
-            : earlier.data;
-          if (!older.length) return currentPoints;
-          return [...older, ...currentPoints];
+          const olderPoints = currentEarliest
+            ? earlierKLinePage.data.filter((point) => point.date < currentEarliest)
+            : earlierKLinePage.data;
+          if (!olderPoints.length) return currentPoints;
+          return [...olderPoints, ...currentPoints];
         });
       }
     } catch (error) {
       console.error('Failed to load more history:', error);
     } finally {
-      isEarlierDataLoadingRef.current = false;
+      isHistoryPageLoadingRef.current = false;
     }
   }, [klinePoints, stockCode]);
 
@@ -160,7 +161,7 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
 
       <AnimCard className="p-5 min-h-0">
         <div className="w-full space-y-3">
-          {isKLineLoading ? (
+          {isKLineDataFetching ? (
             <div className="flex items-center justify-center py-20">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
             </div>
@@ -176,7 +177,7 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
               prevClose={stockQuote?.prevClose ?? null}
               stockCode={stockCode}
               showAllData={isFullDataEnabled}
-              onDataZoomBoundary={isFullDataEnabled ? undefined : loadEarlierKLinePoints}
+              onDataZoomBoundary={isFullDataEnabled ? undefined : loadEarlierKLineHistory}
             />
           )}
 
@@ -184,12 +185,12 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
             {FULL_DATA_PERIODS.includes(selectedPeriod) && (
               <Switch
                 checked={isFullDataEnabled}
-                onChange={handleFullDataToggle}
+                onChange={handleFullKLineDataToggle}
                 label={t('kline.fullData')}
                 className="whitespace-nowrap text-muted-text"
               />
             )}
-            <PeriodSelector period={selectedPeriod} onChange={handlePeriodChange} />
+            <PeriodSelector period={selectedPeriod} onChange={handleKLinePeriodChange} />
           </div>
         </div>
       </AnimCard>

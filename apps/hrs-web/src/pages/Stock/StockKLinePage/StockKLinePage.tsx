@@ -31,9 +31,9 @@ import { getStockDisplayLabel } from '../../../utils/stock/stockNameDisplay';
 import type { StockIndexItem } from '../../../types/stockIndex';
 import type { StockSearchSelection } from '@components/StockSearch/types';
 import type { StockRef } from '../../../types/stock';
-import type { RecentSearchStockCardData } from './components/RecentSearchStockCard';
 import RecentSearchStockList from './components/RecentSearchStockList';
 import StockKLineChartPanel from './components/StockKLineChartPanel';
+import { createEmptyStockQuote, type RecentSearchStockCardData } from './components/recentSearchStockData';
 
 /** 最近搜索卡片展示上限，与批量行情接口的默认 limit 保持一致 */
 const RECENT_SEARCH_DISPLAY_LIMIT = DEFAULT_LIMIT_SIZE;
@@ -78,50 +78,27 @@ function normalizeStockCode(stockCode: string): string {
   return stockCode.split('.')[0].trim().toUpperCase();
 }
 
-/** 批量行情缺失时构造占位卡片数据，数值字段置 null 降级展示 */
-function buildPlaceholderStockInfo(record: RecentSearchItem): StockInfo {
-  return {
-    code: record.stockCode,
-    name: record.stockName ?? '',
-    price: null,
-    change: null,
-    changePct: null,
-    amount: null,
-    volume: null,
-    turnoverRate: null,
-    prevClose: null,
-    open: null,
-    high: null,
-    low: null,
-    amplitude: null,
-    peRatioTTM: null,
-    totalMarketCap: null,
-    updateTime: null,
-    source: null,
-  };
-}
-
 /** 组装最近搜索卡片；分时由 fillRecentCardTimelines 异步补齐，避免慢接口阻塞首屏 */
 async function buildRecentStockCards(
   recentRecords: RecentSearchItem[],
 ): Promise<RecentSearchStockCardData[]> {
-  const recentCodes = recentRecords
+  const recentStockCodes = recentRecords
     .map((recentRecord) => normalizeStockCode(recentRecord.stockCode))
     .filter(Boolean);
-  const batchQuotes = recentCodes.length ? await stocksApi.batchQuote(recentCodes) : [];
+  const batchQuotes = recentStockCodes.length ? await stocksApi.batchQuote(recentStockCodes) : [];
   const quotesByCode = new Map(
-    batchQuotes.map((quote) => [normalizeStockCode(quote.code), quote]),
+    batchQuotes.map((batchQuote) => [normalizeStockCode(batchQuote.code), batchQuote]),
   );
   return recentRecords.slice(0, RECENT_SEARCH_DISPLAY_LIMIT).map((recentRecord) => {
     const normalizedCode = normalizeStockCode(recentRecord.stockCode);
-    const quote = quotesByCode.get(normalizedCode);
-    const cardStockInfo: StockInfo = quote
-      ? { ...quote, updateTime: null, source: null }
-      : buildPlaceholderStockInfo(recentRecord);
+    const matchedQuote = quotesByCode.get(normalizedCode);
+    const cardStockQuote: StockInfo = matchedQuote
+      ? { ...matchedQuote, updateTime: null, source: null }
+      : createEmptyStockQuote(recentRecord.stockCode, recentRecord.stockName ?? '');
     return {
-      info: cardStockInfo,
+      stockQuote: cardStockQuote,
       timeline: [],
-      prevClose: quote?.prevClose ?? null,
+      prevClose: matchedQuote?.prevClose ?? null,
     };
   });
 }
@@ -136,7 +113,7 @@ function mergeRecentTimelines(
     batchTimelines.map((timelineItem) => [normalizeStockCode(timelineItem.code), timelineItem]),
   );
   return recentCards.map((recentCard) => {
-    const timelineItem = timelinesByCode.get(normalizeStockCode(recentCard.info.code));
+    const timelineItem = timelinesByCode.get(normalizeStockCode(recentCard.stockQuote.code));
     if (!timelineItem) return recentCard;
     return {
       ...recentCard,
@@ -149,34 +126,37 @@ function mergeRecentTimelines(
 const StockKLinePage: React.FC = () => {
   const { t } = useUiLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  // router 的 setSearchParams 引用随 search 变化；放进 ref 保持业务回调稳定，避免 URL 注入 effect 被重复触发
+  const setSearchParamsRef = useRef(setSearchParams);
+  useEffect(() => {
+    setSearchParamsRef.current = setSearchParams;
+  }, [setSearchParams]);
   const { index: stockIndex } = useStockIndex();
 
   const selectedKLineStock = useStockKLineStore((klineStore) => klineStore.stockKLineSelected);
   const stockCode = selectedKLineStock?.code ?? '';
-  const [searchInputValue, setSearchInputValue] = useState(stockCode);
-  const [stockDisplayLabel, setStockDisplayLabel] = useState(() =>
-    selectedKLineStock?.name ? `${selectedKLineStock.name}（${selectedKLineStock.code}）` : '',
-  );
+  // 标签是派生值：本地索引异步到位后页面重渲染即自动补上后缀与名称
+  const stockDisplayLabel = buildSearchLabel(stockIndex, stockCode, selectedKLineStock?.name);
+  const [stockSearchValue, setStockSearchValue] = useState(stockCode);
   const [searchError, setSearchError] = useState<string | null>(null);
   /** 每次显式选中递增，让图表面板按「一次查看」重新实例化并重新加载 */
   const [stockViewSession, setStockViewSession] = useState(0);
 
   const [recentStockCards, setRecentStockCards] = useState<RecentSearchStockCardData[]>([]);
   const [isRecentCardsLoading, setIsRecentCardsLoading] = useState(true);
-  const isRecentListMountedRef = useRef(true);
-  useEffect(() => () => { isRecentListMountedRef.current = false; }, []);
+  const isRecentCardsMountedRef = useRef(true);
 
   /** 只回填已存在的卡片；清空后列表为空时跳过，避免把旧分时写回 */
-  const fillRecentCardTimelines = useCallback(async (recentCodes: string[]) => {
-    const uniqueCodes = [...new Set(recentCodes.filter(Boolean))].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
-    if (uniqueCodes.length === 0) return;
+  const fillRecentCardTimelines = useCallback(async (recentStockCodes: string[]) => {
+    const uniqueStockCodes = [...new Set(recentStockCodes.filter(Boolean))].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
+    if (uniqueStockCodes.length === 0) return;
     try {
-      const batchTimelines = await stocksApi.batchTimeline(uniqueCodes);
-      if (!isRecentListMountedRef.current || batchTimelines.length === 0) return;
-      setRecentStockCards((currentCards) =>
-        currentCards.length === 0
-          ? currentCards
-          : mergeRecentTimelines(currentCards, batchTimelines),
+      const batchTimelines = await stocksApi.batchTimeline(uniqueStockCodes);
+      if (!isRecentCardsMountedRef.current || batchTimelines.length === 0) return;
+      setRecentStockCards((currentRecentCards) =>
+        currentRecentCards.length === 0
+          ? currentRecentCards
+          : mergeRecentTimelines(currentRecentCards, batchTimelines),
       );
     } catch (error) {
       console.error('Failed to load recent timelines:', error);
@@ -184,55 +164,54 @@ const StockKLinePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let isStillMounted = true;
     const loadRecentSearches = async () => {
       setIsRecentCardsLoading(true);
       try {
         const recentRecords = await getRecentSearchList();
         const remoteCards = await buildRecentStockCards(recentRecords);
-        if (!isStillMounted) return;
+        if (!isRecentCardsMountedRef.current) return;
         // 列表返回前用户可能已搜索出新卡片，按规范化代码去重合入，保留本地最新项置顶
-        setRecentStockCards((currentCards) => {
-          const localOnly = currentCards.filter(
+        setRecentStockCards((currentRecentCards) => {
+          const locallyInsertedCards = currentRecentCards.filter(
             (localCard) =>
               !remoteCards.some(
                 (remoteCard) =>
-                  normalizeStockCode(remoteCard.info.code) === normalizeStockCode(localCard.info.code),
+                  normalizeStockCode(remoteCard.stockQuote.code) === normalizeStockCode(localCard.stockQuote.code),
               ),
           );
-          return [...localOnly, ...remoteCards].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
+          return [...locallyInsertedCards, ...remoteCards].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
         });
         setIsRecentCardsLoading(false);
 
-        const recentCodes = recentRecords
+        const recentStockCodes = recentRecords
           .slice(0, RECENT_SEARCH_DISPLAY_LIMIT)
           .map((recentRecord) => normalizeStockCode(recentRecord.stockCode))
           .filter(Boolean);
-        void fillRecentCardTimelines(recentCodes);
+        void fillRecentCardTimelines(recentStockCodes);
       } catch (error) {
         console.error('Failed to load recent searches:', error);
-        if (isStillMounted) setIsRecentCardsLoading(false);
+        if (isRecentCardsMountedRef.current) setIsRecentCardsLoading(false);
       }
     };
     void loadRecentSearches();
     return () => {
-      isStillMounted = false;
+      isRecentCardsMountedRef.current = false;
     };
   }, [fillRecentCardTimelines]);
 
   /** 搜索成功后插入本地卡片（去重置顶、限长）；迷你分时与主图 1 分钟 K 线解耦 */
   const upsertRecentStockCard = useCallback((stockQuote: StockInfo) => {
     const normalizedCode = normalizeStockCode(stockQuote.code);
-    setRecentStockCards((currentCards) => {
-      const deduped = currentCards.filter(
-        (existingCard) => normalizeStockCode(existingCard.info.code) !== normalizedCode,
+    setRecentStockCards((currentRecentCards) => {
+      const dedupedCards = currentRecentCards.filter(
+        (existingCard) => normalizeStockCode(existingCard.stockQuote.code) !== normalizedCode,
       );
       const insertedCard: RecentSearchStockCardData = {
-        info: stockQuote,
+        stockQuote,
         timeline: [],
         prevClose: stockQuote.prevClose ?? null,
       };
-      return [insertedCard, ...deduped].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
+      return [insertedCard, ...dedupedCards].slice(0, RECENT_SEARCH_DISPLAY_LIMIT);
     });
     void fillRecentCardTimelines([normalizedCode]);
   }, [fillRecentCardTimelines]);
@@ -243,12 +222,13 @@ const StockKLinePage: React.FC = () => {
     if (!selectedCode) return;
     upsertRecentStockCard(stockQuote);
     // 落库异常不得中断主流程，否则卡片不会插入，还会误报「K 线数据加载失败」
+    const reportRecordFailure = (error: unknown) => console.error('Failed to record recent search:', error);
     try {
       void Promise.resolve(
         recordRecentSearch({ stockCode: selectedCode, stockName: stockQuote.name ?? null }),
-      ).catch((error) => console.error('Failed to record recent search:', error));
+      ).catch(reportRecordFailure);
     } catch (error) {
-      console.error('Failed to record recent search:', error);
+      reportRecordFailure(error);
     }
   }, [upsertRecentStockCard]);
 
@@ -263,7 +243,7 @@ const StockKLinePage: React.FC = () => {
   }, []);
 
   /** 唯一业务写入口：写持久化真源 + 同步 URL 镜像 + 复位 UI；图表加载由面板自行驱动 */
-  const selectKLineStock = useCallback(
+  const commitStockSelection = useCallback(
     (stockRef: StockRef, options?: { syncUrl?: boolean }) => {
       const code = normalizeStockCode(stockRef.code);
       if (!code) return;
@@ -271,7 +251,7 @@ const StockKLinePage: React.FC = () => {
       setStockKLineInfo({ code, name });
       // KeepAlive 缓存键忽略 search，改 URL 只更新地址栏、不会切换页面实例
       if (options?.syncUrl !== false) {
-        setSearchParams(
+        setSearchParamsRef.current(
           (prev) => {
             if (prev.get('stockCode') === code) return prev;
             const next = new URLSearchParams(prev);
@@ -281,21 +261,19 @@ const StockKLinePage: React.FC = () => {
           { replace: true },
         );
       }
-      setSearchInputValue(code);
-      setStockDisplayLabel(name ? `${name}（${code}）` : '');
+      setStockSearchValue(code);
       setSearchError(null);
       setStockViewSession((session) => session + 1);
     },
-    [setSearchParams],
+    [],
   );
 
   const clearSelectedStock = useCallback(() => {
     setSearchError(null);
-    setSearchInputValue('');
-    setStockDisplayLabel('');
+    setStockSearchValue('');
     removeStockKLineInfo();
     // 用最新 search 判断，避免残留的 ?stockCode= 被单向注入 effect 复活股票
-    setSearchParams(
+    setSearchParamsRef.current(
       (prev) => {
         if (!prev.has('stockCode')) return prev;
         const next = new URLSearchParams(prev);
@@ -304,7 +282,7 @@ const StockKLinePage: React.FC = () => {
       },
       { replace: true },
     );
-  }, [setSearchParams]);
+  }, []);
 
   const handleStockSearchSubmit = useCallback(
     async (stock: StockSearchSelection) => {
@@ -332,70 +310,52 @@ const StockKLinePage: React.FC = () => {
           return;
         }
       }
-      selectKLineStock({ code: normalizeStockCode(resolvedCode), name: resolvedName });
+      commitStockSelection({ code: normalizeStockCode(resolvedCode), name: resolvedName });
     },
-    [selectKLineStock, t],
+    [commitStockSelection, t],
   );
 
   // URL 只做单向注入：参数消失不能当作清空，否则持久化中的股票会被冲掉
   useEffect(() => {
-    const stockCodeFormURL = searchParams.get('stockCode');
-    if (!stockCodeFormURL) return;
-    const code = normalizeStockCode(stockCodeFormURL);
+    const stockCodeFromUrl = searchParams.get('stockCode');
+    if (!stockCodeFromUrl) return;
+    const code = normalizeStockCode(stockCodeFromUrl);
     if (!code || getStockKLineInfo()?.code === code) return;
-    selectKLineStock({ code, name: '' }, { syncUrl: false });
-  }, [searchParams, selectKLineStock]);
-
-  // 用本地索引与持久化名称即时补名，索引 / 名称到位后重算
-  useEffect(() => {
-    if (!stockCode) {
-      setStockDisplayLabel('');
-      return;
-    }
-    setStockDisplayLabel(
-      buildSearchLabel(stockIndex, stockCode, selectedKLineStock?.name),
-    );
-  }, [stockCode, stockIndex, selectedKLineStock?.name]);
+    commitStockSelection({ code, name: '' }, { syncUrl: false });
+  }, [searchParams, commitStockSelection]);
 
   return (
     <AppPage>
-      {/* 页面主体容器：统一各区块间距，内容区按「未选股 / 已选股」二选一渲染 */}
       <div className="space-y-4">
-        {/* 页头：K 线页标题与功能说明 */}
         <PageHeader title={t('layout.nav.kline.title')} description={t('layout.nav.kline.description')} />
 
-        {/* 搜索区：限宽的股票搜索框，承载输入联想、选股提交与清空当前股票 */}
+        {/* 搜索区：限宽股票搜索框，承载联想、选股提交与清空 */}
         <div className="max-w-md">
           <StockSearch
-            value={searchInputValue}
+            value={stockSearchValue}
             displayValue={stockDisplayLabel || undefined}
             size="xl"
-            onChange={setSearchInputValue}
+            onChange={setStockSearchValue}
             onSubmit={handleStockSearchSubmit}
             onClear={clearSelectedStock}
           />
         </div>
 
-        {/* 未选中股票：作为默认落地内容，展示搜索异常提示与最近搜索记录 */}
+        {/* 未选中股票：展示搜索异常提示与最近搜索记录 */}
         {!stockCode && (
           <>
-            {/* 搜索失败或行情为空时的提示文案 */}
             {searchError && (
               <div className="flex items-center justify-center py-6 text-muted-text">{searchError}</div>
             )}
-            {/* 最近搜索卡片列表：点击卡片直达个股，支持一键清空记录 */}
             <RecentSearchStockList
-              cards={recentStockCards}
+              recentCards={recentStockCards}
               isRecentCardsLoading={isRecentCardsLoading}
-              onClear={clearRecentSearches}
+              onClearRecentSearches={clearRecentSearches}
             />
           </>
         )}
 
-        {/*
-          已选中股票：个股信息 + K 线面板，自行加载行情与 K 线，并内部处理周期切换、全量数据与左滑加载。
-          key 绑定选股会话号，重复搜索同一股票也会重新挂载；行情首次成功后回调页面写入最近搜索。
-        */}
+        {/* 已选中股票：面板自行加载行情/K 线并处理周期、全量与左滑；key 绑定选股会话号，重复搜索同一股票也重新挂载 */}
         {stockCode && (
           <StockKLineChartPanel
             key={`${stockCode}-${stockViewSession}`}

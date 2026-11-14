@@ -1,4 +1,4 @@
-/** 股票搜索候选列表：市场徽标 | 名称 + 代码 | 匹配类型徽标 */
+/** 股票搜索候选下拉：市场徽标 | 名称 + 代码 | 匹配类型徽标 */
 
 import type { CSSProperties } from 'react';
 import type { StockSuggestion } from '../../types/stockIndex';
@@ -7,7 +7,7 @@ import { Chip } from '../';
 import { cn } from '../../utils/cn';
 import AnimCard from '../common/Card/AnimCard/AnimCard';
 
-const DROPDOWN_CORNER_CLASS: Record<StockSearchSize, string> = {
+const SUGGESTION_DROPDOWN_CORNER_CLASS: Record<StockSearchSize, string> = {
   xs: 'rounded-b-sm',
   sm: 'rounded-b-sm',
   md: 'rounded-b-md',
@@ -15,7 +15,7 @@ const DROPDOWN_CORNER_CLASS: Record<StockSearchSize, string> = {
   xl: 'rounded-b-xl',
 };
 
-const MARKET_BADGE_STYLE = {
+const MARKET_BADGE_STYLES = {
   CN: { label: 'A股', color: 'danger' },
   HK: { label: '港股', color: 'success' },
   US: { label: '美股', color: 'indigo' },
@@ -26,7 +26,7 @@ const MARKET_BADGE_STYLE = {
   BSE: { label: '北交所', color: 'blue' },
 } as const;
 
-const MATCH_TYPE_BADGE_STYLE = {
+const MATCH_TYPE_BADGE_STYLES = {
   exact: { label: '精确', color: 'accent', variant: 'primary' },
   prefix: { label: '前缀', color: 'success', variant: 'soft' },
   contains: { label: '包含', color: 'warning', variant: 'soft' },
@@ -34,27 +34,31 @@ const MATCH_TYPE_BADGE_STYLE = {
 } as const;
 
 export interface StockSearchListProps {
-  suggestions: StockSuggestion[];
-  /** -1 表示无高亮 */
-  highlightedIndex: number;
-  onSelect: (suggestion: StockSuggestion) => void;
-  onMouseEnter: (suggestionIndex: number) => void;
-  onMouseLeave?: () => void;
+  /** 本地索引匹配出的候选股票 */
+  stockSuggestions: StockSuggestion[];
+  /** 键盘高亮的候选索引；-1 表示无高亮 */
+  highlightedSuggestionIndex: number;
+  /** 选中候选（点击或回车确认） */
+  onSelectSuggestion: (suggestion: StockSuggestion) => void;
+  /** 鼠标移入候选时设置高亮 */
+  onHighlightSuggestion: (suggestionIndex: number) => void;
+  /** 鼠标移出列表时清除高亮 */
+  onClearSuggestionHighlight?: () => void;
   size?: StockSearchSize;
   /** Portal 的 fixed 定位 */
   style?: CSSProperties;
 }
 
 export function StockSearchList({
-  suggestions,
-  highlightedIndex,
-  onSelect,
-  onMouseEnter,
-  onMouseLeave,
+  stockSuggestions,
+  highlightedSuggestionIndex,
+  onSelectSuggestion,
+  onHighlightSuggestion,
+  onClearSuggestionHighlight,
   size = 'md',
   style,
 }: StockSearchListProps) {
-  if (suggestions.length === 0) return null;
+  if (stockSuggestions.length === 0) return null;
 
   return (
     // z-[100000] 与 HeroUI 遮罩持平；Portal 挂 body 且晚于遮罩，同层级按 DOM 顺序胜出
@@ -66,22 +70,22 @@ export function StockSearchList({
     >
       {/* 内容层需置于 ::before 渐变之上 */}
       <ul
-        className={cn('h-full px-2 overflow-auto', DROPDOWN_CORNER_CLASS[size])}
+        className={cn('h-full px-2 overflow-auto', SUGGESTION_DROPDOWN_CORNER_CLASS[size])}
         role="listbox"
-        onMouseLeave={onMouseLeave}
+        onMouseLeave={onClearSuggestionHighlight}
       >
-        {suggestions.map((suggestion, suggestionIndex) => (
+        {stockSuggestions.map((suggestion, suggestionIndex) => (
           <li
             key={suggestion.canonicalCode}
             role="option"
-            aria-selected={suggestionIndex === highlightedIndex}
+            aria-selected={suggestionIndex === highlightedSuggestionIndex}
             className={cn(
               'px-2 py-2 rounded-md cursor-pointer grid grid-cols-[auto_1fr_auto] gap-3 items-center',
               'hover:bg-primary-faint',
-              suggestionIndex === highlightedIndex && 'bg-primary-subtle',
+              suggestionIndex === highlightedSuggestionIndex && 'bg-primary-subtle',
             )}
-            onClick={() => onSelect(suggestion)}
-            onMouseEnter={() => onMouseEnter(suggestionIndex)}
+            onClick={() => onSelectSuggestion(suggestion)}
+            onMouseEnter={() => onHighlightSuggestion(suggestionIndex)}
           >
             <MarketBadge market={suggestion.market} />
             {/* min-w-0 防止长名称撑破栅格 */}
@@ -104,24 +108,24 @@ export function StockSearchList({
   );
 }
 
-/** 未知市场直接抛错，由 StockSearch 的错误边界整体卸载搜索框 */
+/** 未知市场抛错，由 StockSearch 的错误边界整体卸载搜索框 */
 function MarketBadge({ market }: { market: string }) {
-  const badgeStyle = MARKET_BADGE_STYLE[market as keyof typeof MARKET_BADGE_STYLE];
-  if (!badgeStyle) throw new Error(`Unsupported market in stock suggestion: ${market}`);
+  const marketBadgeStyle = MARKET_BADGE_STYLES[market as keyof typeof MARKET_BADGE_STYLES];
+  if (!marketBadgeStyle) throw new Error(`Unsupported market in stock suggestion: ${market}`);
 
   return (
-    <Chip color={badgeStyle.color} size="xs" radius="sm" className="min-w-[3rem] justify-center">
-      {badgeStyle.label}
+    <Chip color={marketBadgeStyle.color} size="xs" radius="sm" className="min-w-[3rem] justify-center">
+      {marketBadgeStyle.label}
     </Chip>
   );
 }
 
 function MatchTypeBadge({ matchType }: { matchType: StockSuggestion['matchType'] }) {
-  const badgeStyle = MATCH_TYPE_BADGE_STYLE[matchType];
+  const matchTypeBadgeStyle = MATCH_TYPE_BADGE_STYLES[matchType];
 
   return (
-    <Chip variant={badgeStyle.variant} color={badgeStyle.color} size="xs" radius="sm" className="shrink-0">
-      {badgeStyle.label}
+    <Chip variant={matchTypeBadgeStyle.variant} color={matchTypeBadgeStyle.color} size="xs" radius="sm" className="shrink-0">
+      {matchTypeBadgeStyle.label}
     </Chip>
   );
 }
