@@ -20,9 +20,9 @@ import {
 import { stocksApi, DEFAULT_LIMIT_SIZE } from '../../../api/stocks';
 import type { BatchTimelineItem } from '../../../api/stocks';
 import {
-  getStockKLine,
-  removeStockKLine,
-  setStockKLine,
+  getStockKLineInfo,
+  removeStockKLineInfo,
+  setStockKLineInfo,
   useStockKLineStore,
 } from '../../../stores/StockKLine';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
@@ -239,7 +239,7 @@ const StockKLinePage: React.FC = () => {
 
   /** 图表面板首次加载成功：插入卡片并落库，保持「行情成功后才记录」的契约 */
   const handleStockQuoteLoaded = useCallback((stockQuote: StockInfo) => {
-    const selectedCode = getStockKLine()?.code;
+    const selectedCode = getStockKLineInfo()?.code;
     if (!selectedCode) return;
     upsertRecentStockCard(stockQuote);
     // 落库异常不得中断主流程，否则卡片不会插入，还会误报「K 线数据加载失败」
@@ -268,7 +268,7 @@ const StockKLinePage: React.FC = () => {
       const code = normalizeStockCode(stockRef.code);
       if (!code) return;
       const name = typeof stockRef.name === 'string' ? stockRef.name : '';
-      setStockKLine({ code, name });
+      setStockKLineInfo({ code, name });
       // KeepAlive 缓存键忽略 search，改 URL 只更新地址栏、不会切换页面实例
       if (options?.syncUrl !== false) {
         setSearchParams(
@@ -293,7 +293,7 @@ const StockKLinePage: React.FC = () => {
     setSearchError(null);
     setSearchInputValue('');
     setStockDisplayLabel('');
-    removeStockKLine();
+    removeStockKLineInfo();
     // 用最新 search 判断，避免残留的 ?stockCode= 被单向注入 effect 复活股票
     setSearchParams(
       (prev) => {
@@ -342,7 +342,7 @@ const StockKLinePage: React.FC = () => {
     const stockCodeFormURL = searchParams.get('stockCode');
     if (!stockCodeFormURL) return;
     const code = normalizeStockCode(stockCodeFormURL);
-    if (!code || getStockKLine()?.code === code) return;
+    if (!code || getStockKLineInfo()?.code === code) return;
     selectKLineStock({ code, name: '' }, { syncUrl: false });
   }, [searchParams, selectKLineStock]);
 

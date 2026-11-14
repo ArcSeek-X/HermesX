@@ -38,20 +38,20 @@ export const useStockKLineStore = create<{ stockKLineSelected: StockKLineSelecti
 
 
 /** 非 Hook 场景同步读取当前选中股票 */
-export function getStockKLine(): StockKLineSelection {
+export function getStockKLineInfo(): StockKLineSelection {
   return useStockKLineStore.getState().stockKLineSelected;
 }
 
 /** 整体写入或换股；name 未知时传空串 */
-export function setStockKLine(stockToSelect: StockRef): void {
+export function setStockKLineInfo(stockToSelect: StockRef): void {
   const code = stockToSelect.code.trim();
   if (!code) return;
   writeStockKLineSelection({ code, name: stockToSelect.name ?? '' });
 }
 
 /** 合并更新已有值；未选中时忽略，不创建缺 code 的残缺对象 */
-export function updateStockKLine(stockFieldsToUpdate: Partial<StockRef>): void {
-  const currentStockKLine = getStockKLine();
+export function updateStockKLineInfo(stockFieldsToUpdate: Partial<StockRef>): void {
+  const currentStockKLine = getStockKLineInfo();
   if (!currentStockKLine) return;
   writeStockKLineSelection({
     code: stockFieldsToUpdate.code?.trim() || currentStockKLine.code,
@@ -60,13 +60,13 @@ export function updateStockKLine(stockFieldsToUpdate: Partial<StockRef>): void {
 }
 
 /** 清空选中态并删除会话键，刷新与往返都不复活旧股票 */
-export function removeStockKLine(): void {
+export function removeStockKLineInfo(): void {
   removeStorageItem(STOCK_KLINE_SESSION_KEY, 'session');
   useStockKLineStore.setState({ stockKLineSelected: null });
 }
 
 /** 从会话存储重新载入，供测试模拟刷新 */
-export function hydrateStockKLine(): void {
+export function hydrateStockKLineInfo(): void {
   useStockKLineStore.setState({ stockKLineSelected: readStockKLineSelection() });
 }
 

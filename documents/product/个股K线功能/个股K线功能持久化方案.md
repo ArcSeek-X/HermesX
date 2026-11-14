@@ -209,10 +209,10 @@ const STOCK_KLINE_SESSION_KEY = 'stockKLine';
 | API | 签名 | 语义 | 持久化动作 |
 | --- | --- | --- | --- |
 | Hook | `useStockKLineStore(selector?)` | 组件订阅当前 `StockRef \| null` | 初始化时 `getStorageItem<unknown>(STOCK_KLINE_SESSION_KEY, 'session')` 恢复 |
-| 读 | `getStockKLine(): StockRef \| null` | 非 Hook 场景（回调 / effect）同步读取 | 读内存 store |
-| **增 / 覆盖** | `setStockKLine(stockToSelect: StockRef): void` | 整体写入一个新对象（新增或换股） | `setStorageItem(STOCK_KLINE_SESSION_KEY, stockToSelect, 'session')` |
-| **局部更新** | `updateStockKLine(stockFieldsToUpdate: Partial<StockRef>): void` | 合并更新已有值（如行情返回后补 `name`、修正 `code`）；**当前无值时忽略，不创建半成品对象** | 读-合并-`setStorageItem`；只接受 `code` / `name` |
-| **删除** | `removeStockKLine(): void` | 删除选中态（清空搜索框时调用） | `removeStorageItem(STOCK_KLINE_SESSION_KEY, 'session')` + store 置 `null` |
+| 读 | `getStockKLineInfo(): StockRef \| null` | 非 Hook 场景（回调 / effect）同步读取 | 读内存 store |
+| **增 / 覆盖** | `setStockKLineInfo(stockToSelect: StockRef): void` | 整体写入一个新对象（新增或换股） | `setStorageItem(STOCK_KLINE_SESSION_KEY, stockToSelect, 'session')` |
+| **局部更新** | `updateStockKLineInfo(stockFieldsToUpdate: Partial<StockRef>): void` | 合并更新已有值（如行情返回后补 `name`、修正 `code`）；**当前无值时忽略，不创建半成品对象** | 读-合并-`setStorageItem`；只接受 `code` / `name` |
+| **删除** | `removeStockKLineInfo(): void` | 删除选中态（清空搜索框时调用） | `removeStorageItem(STOCK_KLINE_SESSION_KEY, 'session')` + store 置 `null` |
 
 **Why（单一写入口）**：所有写路径都经过这三个 API，才能保证「内存与持久化不漂移」；若允许调用方直接 `setStorageItem` 或绕过 store 写 `hrs-state-stockKLine`，场景 2/6 的「清空后复活」会再次出现。
 
@@ -220,13 +220,13 @@ const STOCK_KLINE_SESSION_KEY = 'stockKLine';
 
 ```ts
 // 页内搜索提交 / 外部入口注入
-setStockKLine({ code: '603019', name: '中科曙光' });
+setStockKLineInfo({ code: '603019', name: '中科曙光' });
 
 // 行情返回后补全名称（name 未知时先写了 ''）
-updateStockKLine({ name: stockInfo.name });
+updateStockKLineInfo({ name: stockInfo.name });
 
 // 点击搜索框清除按钮
-removeStockKLine();
+removeStockKLineInfo();
 
 // 组件内读取
 const stockKLineSelected = useStockKLineStore((klineStore) => klineStore.stockKLineSelected);
@@ -234,9 +234,9 @@ const stockKLineSelected = useStockKLineStore((klineStore) => klineStore.stockKL
 
 **约束**：
 
-- 【强制】`setStockKLine` 的入参必须是完整 `StockRef`；`code` 需先经 `normalizeStockCode` / `.split('.')[0]` 归一为纯代码。
-- 【强制】`updateStockKLine` 不得用于「从无到有」创建，避免写入 `{ name }` 缺少 `code` 的残缺对象。
-- 【强制】`removeStockKLine` 是**唯一**的删除入口；`clear()` 与未来的「退出登录清理」都调用它。
+- 【强制】`setStockKLineInfo` 的入参必须是完整 `StockRef`；`code` 需先经 `normalizeStockCode` / `.split('.')[0]` 归一为纯代码。
+- 【强制】`updateStockKLineInfo` 不得用于「从无到有」创建，避免写入 `{ name }` 缺少 `code` 的残缺对象。
+- 【强制】`removeStockKLineInfo` 是**唯一**的删除入口；`clear()` 与未来的「退出登录清理」都调用它。
 - 【推荐】`stores/index.ts` 追加 `export * from './StockKLine';`，与目录内其他 store 的 barrel 导出惯例保持一致。
 
 <a id="sec-4"></a>
@@ -265,7 +265,7 @@ const stockKLineSelected = useStockKLineStore((klineStore) => klineStore.stockKL
 ```
 
 - 【强制】**URL 无参数时绝不动 L1**。侧边栏「跳回」是无参数固定路径，若把「无参数」解释为「清空」，场景 4/7 的股票必丢。
-- 【强制】「清空」= `removeStockKLine()` 删除键；删完后刷新、跳走跳回、手敲网址进来都仍是「无值」→ 一直是列表（场景 2/5/6）。
+- 【强制】「清空」= `removeStockKLineInfo()` 删除键；删完后刷新、跳走跳回、手敲网址进来都仍是「无值」→ 一直是列表（场景 2/5/6）。
 - URL 有参数且与当前 `code` 不同：视为一次新的显式意图，`select()` 覆盖 L1；相同则同值去重，不重复请求（《jump2Kline.md》§3.1）。
 - L1 有值时 `name` 立即回填搜索框展示标签，`code` 驱动 `loadStockData`。
 
@@ -275,13 +275,13 @@ const stockKLineSelected = useStockKLineStore((klineStore) => klineStore.stockKL
 
 ```text
 select(stockToSelect: StockRef):               // 外部入口注入、页内搜索提交
-  setStockKLine(stockToSelect)                // 增 / 覆盖：L1 真源 + sessionStorage
+  setStockKLineInfo(stockToSelect)                // 增 / 覆盖：L1 真源 + sessionStorage
   setSearchParams({ stockCode: stockToSelect.code }, { replace: true })   // 同步 L3 镜像；replace 不污染历史
   loadStockData(stockToSelect.code)           // 由 L1.code 变化驱动
-    └ 成功且 stockToSelect.name 为空 / 与行情名不一致 → updateStockKLine({ name: stockInfo.name })
+    └ 成功且 stockToSelect.name 为空 / 与行情名不一致 → updateStockKLineInfo({ name: stockInfo.name })
 
 clear():                                       // 点击搜索框清除按钮
-  removeStockKLine()                          // 删除：store 置 null + removeStorageItem('stockKLine','session')
+  removeStockKLineInfo()                          // 删除：store 置 null + removeStorageItem('stockKLine','session')
   setSearchParams({}, { replace: true })       // 擦掉 L3 → 刷新不会按参数重载
   复位 L2：stockInfo=null / klineData=[] / 展示标签='' / 作废在途请求序号
   不发起行情请求、不写最近搜索
@@ -325,7 +325,7 @@ navigate('/stock/kline', { state: { stockCode: code } });
 | ✅ 持久化值严格为 `{ code, name }`，类型复用 `StockRef` | 与 `types/stock.ts` 单一真源对齐 |
 | ✅ `setSearchParams(..., { replace: true })` | 同步 URL 镜像且不污染历史 |
 | ✅ URL 无参数时沿用 L1 | 场景 4/7 的关键 |
-| ✅ 清空调用 `removeStockKLine()` 删除 `stockKLine` 键 | 刷新 / 跳回都不复活 |
+| ✅ 清空调用 `removeStockKLineInfo()` 删除 `stockKLine` 键 | 刷新 / 跳回都不复活 |
 | ✅ 数据加载只认 L1 的 `code`，不认展示标签 / 输入草稿 | 与《jump2Kline.md》§3.2 一致 |
 | ❌ `location.state` 传 `stockCode` | 清空难擦、跳回残留、双副本 |
 | ❌ `window.history.replaceState` 改地址栏 | 与 React Router 失同步 |
@@ -393,10 +393,10 @@ cacheKeyParams: { '/stock/kline': [] };
 | # | 操作序列 | 期望 | 由哪条机制保证 |
 | --- | --- | --- | --- |
 | 1 | 外部入口 `?stockCode=中科曙光` → 刷新 | 保留 | 注入写 `stockKLine`（sessionStorage 持久化 `{code,name}`）；刷新后 URL 仍在，同值去重；`name` 立即回填标签 |
-| 2 | 外部入口 → 清空 | 最近搜索列表 | `removeStockKLine()` 删键 + 擦 URL + 复位 L2；不再读取 `location.state` |
+| 2 | 外部入口 → 清空 | 最近搜索列表 | `removeStockKLineInfo()` 删键 + 擦 URL + 复位 L2；不再读取 `location.state` |
 | 3 | 直接进 → 页内搜「中科曙光」→ 刷新 | 保留 | 页内搜索走 `select()` 写 `stockKLine` + URL；刷新由 L1 / URL 恢复 |
 | 4 | 直接进 → 页内搜 → 跳走 → 跳回 | 保留 | 跳回 URL 无参数 ⇒「无参数不清 L1」+ L1 会话级持久化；实例在则复用 L2，否则按 L1 重载 |
-| 5 | 直接进 → 页内搜 → 清空 | 最近搜索列表 | `clear()` → `removeStockKLine()` |
+| 5 | 直接进 → 页内搜 → 清空 | 最近搜索列表 | `clear()` → `removeStockKLineInfo()` |
 | 6 | 外部入口 → 清空 → 跳走 → 跳回 | 最近搜索列表 | `stockKLine` 键已删除、URL 无参数不注入、`history.state` 不被消费 ⇒ 不复活 |
 | 7 | 外部入口 → 跳走 → 跳回 | 保留 | 同 4 |
 
@@ -438,7 +438,7 @@ cacheKeyParams: { '/stock/kline': [] };
 | 文件 | 改动 |
 | --- | --- |
 | `stores/index.ts` | 追加 `export * from './StockKLine';`（barrel 导出） |
-| `pages/Stock/StockKLinePage/StockKLinePage.tsx` | 删除本地 `stockCode` state，改为 `useStockKLineStore()` 派生；`handleSearchSubmit` → `select({ code, name })`；`onClear` → `clear()`（调 `removeStockKLine()`）；URL effect 改为「仅新 code 单向注入」；`name` 用于立即回填展示标签、行情返回后 `update` 补名；移除 `location.state` 读取与 `useLocation` |
+| `pages/Stock/StockKLinePage/StockKLinePage.tsx` | 删除本地 `stockCode` state，改为 `useStockKLineStore()` 派生；`handleSearchSubmit` → `select({ code, name })`；`onClear` → `clear()`（调 `removeStockKLineInfo()`）；URL effect 改为「仅新 code 单向注入」；`name` 用于立即回填展示标签、行情返回后 `update` 补名；移除 `location.state` 读取与 `useLocation` |
 | `router/keepAliveConfig.ts` | 新增 `cacheKeyParams`，`/stock/kline: []` |
 | `components/layout/KeepAliveOutlet.tsx` | `activeCacheKey` 按白名单计算 |
 | `components/kline/KLineChart.tsx` | 容器 `ResizeObserver` → `chart.resize()` |
@@ -480,8 +480,8 @@ cacheKeyParams: { '/stock/kline': [] };
 | Store CRUD | 直接调用 `set / update / remove / get` | 内存值与 `getStorageItem('stockKLine', 'session')` 始终一致；`remove` 后返回 `null`；`update` 在无值时被忽略；脏值解析回退 `null` 且不回写 |
 | 刷新 | 重新挂载页面组件，但保留 `hrs-state-stockKLine` 与初始 URL | 保留选中股票（含 `name` 标签）/ 保留清空态 |
 | 跳走 → 跳回 | 卸载页面组件后重新挂载于无参数 `/stock/kline`，保留 `hrs-state-stockKLine` | 同上；并验证实例复用时不重复请求 |
-| 清空 | 触发 `StockSearch.onClear` | `getStockKLine() === null`、键已删除、URL 无 `stockCode`、列表可见、无行情请求、无最近搜索写入 |
-| name 补全 | 以 `?stockCode=603019`（无名称）进入，mock 行情返回 | `updateStockKLine({ name })` 被调用；刷新后标签直接显示「中科曙光（603019.SH）」 |
+| 清空 | 触发 `StockSearch.onClear` | `getStockKLineInfo() === null`、键已删除、URL 无 `stockCode`、列表可见、无行情请求、无最近搜索写入 |
+| name 补全 | 以 `?stockCode=603019`（无名称）进入，mock 行情返回 | `updateStockKLineInfo({ name })` 被调用；刷新后标签直接显示「中科曙光（603019.SH）」 |
 | 缓存键 | 分别以带参 / 不带参 location 渲染 `KeepAliveOutlet` | `/stock/kline` 恒为同一 `activeCacheKey`；其他路由仍含完整 search |
 | 图表尺寸 | mock `ResizeObserver` 触发回调 | `chart.resize()` 被调用 |
 
@@ -532,10 +532,10 @@ cacheKeyParams: { '/stock/kline': [] };
 | 旧版本 `location.state` 残留在 `history.state.usr` | 读取侧彻底不再消费 state；`setSearchParams(..., { replace: true })` 由 RR 重写 `history.state`，顺带清除残留 |
 | 旧书签 / 外部链接带 `?stockCode=` | 协议名与归一规则不变，按 [§4.1](#sec-4-1) 注入，向后兼容 |
 | 旧版本 `hrs-state-pageState` 中的 `kline` 分区残留 | 本方案不读取该切片；`PageStateStore` 现有「按已知分区逐项合并」逻辑会忽略它，无影响 |
-| `name` 是快照，可能与最新行情名 / 索引名不一致 | 行情加载成功后 `updateStockKLine({ name: stockInfo.name })` 覆盖；展示标签最终以行情 / 索引为准（《jump2Kline.md》§3.2） |
-| 持久化值结构被写脏（缺 `code` / `name` 非 string） | 初始化时校验并回退 `null`，且不回写脏值；`setStockKLine` 入参强制 `StockRef` |
+| `name` 是快照，可能与最新行情名 / 索引名不一致 | 行情加载成功后 `updateStockKLineInfo({ name: stockInfo.name })` 覆盖；展示标签最终以行情 / 索引为准（《jump2Kline.md》§3.2） |
+| 持久化值结构被写脏（缺 `code` / `name` 非 string） | 初始化时校验并回退 `null`，且不回写脏值；`setStockKLineInfo` 入参强制 `StockRef` |
 | 无 `window` 环境（SSR / 单测）读取抛错 | `@utils/storage` 的 `getStorageItem` 已内建 `try/catch`，异常时返回 `null`；store 按「未选中」初始化，单测由 jsdom 提供 `sessionStorage` |
-| `clearHRSStorage('session')` 会连带清掉 K 线选中态 | 前缀统一后的预期行为：批量清理本就应清空页面状态；单独清空仍走 `removeStockKLine()`（唯一删除入口） |
+| `clearHRSStorage('session')` 会连带清掉 K 线选中态 | 前缀统一后的预期行为：批量清理本就应清空页面状态；单独清空仍走 `removeStockKLineInfo()`（唯一删除入口） |
 | zustand store 订阅导致无关组件重渲染 | 该 store 只被 K 线页及少量入口消费，且 `code/name` 变更频率低；必要时用 selector 精确订阅 |
 | 清空时 `setSearchParams` 触发路由动作 | 缓存键忽略 `search` ⇒ 不换实例；`replace: true` ⇒ 不新增历史条目 |
 | 多标签页共享 `sessionStorage`？ | 否，sessionStorage 按标签页隔离，语义正好；不同标签页各自记住自己的股票 |

@@ -5,7 +5,7 @@
  * 有值恢复该股票、无值展示最近搜索列表，不区分进入方式。
  *
  * 模拟手法：
- * - 刷新 / 跳走跳回 = 卸载组件 → hydrateStockKLine()（模拟模块重新加载读持久化）→ 重新挂载；
+ * - 刷新 / 跳走跳回 = 卸载组件 → hydrateStockKLineInfo()（模拟模块重新加载读持久化）→ 重新挂载；
  * - 跳走跳回用无参数 URL（侧边栏 NavLink 的真实形态），刷新保留原 URL；
  * - 所有断言围绕「是否显示行情/K 线」与「是否显示最近搜索列表」，不依赖真实后端。
  *
@@ -16,9 +16,9 @@ import { render, screen, waitFor, fireEvent, act, cleanup } from '@testing-libra
 import { MemoryRouter, useSearchParams } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
 import {
-  getStockKLine,
-  hydrateStockKLine,
-  removeStockKLine,
+  getStockKLineInfo,
+  hydrateStockKLineInfo,
+  removeStockKLineInfo,
 } from '../../stores/StockKLine';
 import { getStorageItem } from '@utils/storage';
 
@@ -173,7 +173,7 @@ function mountPage(path = ENTRY_BARE) {
 /** 模拟刷新 / 跨路由往返：卸载 → 从持久化重新 hydrate → 重新挂载 */
 async function remount(path: string) {
   cleanup();
-  hydrateStockKLine();
+  hydrateStockKLineInfo();
   return act(async () => mountPage(path));
 }
 
@@ -212,7 +212,7 @@ async function clickSubmit() {
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
-  removeStockKLine(); // 重置模块级单例内存态，保证用例隔离
+  removeStockKLineInfo(); // 重置模块级单例内存态，保证用例隔离
   fetchStockInfoMock.mockImplementation(async (code: string) =>
     makeInfo(code, code === '603019' ? '中科曙光' : '贵州茅台'),
   );
@@ -230,12 +230,12 @@ describe('个股 K 线持久化：7 场景验收', () => {
   it('1. 外部入口 ?stockCode= 进入后，刷新仍保留中科曙光的 K 线图与信息', async () => {
     await act(async () => mountPage(ENTRY_WITH_CODE));
     await expectStockVisible();
-    expect(getStockKLine()).toEqual({ code: '603019', name: '中科曙光' });
+    expect(getStockKLineInfo()).toEqual({ code: '603019', name: '中科曙光' });
 
     // 刷新：URL 仍带参数，持久化应恢复同一只股票
     await remount(ENTRY_WITH_CODE);
     await expectStockVisible();
-    expect(getStockKLine()).toEqual({ code: '603019', name: '中科曙光' });
+    expect(getStockKLineInfo()).toEqual({ code: '603019', name: '中科曙光' });
   });
 
   // 场景 2
@@ -245,7 +245,7 @@ describe('个股 K 线持久化：7 场景验收', () => {
 
     await clickClear();
     await expectRecentListVisible();
-    expect(getStockKLine()).toBeNull();
+    expect(getStockKLineInfo()).toBeNull();
     expect(getStorageItem('stockKLine', 'session')).toBeNull();
     // URL 镜像同步擦除，刷新不会按参数重载
     await waitFor(() => {
@@ -278,7 +278,7 @@ describe('个股 K 线持久化：7 场景验收', () => {
 
     await remount(ENTRY_BARE); // 侧边栏 NavLink 是无参数固定路径
     await expectStockVisible();
-    expect(getStockKLine()).toEqual({ code: '603019', name: '中科曙光' });
+    expect(getStockKLineInfo()).toEqual({ code: '603019', name: '中科曙光' });
   });
 
   // 场景 5
@@ -302,7 +302,7 @@ describe('个股 K 线持久化：7 场景验收', () => {
 
     await remount(ENTRY_BARE);
     await expectRecentListVisible();
-    expect(getStockKLine()).toBeNull();
+    expect(getStockKLineInfo()).toBeNull();
     expect(getStorageItem('stockKLine', 'session')).toBeNull();
   });
 
@@ -331,7 +331,7 @@ describe('个股 K 线持久化：补充回归', () => {
     await act(async () => mountPage(ENTRY_WITH_CODE));
     await expectStockVisible();
     await waitFor(() => {
-      expect(getStockKLine()).toEqual({ code: '603019', name: '中科曙光' });
+      expect(getStockKLineInfo()).toEqual({ code: '603019', name: '中科曙光' });
     });
     expect(Object.keys(getStorageItem<Record<string, unknown>>('stockKLine', 'session') ?? {})).toEqual([
       'code',
@@ -344,7 +344,7 @@ describe('个股 K 线持久化：补充回归', () => {
     await expectStockVisible();
 
     await remount(ENTRY_BARE);
-    expect(getStockKLine()).toEqual({ code: '603019', name: '中科曙光' });
+    expect(getStockKLineInfo()).toEqual({ code: '603019', name: '中科曙光' });
     expect(getStorageItem('stockKLine', 'session')).toEqual({ code: '603019', name: '中科曙光' });
   });
 });

@@ -10,7 +10,7 @@ import { StockInfoHeader } from '@components/kline/StockInfoHeader';
 import { PeriodSelector } from '@components/kline/PeriodSelector';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
 import { klineApi, type KLinePeriod, type KLinePoint, type StockInfo } from '../../../../api/kline';
-import { getStockKLine, updateStockKLine } from '../../../../stores/StockKLine';
+import { getStockKLineInfo, updateStockKLineInfo } from '../../../../stores/StockKLine';
 
 const DEFAULT_PERIOD: KLinePeriod = '1m';
 const FULL_DATA_LIMIT = 10000;
@@ -60,9 +60,9 @@ function StockKLineChartPanel({ stockCode, onStockQuoteLoaded }: StockKLineChart
         setStockQuote(quote);
         setKlinePoints(klineResult.data);
         // 外部入口注入时 name 可能为空，行情返回后以接口名称修正持久化值
-        const persisted = getStockKLine();
+        const persisted = getStockKLineInfo();
         if (persisted?.code === stockCode && quote.name && persisted.name !== quote.name) {
-          updateStockKLine({ name: quote.name });
+          updateStockKLineInfo({ name: quote.name });
         }
         if (!hasReportedStockQuoteRef.current) {
           hasReportedStockQuoteRef.current = true;

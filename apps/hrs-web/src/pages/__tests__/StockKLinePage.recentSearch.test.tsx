@@ -10,7 +10,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
-import { removeStockKLine } from '../../stores/StockKLine';
+import { removeStockKLineInfo } from '../../stores/StockKLine';
 
 const { recordRecentSearchMock, getListMock, clearMock } = vi.hoisted(() => ({
   recordRecentSearchMock: vi.fn(),
@@ -134,7 +134,7 @@ beforeEach(() => {
   // PageStateProvider 会从 sessionStorage 恢复上次测试的 stockInfo；StockKLine store 是模块
   // 级单例，也必须重置内存态，否则上个用例选中的股票会串到下个用例（直达被同代码短路）。
   sessionStorage.clear();
-  removeStockKLine();
+  removeStockKLineInfo();
   searchStocksMock.mockResolvedValue([{ code: '600519', name: '贵州茅台' }]);
   fetchStockInfoMock.mockResolvedValue(makeStockInfo());
   fetchKLineMock.mockResolvedValue(makeKLineResp());

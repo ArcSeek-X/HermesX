@@ -16,7 +16,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
-import { removeStockKLine } from '../../stores/StockKLine';
+import { removeStockKLineInfo } from '../../stores/StockKLine';
 
 // ---- mock echarts（KLineChart 依赖）----
 vi.mock('echarts', () => {
@@ -144,7 +144,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // 清掉上一用例写入 sessionStorage 的页面状态，并重置 StockKLine 模块级单例内存态
   sessionStorage.clear();
-  removeStockKLine();
+  removeStockKLineInfo();
   fetchStockInfoMock.mockResolvedValue(makeStockInfo());
   fetchKLineMock.mockResolvedValue(makeKLineResp());
   searchStocksMock.mockResolvedValue([{ code: '600519', name: '贵州茅台' }]);
