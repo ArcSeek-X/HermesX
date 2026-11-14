@@ -4,7 +4,8 @@
  *   路由切换后保留实例，切回时状态 / 数据原样恢复。设计基准见 ADR-002。
  *
  * 关键点：
- * - 缓存键 = pathname + search + hash（query / hash 变化即重挂载）；
+ * - 缓存键默认 = pathname + search + hash（query / hash 变化即重挂载）；
+ *   声明了 cacheKeyParams 白名单的路由只按白名单参数（或仅 pathname）计算，见 keepAliveConfig.ts；
  * - exclude / include 规则引用须保持稳定（库按引用做 memo 比较），故以 useMemo 固化；
  * - 库要求不能包裹 <React.StrictMode />（开发模式缓存不可预期），见 main.tsx；
  * - 滚动偏移以 location 为键，在切页前后保存 / 恢复（layout effect，先于 paint）。
@@ -15,7 +16,7 @@ import { useLocation } from 'react-router-dom';
 import KeepAliveRouteOutlet from 'keepalive-for-react-router';
 import { RouteBoundary } from '../../pages/ErrorPage/RouteBoundary';
 import { useScrollContainerRef } from '../../contexts/ScrollContainerContext';
-import { KEEP_ALIVE_CONFIG } from '../../router/keepAliveConfig';
+import { buildActiveCacheKey, KEEP_ALIVE_CONFIG } from '../../router/keepAliveConfig';
 
 /** 转义 RegExp 元字符，保证 pathname 按字面匹配 */
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -111,10 +112,14 @@ export const KeepAliveOutlet: React.FC = () => {
     return { exclude, include };
   }, []);
 
+  // /stock/kline 的 ?stockCode= 只是深链注入与镜像：按白名单计算键，
+  // 同 pathname 恒为同一实例，写 / 删参数不会换出页面、复活陈旧行情或压窄图表。
+  const activeCacheKey = buildActiveCacheKey(location.pathname, location.search, location.hash);
+
   return (
     <>
       <KeepAliveRouteOutlet
-        activeCacheKey={`${location.pathname}${location.search}${location.hash}`}
+        activeCacheKey={activeCacheKey}
         max={KEEP_ALIVE_CONFIG.maxCacheSize}
         maxAliveTime={KEEP_ALIVE_CONFIG.maxAliveTime}
         errorElement={CacheErrorElement}

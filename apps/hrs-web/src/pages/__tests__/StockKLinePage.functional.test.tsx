@@ -16,6 +16,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
+import { removeStockKLine } from '../../stores/StockKLine';
 
 // ---- mock echarts（KLineChart 依赖）----
 vi.mock('echarts', () => {
@@ -46,9 +47,9 @@ vi.mock('@components/StockSearch/StockSearch', () => ({
   StockSearch: ({
     onSubmit,
   }: {
-    onSubmit: (code: string, name?: string) => void;
+    onSubmit: (stock: { canonicalCode: string; name?: string }) => void;
   }) => (
-    <button type="button" data-testid="submit-stock" onClick={() => onSubmit('贵州茅台', '贵州茅台')}>
+    <button type="button" data-testid="submit-stock" onClick={() => onSubmit({ canonicalCode: '贵州茅台', name: '贵州茅台' })}>
       submit
     </button>
   ),
@@ -141,8 +142,9 @@ function makeStockInfo() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // 清掉上一用例写入 sessionStorage 的页面状态，保证「未选股」初始态可复现
+  // 清掉上一用例写入 sessionStorage 的页面状态，并重置 StockKLine 模块级单例内存态
   sessionStorage.clear();
+  removeStockKLine();
   fetchStockInfoMock.mockResolvedValue(makeStockInfo());
   fetchKLineMock.mockResolvedValue(makeKLineResp());
   searchStocksMock.mockResolvedValue([{ code: '600519', name: '贵州茅台' }]);

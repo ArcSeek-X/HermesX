@@ -24,7 +24,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, BarChart3, RefreshCw, Search, ShieldCheck } from 'lucide-react';
-import type { StockSelectionMeta } from '../types/stock';
+import type { StockSearchSelection } from '@components/StockSearch/types';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
@@ -1055,19 +1055,14 @@ const DecisionSignalsPage: React.FC = () => {
     void loadTimelineForContext(nextContext, nextTimeline.filters);
   }, [activeStockContext, loadLatestForContext, loadTimelineForContext, timelineFilters]);
 
-  const handleStockSubmit = useCallback((
-    code: string,
-    name?: string,
-    _source?: 'manual' | 'autocomplete',
-    metadata?: StockSelectionMeta,
-  ) => {
-    const trimmedCode = code.trim();
+  const handleStockSubmit = useCallback((stock: StockSearchSelection) => {
+    const trimmedCode = stock.canonicalCode.trim();
     if (!trimmedCode) return;
     applyStockContext({
       code: trimmedCode,
-      displayCode: metadata?.displayCode,
-      name,
-      market: normalizeDecisionSignalMarket(metadata?.marketTag),
+      displayCode: stock.displayCode,
+      name: stock.name,
+      market: normalizeDecisionSignalMarket(stock.market),
     });
   }, [applyStockContext]);
 
@@ -1080,7 +1075,7 @@ const DecisionSignalsPage: React.FC = () => {
       applyStockContext(activeStockContext);
       return;
     }
-    handleStockSubmit(code);
+    handleStockSubmit({ canonicalCode: code, code, displayLabel: code, source: 'manual' });
   }, [activeStockContext, applyStockContext, handleStockSubmit]);
 
   const handleClearStockContext = useCallback(() => {

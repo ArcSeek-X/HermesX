@@ -9,7 +9,7 @@ import { StockSearch } from '@components/StockSearch/StockSearch';
 import { CountryMarketSelect, type CountryMarketOptionDef } from '@components';
 import { HrsButton } from '@components/basic/HrsButton/HrsButton';
 import { useUiLanguage } from '@/contexts/UiLanguageContext';
-import type { StockSelectionMeta } from '@/types/stock';
+import type { StockSearchSelection } from '@/components/StockSearch/types';
 import type { StockMetricViewSupportedMarket } from '@/types/stockMetricView';
 import type { UseStockMetricViewResult } from '@/hooks/useStockMetricView';
 import { StockMetricViewConditionEditor } from './StockMetricViewConditionEditor';
@@ -63,15 +63,10 @@ export function StockMetricViewFilterBar({
   // 已选股票代码：从 conditions 的 code 条件派生；重置 / 删除后搜索框同步清空
   const selectedCode = String(conditions.find((item) => item.field === 'code')?.value ?? '');
 
-  /** 下拉选中 / 回车提交：优先用展示代码（不带市场后缀，与后端行 code 一致） */
-  const handleStockSubmit = (
-    code: string,
-    _name?: string,
-    _source?: 'manual' | 'autocomplete',
-    metadata?: StockSelectionMeta,
-  ): void => {
-    if (!code) return;
-    selectStock(metadata?.displayCode ?? code.split('.')[0], normalizeMarketTag(metadata?.marketTag));
+  /** 下拉选中 / 回车提交：优先用纯代码（不带市场后缀，与后端行 code 一致） */
+  const handleStockSubmit = (stock: StockSearchSelection): void => {
+    if (!stock.canonicalCode) return;
+    selectStock(stock.code || stock.canonicalCode.split('.')[0], normalizeMarketTag(stock.market));
   };
 
   return (

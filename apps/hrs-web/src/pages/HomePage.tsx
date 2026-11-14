@@ -31,11 +31,9 @@ const ReviewPage: React.FC = () => {
             value={query}
             size="lg"
             onChange={setQuery}
-            onSubmit={(code, name, source, metadata) => {
-              // metadata.displayLabel 为"名称（规范代码）"，如"中科曙光（603019.SH）"；
-              // 组件内部已用该文案兜底展示，此处仅用于外部需要时的联动。
+            onSubmit={(stock) => {
               // TODO: 接入首页搜索提交逻辑
-              console.log('submit stock:', code, name, source, metadata?.displayLabel);
+              console.log('submit stock:', stock);
             }}
           />
         </div>

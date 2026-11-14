@@ -1,9 +1,5 @@
 /**
- * 股票名称截断工具
- *
- * 作用：在 UI 空间有限（如标签、列表项）时，对股票名称做按字符类型分级的长度截断，
- * 避免长名称撑破布局。规则：纯英文最多 15 字符、纯中文最多 8 字符、中英混排最多 10 字符，
- * 超出部分截断并补省略号。
+ * 股票名称展示工具：拼装「名称（规范代码）」标签，以及 UI 空间有限时的名称截断。
  */
 
 /**
@@ -79,3 +75,16 @@ export function isStockNameTruncated(name: string): boolean {
   if (!name) return false;
   return name.length > getMaxLength(name);
 }
+
+/**
+ * 拼装展示标签「名称（规范代码）」，如「中科曙光（603019.SH）」。
+ * 名称或规范代码缺失时按已有部分退化，避免出现空括号。
+ */
+export function getStockDisplayLabel(name?: string, canonicalCode?: string): string {
+  if (!canonicalCode) return name ?? '';
+  if (!name) return canonicalCode;
+  return `${name}（${canonicalCode}）`;
+}
+
+
+

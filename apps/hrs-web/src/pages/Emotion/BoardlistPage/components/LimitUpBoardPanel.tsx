@@ -31,7 +31,7 @@ export function LimitUpBoardPanel() {
   const [isBoardLoading, setIsBoardLoading] = useState(true);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>(DEFAULT_SORT);
 
-  /** 点击代码 / 名称列跳转个股 K 线页：统一 ?stockCode= 直达，见 jump2Kline.md */
+  /** 点击代码 / 名称列跳转个股 K 线页：统一带 ?stockCode= 直达，见 jump2Kline.md */
   const openStockKline = useCallback(
     (row: LimitBoardRow) => {
       const pureCode = normalizeStockCode(row.code);

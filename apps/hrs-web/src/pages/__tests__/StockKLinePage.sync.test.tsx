@@ -15,6 +15,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
+import { removeStockKLine } from '../../stores/StockKLine';
 import type { StockIndexItem } from '../../types/stockIndex';
 
 vi.mock('echarts', () => {
@@ -84,6 +85,8 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
+  removeStockKLine(); // StockKLine 是模块级单例，需重置内存态保证用例隔离
   currentIndex = [INDEX_HIT];
   fetchStockInfoMock.mockResolvedValue({ code: '600519', name: '贵州茅台', price: 1720, change: 20, changePct: 1.2, prevClose: 1700, open: 1701, high: 1730, low: 1690, volume: 1000, amount: 1700000, turnoverRate: 0.3, amplitude: 2.4, peRatioTTM: 30, totalMarketCap: 2100000000000 });
   fetchKLineMock.mockResolvedValue({ stock_code: '600519', stock_name: '贵州茅台', prev_close: 1700, data: [{ date: '2024-01-02', open: 1701, close: 1720, high: 1730, low: 1690, volume: 1000, amount: 1700000, change_percent: 1.2, turnover_rate: 0.3 }], count: 1, has_more: false });

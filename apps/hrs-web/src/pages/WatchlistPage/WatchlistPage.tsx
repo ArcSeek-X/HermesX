@@ -16,6 +16,7 @@ import WatchlistStockTable from './components/WatchlistStockTable';
 import { BookmarkFill } from '@gravity-ui/icons';
 import { Label, TextField, Description } from '@heroui/react';
 import { type WatchlistItemWithQuote } from '../../api/watchlist';
+import type { StockSearchSelection } from '@components/StockSearch/types';
 import { getParsedApiError, type ParsedApiError } from '../../api/error';
 
 type WatchlistSortField = 'default' | 'changePct' | 'amount' | 'turnoverRate' | 'totalMarketCap';
@@ -104,9 +105,9 @@ const WatchlistPage: React.FC = () => {
     return sortByFieldDesc(filtered, (stock) => stock.quote?.[sortField]);
   }, [watchlistItems, debouncedStockSearch, sortField, indexByCode]);
 
-  const onSelectStockForAdd = (code: string, name?: string) => {
-    setSelectedStockCode(code);
-    setSelectedStockName(name ?? code);
+  const onSelectStockForAdd = (stock: StockSearchSelection) => {
+    setSelectedStockCode(stock.canonicalCode);
+    setSelectedStockName(stock.name ?? stock.canonicalCode);
   };
 
   const watchlistSave = async () => {

@@ -6,7 +6,7 @@
  *   集成测试以行为方式覆盖（`/docs/x` 离开即销毁、`/docsX` 不误伤仍缓存）。
  */
 import { describe, expect, it } from 'vitest';
-import { KEEP_ALIVE_CONFIG } from '../keepAliveConfig';
+import { buildActiveCacheKey, KEEP_ALIVE_CONFIG } from '../keepAliveConfig';
 
 describe('KEEP_ALIVE_CONFIG 默认配置', () => {
   it('默认黑名单语义：include 为空（除 exclude 外全部缓存）', () => {
@@ -27,5 +27,33 @@ describe('KEEP_ALIVE_CONFIG 默认配置', () => {
     expect(KEEP_ALIVE_CONFIG.exclude).toContain('/docs/*');
     expect(KEEP_ALIVE_CONFIG.exclude).toContain('/codeTest');
     expect(KEEP_ALIVE_CONFIG.exclude).toContain('/404');
+  });
+});
+
+describe('buildActiveCacheKey 缓存键 query 白名单', () => {
+  it('/stock/kline 忽略 search 与 hash：带参 / 不带参 / 换参都是同一实例', () => {
+    expect(KEEP_ALIVE_CONFIG.cacheKeyParams['/stock/kline']).toEqual([]);
+    expect(buildActiveCacheKey('/stock/kline', '', '')).toBe('/stock/kline');
+    expect(buildActiveCacheKey('/stock/kline', '?stockCode=603019', '')).toBe('/stock/kline');
+    expect(buildActiveCacheKey('/stock/kline', '?stockCode=600519', '#chart')).toBe('/stock/kline');
+  });
+
+  it('未声明白名单的路由仍按 pathname + search + hash 计算', () => {
+    expect(buildActiveCacheKey('/watchlist', '?group=7', '#top')).toBe('/watchlist?group=7#top');
+    expect(buildActiveCacheKey('/watchlist', '', '')).toBe('/watchlist');
+  });
+
+  it('白名单非空时只取指定参数并按 key 排序，忽略 hash 与其他 query', () => {
+    const original = KEEP_ALIVE_CONFIG.cacheKeyParams['/probe'];
+    KEEP_ALIVE_CONFIG.cacheKeyParams['/probe'] = ['tab', 'id'];
+    try {
+      expect(buildActiveCacheKey('/probe', '?id=2&tab=a&other=x', '#ignored')).toBe(
+        '/probe?id=2&tab=a',
+      );
+      expect(buildActiveCacheKey('/probe', '?other=x', '#ignored')).toBe('/probe');
+    } finally {
+      if (original) KEEP_ALIVE_CONFIG.cacheKeyParams['/probe'] = original;
+      else delete KEEP_ALIVE_CONFIG.cacheKeyParams['/probe'];
+    }
   });
 });

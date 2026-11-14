@@ -190,12 +190,4 @@ export interface StockDisplay {
   displayLabel?: string;
 }
 
-/**
- * 股票选择元信息：StockSearch.onSubmit 回调的 metadata 形状。
- * 在展示字段（StockDisplay）基础上附加原始市场标签 marketTag（来自搜索索引项，
- * 为 StockIndexMarketTag 未归一化值）；调用方如需归一化地域（MarketLocale），
- * 应在边界处自行转换，不在此收口。
- */
-export type StockSelectionMeta = StockDisplay & {
-  marketTag?: StockIndexMarketTag;
-};
+

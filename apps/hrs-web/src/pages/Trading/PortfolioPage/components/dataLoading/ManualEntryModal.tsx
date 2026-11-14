@@ -204,8 +204,8 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
                 size="sm"
                 originalRender
                 onChange={(v) => setTradeForm((prev) => ({ ...prev, symbol: v }))}
-                onSubmit={(_code, _name, source, meta) => {
-                  if (source === 'autocomplete') setTradeDisplay(meta?.displayLabel ?? '');
+                onSubmit={(stock) => {
+                  if (stock.source === 'autocomplete') setTradeDisplay(stock.displayLabel);
                 }}
               />
               <div className="grid grid-cols-2 gap-2">
@@ -309,8 +309,8 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
                 displayValue={corpDisplay || undefined}
                 originalRender
                 onChange={(v) => setCorpForm((prev) => ({ ...prev, symbol: v }))}
-                onSubmit={(_code, _name, source, meta) => {
-                  if (source === 'autocomplete') setCorpDisplay(meta?.displayLabel ?? '');
+                onSubmit={(stock) => {
+                  if (stock.source === 'autocomplete') setCorpDisplay(stock.displayLabel);
                 }}
               />
               <div className="grid grid-cols-2 gap-2">

@@ -1,8 +1,4 @@
-/**
- * StockSearch component tests.
- *
- * @author Lensgcx (GaoCangxiong)
- */
+/** StockSearch 组件测试 */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -356,7 +352,12 @@ describe('StockSearch', () => {
       const input = screen.getByDisplayValue('600519');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnSubmit).toHaveBeenCalledWith('600519');
+      expect(mockOnSubmit).toHaveBeenCalledWith({
+        canonicalCode: '600519',
+        code: '600519',
+        displayLabel: '600519',
+        source: 'manual',
+      });
     });
 
     it('exposes the i18n placeholder as the input accessible label', () => {
@@ -478,9 +479,13 @@ describe('StockSearch', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       // 候选展开但未高亮时，回车提交首个候选（component 统一把中文名/代码转换为规范代码）
-      expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', expect.objectContaining({
-        marketTag: 'CN',
-        displayCode: '600519',
+      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        canonicalCode: '600519.SH',
+        code: '600519',
+        name: '贵州茅台',
+        market: 'CN',
+        displayLabel: '贵州茅台（600519.SH）',
+        source: 'autocomplete',
       }));
     });
 
@@ -515,12 +520,14 @@ describe('StockSearch', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(mockOnChange).toHaveBeenCalledWith('600519');
-      expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '贵州茅台', 'autocomplete', {
-        marketTag: 'CN',
-        displayCode: '600519',
-        // 统一展示格式："股票名称（规范代码）"
+      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        canonicalCode: '600519.SH',
+        code: '600519',
+        name: '贵州茅台',
+        market: 'CN',
         displayLabel: '贵州茅台（600519.SH）',
-      });
+        source: 'autocomplete',
+      }));
     });
 
     it('submits the highlighted HK suggestion using the canonical .HK code', () => {
@@ -554,11 +561,14 @@ describe('StockSearch', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(mockOnChange).toHaveBeenCalledWith('00700');
-      expect(mockOnSubmit).toHaveBeenCalledWith('00700.HK', '腾讯控股', 'autocomplete', {
-        marketTag: 'HK',
-        displayCode: '00700',
+      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        canonicalCode: '00700.HK',
+        code: '00700',
+        name: '腾讯控股',
+        market: 'HK',
         displayLabel: '腾讯控股（00700.HK）',
-      });
+        source: 'autocomplete',
+      }));
     });
 
     it('submits the highlighted BSE suggestion using the canonical .BJ code', () => {
@@ -592,11 +602,14 @@ describe('StockSearch', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(mockOnChange).toHaveBeenCalledWith('920493');
-      expect(mockOnSubmit).toHaveBeenCalledWith('920493.BJ', '示例北交所股票', 'autocomplete', {
-        marketTag: 'BSE',
-        displayCode: '920493',
+      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        canonicalCode: '920493.BJ',
+        code: '920493',
+        name: '示例北交所股票',
+        market: 'BSE',
         displayLabel: '示例北交所股票（920493.BJ）',
-      });
+        source: 'autocomplete',
+      }));
     });
   });
 

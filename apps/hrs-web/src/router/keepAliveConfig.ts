@@ -17,6 +17,13 @@ interface KeepAliveConfig {
   maxAliveTime: number;
   /** 缓存页数量硬上限（LRU）：超出淘汰最久未用页，内存护栏 */
   maxCacheSize: number;
+  /**
+   * 各路由「参与缓存键」的 query 参数白名单（key 为精确 pathname）。
+   * 未声明的路由 = 全部 query 参与（保持既有语义）；
+   * 声明为 [] = 该路由完全忽略 search/hash，仅按 pathname 缓存。
+   * 用途：/stock/kline 的 ?stockCode= 只是深链注入与镜像，改它不应切换页面实例。
+   */
+  cacheKeyParams: Record<string, string[]>;
 }
 
 /**
@@ -30,4 +37,23 @@ export const KEEP_ALIVE_CONFIG: KeepAliveConfig = {
   include: [],
   maxAliveTime: 0,
   maxCacheSize: 8,
+  cacheKeyParams: { '/stock/kline': [] },
 };
+
+/**
+ * 计算 KeepAlive 缓存键。
+ * - 未声明的路由：沿用 pathname + search + hash（既有语义）；
+ * - 声明了白名单的路由：只把白名单内的 query 参数（按 key 排序）拼入键，忽略 hash；
+ * - 白名单为 [] 的路由：仅按 pathname 缓存，写 / 删 ?stockCode= 不切换页面实例。
+ */
+export function buildActiveCacheKey(pathname: string, search: string, hash: string): string {
+  const allow = KEEP_ALIVE_CONFIG.cacheKeyParams[pathname];
+  if (!allow) return `${pathname}${search}${hash}`;
+  if (allow.length === 0) return pathname;
+  const params = new URLSearchParams(search);
+  const picked = allow
+    .filter((key) => params.has(key))
+    .sort()
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params.get(key) ?? '')}`);
+  return picked.length ? `${pathname}?${picked.join('&')}` : pathname;
+}

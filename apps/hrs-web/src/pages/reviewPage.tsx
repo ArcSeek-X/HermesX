@@ -1613,8 +1613,8 @@ const HomePage: React.FC = () => {
                 <StockSearch
                   value={query}
                   onChange={setQuery}
-                  onSubmit={(stockCode, stockName, selectionSource) => {
-                    handleSubmitAnalysis(stockCode, stockName, selectionSource);
+                  onSubmit={(stock) => {
+                    handleSubmitAnalysis(stock.canonicalCode, stock.name, stock.source);
                   }}
                   disabled={isAnalyzing}
                   className={inputError ? 'border-danger/50' : undefined}

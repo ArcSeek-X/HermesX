@@ -283,6 +283,39 @@ describe('KLineChart - 生命周期与无报错', () => {
     expect(resizeMock).toHaveBeenCalled();
   });
 
+  it('容器尺寸变化时调用实例 resize（ResizeObserver，覆盖 KeepAlive 隐藏/显示场景）', () => {
+    const callbacks: ResizeObserverCallback[] = [];
+    const observeSpy = vi.fn();
+    const disconnectSpy = vi.fn();
+    const OriginalRO = globalThis.ResizeObserver;
+    class CapturingResizeObserver implements ResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        callbacks.push(callback);
+      }
+      observe = observeSpy;
+      unobserve() {}
+      disconnect = disconnectSpy;
+    }
+    // setupTests 里该属性 writable 但不可 configurable，故直接赋值而非 defineProperty
+    globalThis.ResizeObserver = CapturingResizeObserver;
+    try {
+      const { unmount } = render(<KLineChart data={makeData(10)} period="daily" />);
+      expect(callbacks).toHaveLength(1);
+      expect(observeSpy).toHaveBeenCalledTimes(1);
+
+      resizeMock.mockClear();
+      act(() => {
+        callbacks[0]([] as unknown as ResizeObserverEntry[], {} as ResizeObserver);
+      });
+      expect(resizeMock).toHaveBeenCalled();
+
+      unmount();
+      expect(disconnectSpy).toHaveBeenCalled();
+    } finally {
+      globalThis.ResizeObserver = OriginalRO;
+    }
+  });
+
   it('重复渲染（props 变化）时复用同一实例并更新 option，不重复 init', () => {
     const { rerender } = render(<KLineChart data={makeData(10)} period="daily" />);
     const initCountBefore = initMock.mock.calls.length;

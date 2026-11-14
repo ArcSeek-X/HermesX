@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
+import { klineApi } from '../../api/kline';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';
@@ -44,7 +45,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   // 个股 K 线页已有独立页内搜索框，顶部搜索框在该路由下隐藏（避免重复输入入口）
   const isKLineRoute = location.pathname === '/stock/kline';
   // 当前页标题/描述：保留路由 handle 读取代码以备重新开启，当前 JSX 注释不展示标题
-  // 头部股票搜索框：提交后带 ?stockCode= 跳转 K 线页
+  // 头部股票搜索框：提交后先解析成纯代码，再带 ?stockCode= 跳转 K 线页
   const [stockQuery, setStockQuery] = useState('');
 
   return (
@@ -82,11 +83,25 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
               value={stockQuery}
               size="sm"
               onChange={setStockQuery}
-              onSubmit={(code) => {
-                if (!code) return;
+              onSubmit={async (stock) => {
+                const keyword = (stock.canonicalCode || stock.code || '').trim();
+                if (!keyword) return;
+                // 只把纯代码放进 URL：中文名等无代码输入先经后端搜索解析，避免脏值写进 K 线页 store
+                const numericCode = keyword.replace(/[（）]/g, '').match(/\d{4,7}/)?.[0] ?? '';
+                let stockCode = numericCode || (/^[\dA-Za-z.]+$/.test(keyword) ? keyword : '');
+                if (!stockCode) {
+                  try {
+                    const searchResults = await klineApi.searchStocks(keyword);
+                    stockCode = searchResults?.[0]?.code ?? '';
+                  } catch {
+                    return;
+                  }
+                }
+                stockCode = stockCode.split('.')[0].trim().toUpperCase();
+                if (!stockCode) return;
                 setStockQuery('');
                 // 统一跳转模式：带 ?stockCode= 直达 K 线页，与自选股列表一致
-                navigate(`/stock/kline?stockCode=${encodeURIComponent(code)}`);
+                navigate(`/stock/kline?stockCode=${encodeURIComponent(stockCode)}`);
               }}
               onClear={() => setStockQuery('')}
               className="h-9 text-xs w-60"

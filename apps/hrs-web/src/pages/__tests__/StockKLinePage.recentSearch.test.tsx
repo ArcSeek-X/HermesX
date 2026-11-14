@@ -10,6 +10,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PageStateProvider } from '../../stores/PageStateStore';
+import { removeStockKLine } from '../../stores/StockKLine';
 
 const { recordRecentSearchMock, getListMock, clearMock } = vi.hoisted(() => ({
   recordRecentSearchMock: vi.fn(),
@@ -35,17 +36,17 @@ vi.mock('@components/StockSearch/StockSearch', () => ({
     onSubmit,
     onClear,
   }: {
-    onSubmit: (code: string, name?: string) => void;
+    onSubmit: (stock: { canonicalCode: string; name?: string }) => void;
     onClear: () => void;
   }) => (
     <>
-      <button type="button" data-testid="submit-stock" onClick={() => onSubmit('贵州茅台', '贵州茅台')}>
+      <button type="button" data-testid="submit-stock" onClick={() => onSubmit({ canonicalCode: '贵州茅台', name: '贵州茅台' })}>
         submit
       </button>
       <button
         type="button"
         data-testid="submit-formatted"
-        onClick={() => onSubmit('中科曙光（603019.SH）', '中科曙光')}
+        onClick={() => onSubmit({ canonicalCode: '中科曙光（603019.SH）', name: '中科曙光' })}
       >
         submit formatted
       </button>
@@ -130,9 +131,10 @@ function renderPage(path = '/stock/kline') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // PageStateProvider 会从 sessionStorage 恢复上次测试的 stockInfo，不清会导致后续用例
-  // 初始就带着股票代码，直达判定被「代码未变」短路、加载次数也多一次。
+  // PageStateProvider 会从 sessionStorage 恢复上次测试的 stockInfo；StockKLine store 是模块
+  // 级单例，也必须重置内存态，否则上个用例选中的股票会串到下个用例（直达被同代码短路）。
   sessionStorage.clear();
+  removeStockKLine();
   searchStocksMock.mockResolvedValue([{ code: '600519', name: '贵州茅台' }]);
   fetchStockInfoMock.mockResolvedValue(makeStockInfo());
   fetchKLineMock.mockResolvedValue(makeKLineResp());

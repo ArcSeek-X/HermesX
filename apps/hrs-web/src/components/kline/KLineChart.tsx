@@ -1195,6 +1195,21 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     visibleBars,
   ]);
 
+  /**
+   * 容器尺寸自适应：ECharts 默认只在 window resize 时重绘，但 KeepAlive 隐藏/显示、
+   * 侧栏折叠、父容器宽度变化都不会触发 window resize，图表会一直卡在塌缩宽度。
+   * 用 ResizeObserver 监听容器本身，尺寸变化时调用 chart.resize()。
+   */
+  useEffect(() => {
+    const container = chartRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      chartInstance.current?.resize();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   /** 图表容器：ECharts 渲染目标，圆角卡片样式 */
   return (
     <div
