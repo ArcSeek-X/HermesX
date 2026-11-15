@@ -54,15 +54,25 @@
 
 
 > 版本：v2.0
-> 日期：2026-08-05
-> 状态：待评审
+> 日期：2026-08-05（设计稿）；落地核对于 2026-11-15
+> 状态：已实施
 > 基于现有代码分析
+
+**实现说明（2026-11-15）**：本方案核心已落地，但实现位置与初稿代码样例不同，正文中的文件路径/行号为设计阶段快照，落地后以下为准：
+
+- 后端默认条数、可选 `limit`、分页 `before_date`：在 `api/v1/endpoints/kline.py` 的 `PERIOD_DEFAULT_LIMITS` 与 `get_kline_endpoint` 落地，实际取数委托 `QuoteService.get_kline` → `data_provider/kline/transform.py` 的 `trim_rows`（按 `before_date` + `limit` 截断）与 `resample_rows`（5d 走 `_aggregate_fixed_chunk` 每 5 交易日合成；weekly/monthly/yearly 走 `_aggregate_calendar`；分钟线走 `_aggregate_intraday`）。
+- 5 日 K / 年 K 聚合：已通过 `resample_rows` 在数据源层完成，不再复用分钟线过滤逻辑。
+- 前端全量开关与左滑分页：`apps/hrs-web/src/pages/Stock/StockKLinePage/components/StockKLineChartPanel.tsx` 承接，全量开关仅 `5d/daily/weekly` 显示、默认关闭；左滑经 `onDataZoomBoundary` → `loadEarlierKLineHistory`，`HISTORY_PAGE_SIZE=250`、`MINUTE_KLINE_MAX_LIMIT=5000`。
+- `fetchKLine` 默认 `limit` 现为 `500`（非初稿的 `10000`），全量模式由面板显式传 `10000`。
+- 默认周期现为 `1m`（分时），非初稿隐含的 `daily`。
 
 ***
 
 ## <a id="一背景与问题"></a>一、背景与问题
 
-### <a id="11-当前实现基于代码现状"></a>1.1 当前实现（基于代码现状）
+### <a id="11-当前实现基于代码现状"></a>1.1 改造前现状（baseline）
+
+> 下表为方案落地前的代码基线，仅作改造动机留痕；落地后实际行号与实现位置见文首「实现说明」。
 
 | 组件                 | 现状                                                         | 代码位置                                 |
 | ------------------ | ---------------------------------------------------------- | ------------------------------------ |
@@ -595,11 +605,15 @@ const loadMoreHistory = useCallback(async () => {
     );
     
     if (moreData?.data?.length > 0) {
-      // 将新数据插入到现有数据前面
-      setPageState('kline', (prev) => ({
-        ...prev,
-        klineData: [...moreData.data, ...prev.klineData],
-      }));
+      // 将新数据插入到现有数据前面（实际为面板组件内 klinePoints 状态，非 PageStateStore）
+      setKlinePoints((prev) => {
+        const currentEarliest = prev[0]?.date;
+        const olderPoints = currentEarliest
+          ? moreData.data.filter((point) => point.date < currentEarliest)
+          : moreData.data;
+        if (!olderPoints.length) return prev;
+        return [...olderPoints, ...prev];
+      });
     }
   } catch (err) {
     console.error('Failed to load more history:', err);

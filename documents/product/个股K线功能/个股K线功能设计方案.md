@@ -423,42 +423,30 @@ sina_limit = min(limit, 1000)  # 避免 datalen 超过 1000 触发反爬
 
 输入中文名称时，先通过后端 `searchStocks` API 解析为股票代码，再用解析后的代码加载 K 线数据。
 
-### <a id="sec-6-4"></a>6.4 状态持久化与缓存
+### <a id="sec-6-4"></a>6.4 状态管理（选中股票真源）
 
-**规定**：K 线页的全部页面状态收敛于 `PageStateStore` 的 `kline` 切片，该切片只含 `stockInfo` 与 `klineInfo` 两个键；页面在浏览器中只占用 `hrs-state-pageState` 一个对象键。
+**规定**：K 线页的「当前选中股票」以 `stores/StockKLine.ts` 的 zustand store `useStockKLineStore` 为唯一真源，仅持久化 `{ code, name }` 到会话存储键 `stockKLine`（即 `hrs-state-stockKLine`）；行情快照与 K 线点数组由 `StockKLineChartPanel` 以组件内 `useState` 持有，不落盘，组件挂载时重新拉取。
 
-**Why**：此前状态分散在多处（`hrs-state-pageState` 扁平字段、页面自写的 `hrs-state-kline.stockCode`/`displayValue`、`hrs-pref-kline.period`），股票代码存在双写、展示标签需跳转方预写，易产生"搜索框与行情头不一致"的缺陷；收口为单一对象后真源唯一，可整对象恢复。
+> 说明：早期版本曾将 K 线状态收敛进 `PageStateStore` 的 `kline` 切片；现该切片已从 `PageStateStore` 析出为独立 store（见 `apps/hrs-web/src/stores/PageStateStore.tsx` 分区列表），本节能反映当前代码状态。
 
-**How to apply**：状态读写统一经 `usePageState()`；接口返回的 `StockQuoteCore` 直接入状态，不再需要 `toStockSnapshot` 之类的蛇形→驼峰适配（服务端已按规范 camelCase 输出）。
+**Why**：此前状态分散在多处（`PageStateStore` 扁平字段、页面自写键、独立偏好键），代码双写易产生"搜索框与行情头不一致"。收口为单一选中态真源后，页面、URL 镜像与最近搜索列表都从同一份 `{ code, name }` 派生，清空与刷新恢复语义清晰。
 
-**状态结构**（`stores/PageStateStore.tsx` 的 `KLinePageState`）：
+**How to apply**：
 
-```ts
-interface KLinePageState {
-  /** 个股行情快照（含标识 + 行情核心），类型取自 types/stock.ts */
-  stockInfo: StockQuoteCore | null;
-  /** K 线数据相关 */
-  klineInfo: {
-    period: KLinePeriod;        // 当前周期
-    klineData: KLinePoint[];    // K 线数据点
-    klineSource: string | null; // 数据来源
-  };
-}
-```
+- 选中写入走 `setStockKLineInfo({ code, name })`；清空走 `removeStockKLineInfo()`（同时删除会话键，刷新/往返不复活旧股票）。
+- 展示标签「名称（规范代码）」是派生值：页面按纯代码反查本地股票索引补后缀，所有入口（URL 直达、刷新恢复、内部选股、行情补名）共用 `buildSearchLabel`，不落盘。
+- URL `?stockCode=` 仅作外部注入与地址栏镜像，单向同步；参数消失不视为清空，避免冲掉持久化中的股票。
 
-| 字段 | 含义 | 说明 |
-| --- | --- | --- |
-| `stockInfo` | 个股行情快照 | 驼峰领域类型 `StockQuoteCore`，含 `code`/`name`/`price`/`change`/`changePct`/`amount`/`volume`/`turnoverRate`/`prevClose`/`open`/`high`/`low`/`amplitude`/`peRatioTTM`/`totalMarketCap` 及标识字段 |
-| `klineInfo.period` | 当前 K 线周期 | 随会话恢复，关标签页后重置为 `daily` |
-| `klineInfo.klineData` | K 线数据点数组 | 刷新后先由该值即时渲染，再重新拉取最新数据 |
-| `klineInfo.klineSource` | 数据来源 | 取自 K 线响应 `source` |
+**实际状态分布**：
 
-**派生值（不落盘）**：
-
-| 派生值 | 来源 | 说明 |
-| --- | --- | --- |
-| 当前股票代码 | `stockInfo.code` | 刷新后由恢复的 `stockInfo` 派生 |
-| 搜索框展示标签「名称（规范代码）」 | `stockInfo` + 本地股票索引 | 由页面 effect 重算，索引后到自动补市场后缀 |
+| 状态 | 落点 | 生命周期 | 说明 |
+| --- | --- | --- | --- |
+| 选中股票 `{ code, name }` | `useStockKLineStore` + 会话键 `stockKLine` | 刷新/跨路由保留，关标签页清空 | 唯一真源 |
+| 展示标签「名称（代码）」 | 页面 `useState` 派生 | 组件实例内 | 由选中态 + 本地索引重算，不落盘 |
+| 行情快照 `stockInfo` | `StockKLineChartPanel` `useState` | 组件实例内（页面以 `key` 控制「一次选股一个实例」） | 挂载时拉取；名称回填持久化 |
+| K 线点数组 `klinePoints` | 同上 | 组件实例内 | 首次加载 + 左滑分页前置拼接，不持久化 |
+| 当前周期 `selectedPeriod` | 组件内 `useState` | 组件实例内 | 默认 `1m`（分时）；切路由/刷新后重置 |
+| 全量数据开关 `isFullDataEnabled` | 组件内 `useState` | 组件实例内 | 仅 `5d/daily/weekly` 显示，默认关闭 |
 
 **类型归一（边界适配）**：
 
@@ -474,18 +462,18 @@ interface KLinePageState {
 
 **正反清单**：
 
-- ✅ 状态只写 `pageState.kline` 的 `stockInfo` + `klineInfo` 两键。
-- ✅ 接口数据直接以 `StockQuoteCore` 入状态，不再 `toStockSnapshot`。
-- ✅ 派生值（当前代码、搜索框展示标签）由 `stockInfo` 重算，不落盘。
-- ❌ 新增 `kline.*` 之类的独立存储键。
+- ✅ 选中态只写 `useStockKLineStore`（`setStockKLineInfo`），`{ code, name }` 为最小真源。
+- ✅ 行情/K 线数据走组件 `useState`，刷新后由面板重新拉取，不依赖旧快照。
+- ✅ 展示标签由选中态 + 索引派生，不落盘。
+- ❌ 在 `PageStateStore` 新增 `kline` 切片或独立 `hrs-state-kline.*` 持久化键。
 - ❌ 把接口蛇形类型直接存入页面状态。
-- ❌ 持久化可从 `stockInfo` 推导出的值。
+- ❌ 持久化可从选中态推导出的周期或标签。
 
 **已接受的取舍**：
 
-- **周期为会话级**：周期随 `pageState` 走 sessionStorage，关标签页后重置为 `daily`（不再是永久偏好）。
-- **加载失败不自动重试**：上次加载失败时 `stockInfo` 为 `null`，刷新后派生的股票代码为空，需手动重新搜索。
-- **跨页复用**：`StockDataViewPage` 仍读取同一 `pageState.kline` 切片复用已加载数据，结构变更时须同步该页。
+- **周期/全量开关为会话内视图态**：不持久化，关标签页/切路由后重置为默认（周期 `1m`、全量关闭）。
+- **加载失败不自动重试**：选中态仍在则保留股票，但行情/K 线为空，需重新搜索或切周期触发重载。
+- **最近搜索列表独立落库**：见《个股最近搜索》，不在本页状态内。
 
 <a id="sec-7"></a>
 
