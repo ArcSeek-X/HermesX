@@ -6,8 +6,8 @@
  *
  * 提供三个 Hook：
  * - `useLiveCalendarTabs`：拉分类 Tab 列表（后端驱动）
- * - `useLiveCalendarCountries`：拉国家字典（后端驱动，含降级标记）
  * - `useLiveCalendarMonths`：按月缓存、补缺拉取、合并、按天归格与客户端过滤
+ * - `useSystemCountries`：国家字典见 `@/hooks/useSystemCountries`（已迁移至 system 字典服务）
  *
  * 设计要点：
  * 1. 日历为低频数据，**不轮询**，仅提供手动 refresh；
@@ -19,10 +19,9 @@
 
 import { toDateKeyFromSeconds } from '@utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { LiveCalendarRange, CountryMarketOptionDef } from '@components';
+import type { LiveCalendarRange } from '@components';
 import { ALL_IMPORTANCE_LEVELS, type ImportanceLevel } from '../constants/newsImportance';
 import {
-  getLiveCalendarCountries,
   getLiveCalendarMonth,
   getLiveCalendarTabs,
   refreshLiveCalendar,
@@ -166,46 +165,6 @@ export function useLiveCalendarTabs(): {
   }, []);
 
   return { tabs, loading, error };
-}
-
-/** 国家字典 Hook */
-export function useLiveCalendarCountries(): {
-  /** 国家字典列表：国旗、名称、货币(ISO 代码)等，供事件卡片 / 详情抽屉展示国家信息 */
-  items: CountryMarketOptionDef[];
-  /** 降级标记：后端部分字段缺失时置 true，UI 可据此弱化展示（如缺货币 / 国旗时降级为仅名称） */
-  degraded: boolean;
-  /** 首次加载中（数据未就绪） */
-  loading: boolean;
-  /** 加载失败信息；null 表示成功 */
-  error: string | null;
-} {
-  const [items, setItems] = useState<CountryMarketOptionDef[]>([]);
-  const [degraded, setDegraded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const result = await getLiveCalendarCountries();
-        if (!active) return;
-        setItems(result.items);
-        setDegraded(result.degraded);
-        setError(null);
-      } catch {
-        if (active) setError('国家字典加载失败');
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  return { items, degraded, loading, error };
 }
 
 /** 月度日历 Hook 的过滤选项 */

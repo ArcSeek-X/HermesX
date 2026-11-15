@@ -7,7 +7,7 @@ import { CountryMarketSelect, HrsButton, showToast } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { DocsSection } from '../DocsSection';
-import { useLiveCalendarCountries } from '../../../hooks/useLiveCalendar';
+import { useSystemCountries } from '../../../hooks/useSystemCountries';
 
 /**
  * 国家 / 市场下拉组件文档演示页。
@@ -16,13 +16,13 @@ import { useLiveCalendarCountries } from '../../../hooks/useLiveCalendar';
  * 通过 `multiple` 切换单选 / 多选（默认单选），对外 `value` / `onChange` 统一为 `string[]`
  * （单选时为 0 或 1 个元素），降低调用方心智负担。
  *
- * 演示数据直接复用 `useLiveCalendarCountries()`——与线上消息日历（LiveCalendarFilter）同一数据源，
+ * 演示数据直接复用 `useSystemCountries()`——与线上消息日历（LiveCalendarFilter）同一数据源，
  * 保证示例所见即生产所用，国旗亦来自后端下发的真实 `flagUri`。
  */
 export const DocsCountryMarketSelectPage: React.FC = () => {
   const { t } = useUiLanguage();
   // 与线上消息日历同一份国家字典（含后端下发的真实 flagUri）
-  const { items: countryMarketOption, loading } = useLiveCalendarCountries();
+  const { countryOptions: countryMarketOption } = useSystemCountries();
 
   // 示例一：单选（默认 multiple=false）
   const [single, setSingle] = useState<string[]>([]);
@@ -38,7 +38,7 @@ export const DocsCountryMarketSelectPage: React.FC = () => {
             通用国家 / 市场下拉组件（CountryMarketSelect），基于 HrsSelect 封装。选项按国名拼音 A~Z 分组、
             渲染「国旗 + 国名」；通过 <code>multiple</code> 切换单选 / 多选（默认单选）；
             对外 <code>value</code> / <code>onChange</code> 统一为 <code>string[]</code>（单选时长度 0 或 1）。
-            下方演示数据来自 <code>useLiveCalendarCountries()</code>，与线上消息日历完全一致。
+            下方演示数据来自 <code>useSystemCountries()</code>，与线上消息日历完全一致。
           </p>
         </header>
 

@@ -72,7 +72,7 @@ export type LiveCalendarProps = React.ComponentProps<typeof FullCalendar> & {
      * 该回调为可选：如外部需感知点击事件（埋点等）可传入，不影响内部开抽屉行为。
      */
     onSelectEvent?: (event: LiveCalendarEventDef) => void;
-    /** 国家字典（国旗 / 货币 / 国家名），来自 Page 的 `useLiveCalendarCountries()`，供详情抽屉渲染 */
+    /** 国家字典（国旗 / 货币 / 国家名），来自 Page 的 `useSystemCountries()`，供详情抽屉渲染 */
     countries?: CountryMarketOptionDef[];
     /** 组件内部发起的范围请求事件：外层据此准备对应范围的数据 */
     onRangeRequest?: (payload: LiveCalendarRangeRequest) => void;

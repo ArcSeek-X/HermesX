@@ -3,7 +3,6 @@
  *
  * 对应后端 `/api/v1/intelligence/live-calendar/*`（见 documents/product/行情资讯/Live-calendar.md §7）：
  * - GET  /live-calendar/tabs      分类 Tab 列表
- * - GET  /live-calendar/countries 国家字典
  * - GET  /live-calendar           月度事件（分类/国家/重要级/经济数据过滤）
  * - POST /live-calendar/refresh   手动触发抓取
  *
@@ -12,7 +11,6 @@
  */
 
 import apiClient from './index';
-import type { CountryMarketOptionDef } from '@components';
 import type {
   CalendarTabDef,
   LiveCalendarEventDef,
@@ -26,15 +24,6 @@ interface RawCalendarTab {
   value: string;
   label: string;
   order?: number;
-}
-
-/** 后端返回的原始国家字典条目（snake_case） */
-interface RawCalendarCountry {
-  country_id: string;
-  country_name: string;
-  currency?: string;
-  currency_name?: string;
-  flag_uri?: string;
 }
 
 /** 后端返回的原始事件（snake_case） */
@@ -63,16 +52,6 @@ function normalizeTab(raw: RawCalendarTab): CalendarTabDef {
     value: raw.value as CalendarTabDef['value'],
     label: raw.label,
     order: raw.order ?? 0,
-  };
-}
-
-function normalizeCountry(raw: RawCalendarCountry): CountryMarketOptionDef {
-  return {
-    countryMarketId: raw.country_id,
-    countryMarketName: raw.country_name,
-    currency: raw.currency ?? '',
-    currencyName: raw.currency_name ?? '',
-    flagUri: raw.flag_uri ?? '',
   };
 }
 
@@ -109,22 +88,6 @@ export async function getLiveCalendarTabs(): Promise<{
   const data = response.data ?? {};
   return {
     tabs: (data.tabs ?? []).map(normalizeTab),
-    degraded: Boolean(data.degraded),
-  };
-}
-
-/** 查询国家字典 */
-export async function getLiveCalendarCountries(): Promise<{
-  items: CountryMarketOptionDef[];
-  degraded: boolean;
-}> {
-  const response = await apiClient.get<{
-    items?: RawCalendarCountry[];
-    degraded?: boolean;
-  }>(`${BASE}/countries`);
-  const data = response.data ?? {};
-  return {
-    items: (data.items ?? []).map(normalizeCountry),
     degraded: Boolean(data.degraded),
   };
 }

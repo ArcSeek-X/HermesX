@@ -1550,49 +1550,12 @@ class IntelligenceService:
         ("macro", re.compile(r"央行|联储|美联储|议息|利率决议|褐皮书|杰克逊霍尔|CPI|PMI|GDP|非农|失业率|通胀|关税|休市|峰会|国事访问|公投|外长|元首|理事会|讲话|货币政策")),
     )
 
-    # 国家字典进程内缓存（低频稳定数据，TTL 内直接命中）
-    _calendar_countries_cache: List[Dict[str, str]] = []
-    _calendar_countries_cached_at: Optional[datetime] = None
-    _calendar_countries_lock = threading.Lock()
-
     # ------------------------------------------------------------------
     # 日历：对外接口
     # ------------------------------------------------------------------
     def list_calendar_tabs(self) -> Dict[str, Any]:
         """返回日历分类 Tab 列表（服务端常量，不依赖上游）。"""
         return {"tabs": [dict(tab) for tab in self._CALENDAR_TABS]}
-
-    def list_calendar_countries(self) -> Dict[str, Any]:
-        """返回国家字典；进程内缓存 TTL 内命中，否则抓取（失败降级为空）。"""
-        with self._calendar_countries_lock:
-            now = datetime.now()
-            cached_at = self._calendar_countries_cached_at
-            if self._calendar_countries_cache and cached_at is not None:
-                ttl = max(0, self._config_int("calendar_countries_cache_ttl", 86400))
-                if (now - cached_at).total_seconds() < ttl:
-                    return {"items": list(self._calendar_countries_cache), "degraded": False}
-
-        try:
-            result = self._news_source().fetch(NewsQuery(mode="calendar_countries"))
-        except NewsCalendarFetchError as exc:  # noqa: BLE001
-            logger.warning("Calendar countries fetch failed: %s", exc)
-            return {"items": [], "degraded": True}
-        countries = list(result.items) if result else []
-
-        items = [
-            {
-                "country_id": country.country_id,
-                "country_name": country.country_name,
-                "currency": country.currency,
-                "currency_name": country.currency_name,
-                "flag_uri": country.flag_uri,
-            }
-            for country in countries
-        ]
-        with self._calendar_countries_lock:
-            self._calendar_countries_cache = items
-            self._calendar_countries_cached_at = now
-        return {"items": items, "degraded": False}
 
     def refresh_calendar(self, year: int, month: int) -> Dict[str, Any]:
         """抓取并落库指定月份（UTC）的日历事件。

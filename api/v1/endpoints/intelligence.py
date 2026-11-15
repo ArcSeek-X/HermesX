@@ -64,7 +64,6 @@ from api.v1.schemas.intelligence import (
     LiveNewsListResponse,
     LiveNewsRefreshRequest,
     LiveNewsRefreshResponse,
-    CalendarCountriesResponse,
     CalendarMonthResponse,
     CalendarRefreshRequest,
     CalendarRefreshResponse,
@@ -578,25 +577,6 @@ def list_live_calendar_tabs() -> CalendarTabsResponse:
     except Exception as exc:
         raise _internal_error("List calendar tabs failed", exc)
 
-
-@router.get(
-    "/live-calendar/countries",
-    response_model=CalendarCountriesResponse,
-    summary="List live calendar countries",
-)
-def list_live_calendar_countries() -> CalendarCountriesResponse:
-    """返回国家字典；上游失败时降级为空列表并置 degraded=True。
-
-    Args:
-        无参数。
-
-    Returns:
-        CalendarCountriesResponse: 国家列表与降级标记。
-    """
-    try:
-        return CalendarCountriesResponse(**IntelligenceService().list_calendar_countries())
-    except Exception as exc:
-        raise _internal_error("List calendar countries failed", exc)
 
 
 @router.get(

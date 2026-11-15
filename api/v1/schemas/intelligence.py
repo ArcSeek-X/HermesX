@@ -519,40 +519,6 @@ class CalendarTabsResponse(BaseModel):
     degraded: bool = False
 
 
-class CalendarCountry(BaseModel):
-    """国家字典条目。
-
-    使用场景：日历按国家筛选与展示国旗；货币等字段以空字符串兜底，避免前端判空分支。
-
-    @author: Lensgcx (GaoCangxiong)
-    """
-
-    # 国家稳定标识，作为筛选入参。
-    country_id: str
-    # 国家展示名称。
-    country_name: str
-    # 货币代码，默认空字符串而非 None，便于前端直接拼接展示。
-    currency: str = ""
-    # 货币名称，默认空字符串。
-    currency_name: str = ""
-    # 国旗图标地址；缺失时为空字符串。
-    flag_uri: str = ""
-
-
-class CalendarCountriesResponse(BaseModel):
-    """国家字典响应。
-
-    使用场景：国家筛选下拉的数据源。
-
-    @author: Lensgcx (GaoCangxiong)
-    """
-
-    # 国家字典列表，默认空列表。
-    items: List[CalendarCountry] = Field(default_factory=list)
-    # 是否处于降级模式；为 True 时数据来自兜底源，前端需隐藏依赖上游特性的交互。
-    degraded: bool = False
-
-
 class CalendarEvent(BaseModel):
     """单条日历事件（统一业务量纲，详见 documents/product/行情资讯/Live-calendar.md §7.3）。
 

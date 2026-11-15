@@ -44,10 +44,10 @@ import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import {
   monthGridRange,
   monthsInRange,
-  useLiveCalendarCountries,
   useLiveCalendarMonths,
   useLiveCalendarTabs,
 } from '../../../hooks/useLiveCalendar';
+import { useSystemCountries } from '@/hooks/useSystemCountries';
 
 /** 序列化月份集合为稳定 key（供范围变化时比较，避免相等范围重复触发拉取） */
 function monthsKeyOf(range: LiveCalendarRange): string {
@@ -64,7 +64,7 @@ function createInitialRange(): LiveCalendarRange {
 const LiveCalendarPage: React.FC = () => {
   const { t } = useUiLanguage();
   const { tabs } = useLiveCalendarTabs();
-  const { items: countryMarketOption, degraded: countryMarketDegraded } = useLiveCalendarCountries();
+  const { countryOptions: countryMarketOption, countriesDegraded: countryMarketDegraded } = useSystemCountries();
 
   /** 当前可见日期范围，由 `LiveCalendar` 的 `onRangeRequest` 驱动。 */
   const [range, setRange] = useState<LiveCalendarRange>(createInitialRange);

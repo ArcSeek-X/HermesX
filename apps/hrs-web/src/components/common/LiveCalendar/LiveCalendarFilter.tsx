@@ -52,7 +52,7 @@ export interface LiveCalendarFilterPanelProps {
     open: boolean;
     /** 已生效的筛选条件（草稿的同步源） */
     value: LiveCalendarFilterValue;
-    /** 国家字典（来自 `useLiveCalendarCountries`） */
+    /** 国家字典（来自 `useSystemCountries`） */
     countries: CountryMarketOptionDef[];
     /** 点「确认」：提交草稿 */
     onApply: (next: LiveCalendarFilterValue) => void;

@@ -36,6 +36,7 @@ from api.v1.endpoints import (
     sector,
     stocks,
     stock_metric,
+    system_dict,
     system_config,
     usage,
     watchlist,
@@ -100,6 +101,13 @@ router.include_router(
     system_config.router,
     prefix="/system",
     tags=["SystemConfig"]
+)
+
+# /system：系统数据字典（国家字典等），与 intelligence / live-calendar 解耦。
+router.include_router(
+    system_dict.router,
+    prefix="/system",
+    tags=["SystemDict"]
 )
 
 # /usage：LLM 调用用量与成本统计。

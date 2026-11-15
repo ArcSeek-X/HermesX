@@ -24,7 +24,7 @@ function pinyinInitialOf(name: string): string {
 }
 
 export interface CountryMarketSelectProps {
-  /** 国家字典（输入）：来自数据源，如 `useLiveCalendarCountries`；必填 */
+  /** 国家字典（输入）：来自数据源，如 `useSystemCountries`；必填 */
   options: CountryMarketOptionDef[];
   /** 已选国家 ID 列表（受控）：`string[]`，元素为各 `countryMarketId`；`[]` 表示全部 / 未选 */
   value: string[];

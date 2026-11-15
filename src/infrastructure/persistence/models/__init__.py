@@ -20,5 +20,6 @@ from src.infrastructure.persistence.models import (  # noqa: F401
     recent_search,
     schema,
     stock_metric,
+    system_dict,
     watchlist,
 )
