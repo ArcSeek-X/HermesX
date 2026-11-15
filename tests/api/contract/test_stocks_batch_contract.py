@@ -4,7 +4,7 @@
 覆盖两条新增批量接口与它们共用的 schema：
 
 - ``StockQuote`` / ``BatchQuoteResponse``：响应字段必须是规范 camelCase（与 ``StockQuoteCore`` 同名）；
-- ``BatchCodesRequest``：代码列表上限、limiteSize 默认值 12 与越界校验；
+- ``BatchCodesRequest``：代码列表上限、limiteSize 默认值 20 与越界校验；
 - ``POST /api/v1/stocks/batch-quote``：请求代码去重保序、单只失败跳过、响应代码以请求代码为准；
 - ``POST /api/v1/stocks/batch-timeline``：分时下采样到 48 点且保留首尾、单只失败降级为空点列。
 
@@ -96,9 +96,9 @@ def test_batch_codes_request_rejects_out_of_range(codes: list[str]) -> None:
         BatchCodesRequest.model_validate({"codes": codes})
 
 
-def test_batch_codes_request_defaults_limite_size_to_12() -> None:
+def test_batch_codes_request_defaults_limite_size_to_20() -> None:
     payload = BatchCodesRequest.model_validate({"codes": ["600519"]})
-    assert payload.limiteSize == 12
+    assert payload.limiteSize == 20
 
 
 @pytest.mark.parametrize("limite_size", [0, -1, 51])
@@ -144,19 +144,19 @@ def test_batch_quote_deduplicates_codes_and_keeps_request_code(
     assert service.calls == ["600519", "000001"]
 
 
-def test_batch_quote_defaults_to_twelve_items(
+def test_batch_quote_defaults_to_twenty_items(
     monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
 ) -> None:
-    """不传 limiteSize 时默认最多返回 12 条。"""
-    codes = [f"6000{index:02d}" for index in range(15)]
+    """不传 limiteSize 时默认最多返回 20 条。"""
+    codes = [f"6000{index:02d}" for index in range(25)]
     service = _FakeStockService({code: _canonical_quote(code) for code in codes})
     monkeypatch.setattr(stocks, "build_stock_service", lambda: service)
 
     resp = batch_client.post("/api/v1/stocks/batch-quote", json={"codes": codes})
 
     assert resp.status_code == 200
-    assert [item["code"] for item in resp.json()["items"]] == codes[:12]
-    assert service.calls == codes[:12]
+    assert [item["code"] for item in resp.json()["items"]] == codes[:20]
+    assert service.calls == codes[:20]
 
 
 def test_batch_quote_respects_limite_size(

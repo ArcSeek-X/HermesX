@@ -65,11 +65,14 @@ class RecentSearchService:
         """构造最近搜索用例并保存仓储端口。"""
         self._repository = repository
 
-    def list_recent(self, *, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """列出该用户最近搜索记录（最多 :data:`MAX_RECENT_SEARCH_RECORDS` 条）。"""
+    def list_recent(
+        self, *, user_id: Optional[str] = None, limit: int = MAX_RECENT_SEARCH_RECORDS
+    ) -> List[Dict[str, Any]]:
+        """列出该用户最近 ``limit`` 条记录；DB 仍保留最多 :data:`MAX_RECENT_SEARCH_RECORDS` 条。"""
+        effective_limit = max(1, min(limit, MAX_RECENT_SEARCH_RECORDS))
         return self._repository.list_recent(
             user_id=normalize_recent_search_user_id(user_id),
-            limit=MAX_RECENT_SEARCH_RECORDS,
+            limit=effective_limit,
         )
 
     def record(

@@ -7,6 +7,7 @@
 
 import apiClient from './index';
 import { toCamelCase } from './utils';
+import { DEFAULT_LIMIT_SIZE } from './stocks';
 
 /** 一条最近搜索记录（不含实时行情，行情由 stocksApi.batchQuote 补齐） */
 export interface RecentSearchItem {
@@ -26,10 +27,11 @@ export interface RecordRecentSearchPayload {
   market?: string | null;
 }
 
-/** 读取最近搜索列表（后端按最近搜索时间倒序，最多 10 条） */
-export async function getRecentSearchList(): Promise<RecentSearchItem[]> {
+/** 读取最近搜索列表：按 limit 取最近 N 条（默认与页面展示上限一致）；DB 仍保留最多 100 条 */
+export async function getRecentSearchList(limit = DEFAULT_LIMIT_SIZE): Promise<RecentSearchItem[]> {
   const { data } = await apiClient.get<{ items?: Record<string, unknown>[] }>(
     '/api/v1/recent-search/list',
+    { params: { limit } },
   );
   return (data.items ?? []).map((item) => toCamelCase<RecentSearchItem>(item));
 }

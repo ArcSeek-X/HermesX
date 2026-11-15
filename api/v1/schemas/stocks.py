@@ -254,12 +254,12 @@ class StockTimelineResponse(BaseModel):
 class BatchCodesRequest(BaseModel):
     """批量行情请求体；重复代码由端点去重，保持首次出现顺序。
 
-    limiteSize 控制本批最多返回条数（前端默认 12）；codes 只做安全上限校验，
+    limiteSize 控制本批最多返回条数（前端默认 20）；codes 只做安全上限校验，
     实际取数由端点按 limiteSize 截断，避免前端多传时打爆上游行情源。
     """
 
     codes: List[str] = Field(..., min_length=1, max_length=50, description="股票代码列表（最多 50 个）")
-    limiteSize: int = Field(default=12, ge=1, le=50, description="本批最多返回的股票条数（前端默认 12）")
+    limiteSize: int = Field(default=20, ge=1, le=50, description="本批最多返回的股票条数（前端默认 20）")
 
 
 class BatchQuoteResponse(BaseModel):

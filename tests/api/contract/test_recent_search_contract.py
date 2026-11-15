@@ -65,8 +65,14 @@ class _RecordingRepository:
 class _FakeRecentSearchService:
     """接口测试用的用例假实现，避免连接数据库。"""
 
-    def list_recent(self, *, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """返回一条记录；user_id 由链路透传，本假实现不依赖它。"""
+    def __init__(self) -> None:
+        self.list_limits: List[int] = []
+
+    def list_recent(
+        self, *, user_id: Optional[str] = None, limit: int = MAX_RECENT_SEARCH_RECORDS
+    ) -> List[Dict[str, Any]]:
+        """记录 limit 并返回一条记录；user_id 由链路透传，本假实现不依赖它。"""
+        self.list_limits.append(limit)
         return [_record_dict()]
 
     def record(self, **kwargs: Any) -> Dict[str, Any]:
@@ -138,6 +144,19 @@ def test_list_and_clear_use_default_user_and_queue_limit() -> None:
     assert repository.clear_calls == [{"user_id": "default"}]
 
 
+def test_list_respects_requested_limit_and_clamps_to_history_cap() -> None:
+    repository = _RecordingRepository()
+    service = RecentSearchService(repository=repository)
+
+    service.list_recent(limit=20)
+    service.list_recent(limit=MAX_RECENT_SEARCH_RECORDS + 50)
+
+    assert repository.list_calls == [
+        {"user_id": "default", "limit": 20},
+        {"user_id": "default", "limit": MAX_RECENT_SEARCH_RECORDS},
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Schema 契约
 # ---------------------------------------------------------------------------
@@ -163,6 +182,18 @@ def test_list_route_returns_snake_case_items(recent_search_client: TestClient) -
     resp = recent_search_client.get("/api/v1/recent-search/list")
     assert resp.status_code == 200
     assert resp.json()["items"] == [_record_dict()]
+
+
+def test_list_route_passes_limit_to_service() -> None:
+    app = FastAPI()
+    service = _FakeRecentSearchService()
+    app.include_router(recent_search.router, prefix="/api/v1/recent-search")
+    app.dependency_overrides[get_recent_search_service] = lambda: service
+    client = TestClient(app)
+
+    assert client.get("/api/v1/recent-search/list", params={"limit": 20}).status_code == 200
+    assert service.list_limits == [20]
+    assert client.get("/api/v1/recent-search/list", params={"limit": 101}).status_code == 422
 
 
 def test_record_route_returns_written_item(recent_search_client: TestClient) -> None:

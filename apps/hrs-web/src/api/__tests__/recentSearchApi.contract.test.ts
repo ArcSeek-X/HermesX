@@ -3,7 +3,7 @@
  *
  * 目标（不联网）：
  * 1. recent-search 三条接口的 URL、snake_case 请求体与 camelCase 响应归一；
- * 2. batch-quote / batch-timeline 的 URL、代码去重、10 只上限与失败降级。
+ * 2. batch-quote / batch-timeline 的 URL、代码去重、20 只上限与失败降级。
  *
  * 通过 mock apiClient 捕获真实发出的请求，断言前端调用契约正确。
  */
@@ -59,7 +59,7 @@ describe('recent-search 接口契约', () => {
   it('列表：URL 正确且 snake_case 响应归一为 camelCase', async () => {
     const items = await getRecentSearchList();
 
-    expect(getMock).toHaveBeenCalledWith('/api/v1/recent-search/list');
+    expect(getMock).toHaveBeenCalledWith('/api/v1/recent-search/list', { params: { limit: 20 } });
     expect(items).toEqual([{
       id: 1,
       userId: 'default',
@@ -74,6 +74,12 @@ describe('recent-search 接口契约', () => {
   it('列表：空 items 时返回空数组', async () => {
     getMock.mockResolvedValueOnce({ data: {} });
     await expect(getRecentSearchList()).resolves.toEqual([]);
+  });
+
+  it('列表：按入参 limit 取最近 N 条', async () => {
+    await getRecentSearchList(5);
+
+    expect(getMock).toHaveBeenCalledWith('/api/v1/recent-search/list', { params: { limit: 5 } });
   });
 
   it('记录：请求体为 snake_case，响应归一为 camelCase', async () => {
@@ -104,18 +110,15 @@ describe('recent-search 接口契约', () => {
 });
 
 describe('批量行情接口契约', () => {
-  it('batchQuote：URL 正确、代码去重，默认 limiteSize=12', async () => {
+  it('batchQuote：URL 正确、代码去重，默认 limiteSize=20', async () => {
     postMock.mockResolvedValueOnce({ data: { items: [{ code: '600519', price: 1720 }] } });
-    const codes = ['600519', '600519', ...Array.from({ length: 12 }, (_, index) => `CODE${index}`)];
+    const codes = ['600519', '600519', ...Array.from({ length: 20 }, (_, index) => `CODE${index}`)];
 
     const quotes = await stocksApi.batchQuote(codes);
 
     expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-quote', {
-      codes: [
-        '600519', 'CODE0', 'CODE1', 'CODE2', 'CODE3', 'CODE4',
-        'CODE5', 'CODE6', 'CODE7', 'CODE8', 'CODE9', 'CODE10',
-      ],
-      limiteSize: 12,
+      codes: ['600519', ...Array.from({ length: 19 }, (_, index) => `CODE${index}`)],
+      limiteSize: 20,
     });
     expect(quotes[0].code).toBe('600519');
   });
@@ -147,7 +150,7 @@ describe('批量行情接口契约', () => {
 
     expect(postMock).toHaveBeenCalledWith('/api/v1/stocks/batch-timeline', {
       codes: ['600519'],
-      limiteSize: 12,
+      limiteSize: 20,
     });
     expect(timelines[0].prevClose).toBe(1690);
     expect(timelines[0].points).toEqual(points);

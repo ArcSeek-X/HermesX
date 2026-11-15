@@ -131,6 +131,8 @@ const StockKLinePage: React.FC = () => {
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
   }, [setSearchParams]);
+  /** 本次主动清空的代码：地址栏更新未落地时，跳过这段残留 URL 参数，避免股票被复活 */
+  const clearedStockCodeRef = useRef<string | null>(null);
   const { index: stockIndex } = useStockIndex();
 
   const selectedKLineStock = useStockKLineStore((klineStore) => klineStore.stockKLineSelected);
@@ -167,7 +169,7 @@ const StockKLinePage: React.FC = () => {
     const loadRecentSearches = async () => {
       setIsRecentCardsLoading(true);
       try {
-        const recentRecords = await getRecentSearchList();
+        const recentRecords = await getRecentSearchList(RECENT_SEARCH_DISPLAY_LIMIT);
         const remoteCards = await buildRecentStockCards(recentRecords);
         if (!isRecentCardsMountedRef.current) return;
         // 列表返回前用户可能已搜索出新卡片，按规范化代码去重合入，保留本地最新项置顶
@@ -248,6 +250,7 @@ const StockKLinePage: React.FC = () => {
       const code = normalizeStockCode(stockRef.code);
       if (!code) return;
       const name = typeof stockRef.name === 'string' ? stockRef.name : '';
+      clearedStockCodeRef.current = null;
       setStockKLineInfo({ code, name });
       // KeepAlive 缓存键忽略 search，改 URL 只更新地址栏、不会切换页面实例
       if (options?.syncUrl !== false) {
@@ -272,7 +275,8 @@ const StockKLinePage: React.FC = () => {
     setSearchError(null);
     setStockSearchValue('');
     removeStockKLineInfo();
-    // 用最新 search 判断，避免残留的 ?stockCode= 被单向注入 effect 复活股票
+    // 记下被清空的代码：地址栏删除若被在途的镜像更新覆盖，单向注入 effect 会跳过残留参数
+    clearedStockCodeRef.current = normalizeStockCode(searchParams.get('stockCode') ?? '') || null;
     setSearchParamsRef.current(
       (prev) => {
         if (!prev.has('stockCode')) return prev;
@@ -282,7 +286,7 @@ const StockKLinePage: React.FC = () => {
       },
       { replace: true },
     );
-  }, []);
+  }, [searchParams]);
 
   const handleStockSearchSubmit = useCallback(
     async (stock: StockSearchSelection) => {
@@ -318,9 +322,17 @@ const StockKLinePage: React.FC = () => {
   // URL 只做单向注入：参数消失不能当作清空，否则持久化中的股票会被冲掉
   useEffect(() => {
     const stockCodeFromUrl = searchParams.get('stockCode');
-    if (!stockCodeFromUrl) return;
+    if (!stockCodeFromUrl) {
+      clearedStockCodeRef.current = null;
+      return;
+    }
     const code = normalizeStockCode(stockCodeFromUrl);
     if (!code || getStockKLineInfo()?.code === code) return;
+    // 清空后短暂残留的同代码参数不再注入，避免撤销刚完成的清空
+    if (clearedStockCodeRef.current === code) {
+      clearedStockCodeRef.current = null;
+      return;
+    }
     commitStockSelection({ code, name: '' }, { syncUrl: false });
   }, [searchParams, commitStockSelection]);
 

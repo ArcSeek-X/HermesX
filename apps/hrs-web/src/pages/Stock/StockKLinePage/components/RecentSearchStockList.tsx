@@ -22,8 +22,8 @@ interface RecentSearchStockListProps {
   onClearRecentSearches: () => void;
 }
 
-/** 卡片网格布局：真实卡片与加载占位共用，避免两处样式漂移 */
-const RECENT_CARD_GRID_CLASS = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4';
+/** 卡片网格：宽屏 4 列，随视口收窄依次 3 / 2 / 1 列；真实卡片与加载占位共用 */
+const RECENT_CARD_GRID_CLASS = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
 /** 加载中占位卡片数量（避免空白闪烁） */
 const PLACEHOLDER_CARD_COUNT = 4;

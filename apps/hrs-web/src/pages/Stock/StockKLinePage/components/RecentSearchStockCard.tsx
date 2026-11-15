@@ -32,15 +32,16 @@ function resolveStockTrendColor(changePct: number | null | undefined): string {
 /** 指标网格单元：左侧标签 + 右侧数值 */
 function StockQuoteMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-md bg-black/[0.03] px-3 py-2 dark:bg-white/[0.04]">
-      <span className="text-[11px] text-muted-text">{label}</span>
-      <span className="text-xs font-medium">{value}</span>
+    <div className="flex items-center justify-between rounded-md bg-black/[0.03] px-3 py-2 xl:px-2 xl:py-1.5 dark:bg-white/[0.04]">
+      <span className="text-[11px] text-muted-text xl:text-[10px]">{label}</span>
+      <span className="text-xs font-medium xl:text-[11px]">{value}</span>
     </div>
   );
 }
 
 /**
  * 最近搜索股票卡片：实时价格、迷你分时、四项指标与「加入自选」按钮。
+ * 四列布局（xl 及以上）卡片变窄，间距与字号同步收紧；结构与功能不变。
  * memo 化避免批量回填分时后未变化的卡片重绘走势图。
  */
 function RecentSearchStockCard({
@@ -79,44 +80,44 @@ function RecentSearchStockCard({
       ordinal={cardOrdinal}
       onClick={isPlaceholder ? undefined : () => onOpenKLine(stockQuote.code)}
       tooltip={isPlaceholder ? undefined : t('kline.recentSearch.stockCard.openKline')}
-      className={`flex h-full flex-col p-4 ${
+      className={`flex h-full flex-col p-4 xl:p-3 ${
         isPlaceholder ? '' : 'transition-transform duration-200 hover:-translate-y-0.5'
       }`}
     >
       {/* 头部：名称 + 代码 | 涨跌幅徽章 */}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2 xl:gap-1.5">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold leading-tight">
+          <div className="truncate text-sm font-semibold leading-tight xl:text-xs">
             {stockQuote.name ?? stockQuote.code}
           </div>
-          <div className="mt-0.5 text-xs text-muted-text">{stockQuote.code}</div>
+          <div className="mt-0.5 text-xs text-muted-text xl:text-[11px]">{stockQuote.code}</div>
         </div>
         <span
-          className="flex shrink-0 items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold"
+          className="flex shrink-0 items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold xl:gap-0.5 xl:px-1.5 xl:py-0.5 xl:text-[11px]"
           style={{ color: priceTrendColor, backgroundColor: `${priceTrendColor}1a` }}
         >
-          <span aria-hidden className="text-[9px]">{isPriceUp ? '▲' : '▼'}</span>
+          <span aria-hidden className="text-[9px] xl:text-[8px]">{isPriceUp ? '▲' : '▼'}</span>
           {formatPercent(stockQuote.changePct)}
         </span>
       </div>
 
       {/* 价格区：大字号最新价 + 右侧涨跌额 */}
-      <div className="mt-3 flex items-start justify-between gap-2">
-        <div className="text-xl font-bold leading-tight" style={{ color: priceTrendColor }}>
+      <div className="mt-3 flex items-start justify-between gap-2 xl:mt-2 xl:gap-1.5">
+        <div className="text-xl font-bold leading-tight xl:text-lg" style={{ color: priceTrendColor }}>
           {formatPricePoint(stockPrice)}
         </div>
-        <span className="text-xs font-medium" style={{ color: priceTrendColor }}>
+        <span className="text-xs font-medium xl:text-[11px]" style={{ color: priceTrendColor }}>
           {priceChangeAmount === null ? '--' : `${isPriceUp ? '+' : ''}${priceChangeAmount.toFixed(2)}`}
         </span>
       </div>
 
       {/* 迷你分时走势 + 图例 */}
-      <div className="mt-3 rounded-lg bg-black/[0.03] p-2 dark:bg-white/[0.04]">
-        <KLineView timeline={timeline} prevClose={prevClose} height={110} className="border-none bg-transparent" />
-        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-text">
+      <div className="mt-3 rounded-lg bg-black/[0.03] p-2 xl:mt-2 xl:p-1.5 dark:bg-white/[0.04]">
+        <KLineView timeline={timeline} prevClose={prevClose} height={96} className="border-none bg-transparent" />
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-text xl:mt-1 xl:gap-2 xl:text-[10px]">
           {timelineLegendItems.map((legendItem) => (
             <span key={legendItem.label} className="flex items-center gap-1.5">
-              <span aria-hidden className="h-[2px] w-4 rounded-full" style={{ backgroundColor: legendItem.color }} />
+              <span aria-hidden className="h-[2px] w-4 rounded-full xl:w-3" style={{ backgroundColor: legendItem.color }} />
               {legendItem.label}
             </span>
           ))}
@@ -124,7 +125,7 @@ function RecentSearchStockCard({
       </div>
 
       {/* 指标网格：股票价格 / 振幅 / 总市值 / 换手率 */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 xl:mt-2 xl:gap-1.5">
         {stockMetrics.map((stockMetric) => (
           <StockQuoteMetric key={stockMetric.label} label={stockMetric.label} value={stockMetric.value} />
         ))}
@@ -132,10 +133,10 @@ function RecentSearchStockCard({
 
       {/* 操作区：加入自选占位态不渲染 */}
       {!isPlaceholder && (
-        <div className="mt-3">
+        <div className="mt-3 xl:mt-2">
           {/* TODO: 接入加入自选逻辑（onAddToWatchlist） */}
           <HrsButton variant="outline" size="sm" className="w-full justify-center">
-            <Plus className="h-3.5 w-3.5" aria-hidden />
+            <Plus className="h-3.5 w-3.5 xl:h-3 xl:w-3" aria-hidden />
             {t('kline.recentSearch.addWatchlist')}
           </HrsButton>
         </div>

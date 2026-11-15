@@ -423,6 +423,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] 个股 K 线页「当前选中股票」收敛为单一真源：新增 `stores/StockKLine.ts`（zustand + `@utils/storage` 逻辑键 `stockKLine`，浏览器实际键 `hrs-state-stockKLine`，值 `{ code, name }` 对齐 `StockRef`，提供 set / update / remove / get），按「有持久化就恢复该股票、无持久化就展示最近搜索列表」统一判定，不区分刷新 / 菜单进入 / 跳走跳回；`?stockCode=` 降级为外部入口注入与可分享镜像（参数消失不清空 store），全部跳转入口统一回该协议。清空搜索框删除持久化并擦除 URL 参数，刷新与往返均不再复活旧股票；KeepAlive 新增 `cacheKeyParams` 白名单使 `/stock/kline` 忽略 search / hash 不切换实例，`KLineChart` 增加 `ResizeObserver` 修复隐藏与恢复后的窄图。新增 7 场景验收矩阵、store CRUD、缓存键与图表尺寸回归测试；设计见 `documents/product/个股K线功能/个股K线功能持久化方案.md`。
 - [修复] 从自选股 / 顶栏 / Scanner / 最近搜索等入口带 `?stockCode=` 跳入个股 K 线页后，`StockSearch` 不再弹出自动补全下拉要求二次选股：现在只有用户主动输入才触发候选搜索，程序化回填 `value` 与聚焦已确认的展示标签只同步展示态；用户开始改动内容时仍正常给出候选以便换股。
 - [改进] `StockSearch.onSubmit` 由 4 个位置参数收敛为单一 `StockSearchSelection` 对象（候选信息 + `code` / `canonicalCode` / `displayLabel` / `source`），8 个调用方与相关测试同步；手工输入兜底路径也返回同形状对象，不再出现 `name` / `source` / `metadata` 全为 undefined 的残缺载荷。
+- [改进] 个股 K 线页「最近搜索」网格改为 4 / 3 / 2 / 1 列响应式（xl 起 4 列），卡片在四列断点同步收紧内边距、间距、字号与迷你分时高度，结构与功能不变；最近搜索展示上限、批量行情 / 分时请求入参与前后端 `limiteSize` 默认值由 12 统一调整为 20。`/api/v1/recent-search/list` 新增 `limit` 查询入参（1~100，默认 100），前端按展示上限传 20、后端只返回最近 20 条，单用户 DB 仍按查询时间滚动保留 100 条；同步前后端契约测试与产品设计文档。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 

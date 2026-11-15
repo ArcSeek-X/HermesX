@@ -27,7 +27,11 @@ from api.v1.schemas.recent_search import (
     RecentSearchRecordResponse,
     SimpleSuccess,
 )
-from src.application.recent_search import RecentSearchService, RecentSearchValidationError
+from src.application.recent_search import (
+    MAX_RECENT_SEARCH_RECORDS,
+    RecentSearchService,
+    RecentSearchValidationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +43,20 @@ router = APIRouter(tags=["recent-search"])
     "/list",
     response_model=RecentSearchListResponse,
     summary="列出最近搜索",
-    description="按最近搜索时间倒序返回当前用户最多 10 条记录。",
+    description="按最近搜索时间倒序返回当前用户最近 limit 条记录；不传则返回全部（最多 100 条历史记录）。",
 )
 def list_recent_search(
+    limit: int = Query(
+        MAX_RECENT_SEARCH_RECORDS,
+        ge=1,
+        le=MAX_RECENT_SEARCH_RECORDS,
+        description="返回条数：取最近 N 条，不得超过单用户历史记录上限",
+    ),
     user_id: str | None = Query(None, max_length=64, description="用户标识，缺省 default"),
     service: RecentSearchService = Depends(get_recent_search_service),
 ) -> RecentSearchListResponse:
-    """查询最近搜索列表。"""
-    records = service.list_recent(user_id=user_id)
+    """查询最近搜索列表，返回条数由前端入参决定。"""
+    records = service.list_recent(user_id=user_id, limit=limit)
     return RecentSearchListResponse(items=[RecentSearchItem(**record) for record in records])
 
 
@@ -54,7 +64,7 @@ def list_recent_search(
     "/record",
     response_model=RecentSearchRecordResponse,
     summary="记录一次搜索",
-    description="同代码刷新并顶到队首；写入后队列裁剪到 10 条。",
+    description="同代码刷新并顶到队首；写入后队列按 MAX_RECENT_SEARCH_RECORDS 裁剪（100 条）。",
 )
 def record_recent_search(
     payload: RecentSearchRecordCreate,
