@@ -35,7 +35,7 @@ import { Card } from '../';
 import {
   fetchBoardList,
   type BoardListItem,
-} from '../../api/sectorData';
+} from '@/api/market/sectorData';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../constants/stockColor';
 
 /** 板块类型：industry 行业 / concept 概念 */

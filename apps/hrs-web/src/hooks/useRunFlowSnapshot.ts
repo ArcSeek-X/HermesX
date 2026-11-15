@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { analysisApi } from '../api/analysis';
-import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { historyApi } from '../api/history';
+import { analysisApi } from '@/api/analysis/analysis';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { historyApi } from '@/api/analysis/history';
 import type { RunFlowEdge, RunFlowEvent, RunFlowNode, RunFlowSnapshot, RunFlowSnapshotSource } from '../types/runFlow';
 import { useTaskStream } from './useTaskStream';
 

@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { CheckCircle2, CircleAlert, CircleDashed, FlaskConical, RefreshCw } from 'lucide-react';
-import { systemConfigApi } from '../../api/systemConfig';
-import { getParsedApiError, type ParsedApiError } from '../../api/error';
+import { systemConfigApi } from '@/api/system/systemConfig';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { GenerationBackendStatus, GenerationBackendStatusResponse, SystemConfigUpdateItem, TestGenerationBackendResponse } from '../../types/systemConfig';
 import { InlineToast, Badge, Button } from '../';

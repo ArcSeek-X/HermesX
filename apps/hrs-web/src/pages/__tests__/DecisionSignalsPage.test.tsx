@@ -3,7 +3,7 @@ import type React from 'react';
 // 测试库：within 用于在某个 DOM 子树内查询
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { historyApi } from '../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import type { StockBarResponse } from '../../types/analysis';
 import type { StockIndexItem } from '../../types/stockIndex';
@@ -12,7 +12,7 @@ import type { StockIndexItem } from '../../types/stockIndex';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
-} from '../../api/decisionSignals';
+} from '@/api/analysis/decisionSignals';
 // 历史 API（本页 mock 其 K 线列表）
 // 国际化 Provider
 // 分析相关类型
@@ -39,7 +39,7 @@ let stockIndexState: {
 };
 
 // mock 决策信号 API：把 decisionSignalsApi 各方法与「重评估阻断错误」构造器指向 mock
-vi.mock('../../api/decisionSignals', () => ({
+vi.mock('@/api/analysis/decisionSignals', () => ({
   getDecisionSignalReassessBlockedError: vi.fn(),
   decisionSignalsApi: {
     list: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('../../api/decisionSignals', () => ({
 }));
 
 // mock 历史 API：getStockBarList 默认空实现（避免真实 K 线请求）
-vi.mock('../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getStockBarList: vi.fn(),
   },

@@ -1,7 +1,7 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { KLinePoint } from './kline';
-import type { StockQuoteCore } from '../types/stock';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { KLinePoint } from '@/api/market/kline';
+import type { StockQuoteCore } from '@/types/stock';
 
 /**
  * 股票工具类 API。

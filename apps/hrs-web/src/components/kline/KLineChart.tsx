@@ -33,7 +33,7 @@
 import type React from 'react';
 import { useEffect, useRef, useCallback } from 'react';
 import * as echarts from 'echarts';
-import type { KLinePoint, KLinePeriod } from '../../api/kline';
+import type { KLinePoint, KLinePeriod } from '@/api/market/kline';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useWindowWidth } from '../../hooks/useWindowWidth';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, getThemeColors } from '../../constants/stockColor';

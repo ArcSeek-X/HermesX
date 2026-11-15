@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 
-import type { KLinePoint, KLinePeriod } from '../../../api/kline';
+import type { KLinePoint, KLinePeriod } from '@/api/market/kline';
 
 // ============================================================
 // mock echarts：捕获实例调用，避免 jsdom 无 canvas 报错

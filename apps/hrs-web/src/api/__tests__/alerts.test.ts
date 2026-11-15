@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { alertsApi } from '../alerts';
+import { alertsApi } from '@/api/alerts/alerts';
 
 const { get, post, deleteRequest } = vi.hoisted(() => ({
   get: vi.fn(),

@@ -1,7 +1,7 @@
-import apiClient from './index';
-import { systemConfigApi } from './systemConfig';
-import { toCamelCase } from './utils';
-import type { StockQuoteCore } from '../types/stock';
+import apiClient from '@/api';
+import { systemConfigApi } from '@/api/system/systemConfig';
+import { toCamelCase } from '@/api/utils/utils';
+import type { StockQuoteCore } from '@/types/stock';
 
 /**
  * AlphaSift（量化选股/热点）相关 API。

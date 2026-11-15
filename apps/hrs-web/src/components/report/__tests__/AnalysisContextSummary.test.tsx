@@ -5,7 +5,7 @@
  */
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { historyApi } from '../../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import type {
   AnalysisContextPackOverview,
   AnalysisReport,
@@ -15,7 +15,7 @@ import type {
 import { AnalysisContextSummary } from '../AnalysisContextSummary';
 import { ReportSummary } from '../ReportSummary';
 
-vi.mock('../../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getDiagnostics: vi.fn(),
     getNews: vi.fn(),

@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { analysisApi } from '../analysis';
+import { analysisApi } from '@/api/analysis/analysis';
 
 const post = vi.hoisted(() => vi.fn());
 

@@ -4,8 +4,8 @@
  * 以及能力开关。所有请求参数统一转 snake_case，响应转 camelCase。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
 import type {
   DecisionSignalCreateRequest,
   DecisionSignalFeedbackItem,
@@ -28,7 +28,7 @@ import type {
   DecisionSignalReassessBlockedError,
   DecisionSignalReassessResponse,
   DecisionSignalStatusUpdateRequest,
-} from '../types/decisionSignals';
+} from '@/types/decisionSignals';
 
 /**
  * 决策信号（Decision Signals）相关 API。

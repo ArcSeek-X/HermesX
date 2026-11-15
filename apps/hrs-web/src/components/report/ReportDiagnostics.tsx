@@ -8,7 +8,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Check, ChevronDown, Copy, Workflow } from 'lucide-react';
-import { historyApi } from '../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import { formatUiText, UI_TEXT } from '../../i18n/uiText';
 import type {
   ReportLanguage,

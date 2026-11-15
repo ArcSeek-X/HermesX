@@ -11,7 +11,7 @@
  */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { portfolioApi } from '../../api/portfolio';
+import { portfolioApi } from '@/api/trading/portfolio';
 import type {
   AlertRuleCreateRequest,
   AlertSeverity,

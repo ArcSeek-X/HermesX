@@ -6,11 +6,11 @@
 import { StrictMode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { historyApi } from '../../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import type { RunDiagnosticSummary } from '../../../types/analysis';
 import { ReportDiagnostics } from '../ReportDiagnostics';
 
-vi.mock('../../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getDiagnostics: vi.fn(),
   },

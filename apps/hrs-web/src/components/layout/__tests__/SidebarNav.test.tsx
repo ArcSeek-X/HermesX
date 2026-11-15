@@ -22,7 +22,7 @@ vi.mock('../../../stores/agentChatStore', () => ({
     selector({ completionBadge: completionBadgeState.value }),
 }));
 
-vi.mock('../../../api/alphasift', () => ({
+vi.mock('@/api/discover/alphasift', () => ({
   ALPHASIFT_CONFIG_CHANGED_EVENT: 'alphasift-config-changed',
   SYSTEM_CONFIG_CHANGED_EVENT: 'hrs-system-config-changed',
   alphasiftApi: {

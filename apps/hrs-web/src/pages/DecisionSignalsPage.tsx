@@ -28,9 +28,9 @@ import type { StockSearchSelection } from '@components/StockSearch/types';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
-} from '../api/decisionSignals'; // 决策信号 API 接口
-import { getParsedApiError, type ParsedApiError } from '../api/error'; // API 错误解析工具
-import { historyApi } from '../api/history'; // 历史记录 API
+} from '@/api/analysis/decisionSignals'; // 决策信号 API 接口
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error'; // API 错误解析工具
+import { historyApi } from '@/api/analysis/history'; // 历史记录 API
 import { InlineToast, Card, ConfirmDialog, Drawer, InlineAlert, Pagination, HrsButton } from '@components';
 import { EmptyState } from '@components/basic/EmptyState';
 import { PageHeader } from '@components/layout/PageLayout/PageHeader';

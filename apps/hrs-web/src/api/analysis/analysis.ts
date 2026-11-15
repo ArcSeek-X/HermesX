@@ -4,10 +4,10 @@
  * 以及大盘复盘（market review）的触发与查询。所有响应统一转 camelCase。
  */
 
-import apiClient from './index';
+import apiClient from '@/api';
 import { serializeMarketReviewRegions } from '@utils/marketReviewRegion';
-import { toCamelCase } from './utils';
-import type { RunFlowSnapshot } from '../types/runFlow';
+import { toCamelCase } from '@/api/utils/utils';
+import type { RunFlowSnapshot } from '@/types/runFlow';
 import type {
   AnalysisRequest,
   AnalysisResult,
@@ -18,7 +18,7 @@ import type {
   MarketReviewRequest,
   TaskStatus,
   TaskListResponse,
-} from '../types/analysis';
+} from '@/types/analysis';
 
 // ============ API Interfaces ============
 

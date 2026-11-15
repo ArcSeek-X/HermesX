@@ -7,7 +7,7 @@ import { motion } from 'motion/react';
 import { Lock } from 'lucide-react';
 import { Eye, EyeClosed } from '@gravity-ui/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { isParsedApiError, type ParsedApiError } from '../../api/error';
+import { isParsedApiError, type ParsedApiError } from '@/api/error/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { useMenuStore, useRouterStore } from '../../stores';

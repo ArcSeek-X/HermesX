@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getSystemCountries } from '../api/systemCountries';
+import { getSystemCountries } from '@/api/system/systemCountries';
 import type { CountryMarketOptionDef } from '@components';
 
 interface SystemCountriesState {

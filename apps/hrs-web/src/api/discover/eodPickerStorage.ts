@@ -1,4 +1,4 @@
-import { DEFAULT_FILTERS, type EodPickerFilters } from './eodPicker';
+import { DEFAULT_FILTERS, type EodPickerFilters } from '@/api/discover/eodPicker';
 
 /**
  * 尾盘选股法的本地持久化（照搬参考项目的 localStorage 思路，用本仓库 storage 工具）。

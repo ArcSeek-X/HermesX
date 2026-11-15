@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { usageApi } from '../usage';
+import { usageApi } from '@/api/user/usage';
 
 const get = vi.hoisted(() => vi.fn());
 

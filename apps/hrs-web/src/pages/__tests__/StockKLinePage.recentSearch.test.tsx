@@ -72,8 +72,8 @@ vi.mock('../../hooks/useStockIndex', () => ({
 const fetchKLineMock = vi.fn();
 const fetchStockInfoMock = vi.fn();
 const searchStocksMock = vi.fn();
-vi.mock('../../api/kline', async () => {
-  const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
+vi.mock('@/api/market/kline', async () => {
+  const actual = await vi.importActual<typeof import('@/api/market/kline')>('@/api/market/kline');
   return {
     ...actual,
     klineApi: {
@@ -84,7 +84,7 @@ vi.mock('../../api/kline', async () => {
   };
 });
 
-vi.mock('../../api/recentSearch', () => ({
+vi.mock('@/api/market/recentSearch', () => ({
   recordRecentSearch: (...args: unknown[]) => recordRecentSearchMock(...args),
   getRecentSearchList: (...args: unknown[]) => getListMock(...args),
   clearRecentSearch: (...args: unknown[]) => clearMock(...args),

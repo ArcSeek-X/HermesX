@@ -7,7 +7,7 @@
 
 import { Check, Loader2 } from 'lucide-react';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import type { ScannerStep } from '../../../../api/scanner';
+import type { ScannerStep } from '@/api/discover/scanner';
 import { toFullStockSymbol } from '@utils/stock/stockCode';
 
 /** 分步面板 Props */

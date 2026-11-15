@@ -7,11 +7,11 @@
  */
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import type { ParsedApiError } from '../../api/error';
-import { getParsedApiError } from '../../api/error';
+import type { ParsedApiError } from '@/api/error/error';
+import { getParsedApiError } from '@/api/error/error';
 import { InlineToast, Card } from '../';
 import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
-import { historyApi } from '../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import type { NewsIntelItem, ReportLanguage } from '../../types/analysis';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
 

@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   resetDashboardState: vi.fn(),
 }));
 
-vi.mock('../../api/auth', () => ({
+vi.mock('@/api/system/auth', () => ({
   authApi: {
     getStatus: mocks.getStatus,
     login: mocks.login,
@@ -24,7 +24,7 @@ vi.mock('../../api/auth', () => ({
 }));
 
 // 复用真实错误解析（含 429 文案），仅屏蔽其调试 console.log
-vi.mock('../../api/error', async (importOriginal) => ({ ...(await importOriginal()) }));
+vi.mock('@/api/error/error', async (importOriginal) => ({ ...(await importOriginal()) }));
 
 vi.mock('../stockPoolStore', () => ({
   useStockPoolStore: { getState: () => ({ resetDashboardState: mocks.resetDashboardState }) },

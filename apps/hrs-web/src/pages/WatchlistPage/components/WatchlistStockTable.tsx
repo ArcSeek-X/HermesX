@@ -10,7 +10,7 @@ import { HrsButton } from '@components/basic/HrsButton';
 import { Select } from '@components/basic/Select';
 import { Table, type PaginationDef } from '@components/basic/Table';
 import { ConfirmDialog } from '@components/common/ConfirmDialog';
-import type { WatchlistItemWithQuote, WatchlistGroup } from '../../../api/watchlist';
+import type { WatchlistItemWithQuote, WatchlistGroup } from '@/api/watchlist/watchlist';
 import { buildWatchlistStockColumns } from './WatchlistStockColumn';
 
 export interface WatchlistStockTableProps {

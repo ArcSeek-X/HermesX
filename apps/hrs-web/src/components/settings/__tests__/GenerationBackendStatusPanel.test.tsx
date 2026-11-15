@@ -20,7 +20,7 @@ const {
   testGenerationBackend: vi.fn(),
 }));
 
-vi.mock('../../../api/systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     getGenerationBackendStatus: (...args: unknown[]) => getGenerationBackendStatus(...args),
     previewGenerationBackendStatus: (...args: unknown[]) => previewGenerationBackendStatus(...args),

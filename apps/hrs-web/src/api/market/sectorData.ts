@@ -4,7 +4,7 @@
  * 主要服务于板块热力图（treemap）、资金流向与大盘概览页面。
  */
 
-import apiClient from './index';
+import apiClient from '@/api';
 
 /** 树形板块节点（支持层级 treemap） */
 export type SectorNode = {

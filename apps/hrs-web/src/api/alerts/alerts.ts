@@ -4,8 +4,8 @@
  * 请求参数统一从 camelCase 转换为后端 snake_case，响应再转回 camelCase。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
 import type {
   AlertDeleteResponse,
   AlertNotificationListQuery,
@@ -17,7 +17,7 @@ import type {
   AlertRuleTestResponse,
   AlertTriggerListQuery,
   AlertTriggerListResponse,
-} from '../types/alerts';
+} from '@/types/alerts';
 
 /**
  * 预警（Alerts）相关 API。

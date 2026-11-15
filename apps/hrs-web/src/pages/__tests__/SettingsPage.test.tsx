@@ -105,7 +105,7 @@ vi.mock('../../hooks', () => ({
 }));
 
 // mock 系统配置 API：把导出/导入环境变量、调度状态、设置状态、调度立即运行、更新 方法指向对应 mock
-vi.mock('../../api/systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     exportEnv: (...args: unknown[]) => exportEnv(...args),
     getSchedulerStatus: (...args: unknown[]) => getSchedulerStatus(...args),
@@ -117,14 +117,14 @@ vi.mock('../../api/systemConfig', () => ({
 }));
 
 // mock 分析 API：analyzeAsync 指向对应 mock
-vi.mock('../../api/analysis', () => ({
+vi.mock('@/api/analysis/analysis', () => ({
   analysisApi: {
     analyzeAsync: (...args: unknown[]) => analyzeAsync(...args),
   },
 }));
 
 // mock AlphaSift API：enable/install 与两个配置变更通知指向对应 mock
-vi.mock('../../api/alphasift', () => ({
+vi.mock('@/api/discover/alphasift', () => ({
   alphasiftApi: {
     enable: (...args: unknown[]) => alphasiftEnable(...args),
     install: (...args: unknown[]) => alphasiftInstall(...args),

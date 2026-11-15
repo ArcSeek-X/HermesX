@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { stocksApi } from '../api/stocks';
+import { stocksApi } from '@/api/market/stocks';
 import { useStockIndex } from './useStockIndex';
 import {
   getWatchlistGroups,
@@ -30,7 +30,7 @@ import {
   type WatchlistItemWithQuote,
   type WatchlistIntraday,
   type WatchlistQuote,
-} from '../api/watchlist';
+} from '@/api/watchlist/watchlist';
 
 /**
  * 分时拉取并发上限。

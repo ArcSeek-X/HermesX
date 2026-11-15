@@ -6,10 +6,10 @@
  * 约定：后端返回 snake_case，前端统一用 toCamelCase 归一化；请求体发送 snake_case。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { KLinePoint } from './kline';
-import type { StockQuoteCore } from '../types/stock';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { KLinePoint } from '@/api/market/kline';
+import type { StockQuoteCore } from '@/types/stock';
 
 /** 分类 */
 export interface WatchlistGroup {

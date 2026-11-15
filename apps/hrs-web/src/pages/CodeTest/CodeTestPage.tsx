@@ -6,7 +6,7 @@ import React from "react";
 import { Fragment, useState } from 'react';
 import { InlineToast, HrsInput, HrsButton, Modal, Chip, TextArea, HrsSelect, type HrsSelectOptionDef, type HrsSelectSectionDef, HrsDrawer, type HrsDrawerPlacement, type HrsDrawerSize, type HrsDrawerVariant, HrsCheckbox, type HrsCheckboxSize, showToast, type ToastPlacement, type ToastVariant } from '@components';
 import { AppPage } from '@components/layout/AppPage';
-import { type ParsedApiError } from '../../api/error';
+import { type ParsedApiError } from '@/api/error/error';
 import { type Key } from '@heroui/react';
 import { Star, ArrowRight } from '@gravity-ui/icons';
 

@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   decisionSignalsApi,
   getDecisionSignalReassessBlockedError,
-} from '../decisionSignals';
+} from '@/api/analysis/decisionSignals';
 
 const { get, post, patch, put } = vi.hoisted(() => ({
   get: vi.fn(),

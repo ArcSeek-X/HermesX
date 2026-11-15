@@ -17,7 +17,7 @@
 import type React from 'react';
 import { Card } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import type { StockItem } from '../../api/sectorData';
+import type { StockItem } from '@/api/market/sectorData';
 
 /** 组件 Props 类型 */
 type SectorStockTableProps = {

@@ -1,7 +1,7 @@
 import { serializeStockListValue } from '@utils/stockList';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { createParsedApiError, getParsedApiError, type ParsedApiError } from '../api/error';
-import { systemConfigApi, SystemConfigConflictError, SystemConfigValidationError } from '../api/systemConfig';
+import { createParsedApiError, getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { systemConfigApi, SystemConfigConflictError, SystemConfigValidationError } from '@/api/system/systemConfig';
 import type {
   ConfigValidationIssue,
   SystemConfigCategorySchema,

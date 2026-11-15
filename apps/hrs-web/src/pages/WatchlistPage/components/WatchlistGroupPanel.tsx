@@ -21,7 +21,7 @@ import { Description, TextField } from '@heroui/react';
 
 import { Modal } from '@components/basic/Modal';
 import { ConfirmDialog } from '@components/common/ConfirmDialog';
-import type { WatchlistGroup } from '../../../api/watchlist';
+import type { WatchlistGroup } from '@/api/watchlist/watchlist';
 
 export interface WatchlistGroupPanelProps {
   groups: WatchlistGroup[];

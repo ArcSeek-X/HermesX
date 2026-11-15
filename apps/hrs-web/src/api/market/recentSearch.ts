@@ -5,9 +5,9 @@
  * 约定：后端返回 snake_case，前端统一用 toCamelCase 归一化；请求体发送 snake_case。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import { DEFAULT_LIMIT_SIZE } from './stocks';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import { DEFAULT_LIMIT_SIZE } from '@/api/market/stocks';
 
 /** 一条最近搜索记录（不含实时行情，行情由 stocksApi.batchQuote 补齐） */
 export interface RecentSearchItem {

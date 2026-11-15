@@ -13,7 +13,7 @@ import { AnimCard, HrsButton } from '@components';
 import { AVG_PRICE_LINE_COLOR, KLineView } from '@components/kline/KLineView';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../../../constants/stockColor';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import type { EodPickerStock } from '../../../../api/eodPicker';
+import type { EodPickerStock } from '@/api/discover/eodPicker';
 
 // ----------------------------- 格式化与展示工具 -----------------------------
 

@@ -18,7 +18,7 @@ import {
   type MarketCardItem,
   type MarketIndexItem,
   type MarketTabKey,
-} from '../../../api/sectorData';
+} from '@/api/market/sectorData';
 
 /** 数据自动刷新间隔：30 秒（与原板块分析页仪表盘行为保持一致） */
 const REFRESH_INTERVAL_MS = 30_000;

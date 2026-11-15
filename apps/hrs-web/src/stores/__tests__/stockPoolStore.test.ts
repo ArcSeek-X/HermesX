@@ -1,7 +1,7 @@
 import { getRecentStartDate, getTodayInShanghai } from '@utils/format';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { analysisApi, DuplicateTaskError } from '../../api/analysis';
-import { historyApi } from '../../api/history';
+import { analysisApi, DuplicateTaskError } from '@/api/analysis/analysis';
+import { historyApi } from '@/api/analysis/history';
 import { useStockPoolStore } from '../stockPoolStore';
 import type {
   AnalysisReport,
@@ -11,7 +11,7 @@ import type {
   TaskListResponse,
 } from '../../types/analysis';
 
-vi.mock('../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getList: vi.fn(),
     getDetail: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('../../api/history', () => ({
 //（api/index → Toast → @components 桶 → appRouter → createBrowserRouter），该链在全量测试并行负载下
 // 偶发加载/绑定异常，会导致 store 与测试拿到不同的 analysisApi 实例（flaky）。此处仅 mock store 实际
 // 用到的 analysisApi 与 DuplicateTaskError（store 用 instanceof 判断，需为同一引用）。
-vi.mock('../../api/analysis', () => {
+vi.mock('@/api/analysis/analysis', () => {
   class DuplicateTaskError extends Error {
     stockCode: string;
     taskId: string;

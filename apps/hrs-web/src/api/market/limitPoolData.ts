@@ -6,9 +6,9 @@
  * 命名说明：本模块按能力域（涨跌停池 = limit_pool）命名，不绑定前端「情绪」菜单分组。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { StockLimitUpQuote, StockLimitDownQuote } from '../types/stock';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { StockLimitUpQuote, StockLimitDownQuote } from '@/types/stock';
 
 /**
  * 涨跌停榜单响应。

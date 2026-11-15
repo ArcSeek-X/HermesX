@@ -7,7 +7,7 @@
  * 约定：后端返回 snake_case，本层统一 normalize 为 camelCase，避免字段风格泄漏到业务层。
  */
 
-import apiClient from './index';
+import apiClient from '@/api';
 import type { CountryMarketOptionDef } from '@components';
 
 /** 后端返回的原始国家字典条目（snake_case） */

@@ -32,8 +32,8 @@ vi.mock('../index', () => {
   };
 });
 
-import { clearRecentSearch, getRecentSearchList, recordRecentSearch } from '../recentSearch';
-import { stocksApi } from '../stocks';
+import { clearRecentSearch, getRecentSearchList, recordRecentSearch } from '@/api/market/recentSearch';
+import { stocksApi } from '@/api/market/stocks';
 
 /** 后端返回的一条 snake_case 记录 */
 function makeSnakeRecord() {

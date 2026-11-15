@@ -12,7 +12,7 @@
  *   2. 所有状态变更均强制清空 error，保证新视图进入时不被旧错误文案干扰。
  */
 import { create } from 'zustand';
-import type { ParsedApiError } from '../api/error';
+import type { ParsedApiError } from '@/api/error/error';
 import type { AnalysisResult, AnalysisReport } from '../types/analysis';
 
 /** 个股分析 Store 状态与 Action 定义 */

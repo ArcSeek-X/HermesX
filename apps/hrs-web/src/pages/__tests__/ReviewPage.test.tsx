@@ -6,10 +6,10 @@ import { KeepAlive } from 'keepalive-for-react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { analysisApi, DuplicateTaskError } from '../../api/analysis';
-import { agentApi } from '../../api/agent';
-import { historyApi } from '../../api/history';
-import { systemConfigApi } from '../../api/systemConfig';
+import { analysisApi, DuplicateTaskError } from '@/api/analysis/analysis';
+import { agentApi } from '@/api/agent/agent';
+import { historyApi } from '@/api/analysis/history';
+import { systemConfigApi } from '@/api/system/systemConfig';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import { useTaskStream } from '../../hooks/useTaskStream';
 import { useStockPoolStore } from '../../stores';
@@ -43,7 +43,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // mock 历史 API：列表/详情/新闻/Markdown/诊断/流程/Bar列表/按代码删除，其中新闻与 Bar列表给默认空响应
-vi.mock('../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getList: vi.fn(),
     getDetail: vi.fn(),
@@ -57,8 +57,8 @@ vi.mock('../../api/history', () => ({
 }));
 
 // mock 分析 API：保留真实导出（含 DuplicateTaskError），只把异步分析/大盘复盘/状态/任务相关方法替换为 mock
-vi.mock('../../api/analysis', async () => {
-  const actual = await vi.importActual<typeof import('../../api/analysis')>('../../api/analysis');
+vi.mock('@/api/analysis/analysis', async () => {
+  const actual = await vi.importActual<typeof import('@/api/analysis/analysis')>('@/api/analysis/analysis');
   return {
     ...actual,
     analysisApi: {
@@ -72,7 +72,7 @@ vi.mock('../../api/analysis', async () => {
 });
 
 // mock 系统配置 API：配置读取/设置状态/自选股读（默认空自选）
-vi.mock('../../api/systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     getConfig: vi.fn(),
     getSetupStatus: vi.fn(),
@@ -81,7 +81,7 @@ vi.mock('../../api/systemConfig', () => ({
 }));
 
 // mock agent API：技能列表
-vi.mock('../../api/agent', () => ({
+vi.mock('@/api/agent/agent', () => ({
   agentApi: {
     getSkills: vi.fn(),
   },

@@ -7,7 +7,7 @@
  */
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { historyApi } from '../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import type { ReportLanguage } from '../../types/analysis';
 import { markdownToPlainText } from '../../utils/markdown';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';

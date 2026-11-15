@@ -74,7 +74,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // mock AlphaSift 适配层 API：把 alphasiftApi 各方法指向上面的 mock 函数
-vi.mock('../../api/alphasift', () => ({
+vi.mock('@/api/discover/alphasift', () => ({
   alphasiftApi: {
     enable: () => enableAlphaSift(),
     getStatus: () => getAlphaSiftStatus(),

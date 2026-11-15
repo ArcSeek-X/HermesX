@@ -1,4 +1,4 @@
-import apiClient from './index';
+import apiClient from '@/api';
 
 /**
  * 鉴权相关 API（Web 端密码保护）。

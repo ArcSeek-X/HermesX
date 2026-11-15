@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { klineApi } from '../../api/kline';
+import { klineApi } from '@/api/market/kline';
 import { ThemeSetting } from './HeaderComponents/ThemeSetting';
 import { UserSetting } from './HeaderComponents/UserSetting';
 import { LanguageSwitch } from './HeaderComponents/LanguageSwitch';

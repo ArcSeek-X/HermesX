@@ -21,7 +21,7 @@ import type {
   BoardListItem,
   MarketFundFlowData,
   NorthboundFlowData,
-} from '../../api/sectorData';
+} from '@/api/market/sectorData';
 import { formatAmountRounding, formatPercent, formatSignedAmount, getChangeColorClass } from '../../utils/format';
 import AnimCard from '../common/Card/AnimCard/AnimCard';
 

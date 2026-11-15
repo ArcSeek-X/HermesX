@@ -1,8 +1,8 @@
-import apiClient from './index';
+import apiClient from '@/api';
 import { API_BASE_URL } from '@utils/constants';
-import { createApiError, isApiRequestError, parseApiError } from './error';
-import { toCamelCase } from './utils';
-import type { AgentBackendStatusResponse } from '../types/systemConfig';
+import { createApiError, isApiRequestError, parseApiError } from '@/api/error/error';
+import { toCamelCase } from '@/api/utils/utils';
+import type { AgentBackendStatusResponse } from '@/types/systemConfig';
 
 /**
  * 智能体（Agent）对话与状态相关 API。

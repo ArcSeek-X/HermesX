@@ -8,7 +8,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import IndexCard from '../IndexCard';
-import type { MarketIndexItem } from '../../../api/sectorData';
+import type { MarketIndexItem } from '@/api/market/sectorData';
 
 const a50Index: MarketIndexItem = {
   name: '富时中国A50',

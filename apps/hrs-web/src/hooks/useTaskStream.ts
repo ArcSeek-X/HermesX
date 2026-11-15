@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState, type MutableRefObject } from 'react';
-import { analysisApi } from '../api/analysis';
-import { toCamelCase } from '../api/utils';
+import { analysisApi } from '@/api/analysis/analysis';
+import { toCamelCase } from '@/api/utils/utils';
 import type { TaskInfo } from '../types/analysis';
 import type { RunFlowEvent } from '../types/runFlow';
 

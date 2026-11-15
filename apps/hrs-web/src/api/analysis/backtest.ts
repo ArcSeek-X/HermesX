@@ -1,5 +1,5 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
 import type {
   BacktestRunRequest,
   BacktestRunResponse,
@@ -7,7 +7,7 @@ import type {
   BacktestResultItem,
   PerformanceMetrics,
   BacktestPhaseFilter,
-} from '../types/backtest';
+} from '@/types/backtest';
 
 /**
  * 策略回测（Backtest）相关 API。

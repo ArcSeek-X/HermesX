@@ -14,7 +14,7 @@
  * 通过 mock apiClient.get 捕获真实发出的请求参数，断言前端调用契约正确。
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { klineApi, type KLineResponse, type StockInfo, type StockSearchResult } from '../kline';
+import { klineApi, type KLineResponse, type StockInfo, type StockSearchResult } from '@/api/market/kline';
 
 // 捕获 axios 实例上的 get 调用
 const getMock = vi.fn();

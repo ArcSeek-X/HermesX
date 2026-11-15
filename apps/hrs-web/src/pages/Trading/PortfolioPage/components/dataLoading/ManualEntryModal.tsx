@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { Modal, HrsButton, HrsInput, HrsSelect, HrsNumberField, TabNav } from '@components';
 import { StockSearch } from '@components/StockSearch/StockSearch';
 import { getTodayIso } from '@utils/portfolioFormat';
-import { portfolioApi } from '../../../../../api/portfolio';
+import { portfolioApi } from '@/api/trading/portfolio';
 import type { ManualEntryTab } from '../../types';
 import type {
   PortfolioCashDirection,

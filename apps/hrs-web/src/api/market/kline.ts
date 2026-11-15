@@ -1,5 +1,5 @@
-import apiClient from './index';
-import type { StockQuoteCore } from '../types/stock';
+import apiClient from '@/api';
+import type { StockQuoteCore } from '@/types/stock';
 
 /**
  * K 线（行情）相关 API。

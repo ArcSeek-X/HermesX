@@ -4,9 +4,9 @@
  * 组合管理能力的后端对接。所有查询参数统一转 snake_case，响应转 camelCase。
  */
 
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { TaskAccepted } from '../types/analysis';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { TaskAccepted } from '@/types/analysis';
 import type {
   PortfolioAccountItem,
   PortfolioAccountCreateRequest,
@@ -28,7 +28,7 @@ import type {
   PortfolioSnapshotResponse,
   PortfolioTradeCreateRequest,
   PortfolioTradeListResponse,
-} from '../types/portfolio';
+} from '@/types/portfolio';
 
 /**
  * 投资组合（Portfolio）相关 API。

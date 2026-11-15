@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 import type React from 'react';
-import type { ParsedApiError } from '../../../api/error';
+import type { ParsedApiError } from '@/api/error/error';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
 import AnimCard from '../../common/Card/AnimCard/AnimCard';

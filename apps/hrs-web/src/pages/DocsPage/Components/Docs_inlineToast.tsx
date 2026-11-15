@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { HrsButton, InlineToast } from '@components';
-import type { ParsedApiError } from '../../../api/error';
+import type { ParsedApiError } from '@/api/error/error';
 import { AppPage } from '@components/layout/AppPage';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { DocsSection } from '../DocsSection';

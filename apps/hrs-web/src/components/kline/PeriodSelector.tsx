@@ -6,7 +6,7 @@
  */
 
 import type React from 'react';
-import type { KLinePeriod } from '../../api/kline';
+import type { KLinePeriod } from '@/api/market/kline';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { cn } from '../../utils/cn';
 

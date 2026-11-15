@@ -15,9 +15,9 @@ import WatchlistGroupPanel from './components/WatchlistGroupPanel';
 import WatchlistStockTable from './components/WatchlistStockTable';
 import { BookmarkFill } from '@gravity-ui/icons';
 import { Label, TextField, Description } from '@heroui/react';
-import { type WatchlistItemWithQuote } from '../../api/watchlist';
+import { type WatchlistItemWithQuote } from '@/api/watchlist/watchlist';
 import type { StockSearchSelection } from '@components/StockSearch/types';
-import { getParsedApiError, type ParsedApiError } from '../../api/error';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
 
 type WatchlistSortField = 'default' | 'changePct' | 'amount' | 'turnoverRate' | 'totalMarketCap';
 

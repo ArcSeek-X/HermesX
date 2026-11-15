@@ -2,9 +2,9 @@ import { getRecentStartDate, getTodayInShanghai } from '@utils/format';
 import { normalizeStockCode } from '@utils/stock/stockCode';
 import { isObviouslyInvalidStockQuery, looksLikeStockCode, validateStockCode } from '@utils/validation';
 import { create } from 'zustand';
-import { analysisApi, DuplicateTaskError } from '../api/analysis';
-import { getParsedApiError, type ParsedApiError } from '../api/error';
-import { historyApi } from '../api/history';
+import { analysisApi, DuplicateTaskError } from '@/api/analysis/analysis';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { historyApi } from '@/api/analysis/history';
 import type { AnalysisReport, HistoryItem, HistoryListResponse, ReportLanguage, StockBarItem, StockHistoryFilters, StockHistoryRange, TaskInfo } from '../types/analysis';
 
 /** 普通历史报告列表每页条数 */

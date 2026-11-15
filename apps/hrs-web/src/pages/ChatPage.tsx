@@ -33,12 +33,12 @@ import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '@u
 import type { ChatFollowUpContext } from '@utils/chatFollowUp';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
-import { agentApi, type AgentStatusResponse, type SkillInfo } from '../api/agent';
-import { systemConfigApi } from '../api/systemConfig';
+import { agentApi, type AgentStatusResponse, type SkillInfo } from '@/api/agent/agent';
+import { systemConfigApi } from '@/api/system/systemConfig';
 import { InlineToast, Badge, Button, ConfirmDialog, InlineAlert, ScrollArea, Tooltip } from '@components';
 import { EmptyState } from '@components/basic/EmptyState';
 import { DashboardStateBlock } from '@components/dashboard/DashboardStateBlock';
-import { createParsedApiError, getParsedApiError } from '../api/error';
+import { createParsedApiError, getParsedApiError } from '@/api/error/error';
 
 import { useStockIndex } from '../hooks/useStockIndex';
 import type { StockIndexItem } from '../types/stockIndex';

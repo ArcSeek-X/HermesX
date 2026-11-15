@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentChatStore } from '../agentChatStore';
 
-vi.mock('../../api/agent', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../api/agent')>();
+vi.mock('@/api/agent/agent', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/agent/agent')>();
   return {
     ...actual,
     agentApi: {
@@ -14,7 +14,7 @@ vi.mock('../../api/agent', async (importOriginal) => {
   };
 });
 
-const { agentApi } = await import('../../api/agent');
+const { agentApi } = await import('@/api/agent/agent');
 const encoder = new TextEncoder();
 
 function createStreamResponse(lines: string[]) {

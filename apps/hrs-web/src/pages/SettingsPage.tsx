@@ -13,10 +13,10 @@ import { CheckCircle2, ChevronDown, CircleAlert, CircleDashed, Clock, Play, Plus
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useSystemConfig } from '../hooks';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
-import { createParsedApiError, getParsedApiError, type ParsedApiError } from '../api/error';
-import { analysisApi } from '../api/analysis';
-import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
-import { systemConfigApi } from '../api/systemConfig';
+import { createParsedApiError, getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { analysisApi } from '@/api/analysis/analysis';
+import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '@/api/discover/alphasift';
+import { systemConfigApi } from '@/api/system/systemConfig';
 import { InlineToast, ConfirmDialog, HrsButton } from '@components';
 import { EmptyState } from '@components/basic/EmptyState';
 import { PageHeader } from '@components/layout/PageLayout/PageHeader';

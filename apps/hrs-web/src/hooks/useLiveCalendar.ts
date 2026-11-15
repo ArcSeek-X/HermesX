@@ -25,7 +25,7 @@ import {
   getLiveCalendarMonth,
   getLiveCalendarTabs,
   refreshLiveCalendar,
-} from '../api/liveCalendar';
+} from '@/api/news/liveCalendar';
 import type {
   CalendarTabDef,
   LiveCalendarEventDef,

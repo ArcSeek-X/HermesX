@@ -1,6 +1,6 @@
 /** 最近搜索卡片的数据契约与占位行情构造（页面、列表、卡片共用） */
 
-import type { KLinePoint, StockInfo } from '../../../../api/kline';
+import type { KLinePoint, StockInfo } from '@/api/market/kline';
 
 /** 最近搜索卡片数据：行情快照 + 迷你分时（分时由批量接口异步补齐） */
 export interface RecentSearchStockCardData {

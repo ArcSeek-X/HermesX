@@ -7,9 +7,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
-import type { ParsedApiError } from '../../api/error';
-import { getParsedApiError } from '../../api/error';
-import { systemConfigApi } from '../../api/systemConfig';
+import type { ParsedApiError } from '@/api/error/error';
+import { getParsedApiError } from '@/api/error/error';
+import { systemConfigApi } from '@/api/system/systemConfig';
 import type { LLMCapabilityCheck, LLMCapabilityCheckResult } from '../../types/systemConfig';
 import { InlineToast, Badge, Button, InlineAlert, HrsInput, PasswordInput, Select, StatusDot, Tooltip } from '@components';
 import type { ChannelProtocol } from './llmProviderTemplates';

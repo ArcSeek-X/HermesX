@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { alphasiftApi } from '../alphasift';
+import { alphasiftApi } from '@/api/discover/alphasift';
 
 const { get, post, getConfig, updateConfig } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock('../index', () => ({
   },
 }));
 
-vi.mock('../systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     getConfig: (...args: unknown[]) => getConfig(...args),
     update: (...args: unknown[]) => updateConfig(...args),

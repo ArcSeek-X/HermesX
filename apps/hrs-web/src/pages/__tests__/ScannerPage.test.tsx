@@ -30,7 +30,7 @@ const { getWatchlistGroups, getAllWatchlistItems, createWatchlistItem } = vi.hoi
   createWatchlistItem: vi.fn(),
 }));
 
-vi.mock('../../api/watchlist', () => ({
+vi.mock('@/api/watchlist/watchlist', () => ({
   getWatchlistGroups,
   getAllWatchlistItems,
   createWatchlistItem,

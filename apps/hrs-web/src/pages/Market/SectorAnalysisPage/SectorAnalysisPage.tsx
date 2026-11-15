@@ -31,7 +31,7 @@ import {
   type ETFPeriod,
   type SectorFundFlowResponse,
   type SectorFundFlowSectorItem,
-} from '../../../api/sectorData';
+} from '@/api/market/sectorData';
 
 /**
  * 交易时段快照时间点（9:30 ~ 15:00，每 30 分钟一个）

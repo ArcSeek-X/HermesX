@@ -5,9 +5,9 @@
  * 对应的 typed error，供页面差异化提示。
  */
 
-import apiClient from './index';
-import { createParsedApiError, getParsedApiError, type ParsedApiError } from './error';
-import { toCamelCase } from './utils';
+import apiClient from '@/api';
+import { createParsedApiError, getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { toCamelCase } from '@/api/utils/utils';
 import type {
   AgentBackendStatusPreviewRequest,
   AgentBackendStatusResponse,
@@ -34,7 +34,7 @@ import type {
   UpdateSystemConfigResponse,
   ValidateSystemConfigRequest,
   ValidateSystemConfigResponse,
-} from '../types/systemConfig';
+} from '@/types/systemConfig';
 
 /**
  * 系统配置（SystemConfig）相关 API。

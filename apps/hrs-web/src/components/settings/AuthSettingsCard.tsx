@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { authApi } from '../../api/auth';
-import { getParsedApiError, isParsedApiError, type ParsedApiError } from '../../api/error';
+import { authApi } from '@/api/system/auth';
+import { getParsedApiError, isParsedApiError, type ParsedApiError } from '@/api/error/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../i18n/uiText';

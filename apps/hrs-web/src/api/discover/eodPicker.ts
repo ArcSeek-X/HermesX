@@ -1,7 +1,7 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { KLinePoint } from './kline';
-import type { StockQuoteCore, StockRef } from '../types/stock';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { KLinePoint } from '@/api/market/kline';
+import type { StockQuoteCore, StockRef } from '@/types/stock';
 
 /**
  * 尾盘选股法（EOD Picker）相关 API。

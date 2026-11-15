@@ -10,7 +10,7 @@ import { useKeepAliveContext } from 'keepalive-for-react';
 import { Table } from '@components/basic/Table';
 import type { SortDescriptor } from '@components/basic/Table';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import { fetchLimitDownBoard } from '../../../../api/limitPoolData';
+import { fetchLimitDownBoard } from '@/api/market/limitPoolData';
 import { normalizeStockCode } from '@utils/stock/stockCode';
 import { buildLimitBoardColumns, sortBoardRows, type LimitBoardRow } from './boardColumns';
 import { summarizeLimitBoard } from './boardMetrics';

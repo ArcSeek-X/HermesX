@@ -17,7 +17,7 @@
 import type React from 'react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatParsedApiError, getParsedApiError, toApiErrorMessage, type ParsedApiError } from '../api/error';
+import { formatParsedApiError, getParsedApiError, toApiErrorMessage, type ParsedApiError } from '@/api/error/error';
 import { Button, InlineAlert } from '@components';
 import { AppPage } from '@components/layout/AppPage';
 import { usePreference } from '../hooks/usePreference';
@@ -55,7 +55,7 @@ import {
   type AlphaSiftScreenResponse,
   type AlphaSiftScreenTaskStatus,
   type AlphaSiftStrategy,
-} from '../api/alphasift';
+} from '@/api/discover/alphasift';
 
 // ============ 常量与类型定义 ============
 

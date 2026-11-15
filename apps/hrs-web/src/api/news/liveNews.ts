@@ -13,13 +13,13 @@
  * 2. 后端返回的降级标记 `degraded` 原样透出，由页面决定是否隐藏重要级筛选。
  */
 
-import apiClient from './index';
+import apiClient from '@/api';
 import type {
   LiveNewsChannelsResponse,
   LiveNewsQueryParams,
   LiveNewsRefreshResponse,
   LiveNewsResponse,
-} from '../types/liveNews';
+} from '@/types/liveNews';
 
 const BASE = '/api/v1/intelligence/live-news';
 

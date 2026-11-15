@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-import type { SectorFundFlowResponse } from '../../api/sectorData';
+import type { SectorFundFlowResponse } from '@/api/market/sectorData';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR, getThemeColors } from '../../constants/stockColor';
 
 type SectorFundFlowChartProps = {

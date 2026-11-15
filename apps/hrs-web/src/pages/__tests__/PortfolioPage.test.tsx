@@ -9,8 +9,8 @@ import { Toast, dismissAllToasts } from '../../components/basic/Toast';
 
 const render = (ui: React.ReactElement) => renderWithRouter(<>{ui}<Toast /></>);
 afterEach(() => act(() => dismissAllToasts()));
-import { decisionSignalsApi } from '../../api/decisionSignals';
-import { createApiError, createParsedApiError } from '../../api/error';
+import { decisionSignalsApi } from '@/api/analysis/decisionSignals';
+import { createApiError, createParsedApiError } from '@/api/error/error';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import type { DecisionSignalItem } from '../../types/decisionSignals';
 // 测试框架
@@ -72,7 +72,7 @@ const {
 }));
 
 // mock 决策信号 API：list / getLatest 指向对应 mock
-vi.mock('../../api/decisionSignals', () => ({
+vi.mock('@/api/analysis/decisionSignals', () => ({
   decisionSignalsApi: {
     list: listDecisionSignals,
     getLatest: getLatestDecisionSignals,
@@ -80,7 +80,7 @@ vi.mock('../../api/decisionSignals', () => ({
 }));
 
 // mock 组合 API：把 portfolioApi 各方法指向上面的 mock 函数
-vi.mock('../../api/portfolio', () => ({
+vi.mock('@/api/trading/portfolio', () => ({
   portfolioApi: {
     getAccounts,
     getSnapshot,

@@ -43,7 +43,7 @@ import type {
   Time,
   UTCTimestamp,
 } from 'lightweight-charts';
-import type { KLinePoint } from '../../api/kline';
+import type { KLinePoint } from '@/api/market/kline';
 import { cn } from '../../utils/cn';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../constants/stockColor';
 

@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { agentApi } from '../agent';
+import { agentApi } from '@/api/agent/agent';
 
 const get = vi.hoisted(() => vi.fn());
 

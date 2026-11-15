@@ -22,15 +22,15 @@ import {
   type ScannerResultRow as ScannerResultRowData,
   type ScannerSignalKey,
   type ScannerStep,
-} from '../../../api/scanner';
+} from '@/api/discover/scanner';
 import type { StockRef } from '../../../types/stock';
 import { normalizeStockCode } from '@utils/stock/stockCode';
-import { toApiErrorMessage } from '../../../api/error';
+import { toApiErrorMessage } from '@/api/error/error';
 import {
   createWatchlistItem,
   getAllWatchlistItems,
   getWatchlistGroups,
-} from '../../../api/watchlist';
+} from '@/api/watchlist/watchlist';
 import ScannerResultRow from './components/ScannerResultRow';
 import ScannerProgressSteps from './components/ScannerProgressSteps';
 

@@ -14,7 +14,7 @@
 
 import { toDateKeyFromSeconds } from '@utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getLiveNews, getLiveNewsChannels, refreshLiveNews } from '../api/liveNews';
+import { getLiveNews, getLiveNewsChannels, refreshLiveNews } from '@/api/news/liveNews';
 import type { LiveNewsChannel, LiveNewsDateGroup, LiveNewsItem } from '../types/liveNews';
 
 /** 默认轮询间隔（毫秒） */

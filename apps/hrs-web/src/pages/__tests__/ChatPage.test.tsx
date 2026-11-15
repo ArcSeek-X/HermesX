@@ -5,9 +5,9 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react';
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createParsedApiError } from '../../api/error';
+import { createParsedApiError } from '@/api/error/error';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
-import { historyApi } from '../../api/history';
+import { historyApi } from '@/api/analysis/history';
 import type { Message, ProgressStep } from '../../stores/agentChatStore';
 // 使用 StrictMode 做严格模式渲染校验
 // 路由：用 MemoryRouter / RouterProvider 做内存路由，避免真实浏览器历史
@@ -106,7 +106,7 @@ const mockStoreState = {
 };
 
 // mock agent API：把 agentApi 的技能/状态/删除会话/发送 方法指向对应 mock
-vi.mock('../../api/agent', () => ({
+vi.mock('@/api/agent/agent', () => ({
   agentApi: {
     getSkills: mockGetSkills,
     getStatus: mockGetStatus,
@@ -116,7 +116,7 @@ vi.mock('../../api/agent', () => ({
 }));
 
 // mock systemConfig API：把配置读取/更新/自选股读写 方法指向对应 mock
-vi.mock('../../api/systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     getConfig: mockGetSystemConfig,
     update: mockUpdateSystemConfig,
@@ -133,7 +133,7 @@ vi.mock('@utils/chatExport', () => ({
 }));
 
 // mock 历史 API：getDetail 默认返回空对象（本页用不到详情拉取，仅避免真实请求）
-vi.mock('../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getDetail: vi.fn().mockResolvedValue({}),
   },

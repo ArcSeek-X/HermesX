@@ -8,7 +8,7 @@
  */
 
 import type { AnalysisReport } from '../types/analysis';
-import { historyApi } from '../api/history';
+import { historyApi } from '@/api/analysis/history';
 import { validateStockCode } from './validation';
 
 /** 问股追问上下文：以 snake_case 命名，对齐后端 Agent 接口契约 */

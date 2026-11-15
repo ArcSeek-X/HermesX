@@ -100,8 +100,8 @@ vi.mock('@components/kline/PeriodSelector', () => ({
 vi.mock('../../hooks/useStockIndex', () => ({
   useStockIndex: () => ({ index: [], loading: false, loaded: true, error: null, fallback: false }),
 }));
-vi.mock('../../api/kline', async () => {
-  const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
+vi.mock('@/api/market/kline', async () => {
+  const actual = await vi.importActual<typeof import('@/api/market/kline')>('@/api/market/kline');
   return {
     ...actual,
     klineApi: {
@@ -111,13 +111,13 @@ vi.mock('../../api/kline', async () => {
     },
   };
 });
-vi.mock('../../api/recentSearch', () => ({
+vi.mock('@/api/market/recentSearch', () => ({
   recordRecentSearch: (...args: unknown[]) => recordRecentSearchMock(...args),
   getRecentSearchList: (...args: unknown[]) => getListMock(...args),
   clearRecentSearch: (...args: unknown[]) => clearMock(...args),
 }));
-vi.mock('../../api/stocks', async () => {
-  const actual = await vi.importActual<typeof import('../../api/stocks')>('../../api/stocks');
+vi.mock('@/api/market/stocks', async () => {
+  const actual = await vi.importActual<typeof import('@/api/market/stocks')>('@/api/market/stocks');
   return {
     ...actual,
     stocksApi: { batchQuote: vi.fn(async () => []), batchTimeline: vi.fn(async () => []) },

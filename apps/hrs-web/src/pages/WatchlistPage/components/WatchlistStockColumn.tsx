@@ -8,7 +8,7 @@
 import { HrsButton } from '@components';
 import type { TableColumnDef } from '@components/basic/Table';
 import { KLineView } from '@components/kline/KLineView';
-import type { WatchlistItemWithQuote } from '../../../api/watchlist';
+import type { WatchlistItemWithQuote } from '@/api/watchlist/watchlist';
 import { formatPercent, getChangeColorClass } from '../../../utils/format';
 
 /** 分时缩略图高度（px）：同时决定该列行高，保持列表紧凑 */

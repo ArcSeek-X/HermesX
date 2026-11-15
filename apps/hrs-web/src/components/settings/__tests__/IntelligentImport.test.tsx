@@ -6,7 +6,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntelligentImport } from '../IntelligentImport';
-import { SystemConfigConflictError } from '../../../api/systemConfig';
+import { SystemConfigConflictError } from '@/api/system/systemConfig';
 
 const { parseImport, update, onMerged } = vi.hoisted(() => ({
   parseImport: vi.fn(),
@@ -14,15 +14,15 @@ const { parseImport, update, onMerged } = vi.hoisted(() => ({
   onMerged: vi.fn(),
 }));
 
-vi.mock('../../../api/stocks', () => ({
+vi.mock('@/api/market/stocks', () => ({
   stocksApi: {
     parseImport,
     extractFromImage: vi.fn(),
   },
 }));
 
-vi.mock('../../../api/systemConfig', async () => {
-  const actual = await vi.importActual<typeof import('../../../api/systemConfig')>('../../../api/systemConfig');
+vi.mock('@/api/system/systemConfig', async () => {
+  const actual = await vi.importActual<typeof import('@/api/system/systemConfig')>('@/api/system/systemConfig');
   return {
     ...actual,
     systemConfigApi: {

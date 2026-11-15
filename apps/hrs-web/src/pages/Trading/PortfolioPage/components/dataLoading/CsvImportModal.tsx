@@ -11,7 +11,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, HrsButton, HrsSelect, HrsCheckbox, InlineAlert } from '@components';
 import { formatBrokerLabel, getCsvCommitVariant, getCsvParseVariant } from '@utils/portfolioFormat';
-import { portfolioApi } from '../../../../../api/portfolio';
+import { portfolioApi } from '@/api/trading/portfolio';
 import type {
   PortfolioImportBrokerItem,
   PortfolioImportCommitResponse,

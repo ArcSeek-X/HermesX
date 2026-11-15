@@ -9,7 +9,7 @@ import { Check, Plus } from 'lucide-react';
 import { AnimCard, Chip, HrsButton } from '@components';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
 import type { UiTextKey } from '../../../../i18n/uiText';
-import { type ScannerResultRow as ScannerResultRowData, type ScannerSignalKey } from '../../../../api/scanner';
+import { type ScannerResultRow as ScannerResultRowData, type ScannerSignalKey } from '@/api/discover/scanner';
 import { normalizeStockCode, toFullStockSymbol } from '@utils/stock/stockCode';
 
 /** 信号键 -> i18n key（字面量常量，保证 t() 的类型安全） */

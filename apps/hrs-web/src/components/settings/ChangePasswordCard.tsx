@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
-import type { ParsedApiError } from '../../api/error';
-import { isParsedApiError } from '../../api/error';
+import type { ParsedApiError } from '@/api/error/error';
+import { isParsedApiError } from '@/api/error/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import { Button, PasswordInput } from '../';

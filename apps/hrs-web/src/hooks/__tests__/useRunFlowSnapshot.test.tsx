@@ -1,18 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { analysisApi } from '../../api/analysis';
-import { historyApi } from '../../api/history';
+import { analysisApi } from '@/api/analysis/analysis';
+import { historyApi } from '@/api/analysis/history';
 import type { RunFlowSnapshot } from '../../types/runFlow';
 import type { UseTaskStreamOptions } from '../useTaskStream';
 import { useRunFlowSnapshot } from '../useRunFlowSnapshot';
 
-vi.mock('../../api/analysis', () => ({
+vi.mock('@/api/analysis/analysis', () => ({
   analysisApi: {
     getTaskFlow: vi.fn(),
   },
 }));
 
-vi.mock('../../api/history', () => ({
+vi.mock('@/api/analysis/history', () => ({
   historyApi: {
     getRecordFlow: vi.fn(),
   },

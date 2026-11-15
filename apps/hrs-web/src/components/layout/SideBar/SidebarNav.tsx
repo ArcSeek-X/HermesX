@@ -23,7 +23,7 @@ import logoImg from '../../../assets/hermesX-logo.png';
 import MenuNode, { type SidebarMenuMode } from './MenuNode';
 import { matchPath, useNavThumb } from './useNavThumb';
 import { ScrollShadow } from '../../index';
-import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../../api/alphasift';
+import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '@/api/discover/alphasift';
 import { useUiLanguage } from '../../../contexts/UiLanguageContext';
 import { cn } from '../../../utils/cn';
 import styles from './SidebarNav.module.scss';

@@ -23,7 +23,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL } from '@utils/constants';
-import { attachParsedApiError } from './error';
+import { attachParsedApiError } from '@/api/error/error';
 import { buildCacheKey, getCacheTTL } from '../constants/cacheConfig';
 import { showToast } from '../components/basic/Toast/Toast';
 import apiCache from '@utils/apiCache';

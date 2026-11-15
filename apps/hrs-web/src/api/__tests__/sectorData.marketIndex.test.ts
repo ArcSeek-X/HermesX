@@ -15,7 +15,7 @@ import {
   fetchMarketIndices,
   toMarketIndexItem,
   type MarketCardItem,
-} from '../sectorData';
+} from '@/api/market/sectorData';
 
 const get = vi.hoisted(() => vi.fn());
 

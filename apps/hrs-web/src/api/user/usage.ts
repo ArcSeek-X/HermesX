@@ -1,5 +1,5 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
 
 /**
  * LLM 用量统计（Usage）相关 API。

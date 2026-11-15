@@ -5,8 +5,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { stockMetricViewApi } from '@/api/stockMetricView';
-import { getParsedApiError } from '@/api/error';
+import { stockMetricViewApi } from '@/api/market/stockMetricView';
+import { getParsedApiError } from '@/api/error/error';
 import type {
   StockMetricViewFilterField,
   StockMetricViewFilterItem,

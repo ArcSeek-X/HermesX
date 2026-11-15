@@ -10,15 +10,15 @@ import { PageHeader } from '@components/layout/PageLayout/PageHeader';
 import { StockSearch } from '@components/StockSearch/StockSearch';
 import { useSearchParams } from 'react-router-dom';
 
-import { klineApi, type StockInfo } from '../../../api/kline';
+import { klineApi, type StockInfo } from '@/api/market/kline';
 import {
   recordRecentSearch,
   getRecentSearchList,
   clearRecentSearch,
   type RecentSearchItem,
-} from '../../../api/recentSearch';
-import { stocksApi, DEFAULT_LIMIT_SIZE } from '../../../api/stocks';
-import type { BatchTimelineItem } from '../../../api/stocks';
+} from '@/api/market/recentSearch';
+import { stocksApi, DEFAULT_LIMIT_SIZE } from '@/api/market/stocks';
+import type { BatchTimelineItem } from '@/api/market/stocks';
 import {
   getStockKLineInfo,
   removeStockKLineInfo,

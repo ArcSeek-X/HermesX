@@ -12,7 +12,7 @@ import { SidebarNav } from '../SideBar/SidebarNav';
 import { useMenuStore } from '../../../stores';
 import type { NavMenuNode } from '../../../types/moduleMenu';
 
-vi.mock('../../../api/alphasift', () => ({
+vi.mock('@/api/discover/alphasift', () => ({
   ALPHASIFT_CONFIG_CHANGED_EVENT: 'alphasift-config-changed',
   SYSTEM_CONFIG_CHANGED_EVENT: 'hrs-system-changed',
   alphasiftApi: {

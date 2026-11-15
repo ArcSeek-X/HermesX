@@ -1,6 +1,6 @@
 import { findMatchingStockCode, includesStockCode } from '@utils/stock/stockCode';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { systemConfigApi } from '../api/systemConfig';
+import { systemConfigApi } from '@/api/system/systemConfig';
 
 export interface UseWatchlistReturn {
   watchlistCodes: string[];

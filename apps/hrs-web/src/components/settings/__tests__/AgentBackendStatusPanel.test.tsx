@@ -14,7 +14,7 @@ const { getStatus, previewStatus } = vi.hoisted(() => ({
   previewStatus: vi.fn(),
 }));
 
-vi.mock('../../../api/systemConfig', () => ({
+vi.mock('@/api/system/systemConfig', () => ({
   systemConfigApi: {
     getAgentBackendStatus: (...args: unknown[]) => getStatus(...args),
     previewAgentBackendStatus: (...args: unknown[]) => previewStatus(...args),

@@ -15,8 +15,8 @@ import { AppPage } from '@components/layout/AppPage';
 import { toCnOrEn } from '@utils/uiLanguage';
 import { buildFxRefreshFeedback, getFxRefreshFeedbackVariant } from '@utils/portfolioFormat';
 
-import { portfolioApi } from '../../../api/portfolio';
-import { getParsedApiError, type ParsedApiError } from '../../../api/error';
+import { portfolioApi } from '@/api/trading/portfolio';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
 
 import { HrsButton, InlineAlert, InlineToast, TabNav, showToast } from '@components';
 import { PageHeader } from '@components/layout/PageLayout/PageHeader';

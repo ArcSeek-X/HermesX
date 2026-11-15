@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 
-import { getParsedApiError } from '../api/error';
-import { portfolioApi } from '../api/portfolio';
+import { getParsedApiError } from '@/api/error/error';
+import { portfolioApi } from '@/api/trading/portfolio';
 import { usePreference } from './usePreference';
 import type {
   AccountOption,

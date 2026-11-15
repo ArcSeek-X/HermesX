@@ -7,8 +7,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, CircleAlert, CircleDashed, RefreshCw } from 'lucide-react';
-import { systemConfigApi } from '../../api/systemConfig';
-import { getParsedApiError, type ParsedApiError } from '../../api/error';
+import { systemConfigApi } from '@/api/system/systemConfig';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type {
   AgentBackendStatusResponse,

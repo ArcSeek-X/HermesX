@@ -7,9 +7,9 @@
  */
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
-import { getParsedApiError } from '../../api/error';
-import { stocksApi, type ExtractItem } from '../../api/stocks';
-import { systemConfigApi, SystemConfigConflictError } from '../../api/systemConfig';
+import { getParsedApiError } from '@/api/error/error';
+import { stocksApi, type ExtractItem } from '@/api/market/stocks';
+import { systemConfigApi, SystemConfigConflictError } from '@/api/system/systemConfig';
 import { Badge, Button, InlineAlert } from '../';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
 import type { UiLanguage } from '../../i18n/uiText';

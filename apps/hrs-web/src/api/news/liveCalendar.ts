@@ -10,12 +10,12 @@
  * 避免后端字段风格泄漏到业务层（对齐 liveNews.ts）。
  */
 
-import apiClient from './index';
+import apiClient from '@/api';
 import type {
   CalendarTabDef,
   LiveCalendarEventDef,
   LiveCalendarQueryDef,
-} from '../types/liveCalendar';
+} from '@/types/liveCalendar';
 
 const BASE = '/api/v1/intelligence/live-calendar';
 

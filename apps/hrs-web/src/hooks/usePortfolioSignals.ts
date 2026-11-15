@@ -12,9 +12,9 @@ import { useUiLanguage } from '../contexts/UiLanguageContext';
 import { formatUiText } from '../i18n/uiText';
 import { areStockCodesEquivalent, normalizeStockCode } from '@utils/stock/stockCode';
 import { parseDecisionSignalDate } from '@utils/decisionSignalTime';
-import { getParsedApiError } from '../api/error';
-import { decisionSignalsApi } from '../api/decisionSignals';
-import { portfolioApi } from '../api/portfolio';
+import { getParsedApiError } from '@/api/error/error';
+import { decisionSignalsApi } from '@/api/analysis/decisionSignals';
+import { portfolioApi } from '@/api/trading/portfolio';
 import type { DecisionSignalItem, DecisionSignalMarket } from '../types/decisionSignals';
 import type { FlatPosition, PortfolioSnapshotResponse } from '../types/portfolio';
 

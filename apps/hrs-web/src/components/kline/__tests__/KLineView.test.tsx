@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 
-import type { KLinePoint } from '../../../api/kline';
+import type { KLinePoint } from '@/api/market/kline';
 import { STOCK_UP_COLOR, STOCK_DOWN_COLOR } from '../../../constants/stockColor';
 
 // ============================================================

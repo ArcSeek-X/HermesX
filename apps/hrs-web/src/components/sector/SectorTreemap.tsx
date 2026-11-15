@@ -9,7 +9,7 @@ import type React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as echarts from 'echarts';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import type { SectorNode } from '../../api/sectorData';
+import type { SectorNode } from '@/api/market/sectorData';
 
 type SectorTreemapProps = {
   data: SectorNode[];

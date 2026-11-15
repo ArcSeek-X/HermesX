@@ -20,14 +20,14 @@
  */
 import { generateUUID } from '@utils/uuid';
 import { create } from 'zustand';
-import { agentApi, isAbortError, type ChatSessionItem, type ChatStreamRequest } from '../api/agent';
+import { agentApi, isAbortError, type ChatSessionItem, type ChatStreamRequest } from '@/api/agent/agent';
 import {
   createParsedApiError,
   getParsedApiError,
   isApiRequestError,
   isParsedApiError,
   type ParsedApiError,
-} from '../api/error';
+} from '@/api/error/error';
 
 /** 当前会话 ID 在 localStorage 中的存储键名 */
 const STORAGE_KEY_SESSION = 'hrs_chat_session_id';

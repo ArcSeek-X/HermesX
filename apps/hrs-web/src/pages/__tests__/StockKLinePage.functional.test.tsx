@@ -61,8 +61,8 @@ const fetchStockInfoMock = vi.fn();
 const searchStocksMock = vi.fn();
 
 // 只覆盖 klineApi，保留模块其余导出（KLinePeriod 等类型与工具），避免整体替换
-vi.mock('../../api/kline', async () => {
-  const actual = await vi.importActual<typeof import('../../api/kline')>('../../api/kline');
+vi.mock('@/api/market/kline', async () => {
+  const actual = await vi.importActual<typeof import('@/api/market/kline')>('@/api/market/kline');
   return {
     ...actual,
     klineApi: {
@@ -77,7 +77,7 @@ vi.mock('../../api/kline', async () => {
 vi.mock('../Stock/StockKLinePage/components/RecentSearchStockList', () => ({
   default: () => <div data-testid="recent-search-list" />,
 }));
-vi.mock('../../api/recentSearch', () => ({
+vi.mock('@/api/market/recentSearch', () => ({
   recordRecentSearch: () => Promise.resolve({}),
   getRecentSearchList: () => Promise.resolve([]),
   clearRecentSearch: () => Promise.resolve(),

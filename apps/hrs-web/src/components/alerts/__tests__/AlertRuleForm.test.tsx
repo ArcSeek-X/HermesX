@@ -14,7 +14,7 @@ const { getAccounts } = vi.hoisted(() => ({
   getAccounts: vi.fn(),
 }));
 
-vi.mock('../../../api/portfolio', () => ({
+vi.mock('@/api/trading/portfolio', () => ({
   portfolioApi: {
     getAccounts,
   },

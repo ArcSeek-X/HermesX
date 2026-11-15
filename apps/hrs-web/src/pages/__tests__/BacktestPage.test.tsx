@@ -23,7 +23,7 @@ const {
 }));
 
 // mock 回测 API：把 backtestApi 的各方法指向上面的 mock 函数
-vi.mock('../../api/backtest', () => ({
+vi.mock('@/api/analysis/backtest', () => ({
   backtestApi: {
     getResults: mockGetResults,
     getOverallPerformance: mockGetOverallPerformance,

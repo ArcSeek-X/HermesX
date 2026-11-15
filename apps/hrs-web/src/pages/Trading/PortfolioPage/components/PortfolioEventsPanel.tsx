@@ -15,7 +15,7 @@ import {
   formatCorporateActionLabel,
   formatSideLabel,
 } from '@utils/portfolioFormat';
-import { portfolioApi } from '../../../../api/portfolio';
+import { portfolioApi } from '@/api/trading/portfolio';
 import type {
   PortfolioCashDirection,
   PortfolioCashLedgerListItem,

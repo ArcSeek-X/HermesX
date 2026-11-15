@@ -29,7 +29,7 @@ const {
 }));
 
 // mock 告警 API：把 alertsApi 的各方法指向上面的 mock 函数
-vi.mock('../../api/alerts', () => ({
+vi.mock('@/api/alerts/alerts', () => ({
   alertsApi: {
     listRules,
     createRule,
@@ -43,7 +43,7 @@ vi.mock('../../api/alerts', () => ({
 }));
 
 // mock 组合 API：本页只用到 getAccounts，直接返回空账户列表（避免真实请求）
-vi.mock('../../api/portfolio', () => ({
+vi.mock('@/api/trading/portfolio', () => ({
   portfolioApi: {
     getAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
   },

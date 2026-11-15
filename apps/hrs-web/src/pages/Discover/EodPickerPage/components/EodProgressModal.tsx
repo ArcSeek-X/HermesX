@@ -8,7 +8,7 @@
 import { Check, Loader2 } from 'lucide-react';
 import { HrsButton, Modal } from '@components';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import type { EodPickerStep } from '../../../../api/eodPicker';
+import type { EodPickerStep } from '@/api/discover/eodPicker';
 import { toFullStockSymbol } from '@utils/stock/stockCode';
 
 /** 进度遮罩 Props */

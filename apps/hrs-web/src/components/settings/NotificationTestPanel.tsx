@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import { Send } from 'lucide-react';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { getParsedApiError, type ParsedApiError } from '../../api/error';
-import { systemConfigApi } from '../../api/systemConfig';
+import { getParsedApiError, type ParsedApiError } from '@/api/error/error';
+import { systemConfigApi } from '@/api/system/systemConfig';
 import type {
   NotificationTestChannel,
   TestNotificationChannelResponse,

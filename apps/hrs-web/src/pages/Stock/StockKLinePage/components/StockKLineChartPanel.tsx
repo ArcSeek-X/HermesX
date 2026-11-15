@@ -9,7 +9,7 @@ import { KLineChart } from '@components/kline/KLineChart';
 import { StockInfoHeader } from '@components/kline/StockInfoHeader';
 import { PeriodSelector } from '@components/kline/PeriodSelector';
 import { useUiLanguage } from '../../../../contexts/UiLanguageContext';
-import { klineApi, type KLinePeriod, type KLinePoint, type StockInfo } from '../../../../api/kline';
+import { klineApi, type KLinePeriod, type KLinePoint, type StockInfo } from '@/api/market/kline';
 import { getStockKLineInfo, updateStockKLineInfo } from '../../../../stores/StockKLine';
 
 const DEFAULT_PERIOD: KLinePeriod = '1m';

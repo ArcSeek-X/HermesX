@@ -1,6 +1,6 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
-import type { StockRef } from '../types/stock';
+import apiClient from '@/api';
+import { toCamelCase } from '@/api/utils/utils';
+import type { StockRef } from '@/types/stock';
 
 /**
  * 技术信号扫描器（Scanner）相关 API。

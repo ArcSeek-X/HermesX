@@ -11,7 +11,7 @@
  *
  * @author Lensgcx (GaoCangxiong)
  */
-import type { MarketIndexItem } from '../../api/sectorData';
+import type { MarketIndexItem } from '@/api/market/sectorData';
 import { formatAmount, formatPercent, formatPricePoint, getChangeColorClass } from '../../utils/format';
 import { AnimatedValue } from '../../utils/animate.tsx';
 import AnimCard from '../common/Card/AnimCard/AnimCard';
