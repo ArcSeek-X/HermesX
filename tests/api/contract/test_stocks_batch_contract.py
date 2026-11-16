@@ -238,6 +238,34 @@ def test_batch_timeline_degrades_failed_stock_to_empty_points(
     assert resp.json()["items"] == [{"code": "600519", "name": None, "prevClose": None, "points": []}]
 
 
+def test_batch_timeline_keeps_points_for_codes_beyond_default_concurrency(
+    monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
+) -> None:
+    """limiteSize 超过并发下限时，后排代码不得因线程池排队超时而降级为空点列。"""
+    import time as _time
+
+    monkeypatch.setattr(stocks, "TIMELINE_BATCH_DEADLINE", 1.0)
+
+    def _slow(code: str, **_kwargs: object) -> StockTimelineResponse:
+        _time.sleep(0.7)
+        return StockTimelineResponse(
+            stock_code=code,
+            stock_name="贵州茅台",
+            prev_close=1668.0,
+            points=[_timeline_point(0)],
+        )
+
+    monkeypatch.setattr(stocks, "_load_timeline", _slow)
+    codes = [f"6000{index:02d}" for index in range(20)]
+
+    resp = batch_client.post("/api/v1/stocks/batch-timeline", json={"codes": codes, "limiteSize": 20})
+
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) == 20
+    assert all(item["points"] for item in items)
+
+
 def test_batch_timeline_deadline_returns_promptly_with_empty_points(
     monkeypatch: pytest.MonkeyPatch, batch_client: TestClient
 ) -> None:

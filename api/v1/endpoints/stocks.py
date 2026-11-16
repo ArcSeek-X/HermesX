@@ -729,10 +729,11 @@ def get_stock_timeline(stock_code: str) -> StockTimelineResponse:
 
 # 卡片分时缩略图保留的点数：全天约 240 点，等距采样后足够表现走势且显著减小 payload。
 TIMELINE_THUMBNAIL_POINTS = 48
-# 批量分时并发上限：按 limiteSize（默认 12）一次并发发齐，快路径按 CDN 主机分流。
-TIMELINE_BATCH_CONCURRENCY = 10
-# 批量分时整体时间预算（秒）：超时未完成的代码返回空点列，线程池非阻塞关闭，保证接口不被上游拖垮。
-TIMELINE_BATCH_DEADLINE = 0.9
+# 批量分时并发下限：至少与前端默认的 20 只对齐，实际并发按本次 limiteSize 抬高，避免后排代码排队。
+TIMELINE_BATCH_CONCURRENCY = 20
+# 批量分时整体时间预算（秒）：快路径按 4 台 CDN 主机分流、单主机 0.2s 间隔，20 只约 1.0s 发完；
+# 1.5s 覆盖节流窗口与网络耗时，超时未完成的代码返回空点列并非阻塞关闭线程池。
+TIMELINE_BATCH_DEADLINE = 1.5
 
 
 def _load_timeline(stock_code: str, *, fast: bool = False) -> StockTimelineResponse:
@@ -827,13 +828,13 @@ def get_batch_quotes(payload: BatchCodesRequest) -> BatchQuoteResponse:
     response_model=BatchTimelineResponse,
     responses={500: {"description": "服务器错误", "model": ErrorResponse}},
     summary="批量获取当日分时（下采样）",
-    description="一次请求取多只股票的分时缩略图数据，复用分时缓存并等距下采样；条数由 limiteSize 控制（默认 12）。",
+    description="一次请求取多只股票的分时缩略图数据，复用分时缓存并等距下采样；条数由 limiteSize 控制（默认 20）。",
 )
 def get_batch_timelines(payload: BatchCodesRequest) -> BatchTimelineResponse:
     """并发获取多只股票的下采样分时；整体限时，超时/失败降级为空 points。
 
-    分时上游有全局节流，逐只排队会把 10 只拖到数秒。这里一次并发发齐（快路径按 CDN
-    主机分流），并以 TIMELINE_BATCH_DEADLINE 作为硬超时：超时未完成的代码返回空点列，
+    并发数按本次 limiteSize 抬高（不低于 TIMELINE_BATCH_CONCURRENCY），保证 20 只一次发齐，
+    不因线程池排队把后排代码拖过时间预算；快路径按 CDN 主机分流。超时未完成的代码返回空点列，
     线程池非阻塞关闭，保证接口响应不被上游拖住（卡片先渲染，分时稍后/下次补齐）。
     """
     codes = _unique_codes(payload.codes)[: payload.limiteSize]
@@ -854,7 +855,8 @@ def get_batch_timelines(payload: BatchCodesRequest) -> BatchTimelineResponse:
             points=_downsample_points(timeline.points),
         )
 
-    executor = ThreadPoolExecutor(max_workers=min(len(codes), TIMELINE_BATCH_CONCURRENCY))
+    worker_count = min(len(codes), max(TIMELINE_BATCH_CONCURRENCY, payload.limiteSize))
+    executor = ThreadPoolExecutor(max_workers=worker_count)
     try:
         future_map = {executor.submit(_fetch_one, code): code for code in codes}
         done, _ = wait(future_map, timeout=TIMELINE_BATCH_DEADLINE)
