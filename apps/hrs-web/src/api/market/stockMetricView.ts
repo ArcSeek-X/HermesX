@@ -40,6 +40,8 @@ function adaptStockMetricViewResult(raw: RawStockMetricViewResult): StockMetricV
     ...row,
     id: `${row.market}:${row.code}`,
     industry: row.industry ?? undefined,
+    // 旧版后端不返回 source 时补 null，避免列渲染拿到 undefined
+    source: row.source ?? null,
   }));
   return { ...raw, list };
 }

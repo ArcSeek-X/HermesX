@@ -7,11 +7,16 @@
 
 from __future__ import annotations
 
+import logging
+from typing import Any, Callable, Optional, Tuple
+
 from src.application.quote import QuoteService
 from src.application.quote.stock_service import StockService
 from src.application.quote.stock_metric_service import StockMetricService
 from src.infrastructure.providers.kline_provider import DataProviderQuoteProvider
 from src.infrastructure.providers.realtime_provider import DataProviderRealtimeQuoteProvider
+
+logger = logging.getLogger(__name__)
 
 
 def build_quote_service() -> QuoteService:
@@ -38,15 +43,40 @@ def build_stock_service() -> StockService:
 
 
 def build_stock_metric_service() -> StockMetricService:
-    """装配股票度量视图服务：在线快照 / 离线因子端口在此绑定具体实现。"""
+    """装配股票度量视图服务：在线快照 / 离线因子端口在此绑定具体实现。
+
+    在线快照为「东财 clist 优先 + stock-sdk（腾讯行情）兜底」：东财按源 IP 限流或
+    被服务端静默断连时整批拿不到数据，此时切到与东财不同链路的 stock-sdk 全市场
+    批量，把「三个市场整页空白」降级为「部分列缺失」；两源都失败时仍返回 None，
+    由用例按既有降级语义处理。
+    """
     from data_provider.market.eastmoney_source import fetch_eastmoney_clist_snapshot
+    from data_provider.market.stocksdk_source import fetch_stocksdk_metric_snapshot
     from src.bootstrap.database import get_database_manager
     from src.infrastructure.persistence.repositories.stock_metric_repo import StockMetricRepository
 
     return StockMetricService(
-        snapshot_port=fetch_eastmoney_clist_snapshot,
+        snapshot_port=_metric_snapshot_with_fallback(
+            fetch_eastmoney_clist_snapshot, fetch_stocksdk_metric_snapshot
+        ),
         factors_port=StockMetricRepository(get_database_manager()),
     )
+
+
+def _metric_snapshot_with_fallback(
+    primary: Callable[..., Optional[Tuple[Any, str]]],
+    fallback: Callable[..., Optional[Tuple[Any, str]]],
+) -> Callable[..., Optional[Tuple[Any, str]]]:
+    """把两个同构快照端口串成「主源优先、无数据才切备源」的端口。"""
+
+    def _snapshot(market: str, *, force_refresh: bool = False) -> Optional[Tuple[Any, str]]:
+        snapshot = primary(market, force_refresh=force_refresh)
+        if snapshot is not None:
+            return snapshot
+        logger.info("[stock_metric] 东财快照不可用，市场 %s 切换到 stock-sdk 兜底", market)
+        return fallback(market, force_refresh=force_refresh)
+
+    return _snapshot
 
 
 def configure_stock_repository() -> None:

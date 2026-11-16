@@ -1,103 +1,63 @@
 /**
- * 缓存配置文件
- *
- * 定义各 API 接口的缓存 TTL（秒）和缓存键名规则
- * TTL = 0 表示不缓存
- *
- * 缓存策略：
- * - 实时行情：30 秒（平衡数据新鲜度和性能）
- * - 板块数据：30-300 秒（根据数据变化频率）
- * - 用户私有数据：不缓存（保证数据一致性）
- * - AI 聊天：不缓存（流式响应）
- * - 回测/决策信号：300-600 秒（计算结果变化不频繁）
- *
- * 键名前缀：
- * - localStorage: 'hrs-pref-'（用户偏好，永久保存）
- * - sessionStorage: 'hrs-state-'（页面状态，会话级）
+ * @file cacheConfig.ts
+ * @description 前端请求缓存策略配置：集中定义各 API 的缓存 TTL、缓存键规则与存储键前缀。
+ * 由 utils/apiCache.ts（请求缓存层）与 utils/storage.ts（本地存储层）读取。约定 TTL 单位为秒，0 表示不缓存。
+ * 策略取舍：实时行情与板块概览允许短时缓存减轻上游压力；用户私有数据、鉴权状态、流式响应
+ * 及依赖轮询的快讯/日历接口必须实时，避免命中旧数据；回测、信号等计算结果变化不频繁，可长缓存。
+ * @author Lensgcx (GaoCangxiong)
  */
 
-/** 各 API 路径的缓存 TTL（秒）
- *
- * 注意：键名必须与 axios 实际请求的相对路径一致（含 /api/v1 前缀），
- * 否则前缀匹配失配，会全部回落到 DEFAULT_CACHE_TTL 导致缓存策略错乱。
+/**
+ * 各 API 路径的缓存 TTL（秒），0 表示不缓存。
+ * 键名须与 axios 实际请求的相对路径一致（含 /api/v1 前缀），否则前缀匹配失配会回落到默认 TTL，导致缓存策略错乱。
  */
 export const CACHE_TTL_MAP: Record<string, number> = {
-  // 实时行情 — 30 秒
+  // 实时行情与搜索
   '/api/v1/kline/': 30,
-  '/api/v1/kline/search': 300,       // 股票搜索变化不频繁，5 分钟
+  '/api/v1/kline/search': 300,       // 搜索词变化不频繁
 
-  // 板块数据 — 30 秒（市场概览）/ 5 分钟（云图数据）
+  // 板块数据：概览类短缓存，规模类 5 分钟
   '/api/v1/sector/market-overview': 30,
   '/api/v1/sector/concept-scale': 300,
   '/api/v1/sector/etf-scale': 300,
   '/api/v1/sector/indices': 30,
-  // 大盘统一卡片 — 不缓存（页面 30 秒轮询；未显式配置会回落到 DEFAULT_CACHE_TTL 60 秒，
-  // 把一半轮询短路成旧数据，夜间 A50 切源后也会延迟可见）
-  '/api/v1/sector/market-cards': 0,
+  '/api/v1/sector/market-cards': 0,  // 页面 30 秒轮询，缓存会把轮询短路成旧数据
 
-  // 用户私有数据 — 不缓存（保证数据一致性）
+  // 用户私有数据：不缓存，保证一致性
   '/api/v1/portfolio': 0,
   '/api/v1/alerts': 0,
+  '/api/v1/recent-search/': 0,       // 清空后需立即反映，不能命中旧列表
 
-  // 最近搜索 — 不缓存（用户私有数据；且需搜索后立即反映到清空后的列表，
-  // 若命中 60s 默认 TTL 会导致清空后列表仍显示旧空列表，必须刷新页面才更新）
-  '/api/v1/recent-search/': 0,
-
-  // 实时快讯 — 不缓存（必须显式配置）
-  // 原因：未匹配到规则时会回落到 DEFAULT_CACHE_TTL(60s)，而快讯页是 30 秒轮询，
-  // 命中缓存会导致列表长时间不更新。设为 0 才能保证轮询拿到最新数据。
-  // 快讯的抓取频率由后端 ensure_live_news_fresh 节流，前端重复请求不会打爆上游。
+  // 依赖轮询或流式响应：不缓存，否则列表长时间不更新
   '/api/v1/intelligence/live-news': 0,
-
-  // 消息日历 — 不缓存（手动刷新后需立即拿到最新库存数据）
   '/api/v1/intelligence/live-calendar': 0,
+  '/api/v1/auth': 0,                 // 登录/登出/改密状态即时生效
+  '/api/v1/agent/chat': 0,           // 流式响应
 
-  // 鉴权状态 — 不缓存（保证登录/登出/密码变更状态即时生效）
-  '/api/v1/auth': 0,
-
-  // AI 聊天 — 不缓存（流式响应）
-  '/api/v1/agent/chat': 0,
-
-  // 回测结果 — 10 分钟（计算结果变化不频繁）
+  // 计算结果：变化不频繁，可长缓存
   '/api/v1/backtest': 600,
-
-  // 决策信号 — 5 分钟
   '/api/v1/decision-signals': 300,
-
-  // 股票筛选 — 1 分钟
   '/api/v1/screening': 60,
-
-  // Token 用量 — 1 分钟
   '/api/v1/usage': 60,
 };
 
-/** 默认 TTL（未匹配到规则时使用） */
+/** 未匹配到规则时使用的默认 TTL（秒） */
 export const DEFAULT_CACHE_TTL = 60;
 
-/** L1 内存缓存最大条目数（LRU 淘汰） */
+/** L1 内存缓存最大条目数，超过后按 LRU 淘汰 */
 export const MAX_CACHE_ENTRIES = 200;
 
-/** localStorage 键名前缀（用户偏好） */
+/** localStorage 键名前缀，用于用户偏好（长期保存） */
 export const LOCAL_STORAGE_PREFIX = 'hrs-pref-';
 
-/** sessionStorage 键名前缀（页面状态） */
+/** sessionStorage 键名前缀，用于页面状态（会话级） */
 export const SESSION_STORAGE_PREFIX = 'hrs-state-';
 
 /**
- * 根据 URL 路径获取缓存 TTL
- *
- * 匹配规则：
- * 1. 精确匹配优先（如 '/kline/search'）
- * 2. 前缀匹配（如 '/kline/' 匹配所有 K 线接口）
- * 3. 未匹配到则使用默认 TTL
- *
- * @param url - API 路径
+ * 按 URL 取接口的缓存 TTL。
+ * 匹配顺序：先精确匹配，再按路径前缀匹配，均未命中则返回默认 TTL。
+ * @param url 请求 URL，空值时返回 0（不缓存）
  * @returns 缓存 TTL（秒），0 表示不缓存
- *
- * @example
- * getCacheTTL('/kline/603019')  // => 30
- * getCacheTTL('/kline/search')  // => 300
- * getCacheTTL('/portfolio/123') // => 0
  */
 export function getCacheTTL(url: string | undefined): number {
   if (!url) return 0;
@@ -118,19 +78,12 @@ export function getCacheTTL(url: string | undefined): number {
 }
 
 /**
- * 构建缓存键名
- *
- * 格式：METHOD:URL:PARAMS
- * 确保相同请求参数生成相同键名
- *
- * @param method - HTTP 方法（GET/POST 等）
- * @param url - API 路径
- * @param params - 请求参数
- * @returns 缓存键名
- *
- * @example
- * buildCacheKey('GET', '/kline/603019', { period: 'daily' })
- * // => 'GET:/kline/603019:{"period":"daily"}'
+ * 由请求要素构建缓存键，确保相同请求生成相同键。
+ * 格式为 METHOD:URL:PARAMS，其中 PARAMS 缺省时省略该段。
+ * @param method HTTP 方法（大小写不敏感，统一转大写）
+ * @param url 请求 URL
+ * @param params 请求参数，序列化为 JSON；不传时忽略
+ * @returns 缓存键，如 GET:/kline/603019:{"period":"daily"}
  */
 export function buildCacheKey(method: string, url: string, params?: Record<string, unknown>): string {
   const paramStr = params ? JSON.stringify(params) : '';

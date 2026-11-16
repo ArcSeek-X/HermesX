@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 统一前端数据源定义：新增 `apps/hrs-web/src/constants/dataSource.ts` 作为唯一真源（`DataSourceKey` 闭合集合、`resolveDataSourceLabel()` 统一取名），三语文案键迁至领域命名空间 `dataSource.*`；`resolveDataSourceLabel` 输入支持单值 / 中英文逗号分隔串 / 数组（逐项拆分、去空、去重、小写、保序），**输出格式与输入一致**（数组进数组出、字符串进字符串出并保留原分隔符）；股票度量视图「数据来源」列直接调用该方法取名后逐项渲染 Chip，兼容后端返回单值或中英文逗号分隔串，未知来源原样回显、无来源显示 `—`。
+- [新功能] 股票度量视图新增「数据来源」列（固定列尾）：行模型 `StockMetricViewRowOut` 新增 `source` 字段，逐行回传真实取数来源（东财直连 `eastmoney`、stock-sdk 兜底上游 `tencent`，兼容 `sina` / `xueqiu` / `stocksdk`）；前端按已知来源本地化展示（东方财富 / 腾讯 / 新浪 / 雪球 / stock-sdk），未知标识原样回显，空值显示 `—`。该列仅展示、不参与筛选与排序（后端 `STOCK_METRIC_FIELDS` 注册为 `filterable=false` / `sortable=false`），CSV 导出同步带出；三语 i18n 与列清单契约测试同步更新。
+- [改进] 股票度量视图在线快照新增 stock-sdk（腾讯行情）兜底源：东财 clist 被按源 IP 限流或服务端静默断连时，三个市场原本整页空白，现改为「东财优先 + stock-sdk 兜底」，实测 cn 5578 只 / hk 3290 只 / us 12696 只（冷启动约 4~10s，按市场 180s TTL 缓存）。兜底源缺 `epsDiluted` / `dividendYieldPct` / `industry` / `roePct` / `psRatioTTM` / `revenueGrowthYoyPct` 列（按契约置 `null`、前端隐藏整列），`relativeVolume` 仅 cn 有、`peRatioTTM` / `pbRatio` 仅 cn / us 有；市值由「亿元」换算为「元」对齐东财口径，美股代码剥离交易所后缀（`AAPL.OQ` → `AAPL`）。新增 bridge action `market_snapshot`、`data_provider/market/stocksdk_source.py` 与兜底切换回归测试。
+- [改进] 股票度量视图在线快照 TTL 由 20s 调整为 180s（3 分钟）：翻页 / 排序 / 筛选 / 切市场等高频交互不再频繁回源全市场（单次 50+ 页请求），降低触发东财按源 IP 限流导致整批数据空白（服务端 Empty reply）的概率；「刷新」按钮仍以 `forceRefresh=true` 强制回源，最新数据入口不变。
 - [新功能] 个股 K 线页新增「最近搜索」：未选中股票时在搜索框下方展示最近 10 条记录的卡片（实时价格 / 振幅 / 总市值 / 换手率、迷你分时走势、加自选），支持一键清空；查询成功后列表隐藏，让位给行情卡与 K 线卡。记录逻辑收口在 K 线页，覆盖页内搜索与所有 `?stockCode=` 直达入口，切周期 / 开全量 / 翻页不误记；新增 `stock_recent_search` 表、`/api/v1/recent-search/*` 三条接口及 `batch-quote` / `batch-timeline` 批量接口，列表挂载仅 3 次请求。
 - [修复] 修复最近搜索列表清空后不刷新（需刷新页面才看到新记录）的问题：列表 `GET /api/v1/recent-search/list` 此前未配置 L1 缓存策略、回落到默认 60s TTL，清空后重新挂载命中旧空列表；现已将该接口设为不缓存，并在记录成功后由页面驱动列表主动刷新（`refreshSignal`）。
 - [改进] 最近搜索列表改为前端本地维护：搜索成功时把通用股票对象（StockInfo）+ 分时直接插入本地列表，清空搜索框不再向服务端请求（消除重复请求）；卡片与 StockInfoHeader 共用同一 StockInfo 对象。后端 record 仍静默落库以保证刷新后历史可见，页面 mount 一次性拉取历史并批量补量恢复；清空时仍同步服务端清空。移除 useRecentSearch 数据 Hook。

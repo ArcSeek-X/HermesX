@@ -232,6 +232,42 @@ async function runMarketIndices(sdk, payload) {
   throw new Error(`market indices not supported by bridge: ${market}`);
 }
 
+/**
+ * 股票度量视图兜底快照：按市场透出全市场精简行。
+ * 只保留度量视图需要的字段（不整行透传），避免 1.2 万行的美股全量 JSON 撑大
+ * 子进程输出；totalMarketCapYi 显式以「亿元」交付，单位换算由 Python 侧对齐契约。
+ */
+async function runMarketSnapshot(sdk, payload) {
+  const market = String(payload.market || 'cn').toLowerCase();
+  if (!['cn', 'hk', 'us'].includes(market)) {
+    throw new Error(`market_snapshot unsupported market: ${market}`);
+  }
+  if (!sdk.batch || typeof sdk.batch[market] !== 'function') {
+    throw new Error(`batch.${market} not supported by bridge`);
+  }
+
+  const batchSize = Math.max(Number(payload.batchSize || 500), 1);
+  const concurrency = Math.max(Number(payload.concurrency || 8), 1);
+  const rows = await sdk.batch[market]({ batchSize, concurrency });
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
+  return rows.map((row) => ({
+    code: String(row?.code || '').trim(),
+    name: String(row?.name || '').trim(),
+    // 上游真实数据源（实测 cn/hk/us 均为 tencent）；缺失时由 Python 侧按 stocksdk 兜底
+    source: String(row?.source || '').trim(),
+    price: toFiniteNumber(row?.price),
+    changePct: toFiniteNumber(row?.changePercent),
+    volume: toFiniteNumber(row?.volume),
+    relativeVolume: toFiniteNumber(row?.volumeRatio),
+    totalMarketCapYi: toFiniteNumber(row?.totalMarketCap),
+    peRatioTTM: toFiniteNumber(row?.pe),
+    pbRatio: toFiniteNumber(row?.pb),
+  }));
+}
+
 async function runMarketOverview(sdk) {
   const rows = await sdk.batch.cn({ batchSize: 500, concurrency: 4 });
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -456,6 +492,9 @@ async function main() {
       break;
     case 'market_overview':
       data = await runMarketOverview(sdk, payload);
+      break;
+    case 'market_snapshot':
+      data = await runMarketSnapshot(sdk, payload);
       break;
     case 'northbound_summary':
       data = await runNorthboundSummary(sdk, payload);

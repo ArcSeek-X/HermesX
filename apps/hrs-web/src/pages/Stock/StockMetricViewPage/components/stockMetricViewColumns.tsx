@@ -8,6 +8,7 @@
 import type React from 'react';
 import { Chip } from '@components';
 import type { TableColumnDef } from '@components/basic/Table/Table';
+import { resolveDataSourceLabel } from '@/constants/dataSource';
 import type { UiTextKey } from '@/i18n/uiText';
 import type {
   StockMetricViewRow,
@@ -204,7 +205,7 @@ export function buildStockMetricViewColumns({
   onOpenKline,
 }: StockMetricViewColumnOptions): TableColumnDef<StockMetricViewRow>[] {
   /**
-   * 一期固定 13 个业务列 + 首列市场标识。epsGrowthTtmYoyPct / analystRating 为 cn
+   * 一期固定 13 个业务列 + 首列市场标识 + 末列数据来源。epsGrowthTtmYoyPct / analystRating 为 cn
    * 季频离线因子，hk / us 选择时整列隐藏（见下方 markets 裁剪）。
    * 序号、涨跌幅、量比、市盈率、股息率按「内容刚好显示」取紧凑宽度：列头与单元格
    * 默认 px-4（左右合计 32px），其余空间容纳中文列头与典型数值，不再预留额外留白。
@@ -382,6 +383,32 @@ export function buildStockMetricViewColumns({
       cellClassName: 'whitespace-nowrap',
       markets: CN_STOCK_METRIC_VIEW_MARKETS,
       render: (row) => renderStockMetricNumberCell(row.analystRating, 'rating', row.market),
+    },
+    {
+      // 数据来源置于列尾：后端可能返回单值或「eastmoney，tencent」逗号串，
+      // 统一经 resolveDataSourceLabel 取名后逐项渲染，仅展示、不参与排序
+      key: 'source',
+      title: t('stockMetricView.column.source'),
+      minWidth: 96,
+      defaultWidth: 104,
+      allowsSorting: false,
+      isRowHeader: false,
+      align: 'center',
+      cellClassName: 'whitespace-nowrap',
+      markets: ALL_STOCK_METRIC_VIEW_MARKETS,
+      render: (row) => {
+        const label = resolveDataSourceLabel(row.source, t, STOCK_METRIC_VIEW_EMPTY_TEXT);
+        if (label === STOCK_METRIC_VIEW_EMPTY_TEXT) return STOCK_METRIC_VIEW_EMPTY_TEXT;
+        return (
+          <span className="inline-flex flex-wrap items-center justify-center gap-1">
+            {label.split(/[,，]/).map((name, index) => (
+              <Chip className="whitespace-nowrap" key={`${name}-${index}`} size="xs">
+                {name}
+              </Chip>
+            ))}
+          </span>
+        );
+      },
     },
   ];
 

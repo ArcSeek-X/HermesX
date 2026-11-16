@@ -376,6 +376,13 @@ const zhHant = {
   'component.taskPanel.statusAria': '任務狀態：{status}', // 任務狀態无障碍標簽
   'component.taskPanel.title': '分析任務', // 任務面板標題
 
+  // ---- 數據源 dataSource（跨組件領域定義，見 constants/dataSource.ts） ----
+  'dataSource.eastmoney': '東方財富', // 數據源：東財直連
+  'dataSource.tencent': '騰訊', // 數據源：騰訊
+  'dataSource.sina': '新浪', // 數據源：新浪
+  'dataSource.xueqiu': '雪球', // 數據源：雪球
+  'dataSource.stocksdk': 'stock-sdk', // 數據源：stock-sdk 兜底
+  'dataSource.stockdb': 'StockDB', // 數據源：本地 StockDB
   // ---- 第 6 类 异常页面  ----
   // 404頁面/重定向頁面
   'exception.404.title': '404', // 404 路由標題（route handle）
@@ -1363,6 +1370,7 @@ const zhHant = {
   'stockMetricView.column.dividendYieldPct': '股息率', // 【页面】度量視圖-列頭：股息率
   'stockMetricView.column.industry': '所屬板塊', // 【页面】度量視圖-列頭：所屬板塊
   'stockMetricView.column.analystRating': '分析師評級', // 【页面】度量視圖-列頭：分析師評級
+  'stockMetricView.column.source': '數據來源', // 【页面】度量視圖-列頭：數據來源
   // stockMetricView.filter.*  (篩選區)
   'stockMetricView.filter.market': '市場', // 【页面】度量視圖-篩選：市場多選標籤
   'stockMetricView.filter.stock': '股票', // 【页面】度量視圖-篩選：股票搜索標籤

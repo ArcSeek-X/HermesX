@@ -48,6 +48,8 @@ class StockMetricViewRowOut(BaseModel):
     market: str
     code: str
     name: str
+    # 数据来源标识（eastmoney / tencent / stocksdk 等），供前端「数据来源」列展示
+    source: Optional[str] = None
     price: Optional[float] = None
     changePct: Optional[float] = None
     volume: Optional[float] = None

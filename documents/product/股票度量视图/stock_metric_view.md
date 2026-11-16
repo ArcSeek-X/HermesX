@@ -64,11 +64,11 @@
 
 | 项 | 结论 | 依据 |
 |---|---|---|
-| 数据 | 【强制】东财 `clist` 按市场换 `fs` 即可覆盖 cn / hk / us 全市场，默认 13 列中 11 列三市场可直接取得，2 列仅 cn 可得 | [§4.1](#sec-4-1)、[§7.2](#sec-7-2) |
+| 数据 | 【强制】东财 `clist` 按市场换 `fs` 即可覆盖 cn / hk / us 全市场，默认 14 列中 12 列三市场可直接取得，2 列仅 cn 可得 | [§4.1](#sec-4-1)、[§7.2](#sec-7-2) |
 | 缺失数据 | 【强制】hk / us 的「EPS 增长 TTM同比」「分析师评级」无可用来源时置 `null`、前端隐藏该列，不填 0、不编造估算值 | [§7.2](#sec-7-2) |
 | 列定义 | 【强制】表格列在前端按 `TableColumnDef[]` 静态定义；后端不提供 `/columns` 端点，筛选 / 排序白名单由后端内置静态注册表校验 | [§7.2](#sec-7-2) |
 | 查询入参 | 【强制】市场筛选与其它条件**统一放入 `filterList: []`**，不再有顶层 `markets` 字段 | [§7.3](#sec-7-3) |
-| 列表行 | 【强制】13 列字段**平铺在行对象顶层**，不使用 `values` 嵌套 | [§7.3](#sec-7-3) |
+| 列表行 | 【强制】14 列字段**平铺在行对象顶层**，不使用 `values` 嵌套 | [§7.3](#sec-7-3) |
 | 类型真源 | 【强制】`types/stock.ts` 是股票标识 / 市场 / 行情字段唯一真源；标准字段经 `Pick` 复用、领域扩展字段一处定义全链路同名，不新增平行枚举 / 平行行情类型 / 同义别名 | [§5.4](#sec-5-4)、[§8.7](#sec-8-7) |
 | 字段边界 | 【强制】既有后端 snake_case 契约保持不动（由既有适配层消化）；内部 provider / DB 的蛇形名与大写 market tag 只停在接入层；新建 `/query`、`/export` 直接以标准字段名输出，不引入第三套命名 | [§5.4](#sec-5-4) |
 | 市场范围 | 【强制】只支持 `cn` / `hk` / `us` 三市场，不引入 `jp` / `kr` / `tw` / `BSE` | [§7.5](#sec-7-5) |
@@ -147,7 +147,7 @@
 
 ✅ **目标**
 
-- 在 `/stock/stockMetricView` 提供 cn / hk / us 三市场的全市场个股数据表：查询条件区、固定 13 列、按列排序、分页、CSV 导出。
+- 在 `/stock/stockMetricView` 提供 cn / hk / us 三市场的全市场个股数据表：查询条件区、固定 14 列、按列排序、分页、CSV 导出。
 - 数据口径、来源、更新时间在 UI 可见；`—`（无数据）与 `0` 语义分离。
 - 某市场无来源的列置空并隐藏，不显示无意义列。
 - 前端类型与 `types/stock.ts` 单一真源保持一致；离线跑批可重复执行、可追溯、不污染历史行。
@@ -190,9 +190,10 @@
 
 | 来源 | 用途 | 约束 |
 |---|---|---|
-| 东财 `push2 clist`（按市场换 `fs`） | cn / hk / us 全市场实时快照，提供 13 列中的 11 列 | 三市场返回同一套字段；`pz <= 100` 翻页、`fid = f12` 稳定排序、批量并发 ≤ 4 |
+| 东财 `push2 clist`（按市场换 `fs`） | cn / hk / us 全市场实时快照，提供 14 列中的 12 列 | 三市场返回同一套字段；`pz <= 100` 翻页、`fid = f12` 稳定排序、批量并发 ≤ 4 |
 | 东财 `datacenter-web` `RPT_LICO_FN_CPD` / `RPT_PUBLIC_BS_APPOIN` / `RPT_SHAREBONUS_DET` / `RPT_WEB_RESPREDICT` | 仅 cn 的 EPS TTM 同比、收益日期、分红口径校验、研报评级聚合（离线跑批） | 全市场分页拉取；hk / us 不接入 |
 | 东财 `push2his` 日线 / 本地 `stock_daily` | 二期 Beta 与多周期表现 | 并发 ≤ 4；`stock_daily` 只读，不改表结构 |
+| stock-sdk `batch.cn/hk/us`（Node 桥接，上游腾讯 `qt.gtimg.cn`） | 东财 clist 被限流 / 静默断连时的**兜底全市场快照**（`data_provider/market/stocksdk_source.py`） | 与东财不同链路；缺 EPS / 股息率 / 板块 / ROE / PS 列（置 `null` 并隐藏整列），量比仅 cn、PE/PB 仅 cn / us；市值按亿元返回需换算为元；行内 `source` 如实回传 `tencent` |
 
 【强制】hk / us 无来源的 3 项（EPS 增长 TTM 同比、分析师评级、将近收益日期）一律置 `null` 并按 [§7.2](#sec-7-2) 隐藏整列；不填 `0`、不估算、不引入单只低频数据源充当全市场来源。
 
@@ -253,7 +254,7 @@
                 ├─ 解析 filterList 的 market 条件 → 归一化 cn/hk/us
                 ├─ 实时快照：东财 clist，按市场分别翻页（pz=100，并发 ≤ 4）
                 ├─ 按 (market, code) 内存 merge 落库因子，取 MAX(as_of_date)
-                ├─ 静态列白名单筛选 → 排序 → 分页 → 平铺 13 列字段
+                ├─ 静态列白名单筛选 → 排序 → 分页 → 平铺 14 列字段
                 └─ 响应：list / total / pages / pageNum / pageSize + 业务字段
 ```
 
@@ -263,7 +264,7 @@
 
 【强制】只把跨数据源 join、需窗口历史、更新频率低的字段落库；价格的函数一律在线计算。新增列时先判定「是否价格的函数」——是则在线，否则离线；判定结果与来源写入前端静态列定义元数据（[§7.2](#sec-7-2)），后端静态注册表同步登记。
 
-【强制】`stock_metric_*` 是**离线指标事实表**，只存下表左列的慢变因子；`/api/v1/stock-metric` 是**度量视图查询接口**，返回「在线 clist 快照 ⊕ 离线因子」join 后的行（一期 13 列中 11 列来自在线快照，仅 2 列来自离线表）。在筛选器语境中每一列都是一个 metric，不另立 `quote*` 词根（词根规则见 [§2.3](#sec-2-3)）。
+【强制】`stock_metric_*` 是**离线指标事实表**，只存下表左列的慢变因子；`/api/v1/stock-metric` 是**度量视图查询接口**，返回「在线 clist 快照 ⊕ 离线因子」join 后的行（一期 14 列中 11 列来自在线快照、1 列回传来源标识、仅 2 列来自离线表）。在筛选器语境中每一列都是一个 metric，不另立 `quote*` 词根（词根规则见 [§2.3](#sec-2-3)）。
 
 | 职责 | 离线落库 | 在线计算 |
 |---|---|---|
@@ -545,7 +546,7 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
 
 前端列定义与后端 `STOCK_METRIC_FIELDS` 注册表共用同一套 `key`；新增列必须同改两处并更新三语 i18n；列元数据（单位、来源、口径、市场可用性）作为静态常量随列定义一起维护。
 
-**一期固定列头清单（13 列，字段平铺在行对象顶层）**
+**一期固定列头清单（14 列，字段平铺在行对象顶层）**
 
 | # | `key`（= 行字段名） | 列头（中文） | i18n 键后缀 | 值类型 / 单位 | 数据来源 | cn | hk | us | 不可得时 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -562,8 +563,9 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
 | 11 | `dividendYieldPct` | 股息收益率 | `dividendYieldPct` | 百分数 `%` | clist `f133`（东财口径） | ✅ | ✅ | ✅ | `—` |
 | 12 | `industry` | 板块 | `industry` | 文本 | clist `f100` | ✅ | ✅ | ✅ | `—`；值域随市场不同 |
 | 13 | `analystRating` | 分析师评级 | `analystRating` | 档位 1–5 | cn：`RPT_WEB_RESPREDICT` 聚合 | ✅ | ❌ | ❌ | **hk / us 隐藏整列** |
+| 14 | `source` | 数据来源 | `source` | 文本（`eastmoney` / `tencent` / `stocksdk` 等） | 在线快照逐行携带的实际取数来源 | ✅ | ✅ | ✅ | `—`；仅展示，**不可筛选 / 不可排序** |
 
-> 可得性依据见 [§4.1](#sec-4-1)。13 个业务列中 **11 列三市场可直接取得**；仅第 10、13 列在 hk / us 无来源。`market` 是行的标识字段（小写 `cn/hk/us`）：列表在序号列之后**单独占一列**，仅以放大的国旗呈现（本地化市场名保留在 `title` / `aria-label`），便于识别市场与原币；它不计入 13 个业务列。前端另有不进契约、不进 CSV 的序号列。**整列（列头 + 单元格）按 `align: left | right | center` 统一对齐**：序号、市场与所属板块列居中、代码与名称列左对齐、数字 / 金额列右对齐。
+> 可得性依据见 [§4.1](#sec-4-1)。14 个业务列中 **12 列三市场可直接取得**；仅第 10、13 列在 hk / us 无来源。第 14 列「数据来源」固定置于列尾，用于区分东财直连与 stock-sdk 兜底（见 [§4.1](#sec-4-1)）：后端逐行返回真实来源标识，数据源定义统一在 `apps/hrs-web/src/constants/dataSource.ts`（`DataSourceKey` 集合 + `dataSource.<id>` 文案键 + `resolveDataSourceLabel`），列内直接调用 `resolveDataSourceLabel(row.source, t)` 取名并逐项渲染 Chip，兼容后端返回单值（`eastmoney`）或中英文逗号分隔串（`eastmoney，tencent`）；页面只透传 `row.source`，未知标识原样回显，空值显示 `—`。`market` 是行的标识字段（小写 `cn/hk/us`）：列表在序号列之后**单独占一列**，仅以放大的国旗呈现（本地化市场名保留在 `title` / `aria-label`），便于识别市场与原币；它不计入 14 个业务列。前端另有不进契约、不进 CSV 的序号列。**整列（列头 + 单元格）按 `align: left | right | center` 统一对齐**：序号、市场与所属板块列居中、代码与名称列左对齐、数字 / 金额列右对齐。
 
 **置空与隐藏规则**
 
@@ -630,7 +632,9 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
 
 > 【强制】市场筛选以 `{ "field": "market", "op": "in", "value": ["cn"] }` 形式放入 `filterList`，与数值 / 文本条件同构；`market` 条件只允许 `in` / `eq`，值必须是 `cn` / `hk` / `us` 的子集，且**整组条件中最多一条**。**前端市场筛选为单选**，`value` 恒为单元素数组；后端仍校验多值子集以兼容旧客户端，并保留多市场时的币种分组排序防御。
 >
-> 【性能】在线快照按市场做 20s TTL 缓存（`data_provider/market/eastmoney_source.py`），翻页 / 排序 / 切市场复用同一次全市场抓取；按市场细粒度锁防缓存击穿，回源失败沿用最近一次成功快照。`POST /query` 可选 `forceRefresh: boolean`（默认 `false`），前端「刷新」按钮传 `true` 强制回源；老客户端不传即命中缓存。缓存随行保存该批数据的抓取时刻（ISO 8601 带 UTC 偏移），命中缓存 / 沿用旧快照都回传该时刻，`quoteAsOf` 不再取响应生成时刻。
+> 【性能】在线快照按市场做 180s（3 分钟）TTL 缓存（`data_provider/market/eastmoney_source.py`），翻页 / 排序 / 切市场复用同一次全市场抓取（秒级 TTL 会让翻页 / 排序等高频交互反复回源全市场，累计请求量足以触发东财按源 IP 限流，表现为整批数据拉不到、页面空白；度量视图用于选股筛选而非盯盘，分钟级延迟可接受，需要最新数据时「刷新」传 `forceRefresh=true` 强制回源、不受 TTL 约束）；按市场细粒度锁防缓存击穿，回源失败沿用最近一次成功快照。`POST /query` 可选 `forceRefresh: boolean`（默认 `false`），前端「刷新」按钮传 `true` 强制回源；老客户端不传即命中缓存。缓存随行保存该批数据的抓取时刻（ISO 8601 带 UTC 偏移），命中缓存 / 沿用旧快照都回传该时刻，`quoteAsOf` 不再取响应生成时刻。
+>
+> 【兜底】在线快照为「东财 clist 优先 + stock-sdk（腾讯行情）兜底」（`src/bootstrap/quote.py` 的 `_metric_snapshot_with_fallback`）。东财 clist 按源 IP 限流或被服务端静默断连时，三个市场会整批拿不到数据（页面全空）；此时切到仓库既有的 StockSDK Node 桥接（`data_provider/market/stocksdk_source.py` → `scripts/stocksdk_bridge/bridge.mjs` 的 `market_snapshot`，数据源为腾讯 `qt.gtimg.cn`，与东财不同链路），把「整页空白」降级为「部分列缺失」。兜底源字段缺口（按契约置 `null`、前端隐藏整列）：`epsDiluted` / `dividendYieldPct` / `industry` / `roePct` / `psRatioTTM` / `revenueGrowthYoyPct` 三市场均无；`relativeVolume`（量比）仅 cn 有；`peRatioTTM` / `pbRatio` 仅 cn / us 有；`totalMarketCap` 上游按「亿元」返回，适配层换算为「元」与东财 `f20` 对齐；美股代码剥离交易所后缀（`AAPL.OQ` → `AAPL`）。兜底源同样按市场做 180s TTL 缓存 + stale-while-error。
 
 `SortDef` 字段：`field`（`string`，须 `sortable = true`）、`order`（`asc` / `desc`）。
 
@@ -650,7 +654,7 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
 
 > 【强制】业务附加字段与分页字段**同层**，不包 `data`；`list` 元素不含 `values` 包装、不含 `dataStatus` / `sourceChain`，数据质量由 `null` 与 `warnings` 表达。
 
-`list` 元素 `StockMetricViewRowOut` 字段（**平铺**，与 [§7.2](#sec-7-2) 的 13 列一一对应）：
+`list` 元素 `StockMetricViewRowOut` 字段（**平铺**，与 [§7.2](#sec-7-2) 的 14 列一一对应）：
 
 | 字段 | 类型 | 含义 |
 |---|---|---|
@@ -663,8 +667,9 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
 | `dividendYieldPct` | `number \| null` | 股息收益率（百分数） |
 | `industry` | `string \| null` | 板块 / 所属行业（`StockIdentity.industry`） |
 | `analystRating` | `number \| null` | 分析师评级档位 1–5；hk / us 为 `null` |
+| `source` | `string \| null` | 该行实际取数来源标识（`eastmoney` 东财直连 / `tencent` 腾讯 / `sina` / `xueqiu` / `stocksdk`）；仅供前端「数据来源」列展示，不参与筛选与排序 |
 
-> 【强制】本表字段名逐项对应 [§5.4](#sec-5-4) 字段字典。`industry` 在后端为 `string \| null`，前端经 `api/stockMetricView.ts` 适配层归一为 `StockIdentity.industry` 的 `string \| undefined`，差异只消化在适配层。
+> 【强制】本表字段名逐项对应 [§5.4](#sec-5-4) 字段字典。`industry` 在后端为 `string \| null`，前端经 `api/stockMetricView.ts` 适配层归一为 `StockIdentity.industry` 的 `string \| undefined`，差异只消化在适配层；`source` 缺失时适配层补 `null`，避免列渲染拿到 `undefined`。
 
 请求示例：
 
@@ -700,7 +705,8 @@ CREATE UNIQUE INDEX ux_stock_metric_run_uniq
       "epsGrowthTtmYoyPct": 2.93,
       "dividendYieldPct": 3.79,
       "industry": "银行Ⅱ",
-      "analystRating": 5
+      "analystRating": 5,
+      "source": "eastmoney"
     }
   ],
   "total": 5376,
@@ -905,8 +911,8 @@ pages/Stock/StockMetricViewPage/StockMetricViewPage.tsx   (page：组装与布�
 | `src/pages/Stock/StockMetricViewPage/StockMetricViewPage.tsx` | 修改 | 填充空壳，组装布局 |
 | `src/pages/Stock/StockMetricViewPage/components/StockMetricViewFilterBar.tsx` | 新增 | 查询条件区（市场条件 + 常用条件 + 已启用 Chip + 添加 / 重置 / 查询），统一输出 `filterList` |
 | `src/pages/Stock/StockMetricViewPage/components/StockMetricViewMetricTable.tsx` | 新增 | `AnimCard` + `Table` 封装、排序、受控分页、空态、`—` 渲染 |
-| `src/pages/Stock/StockMetricViewPage/components/stockMetricViewColumns.tsx` | 新增 | **静态 `TableColumnDef<StockMetricViewRow>[]` 13 列 + 列元数据 + 按市场可用性过滤函数**（[§7.2](#sec-7-2)） |
-| `src/i18n/uiText-{zh,zh-Hant,en}.ts` | 修改 | 三语同改同序，键前缀 `stockMetricView.`（列名 13 个 + 空态 / 错误 / 导出提示） |
+| `src/pages/Stock/StockMetricViewPage/components/stockMetricViewColumns.tsx` | 新增 | **静态 `TableColumnDef<StockMetricViewRow>[]` 14 列 + 列元数据 + 按市场可用性过滤函数**（[§7.2](#sec-7-2)） |
+| `src/i18n/uiText-{zh,zh-Hant,en}.ts` | 修改 | 三语同改同序，键前缀 `stockMetricView.`（列名 14 个 + 空态 / 错误 / 导出提示） |
 
 > 【强制】沿用 [§2.2](#sec-2-2) 的路由与菜单命名，不新增额外入口；一期不实现列集切换 / 加列组件，不登记 `/columns` 缓存键。
 
@@ -1063,7 +1069,7 @@ export interface UseStockMetricViewResult {
 |---|---|---|---|
 | 数据接入 | `data_provider/market/eastmoney_source.py` | 修改 | 扩展 `_FS` 为三市场参数（cn / hk / us 各自 `fs`）、扩展 `_FIELDS`（`f2/f3/f5/f6/f9/f10/f12/f14/f20/f23/f37/f100/f112/f115/f130/f133/f221`）；保留 `pz <= 100` 翻页与现有回退；接入层把大写原始市场标记归一化为小写 `MarketLocale` 值 |
 | 数据接入 | `data_provider/fundamentals/` | 修改 | A 股财报期、预约披露、研报评级、分红字段映射（hk / us 不接入，直接置空） |
-| 契约 | `api/v1/schemas/stock_metric.py` | 新增 | 请求模型 `filterList: List[FilterItem]`（含 `market` 条件）、`sort`、`pageNum`、`pageSize`；`StockMetricViewQueryResponse` 继承 `common.PaginatedResponse` 并覆写 `list: List[StockMetricViewRowOut]`；**行模型 13 列字段平铺、字段名逐字取自 [§5.4](#sec-5-4) 字段字典**；无列定义模型 |
+| 契约 | `api/v1/schemas/stock_metric.py` | 新增 | 请求模型 `filterList: List[FilterItem]`（含 `market` 条件）、`sort`、`pageNum`、`pageSize`；`StockMetricViewQueryResponse` 继承 `common.PaginatedResponse` 并覆写 `list: List[StockMetricViewRowOut]`；**行模型 14 列字段平铺、字段名逐字取自 [§5.4](#sec-5-4) 字段字典**；无列定义模型 |
 | 端点 | `api/v1/endpoints/stock_metric.py` | 新增 | **仅 2 个端点**；`/query` 解析 `filterList`、用 `paginate_response()` 生成分页字典后补业务字段，`response_model=StockMetricViewQueryResponse` |
 | 路由 | `api/v1/router.py` | 修改 | 增加 `prefix="/stock-metric"` 的 `include_router` 一行 |
 | 工具（复用） | `src/utils/pagination.py` | 复用 | `paginate_response()` / `compute_pages()` 直接复用，不改动 |
@@ -1126,7 +1132,7 @@ export interface UseStockMetricViewResult {
 
 | 阶段 | 范围 | 交付物 |
 |---|---|---|
-| 一期 MVP | **cn / hk / us 三市场**；前端静态 13 列（hk / us 隐藏 2 列）；`filterList` 筛选（含市场条件）、行字段平铺、排序分页、服务端 CSV 导出；只建 `stock_metric_period` + `stock_metric_calc_run`，仅 cn 跑季频 job | 填充 `StockMetricViewPage`、2 个端点、2 张表、1 个季频 job、四层前端、类型真源对齐 |
+| 一期 MVP | **cn / hk / us 三市场**；前端静态 14 列（hk / us 隐藏 2 列）；`filterList` 筛选（含市场条件）、行字段平铺、排序分页、服务端 CSV 导出；只建 `stock_metric_period` + `stock_metric_calc_run`，仅 cn 跑季频 job | 填充 `StockMetricViewPage`、2 个端点、2 张表、1 个季频 job、四层前端、类型真源对齐 |
 | 二期 | 扩展列（Beta / PEG / 最近与将近收益日期 / ROE / PB / PS）、`stock_metric_daily` 日频 job、前端列集切换（仍为静态列定义）、补 hk / us 缺失数据源（若有）、`scope = watchlist/index` | 日频表与跑批、扩展列定义、范围筛选 |
 | 三期（评估） | 长尾指标长表、保存筛选、预置滤网、AI 自然语言筛选、图表视图 | 策略选股能力另立页面，复用本方案指标表 |
 
@@ -1144,7 +1150,7 @@ export interface UseStockMetricViewResult {
 | 前端 | `cd apps/hrs-web && npm ci && npm run lint && npm run build` |
 | 联调 | 后端 `./.venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8000`；前端 `cd apps/hrs-web && npm run dev`（端口 1022，`/api` 代理 8000）；人工核对 AC-1 ~ AC-9，逐个切换 cn / hk / us |
 | 类型一致性 | 【强制】按 [§5.4](#sec-5-4) 字段字典逐项核对 `stock.ts` / `stockMetricView.ts` / 列定义 / `filterList` / `sort` / 后端 `STOCK_METRIC_FIELDS` / Pydantic 行模型字段名；确认 `StockMetricViewSupportedMarket` 只在 `stock.ts` 定义一次、全仓无 `totalMv` / `peTtm` / `changePercent` 等别名；`tsc` 覆盖 `Pick<StockQuoteCore, ...>` 组合 |
-| 数据 | 【强制】上线前用 `RPT_SHAREBONUS_DET` 对 `f133` 抽样复核、三市场各抽 3 只核对 13 列值；确认港股人民币柜台（如 `89988`）的 `f20` / `f2` 币种口径；三市场全量翻页端到端压测（us 约 139 页） |
+| 数据 | 【强制】上线前用 `RPT_SHAREBONUS_DET` 对 `f133` 抽样复核、三市场各抽 3 只核对 14 列值；确认港股人民币柜台（如 `89988`）的 `f20` / `f2` 币种口径；三市场全量翻页端到端压测（us 约 139 页） |
 | 命名一致性 | 【强制】按 [§2.3](#sec-2-3) 逐项核对前端模块 / 路由 / i18n 键 / API 前缀 / 端点文件 / 服务 / 表 / 静态注册表的词根；确认源码与本方案无第二词根残留、三语 i18n 键同改同序 |
 | PR | 【强制】涉及 Web UI 变更，PR 描述附页面前后对比截图（`AGENTS.md` §1） |
 

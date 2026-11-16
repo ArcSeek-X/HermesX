@@ -218,6 +218,21 @@ class StockSdkBridgeClient:
         data = self.invoke("market_overview", {})
         return data if isinstance(data, dict) else None
 
+    def fetch_market_snapshot(self, market: str) -> List[Dict[str, Any]]:
+        """获取指定市场全市场精简快照（度量视图兜底源）。
+
+        返回行字段：``code`` / ``name`` / ``price`` / ``changePct`` / ``volume`` /
+        ``relativeVolume`` / ``totalMarketCapYi``（亿元）/ ``peRatioTTM`` / ``pbRatio``；
+        上游缺失字段为 ``None``。全市场体量较大（美股 1.2 万行），故超时按默认值的
+        两倍放宽，避免 Node 冷启动 + 序列化被默认 8s 卡断。
+        """
+        data = self.invoke(
+            "market_snapshot",
+            {"market": market},
+            timeout_ms=max(self.settings.timeout_ms * 2, 15000),
+        )
+        return data if isinstance(data, list) else []
+
     def fetch_northbound_summary(self) -> Optional[Dict[str, Any]]:
         """获取北向资金汇总。"""
         data = self.invoke("northbound_summary", {})

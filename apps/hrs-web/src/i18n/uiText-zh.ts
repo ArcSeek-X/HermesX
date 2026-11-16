@@ -379,6 +379,13 @@ const zh = {
   'component.taskPanel.statusAria': '任务状态：{status}', // 任务状态无障碍标签
   'component.taskPanel.title': '分析任务', // 任务面板标题
 
+  // ---- 数据源 dataSource（跨组件领域定义，见 constants/dataSource.ts） ----
+  'dataSource.eastmoney': '东方财富', // 数据源：东财直连
+  'dataSource.tencent': '腾讯', // 数据源：腾讯
+  'dataSource.sina': '新浪', // 数据源：新浪
+  'dataSource.xueqiu': '雪球', // 数据源：雪球
+  'dataSource.stocksdk': 'stock-sdk', // 数据源：stock-sdk 兜底
+  'dataSource.stockdb': 'StockDB', // 数据源：本地 StockDB
   // ---- 第 6 类 异常页面  ----
   // 404页面/重定向页面
   'exception.404.title': '404', // 404 路由标题（route handle）
@@ -1366,6 +1373,7 @@ const zh = {
   'stockMetricView.column.dividendYieldPct': '股息率', // 【页面】度量视图-列头：股息率
   'stockMetricView.column.industry': '所属板块', // 【页面】度量视图-列头：所属板块
   'stockMetricView.column.analystRating': '分析师评级', // 【页面】度量视图-列头：分析师评级
+  'stockMetricView.column.source': '数据来源', // 【页面】度量视图-列头：数据来源
   // stockMetricView.filter.*  (筛选区)
   'stockMetricView.filter.market': '市场', // 【页面】度量视图-筛选：市场多选标签
   'stockMetricView.filter.stock': '股票', // 【页面】度量视图-筛选：股票搜索标签

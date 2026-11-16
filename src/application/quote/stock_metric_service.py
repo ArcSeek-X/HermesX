@@ -33,6 +33,9 @@ STOCK_METRIC_FIELDS: Dict[str, Dict[str, Any]] = {
     "market": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "str"},
     "code": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "str"},
     "name": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "str"},
+    # 数据来源仅作展示（东财 / 腾讯 / stock-sdk 等），不可筛选、不可排序；
+    # 注册在此是为了让导出列清单（_to_csv）也认可该列 key。
+    "source": {"markets": ALL_MARKETS, "filterable": False, "sortable": False, "kind": "str"},
     "price": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "num"},
     "changePct": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "num"},
     "volume": {"markets": ALL_MARKETS, "filterable": True, "sortable": True, "kind": "num"},
@@ -53,7 +56,7 @@ STOCK_METRIC_FIELDS: Dict[str, Dict[str, Any]] = {
 DISPLAY_COLUMNS = [
     "code", "name", "price", "changePct", "volume", "relativeVolume",
     "totalMarketCap", "peRatioTTM", "epsDiluted", "epsGrowthTtmYoyPct",
-    "dividendYieldPct", "industry", "analystRating",
+    "dividendYieldPct", "industry", "analystRating", "source",
 ]
 # 响应列 key → 仓储因子字典 key。两层命名不同，映射必须显式，不能靠同名猜。
 OFFLINE_FIELD_MAP = {

@@ -273,7 +273,7 @@ def _parse_metric_item(item: Dict[str, Any], market: str) -> Optional[Dict[str, 
     price = _to_float(item.get("f2"))
     if not code or not name or price is None or price <= 0:
         return None
-    row: Dict[str, Any] = {"market": market, "code": code, "name": name}
+    row: Dict[str, Any] = {"market": market, "code": code, "name": name, "source": "eastmoney"}
     for fid, field in _METRIC_FIELD_MAP.items():
         if fid in ("f12", "f14"):
             continue
@@ -309,7 +309,11 @@ def _dedup_metric_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 # 度量视图快照 TTL 缓存：翻页 / 排序 / 切市场复用同一次全市场抓取，
 # 避免每次查询都对东财发起 50+ 页请求（既慢又容易触发限流）。
-_METRIC_SNAPSHOT_TTL_SECONDS = 20.0
+# 取 3 分钟而非秒级：翻页 / 排序 / 筛选属高频交互，短 TTL 会让每次操作都可能回源
+# 全市场，累计请求量足以触发东财按源 IP 的限流（表现为整批数据拉不到、页面空白）；
+# 度量视图用于选股筛选而非盯盘，分钟级延迟可接受。需要最新数据时前端「刷新」按钮
+# 传 forceRefresh=true 强制回源，不受此 TTL 约束。
+_METRIC_SNAPSHOT_TTL_SECONDS = 180.0
 # 缓存值 = (写入时的 monotonic 秒, 该批数据抓取时刻 ISO 8601(UTC), 行副本)。
 # monotonic 只用于 TTL 比较、无法换算墙钟时间，因此抓取时刻随缓存一起保存：
 # 命中缓存 / 回源失败沿用旧快照时都回传它，不用「当前时刻」冒充数据新鲜度。

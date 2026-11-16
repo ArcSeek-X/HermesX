@@ -379,6 +379,13 @@ const en: Record<UiTextKey, string> = {
   'component.taskPanel.statusAria': 'Task status: {status}',
   'component.taskPanel.title': 'Analysis tasks',
 
+  // ---- Data source (cross-component domain, see constants/dataSource.ts) ----
+  'dataSource.eastmoney': 'Eastmoney', // data source: Eastmoney direct
+  'dataSource.tencent': 'Tencent', // data source: Tencent
+  'dataSource.sina': 'Sina', // data source: Sina
+  'dataSource.xueqiu': 'Xueqiu', // data source: Xueqiu
+  'dataSource.stocksdk': 'stock-sdk', // data source: stock-sdk fallback
+  'dataSource.stockdb': 'StockDB', // data source: local StockDB
   // ---- 第 6 类 异常页面  ----
   // 404页面/重定向页面
   'exception.404.title': '404', // 404 route title (route handle)
@@ -1366,6 +1373,7 @@ const en: Record<UiTextKey, string> = {
   'stockMetricView.column.dividendYieldPct': 'Dividend Yield', // 【页面】度量視圖-列頭：股息率
   'stockMetricView.column.industry': 'Industry', // 【页面】度量視圖-列頭：所屬板塊
   'stockMetricView.column.analystRating': 'Analyst Rating', // 【页面】度量視圖-列頭：分析師評級
+  'stockMetricView.column.source': 'Data Source', // 【页面】度量視圖-列頭：數據來源
   // stockMetricView.filter.*  (filter bar)
   'stockMetricView.filter.market': 'Market', // 【页面】度量視圖-篩選：市場多選標籤
   'stockMetricView.filter.stock': 'Stock', // 【页面】度量視圖-篩選：股票搜索標籤

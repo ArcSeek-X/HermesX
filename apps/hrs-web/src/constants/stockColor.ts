@@ -1,12 +1,11 @@
 /**
- * 全局颜色常量
- * 股票分析系统统一配色方案，所有前端组件应引用此处定义的颜色
+ * @file stockColor.ts
+ * @description 全局图表配色常量：股票涨跌色、K 线均线与 MACD 指标色，以及随主题切换的适配色。
+ * 供 K 线图（KLineView/KLineChart/StockInfoHeader）、板块图表与股票卡片等组件统一引用。
+ * @author Lensgcx (GaoCangxiong)
  */
 
-// ==========================================
-// 股票涨跌颜色（红涨绿跌）
-// ==========================================
-
+// 股票涨跌颜色（A 股习惯：红涨绿跌）
 /** 上涨颜色（红色） */
 export const STOCK_UP_COLOR = '#ef5350';
 
@@ -16,10 +15,7 @@ export const STOCK_DOWN_COLOR = '#26a69a';
 /** 平盘颜色（灰色） */
 export const STOCK_FLAT_COLOR = '#999999';
 
-// ==========================================
-// K 线图技术指标颜色
-// ==========================================
-
+// K 线技术指标颜色
 /** MA5 均线颜色（橙色） */
 export const MA5_COLOR = '#FFB74D';
 
@@ -44,10 +40,10 @@ export const MACD_UP_COLOR = '#ef5350';
 /** MACD 下跌柱颜色（绿色） */
 export const MACD_DOWN_COLOR = '#26a69a';
 
-// ==========================================
 // 主题适配颜色
-// ==========================================
-
+/**
+ * 主题适配后的图表配色集合：涨跌与指标色取全局常量，文字/轴线/分割线色随浅/深主题切换。
+ */
 export interface ThemeColors {
   /** 上涨颜色 */
   upColor: string;
@@ -77,7 +73,10 @@ export interface ThemeColors {
   splitLineColor: string;
 }
 
-/** 获取当前主题对应的图表颜色配置 */
+/**
+ * 读取当前主题下的图表配色。
+ * @returns 涨跌/指标色取全局常量，文字/轴线/分割线色依据 document 是否含 dark 类切换
+ */
 export function getThemeColors(): ThemeColors {
   const isDark = document.documentElement.classList.contains('dark');
   return {
@@ -95,11 +94,4 @@ export function getThemeColors(): ThemeColors {
     axisLineColor: isDark ? '#555555' : '#cccccc',
     splitLineColor: isDark ? '#333333' : '#eeeeee',
   };
-}
-
-/** 根据涨跌值获取颜色 */
-export function getKChangeColor(change: number): string {
-  if (change > 0) return STOCK_UP_COLOR;
-  if (change < 0) return STOCK_DOWN_COLOR;
-  return STOCK_FLAT_COLOR;
 }

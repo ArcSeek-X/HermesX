@@ -21,6 +21,7 @@ function buildRow(market: StockMetricViewSupportedMarket): StockMetricViewRow {
     code: '000001',
     name: '示例股票',
     market,
+    source: 'eastmoney',
     industry: '银行',
     price: 10.5,
     changePct: 1.2,
@@ -92,11 +93,40 @@ describe('股票度量视图列清单契约', () => {
   const CN_COLUMN_KEYS = [
     'market', 'code', 'name', 'price', 'changePct', 'volume', 'relativeVolume',
     'totalMarketCap', 'peRatioTTM', 'epsDiluted', 'epsGrowthTtmYoyPct',
-    'dividendYieldPct', 'industry', 'analystRating',
+    'dividendYieldPct', 'industry', 'analystRating', 'source',
   ];
 
-  it('cn：14 个业务列逐列声明且顺序固定', () => {
+  it('cn：15 个业务列逐列声明且顺序固定', () => {
     expect(buildColumns('cn').map(({ key }) => key)).toEqual(CN_COLUMN_KEYS);
+  });
+
+  it.each(MARKETS)('%s：数据来源列位于列尾且不可排序', (market) => {
+    const columns = buildColumns(market);
+    const lastColumn = columns[columns.length - 1];
+    expect(lastColumn.key).toBe('source');
+    expect(lastColumn.allowsSorting).toBe(false);
+  });
+
+  it.each([
+    { source: 'eastmoney', expected: ['dataSource.eastmoney'] },
+    { source: 'eastmoney,tencent', expected: ['dataSource.eastmoney', 'dataSource.tencent'] },
+    { source: 'eastmoney，tencent', expected: ['dataSource.eastmoney', 'dataSource.tencent'] },
+    { source: 'stocksdk', expected: ['dataSource.stocksdk'] },
+  ])('数据来源 $source 经 resolveDataSourceLabel 渲染为 Chip', ({ source, expected }) => {
+    const column = buildColumns('cn').find((item) => item.key === 'source');
+    const html = renderToStaticMarkup(column?.render?.({ ...buildRow('cn'), source }));
+
+    expect(html).toContain('inline-flex');
+    for (const name of expected) {
+      expect(html).toContain(name);
+    }
+  });
+
+  it('未知数据来源回显原始标识，空值显示占位符', () => {
+    const column = buildColumns('cn').find((item) => item.key === 'source');
+
+    expect(renderToStaticMarkup(column?.render?.({ ...buildRow('cn'), source: 'futu' }))).toContain('futu');
+    expect(renderToStaticMarkup(column?.render?.({ ...buildRow('cn'), source: null }))).toContain('—');
   });
 
   it.each(['hk', 'us'] as const)('%s：仅 cn 可得的两个离线因子列整列隐藏', (market) => {

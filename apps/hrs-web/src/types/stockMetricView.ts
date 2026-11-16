@@ -37,6 +37,8 @@ export type StockMetricViewRow = Omit<StockMetricViewStandardFields, 'market'> &
   id: string;
   /** 市场地域，收窄为 cn / hk / us 三者之一 */
   market: StockMetricViewSupportedMarket;
+  /** 数据来源标识（eastmoney / tencent / stocksdk 等）；仅展示，不可筛选、不可排序 */
+  source: string | null;
   /** 相对成交量（量比） */
   relativeVolume: number | null;
   /** 摊薄每股收益（当期 EPS，非严格摊薄 TTM） */
