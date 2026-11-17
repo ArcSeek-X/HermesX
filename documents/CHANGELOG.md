@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 将 #1391 运行诊断 Phase 0/1/2/3 四份阶段文档合并为 `docs/run-diagnostics.md`，保留各阶段原文与章节边界，并删除原四份文件；历史台账与更新日志中的旧文件名作为历史记录不再改写。
+
 - [改进] 统一前端数据源定义：新增 `apps/hrs-web/src/constants/dataSource.ts` 作为唯一真源（`DataSourceKey` 闭合集合、`resolveDataSourceLabel()` 统一取名），三语文案键迁至领域命名空间 `dataSource.*`；`resolveDataSourceLabel` 输入支持单值 / 中英文逗号分隔串 / 数组（逐项拆分、去空、去重、小写、保序），**输出格式与输入一致**（数组进数组出、字符串进字符串出并保留原分隔符）；股票度量视图「数据来源」列直接调用该方法取名后逐项渲染 Chip，兼容后端返回单值或中英文逗号分隔串，未知来源原样回显、无来源显示 `—`。
 - [新功能] 股票度量视图新增「数据来源」列（固定列尾）：行模型 `StockMetricViewRowOut` 新增 `source` 字段，逐行回传真实取数来源（东财直连 `eastmoney`、stock-sdk 兜底上游 `tencent`，兼容 `sina` / `xueqiu` / `stocksdk`）；前端按已知来源本地化展示（东方财富 / 腾讯 / 新浪 / 雪球 / stock-sdk），未知标识原样回显，空值显示 `—`。该列仅展示、不参与筛选与排序（后端 `STOCK_METRIC_FIELDS` 注册为 `filterable=false` / `sortable=false`），CSV 导出同步带出；三语 i18n 与列清单契约测试同步更新。
 - [改进] 股票度量视图在线快照新增 stock-sdk（腾讯行情）兜底源：东财 clist 被按源 IP 限流或服务端静默断连时，三个市场原本整页空白，现改为「东财优先 + stock-sdk 兜底」，实测 cn 5578 只 / hk 3290 只 / us 12696 只（冷启动约 4~10s，按市场 180s TTL 缓存）。兜底源缺 `epsDiluted` / `dividendYieldPct` / `industry` / `roePct` / `psRatioTTM` / `revenueGrowthYoyPct` 列（按契约置 `null`、前端隐藏整列），`relativeVolume` 仅 cn 有、`peRatioTTM` / `pbRatio` 仅 cn / us 有；市值由「亿元」换算为「元」对齐东财口径，美股代码剥离交易所后缀（`AAPL.OQ` → `AAPL`）。新增 bridge action `market_snapshot`、`data_provider/market/stocksdk_source.py` 与兜底切换回归测试。
