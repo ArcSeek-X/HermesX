@@ -140,4 +140,6 @@ Bootstrap 装配用例与适配器；Config 提供运行配置。
 
 迁移到 `python/` 时，同批更新本地启动、测试配置、架构扫描根目录和基线路径、Docker 构建上下文、GitHub Actions、股票索引、PyInstaller 入口及模板与静态资源解析。仓库级的 `scripts/`、`docker/`、`.github/` 原位保留。运行数据目录从部署配置解析，既有数据库、报告和密钥不随源码移动。
 
+项目尚未上线，直接更新调用方到目标路径。代码、测试和工具须区分 Git 仓库根、Python 工程根与运行数据位置：仓库工具从 Git 根定位，Python 包及其资源从工程根定位，配置和数据从启动环境定位。搬迁后验证旧数据库可读、设置保存和重启均使用预期配置文件；不为旧源码路径保留转发入口。具体步骤见 [工程架构实施计划的 P1](engineering_architecture_plan.md#sec-3)。
+
 在当前布局，从仓库根目录运行 `python scripts/check_architecture.py --check` 和 `./scripts/ci_gate.sh`。实施迁移时还应验证 CLI、FastAPI、定时分析、Bot、Docker 和 Electron 安装包；涉及数据源时先覆盖超时、回退与字段契约，联网 smoke 与离线验收分别记录。未完成这些验证前，迁移后的路径只作为设计目标。

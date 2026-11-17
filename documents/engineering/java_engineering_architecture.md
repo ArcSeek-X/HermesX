@@ -22,6 +22,8 @@
 
 【强制】Java 源码位于 `src/main/java/hermesx/`，先按业务分包，例如 `auth/account`、`system/user`、`research/watchlist`，再在该业务包下按职责划分。测试位于 `src/test/java/hermesx/`，使用被测代码对应的包名。
 
+【强制】项目尚未上线，以目标结构和清晰的模块职责指导设计与实施。Java 工程直接使用仓库根的 Maven 入口和上述目录；目录或开发入口调整时，同批更新构建、测试、打包和文档，不为旧路径长期保留转发脚本或重复布局。本期只建工程骨架，Java 源码和服务接入另行安排。
+
 ```text
 Controller → Service → DAO → Java 管理的数据
                  └───→ Client → Python 或其他远程服务
