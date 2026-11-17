@@ -4,7 +4,9 @@
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-10-13
+> 🕒 **更新时间**：2026-11-17
+
+> **适用范围补充**：本文的分层、数据源和存储规则描述现有 Python 后端。根目录 Java 工程、两个运行服务及其交互边界见 [HermesX Java 与 Python 后端协作方案](java_python_backend_design.md)。该方案尚未实施，现有 Python 分层规则继续适用。
 
 ## 方案目录
 
