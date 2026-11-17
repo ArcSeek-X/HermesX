@@ -1,7 +1,7 @@
 # ADR-002~008：HermesX 分层迁移过程中的架构决策
 
 > 状态：**已接受（Accepted）** ｜ 建立时间：2026-10-30 ｜ 维护：随迁移推进增补，不回改已接受条目
-> 前序：`documents/framework/backend_architecture_adr.md`（ADR-001，后端分层架构与统一数据源策略）
+> 前序：[Python 工程架构](../engineering/python_engineering_architecture.md)（承接原 ADR-001）
 > 判据来源：`ARCHITECTURE_TARGET.md` §2 依赖规则、§4 归属表、§4.5 留存项、§8 确认点、§9.2 决策状态
 > 实施流水：`documents/framework/refactoring/ARCHITECTURE_MIGRATION_PROGRESS.md`（161 条切片交接记录）
 

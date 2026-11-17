@@ -39198,7 +39198,7 @@
   "documents": [
     "documents/framework/refactoring/ARCHITECTURE_TARGET.md",
     "documents/framework/refactoring/ARCHITECTURE_MIGRATION_STATUS.md",
-    "documents/framework/backend_architecture_adr.md",
+    "documents/engineering/python_engineering_architecture.md",
     "documents/authority/frontend_module_menu.md",
     "documents/authority/frontend_async_router.md",
     "documents/authority/frontend_route_keepalive.md",

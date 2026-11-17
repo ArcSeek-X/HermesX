@@ -17,7 +17,7 @@
 
 以下是初稿历史估算，不表示当前待改文件数、实际 token 用量或剩余预算。估算口径：以 2026-10-23 工作树为基线，`src/`、`api/`、`bot/`、`data_provider/` 共约 352 个 Python 文件，`tests/` 约 270 个文件；约 497 个 Python 文件引用 `src` 或 `data_provider`（含服务端、测试与脚本，**不代表全部必改**）。改动文件数按全程实际触及的**去重逻辑文件**估计，包含代码、测试、Web/Desktop 必要联动、构建脚本和文档；一次移动按一个文件计，不把 Git diff 中的删除/新增算两次，不计生成物、本地数据或依赖目录。token 包含代码阅读、设计、修改、测试结果分析和返工；实际用量受每阶段范围、所用模型、上下文复用及验证轮次影响很大。P0 完成文件级职责/调用方清单后，应据此重估，不能把本区间当作进度或预算承诺。
 
-> 设计盘点以 2026-10-23 为历史基线；§3 的目录图及旧路径属于规划或迁移基线，不应当作当前目录清单重新执行。本文现位于 `documents/framework/refactoring/ARCHITECTURE_TARGET.md`。数据源设计 ADR 见 [backend_architecture_adr.md](../backend_architecture_adr.md)，已决迁移例外及 schema 决策见 [architecture_migration_adr.md](../architecture_migration_adr.md)。
+> 设计盘点以 2026-10-23 为历史基线；§3 的目录图及旧路径属于规划或迁移基线，不应当作当前目录清单重新执行。本文现位于 `documents/framework/refactoring/ARCHITECTURE_TARGET.md`。当前目录、分层与数据源约定见 [Python 工程架构](../../engineering/python_engineering_architecture.md)，已决迁移例外及 schema 决策见 [architecture_migration_adr.md](../architecture_migration_adr.md)。
 
 ## 0. 当前实施状态与证据入口
 

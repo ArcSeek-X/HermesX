@@ -112,7 +112,7 @@
 > 参考页面：`stockdb/调用方式/ai_自动开发文档/示范.html`
 > 作者：高仓雄（gaocangxiong）
 > 更新时间：2026-10-06
-> **架构决策基准（本方案为遵守者）**：**`backend_architecture_adr.md`（ADR-001）** 是 HermesX 后端的**全局架构决策基准**（四层架构、`data_provider` 唯一脏活层、基础能力统一数据源策略），面向整个后端工程，不隶属于本方案。本方案是 ADR-001 的**遵守者 / 首个落地方案**：在"接入本地 StockDB（`127.0.0.1:7899`）作为 K 线 / 基础信息 / 代码搜索三类能力的 `local` source"这一范围内，严格遵循 ADR-001 的分层、脏活层与统一数据源约束；凡本方案与 ADR-001 不一致处，以 ADR-001 为准。方案范围已由「本地 StockDB 浏览页」升级为「行情基础能力统一层（多源可切换）」。
+> **架构决策基准**：本方案最早依据 ADR-001 设计。当前分层、目录与数据源规则见 [Python 工程架构](documents/engineering/python_engineering_architecture.md)。StockDB 作为 K 线、基础信息和代码搜索的本地数据源，通过统一能力接口接入。
 
 ---
 
@@ -177,7 +177,7 @@
   - [A.1 文档信息](#a1-文档信息)
   - [A.2 契约事实来源](#a2-契约事实来源)
   - [A.3 变更日志](#a3-变更日志)
-- [架构决策记录 ADR-001（独立文档）](documents/framework/backend_architecture_adr.md) —— 后端分层 / 统一数据源策略的权威依据
+- [Python 工程架构](documents/engineering/python_engineering_architecture.md) —— 现行 Python 分层与统一数据源规则，承接原 ADR-001
 
 ---
 
@@ -314,9 +314,9 @@ GET http://127.0.0.1:7899/?cmd=<cmd>&t=<table>&k1=<expr>&k2=<expr>&ap=<ap>&num=<
 
 ### <a id="31-分层视图权威依据见-adr-001-4"></a>3.1 分层视图（权威依据见 ADR-001 §4）
 
-本方案的后端分层与统一数据源策略以 **`backend_architecture_adr.md`（ADR-001）** 为**唯一权威基线**。四层架构（数据库层 / 接口对接层（脏活层）/ 功能接口层 / 横切基础辅助层）、各层职责、目录落点、调用链路与端点模型**均见 ADR-001 §3–§5**，本方案不再复述。
+当前后端分层与目录见 [Python 工程架构：分层职责与依赖](documents/engineering/python_engineering_architecture.md#sec-3)。下文提到的 ADR-001 是原始设计依据。
 
-> **范围澄清（与 ADR-001 一致）**：本方案的"四源平等 + 自动回退 + 周期全集 + 统一契约"策略**仅约束 `K 线 / 基础信息 / 代码搜索` 三类基础能力**；实时行情（akshare / tickflow）、板块（eastmoney）、财务基本面（tushare）、新闻资讯（wallstreetcn）、机构持仓（tw_institutional）等其余功能仍按各自既定专属源接入，不受四源平等约束，亦不受本方案改造影响。三类能力的"四源平等"实现完全封装在 `data_provider/kline/*`、`stockinfo/*`、`codesearch/*` 各自文件内，不影响项目中其他使用数据源的地方。能力源归属详见 ADR-001 §4.5 / §4.4。
+> **范围澄清**：本方案的多源回退范围是 K 线、基础信息和代码搜索，源能力分别位于 `data_provider/kline/`、`data_provider/stock_info/`、`data_provider/code_search/`。实时行情、板块、基本面、新闻和机构持仓按各自的能力契约选源。见 [Python 数据源规则](documents/engineering/python_engineering_architecture.md#sec-5)。
 
 > **架构升级说明（StockDB 接入方式）**：原方案「独立 `/api/stockdb` 页 + 独立包 `src/integrations/stockdb/`」的设计已被 **ADR-001** 取代——StockDB 不再是独立页面 / 独立包，而是统一基础能力层的一个 `local` source。本方案中任何 `/api/stockdb/*` 路由前缀与 `src/integrations/stockdb/` 包路径均为**占位**，以 ADR-001 的目录决策为准；其请求 / 响应契约仍作为统一 `KLinePoint` / `StockInfo` / `CodeSearch` 契约有效（见 §5）。
 
@@ -1230,7 +1230,7 @@ CODESEARCH_FALLBACK_ENABLED=true
 | 状态 | 方案（未实现），待评审后进入 §13.2 的 P1 |
 | 适用版本 | HermesX 当前 main；Python 3.11（`requests` 已在 `requirements.txt`） |
 | 依赖文档 | `AGENTS.md`、`documents/CHANGELOG.md`、StockDB `调用方式/python/AI策略python开发接口文档.md`、StockDB `调用方式/ai_自动开发文档/AI策略界面开发纯js接口文档.md` |
-| 关联模块 | `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/`（新增，ADR-001 脏活层）、`api/v1/endpoints/{kline,stock_info,code_search}.py`（重构/新增）、`apps/hrs-web/src/pages/{StockDataViewPage,Settings/DataSourceSetting}.tsx`（修改/新增）；配套架构决策 `backend_architecture_adr.md`（ADR-001） |
+| 关联模块 | `data_provider/{stockdb_fetcher,kline,stockinfo,codesearch}/`（新增，ADR-001 脏活层）、`api/v1/endpoints/{kline,stock_info,code_search}.py`（重构/新增）、`apps/hrs-web/src/pages/{StockDataViewPage,Settings/DataSourceSetting}.tsx`（修改/新增）；配套 [Python 工程架构](documents/engineering/python_engineering_architecture.md) |
 | 未决事项 | ① 复权公式对账（AC-3）未执行（上线硬阻断）；② Docker/桌面端可达性未验证；③ 数据字典是否独立建表待定（ADR-001 建议新增）；④ 方案范围已升级为「行情基础能力统一层」，详见配套 ADR-001 |
 
 ### <a id="a2-契约事实来源本方案中所有实测结论"></a>A.2 契约事实来源（本方案中所有"实测"结论）

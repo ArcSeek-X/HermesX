@@ -1,4 +1,4 @@
-# <a id="java-layering"></a>Java 后端分层与文件组织规范
+# <a id="java-engineering-architecture"></a>HermesX Java 工程架构
 
 > 📝 **方案简述**：约定 HermesX Java 后端的包结构、依赖方向、各层文件命名与数据边界，使网页端和桌面端复用同一套业务规则，Java 与 Python 各自维护自己的数据。
 >
@@ -18,7 +18,7 @@
 
 ## 一、范围与依赖方向
 
-【强制】本规范适用于根目录 Java 工程的新增代码。基础包名统一为 `hermesx`，Spring Boot 启动类为 `hermesx.HermesApiApplication`，`hermesx.auth`、`hermesx.system` 和 `hermesx.research` 位于根包下。整体目录、部署与迁移顺序见 [HermesX Java 与 Python 后端协作方案](../../documents/framework/java_python_backend_design.md)。
+【强制】本规范适用于拟接入的根目录 Java 工程。基础包名统一为 `hermesx`，Spring Boot 启动类为 `hermesx.HermesApiApplication`，`hermesx.auth`、`hermesx.system` 和 `hermesx.research` 位于根包下。整体目录、部署与迁移顺序见 [整体工程架构](engineering_architecture.md)。
 
 【强制】Java 源码位于 `src/main/java/hermesx/`，先按业务分包，例如 `auth/account`、`system/user`、`research/watchlist`，再在该业务包下按职责划分。测试位于 `src/test/java/hermesx/`，使用被测代码对应的包名。
 
@@ -58,9 +58,35 @@ Controller → Service → DAO → Java 管理的数据
 - 【强制】Client 明确区分远端业务错误、超时和服务不可用等情况，并保留可供排查的错误语义；不能用空列表、`null` 或默认成功掩盖调用失败。仅按接口契约重试可安全重放的操作；创建任务等有副作用的调用须先具备幂等约定，才能自动重试。
 - 【强制】远程调用不能加入 Java 数据库事务，不在持有数据库事务期间等待远端。若用例同时写本地归属记录和创建远程任务，设计时必须约定超时后如何确认远端是否已受理，以及失败后如何重试或对账，避免重复创建和结果脱离归属。
 
+Python 服务内部的分层、数据源和存储职责见 [Python 工程架构](python_engineering_architecture.md)。
+
 <a id="sec-4"></a>
 
 ## 四、目录示例
+
+```text
+HermesX/
+├── pom.xml / mvnw / mvnw.cmd
+├── .mvn/wrapper/
+└── src/
+    ├── main/
+    │   ├── java/hermesx/
+    │   │   ├── HermesApiApplication.java
+    │   │   ├── config/              # Spring 与 HTTP 客户端配置
+    │   │   ├── web/                 # 全局 HTTP 异常与错误响应
+    │   │   ├── auth/                # account、session、security
+    │   │   ├── system/              # user、organization、permission、
+    │   │   │                        # menu、dictionary、settings
+    │   │   └── research/            # watchlist、recentsearch、preferences、analysis
+    │   └── resources/
+    │       ├── application.yml
+    │       └── db/migration/        # 如采用 Flyway
+    └── test/
+        ├── java/hermesx/
+        └── resources/
+```
+
+以 `research` 展开包内文件，`auth` 和 `system` 使用同样的放置规则：
 
 ```text
 src/main/java/hermesx/research/

@@ -149,7 +149,7 @@
 
 以下规则适用于 HermesX 后续采用本方案时。
 
-Java 模块归属、基础包名和依赖方向见 [HermesX Java 与 Python 后端协作方案](../../framework/java_python_backend_design.md)。注册和会话归 `hermesx.auth`，组织、角色、菜单及后台用户管理归 `hermesx.system`；本文保留授权规则和接口参考。
+Java 模块归属、基础包名和依赖方向见 [HermesX 整体工程架构](../../engineering/engineering_architecture.md)。注册和会话归 `hermesx.auth`，组织、角色、菜单及后台用户管理归 `hermesx.system`；本文保留授权规则和接口参考。
 
 | 级别 | 规则 | 原因与用法 |
 | --- | --- | --- |

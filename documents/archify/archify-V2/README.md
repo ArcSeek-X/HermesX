@@ -100,7 +100,7 @@ Props / callback 连接父子组件，URL 与路由定位页面，Store / Contex
 
 - [架构目标与依赖约束](../../framework/refactoring/ARCHITECTURE_TARGET.md)
 - [架构迁移当前状态](../../framework/refactoring/ARCHITECTURE_MIGRATION_STATUS.md)
-- [后端架构 ADR](../../framework/backend_architecture_adr.md)
+- [Python 工程架构](../../engineering/python_engineering_architecture.md)
 - [前端模块与菜单](../../authority/frontend_module_menu.md)
 - [前端异步路由](../../authority/frontend_async_router.md)
 - [前端路由缓存](../../authority/frontend_route_keepalive.md)

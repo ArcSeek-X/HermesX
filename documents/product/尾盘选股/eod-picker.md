@@ -34,7 +34,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 关联架构 | `documents/framework/backend_architecture_adr.md`（ADR-001，已采纳） |
+| 关联架构 | [Python 工程架构](../../engineering/python_engineering_architecture.md) |
 | 状态 | 已实施（后端 service + endpoint + 前端页面均已落地，离线单测通过） |
 
 ### <a id="改动日志"></a>改动日志
@@ -198,7 +198,7 @@ localStorage 存 `filters`（500ms 防抖）、`schemes`（方案）、`recent`�
 <a id="sec-h"></a>
 ## <a id="h-与-adr-001后端架构的合规性对照"></a>H. 与 ADR-001（后端架构）的合规性对照
 
-本方案严格遵循 `documents/framework/backend_architecture_adr.md`（ADR-001，已采纳）的四层架构与「`data_provider` 为唯一脏活层」铁律，逐项核对如下：
+下表保留设计时按原 ADR-001 所作的合规对照。当前端点、用例和数据源的依赖方向以 [Python 工程架构](../../engineering/python_engineering_architecture.md#sec-3) 为准。
 
 | ADR-001 条款 | 本方案对应设计 | 合规 |
 |---|---|---|

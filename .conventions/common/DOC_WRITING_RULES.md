@@ -21,7 +21,7 @@
 ## <a id="一适用范围与总则"></a>一、适用范围与总则
 
 - **适用对象**：HermesX 仓库内的"方案类" markdown 文档，包括但不限于：
-  - 架构决策记录（ADR，如 `backend_architecture_adr.md`）
+  - 架构决策记录（ADR，如 `architecture_migration_adr.md`）
   - 规范/约定文档（如 `FILE_FOLDER_RENAME.md`、`CODE_ANNOTATION.md`）
   - 设计/交互方案（如 `SIDEBAR_NAV_THUMB.md`）
 - **不适用**：代码注释（见 `CODE_ANNOTATION.md`）、纯 README、Git 提交信息。
