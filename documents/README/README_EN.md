@@ -17,9 +17,9 @@
 
 Analyze your watchlist daily -> generate a decision dashboard -> push to Telegram / Discord / Slack / Email / WeChat Work / Feishu.
 
-[**Product Preview**](#-product-preview) · [**Key Features**](#-key-features) · [**Quick Start**](#-quick-start) · [**Sample Output**](#-sample-output) · [**Documentation Index**](./INDEX_EN.md) · [**Full Guide**](./full-guide_EN.md)
+[**Product Preview**](#-product-preview) · [**Key Features**](#-key-features) · [**Quick Start**](#-quick-start) · [**Sample Output**](#-sample-output) · [**Documentation Index**](../../docs/INDEX_EN.md) · [**Full Guide**](../../docs/full-guide_EN.md)
 
-English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
+English | [简体中文](../../README.md) | [繁體中文](README_CHT.md)
 
 </div>
 
@@ -27,15 +27,15 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 
 <div align="center">
   <p align="center">
-    <a href="https://open.anspire.cn/?share_code=QFBC0FYC" target="_blank"><img src="assets/anspire.png" alt="Anspire Open all-in-one model and search service" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
-    <a href="https://serpapi.com/baidu-search-api?utm_source=github_HermesX" target="_blank"><img src="assets/serpapi_banner_en.png" alt="Easily scrape real-time financial news data from search engines - SerpApi" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
+    <a href="https://open.anspire.cn/?share_code=QFBC0FYC" target="_blank"><img src="../../docs/assets/anspire.png" alt="Anspire Open all-in-one model and search service" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
+    <a href="https://serpapi.com/baidu-search-api?utm_source=github_HermesX" target="_blank"><img src="../../docs/assets/serpapi_banner_en.png" alt="Easily scrape real-time financial news data from search engines - SerpApi" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
   </p>
 </div>
 
 ## 🖥️ Product Preview
 
 <p align="center">
-  <img src="assets/readme_workspace_tour_20260510.gif" alt="HRS Web workspace demo" width="720">
+  <img src="../../docs/assets/readme_workspace_tour_20260510.gif" alt="HRS Web workspace demo" width="720">
 </p>
 
 ## ✨ Key Features
@@ -43,13 +43,13 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 | Capability | Coverage |
 |------------|----------|
 | AI decision reports | Core conclusion, score, trend, entry/exit levels, risk alerts, catalysts, and action checklist |
-| Multi-market data | Covers A-shares, Hong Kong, US, Japanese, Korean, Taiwan stocks, and ETFs, with quotes, K-lines, technical indicators, news, announcements, fundamentals, and report context. Data-source coverage and market boundaries are documented in [market boundaries](market-support.md) |
+| Multi-market data | Covers A-shares, Hong Kong, US, Japanese, Korean, Taiwan stocks, and ETFs, with quotes, K-lines, technical indicators, news, announcements, fundamentals, and report context. Data-source coverage and market boundaries are documented in [market boundaries](../../docs/market-support.md) |
 | Web / desktop workspace | Manual analysis, task progress, history, full Markdown reports, backtest, portfolio, settings, and light/dark themes |
 | Agent strategy chat | Multi-turn Q&A with 15 built-in strategies across Web/Bot/API |
 | Smart import & autocomplete | Image, CSV/Excel, clipboard import; code/name/pinyin/alias autocomplete |
 | Automation & notifications | GitHub Actions, Docker, local scheduler, FastAPI service, and WeChat Work / Feishu / Telegram / Discord / Slack / Email delivery |
 
-> Detailed fields, fundamental P0 timeout semantics, trading rules, data-source priority, Web/API behavior, and troubleshooting live in the [Full Guide](./full-guide_EN.md).
+> Detailed fields, fundamental P0 timeout semantics, trading rules, data-source priority, Web/API behavior, and troubleshooting live in the [Full Guide](../../docs/full-guide_EN.md).
 
 ### Tech Stack & Data Sources
 
@@ -60,7 +60,7 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 | News Search | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC), [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX), [Tavily](https://tavily.com/), [Bocha](https://open.bocha.cn/), [Brave](https://brave.com/search/api/), [MiniMax](https://platform.minimaxi.com/), SearXNG |
 | Social Sentiment | [Stock Sentiment API](https://api.adanos.org/docs) for Reddit / X / Polymarket, US stocks only |
 
-> The project includes free market-data sources such as AkShare, Baostock, and YFinance and can run without extra data-source credentials. These free sources can be rate-limited, change upstream contracts, or fluctuate by network condition, so stability is not guaranteed. For scheduled runs, batch analysis, or steadier quotes, configure token-based sources such as TickFlow, Tushare, or Longbridge; market coverage, Actions mappings, and fallback rules are documented in [Data Source Configuration](./full-guide_EN.md#data-source-configuration).
+> The project includes free market-data sources such as AkShare, Baostock, and YFinance and can run without extra data-source credentials. These free sources can be rate-limited, change upstream contracts, or fluctuate by network condition, so stability is not guaranteed. For scheduled runs, batch analysis, or steadier quotes, configure token-based sources such as TickFlow, Tushare, or Longbridge; market coverage, Actions mappings, and fallback rules are documented in [Data Source Configuration](../../docs/full-guide_EN.md#data-source-configuration).
 
 ## 🚀 Quick Start
 
@@ -78,7 +78,7 @@ Open your forked repository, then go to `Settings` -> `Secrets and variables` ->
 
 **AI model configuration (configure at least one)**
 
-Start with one provider and one API key. For multi-model routing, image recognition, local models, or advanced routing, see the [LLM Config Guide](./LLM_CONFIG_GUIDE_EN.md).
+Start with one provider and one API key. For multi-model routing, image recognition, local models, or advanced routing, see the [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md).
 
 | Secret Name | Description | Required |
 |-------------|-------------|:--------:|
@@ -102,7 +102,7 @@ Start with one provider and one API key. For multi-model routing, image recognit
 | `SLACK_BOT_TOKEN` + `SLACK_CHANNEL_ID` | Slack bot |
 | `EMAIL_SENDER` + `EMAIL_PASSWORD` | Email push |
 
-More channels, signatures, email groups, and Markdown-to-image settings are in [Notification Configuration](./full-guide_EN.md#notification-channel-configuration).
+More channels, signatures, email groups, and Markdown-to-image settings are in [Notification Configuration](../../docs/full-guide_EN.md#notification-channel-configuration).
 
 **Watchlist (required)**
 
@@ -124,7 +124,7 @@ News search strongly improves sentiment, announcements, events, and catalyst qua
 | `MINIMAX_API_KEYS` | [MiniMax](https://platform.minimaxi.com/), structured search results | Optional |
 | `SEARXNG_BASE_URLS` | Self-hosted SearXNG instances for quota-free fallback | Optional |
 
-More search providers, social sentiment, and fallback behavior are in [Search Configuration](./full-guide_EN.md#search-service-configuration).
+More search providers, social sentiment, and fallback behavior are in [Search Configuration](../../docs/full-guide_EN.md#search-service-configuration).
 
 **Market data sources (optional)**
 
@@ -136,7 +136,7 @@ More search providers, social sentiment, and fallback behavior are in [Search Co
 | `TUSHARE_TOKEN` | A-shares | Improves historical data stability |
 | `LONGBRIDGE_OAUTH_CLIENT_ID` + `LONGBRIDGE_OAUTH_TOKEN_CACHE_B64` | HK/US stocks | Fills in volume ratio, turnover rate, P/E, and other fields |
 
-> See [Data Source Configuration](./full-guide_EN.md#data-source-configuration).
+> See [Data Source Configuration](../../docs/full-guide_EN.md#data-source-configuration).
 
 #### 3. Enable Actions
 
@@ -148,7 +148,7 @@ Open the `Actions` tab and click `I understand my workflows, go ahead and enable
 
 #### Done
 
-By default, the workflow runs every weekday at 18:00 Beijing time and skips non-trading days. Forced runs, trading-day checks, and resume rules are covered in the [Full Guide](./full-guide_EN.md#scheduled-task-configuration).
+By default, the workflow runs every weekday at 18:00 Beijing time and skips non-trading days. Forced runs, trading-day checks, and resume rules are covered in the [Full Guide](../../docs/full-guide_EN.md#scheduled-task-configuration).
 
 ### Option 2: Local / Docker Deployment
 
@@ -177,7 +177,7 @@ python main.py --schedule
 python main.py --serve-only
 ```
 
-> Docker deployment, scheduling, and cloud-server WebUI access are documented in the [Full Guide](./full-guide_EN.md).
+> Docker deployment, scheduling, and cloud-server WebUI access are documented in the [Full Guide](../../docs/full-guide_EN.md).
 
 ## 📱 Sample Output
 
@@ -230,7 +230,7 @@ Lagging: Insurance, aviation & airports, PV equipment
 
 ## ⚙️ Configuration
 
-Full environment variables, model routing, notification channels, data-source priority, trading rules, fundamental P0 semantics, and deployment details are in the [Full Guide](./full-guide_EN.md).
+Full environment variables, model routing, notification channels, data-source priority, trading rules, fundamental P0 semantics, and deployment details are in the [Full Guide](../../docs/full-guide_EN.md).
 
 ## 🖥️ Web UI
 
@@ -241,7 +241,7 @@ python main.py --webui
 python main.py --webui-only
 ```
 
-Visit `http://127.0.0.1:8000`. Authentication, smart import, autocomplete, report copying, and cloud-server access are documented in [Local WebUI Management](./full-guide_EN.md#local-webui-management-interface).
+Visit `http://127.0.0.1:8000`. Authentication, smart import, autocomplete, report copying, and cloud-server access are documented in [Local WebUI Management](../../docs/full-guide_EN.md#local-webui-management-interface).
 
 ## 🤖 Agent Strategy Chat
 
@@ -252,7 +252,7 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
 - Supports follow-up questions, session export, notification sending, and background execution
 - Supports custom strategy files and experimental multi-agent orchestration
 
-> Agent parameters, `skill` naming compatibility, multi-agent mode, and budget guards are covered in the [Full Guide](./full-guide_EN.md#local-webui-management-interface) and [LLM Config Guide](./LLM_CONFIG_GUIDE_EN.md).
+> Agent parameters, `skill` naming compatibility, multi-agent mode, and budget guards are covered in the [Full Guide](../../docs/full-guide_EN.md#local-webui-management-interface) and [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md).
 
 
 ## 📞 Contact
@@ -265,7 +265,7 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
       Project consulting, deployment support, and feature extensions
     </td>
     <td align="center" rowspan="3" valign="middle" width="148">
-      <a href="http://xhslink.com/m/tU520DWCKT" target="_blank"><img src="assets/xiaohongshu_tick.jpg" width="112" alt="Xiaohongshu QR code"></a><br>
+      <a href="http://xhslink.com/m/tU520DWCKT" target="_blank"><img src="../../docs/assets/xiaohongshu_tick.jpg" width="112" alt="Xiaohongshu QR code"></a><br>
       <sub>Follow on Xiaohongshu</sub>
     </td>
   </tr>
@@ -284,13 +284,13 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
 If you find this project useful, you can buy the author a glass of juice :tropical_drink:
 
 <p>
-  <img src="../docs/assets/alipay.jpg" width="120" alt="Alipay donation QR code" style="display:inline-block;margin-right:20px;">
-  <img src="../docs/assets/wechat_pay.jpg" width="120" alt="WeChat Pay donation QR code" style="display:inline-block;">
+  <img src="../../docs/assets/alipay.jpg" width="120" alt="Alipay donation QR code" style="display:inline-block;margin-right:20px;">
+  <img src="../../docs/assets/wechat_pay.jpg" width="120" alt="WeChat Pay donation QR code" style="display:inline-block;">
 </p>
 
 ## 📄 License
 
-[MIT License](../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
+[MIT License](../../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
 If you use or build on this project, attribution with a link back to this repository is appreciated.
 

@@ -131,7 +131,7 @@ PROXY_PORT=10809
 
 ### LLM 配置常见问题
 
-> 完整说明见 [LLM 配置指南](LLM_CONFIG_GUIDE.md)。
+> 完整说明见 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)。
 
 **Q: 配置了 GEMINI_API_KEY 和 LLM_CHANNELS，为什么只用渠道？**
 
@@ -147,7 +147,7 @@ PROXY_PORT=10809
 
 **Q: 问股/Agent 提示未配置可用 LLM，但我只有旧的 `GEMINI_*` / `OPENAI_*` / `ANTHROPIC_*` 配置，怎么办？**
 
-先确认当前是否启用了 `LITELLM_CONFIG` 或 `LLM_CHANNELS`；如果启用了，上层配置会覆盖 legacy keys。若你没有启用这两层，且 `AGENT_LITELLM_MODEL` 为空，问股 Agent 仍会自动继承 legacy provider 模型：`GEMINI_MODEL`、`OPENAI_MODEL`、`ANTHROPIC_MODEL` 分别映射到对应 provider 前缀的 LiteLLM 模型名。此次修复不会静默迁移或清空旧配置，只是把“真实缺失原因”直接返回到前端，便于你判断到底是缺 key、缺模型名，还是被上层配置覆盖。完整兼容语义见 [LLM 配置指南](LLM_CONFIG_GUIDE.md) 中“问股 Agent / LiteLLM 配置兼容说明”。
+先确认当前是否启用了 `LITELLM_CONFIG` 或 `LLM_CHANNELS`；如果启用了，上层配置会覆盖 legacy keys。若你没有启用这两层，且 `AGENT_LITELLM_MODEL` 为空，问股 Agent 仍会自动继承 legacy provider 模型：`GEMINI_MODEL`、`OPENAI_MODEL`、`ANTHROPIC_MODEL` 分别映射到对应 provider 前缀的 LiteLLM 模型名。此次修复不会静默迁移或清空旧配置，只是把“真实缺失原因”直接返回到前端，便于你判断到底是缺 key、缺模型名，还是被上层配置覆盖。完整兼容语义见 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md) 中“问股 Agent / LiteLLM 配置兼容说明”。
 
 ---
 
@@ -234,7 +234,7 @@ OPENAI_MODEL=deepseek-v4-flash
 
 **配置方法**：使用 `OLLAMA_API_BASE` + `LITELLM_MODEL`，或渠道模式（`LLM_CHANNELS=ollama` + `LLM_OLLAMA_BASE_URL` + `LLM_OLLAMA_MODELS`）。
 
-**避坑**：不要使用 `OPENAI_BASE_URL` 配置 Ollama，否则系统会错误拼接 URL（如 404、`api/generate/api/show`）。详见 [LLM 配置指南](LLM_CONFIG_GUIDE.md) 示例 4 与渠道示例。
+**避坑**：不要使用 `OPENAI_BASE_URL` 配置 Ollama，否则系统会错误拼接 URL（如 404、`api/generate/api/show`）。详见 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md) 示例 4 与渠道示例。
 
 ---
 
@@ -271,7 +271,7 @@ OPENAI_MODEL=deepseek-v4-flash
    - 若 Ollama 和程序不在同一主机，需将 `OLLAMA_API_BASE` 改为实际 IP，如 `http://192.168.1.100:11434`。
    - 确认防火墙已放行 11434 端口，且 Ollama 启动时绑定了正确地址（`OLLAMA_HOST=0.0.0.0:11434`）。
 
-> 完整配置示例见 [LLM 配置指南 → 示例 4（Ollama）](LLM_CONFIG_GUIDE.md#example-4-ollama)。
+> 完整配置示例见 [LLM 配置指南 → 示例 4（Ollama）](../../docs/LLM_CONFIG_GUIDE.md#example-4-ollama)。
 
 ---
 
@@ -390,9 +390,9 @@ python main.py --market-only
 ## 💬 还有问题？
 
 如果以上内容没有解决你的问题，欢迎：
-1. 查看 [完整配置指南](full-guide.md)
+1. 查看 [完整配置指南](../../docs/full-guide.md)
 2. 搜索或提交 [GitHub Issue](https://github.com/ArcSeek-X/HermesX/issues)
-3. 查看 [更新日志](../documents/CHANGELOG.md) 了解最新修复
+3. 查看 [更新日志](../CHANGELOG.md) 了解最新修复
 
 ---
 

@@ -2,7 +2,7 @@
 
 This document contains the complete configuration guide for the AI Stock Analysis System, intended for users who need advanced features or special deployment methods.
 
-> Quick start guide available in [README_EN.md](README_EN.md). This document covers advanced configuration.
+> Quick start guide available in [README_EN.md](../documents/README/README_EN.md). This document covers advanced configuration.
 
 ## Project Structure
 
@@ -1268,7 +1268,7 @@ STOCKDB_BASE_URL=http://127.0.0.1:7899
 | `FINNHUB_API_KEY` | Finnhub market data |
 | `SOCIAL_SENTIMENT_API_KEY` / `SOCIAL_SENTIMENT_API_URL` | Social sentiment provider; default URL is `https://api.adanos.org` |
 
-These fields can be edited directly in the **Data Sources** category of the Web settings page: saved values are written to `.env` and reloaded immediately, so the next request uses them. Startup precedence needs separate attention — if the container already provides a same-named environment variable at process start, that value still wins; to keep a settings-page value effective after a restart, update or remove the same-named override in the container (consistent with Q6, "configuration changes do not take effect", in `docs/FAQ.md`).
+These fields can be edited directly in the **Data Sources** category of the Web settings page: saved values are written to `.env` and reloaded immediately, so the next request uses them. Startup precedence needs separate attention — if the container already provides a same-named environment variable at process start, that value still wins; to keep a settings-page value effective after a restart, update or remove the same-named override in the container (consistent with Q6, "configuration changes do not take effect", in `documents/FAQ/FAQ.md`).
 
 ### News Source Configuration
 

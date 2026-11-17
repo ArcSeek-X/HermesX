@@ -17,9 +17,9 @@
 
 每日自動分析自選股 -> 生成決策儀表盤 -> 推送到 Telegram / Discord / Slack / 郵件 / 企業微信 / 飛書。
 
-[**產品預覽**](#-產品預覽) · [**功能特性**](#-功能特性) · [**快速開始**](#-快速開始) · [**推送效果**](#-推送效果) · [**文檔中心**](./INDEX.md) · [**完整指南**](./full-guide.md)
+[**產品預覽**](#-產品預覽) · [**功能特性**](#-功能特性) · [**快速開始**](#-快速開始) · [**推送效果**](#-推送效果) · [**文檔中心**](../../docs/INDEX.md) · [**完整指南**](../../docs/full-guide.md)
 
-繁體中文 | [English](README_EN.md) | [简体中文](../README.md)
+繁體中文 | [English](README_EN.md) | [简体中文](../../README.md)
 
 </div>
 
@@ -27,15 +27,15 @@
 
 <div align="center">
   <p align="center">
-    <a href="https://open.anspire.cn/?share_code=QFBC0FYC" target="_blank"><img src="assets/anspire.png" alt="Anspire Open 一站式模型和搜尋服務" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
-    <a href="https://serpapi.com/baidu-search-api?utm_source=github_HermesX" target="_blank"><img src="assets/serpapi_banner_zh.png" alt="輕鬆抓取搜尋引擎上的即時金融新聞數據 - SerpApi" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
+    <a href="https://open.anspire.cn/?share_code=QFBC0FYC" target="_blank"><img src="../../docs/assets/anspire.png" alt="Anspire Open 一站式模型和搜尋服務" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
+    <a href="https://serpapi.com/baidu-search-api?utm_source=github_HermesX" target="_blank"><img src="../../docs/assets/serpapi_banner_zh.png" alt="輕鬆抓取搜尋引擎上的即時金融新聞數據 - SerpApi" width="300" height="141" style="width: 300px; height: 141px; object-fit: contain;"></a>
   </p>
 </div>
 
 ## 🖥️ 產品預覽
 
 <p align="center">
-  <img src="assets/readme_workspace_tour_20260510.gif" alt="HRS Web 工作台演示" width="720">
+  <img src="../../docs/assets/readme_workspace_tour_20260510.gif" alt="HRS Web 工作台演示" width="720">
 </p>
 
 ## ✨ 功能特性
@@ -43,13 +43,13 @@
 | 能力 | 覆蓋內容 |
 |------|------|
 | AI 決策報告 | 核心結論、評分、趨勢、買賣點位、風險警報、催化因素、操作檢查清單 |
-| 多市場數據聚合 | 覆蓋 A股、港股、美股、日股、韓股、台股和 ETF，支援行情、K 線、技術指標、新聞、公告、基本面與報告輔助數據；不同市場的數據源和能力邊界見 [市場支持邊界](market-support.md) |
+| 多市場數據聚合 | 覆蓋 A股、港股、美股、日股、韓股、台股和 ETF，支援行情、K 線、技術指標、新聞、公告、基本面與報告輔助數據；不同市場的數據源和能力邊界見 [市場支持邊界](../../docs/market-support.md) |
 | Web / 桌面工作台 | 手動分析、任務進度、歷史報告、完整 Markdown、回測、持倉、配置管理、淺色 / 深色主題 |
 | Agent 策略問股 | 多輪追問，支援均線、纏論、波浪、趨勢、熱點、事件、成長、預期等 15 種內建策略，覆蓋 Web/Bot/API |
 | 智能匯入與補全 | 圖片、CSV/Excel、剪貼簿匯入；股票代碼/名稱/拼音/別名補全 |
 | 自動化與推送 | GitHub Actions、Docker、本地定時任務、FastAPI 服務和企業微信/飛書/Telegram/Discord/Slack/郵件推送 |
 
-> 功能細節、欄位契約、基本面 P0 超時語義、交易紀律、數據源優先級、Web/API 行為請看 [完整配置與部署指南](./full-guide.md)。
+> 功能細節、欄位契約、基本面 P0 超時語義、交易紀律、數據源優先級、Web/API 行為請看 [完整配置與部署指南](../../docs/full-guide.md)。
 
 ### 技術棧與數據來源
 
@@ -60,7 +60,7 @@
 | 新聞搜尋 | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC)、[SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_HermesX)、[Tavily](https://tavily.com/)、[Bocha](https://open.bocha.cn/)、[Brave](https://brave.com/search/api/)、[MiniMax](https://platform.minimaxi.com/)、SearXNG |
 | 社交輿情 | [Stock Sentiment API](https://api.adanos.org/docs)（Reddit / X / Polymarket，僅美股，可選） |
 
-> 專案預設內建 AkShare、Baostock、YFinance 等免費行情源，可零配置執行；免費源受上游限流、介面變動和網路波動影響，穩定性不保證。長期定時、批量分析或更穩定行情建議配置 TickFlow、Tushare、Longbridge 等 token 型數據源，適用市場、Actions 映射和 fallback 規則見 [數據源配置](./full-guide.md#数据源配置)。
+> 專案預設內建 AkShare、Baostock、YFinance 等免費行情源，可零配置執行；免費源受上游限流、介面變動和網路波動影響，穩定性不保證。長期定時、批量分析或更穩定行情建議配置 TickFlow、Tushare、Longbridge 等 token 型數據源，適用市場、Actions 映射和 fallback 規則見 [數據源配置](../../docs/full-guide.md#数据源配置)。
 
 ## 🚀 快速開始
 
@@ -78,7 +78,7 @@
 
 **AI 模型配置（至少配置一個）**
 
-預設先選一個模型服務商並填寫 API Key；需要多模型、圖片識別、本地模型或高級路由時，再參考 [LLM 配置指南](./LLM_CONFIG_GUIDE.md)。
+預設先選一個模型服務商並填寫 API Key；需要多模型、圖片識別、本地模型或高級路由時，再參考 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)。
 
 | Secret 名稱 | 說明 | 必填 |
 |-------------|------|:----:|
@@ -102,7 +102,7 @@
 | `SLACK_BOT_TOKEN` + `SLACK_CHANNEL_ID` | Slack Bot |
 | `EMAIL_SENDER` + `EMAIL_PASSWORD` | 郵件推送 |
 
-更多渠道、簽名校驗、分組郵件、Markdown 轉圖片等配置見 [通知渠道詳細配置](./full-guide.md#通知渠道详细配置)。
+更多渠道、簽名校驗、分組郵件、Markdown 轉圖片等配置見 [通知渠道詳細配置](../../docs/full-guide.md#通知渠道详细配置)。
 
 **自選股配置（必填）**
 
@@ -124,7 +124,7 @@
 | `MINIMAX_API_KEYS` | [MiniMax](https://platform.minimaxi.com/)：結構化搜尋結果 | 可選 |
 | `SEARXNG_BASE_URLS` | SearXNG 自建實例：無配額兜底，適合私有部署 | 可選 |
 
-更多搜尋源、社交輿情和降級規則見 [搜尋服務配置](./full-guide.md#搜索服务配置)。
+更多搜尋源、社交輿情和降級規則見 [搜尋服務配置](../../docs/full-guide.md#搜索服务配置)。
 
 **行情數據源配置（可選）**
 
@@ -136,7 +136,7 @@
 | `TUSHARE_TOKEN` | A 股 | 提升歷史行情穩定性 |
 | `LONGBRIDGE_OAUTH_CLIENT_ID` + `LONGBRIDGE_OAUTH_TOKEN_CACHE_B64` | 港股/美股 | 補齊量比、換手率、PE 等欄位 |
 
-> 詳見 [數據源配置](./full-guide.md#数据源配置)。
+> 詳見 [數據源配置](../../docs/full-guide.md#数据源配置)。
 
 #### 3. 啟用 Actions
 
@@ -148,7 +148,7 @@
 
 #### 完成
 
-預設每個工作日 18:00（北京時間）自動執行，也可手動觸發。預設非交易日（含 A/H/US 節假日）不執行；強制運行、交易日檢查、斷點續傳等規則見 [完整指南](./full-guide.md#定时任务配置)。
+預設每個工作日 18:00（北京時間）自動執行，也可手動觸發。預設非交易日（含 A/H/US 節假日）不執行；強制運行、交易日檢查、斷點續傳等規則見 [完整指南](../../docs/full-guide.md#定时任务配置)。
 
 ### 方式二：[客戶端配置教程](https://www.bilibili.com/video/BV11FEb66Eyr/) / 本地運行 / Docker 部署
 
@@ -177,7 +177,7 @@ python main.py --schedule
 python main.py --serve-only
 ```
 
-> Docker 部署、定時任務、雲端伺服器訪問請參考 [完整指南](./full-guide.md)；桌面客戶端打包請參考 [桌面端打包說明](./desktop-package.md)。
+> Docker 部署、定時任務、雲端伺服器訪問請參考 [完整指南](../../docs/full-guide.md)；桌面客戶端打包請參考 [桌面端打包說明](../../docs/desktop-package.md)。
 
 ## 📱 推送效果
 
@@ -230,7 +230,7 @@ python main.py --serve-only
 
 ## ⚙️ 配置說明
 
-完整環境變數、模型渠道、通知渠道、數據源優先級、交易紀律、基本面 P0 語義和部署說明請參考 [完整配置指南](./full-guide.md)。
+完整環境變數、模型渠道、通知渠道、數據源優先級、交易紀律、基本面 P0 語義和部署說明請參考 [完整配置指南](../../docs/full-guide.md)。
 
 ## 🖥️ Web 介面
 
@@ -241,7 +241,7 @@ python main.py --webui
 python main.py --webui-only
 ```
 
-訪問 `http://127.0.0.1:8000` 即可使用。認證、智能匯入、搜尋補全、歷史報告複製、雲端伺服器訪問等細節見 [本地 WebUI 管理介面](./full-guide.md#本地-webui-管理界面)。
+訪問 `http://127.0.0.1:8000` 即可使用。認證、智能匯入、搜尋補全、歷史報告複製、雲端伺服器訪問等細節見 [本地 WebUI 管理介面](../../docs/full-guide.md#本地-webui-管理界面)。
 
 ## 🤖 Agent 策略問股
 
@@ -252,7 +252,7 @@ python main.py --webui-only
 - 支援多輪追問、會話匯出、發送到通知渠道和後台執行
 - 支援自訂策略文件與多 Agent 編排（實驗性）
 
-> Agent 具體參數、`skill` 命名兼容、多 Agent 模式和預算護欄見 [完整指南](./full-guide.md#本地-webui-管理界面) 與 [LLM 配置指南](./LLM_CONFIG_GUIDE.md)。
+> Agent 具體參數、`skill` 命名兼容、多 Agent 模式和預算護欄見 [完整指南](../../docs/full-guide.md#本地-webui-管理界面) 與 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)。
 
 ## 📬 聯繫與合作
 
@@ -264,7 +264,7 @@ python main.py --webui-only
       項目諮詢、部署支援與功能擴展
     </td>
     <td align="center" rowspan="3" valign="middle" width="148">
-      <a href="http://xhslink.com/m/tU520DWCKT" target="_blank"><img src="assets/xiaohongshu_tick.jpg" width="112" alt="小紅書二維碼"></a><br>
+      <a href="http://xhslink.com/m/tU520DWCKT" target="_blank"><img src="../../docs/assets/xiaohongshu_tick.jpg" width="112" alt="小紅書二維碼"></a><br>
       <sub>掃碼關注小紅書</sub>
     </td>
   </tr>
@@ -283,13 +283,13 @@ python main.py --webui-only
 如果您覺得這個專案有用，可以請作者喝杯果汁 :tropical_drink:
 
 <p>
-  <img src="../docs/assets/alipay.jpg" width="120" alt="支付寶收款二維碼" style="display:inline-block;margin-right:20px;">
-  <img src="../docs/assets/wechat_pay.jpg" width="120" alt="微信收款二維碼" style="display:inline-block;">
+  <img src="../../docs/assets/alipay.jpg" width="120" alt="支付寶收款二維碼" style="display:inline-block;margin-right:20px;">
+  <img src="../../docs/assets/wechat_pay.jpg" width="120" alt="微信收款二維碼" style="display:inline-block;">
 </p>
 
 ## 📄 License
 
-[MIT License](../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
+[MIT License](../../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
 如果你在項目中使用或基於本項目進行二次開發，非常歡迎在 README 或文檔中註明來源並附上本倉庫鏈接。
 
