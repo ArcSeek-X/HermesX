@@ -1196,7 +1196,7 @@ function startBackend({ port, envFile, dbPath, logDir, host = null }) {
     });
   } else {
     const pythonPath = resolvePythonPath();
-    const scriptPath = path.join(appRootDev, 'main.py');
+    const scriptPath = path.join(appRootDev, 'python', 'main.py');
     const pythonArgs = ['-X', 'utf8', scriptPath, ...args];
     launchMode = 'development';
     launchCommand = formatCommand(pythonPath, pythonArgs);

@@ -31,8 +31,8 @@ from typing import Any, Dict, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+if str(REPO_ROOT / "python") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "python"))
 
 from src.infrastructure.agent_runtime.codex_app_server_transport import (  # noqa: E402
     MAX_STDERR_BYTES,

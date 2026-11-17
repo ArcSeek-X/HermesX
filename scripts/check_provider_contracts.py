@@ -81,15 +81,18 @@ def shape(node):
 
 
 def audit(root: Path, baseline: str):
+    python_root = root / "python"
     files = subprocess.check_output(
-        ["git", "ls-tree", "-r", "--name-only", baseline, "data_provider"], cwd=root, text=True
+        ["git", "ls-tree", "-r", "--name-only", baseline, "data_provider", "python/data_provider"],
+        cwd=root, text=True,
     ).splitlines()
     files = [p for p in files if p.endswith(".py")]
     records, errors = [], []
     for path in files:
         original = subprocess.check_output(["git", "show", f"{baseline}:{path}"], cwd=root, text=True)
         tree = ast.parse(original)
-        module_name = path[:-3].replace("/", ".").removesuffix(".__init__")
+        package_path = path.removeprefix("python/")
+        module_name = package_path[:-3].replace("/", ".").removesuffix(".__init__")
         retired = module_name in RETIRED_MODULES or module_name in MODULE_DESTINATIONS
         module = None if retired else importlib.import_module(module_name)
         checked = 0
@@ -152,12 +155,13 @@ def audit(root: Path, baseline: str):
                 "symbol_destinations": RETIRED_MODULES.get(module_name, {}),
                 "retired_internal_path": retired,
                 "checked_callables": checked,
-                "retained": (root / path).exists(),
+                "retained": (python_root / package_path).exists(),
             }
         )
     consumers = []
-    python_paths = set(root.glob("*.py"))
-    for base in ("src", "api", "bot", "scripts", "tests", "data_provider", ".github/scripts"):
+    python_paths = set(python_root.glob("*.py"))
+    for base in ("python/src", "python/api", "python/bot", "scripts", "python/tests",
+                 "python/data_provider", ".github/scripts"):
         python_paths.update((root / base).rglob("*.py"))
     for path in sorted(python_paths):
         if any(x in {"node_modules", "__pycache__"} for x in path.parts):
@@ -224,7 +228,7 @@ def main():
     parser.add_argument("--baseline", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(ROOT / "python"))
     report = audit(ROOT, args.baseline)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print(

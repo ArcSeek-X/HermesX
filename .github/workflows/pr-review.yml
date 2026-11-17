@@ -60,10 +60,10 @@ jobs:
               /\.(py|md|ts|tsx)$/.test(filename) ||
               filename === 'README.md' ||
               filename === 'AGENTS.md' ||
-              filename === 'requirements.txt' ||
+              filename === 'python/requirements.txt' ||
               filename === '.github/requirements-ci.txt' ||
-              filename === 'pyproject.toml' ||
-              filename === 'setup.cfg' ||
+              filename === 'python/pyproject.toml' ||
+              filename === 'python/setup.cfg' ||
               filename === '.github/PULL_REQUEST_TEMPLATE.md' ||
               filename === 'docker/Dockerfile' ||
               filename === 'docker-compose.yml' ||

@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PYTHON_ROOT="${ROOT_DIR}/python"
 
 log() {
   echo "$1"
@@ -39,7 +40,7 @@ if ! "${PYTHON_BIN}" -m PyInstaller --version >/dev/null 2>&1; then
 fi
 
 log "Installing backend dependencies..."
-"${PYTHON_BIN}" -m pip install -r "${ROOT_DIR}/requirements.txt"
+"${PYTHON_BIN}" -m pip install -r "${PYTHON_ROOT}/requirements.txt"
 
 log "Checking python-multipart availability..."
 "${PYTHON_BIN}" -c "import multipart, multipart.multipart"
@@ -116,16 +117,16 @@ for module in "${hidden_imports[@]}"; do
   hidden_import_args+=("--hidden-import=${module}")
 done
 
-pushd "${ROOT_DIR}" >/dev/null
+pushd "${PYTHON_ROOT}" >/dev/null
 # --distpath：PyInstaller 最终产物落到 dist-desktop/backend/stock_analysis。
 # --workpath/--specpath：中间产物收纳到 dist-desktop/.work 与 dist-desktop/.specs（隐藏目录，不被 extraResources 取用）。
 # 前端不再烤入包：桌面 frontend 由 build-desktop 从 dist-web 复制到 dist-desktop/frontend，经 Electron extraResources 外置。
 # 注：PyInstaller 6.x 在 --specpath 下会按 spec 目录解析 --add-data 的相对源路径，故此处必须用绝对路径。
-cmd=("${PYTHON_BIN}" -m PyInstaller --name stock_analysis --onedir --noconfirm --noconsole --distpath "dist-desktop/backend" --workpath "dist-desktop/.work" --specpath "dist-desktop/.specs" --add-data "${ROOT_DIR}/strategies:strategies" --collect-data litellm --collect-data tiktoken --collect-data akshare)
+cmd=("${PYTHON_BIN}" -m PyInstaller --name stock_analysis --onedir --noconfirm --noconsole --distpath "${ROOT_DIR}/dist-desktop/backend" --workpath "${ROOT_DIR}/dist-desktop/.work" --specpath "${ROOT_DIR}/dist-desktop/.specs" --add-data "${PYTHON_ROOT}/strategies:strategies" --add-data "${PYTHON_ROOT}/templates:templates" --collect-data litellm --collect-data tiktoken --collect-data akshare)
 cmd+=("--collect-all" "alphasift")
 cmd+=("--collect-all" "futu")
 cmd+=("--collect-submodules" "data_provider")
-cmd+=("${hidden_import_args[@]}" "main.py")
+cmd+=("${hidden_import_args[@]}" "${PYTHON_ROOT}/main.py")
 
 echo "Running: ${cmd[*]}"
 "${cmd[@]}"
@@ -165,17 +166,20 @@ for module in alphasift.dsa_adapter futu orjson data_provider; do
 done
 
 log "Verifying packaged AkShare calendar data..."
-packaged_akshare_calendar="${packaged_root}/_internal/akshare/file_fold/calendar.json"
-if [[ ! -f "${packaged_akshare_calendar}" ]]; then
-  packaged_akshare_calendar="${packaged_root}/akshare/file_fold/calendar.json"
-fi
-if [[ ! -f "${packaged_akshare_calendar}" ]]; then
+calendar_found=false
+for calendar in "${packaged_root}"/{_internal/,}akshare/{data,file_fold}/calendar.json; do
+  if [[ -s "${calendar}" ]]; then
+    calendar_found=true
+    break
+  fi
+done
+if [[ "${calendar_found}" != true ]]; then
   echo "ERROR: packaged AkShare calendar data not found under ${packaged_root}."
   exit 1
 fi
 
 log "Verifying packaged built-in strategies..."
-source_strategy_count="$(find "${ROOT_DIR}/strategies" -maxdepth 1 -type f -name '*.yaml' | wc -l | tr -d '[:space:]')"
+source_strategy_count="$(find "${PYTHON_ROOT}/strategies" -maxdepth 1 -type f -name '*.yaml' | wc -l | tr -d '[:space:]')"
 packaged_strategies="${ROOT_DIR}/dist-desktop/backend/stock_analysis/_internal/strategies"
 if [[ ! -d "${packaged_strategies}" ]]; then
   packaged_strategies="${ROOT_DIR}/dist-desktop/backend/stock_analysis/strategies"

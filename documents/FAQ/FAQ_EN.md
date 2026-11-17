@@ -327,7 +327,7 @@ Work through the following 5 checkpoints in order:
 **Method**:
 ```bash
 # Local run
-python main.py --market-only
+python python/main.py --market-review
 
 # GitHub Actions
 # Select mode: market-only when manually triggering

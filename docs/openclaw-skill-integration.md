@@ -9,7 +9,7 @@
 
 ## 前置条件
 
-1. **HermesX 必须已运行**：执行 `python main.py --serve-only` 或通过 Docker 部署，使 API 长期可用
+1. **HermesX 必须已运行**：执行 `python python/main.py --serve-only` 或通过 Docker 部署，使 API 长期可用
 2. **openclaw 需具备 HTTP 调用能力**：如 `system.run` 执行 curl，或内置 HTTP 工具（如 api-tester 等）
 3. **说明**：GitHub Actions 仅做定时任务，不长期暴露 API，需本地或 Docker 运行 HRS
 
@@ -171,7 +171,7 @@ curl -X POST {HRS_BASE_URL}/api/v1/agent/chat \
 
 | 现象 | 可能原因 | 处理建议 |
 |------|----------|----------|
-| 连接失败 | HRS 未运行、端口错误、防火墙 | 确认 `python main.py --serve-only` 已启动，检查 `HRS_BASE_URL` |
+| 连接失败 | HRS 未运行、端口错误、防火墙 | 确认 `python python/main.py --serve-only` 已启动，检查 `HRS_BASE_URL` |
 | 400 错误 | stock_code 格式错误或缺失 | 检查代码格式（见上文表格），确保请求体包含 `stock_code` |
 | 500 错误 | AI 配置、数据源、网络问题 | 查看 HRS 日志，确认 GEMINI_API_KEY 等已配置 |
 | Agent 400 | Agent 模式未启用 | 在 HRS 的 `.env` 中设置 `AGENT_MODE=true` |

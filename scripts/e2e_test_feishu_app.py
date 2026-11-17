@@ -80,7 +80,7 @@ try:
 except ImportError:
     logger.error(
         "lark-oapi is NOT installed. Standard project setup installs it via:\n"
-        "    pip install -r requirements.txt"
+        "    pip install -r python/requirements.txt"
     )
     sys.exit(1)
 
@@ -113,7 +113,7 @@ if _receive_id:
     logger.info("FEISHU_CHAT_ID=%s, performing live send test...", _receive_id)
 
     # Add project root to path so source imports resolve
-    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _project_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "python")
     if _project_root not in sys.path:
         sys.path.insert(0, _project_root)
 

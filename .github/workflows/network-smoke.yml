@@ -27,14 +27,14 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r python/requirements.txt
           pip install pytest
 
       - name: 🌐 Run pytest network smoke (non-blocking)
         continue-on-error: true
         run: |
           set -o pipefail
-          python -m pytest -m network -q | tee pytest-network.log
+          (cd python && python -m pytest -m network -q) | tee pytest-network.log
 
       - name: 🚀 Run quick smoke (non-blocking)
         continue-on-error: true

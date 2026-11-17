@@ -42,10 +42,10 @@ WEBUI_HOST=0.0.0.0
 
 ```bash
 # 只启动 Web 界面（不自动执行分析）
-python main.py --webui-only
+python python/main.py --webui-only
 
 # 或者：启动 Web 界面（启动时执行一次分析；需每日定时分析请加 --schedule 或设 SCHEDULE_ENABLED=true）
-python main.py --webui
+python python/main.py --webui
 ```
 
 启动成功后，终端会输出类似：
@@ -57,7 +57,7 @@ FastAPI 服务已启动: http://0.0.0.0:8000
 如果你想让服务在退出终端后继续运行，可以用 `nohup`：
 
 ```bash
-nohup python main.py --webui-only > /dev/null 2>&1 &
+nohup python python/main.py --webui-only > /dev/null 2>&1 &
 ```
 
 > 日志文件会由程序自动写入 `logs/` 目录，用 `tail -f logs/stock_analysis_*.log` 查看。
@@ -269,7 +269,7 @@ cd apps/hrs-web
 npm ci
 npm run build
 cd ../..
-python main.py --webui-only
+python python/main.py --webui-only
 ```
 
 ---

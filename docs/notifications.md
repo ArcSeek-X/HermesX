@@ -37,7 +37,7 @@ Discord 长报告发送复用现有分片链路：单条 `content` 运行时不�
 - `WEBHOOK_VERIFY_SSL` 是读取该配置的 webhook-style HTTPS 通知请求共用的证书校验开关。
 - WebPush、Apprise、更细粒度路由、跨进程降噪和真实每日摘要暂不进入运行时实现；相关配置如未来引入，应先更新本文档、`.env.example`、Web 元数据与回归测试。
 - Bark 保持 custom webhook 基线，不新增 `BARK_*` 一等配置。
-- 飞书 App Bot 发送路径复用 `requirements.txt` 中已有的 `lark-oapi>=1.0.0`，不是新增依赖；标准源码安装、Docker、GitHub Actions daily workflow 和桌面构建链路均通过 `pip install -r requirements.txt` 安装。官方依据：[Feishu message create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/message/create)、[lark-oapi PyPI](https://pypi.org/project/lark-oapi/)、[SDK repo](https://github.com/larksuite/oapi-sdk-python)。App Bot 文件上传依赖同一 SDK 的 `im.v1.file.create` API，官方文档：[Feishu file create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/file/create)。
+- 飞书 App Bot 发送路径复用 `python/requirements.txt` 中已有的 `lark-oapi>=1.0.0`，不是新增依赖；标准源码安装、Docker、GitHub Actions daily workflow 和桌面构建链路均通过 `pip install -r python/requirements.txt` 安装。官方依据：[Feishu message create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/message/create)、[lark-oapi PyPI](https://pypi.org/project/lark-oapi/)、[SDK repo](https://github.com/larksuite/oapi-sdk-python)。App Bot 文件上传依赖同一 SDK 的 `im.v1.file.create` API，官方文档：[Feishu file create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/file/create)。
 
 ## 报告渲染与分片
 
@@ -118,7 +118,7 @@ Discord 长报告发送复用现有分片链路：单条 `content` 运行时不�
 ## CLI 诊断
 
 ```bash
-python main.py --check-notify
+python python/main.py --check-notify
 ```
 
 该命令只读配置，不发送通知，不写入 `.env`。它会在配置加载和日志初始化后立即执行，完成后直接退出，不再进入 Web、调度、大盘复盘或默认分析流程。
@@ -292,7 +292,7 @@ Apprise 后续如要引入，应先作为可选依赖评估，而不是默认依
 本地运行优先使用项目根目录 `.env`。复制 `.env.example` 后填写至少一个 minimal key 即可启用对应静态通知渠道；advanced key 只改变认证、安全、格式、路由或降噪行为，不会单独启用渠道。
 
 ```bash
-python main.py --check-notify
+python python/main.py --check-notify
 ```
 
 `--check-notify` 是只读诊断：不发送通知、不写 `.env`、不进入分析流程。配置好 WebUI 后，也可以在系统设置页用单渠道测试发送真实测试消息；该测试只使用页面草稿临时配置，不保存 `.env`。

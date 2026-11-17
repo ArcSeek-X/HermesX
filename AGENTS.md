@@ -7,7 +7,7 @@
 ## 1. 硬规则
 
 - 遵循现有目录边界：
-  - 后端逻辑优先放在 `src/`、`data_provider/`、`api/`、`bot/`
+  - 后端逻辑优先放在 `python/src/`、`python/data_provider/`、`python/api/`、`python/bot/`
   - Web 前端改动在 `apps/hrs-web/`
   - 桌面端改动在 `apps/hrs-desktop/`
   - 部署与流水线改动在 `scripts/`、`.github/workflows/`、`docker/`
@@ -60,24 +60,24 @@ python scripts/check_ai_assets.py
 - 项目定位：股票智能分析系统，覆盖 A 股、港股、美股。
 - 主流程：抓取数据 -> 技术分析/新闻检索 -> LLM 分析 -> 生成报告 -> 通知推送。
 - 关键入口：
-  - `main.py`：分析任务主入口
-  - `server.py`：FastAPI 服务入口
+  - `python/main.py`：分析任务主入口
+  - `python/server.py`：FastAPI 服务入口
   - `apps/hrs-web/`：Web 前端
   - `apps/hrs-desktop/`：Electron 桌面端
   - `.github/workflows/`：CI、发布、每日任务
 - 核心职责（五层目标结构见 `ARCHITECTURE_TARGET.md` §2）：
-  - `src/domain/`：领域模型与厂商无关的纯规则（零 IO）
-  - `src/application/`：用例编排、端口契约与业务服务（按业务域分包）
-  - `src/infrastructure/`：持久化（`persistence/repositories/`）、数据源、生成、通知、报告等适配器
-  - `src/bootstrap/`：装配与入口接线（`configure_*` seam）
-  - `src/config/`：运行时配置（只依赖 domain）
-  - `src/utils/`：遗留共享工具（保留，不计入五层）
-  - `data_provider/`：多数据源适配与 fallback
-  - `api/`：FastAPI API
-  - `bot/`：机器人接入
+  - `python/src/domain/`：领域模型与厂商无关的纯规则（零 IO）
+  - `python/src/application/`：用例编排、端口契约与业务服务（按业务域分包）
+  - `python/src/infrastructure/`：持久化（`persistence/repositories/`）、数据源、生成、通知、报告等适配器
+  - `python/src/bootstrap/`：装配与入口接线（`configure_*` seam）
+  - `python/src/config/`：运行时配置（只依赖 domain）
+  - `python/src/utils/`：遗留共享工具（保留，不计入五层）
+  - `python/data_provider/`：多数据源适配与 fallback
+  - `python/api/`：FastAPI API
+  - `python/bot/`：机器人接入
   - `scripts/`：本地脚本
   - `.github/scripts/`：GitHub 自动化脚本
-  - `tests/`：pytest 测试
+  - `python/tests/`：pytest 测试
   - `docs/`：文档与说明
 
 ## 4. 常用命令
@@ -85,24 +85,24 @@ python scripts/check_ai_assets.py
 ### 运行应用
 
 ```bash
-python main.py
-python main.py --debug
-python main.py --dry-run
-python main.py --stocks 600519,hk00700,AAPL
-python main.py --market-review
-python main.py --schedule
-python main.py --serve
-python main.py --serve-only
-uvicorn server:app --reload --host 0.0.0.0 --port 8000
+python python/main.py
+python python/main.py --debug
+python python/main.py --dry-run
+python python/main.py --stocks 600519,hk00700,AAPL
+python python/main.py --market-review
+python python/main.py --schedule
+python python/main.py --serve
+python python/main.py --serve-only
+uvicorn server:app --app-dir python --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 后端验证
 
 ```bash
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 pip install flake8 pytest
 ./scripts/ci_gate.sh
-python -m pytest -m "not network"
+(cd python && python -m pytest -m "not network")
 python -m py_compile <changed_python_files>
 ```
 
@@ -164,7 +164,7 @@ gh run view <run_id> --log-failed
 ### 按改动面执行
 
 - Python 后端改动：
-  - 适用范围：`main.py`、`src/`、`data_provider/`、`api/`、`bot/`、`tests/`
+  - 适用范围：`python/main.py`、`python/src/`、`python/data_provider/`、`python/api/`、`python/bot/`、`python/tests/`
   - 优先执行：`./scripts/ci_gate.sh`
   - 最低要求：`python -m py_compile <changed_python_files>`
   - 若影响 API、任务编排、报告生成、通知发送、数据源 fallback、认证、调度，交付说明中要写明是否覆盖了对应路径。
@@ -180,7 +180,7 @@ gh run view <run_id> --log-failed
   - 如受平台限制未能完整验证，需要明确说明是否验证了 Web 构建产物、Electron 构建以及 Release 工作流影响。
 
 - API / Schema / 认证联动改动：
-  - 适用范围：`api/**`、`src/domain/**`、`src/application/**`、`src/infrastructure/**`、`src/bootstrap/**`、`src/config/**`、`apps/hrs-web/**`、`apps/hrs-desktop/**`
+  - 适用范围：`python/api/**`、`python/src/domain/**`、`python/src/application/**`、`python/src/infrastructure/**`、`python/src/bootstrap/**`、`python/src/config/**`、`apps/hrs-web/**`、`apps/hrs-desktop/**`
   - 至少覆盖对应后端验证 + 受影响客户端构建验证。
   - 若涉及登录、Cookie、会话、轮询状态、字段增删或枚举变化，必须明确写出兼容性影响。
 
@@ -208,7 +208,7 @@ gh run view <run_id> --log-failed
   - 新配置优先做到“不配置也可运行，配置后增强能力”，避免叠加开关和互斥模式。
 
 - 数据源与 fallback：
-  - 修改 `data_provider/` 时，要关注数据源优先级、失败降级、字段标准化、缓存与超时策略。
+  - 修改 `python/data_provider/` 时，要关注数据源优先级、失败降级、字段标准化、缓存与超时策略。
   - 单一数据源失败不应拖垮整个分析流程，除非需求明确要求 fail-fast。
 
 - API / Web / Desktop 兼容：
@@ -218,7 +218,7 @@ gh run view <run_id> --log-failed
 - 报告 / Prompt / 通知：
   - 修改报告结构、Prompt、提取器、通知模板、机器人链路时，要检查上游输入与下游消费方是否仍兼容。
   - 单一通知渠道失败不应拖垮整个分析主流程，除非需求明确要求 fail-fast。
-  - 修改 `src/application/analysis/image_stock_extractor.py` 中 `EXTRACT_PROMPT` 时，要在 PR 描述中附完整最新 prompt。
+  - 修改 `python/src/application/analysis/image_stock_extractor.py` 中 `EXTRACT_PROMPT` 时，要在 PR 描述中附完整最新 prompt。
 
 - 工作流 / 发布 / 打包：
   - 修改自动 tag、Release、Docker 发布、日常分析或桌面端打包流程时，要评估触发条件、产物路径、权限边界和回滚方式。

@@ -157,24 +157,24 @@
 git clone https://github.com/ArcSeek-X/HermesX.git && cd HermesX
 
 # 安裝依賴
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 
 # 配置環境變數
 cp .env.example .env && vim .env
 
 # 運行分析
-python main.py
+python python/main.py
 ```
 
 常用命令：
 
 ```bash
-python main.py --debug
-python main.py --dry-run
-python main.py --stocks 600519,hk00700,AAPL,2330.TW
-python main.py --market-review
-python main.py --schedule
-python main.py --serve-only
+python python/main.py --debug
+python python/main.py --dry-run
+python python/main.py --stocks 600519,hk00700,AAPL,2330.TW
+python python/main.py --market-review
+python python/main.py --schedule
+python python/main.py --serve-only
 ```
 
 > Docker 部署、定時任務、雲端伺服器訪問請參考 [完整指南](../../docs/full-guide.md)；桌面客戶端打包請參考 [桌面端打包說明](../../docs/desktop-package.md)。
@@ -237,8 +237,8 @@ python main.py --serve-only
 Web 工作台提供配置管理、任務監控、手動分析、歷史報告、完整 Markdown 報告、Agent 問股、回測、持倉管理、智能匯入和淺色 / 深色主題。啟動方式：
 
 ```bash
-python main.py --webui
-python main.py --webui-only
+python python/main.py --webui
+python python/main.py --webui-only
 ```
 
 訪問 `http://127.0.0.1:8000` 即可使用。認證、智能匯入、搜尋補全、歷史報告複製、雲端伺服器訪問等細節見 [本地 WebUI 管理介面](../../docs/full-guide.md#本地-webui-管理界面)。

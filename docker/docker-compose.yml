@@ -25,7 +25,7 @@ x-common: &common
     - ../data:/app/data
     - ../logs:/app/logs
     - ../reports:/app/reports
-    - ../strategies:/app/strategies:ro
+    - ../python/strategies:/app/strategies:ro
     # Longbridge OAuth token cache persistence; entrypoint repairs container-side ownership for hrs user.
     # Create ../longbridge_tokens on the host before copying an authorized token cache into it.
     - ../longbridge_tokens:/home/hrs/.longbridge

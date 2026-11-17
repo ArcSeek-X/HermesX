@@ -52,11 +52,12 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: python/requirements.txt
       
       - name: 安装依赖
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r python/requirements.txt
           python -c "import futu; print('✅ futu SDK import OK')"
       
       - name: 创建必要目录
@@ -514,11 +515,11 @@ jobs:
 
           # 执行分析
           if [ "$MODE" = "market-only" ]; then
-            python main.py --market-review $FORCE_RUN_ARG
+            python python/main.py --market-review $FORCE_RUN_ARG
           elif [ "$MODE" = "stocks-only" ]; then
-            python main.py --no-market-review $FORCE_RUN_ARG
+            python python/main.py --no-market-review $FORCE_RUN_ARG
           else
-            python main.py $FORCE_RUN_ARG
+            python python/main.py $FORCE_RUN_ARG
           fi
       
       - name: 上传分析报告

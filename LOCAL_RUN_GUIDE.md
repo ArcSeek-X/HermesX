@@ -63,7 +63,7 @@ python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 # 安装依赖
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
 ### 2.3 安装前端依赖
@@ -83,7 +83,7 @@ cd ../..
 ### 方式一：仅启动 Web/API 服务（推荐用于日常开发）
 
 ```bash
-python main.py --serve-only
+python python/main.py --serve-only
 ```
 
 - 默认监听 `http://127.0.0.1:8000`
@@ -93,28 +93,28 @@ python main.py --serve-only
 ### 方式二：启动 Web 服务 + 自动执行一次分析
 
 ```bash
-python main.py --serve
+python python/main.py --serve
 ```
 
 ### 方式三：直接用 uvicorn（支持热重载）
 
 ```bash
-uvicorn server:app --reload --host 0.0.0.0 --port 8000
+uvicorn server:app --app-dir python --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 方式四：用 webui.py 快捷启动
 
 ```bash
-python webui.py
-# 等效于 python main.py --webui-only
+python python/webui.py
+# 等效于 python python/main.py --webui-only
 # 可通过环境变量覆盖地址：
-WEBUI_HOST=0.0.0.0 WEBUI_PORT=8000 python webui.py
+WEBUI_HOST=0.0.0.0 WEBUI_PORT=8000 python python/webui.py
 ```
 
 ### 自定义监听地址和端口
 
 ```bash
-python main.py --serve-only --host 0.0.0.0 --port 9000
+python python/main.py --serve-only --host 0.0.0.0 --port 9000
 ```
 
 或通过 `.env` 配置：
@@ -127,12 +127,12 @@ WEBUI_PORT=8000
 ### 仅运行分析（不启动 Web 服务）
 
 ```bash
-python main.py                    # 正常分析
-python main.py --debug            # 调试模式（详细日志）
-python main.py --dry-run          # 仅获取数据，不调用 AI
-python main.py --stocks 600519,300750   # 指定股票
-python main.py --market-review    # 仅运行大盘复盘
-python main.py --schedule         # 定时任务模式
+python python/main.py                    # 正常分析
+python python/main.py --debug            # 调试模式（详细日志）
+python python/main.py --dry-run          # 仅获取数据，不调用 AI
+python python/main.py --stocks 600519,300750   # 指定股票
+python python/main.py --market-review    # 仅运行大盘复盘
+python python/main.py --schedule         # 定时任务模式
 ```
 
 ---
@@ -186,7 +186,7 @@ npm run preview       # 本地预览生产构建
 
 ```bash
 # 确保在项目根目录，且已激活虚拟环境
-python main.py --serve-only
+python python/main.py --serve-only
 ```
 
 **终端 2 — 启动前端开发服务器（端口 5173）：**
@@ -213,9 +213,9 @@ npm run build
 cd ../..
 
 # 第二步：启动后端（会自动检测并托管 static/ 目录下的前端文件）
-python main.py --serve-only
+python python/main.py --serve-only
 # 或
-python main.py --serve
+python python/main.py --serve
 ```
 
 访问 `http://127.0.0.1:8000` 即可看到前端页面。
@@ -301,7 +301,7 @@ Docker 镜像为多阶段构建：
 
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
 ### Q: `npm run build` 报 Node 版本不兼容？
@@ -321,10 +321,10 @@ nvm use 20
 
 ```bash
 # 1. 命令行参数
-python main.py --serve-only --port 9000
+python python/main.py --serve-only --port 9000
 
 # 2. 环境变量
-WEBUI_PORT=9000 python main.py --serve-only
+WEBUI_PORT=9000 python python/main.py --serve-only
 
 # 3. .env 文件
 # WEBUI_PORT=9000

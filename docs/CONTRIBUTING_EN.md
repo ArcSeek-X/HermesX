@@ -29,7 +29,7 @@ source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 
 # Configure environment variables
 cp .env.example .env
@@ -91,7 +91,7 @@ Separately, the repository also has a non-blocking `network-smoke` workflow in `
 
 ```bash
 # Backend gate (recommended)
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 pip install flake8 pytest
 ./scripts/ci_gate.sh
 

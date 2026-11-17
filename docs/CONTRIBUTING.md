@@ -29,7 +29,7 @@ source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
 # 安装依赖
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 
 # 配置环境变量
 cp .env.example .env
@@ -88,7 +88,7 @@ docs: 更新 README 部署说明
 
 ```bash
 # backend gate（推荐）
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 pip install flake8 pytest
 ./scripts/ci_gate.sh
 

@@ -197,7 +197,7 @@ Default schedule: Every weekday at **18:00 (Beijing Time)** automatic execution.
 ### AI Model Configuration
 
 > Full details: [LLM Config Guide](LLM_CONFIG_GUIDE_EN.md) (three-tier config, channels, Vision, Agent, troubleshooting).
-> Compatibility note for Issue #1306: this change only persists and exposes existing market-review output via history paths, and does not alter model name, provider, base URL, LiteLLM cleanup rules, or `.env` runtime migration semantics. Rollback is to revert this change set. Runtime compatibility references are `requirements.txt` (`litellm` constraints), `docs/LLM_CONFIG_GUIDE_EN.md`, and regression tests in `tests/integration/analysis/`, `tests/application/history/read_model/`, `tests/application/market/test_market_review.py`; official references: [LiteLLM OpenAI-compatible](https://docs.litellm.ai/docs/providers/openai_compatible), [OpenAI Chat Completion API](https://platform.openai.com/docs/api-reference/chat).
+> Compatibility note for Issue #1306: this change only persists and exposes existing market-review output via history paths, and does not alter model name, provider, base URL, LiteLLM cleanup rules, or `.env` runtime migration semantics. Rollback is to revert this change set. Runtime compatibility references are `python/requirements.txt` (`litellm` constraints), `docs/LLM_CONFIG_GUIDE_EN.md`, and regression tests in `tests/integration/analysis/`, `tests/application/history/read_model/`, `tests/application/market/test_market_review.py`; official references: [LiteLLM OpenAI-compatible](https://docs.litellm.ai/docs/providers/openai_compatible), [OpenAI Chat Completion API](https://platform.openai.com/docs/api-reference/chat).
 > Phase 3 compatibility note for #1815: this change only narrows JP/KR vs Market Light runtime boundaries. It does not add new provider/model/base URL migration logic, and it does not change `.env` model persistence semantics. `MarketSymbol`, alert market enums, and snapshot `data_quality/limitations` are boundary-contract updates only.
 
 | Variable | Description | Default | Required |
@@ -448,7 +448,7 @@ Inbound bot commands (Feishu / DingTalk callbacks and Stream connections) and ou
 > Compatibility note (Issue #1815): `MARKET_REVIEW_REGION=cn|hk|us|jp|kr|both` only expands the market set used by market review; `jp`/`kr` are for recap scope and do not open JP/KR for Market Light alerts.
 > - Changes in `src/config/settings.py`, `src/config/registry.py`, and `src/application/runtime/system_config_service.py` are configuration-contract updates only, and do not alter runtime provider/model/base URL routing semantics or trigger provider migration/cleanup logic.
 > - Affected config keys are `MARKET_REVIEW_REGION` and `MARKET_REVIEW_COLOR_SCHEME`; existing model/runtime keys (`LITELLM_MODEL`, `AGENT_LITELLM_MODEL`, `LITELLM_FALLBACK_MODELS`, `VISION_MODEL`, `OPENAI_BASE_URL`, etc.) remain unchanged under the existing atomic upsert semantics and are not silently cleared when this scope is changed.
-> - Verifiable evidence summary: official provider / Base URL / model-name sources remain the [LLM Config Guide](LLM_CONFIG_GUIDE_EN.md#official-references-for-provider-presets--base-urls--model-naming), and the locked runtime dependency window remains `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` in `requirements.txt`; this scope adds no migration script or cleanup branch, and save/import still writes only submitted keys. `tests/application/runtime/configuration/::SystemConfigServiceTestCase::test_update_market_review_region_does_not_trigger_runtime_model_cleanup` covers saving `MARKET_REVIEW_REGION` without clearing or rewriting existing `LITELLM_CONFIG`, `LLM_CHANNELS`, `LLM_OPENAI_*`, `LITELLM_MODEL`, `AGENT_LITELLM_MODEL`, `LITELLM_FALLBACK_MODELS`, `VISION_MODEL`, `OPENAI_*`, and related runtime settings.
+> - Verifiable evidence summary: official provider / Base URL / model-name sources remain the [LLM Config Guide](LLM_CONFIG_GUIDE_EN.md#official-references-for-provider-presets--base-urls--model-naming), and the locked runtime dependency window remains `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` in `python/requirements.txt`; this scope adds no migration script or cleanup branch, and save/import still writes only submitted keys. `tests/application/runtime/configuration/::SystemConfigServiceTestCase::test_update_market_review_region_does_not_trigger_runtime_model_cleanup` covers saving `MARKET_REVIEW_REGION` without clearing or rewriting existing `LITELLM_CONFIG`, `LLM_CHANNELS`, `LLM_OPENAI_*`, `LITELLM_MODEL`, `AGENT_LITELLM_MODEL`, `LITELLM_FALLBACK_MODELS`, `VISION_MODEL`, `OPENAI_*`, and related runtime settings.
 > - Rollback is a restore-and-recover path: apply pre-PR `.env` / config backup for the above keys, restore `MARKET_REVIEW_REGION`, and restart the runtime; or revert this PR directly.
 > - CN market review reports now use a post-market workstation layout with market signal, index detail, sector Top tables, news catalysts, next-session plan, and risk sections. The market signal uses a plain-text score such as `66/100 (constructive, risk-on)` instead of block bars so it renders consistently across terminals and notification clients. News catalysts list only headline, source, and link instead of search snippets to reduce mixed-language noise. Missing data sources degrade by omitting or simplifying only the affected block.
 > - Per-stock analysis, realtime quote priority, and sector rankings fallback remain unchanged.
@@ -504,7 +504,7 @@ docker run -d \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/reports:/app/reports" \
   ArcSeek-X/HermesX:latest \
-  python main.py --serve-only --host 0.0.0.0 --port 8000
+  python python/main.py --serve-only --host 0.0.0.0 --port 8000
 
 # Scheduled-task mode
 docker run -d \
@@ -546,7 +546,7 @@ x-common: &common
     - ../data:/app/data
     - ../logs:/app/logs
     - ../reports:/app/reports
-    - ../strategies:/app/strategies:ro
+    - ../python/strategies:/app/strategies:ro
   deploy:
     resources:
       limits:
@@ -625,7 +625,7 @@ docker run -d \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/reports:/app/reports" \
   stock-analysis \
-  python main.py --serve-only --host 0.0.0.0 --port 8000
+  python python/main.py --serve-only --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -636,12 +636,12 @@ docker run -d \
 
 ```bash
 # Python 3.10+ recommended
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 
 # Or use conda
 conda create -n stock python=3.10
 conda activate stock
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
 On Windows PowerShell, if Python or pip still uses the system default code page, enable UTF-8 before the first dependency install or environment check. This keeps terminal output and third-party tooling from failing on non-ASCII text:
@@ -649,34 +649,34 @@ On Windows PowerShell, if Python or pip still uses the system default code page,
 ```powershell
 $env:PYTHONUTF8='1'
 $env:PYTHONIOENCODING='utf-8'
-python -m pip install -r requirements.txt
+python -m pip install -r python/requirements.txt
 python scripts/check_env.py --config
 ```
 
 ### Command Line Arguments
 
 ```bash
-python main.py                        # Full analysis (stocks + market review)
-python main.py --market-review        # Market review only
-python main.py --no-market-review     # Stock analysis only
-python main.py --stocks 600519,300750 # Specify stocks
-python main.py --portfolio futu       # Use real Futu LONG stock holdings (overrides --stocks/STOCK_LIST)
-python main.py --dry-run              # Fetch data only, no AI analysis
-python main.py --no-notify            # Don't send notifications
-python main.py --schedule             # Scheduled task mode
-python main.py --debug                # Debug mode (verbose logging)
-python main.py --workers 5            # Specify concurrency
+python python/main.py                        # Full analysis (stocks + market review)
+python python/main.py --market-review        # Market review only
+python python/main.py --no-market-review     # Stock analysis only
+python python/main.py --stocks 600519,300750 # Specify stocks
+python python/main.py --portfolio futu       # Use real Futu LONG stock holdings (overrides --stocks/STOCK_LIST)
+python python/main.py --dry-run              # Fetch data only, no AI analysis
+python python/main.py --no-notify            # Don't send notifications
+python python/main.py --schedule             # Scheduled task mode
+python python/main.py --debug                # Debug mode (verbose logging)
+python python/main.py --workers 5            # Specify concurrency
 ```
 
 ### Use real Futu holdings as the analysis list
 
-Standard source installs (`pip install -r requirements.txt`), official Docker images, and Windows/macOS Desktop backends already include the pinned `futu-api==10.8.6808`. Install it manually from the [Futu OpenAPI SDK guide](https://openapi.futunn.com/futu-api-doc/en/intro/intro.html) only when using a reduced custom Python environment. After starting and signing in to Futu OpenD, run:
+Standard source installs (`pip install -r python/requirements.txt`), official Docker images, and Windows/macOS Desktop backends already include the pinned `futu-api==10.8.6808`. Install it manually from the [Futu OpenAPI SDK guide](https://openapi.futunn.com/futu-api-doc/en/intro/intro.html) only when using a reduced custom Python environment. After starting and signing in to Futu OpenD, run:
 
 ```bash
 # Only reduced custom environments need the next line
 pip install "futu-api==10.8.6808"
 # Standard installs can run the command directly
-python main.py --portfolio futu
+python python/main.py --portfolio futu
 ```
 
 `--portfolio futu` only reads `REAL` securities accounts whose status is explicitly `ACTIVE`, and refreshes positions with `refresh_cache=True` before each analysis run. Accounts with a missing, `N/A`, unknown, or `DISABLED` status are rejected. Without `FUTU_ACC_ID`, it merges all usable `NORMAL` and `MASTER` securities accounts and deduplicates symbols; when set, only that positive integer account ID is read. Per the [Futu `get_acc_list` account-role contract](https://openapi.futunn.com/futu-api-doc/en/trade/get-acc-list.html), `MASTER` means the master-account role rather than a read-only attribute, and Malaysian `IPO` accounts are not portfolio sources. The integration is read-only because it calls only query APIs.
@@ -715,16 +715,16 @@ Common time reference:
 
 ```bash
 # Start scheduled mode (default 18:00 execution)
-python main.py --schedule
+python python/main.py --schedule
 
 # Or use crontab
 crontab -e
-# Add: 0 18 * * 1-5 cd /path/to/project && python main.py
+# Add: 0 18 * * 1-5 cd /path/to/project && python python/main.py
 ```
 
 > Note: Scheduled mode reloads the saved `STOCK_LIST` before each run. If you also pass `--stocks`, it will not pin future scheduled executions to the startup snapshot; use a normal one-off run when you want to analyze a temporary stock list.
 >
-> When the built-in scheduler is started via `python main.py --schedule` or an equivalent CLI-only mode, saving a new `SCHEDULE_TIME` / `SCHEDULE_TIMES` from the WebUI will rebind the daily jobs on the next scheduler poll without restarting the process. The previous trigger times are removed instead of being kept alongside the new ones. `python main.py --serve --schedule` is owned by the Web/API runtime scheduler, so long-running WebUI/API/Desktop processes start, stop, or rebuild the runtime scheduler after saving `SCHEDULE_ENABLED`, `SCHEDULE_TIME`, or `SCHEDULE_TIMES`.
+> When the built-in scheduler is started via `python python/main.py --schedule` or an equivalent CLI-only mode, saving a new `SCHEDULE_TIME` / `SCHEDULE_TIMES` from the WebUI will rebind the daily jobs on the next scheduler poll without restarting the process. The previous trigger times are removed instead of being kept alongside the new ones. `python python/main.py --serve --schedule` is owned by the Web/API runtime scheduler, so long-running WebUI/API/Desktop processes start, stop, or rebuild the runtime scheduler after saving `SCHEDULE_ENABLED`, `SCHEDULE_TIME`, or `SCHEDULE_TIMES`.
 >
 > The Web/API runtime scheduler run-now endpoint only accepts a request when no analysis is already running; if an analysis is in progress, it returns a busy response instead of reporting a queued run.
 
@@ -963,7 +963,7 @@ FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your_hook_token
    - **IP allowlist enabled**: make sure the outbound IP of your runtime (local / Docker / GitHub Actions each have different IPs) is on the allowlist.
 4. `FEISHU_APP_ID` / `FEISHU_APP_SECRET` are for Feishu app / Stream Bot / cloud document flows only. They do **not** trigger group webhook notifications and must not be used alone instead of `FEISHU_WEBHOOK_URL`.
 5. If `FEISHU_APP_ID` / `FEISHU_APP_SECRET` are configured together with `FEISHU_CHAT_ID`, the Feishu App Bot can push notifications directly to a specified chat or user, no group webhook required. `FEISHU_RECEIVE_ID_TYPE` defaults to `chat_id`; set it to `open_id` for P2P delivery. This uses the Feishu OpenAPI Bot session route, independent of the group webhook path.
-6. The App Bot send path reuses the existing `lark-oapi>=1.0.0` dependency already listed in `requirements.txt`; standard source installs, Docker, the GitHub Actions daily workflow, and desktop builds all install it through `pip install -r requirements.txt`. References: [Feishu message create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/message/create), [lark-oapi PyPI](https://pypi.org/project/lark-oapi/), [SDK repo](https://github.com/larksuite/oapi-sdk-python).
+6. The App Bot send path reuses the existing `lark-oapi>=1.0.0` dependency already listed in `python/requirements.txt`; standard source installs, Docker, the GitHub Actions daily workflow, and desktop builds all install it through `pip install -r python/requirements.txt`. References: [Feishu message create OpenAPI](https://open.feishu.cn/document/server-docs/im-v1/message/create), [lark-oapi PyPI](https://pypi.org/project/lark-oapi/), [SDK repo](https://github.com/larksuite/oapi-sdk-python).
 
 **Common failure causes:**
 - Only `FEISHU_APP_ID` / `FEISHU_APP_SECRET` were set, with neither `FEISHU_WEBHOOK_URL` nor the App Bot active-delivery target `FEISHU_CHAT_ID` configured
@@ -1362,7 +1362,7 @@ LITELLM_FALLBACK_MODELS=anthropic/claude-sonnet-4-6,openai/gpt-5.4-mini
 ### Debug Mode
 
 ```bash
-python main.py --debug
+python python/main.py --debug
 ```
 
 Log file locations:
@@ -1528,8 +1528,8 @@ FastAPI provides RESTful API service for configuration management and triggering
 
 | Command | Description |
 |------|------|
-| `python main.py --serve` | Start API service + run full analysis once |
-| `python main.py --serve-only` | Start API service only, manually trigger analysis |
+| `python python/main.py --serve` | Start API service + run full analysis once |
+| `python python/main.py --serve-only` | Start API service only, manually trigger analysis |
 
 ### Features
 
@@ -1621,7 +1621,7 @@ For this feature, the product behavior is:
 
 > Compatibility audit evidence:
 > - Official references: LiteLLM OpenAI-compatible provider documentation <https://docs.litellm.ai/docs/providers/openai_compatible>, OpenAI Chat API <https://platform.openai.com/docs/api-reference/chat/create>, and DeepSeek API docs <https://api-docs.deepseek.com/>.
-> - Dependency boundary: this repo currently pins `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` (see `requirements.txt`); the compatibility regressions for this path were verified under that dependency window.
+> - Dependency boundary: this repo currently pins `litellm>=1.80.10,!=1.82.7,!=1.82.8,<2.0.0` (see `python/requirements.txt`); the compatibility regressions for this path were verified under that dependency window.
 > - Verifiable tests:
 >   - `tests/integration/generation/test_llm_channel_config.py` (configuration priority and provider/base URL mapping)
 >   - `tests/application/market/test_market_review_runtime.py` (`build_market_review_runtime` shared assembly path)
@@ -1682,7 +1682,7 @@ curl "http://127.0.0.1:8000/api/v1/backtest/results?page=1&limit=20"
 Modify default port or allow LAN access:
 
 ```bash
-python main.py --serve-only --host 0.0.0.0 --port 8888
+python python/main.py --serve-only --host 0.0.0.0 --port 8888
 ```
 
 ### Supported Stock Code Formats

@@ -28,13 +28,13 @@ env/
 .git/
 .github/
 .claude/reviews/
-data/
+/data/
 logs/
 reports/
 *.log
 
 # 忽略测试和文档
-tests/
+**/tests/
 test_*.py
 *_test.py
 docs/

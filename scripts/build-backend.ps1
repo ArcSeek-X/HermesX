@@ -41,9 +41,9 @@ if (-not (Test-PythonCode -Python $pythonBin -Code "import PyInstaller")) {
 }
 
 Write-Host 'Installing backend dependencies...'
-& $pythonBin -m pip install -r requirements.txt
+& $pythonBin -m pip install -r python/requirements.txt
 if ($LASTEXITCODE -ne 0) {
-  throw "pip install -r requirements.txt failed with exit code $LASTEXITCODE."
+  throw "pip install -r python/requirements.txt failed with exit code $LASTEXITCODE."
 }
 
 Write-Host 'Checking python-multipart availability...'
@@ -67,6 +67,7 @@ if (-not (Test-PythonCode -Python $pythonBin -Code "import orjson")) {
 }
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$pythonRoot = Join-Path $repoRoot 'python'
 
 # 桌面端产物统一收纳到 dist-desktop\：backend 为 PyInstaller 最终产物，.work\.specs 为中间产物（隐藏目录）。
 # 仅清理 backend\.work\.specs 三项，不触碰 dist-desktop\frontend（由 build-desktop 脚本生成）。
@@ -142,10 +143,11 @@ $pyInstallerArgs = @(
   # --workpath/--specpath：中间产物收纳到 dist-desktop\.work 与 dist-desktop\.specs（隐藏目录，不被 extraResources 取用）。
   # 前端不再烤入包：桌面 frontend 由 build-desktop 从 dist-web 复制到 dist-desktop\frontend，经 Electron extraResources 外置。
   # 注：PyInstaller 6.x 在 --specpath 下会按 spec 目录解析 --add-data 的相对源路径，故此处必须用绝对路径。
-  '--distpath', 'dist-desktop\backend',
-  '--workpath', 'dist-desktop\.work',
-  '--specpath', 'dist-desktop\.specs',
-  '--add-data', "$repoRoot\strategies;strategies",
+  '--distpath', (Join-Path $repoRoot 'dist-desktop\backend'),
+  '--workpath', (Join-Path $repoRoot 'dist-desktop\.work'),
+  '--specpath', (Join-Path $repoRoot 'dist-desktop\.specs'),
+  '--add-data', "$pythonRoot\strategies;strategies",
+  '--add-data', "$pythonRoot\templates;templates",
   '--collect-data', 'litellm',
   '--collect-data', 'tiktoken',
   '--collect-data', 'akshare',
@@ -154,12 +156,17 @@ $pyInstallerArgs = @(
   '--collect-submodules', 'data_provider'
 )
 $pyInstallerArgs += $hiddenImportArgs
-$pyInstallerArgs += 'main.py'
+$pyInstallerArgs += (Join-Path $pythonRoot 'main.py')
 
 Write-Host "Running: $pythonBin $($pyInstallerArgs -join ' ')"
-& $pythonBin @pyInstallerArgs
-if ($LASTEXITCODE -ne 0) {
-  throw "PyInstaller failed with exit code $LASTEXITCODE."
+Push-Location $pythonRoot
+try {
+  & $pythonBin @pyInstallerArgs
+  if ($LASTEXITCODE -ne 0) {
+    throw "PyInstaller failed with exit code $LASTEXITCODE."
+  }
+} finally {
+  Pop-Location
 }
 
 if (!(Test-Path 'dist-desktop\backend\stock_analysis')) {
@@ -189,16 +196,18 @@ try {
 }
 
 Write-Host 'Verifying packaged AkShare calendar data...'
-$packagedAkshareCalendar = Join-Path 'dist-desktop\backend\stock_analysis' '_internal\akshare\file_fold\calendar.json'
-if (-not (Test-Path $packagedAkshareCalendar)) {
-  $packagedAkshareCalendar = Join-Path 'dist-desktop\backend\stock_analysis' 'akshare\file_fold\calendar.json'
+$runtimeRoot = Join-Path $repoRoot 'dist-desktop\backend\stock_analysis'
+$calendarPaths = foreach ($root in @((Join-Path $runtimeRoot '_internal'), $runtimeRoot)) {
+  foreach ($directory in @('data', 'file_fold')) {
+    Join-Path $root "akshare\$directory\calendar.json"
+  }
 }
-if (-not (Test-Path $packagedAkshareCalendar)) {
+if (-not ($calendarPaths | Where-Object { (Test-Path $_ -PathType Leaf) -and (Get-Item $_).Length -gt 0 })) {
   throw 'Packaged AkShare calendar data not found under dist-desktop\backend\stock_analysis.'
 }
 
 Write-Host 'Verifying packaged built-in strategies...'
-$sourceStrategyCount = @(Get-ChildItem -Path 'strategies' -Filter '*.yaml' -File).Count
+$sourceStrategyCount = @(Get-ChildItem -Path (Join-Path $pythonRoot 'strategies') -Filter '*.yaml' -File).Count
 $packagedStrategies = Join-Path 'dist-desktop\backend\stock_analysis' '_internal\strategies'
 if (-not (Test-Path $packagedStrategies)) {
   $packagedStrategies = Join-Path 'dist-desktop\backend\stock_analysis' 'strategies'

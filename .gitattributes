@@ -24,6 +24,8 @@ docs/assets/**/*.psd binary
 # Shell 脚本（entrypoint.sh、任何 .sh）
 *.sh text eol=lf
 *.bash text eol=lf
+/mvnw text eol=lf
+/mvnw.cmd text eol=crlf
 
 # Dockerfile（包括多阶段或变体）
 Dockerfile text eol=lf

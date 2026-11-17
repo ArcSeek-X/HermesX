@@ -63,7 +63,7 @@ jobs:
       - name: Install backend gate dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r python/requirements.txt
           pip install flake8 pytest
 
       - name: Run backend gate before publish

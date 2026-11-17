@@ -19,7 +19,7 @@
 
 ## 一、当前结构与目标
 
-当前 Python 工程仍从仓库根目录运行，五层结构已经落地。按[整体工程架构](engineering_architecture.md)，目标是将 Python 工程整体迁到 `python/`，保留内部目录、`src` 导入包名和现有 CLI、FastAPI、Bot 入口。下文的示例路径除非注明，均相对 **Python 工程根目录**：例如 `src/application/quote/` 当前在仓库根目录，迁移后对应仓库路径 `python/src/application/quote/`。
+Python 工程位于 `python/`，保留五层结构、`src` 导入包名和 CLI、FastAPI、Bot 入口。下文的示例路径除非注明，均相对 **Python 工程根目录**：例如 `src/application/quote/` 对应仓库路径 `python/src/application/quote/`。从仓库根运行 `python python/main.py`，也可以进入 `python/` 后运行 `python main.py`。
 
 本方案接续原 ADR-001，并以现有代码、[五层实施基准](../framework/refactoring/ARCHITECTURE_TARGET.md#2-依赖规则)和[已决迁移例外](../framework/architecture_migration_adr.md)为依据。原四层视图、早期端点和文件清单见 Git 历史中的 ADR-001（提交 `c711b4bb`）；当前新增文件按下文归位。Python 迁目录不再进行一轮分层重构。
 
@@ -28,7 +28,7 @@
 ## 二、工程目录示例
 
 ```text
-python/                             # 目标工程根；当前这些内容在仓库根目录
+python/                             # Python 工程根
 ├── .python-version
 ├── pyproject.toml / setup.cfg / requirements.txt
 ├── main.py                         # CLI、分析、定时运行和服务模式
@@ -104,7 +104,7 @@ Bootstrap 装配用例与适配器；Config 提供运行配置。
 
 【强制】沿用 [架构检查脚本](../../scripts/check_architecture.py)及现有基线；存量例外不可作为新增反向依赖的先例。端口就近放在用例所属业务包，不设集中 `application/ports/`，也不为每个函数增加一层转发。
 
-当前已知缺口：`src/application/system/system_dict_service.py` 仍直接依赖国家数据源、具体仓储和 `src.storage`，架构检查会报出这三项。它们不属于新增代码的可用模式；后续接入 Java 字典模块时，应按用例端口或功能迁移收口。
+国家字典用例通过应用层的仓储契约和取数函数接收依赖，由 `src/bootstrap/system_dict.py` 注入现有 SQLite 仓储和国家数据源。端点通过 FastAPI 依赖注入使用该用例。
 
 <a id="sec-4"></a>
 
@@ -142,4 +142,4 @@ Bootstrap 装配用例与适配器；Config 提供运行配置。
 
 项目尚未上线，直接更新调用方到目标路径。代码、测试和工具须区分 Git 仓库根、Python 工程根与运行数据位置：仓库工具从 Git 根定位，Python 包及其资源从工程根定位，配置和数据从启动环境定位。搬迁后验证旧数据库可读、设置保存和重启均使用预期配置文件；不为旧源码路径保留转发入口。具体步骤见 [工程架构实施计划的 P1](engineering_architecture_plan.md#sec-3)。
 
-在当前布局，从仓库根目录运行 `python scripts/check_architecture.py --check` 和 `./scripts/ci_gate.sh`。实施迁移时还应验证 CLI、FastAPI、定时分析、Bot、Docker 和 Electron 安装包；涉及数据源时先覆盖超时、回退与字段契约，联网 smoke 与离线验收分别记录。未完成这些验证前，迁移后的路径只作为设计目标。
+从仓库根目录运行 `python scripts/check_architecture.py --check` 和 `./scripts/ci_gate.sh`，默认读取 `python/` 源码和仓库级架构基线。验收还覆盖 CLI、FastAPI、定时分析、Bot、Docker 和 Electron 安装包；涉及数据源时先覆盖超时、回退与字段契约，联网 smoke 与离线验收分别记录。

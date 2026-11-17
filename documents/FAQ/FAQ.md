@@ -352,7 +352,7 @@ OPENAI_MODEL=deepseek-v4-flash
 **方法**：
 ```bash
 # 本地运行
-python main.py --market-only
+python python/main.py --market-review
 
 # GitHub Actions
 # 手动触发时选择 mode: market-only

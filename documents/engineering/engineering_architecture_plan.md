@@ -16,12 +16,13 @@
 - [六、P4：切换网页、桌面与部署入口](#sec-6)
 - [七、P5：按业务能力移交数据](#sec-7)
 - [八、交付与最终验收](#sec-8)
+- [九、本期执行记录](#sec-9)
 
 <a id="sec-1"></a>
 
 ## 一、实施边界与批次总览
 
-实施依据为 [整体工程架构](engineering_architecture.md)、[Java 工程架构](java_engineering_architecture.md) 和 [Python 工程架构](python_engineering_architecture.md)。本文定义施工顺序与验收门槛，各层的编码规则由子方案维护。当前 Java 工程及双后端部署均尚未实施。
+实施依据为 [整体工程架构](engineering_architecture.md)、[Java 工程架构](java_engineering_architecture.md) 和 [Python 工程架构](python_engineering_architecture.md)。本文定义施工顺序与验收门槛，各层的编码规则由子方案维护。Java 业务实现和双后端部署不在本期范围。
 
 【强制】**本期最高优先级是调整仓库目录和工程边界。按 P0 → P1 → P2 骨架的顺序执行，骨架验收后停止。** P2 的 Java 实现以及 P3–P5 仅作为后续规划，等另行安排；本期不接入 Java 服务，不切换现有入口。
 
@@ -158,3 +159,13 @@ HermesX/
 - [ ] 对用户可见的 CLI、API、部署和打包变化更新相关指南及 `documents/CHANGELOG.md`；双语未同步时说明原因。
 
 每批交付记录实际改动、执行命令与结果、尚未覆盖的平台或联网场景，以及回滚位置。缺少阻断验收证据的批次不视为完成。本计划本身不启动迁移。
+
+<a id="sec-9"></a>
+
+## 九、本期执行记录
+
+- **P0 基线**：以 `4cf604dc` 的干净源码为基线，在 macOS ARM64、Python 3.11.15 上收集 5,994 个离线用例（4 个联网用例排除）。离线基线 5,986 通过、8 失败：5 项依赖未纳入版本控制的 `.env.example`，3 项分时测试替身未接受现有的 `fast` 参数。原架构门禁另报国家字典的三条跨层引用。字典改由装配层注入原仓储和数据源，数据库结构、API 和字典行为不变。
+- **P1 路径切换**：从仓库根安装 `python/requirements.txt`、启动 `python/main.py`；从 `python/` 运行 Python 测试。容器内部仍以 `/app` 为运行目录；Electron 开发入口使用 `python/main.py`，安装包继续使用冻结的 Python 后端。定时任务、依赖缓存、路径过滤和打包脚本已切换。拟入库的配置仅为脱敏的 `.env.example`，已有真实配置与 SQLite 数据未随源码移动。
+- **P1 Python 与容器验证**：门禁全部通过，5,996 个离线用例通过、4 个联网用例排除。使用干净源码副本和新虚拟环境安装依赖，从仓库根和 Python 工程根分别启动 API，验证静态资源、已有 SQLite 数据及设置保存后重启可读。Docker 镜像完成构建，容器内首页、健康检查、模板和 SQLite 文件均可用。CLI 的 AAPL dry-run 已执行，外部行情未成功返回，未验证完整联网分析。
+- **P1 客户端验收缺口**：Web 构建通过，ESLint 与基线均报 54 个错误和 7 个警告，本轮 Web 测试有 14 项失败，尚不能判全绿。Electron 单元测试通过 49 项；macOS 冻结后端通过启动、依赖导入、策略和资源检查，完整 DMG 在 Electron 下载时中断；Windows 安装和远端 Actions 尚未验证。
+- **P2 骨架**：根目录 Maven Wrapper 的 `./mvnw verify` 通过，源码目录仅含占位文件。未接入 Java 进程、数据库或应用依赖；后续开发以 Java 子方案和 P2 后置事项为准。

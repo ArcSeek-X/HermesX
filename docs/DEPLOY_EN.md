@@ -119,7 +119,7 @@ source /opt/stock-analyzer/venv/bin/activate
 
 ```bash
 cd /opt/stock-analyzer
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r python/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ### 3. Configure Environment Variables
@@ -133,13 +133,13 @@ vim .env  # Fill in configuration
 
 ```bash
 # Single run
-python main.py
+python python/main.py
 
 # Scheduled task mode (foreground)
-python main.py --schedule
+python python/main.py --schedule
 
 # Background run (using nohup)
-nohup python main.py --schedule > /dev/null 2>&1 &
+nohup python python/main.py --schedule > /dev/null 2>&1 &
 ```
 
 ---
@@ -165,7 +165,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/stock-analyzer
 Environment="PATH=/opt/stock-analyzer/venv/bin"
-ExecStart=/opt/stock-analyzer/venv/bin/python main.py --schedule
+ExecStart=/opt/stock-analyzer/venv/bin/python python/main.py --schedule
 Restart=always
 RestartSec=30
 

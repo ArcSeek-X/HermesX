@@ -11,7 +11,7 @@
 # 前置条件：
 #   - Python 3.11+（用于后端，通过 pyenv 切换 .python-version）
 #   - Node.js v20+（用于前端，通过 nvm 切换）
-#   - 已安装项目依赖（pip install -r requirements.txt && npm ci）
+#   - 已安装项目依赖（pip install -r python/requirements.txt && npm ci）
 #
 # 使用方式：
 #   ./start.sh              # 同时启动前后端
@@ -70,9 +70,9 @@ check_python() {
 
     # 优先尝试 pyenv：加载后切换到项目 .python-version 指定版本
     if load_pyenv; then
-        if [ -f "$SCRIPT_DIR/.python-version" ]; then
+        if [ -f "$SCRIPT_DIR/python/.python-version" ]; then
             local req_version
-            req_version="$(tr -d '[:space:]' < "$SCRIPT_DIR/.python-version")"
+            req_version="$(tr -d '[:space:]' < "$SCRIPT_DIR/python/.python-version")"
             info "使用 pyenv 切换到 $req_version (来自 .python-version)..."
             # 若本地未安装该版本，提示安装（不自动安装，避免耗时/权限问题）
             if ! pyenv versions --bare 2>/dev/null | grep -qx "$req_version"; then
@@ -82,7 +82,7 @@ check_python() {
                     exit 1
                 }
             fi
-            pyenv local "$req_version" || {
+            pyenv shell "$req_version" || {
                 err "pyenv 切换到 $req_version 失败"
                 exit 1
             }
@@ -156,8 +156,8 @@ check_backend_deps() {
         PYTHON_BIN="python3"
     fi
     if [ ! -d ".venv" ] && ! "$PYTHON_BIN" -c "import fastapi" 2>/dev/null; then
-        warn "后端依赖未安装，执行: pip install -r requirements.txt"
-        "$PYTHON_BIN" -m pip install -r requirements.txt
+        warn "后端依赖未安装，执行: pip install -r python/requirements.txt"
+        "$PYTHON_BIN" -m pip install -r python/requirements.txt
     else
         ok "后端依赖已就绪"
     fi
@@ -194,7 +194,7 @@ start_backend() {
     if ! command -v "$PYTHON_BIN" &> /dev/null; then
         PYTHON_BIN="python3"
     fi
-    "$PYTHON_BIN" -m uvicorn server:app --reload --host 0.0.0.0 --port 8000
+    "$PYTHON_BIN" -m uvicorn server:app --app-dir "$SCRIPT_DIR/python" --reload --reload-dir "$SCRIPT_DIR/python" --host 0.0.0.0 --port 8000
 }
 
 # ----------------------------------
@@ -252,7 +252,7 @@ main() {
             if ! command -v "$PYTHON_BIN" &> /dev/null; then
                 PYTHON_BIN="python3"
             fi
-            "$PYTHON_BIN" -m uvicorn server:app --reload --host 0.0.0.0 --port 8000 \
+            "$PYTHON_BIN" -m uvicorn server:app --app-dir "$SCRIPT_DIR/python" --reload --reload-dir "$SCRIPT_DIR/python" --host 0.0.0.0 --port 8000 \
                 > "$SCRIPT_DIR/logs/dev_backend.log" 2>&1 &
             BACKEND_PID=$!
             ok "后端已启动 (PID: $BACKEND_PID)"

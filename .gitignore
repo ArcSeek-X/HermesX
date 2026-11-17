@@ -1,6 +1,7 @@
 # 环境变量文件（包含敏感信息，禁止提交）
 .env
 .env.*
+!/.env.example
 *.env
 *.env.local
 .env.*.local
@@ -104,3 +105,6 @@ docs/specs/
 
 
 
+
+# Maven build output
+/target/

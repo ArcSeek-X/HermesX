@@ -18,7 +18,7 @@
 
 ## 一、范围与依赖方向
 
-【强制】本规范适用于拟接入的根目录 Java 工程。基础包名统一为 `hermesx`，Spring Boot 启动类为 `hermesx.HermesApiApplication`，`hermesx.auth`、`hermesx.system` 和 `hermesx.research` 位于根包下。整体目录、部署与迁移顺序见 [整体工程架构](engineering_architecture.md)。
+【强制】本规范适用于仓库根目录的 Java 工程。当前只有 Maven 骨架；后续实现采用 `hermesx` 基础包和 `hermesx.HermesApiApplication` 启动类，`hermesx.auth`、`hermesx.system` 和 `hermesx.research` 位于根包下。整体目录、部署与迁移顺序见 [整体工程架构](engineering_architecture.md)。
 
 【强制】Java 源码位于 `src/main/java/hermesx/`，先按业务分包，例如 `auth/account`、`system/user`、`research/watchlist`，再在该业务包下按职责划分。测试位于 `src/test/java/hermesx/`，使用被测代码对应的包名。
 

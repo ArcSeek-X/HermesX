@@ -146,7 +146,7 @@
 
 ```bash
 (cd python && python -m pytest tests/application/runtime/test_run_diagnostics_p1.py tests/integration/analysis/::AnalysisApiContractTestCase::test_get_analysis_status_normalizes_completed_queue_result_contract)
-python -m py_compile src/application/runtime/run_diagnostics.py src/application/runtime/task_queue.py src/application/analysis/analysis_service.py src/application/analysis/pipeline.py data_provider/base.py api/v1/schemas/analysis.py api/v1/endpoints/analysis.py
+(cd python && python -m py_compile src/application/runtime/run_diagnostics.py src/application/runtime/task_queue.py src/application/analysis/analysis_service.py src/application/analysis/pipeline.py data_provider/base.py api/v1/schemas/analysis.py api/v1/endpoints/analysis.py)
 ```
 
 ## Phase 2 — 诊断摘要与复制排障信息（原 `run-diagnostics-p2.md`）
@@ -214,7 +214,7 @@ GET /api/v1/history/{record_id}/diagnostics
 
 ```bash
 (cd python && python -m pytest tests/application/runtime/test_run_diagnostics_p2.py tests/application/runtime/test_run_diagnostics_p1.py)
-python -m py_compile src/application/runtime/run_diagnostics.py src/application/history/read_model.py api/v1/endpoints/history.py api/v1/schemas/history.py
+(cd python && python -m py_compile src/application/runtime/run_diagnostics.py src/application/history/read_model.py api/v1/endpoints/history.py api/v1/schemas/history.py)
 ```
 
 ## Phase 3 — 运行流与 Web 展示（原 `run-diagnostics-p3.md`）
@@ -416,7 +416,7 @@ npm test -- --run src/components/report/__tests__/ReportDiagnostics.test.tsx src
 可补充确定性脚本校验：
 
 ```bash
-python -m py_compile api/v1/endpoints/analysis.py api/v1/endpoints/history.py api/v1/schemas/analysis.py api/v1/schemas/history.py src/application/analysis/pipeline.py src/application/runtime/run_diagnostics.py src/storage.py
+(cd python && python -m py_compile api/v1/endpoints/analysis.py api/v1/endpoints/history.py api/v1/schemas/analysis.py api/v1/schemas/history.py src/application/analysis/pipeline.py src/application/runtime/run_diagnostics.py src/storage.py)
 ```
 
 ### 回滚

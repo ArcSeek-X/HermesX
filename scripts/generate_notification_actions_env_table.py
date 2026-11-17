@@ -14,8 +14,8 @@ from typing import Iterable
 import yaml
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+if str(ROOT_DIR / "python") not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR / "python"))
 
 from src.application.alert.notification_diagnostics import (  # noqa: E402
     KEY_SPECS,

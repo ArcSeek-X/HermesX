@@ -22,7 +22,7 @@ import { useSystemCountries } from '../../../hooks/useSystemCountries';
 export const DocsCountryMarketSelectPage: React.FC = () => {
   const { t } = useUiLanguage();
   // 与线上消息日历同一份国家字典（含后端下发的真实 flagUri）
-  const { countryOptions: countryMarketOption } = useSystemCountries();
+  const { countryOptions: countryMarketOption, isFetchingCountries: loading } = useSystemCountries();
 
   // 示例一：单选（默认 multiple=false）
   const [single, setSingle] = useState<string[]>([]);

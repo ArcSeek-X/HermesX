@@ -30,8 +30,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:  # 直接以脚本方式运行时，仓库根不在 sys.path[0]
-    sys.path.insert(0, str(ROOT))
+if str(ROOT / "python") not in sys.path:  # 直接以脚本方式运行时，仓库根不在 sys.path[0]
+    sys.path.insert(0, str(ROOT / "python"))
 ENDPOINTS = ("/api/health", "/api/v1/health", "/api/v1/auth/status")
 IMPORT_REPEATS = 3
 FACTORY_REPEATS = 3
@@ -51,7 +51,7 @@ def measure_import_ms() -> dict:
         start = time.perf_counter()
         proc = subprocess.run(
             [sys.executable, "-c", "import api.app"],
-            cwd=str(ROOT),
+            cwd=str(ROOT / "python"),
             capture_output=True,
             text=True,
         )
@@ -98,7 +98,7 @@ def measure_lifespan_ms() -> dict:
     env["HRS_RUNTIME_SCHEDULER_SUPPRESS_START"] = "true"
     proc = subprocess.run(
         [sys.executable, "-c", _LIFESPAN_SNIPPET],
-        cwd=str(ROOT),
+        cwd=str(ROOT / "python"),
         capture_output=True,
         text=True,
         env=env,

@@ -48,6 +48,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PYTHON_ROOT = REPO_ROOT / "python"
 DEFAULT_BASELINE = Path(__file__).resolve().parent / "architecture_baseline.json"
 BASELINE_VERSION = 1
 
@@ -441,8 +442,8 @@ def _print_report(violations: Counter[tuple[str, str]]) -> None:
 
 
 def _default_baseline_path(root: Path) -> Path:
-    """返回默认基线文件路径：当 root 即仓库根时用 DEFAULT_BASELINE，否则用 root/scripts/architecture_baseline.json。"""
-    if root.resolve() == REPO_ROOT:
+    """默认 Python 工程使用仓库级基线，自定义根可另行指定基线。"""
+    if root.resolve() == PYTHON_ROOT:
         return DEFAULT_BASELINE
     return root / "scripts" / "architecture_baseline.json"
 
@@ -455,7 +456,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="fail on new violations")
     parser.add_argument("--report", action="store_true", help="print current violations")
     parser.add_argument("--write-baseline", action="store_true", help="rewrite the baseline file")
-    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="repository root to scan")
+    parser.add_argument("--root", type=Path, default=PYTHON_ROOT, help="Python project root to scan")
     parser.add_argument("--baseline", type=Path, default=None, help="baseline JSON path")
     args = parser.parse_args(argv)
 
@@ -465,6 +466,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     root: Path = args.root
     baseline_path: Path = args.baseline or _default_baseline_path(root)
+
+    if (args.check or args.write_baseline) and not any(_iter_python_files(root)):
+        print(f"No Python source files found under {root}", file=sys.stderr)
+        return 1
 
     violations, parse_errors = scan(root)
 

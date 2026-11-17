@@ -72,18 +72,19 @@ RUN groupadd -g 1000 hrs && \
     useradd -u 1000 -g hrs -m hrs
 
 # 复制依赖文件
-COPY requirements.txt .
+COPY python/requirements.txt .
 
 # 安装 Python 依赖（用缓存挂载加速 pip 下载）
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 
 # 复制应用代码（按模块分目录 COPY，便于利用层缓存：某模块改动只重建对应层）
-COPY *.py ./
-COPY api/ ./api/
-COPY data_provider/ ./data_provider/
-COPY bot/ ./bot/
-COPY src/ ./src/
-COPY strategies/ ./strategies/
+COPY python/*.py ./
+COPY python/api/ ./api/
+COPY python/data_provider/ ./data_provider/
+COPY python/bot/ ./bot/
+COPY python/src/ ./src/
+COPY python/strategies/ ./strategies/
+COPY python/templates/ ./templates/
 # 从前端构建阶段拷贝静态产物到 /app/dist-web，供后端直接托管
 COPY --from=web-builder /app/dist-web ./dist-web/
 # 拷贝容器启动脚本并放到标准 PATH 下

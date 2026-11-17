@@ -7,7 +7,7 @@ If any instruction in this file conflicts with `AGENTS.md`, follow `AGENTS.md`.
 ## Core Rules
 
 - Respect directory boundaries:
-  - Backend: `src/`, `data_provider/`, `api/`, `bot/`
+  - Backend: `python/src/`, `python/data_provider/`, `python/api/`, `python/bot/`
   - Web: `apps/hrs-web/`
   - Desktop: `apps/hrs-desktop/`
   - Deployment/workflows: `scripts/`, `.github/workflows/`, `docker/`

@@ -157,24 +157,24 @@ By default, the workflow runs every weekday at 18:00 Beijing time and skips non-
 git clone https://github.com/ArcSeek-X/HermesX.git && cd HermesX
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 
 # Configure environment variables
 cp .env.example .env && vim .env
 
 # Run analysis
-python main.py
+python python/main.py
 ```
 
 Common commands:
 
 ```bash
-python main.py --debug
-python main.py --dry-run
-python main.py --stocks 600519,hk00700,AAPL,2330.TW
-python main.py --market-review
-python main.py --schedule
-python main.py --serve-only
+python python/main.py --debug
+python python/main.py --dry-run
+python python/main.py --stocks 600519,hk00700,AAPL,2330.TW
+python python/main.py --market-review
+python python/main.py --schedule
+python python/main.py --serve-only
 ```
 
 > Docker deployment, scheduling, and cloud-server WebUI access are documented in the [Full Guide](../../docs/full-guide_EN.md).
@@ -237,8 +237,8 @@ Full environment variables, model routing, notification channels, data-source pr
 The Web workspace supports settings, task monitoring, manual analysis, history reports, full Markdown reports, Agent strategy chat, backtest, portfolio management, smart import, and light/dark themes.
 
 ```bash
-python main.py --webui
-python main.py --webui-only
+python python/main.py --webui
+python python/main.py --webui-only
 ```
 
 Visit `http://127.0.0.1:8000`. Authentication, smart import, autocomplete, report copying, and cloud-server access are documented in [Local WebUI Management](../../docs/full-guide_EN.md#local-webui-management-interface).

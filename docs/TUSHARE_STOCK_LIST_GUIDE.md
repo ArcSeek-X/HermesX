@@ -130,7 +130,7 @@ print(stock[['name', 'industry', 'list_date']])
 推荐直接使用一键刷新脚本，它会默认在抓取 A 股时使用 `--a-rk`，然后生成并同步自动补全索引：
 
 ```bash
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 python3 scripts/stock_index_catalog/refresh_stock_index.py
 ```
 
