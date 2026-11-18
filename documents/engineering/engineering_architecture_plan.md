@@ -4,7 +4,7 @@
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-11-17
+> 🕒 **更新时间**：2026-11-18
 
 ## 目录
 
@@ -22,7 +22,9 @@
 
 ## 一、实施边界与批次总览
 
-实施依据为 [整体工程架构](engineering_architecture.md)、[Java 工程架构](java_engineering_architecture.md) 和 [Python 工程架构](python_engineering_architecture.md)。本文定义施工顺序与验收门槛，各层的编码规则由子方案维护。Java 业务实现和双后端部署不在本期范围。
+**2026-11-18 范围更新**：原 P2“仅骨架”的初始交付已完成。现按用户新的明确授权，额外实现 system 的 SQLite 用户管理学习案例；不表示 P2 完整认证及 P3–P5 已获执行授权。案例的接口、字段、阶段性凭据归属例外和运行方法见 [用户管理案例](java_user_management_case.md)。
+
+实施依据为 [整体工程架构](engineering_architecture.md)、[Java 工程架构](java_engineering_architecture.md) 和 [Python 工程架构](python_engineering_architecture.md)。本文定义施工顺序与验收门槛，各层的编码规则由子方案维护。Java 业务实现和Java/Python 多服务部署不在本期范围。
 
 【强制】**本期最高优先级是调整仓库目录和工程边界。按 P0 → P1 → P2 骨架的顺序执行，骨架验收后停止。** P2 的 Java 实现以及 P3–P5 仅作为后续规划，等另行安排；本期不接入 Java 服务，不切换现有入口。
 
@@ -37,7 +39,7 @@
 
 【强制】项目尚未上线，按目标目录直接迁移。旧内部路径和开发命令可以调整，相关调用方同批改到新位置；不为旧位置新增兼容脚本、双份实现或过渡开关。仍有真实职责的入口（如承担根目录启动编排的 `start.sh`）保留并更新。修改范围由目标结构和实际调用链决定。
 
-【强制】本期只交付迁移后的 Python 工程和不含 Java 源码的 Java 骨架。一个 Java 应用加一个 Python 服务是后续部署目标；Java 的 `auth`、`system`、`research` 是业务模块，后续也不默认引入独立网关、消息中间件或分析 Worker。
+【强制】本期只交付迁移后的 Python 工程和不含新增 Java 实现的 Java 骨架。三个 Java 服务（`hrs-auth-service`、`hrs-system-service`、`hrs-analysis-service`）加一个 Python 服务是后续部署目标；每个 Java 服务分为 pojo/rest 两个 Maven 子模块，后续也不默认引入独立网关、消息中间件或分析 Worker。
 
 <a id="sec-2"></a>
 
@@ -76,30 +78,34 @@
 
 ## 四、P2：建立 Java 骨架，业务实现后置
 
-**本期只建骨架。** P1 验收后，在仓库根创建最小的 `pom.xml`、Maven Wrapper 文件，以及下列目录。Maven 项目文件只写构建描述；不预接业务依赖、数据库和服务配置。空目录需要纳入版本管理时，可用 `.gitkeep` 保留。
+**本期只建骨架，现已按三服务方案调整。** 根 POM 为 `hermesx-parent`，聚合三个服务；服务 POM 分别聚合 pojo/rest。每个 rest 仅依赖本服务 pojo，暂时构建普通 JAR，不配置启动类、Spring Boot、数据库或认证依赖。使用 JDK 17 编译目标与根 Maven Wrapper。空目录以 `.gitkeep` 保留，`application.yml` 仅含骨架说明注释。
 
 ```text
 HermesX/
-├── pom.xml
-├── mvnw / mvnw.cmd
-├── .mvn/wrapper/
-└── src/
-    ├── main/
-    │   ├── java/hermesx/
-    │   │   ├── auth/
-    │   │   ├── system/
-    │   │   └── research/
-    │   └── resources/
-    └── test/
-        ├── java/hermesx/
-        └── resources/
+├── pom.xml / mvnw / mvnw.cmd / .mvn/wrapper/
+├── hrs-auth-service/              # hermesx.auth
+│   ├── pom.xml
+│   ├── pojo/pom.xml
+│   ├── pojo/src/main/java/hermesx/auth/{base,entity,dto,vo}/
+│   ├── pojo/src/test/{java/hermesx/auth,resources}/
+│   ├── rest/pom.xml
+│   ├── rest/src/main/java/hermesx/auth/
+│   │   ├── controller/
+│   │   ├── service/impl/
+│   │   ├── service/remote/dto/
+│   │   ├── dao/、config/、security/、exception/
+│   │   └── interceptor/、utils/
+│   ├── rest/src/main/resources/{application.yml,mapper/}
+│   └── rest/src/test/{java/hermesx/auth,resources}/
+├── hrs-system-service/            # 同样的 pojo/rest 结构，包名 hermesx.system
+└── hrs-analysis-service/          # 同样的 pojo/rest 结构，包名 hermesx.analysis
 ```
 
-**本期验收与回滚**：根目录 Java 骨架与 `python/` 相互独立，Maven 描述和目录符合子方案；未新增 `.java` 文件，未改变 Python 启动、Web、桌面、Docker 或发布入口。不要求 Java 应用可启动，也不以认证功能作为验收项。骨架可独立移除，P1 的 Python 迁移继续保留。
+**本期验收与回滚**：`./mvnw verify` 验证全部 10 个 Maven 模块；确认只有三个 rest → 本服务 pojo 的代码依赖，无业务运行依赖，无新增 Java 实现。原根源码目录的用户空文件 `test.java` 原样移到 auth/rest 的对应包，保持未跟踪状态。未改 Python、Web、桌面、Docker 和发布入口，不要求 Java 能启动。回滚仅撤回 Java 构建与目录调整并原样恢复用户文件，P1 Python 迁移和本地数据不变。
 
 **后续实施（待另行安排）**：
 
-1. 在既有骨架上配置启动类 `hermesx.HermesApiApplication`、健康检查、运行参数和 Java 构建门禁。实现前记录兼容的 JDK、Spring Boot、持久化方案与桌面运行时选择；新增配置同步更新脱敏的 `.env.example` 与文档。
+1. 在既有骨架上配置各服务启动类 `hermesx.auth.AuthApplication`、`hermesx.system.SystemApplication`、`hermesx.analysis.AnalysisApplication`、健康检查、运行参数和 Java 构建门禁。实现前记录兼容的 JDK、Spring Boot、持久化方案与桌面运行时选择；新增配置同步更新脱敏的 `.env.example` 与文档。
 2. 按 `hermesx.auth` 和 `hermesx.system` 实现账号、登录、退出、会话、最小角色授权和数据范围。先实现分析链路所需的用户管理与权限；完整部门、菜单和字典后台分批补齐。注册角色由服务配置和策略决定；请求不赋予自己权限。
 3. 对照 [用户、角色与菜单授权方案](../authority/backend/user_role.md)，确定账号与后台用户的同一标识、账号状态的唯一写入方、初始化管理员方式、Cookie 兼容策略和停用后的会话撤销。持久层只管理 Java 业务数据。
 
@@ -112,7 +118,7 @@ HermesX/
 ## 五、P3：打通分析任务与报告
 
 1. 定义 Java 到 Python 的内部契约：提交、查询状态和读取报告，以及测试矩阵需要的列表与删除。明确任务 ID、提交幂等键、错误码、超时和进度字段。Python 通过认证后的内部接口复用现有执行逻辑，不复制分析流水线。
-2. 在 `hermesx.research.analysis` 按 `controller/`、`service/`、`dao/`、`client/` 落地。Java 从登录上下文确定当前用户，保存任务归属；Python 保存分析执行状态与报告。Java 的 `PythonAnalysisClient` 处理协议、超时和错误映射；查报告、删报告和获取进度都先由 Java 校验数据范围。
+2. 在 `hrs-analysis-service` 的 `hermesx.analysis` 包内按 `controller/`、`service/impl/`、`dao/`、`service/remote/` 落地，数据类型放该服务的 pojo 模块。Java 从登录上下文确定当前用户，保存任务归属；Python 保存分析执行状态与报告。Java 的 `PythonAnalysisClient` 处理协议、超时和错误映射；查报告、删报告和获取进度都先由 Java 校验数据范围。
 3. 推荐先落下归属记录及待提交状态，再在数据库事务外调用 Python。提交超时后用同一请求标识查询受理结果；只有 Python 能依据稳定的幂等标识识别并返回已有任务时才允许自动重试。若尚不支持安全重放，明确显示待确认并提供对账路径。未归属的旧报告不默认加入所有用户可见范围。
 
 **验收**：用真实 Java 与 Python 测试接口，覆盖「登录 → 提交 → 进度 → 报告」；用户 A 不能枚举、读取、删除或订阅用户 B 的任务。覆盖认证失效、Python 不可用、远端已受理但响应超时、同一请求重放与旧历史归属。区分已持久化报告和进程内进度，记录 Python 重启后的行为。
@@ -125,9 +131,9 @@ HermesX/
 
 - **Web**：在 `apps/hrs-web/src/api/` 收口 Java API 地址、认证和错误处理；保持页面与协议一致。核对登录状态、Cookie、轮询和现有流式端点。尚未迁移的界面能力由 Java 提供明确的兼容调用或暂缓切换；不公开绕过授权的 Python 内部入口。
 - **服务器**：更新 `docker/`，提供 Java 对外入口及 Python 内部地址；确定静态资源托管和服务就绪检查。按部署模式明确调度责任，避免默认同时启动两套定时分析。更新 CI 的 Java、Python、Web 路径过滤及镜像构建。
-- **桌面**：`apps/hrs-desktop/` 复用 Web 构建产物，安装包携带所需 Java 运行时和 Python 后端。在本机启动时配置服务地址、数据目录和内部认证，等待两个后端就绪；验证启动失败、端口占用和退出后的进程清理。服务器连接模式若实现，使用同一对外 API，不启动本地分析进程。
+- **桌面**：`apps/hrs-desktop/` 复用 Web 构建产物，安装包携带所需 Java 运行时和 Python 后端。在本机启动时配置服务地址、数据目录和内部认证，等待三个 Java 服务与一个 Python 服务就绪；验证启动失败、端口占用和退出后的进程清理。服务器连接模式若实现，使用同一对外 API，不启动本地分析进程。
 
-**验收**：Web 执行 `npm ci`、`npm test`、`npm run lint`、`npm run build`；验收 Docker 两后端联动及 Windows、macOS 目标安装包。浏览器与桌面用同样的 API 完成登录、分析、报告链路；涉及界面变化时，在 PR 中提供截图。正式切换前确认核心旧功能、存量数据和退出/升级路径已有验证证据。
+**验收**：Web 执行 `npm ci`、`npm test`、`npm run lint`、`npm run build`；验收 Docker 四服务联动及 Windows、macOS 目标安装包。浏览器与桌面用同样的 API 完成登录、分析、报告链路；涉及界面变化时，在 PR 中提供截图。正式切换前确认核心旧功能、存量数据和退出/升级路径已有验证证据。
 
 **回滚**：各运行形态分别保留上一版部署配置或安装包。切换前标记哪些数据已在新系统写入；回到旧入口时保持单一写入方，先核对是否需要导回切换期间新增数据。
 
@@ -135,7 +141,7 @@ HermesX/
 
 ## 七、P5：按业务能力移交数据
 
-按小批次实现 `system` 的组织、角色、菜单、字典和业务设置，以及 `research` 的最近搜索、自选股分组和研究偏好。可先用最近搜索验证迁移办法，再处理有关联数据和定时任务依赖的自选股。投组台账与计算、预警执行、模型与数据源运行配置、Bot 和通知首期仍在 Python。
+按小批次实现 `system` 的组织、角色、菜单、字典和业务设置，以及 `analysis` 的最近搜索、自选股分组和研究偏好。可先用最近搜索验证迁移办法，再处理有关联数据和定时任务依赖的自选股。投组台账与计算、预警执行、模型与数据源运行配置、Bot 和通知首期仍在 Python。
 
 每个功能执行同一套切换流程：
 
@@ -150,7 +156,7 @@ HermesX/
 
 ## 八、交付与最终验收
 
-**本期收尾条件**：P0 的基线已记录，P1 的 Python 搬迁通过等价验收，P2 骨架已建且没有 Java 源码及运行入口变更。以下其余条目用于长期架构的最终验收，不要求在本期完成。
+**本期收尾条件**：P0 的基线已记录，P1 的 Python 搬迁通过等价验收，P2 骨架已建且没有新增 Java 实现及运行入口变更。以下其余条目用于长期架构的最终验收，不要求在本期完成。
 
 - [ ] Python 目录迁移可独立审查和回退，旧 CLI、API、定时分析、Bot、Docker 及原桌面包行为有验收证据。
 - [ ] Java 的分包、依赖、命名及事务边界符合子方案，跨语言调用有鉴别身份、对象授权和故障测试。
@@ -158,7 +164,7 @@ HermesX/
 - [ ] 每个已迁功能有唯一写入方、可重复核对的数据迁移记录和回滚演练；存量数据和密钥未随源码进入版本管理。
 - [ ] 对用户可见的 CLI、API、部署和打包变化更新相关指南及 `documents/CHANGELOG.md`；双语未同步时说明原因。
 
-每批交付记录实际改动、执行命令与结果、尚未覆盖的平台或联网场景，以及回滚位置。缺少阻断验收证据的批次不视为完成。本计划本身不启动迁移。
+每批交付记录实际改动、执行命令与结果、尚未覆盖的平台或联网场景，以及回滚位置。缺少阻断验收证据的批次不视为完成。各阶段实际完成情况以下方执行记录为准。
 
 <a id="sec-9"></a>
 
@@ -168,4 +174,10 @@ HermesX/
 - **P1 路径切换**：从仓库根安装 `python/requirements.txt`、启动 `python/main.py`；从 `python/` 运行 Python 测试。容器内部仍以 `/app` 为运行目录；Electron 开发入口使用 `python/main.py`，安装包继续使用冻结的 Python 后端。定时任务、依赖缓存、路径过滤和打包脚本已切换。拟入库的配置仅为脱敏的 `.env.example`，已有真实配置与 SQLite 数据未随源码移动。
 - **P1 Python 与容器验证**：门禁全部通过，5,996 个离线用例通过、4 个联网用例排除。使用干净源码副本和新虚拟环境安装依赖，从仓库根和 Python 工程根分别启动 API，验证静态资源、已有 SQLite 数据及设置保存后重启可读。Docker 镜像完成构建，容器内首页、健康检查、模板和 SQLite 文件均可用。CLI 的 AAPL dry-run 已执行，外部行情未成功返回，未验证完整联网分析。
 - **P1 客户端验收缺口**：Web 构建通过，ESLint 与基线均报 54 个错误和 7 个警告，本轮 Web 测试有 14 项失败，尚不能判全绿。Electron 单元测试通过 49 项；macOS 冻结后端通过启动、依赖导入、策略和资源检查，完整 DMG 在 Electron 下载时中断；Windows 安装和远端 Actions 尚未验证。
-- **P2 骨架**：根目录 Maven Wrapper 的 `./mvnw verify` 通过，源码目录仅含占位文件。未接入 Java 进程、数据库或应用依赖；后续开发以 Java 子方案和 P2 后置事项为准。
+- **P2 三服务骨架（2026-11-18）**：根聚合工程下建立 auth、system、analysis 三个服务及各自 pojo/rest，`./mvnw verify` 的 10 个模块全部通过。rest 仅依赖本服务 pojo，未新增 Java 实现、启动类、数据库或应用框架依赖。原用户空文件 `test.java` 原样迁入 auth/rest；包目录用 `.gitkeep` 保留，配置仅含说明注释。已验证 POM 继承、模块依赖、路径、文档锚点与嵌套 target 忽略规则；未进行 Java 运行、Windows Wrapper 或四服务集成验证，因为本期尚无这些运行能力。
+
+- **system 用户管理案例（2026-11-18）**：在 pojo/rest 分层下实现用户 CRUD、SQLite 建表、BCrypt、独立配置管理身份和 CSRF 保护；未接入 auth、Python 或客户端。根 Maven verify 的全部10个模块通过，5组真实SQLite集成场景通过；可执行JAR真实HTTP认证、CSRF、CRUD与重启持久化检查通过。未执行 Windows、远端部署或前端联调。凭据字段暂存 system 的阶段性例外见案例文档。
+
+- **system Mapper 调整（2026-11-18）**：按用户要求，以 MyBatis UserMapper + XML 替换原 JdbcTemplate UserDao；保留 SQLite 表与 HTTP 契约，补充 INSERT RETURNING 回滚验证。`./mvnw clean verify` 全部10个模块及6组集成测试通过，可执行JAR真实HTTP与重启持久化检查通过。
+
+- **用户企业与组织字段（2026-11-18）**：新增 enterprise_id、organization_id，并贯通 DTO/Entity/VO、Mapper XML 和列表精确筛选，字段可空且有值时必须为正整数；提供旧 SQLite 显式升级脚本，不自动修改本机数据，不将归属字段宣称为租户隔离。全部10个Maven模块和9项测试通过，包含旧表保留数据升级；可执行JAR验证新增归属落库、重启读取及原CRUD通过。

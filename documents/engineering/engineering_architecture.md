@@ -4,7 +4,7 @@
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-11-17
+> 🕒 **更新时间**：2026-11-18
 
 ## 目录
 
@@ -19,9 +19,9 @@
 
 ## 一、设计目标与功能归属
 
-目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有 Java 工程骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。双后端部署尚未实施。
+目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有聚合三个 Java 服务的 Maven 工程骨架，各服务分为 pojo 与 rest；system 已有独立 SQLite 用户管理案例，其他服务仍为骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。Java/Python 多服务部署尚未实施。
 
-双后端阶段的部署目标是 **一个 Java 业务 API 和一个 Python 分析服务**。Java 的 `auth`、`system`、`research` 是同一个 Spring Boot 应用中的业务模块，共用根目录的 `pom.xml` 和一个启动类。后续只有在独立部署、扩容或复用需求明确时，才考虑拆分。
+后续部署目标是 **三个 Java 服务和一个 Python 分析服务**。`hrs-auth-service`、`hrs-system-service`、`hrs-analysis-service` 各自独立运行，每个服务包含 pojo 数据模块和 rest 运行模块；根 POM 统一聚合构建。system 已提供独立的用户 CRUD 与配置管理身份保护；完整服务部署与 auth 认证接入另行安排。
 
 | 子方案 | 维护范围 |
 | --- | --- |
@@ -30,12 +30,12 @@
 
 | 模块或服务 | 负责内容 |
 | --- | --- |
-| Java · `auth` | 注册、登录、退出、凭据、账号启停和会话撤销。 |
-| Java · `system` | 用户后台管理、组织部门、角色权限、数据范围、菜单、数据字典和业务设置。 |
-| Java · `research` | 自选股、分组、最近搜索、研究偏好、分析任务归属和访问授权。 |
-| Python · `hrs-analysis` | 行情、指标、新闻情报、个股分析、大盘复盘、回测、选股、决策信号、报告、Agent，以及模型和数据源的运行配置。投组台账与计算、预警执行、定时任务、机器人和通知首期继续复用现有 Python 实现。 |
+| Java · `hrs-auth-service` | 注册、登录、退出、凭据、账号启停和会话撤销。 |
+| Java · `hrs-system-service` | 用户后台管理、组织部门、角色权限、数据范围、菜单、数据字典和业务设置。 |
+| Java · `hrs-analysis-service` | 自选股、分组、最近搜索、研究偏好、分析任务归属和访问授权。 |
+| Python · `python/` | 行情、指标、新闻情报、个股分析、大盘复盘、回测、选股、决策信号、报告、Agent，以及模型和数据源的运行配置。投组台账与计算、预警执行、定时任务、机器人和通知首期继续复用现有 Python 实现。 |
 
-【强制】网页与桌面共用同一套 Java 业务 API 和 Python 分析接口。网页版由服务器运行两个后端；桌面单机版由 Electron 管理本机两个后端的启动、就绪和退出。浏览器与 Electron 都访问 Java，Java 按需访问 Python。单机与服务器各自保存数据；需要共享账号和数据时，桌面需连接同一服务器。
+【强制】网页与桌面共用同一套 Java 业务 API 和 Python 分析接口。后续网页版由服务器运行三个 Java 服务和一个 Python 服务；桌面单机版需统一管理本机这四个服务的启动、就绪和退出，具体编排留待接入阶段验证。当前 Web 与桌面仍运行现有 Python 链路；后续浏览器与 Electron 经 Java 业务接口访问，Java 按需调用 Python。单机与服务器各自保存数据；需要共享账号和数据时，桌面需连接同一服务器。
 
 <a id="sec-2"></a>
 
@@ -46,34 +46,18 @@ HermesX/
 ├── pom.xml                        # Java 构建入口
 ├── mvnw / mvnw.cmd
 ├── .mvn/wrapper/
-├── src/
-│   ├── main/
-│   │   ├── java/hermesx/
-│   │   │   ├── HermesApiApplication.java
-│   │   │   ├── config/            # 应用与客户端配置
-│   │   │   ├── web/               # 全局 HTTP 错误处理
-│   │   │   ├── auth/
-│   │   │   │   ├── account/
-│   │   │   │   ├── session/
-│   │   │   │   └── security/
-│   │   │   ├── system/
-│   │   │   │   ├── user/
-│   │   │   │   ├── organization/
-│   │   │   │   ├── permission/
-│   │   │   │   ├── menu/
-│   │   │   │   ├── dictionary/
-│   │   │   │   └── settings/
-│   │   │   └── research/
-│   │   │       ├── watchlist/
-│   │   │       ├── recentsearch/
-│   │   │       ├── preferences/
-│   │   │       └── analysis/
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── db/migration/       # 如采用 Flyway
-│   └── test/
-│       ├── java/hermesx/           # 与被测代码包名对应
-│       └── resources/
+├── hrs-auth-service/              # hermesx.auth，认证服务
+│   ├── pom.xml                    # 聚合 pojo 与 rest
+│   ├── pojo/                      # pom.xml、src/main/java/hermesx/auth/{base,entity,dto,vo}
+│   └── rest/                      # pom.xml、src/{main,test}，控制器、服务、DAO、远程调用
+├── hrs-system-service/            # hermesx.system，系统管理服务
+│   ├── pom.xml
+│   ├── pojo/
+│   └── rest/
+├── hrs-analysis-service/          # hermesx.analysis，股票研究业务服务
+│   ├── pom.xml
+│   ├── pojo/
+│   └── rest/
 ├── python/
 │   ├── .python-version / pyproject.toml / setup.cfg / requirements.txt
 │   ├── main.py / server.py / webui.py
@@ -109,33 +93,35 @@ HermesX/
 └── README.md / LICENSE
 ```
 
-- 【强制】基础包名为 `hermesx`，启动类为 `hermesx.HermesApiApplication`。业务模块使用 `hermesx.auth`、`hermesx.system`、`hermesx.research`，测试包与源码对应。
-- 【强制】包名只组织代码。构建产物由 Maven 的构建配置命名，例如 Java 后端可使用 `hrs-api` 作为 `artifactId`，产物为 `target/hrs-api-<version>.jar`。
-- 【强制】模块按各自工程目录构建。根目录的 `src/` 最终只放 Java 源码和资源，现有 Python `src/` 随 Python 工程迁入 `python/src/`。本地数据库、实际环境配置、日志、报告和构建产物不纳入源码版本管理。
+- 【强制】三个服务的基础包分别是 `hermesx.auth`、`hermesx.system`、`hermesx.analysis`，源码位于各自 pojo/rest 的 `src/main/java/`，测试包对应源码。后续启动类分别为 `AuthApplication`、`SystemApplication`、`AnalysisApplication`，当前未实现。
+- 【强制】包名只组织代码，构建产物由 Maven artifactId 决定。例如 auth 的两个产物为 `hrs-auth-service-pojo-<version>.jar` 与 `hrs-auth-service-rest-<version>.jar`，各自在对应子模块的 `target/` 内。auth/analysis 的 rest 仍是普通骨架 JAR；system/rest 已构建为 Spring Boot 可执行 JAR。
+- 【强制】根 POM 仅聚合构建，根目录不再保留 Java `src/`；Python 位于 `python/`。配置、数据库、日志、报告与构建产物不作为源码入库。
 
 <a id="sec-3"></a>
 
 ## 三、Java 分层与文件命名
 
-【强制】先按业务分包，再按职责分层。调用方向为 `Controller → Service → DAO`，远程访问从 `Service → Client` 发起。跨 Java 模块调用对方公开的服务方法，不访问其内部 DAO，不产生循环依赖。
+【强制】每个服务采用按层平铺结构，层内按业务文件名分类，不再嵌套 auth/system/research 业务包。调用方向为 `Controller → Service 接口 → ServiceImpl → DAO`；跨服务由 ServiceImpl 调用 `service/remote/` 中的 Client，不访问对方实现或数据库。
 
-| 目录 | 文件示例 | 职责 |
+| 所属模块和目录 | 文件示例 | 职责 |
 | --- | --- | --- |
-| `controller/` | `AnalysisController.java` | 接收请求、校验格式、从认证上下文取得操作者，调用 Service 并组装响应。 |
-| `service/` | `AnalysisService.java` | 执行业务规则、权限和数据范围检查，协调 DAO 与 Client，定义本地事务边界。 |
-| `dao/` | `AnalysisTaskOwnershipDao.java` | 查询和写入本模块管理的数据。使用 MyBatis 时可按需采用 `dao/mapper/XxxMapper.java`，无需添加纯转发 DAO。 |
-| `client/` | `PythonAnalysisClient.java` | 处理远程协议、认证、超时和错误转换。远程请求与响应类型放在 `client/dto/`。 |
-| `dto/` | `CreateWatchlistRequest.java`、`WatchlistResponse.java` | 对外请求和响应；数据库实体放 `dao/entity/`，不直接暴露给前端。 |
-| `domain/` | `StockSymbol.java`、`WatchlistRules.java` | 按需存放业务模型、值对象和纯规则。 |
+| pojo · `base/`、`entity/` | `BaseEntity.java`、`WatchlistEntity.java` | 必要基础类型及本服务持久化数据结构 |
+| pojo · `dto/`、`vo/` | `CreateWatchlistDTO.java`、`WatchlistVO.java` | 业务输入与前端视图输出，实体不直接暴露 |
+| rest · `controller/` | `AnalysisController.java` | 接收请求、校验格式、取得可信身份并调用 Service |
+| rest · `service/`、`service/impl/` | `IAnalysisService.java`、`AnalysisServiceImpl.java` | 业务契约及规则、权限、数据范围和本地事务实现 |
+| rest · `dao/` | `AnalysisTaskOwnershipMapper.java` | 本服务数据访问，Mapper 为采用 MyBatis 时的命名 |
+| rest · `service/remote/` | `PythonAnalysisClient.java` | 远程协议、认证、超时和错误转换，远程载荷在 `remote/dto/` |
 
-【强制】包名小写，Java 类型名用大驼峰，文件名与公开顶层类型名一致。按职责建立目录，业务没有对应职责就不建空目录。详细命名、对象转换、依赖规则和审查清单由 [Java 工程架构](java_engineering_architecture.md) 维护。
+【强制】包名小写，类型名大驼峰且与文件名一致。完整目录、逐层职责和命名示例由 [Java 工程架构](java_engineering_architecture.md) 维护。system 用户管理的实现例外和教学说明见 [用户管理案例](java_user_management_case.md)；其余未授权功能仅保留骨架。
 
 <a id="sec-4"></a>
 
 ## 四、Java 与 Python 的数据和接口边界
 
-- 【强制】`auth/account` 与 `system/user` 使用同一个用户身份。账号状态由 `auth` 单独维护；管理员在 `system/user` 发起停用，由业务服务授权后调用 `auth` 停用账号和撤销会话。角色、菜单和数据范围按[后端授权方案](../authority/backend/user_role.md)细化。
-- 【强制】Java 管任务与用户的归属，Python 管执行状态与报告。以查看报告为例：`AnalysisController` 获取当前用户，`AnalysisService` 通过 `AnalysisTaskOwnershipDao` 校验归属及数据范围，再经 `PythonAnalysisClient` 读取报告。
+当前独立 system 用户 CRUD 为学习案例，暂沿用参考表的账号、密码哈希和状态字段；不提供表内用户登录。正式接入 auth 前必须按下述目标移交凭据和状态职责，不能把当前例外扩展为跨服务双写。
+
+- 【强制】`hrs-auth-service` 与 `hrs-system-service` 使用同一个用户身份。账号状态由 `auth` 单独维护；管理员在 system 服务发起停用，由业务服务授权后调用 `auth` 停用账号和撤销会话。角色、菜单和数据范围按[后端授权方案](../authority/backend/user_role.md)细化。
+- 【强制】Java 管任务与用户的归属，Python 管执行状态与报告。以查看报告为例：`AnalysisController` 获取当前用户，`AnalysisServiceImpl` 通过 `AnalysisTaskOwnershipMapper` 校验归属及数据范围，再经 `PythonAnalysisClient` 读取报告。
 - 【强制】跨 Java 与 Python 的业务调用走已认证的内部接口。即使共用数据库实例，也不得跨服务读写对方管理的表。业务设置归 Java，模型和数据源凭据、运行参数及诊断归 Python。
 - 【强制】客户端地址、凭据和超时均来自运行配置；区分远端业务错误、超时和不可用。远程调用不占用 Java 数据库事务。提交任务等写操作必须定义幂等与超时确认方式，再开启自动重试；详情见 [Java 的远程调用规范](java_engineering_architecture.md#sec-3)。
 
@@ -145,13 +131,13 @@ HermesX/
 
 各批次的文件范围、验证命令和回滚门槛见 [工程架构实施计划](engineering_architecture_plan.md)。
 
-**本期范围**：先完成 P0 基线和 P1 Python 目录迁移，再建立 P2 的根目录 Java 工程骨架。Java 源码、登录和分析接入及双后端部署留待另行安排。下列顺序描述长期演进目标。
+**本期范围**：先完成 P0 基线和 P1 Python 目录迁移，再建立 P2 的三个 Java 服务工程骨架。Java 源码、登录和分析接入及Java/Python 多服务部署留待另行安排。下列顺序描述长期演进目标。
 
 **项目尚未上线，直接按目标结构调整。** 旧源码位置、内部路径或开发命令需要变化时，同批更新现有调用方、脚本、CI 和文档；不为保留旧路径新增转发脚本、重复目录或可切换的两套布局。P1 保留原分析行为和现有功能，已有本地配置和数据仍需保护。
 
 1. **迁移 Python 路径。** 保留包内布局和现有行为，更新根启动脚本、CI、Docker、每日任务、桌面打包、静态资源和策略模板路径。验收现有 CLI、服务、定时任务和桌面版仍能运行；这一批可独立回退。
-2. **接入根目录 Java 工程。** 先打通「登录 → 提交分析 → 查询进度 → 查看报告」。用两个用户验证列表、读取和删除权限，确认旧报告来源与可见范围，并验收超时重试不会重复创建任务。
-3. **交付网页和桌面共用链路。** 验收网页版访问服务器 Java、桌面安装包启动和关闭本机 Java 与 Python，两端使用同一业务 API。随后逐项迁入业务 CRUD；每迁一项，只保留明确的数据写入方，并在移除旧入口前核对 CLI、定时任务与机器人依赖。
+2. **接入三个 Java 服务。** 先打通「登录 → 提交分析 → 查询进度 → 查看报告」。用两个用户验证列表、读取和删除权限，确认旧报告来源与可见范围，并验收超时重试不会重复创建任务。
+3. **交付网页和桌面共用链路。** 验收网页版访问服务器 Java、桌面安装包启动和关闭本机三个 Java 服务与 Python，两端使用同一业务 API。随后逐项迁入业务 CRUD；每迁一项，只保留明确的数据写入方，并在移除旧入口前核对 CLI、定时任务与机器人依赖。
 
 <a id="sec-6"></a>
 

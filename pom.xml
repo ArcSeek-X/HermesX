@@ -4,10 +4,29 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>hermesx</groupId>
-    <artifactId>hrs-api</artifactId>
+    <artifactId>hermesx-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <name>HermesX Java API</name>
+    <packaging>pom</packaging>
+    <name>HermesX Java Services</name>
+    <modules>
+        <module>hrs-auth-service</module>
+        <module>hrs-system-service</module>
+        <module>hrs-analysis-service</module>
+    </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.14.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>

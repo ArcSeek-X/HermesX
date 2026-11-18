@@ -1,0 +1,40 @@
+package hermesx.system.controller;
+
+import hermesx.system.base.PageVO;
+import hermesx.system.dto.*;
+import hermesx.system.vo.UserVO;
+import hermesx.system.service.IUserService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.web.csrf.CsrfToken;
+
+/** HTTP 层：只处理输入输出，所有业务都交给 Service。 */
+@RestController
+@RequestMapping("/api/system/users")
+public class UserController {
+    private final IUserService service;
+    public UserController(IUserService service) { this.service = service; }
+    @GetMapping("/csrf") public CsrfToken csrf(CsrfToken token) { return token; }
+    @PostMapping
+    public ResponseEntity<UserVO> create(@Valid @RequestBody CreateUserDTO data) {
+        UserVO user = service.create(data);
+        return ResponseEntity.created(java.net.URI.create("/api/system/users/" + user.id())).body(user);
+    }
+    @GetMapping("/{id}") public UserVO get(@PathVariable("id") @Positive long id) { return service.get(id); }
+    @GetMapping public PageVO<UserVO> list(
+            @RequestParam(value="keyword", required=false) @Size(max=128) String keyword,
+            @RequestParam(value="status", required=false) @Min(0) @Max(1) Integer status,
+            @RequestParam(value="deptId", required=false) @Positive Long deptId,
+            @RequestParam(value="enterpriseId", required=false) @Positive Long enterpriseId,
+            @RequestParam(value="organizationId", required=false) @Positive Long organizationId,
+            @RequestParam(value="page", defaultValue="1") @Min(1) int page,
+            @RequestParam(value="pageSize", defaultValue="20") @Min(1) @Max(100) int pageSize) {
+        return service.list(keyword, status, deptId, enterpriseId, organizationId, page, pageSize);
+    }
+    @PutMapping("/{id}") public UserVO update(@PathVariable("id") @Positive long id,
+            @Valid @RequestBody UpdateUserDTO data) { return service.update(id, data); }
+    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable("id") @Positive long id) { service.delete(id); }
+}

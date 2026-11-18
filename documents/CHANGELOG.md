@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 Java system 用户管理服务端案例，使用 MyBatis Mapper/XML 与 SQLite 实现增删改查、分页筛选、企业/组织归属字段和 delete_flag 逻辑删除，包含 BCrypt 密码哈希、管理接口认证及 CSRF 保护。
+- [chore] 将 Java 单工程骨架调整为 auth、system、analysis 三个服务，各含 pojo/rest 模块，统一 Maven 聚合构建；仅 system 接入独立运行，现有 Python、Web 与桌面入口不变。
+- [测试] 增加真实 SQLite 用户接口、事务回滚及旧表升级测试，提供保留旧数据和删除状态的显式升级脚本。
+- [文档] 同步整体和 Java 架构方案、实施记录及用户管理教学案例，说明各层职责、文件命名、接口调用和阶段性认证边界。
+
 - [文档] 将 #1391 运行诊断 Phase 0/1/2/3 四份阶段文档合并为 `docs/run-diagnostics.md`，保留各阶段原文与章节边界，并删除原四份文件；历史台账与更新日志中的旧文件名作为历史记录不再改写。
 
 - [文档] 将部署、LLM 配置与桌面打包专题文档归档到 `documents/` 对应目录，并同步修正全仓引用链接、配置帮助链接与路径断言测试；历史更新日志和迁移台账中的旧路径作为记录保留，空的 `docs/architecture/` 目录一并删除。

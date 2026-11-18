@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace 是 Mapper 的完整包名；每条 SQL 的 id 必须与 Java 方法名一致。 -->
+<mapper namespace="hermesx.system.dao.UserMapper">
+    <!-- UserEntity 是不可变 record，没有 setter；按构造参数顺序明确映射列与类型。 -->
+    <resultMap id="userEntity" type="hermesx.system.entity.UserEntity">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="username" javaType="java.lang.String"/>
+            <arg column="password" javaType="java.lang.String"/>
+            <arg column="nickname" javaType="java.lang.String"/>
+            <arg column="phone" javaType="java.lang.String"/>
+            <arg column="email" javaType="java.lang.String"/>
+            <arg column="dept_id" javaType="java.lang.Long"/>
+            <arg column="enterprise_id" javaType="java.lang.Long"/>
+            <arg column="organization_id" javaType="java.lang.Long"/>
+            <arg column="status" javaType="_int"/>
+            <arg column="last_login_time" javaType="java.lang.String"/>
+            <arg column="delete_flag" javaType="_int"/>
+            <arg column="create_by" javaType="java.lang.String"/>
+            <arg column="update_by" javaType="java.lang.String"/>
+            <arg column="create_time" javaType="java.lang.String"/>
+            <arg column="update_time" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="columns">
+        id, username, password, nickname, phone, email, dept_id, enterprise_id, organization_id, status,
+        last_login_time, delete_flag, create_by, update_by, create_time, update_time
+    </sql>
+    <!-- 列表与总数共用筛选条件，防止页数据与 total 的语义不一致。 -->
+    <sql id="filters">
+        <where>
+            delete_flag = 0
+            <if test="keyword != null">
+                AND (instr(username, #{keyword}) &gt; 0 OR instr(nickname, #{keyword}) &gt; 0)
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="deptId != null">AND dept_id = #{deptId}</if>
+            <if test="enterpriseId != null">AND enterprise_id = #{enterpriseId}</if>
+            <if test="organizationId != null">AND organization_id = #{organizationId}</if>
+        </where>
+    </sql>
+    <select id="find" resultMap="userEntity">
+        SELECT <include refid="columns"/> FROM hrs_system_user WHERE id = #{id} AND delete_flag = 0
+    </select>
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM hrs_system_user <include refid="filters"/>
+    </select>
+    <select id="list" resultMap="userEntity">
+        SELECT <include refid="columns"/> FROM hrs_system_user <include refid="filters"/>
+        ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- SQLite INSERT RETURNING 返回结果集，所以使用 select 标签。
+         affectData 声明它实际修改数据，flushCache 清理查询缓存，useCache 禁止缓存写操作结果。 -->
+    <select id="insert" resultType="long" affectData="true" flushCache="true" useCache="false">
+        INSERT INTO hrs_system_user (username,password,nickname,phone,email,dept_id,enterprise_id,organization_id,status,create_by,update_by)
+        VALUES (#{username},#{passwordHash},#{nickname},#{phone,jdbcType=VARCHAR},
+            #{email,jdbcType=VARCHAR},#{deptId,jdbcType=BIGINT},#{enterpriseId,jdbcType=BIGINT},
+            #{organizationId,jdbcType=BIGINT},#{status},#{operator},#{operator})
+        RETURNING id
+    </select>
+    <update id="update">
+        UPDATE hrs_system_user
+        SET nickname=#{data.nickname}, phone=#{data.phone,jdbcType=VARCHAR},
+            email=#{data.email,jdbcType=VARCHAR}, dept_id=#{data.deptId,jdbcType=BIGINT},
+            enterprise_id=#{data.enterpriseId,jdbcType=BIGINT}, organization_id=#{data.organizationId,jdbcType=BIGINT},
+            status=#{data.status}, update_by=#{operator}, update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+    <!-- 逻辑删除保留原行；Mapper 的正常查询均过滤 delete_flag。 -->
+    <update id="softDelete">
+        UPDATE hrs_system_user SET delete_flag=1,update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+</mapper>
