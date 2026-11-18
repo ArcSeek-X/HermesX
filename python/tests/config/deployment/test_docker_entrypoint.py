@@ -79,8 +79,8 @@ def test_docker_compose_default_memory_recommendation_is_not_512m() -> None:
 
 def test_docker_memory_guides_describe_resource_profiles() -> None:
     doc_paths = (
-        "docs/DEPLOY.md",
-        "docs/DEPLOY_EN.md",
+        "documents/deployment/DEPLOY.md",
+        "documents/deployment/DEPLOY_EN.md",
         "docs/full-guide.md",
         "docs/full-guide_EN.md",
         "docs/docker/zeabur-deployment.md",
@@ -114,7 +114,7 @@ def test_documented_compose_exec_commands_run_as_hrs() -> None:
     safe_exec_prefix = "docker-compose -f ./docker/docker-compose.yml exec -u hrs"
     unsafe_exec_prefix = "docker-compose -f ./docker/docker-compose.yml exec"
 
-    for doc_path in ("docs/DEPLOY.md", "docs/DEPLOY_EN.md"):
+    for doc_path in ("documents/deployment/DEPLOY.md", "documents/deployment/DEPLOY_EN.md"):
         doc = (REPO_ROOT / doc_path).read_text(encoding="utf-8")
 
         assert f"{safe_exec_prefix} stock-analyzer bash" in doc

@@ -108,7 +108,7 @@ Props / callback 连接父子组件，URL 与路由定位页面，Store / Contex
 - [Agent 流式事件](../../../docs/agent-stream-events.md)
 - [决策信号](../../../docs/decision-signals.md)
 - [通知说明](../../../docs/notifications.md)
-- [LLM 配置指南](../../../docs/LLM_CONFIG_GUIDE.md)
+- [LLM 配置指南](../../../documents/LLM/LLM_CONFIG_GUIDE.md)
 
 ADR 的四层业务职责视角与后续五层代码依赖视角分别解释。文档出现目标目录、历史落点或旧接口时，以当前可执行代码与专项权威规则核对；本图册不修改原始迁移历史。新增图册与说明使用中文，当前没有对应英文页需要同步。
 

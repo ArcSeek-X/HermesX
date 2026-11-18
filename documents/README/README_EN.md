@@ -78,7 +78,7 @@ Open your forked repository, then go to `Settings` -> `Secrets and variables` ->
 
 **AI model configuration (configure at least one)**
 
-Start with one provider and one API key. For multi-model routing, image recognition, local models, or advanced routing, see the [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md).
+Start with one provider and one API key. For multi-model routing, image recognition, local models, or advanced routing, see the [LLM Config Guide](../LLM/LLM_CONFIG_GUIDE_EN.md).
 
 | Secret Name | Description | Required |
 |-------------|-------------|:--------:|
@@ -252,7 +252,7 @@ After configuring any available AI API key, the Web `/chat` page can use strateg
 - Supports follow-up questions, session export, notification sending, and background execution
 - Supports custom strategy files and experimental multi-agent orchestration
 
-> Agent parameters, `skill` naming compatibility, multi-agent mode, and budget guards are covered in the [Full Guide](../../docs/full-guide_EN.md#local-webui-management-interface) and [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md).
+> Agent parameters, `skill` naming compatibility, multi-agent mode, and budget guards are covered in the [Full Guide](../../docs/full-guide_EN.md#local-webui-management-interface) and [LLM Config Guide](../LLM/LLM_CONFIG_GUIDE_EN.md).
 
 
 ## 📞 Contact

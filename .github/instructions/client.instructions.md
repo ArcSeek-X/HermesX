@@ -1,5 +1,5 @@
 ---
-applyTo: "apps/hrs-web/**,apps/hrs-desktop/**,scripts/run-desktop.ps1,scripts/build-desktop*.ps1,scripts/build-*.sh,docs/desktop-package.md"
+applyTo: "apps/hrs-web/**,apps/hrs-desktop/**,scripts/run-desktop.ps1,scripts/build-desktop*.ps1,scripts/build-*.sh,documents/deployment/build/desktop-package.md"
 ---
 
 # Client Instructions

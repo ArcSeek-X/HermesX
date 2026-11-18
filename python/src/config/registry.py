@@ -158,8 +158,8 @@ WEB_SETTINGS_PENDING_EXPOSURE: Dict[str, str] = {
     #   （决定除主模型自身 provider 外还提醒哪些 provider 缺 Key），真正的 Vision
     #   provider 推断顺序是硬编码的 gemini → anthropic → openai，与调用失败时的重试
     #   行为都不受该键影响。专题文档此前描述不准确（写的是“按已配 key 的 provider
-    #   依次尝试/自动切换”），已在本批次修正 `docs/full-guide.md`、`docs/LLM_CONFIG_GUIDE.md`、
-    #   `docs/LLM_CONFIG_GUIDE_EN.md` 三处，使其与代码事实一致。漂移消除后，该键仍不入库：
+    #   依次尝试/自动切换”），已在本批次修正 `docs/full-guide.md`、`documents/LLM/LLM_CONFIG_GUIDE.md`、
+    #   `documents/LLM/LLM_CONFIG_GUIDE_EN.md` 三处，使其与代码事实一致。漂移消除后，该键仍不入库：
     #   保存一个不影响行为的值是偏差设计，需先定调是否要实现真正的可配置优先级才能入库。
     "VISION_MODEL": "P5",
     "VISION_PROVIDER_PRIORITY": "P5",

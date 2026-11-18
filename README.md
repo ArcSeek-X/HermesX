@@ -61,7 +61,7 @@
 
 **AI 模型配置（至少配置一个）**
 
-默认先选一个模型服务商并填写 API Key；需要多模型、图片识别、本地模型或高级路由时，再参考 [LLM 配置指南](docs/LLM_CONFIG_GUIDE.md)。
+默认先选一个模型服务商并填写 API Key；需要多模型、图片识别、本地模型或高级路由时，再参考 [LLM 配置指南](documents/LLM/LLM_CONFIG_GUIDE.md)。
 
 | Secret 名称                          | 说明                                                                                                                           |   必填   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | :----: |
@@ -160,7 +160,7 @@ python python/main.py --schedule
 python python/main.py --serve-only
 ```
 
-> Docker 部署、定时任务、云服务器访问请参考 [完整指南](docs/full-guide.md)；桌面客户端打包请参考 [桌面端打包说明](docs/desktop-package.md)。
+> Docker 部署、定时任务、云服务器访问请参考 [完整指南](docs/full-guide.md)；桌面客户端打包请参考 [桌面端打包说明](documents/deployment/build/desktop-package.md)。
 
 ## 📱 推送效果
 
@@ -237,7 +237,7 @@ python python/main.py --webui-only
 - 支持多轮追问、会话导出、发送到通知渠道和后台执行
 - 支持自定义策略文件与多 Agent 编排（实验性）
 
-> Agent 具体参数、`skill` 命名兼容、多 Agent 模式和预算护栏见 [完整指南](docs/full-guide.md#本地-webui-管理界面) 与 [LLM 配置指南](docs/LLM_CONFIG_GUIDE.md)。
+> Agent 具体参数、`skill` 命名兼容、多 Agent 模式和预算护栏见 [完整指南](docs/full-guide.md#本地-webui-管理界面) 与 [LLM 配置指南](documents/LLM/LLM_CONFIG_GUIDE.md)。
 
 ## 📬 联系与合作
 

@@ -129,7 +129,7 @@ PROXY_PORT=10809
 
 ### LLM Configuration
 
-> Full details: [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md).
+> Full details: [LLM Config Guide](../LLM/LLM_CONFIG_GUIDE_EN.md).
 
 **Q: Configured both GEMINI_API_KEY and LLM_CHANNELS, why does it only use channels?**
 
@@ -145,7 +145,7 @@ Use channel mode: set `LLM_CHANNELS=aihubmix,deepseek,gemini` and configure each
 
 **Q: The ask-stock / Agent page says no usable LLM is configured, but I only use legacy `GEMINI_*` / `OPENAI_*` / `ANTHROPIC_*` settings. What should I check?**
 
-First confirm whether `LITELLM_CONFIG` or `LLM_CHANNELS` is active, because either of those tiers overrides legacy keys. If neither tier is active and `AGENT_LITELLM_MODEL` is empty, the ask-stock Agent still inherits legacy provider models automatically: `GEMINI_MODEL`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are mapped to LiteLLM provider-prefixed model names for the corresponding runtime. This fix does not silently migrate or clear old settings; it only returns the real backend reason to the frontend so you can see whether the issue is a missing key, a missing model name, or an upper-tier config taking precedence. Full compatibility details are documented in the [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md) under “Ask-Stock Agent / LiteLLM compatibility notes”.
+First confirm whether `LITELLM_CONFIG` or `LLM_CHANNELS` is active, because either of those tiers overrides legacy keys. If neither tier is active and `AGENT_LITELLM_MODEL` is empty, the ask-stock Agent still inherits legacy provider models automatically: `GEMINI_MODEL`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are mapped to LiteLLM provider-prefixed model names for the corresponding runtime. This fix does not silently migrate or clear old settings; it only returns the real backend reason to the frontend so you can see whether the issue is a missing key, a missing model name, or an upper-tier config taking precedence. Full compatibility details are documented in the [LLM Config Guide](../LLM/LLM_CONFIG_GUIDE_EN.md) under “Ask-Stock Agent / LiteLLM compatibility notes”.
 
 ---
 
@@ -232,7 +232,7 @@ Supported model services:
 
 **Configuration**: Use `OLLAMA_API_BASE` + `LITELLM_MODEL`, or channel mode (`LLM_CHANNELS=ollama` + `LLM_OLLAMA_BASE_URL` + `LLM_OLLAMA_MODELS`).
 
-**Pitfall**: Do not use `OPENAI_BASE_URL` for Ollama, or the system will concatenate URLs incorrectly (e.g. 404, `api/generate/api/show`). See [LLM Config Guide](../../docs/LLM_CONFIG_GUIDE_EN.md) Example 4 and channel examples.
+**Pitfall**: Do not use `OPENAI_BASE_URL` for Ollama, or the system will concatenate URLs incorrectly (e.g. 404, `api/generate/api/show`). See [LLM Config Guide](../LLM/LLM_CONFIG_GUIDE_EN.md) Example 4 and channel examples.
 
 ---
 
@@ -269,7 +269,7 @@ Work through the following 5 checkpoints in order:
    - If Ollama runs on a different host, set `OLLAMA_API_BASE` to its actual IP, e.g. `http://192.168.1.100:11434`.
    - Make sure port 11434 is open and Ollama binds the right address (`OLLAMA_HOST=0.0.0.0:11434`).
 
-> See [LLM Config Guide → Example 4 (Ollama)](../../docs/LLM_CONFIG_GUIDE_EN.md#example-4-ollama) for a complete configuration example.
+> See [LLM Config Guide → Example 4 (Ollama)](../LLM/LLM_CONFIG_GUIDE_EN.md#example-4-ollama) for a complete configuration example.
 
 ---
 

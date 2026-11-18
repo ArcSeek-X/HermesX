@@ -235,7 +235,7 @@ npm run dev          # 启动 Electron 桌面应用
 npm run build        # 打包桌面应用（Windows NSIS / macOS DMG）
 ```
 
-> 桌面端打包时需要先构建 Web 前端和后端，详见 `docs/desktop-package.md`。
+> 桌面端打包时需要先构建 Web 前端和后端，详见 `documents/deployment/build/desktop-package.md`。
 
 ---
 

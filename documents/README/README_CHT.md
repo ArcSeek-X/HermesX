@@ -78,7 +78,7 @@
 
 **AI 模型配置（至少配置一個）**
 
-預設先選一個模型服務商並填寫 API Key；需要多模型、圖片識別、本地模型或高級路由時，再參考 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)。
+預設先選一個模型服務商並填寫 API Key；需要多模型、圖片識別、本地模型或高級路由時，再參考 [LLM 配置指南](../LLM/LLM_CONFIG_GUIDE.md)。
 
 | Secret 名稱 | 說明 | 必填 |
 |-------------|------|:----:|
@@ -177,7 +177,7 @@ python python/main.py --schedule
 python python/main.py --serve-only
 ```
 
-> Docker 部署、定時任務、雲端伺服器訪問請參考 [完整指南](../../docs/full-guide.md)；桌面客戶端打包請參考 [桌面端打包說明](../../docs/desktop-package.md)。
+> Docker 部署、定時任務、雲端伺服器訪問請參考 [完整指南](../../docs/full-guide.md)；桌面客戶端打包請參考 [桌面端打包說明](../deployment/build/desktop-package.md)。
 
 ## 📱 推送效果
 
@@ -252,7 +252,7 @@ python python/main.py --webui-only
 - 支援多輪追問、會話匯出、發送到通知渠道和後台執行
 - 支援自訂策略文件與多 Agent 編排（實驗性）
 
-> Agent 具體參數、`skill` 命名兼容、多 Agent 模式和預算護欄見 [完整指南](../../docs/full-guide.md#本地-webui-管理界面) 與 [LLM 配置指南](../../docs/LLM_CONFIG_GUIDE.md)。
+> Agent 具體參數、`skill` 命名兼容、多 Agent 模式和預算護欄見 [完整指南](../../docs/full-guide.md#本地-webui-管理界面) 與 [LLM 配置指南](../LLM/LLM_CONFIG_GUIDE.md)。
 
 ## 📬 聯繫與合作
 

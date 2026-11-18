@@ -84,7 +84,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -110,7 +110,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -136,7 +136,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -159,7 +159,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -185,7 +185,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -208,7 +208,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -231,7 +231,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -258,7 +258,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "完整指南：AI 模型配置",
@@ -300,7 +300,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "完整指南：AI 模型配置",
@@ -330,7 +330,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "完整指南：AI 模型配置",
@@ -370,7 +370,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：YAML 模式",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#方式三litellm-原生-yaml-配置适合专家或复杂路由",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#方式三litellm-原生-yaml-配置适合专家或复杂路由",
             },
             {
                 "label": "LiteLLM proxy config（官方）",
@@ -402,11 +402,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：渠道模式",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#方式二渠道channels模式配置适合进阶多模型",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#方式二渠道channels模式配置适合进阶多模型",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
             {
                 "label": "LiteLLM OpenAI-compatible（官方）",
@@ -462,7 +462,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -487,7 +487,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -517,7 +517,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -542,7 +542,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -567,7 +567,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -592,11 +592,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -667,11 +667,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -2035,11 +2035,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -2122,11 +2122,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -2166,11 +2166,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["base_url_must_match_provider"],
@@ -2238,11 +2238,11 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
             {
                 "label": "LLM 服务商配置速查",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
             },
         ],
         "warning_codes": ["secret_value"],
@@ -4182,7 +4182,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
         ],
         "warning_codes": ["restart_required"],
@@ -4212,7 +4212,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
         ],
         "warning_codes": ["restart_required", "requires_built_web_assets"],
@@ -4238,7 +4238,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
             {
                 "label": "完整指南：WebUI 与 API",
@@ -4268,7 +4268,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
             {
                 "label": "完整指南：WebUI 与 API",
@@ -4355,7 +4355,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
         ],
         "warning_codes": ["public_webui_requires_auth", "auth_settings_endpoint_required"],
@@ -4385,7 +4385,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "label": "云服务器访问 WebUI",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/deploy-webui-cloud.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/deployment/deploy-webui-cloud.md",
             },
         ],
         "warning_codes": ["trusted_proxy_only"],
@@ -4843,7 +4843,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -4872,7 +4872,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
             },
         ],
         "warning_codes": [],
@@ -5274,7 +5274,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：问股可见对话上下文压缩",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
             },
             {
                 "label": "完整指南：环境变量完整列表",
@@ -5309,7 +5309,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：问股可见对话上下文压缩",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
             },
             {
                 "label": "完整指南：环境变量完整列表",
@@ -5339,7 +5339,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：问股可见对话上下文压缩",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
             },
             {
                 "label": "完整指南：环境变量完整列表",
@@ -5369,7 +5369,7 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "docs": [
             {
                 "label": "LLM 配置指南：问股可见对话上下文压缩",
-                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
+                "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md#问股可见对话上下文压缩",
             },
             {
                 "label": "完整指南：环境变量完整列表",

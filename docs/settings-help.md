@@ -100,8 +100,8 @@ Issue #1512 收口后，Web 设置页只展示后端配置注册表中的正式�
 
 1. `.env.example`：配置键名、默认值、样例格式和敏感占位符。
 2. `docs/full-guide.md`：主要配置说明、运行入口和部署上下文。
-3. `docs/LLM_CONFIG_GUIDE.md`、`docs/llm-providers.md`：LLM 优先级、Channels、provider/model、兼容边界和排障说明。
-4. 专题文档：例如 `docs/bot/feishu-bot-config.md`、`docs/deploy-webui-cloud.md`、`docs/desktop-package.md`。
+3. `documents/LLM/LLM_CONFIG_GUIDE.md`、`documents/LLM/llm-providers.md`：LLM 优先级、Channels、provider/model、兼容边界和排障说明。
+4. 专题文档：例如 `docs/bot/feishu-bot-config.md`、`documents/deployment/deploy-webui-cloud.md`、`documents/deployment/build/desktop-package.md`。
 5. 代码实现和测试：当文档与代码不一致时，先以可执行实现为准，并同步修正文档。
 
 ## 维护边界

@@ -8,9 +8,9 @@
 | --- | --- | --- |
 | 快速了解项目能做什么 | [README](../README.md) | [完整配置与部署指南](full-guide.md) |
 | 第一次把项目跑起来 | [小白客户端安装与配置](beginner-client-setup.md) | [完整配置与部署指南](full-guide.md) |
-| 配置大模型渠道 | [LLM 配置指南](LLM_CONFIG_GUIDE.md) | [LLM 服务商配置指南](llm-providers.md) |
+| 配置大模型渠道 | [LLM 配置指南](../documents/LLM/LLM_CONFIG_GUIDE.md) | [LLM 服务商配置指南](../documents/LLM/llm-providers.md) |
 | 配置推送通知 | [通知能力基线](notifications.md) | [完整配置与部署指南](full-guide.md) |
-| 部署到服务器或云平台 | [部署指南](DEPLOY.md) | [云端 WebUI 部署](deploy-webui-cloud.md)、[Zeabur 部署](docker/zeabur-deployment.md) |
+| 部署到服务器或云平台 | [部署指南](../documents/deployment/DEPLOY.md) | [云端 WebUI 部署](../documents/deployment/deploy-webui-cloud.md)、[Zeabur 部署](docker/zeabur-deployment.md) |
 | 使用 Bot / IM 接入 | [Bot 命令与接入](bot-command.md) | [Bot 平台配置](bot/) |
 | 排查运行问题 | [FAQ](../documents/FAQ/FAQ.md) | [更新日志](../documents/CHANGELOG.md) |
 | 处理数据源失败或降级 | [数据源稳定性与故障处理图示](data-source-stability.md) | [FAQ](../documents/FAQ/FAQ.md) |
@@ -31,8 +31,8 @@
 
 | 文档 | 内容 |
 | --- | --- |
-| [LLM 配置指南](LLM_CONFIG_GUIDE.md) | 大模型渠道、三层配置、Web 设置页和常见模型配置 |
-| [LLM 服务商配置指南](llm-providers.md) | Provider 预设、Actions 映射、错误分类和诊断建议 |
+| [LLM 配置指南](../documents/LLM/LLM_CONFIG_GUIDE.md) | 大模型渠道、三层配置、Web 设置页和常见模型配置 |
+| [LLM 服务商配置指南](../documents/LLM/llm-providers.md) | Provider 预设、Actions 映射、错误分类和诊断建议 |
 | [LiteLLM YAML 示例](examples/litellm_config.example.yaml) | LiteLLM 多渠道配置示例 |
 | [通知能力基线](notifications.md) | 企业微信、飞书、Telegram、Discord、Slack、邮件等通知渠道配置 |
 | [Tushare 股票列表指南](TUSHARE_STOCK_LIST_GUIDE.md) | Tushare 股票列表相关配置和使用说明 |
@@ -55,10 +55,10 @@
 
 | 文档 | 内容 |
 | --- | --- |
-| [部署指南](DEPLOY.md) | 服务器部署、Docker、systemd、Supervisor 等部署方式 |
-| [云端 WebUI 部署](deploy-webui-cloud.md) | 云服务器访问 WebUI 的部署说明 |
+| [部署指南](../documents/deployment/DEPLOY.md) | 服务器部署、Docker、systemd、Supervisor 等部署方式 |
+| [云端 WebUI 部署](../documents/deployment/deploy-webui-cloud.md) | 云服务器访问 WebUI 的部署说明 |
 | [Zeabur 部署](docker/zeabur-deployment.md) | Zeabur 平台部署说明 |
-| [桌面端打包说明](desktop-package.md) | Electron 桌面端和 Web 构建产物打包说明 |
+| [桌面端打包说明](../documents/deployment/build/desktop-package.md) | Electron 桌面端和 Web 构建产物打包说明 |
 
 ## 参考与开发
 

@@ -69,11 +69,11 @@ _DOC_FEISHU_BOT = [
 _DOC_LLM_CONFIG = [
     {
         "label": "LLM 配置指南",
-        "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/LLM_CONFIG_GUIDE.md",
+        "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/LLM_CONFIG_GUIDE.md",
     },
     {
         "label": "LLM 服务商配置速查",
-        "href": "https://github.com/ArcSeek-X/HermesX/blob/main/docs/llm-providers.md",
+        "href": "https://github.com/ArcSeek-X/HermesX/blob/main/documents/LLM/llm-providers.md",
     },
 ]
 
