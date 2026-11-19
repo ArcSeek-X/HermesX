@@ -109,3 +109,5 @@ docs/specs/
 # Maven build output
 /target/
 /hrs-*-service/**/target/
+
+/hrs-common/target/
