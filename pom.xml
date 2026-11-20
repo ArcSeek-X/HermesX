@@ -9,6 +9,7 @@
     <packaging>pom</packaging>
     <name>HermesX Java Services</name>
     <modules>
+        <module>hrs-common</module>
         <module>hrs-auth-service</module>
         <module>hrs-system-service</module>
         <module>hrs-analysis-service</module>
