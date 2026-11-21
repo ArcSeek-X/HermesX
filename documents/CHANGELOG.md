@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 hrs-common 公共JAR及公共/业务结果码枚举，system用户、部门、菜单和CSRF成功/失败统一为resultCode/resultMsg/resultData；删除改为200返回true，同步调用示例、异常与安全响应测试。
+
+- [新功能] Java system 新增部门和菜单服务端管理，支持树查询、增删改查、逻辑删除、归属与父子规则、部门移动子孙路径维护；通过V4幂等建表初始化并提供中文分层学习案例。
+- [改进] 用户新增和修改时校验真实部门及同企业同组织归属，部门删除拒绝未删除子节点或用户引用，避免形成孤立关联。
+
+- [文档] 新增数据库建表规范，统一服务前缀表名、必备归属与逻辑删除字段、SQLite 独立库位置及后续 MySQL 迁移要求，标明存量表差异。
+
+- [chore] system 服务运行配置转换为 application.properties，保留全部环境变量与默认行为，并同步配置文档。
+
+- [新功能] system 服务支持可选 Nacos 服务注册与发现，沿用独立 SQLite 用户库，增加外部配置、专用命名空间校验及接入文档；不接入配置中心或其他服务。
+
 - [新功能] 新增 Java system 用户管理服务端案例，使用 MyBatis Mapper/XML 与 SQLite 实现增删改查、分页筛选、企业/组织归属字段和 delete_flag 逻辑删除，包含 BCrypt 密码哈希、管理接口认证及 CSRF 保护。
 - [chore] 将 Java 单工程骨架调整为 auth、system、analysis 三个服务，各含 pojo/rest 模块，统一 Maven 聚合构建；仅 system 接入独立运行，现有 Python、Web 与桌面入口不变。
 - [测试] 增加真实 SQLite 用户接口、事务回滚及旧表升级测试，提供保留旧数据和删除状态的显式升级脚本。
