@@ -21,7 +21,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 /** 验证同一协议覆盖MVC、安全过滤器及容器错误边界，而不只检查成功Controller。 */
 @SpringBootTest(properties={"spring.cloud.nacos.discovery.enabled=false",
-    "spring.sql.init.schema-locations=classpath:db/schema.sql,classpath:db/migration/V4__create_organization_and_menu.sql,classpath:db/menu_target_test_schema.sql"})
+    "spring.sql.init.mode=always",
+    "spring.sql.init.schema-locations=classpath:db/hrs-system-service.sql"})
 @AutoConfigureMockMvc
 @ActiveProfiles("response-contract-test")
 @Import(ResponseContractIntegrationTest.ProbeController.class)

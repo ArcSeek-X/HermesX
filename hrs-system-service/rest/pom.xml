@@ -36,6 +36,16 @@
         <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
     </dependencies>
     <build>
+        <!-- 正式SQL不是业务JAR的启动资源；仅在测试中复用，避免手写夹具掩盖结构偏差。 -->
+        <testResources>
+            <testResource><directory>src/test/resources</directory></testResource>
+            <testResource>
+                <directory>${project.basedir}/../sql</directory>
+                <includes><include>hrs-system-service.sql</include></includes>
+                <targetPath>db</targetPath>
+                <filtering>false</filtering>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId>

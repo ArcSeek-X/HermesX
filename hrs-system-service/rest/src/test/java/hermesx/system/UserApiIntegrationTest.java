@@ -18,7 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 
 /** 使用真实 SQLite 临时文件，贯穿 HTTP→Service→DAO，不 mock 数据访问或业务规则。 */
-@SpringBootTest
+@SpringBootTest(properties={"spring.sql.init.mode=always",
+    "spring.sql.init.schema-locations=classpath:db/hrs-system-service.sql"})
 @AutoConfigureMockMvc
 class UserApiIntegrationTest {
     static final Path DATABASE;

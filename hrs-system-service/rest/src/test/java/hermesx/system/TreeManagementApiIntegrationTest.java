@@ -22,7 +22,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 /** 真实SQLite与完整HTTP链路：重点验证关系和事务，而不是mock Mapper证明调用过。 */
 @SpringBootTest(properties={"spring.cloud.nacos.discovery.enabled=false",
-    "spring.sql.init.schema-locations=classpath:db/schema.sql,classpath:db/migration/V4__create_organization_and_menu.sql,classpath:db/menu_target_test_schema.sql"})
+    "spring.sql.init.mode=always",
+    "spring.sql.init.schema-locations=classpath:db/hrs-system-service.sql"})
 @AutoConfigureMockMvc
 @WithMockUser(username="tree-manager",roles="SYSTEM_ADMIN")
 class TreeManagementApiIntegrationTest {
