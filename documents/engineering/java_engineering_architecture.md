@@ -21,11 +21,11 @@
 
 ### 1.1 当前状态与目标
 
-菜单Java接口已实现`POST /api/system/list-menu`及管理CRUD，统一module/group/page和menuCode等字段；导航排除禁用子树，管理查询保留禁用记录，page完整路径不由业务码拼接。依赖公共响应JAR及共享树工具。业务数据库、正式建表和菜单数据导入暂缓；详情见[菜单Java专题](java_menu_navigation.md)。前端隐藏祖先和旧状态过滤逻辑尚待按最新约定调整，用户级授权暂不实现。
+菜单 Java 契约已于 2026-11-23 对齐前端：`POST /api/system/list-menu` 返回统一 `module/group/page` 树（Java过滤禁用节点及其子树，管理查询仍保留禁用记录；隐藏只影响前端展示），DTO/Entity/VO 和 Mapper 业务字段统一。**本阶段暂不创建 `data/hrs_system.db`、不修改正式建表脚本、不导入菜单数据；Mapper 目标结构仅用测试专用临时库验证。** 在后续数据库阶段完成之前，旧 V4 初始化出的菜单表不能直接运行新 Mapper。Basic/CSRF 身份接入与前端代理联调仍待后续完成。
 
-【强制】本文描述已确认的目标：**三个 Java 服务 + 一个 Python 服务**。仓库现已建立根聚合 POM、三个服务及各自的 pojo/rest 工程骨架，其中 system 已实现独立的 SQLite 用户管理学习案例（启动类、CRUD、管理接口保护），auth 与 analysis 仍为骨架。整体方案与实施计划已同步此结构，现有 Python/Web/桌面入口未切换。
+【强制】本文描述已确认的目标：**三个 Java 服务 + 一个 Python 服务**。仓库现已建立根聚合 POM、三个服务及各自的 pojo/rest 工程骨架，其中 system 已实现独立的 SQLite 用户、部门与菜单管理学习案例（CRUD、树结构与管理接口保护），auth 与 analysis 仍为骨架。整体方案与实施计划已同步此结构，现有 Python/Web/桌面入口未切换。system 另支持可选 [Nacos 注册与发现](java_nacos_discovery.md)，仍使用独立SQLite，不接入配置中心。
 
-【强制】项目尚未上线，以正确的目标结构直接调整工程与开发入口。实际迁移时同批更新构建、测试、打包、调用方和文档，不为旧路径长期保留转发或重复布局。初始阶段只建立骨架；现按用户授权增加 system 用户管理案例，**不扩展 auth/analysis 业务，不切换现有 Python、Web 和桌面运行链路**。下文目录模板仍包含未来功能，实际案例文件和逐层解释见 [用户管理学习案例](java_user_management_case.md)。
+【强制】项目尚未上线，以正确的目标结构直接调整工程与开发入口。实际迁移时同批更新构建、测试、打包、调用方和文档，不为旧路径长期保留转发或重复布局。初始阶段只建立骨架；现按用户授权增加 system 用户、部门与菜单管理案例，**不扩展 auth/analysis 业务，不切换现有 Python、Web 和桌面运行链路**。下文目录模板仍包含未来功能，实际案例文件和逐层解释见 [用户管理学习案例](java_user_management_case.md)。
 
 | 服务目录 | Java 基础包 | 负责什么 | 不负责什么 |
 | --- | --- | --- | --- |
@@ -37,6 +37,10 @@
 账号与用户资料通过稳定用户标识关联。目标架构中账号状态由 auth 维护，角色权限由 system 维护；跨服务操作通过接口协调，不能直接修改对方数据库。Java 服务是否使用同一数据库实例、具体数据库产品、认证协议和持久化框架，留待接入阶段确定。当前骨架使用 JDK 17 编译目标、Maven 3.9.9 Wrapper 和 Maven Compiler Plugin 3.14.1，system 案例引入 Spring Boot 3.5.14、MyBatis Mapper/XML 与 SQLite JDBC 3.49.1.0，其余服务不引入运行框架依赖。
 
 **当前案例的明确例外**：为参考 scaffold 的用户表独立完成 CRUD，`hrs_system_user` 暂时包含 username、password（BCrypt 哈希）和 status。没有实现表内用户登录、会话或正式角色权限；管理 API 使用外部配置的独立管理身份。后续接入 auth 前须移交凭据及账号状态的唯一写入责任。具体字段、接口、验证和限制见 [用户管理学习案例](java_user_management_case.md)。
+
+已实现部门/菜单的逐层文件、字段和树规则见 [部门与菜单案例](java_organization_menu_management_case.md)。其共享父类仅抽取树视图结构，业务接口仍按层平铺，SQL仍在各自Mapper XML。
+
+新增普通JAR模块 `hrs-common`，统一响应、公共结果码和分页契约；不是第四个微服务。system业务码位于pojo的 `enums/SystemResultCodeEnum.java`。详细目录、HTTP约定和接入边界见 [common与响应规范](java_common_response_design.md)。
 
 ### 1.2 `pojo` 与 `rest` 怎么分工
 
@@ -97,6 +101,8 @@ Controller → Service 接口 → ServiceImpl → DAO → 本服务数据
 
 `hrs-auth-service/pojo/src/main/java/hermesx/auth/vo/` **里面放 `.java` 文件**。例如 `CurrentUserVO.java` 中声明 `package hermesx.auth.vo;`，公开类型名为 `CurrentUserVO`。目录名 `hrs-auth-service` 是工程名称，不是 Java 包名，不加进 `package`，也不用给包名增加 `service` 后缀。
 
+数据库表命名、必备字段与运行库位置统一遵循 [数据库建表规范](../DB/database_rules.md)。
+
 ### 2.2 pojo 模块：数据类型
 
 | 包目录 | 职责及允许内容 | 文件命名与示例 | 不应放什么 |
@@ -133,7 +139,7 @@ Controller → Service 接口 → ServiceImpl → DAO → 本服务数据
 
 | 路径 | 内容 | 命名与约束 |
 | --- | --- | --- |
-| `rest/src/main/resources/application.yml` | 服务运行配置和外部配置占位引用 | 不放真实密钥；新配置同步脱敏 `.env.example` 与文档 |
+| `rest/src/main/resources/application.properties`（system）；其余骨架暂用 `application.yml` | 服务运行配置和外部配置占位引用 | 不放真实密钥；新配置同步脱敏 `.env.example` 与文档 |
 | `rest/src/main/resources/mapper/`（如采用 MyBatis XML） | DAO 映射对应的 SQL XML | `WatchlistMapper.xml` 对应 `WatchlistMapper.java`，namespace 为完整 Mapper 类型名，语句 ID 对应方法名 |
 | `rest/src/main/resources/db/migration/`（如采用 Flyway） | 本服务拥有的数据结构迁移 | 例如 `V1__create_watchlist.sql`；版本唯一；不迁移其他服务的表；迁移工具尚未选定 |
 | `pojo/src/test/java/hermesx/<业务包>/` | 必要的数据类型约束测试 | `LoginDTOTest.java`；不为纯 getter/setter 增加镜像测试 |
@@ -168,11 +174,12 @@ Python 内部分层与数据源规则见 [Python 工程架构](python_engineerin
 
 ## 四、目录示例
 
-未实现的服务仍以 `.gitkeep` 保存包目录，配置为注释占位；system 已有可运行用户管理案例，使用 `dao/UserMapper.java` 与 `resources/mapper/UserMapper.xml`。原根目录的用户空文件 `test.java` 已原样迁至 auth 服务 rest 的对应包下，不属于新实现。以下是目标全仓关系及三个服务的完整层级模板。文件是命名示例；尚未授权的功能不要求实现这些 Java 类。`mapper/`、`db/migration/` 等依具体技术选型创建。
+未实现的服务仍以 `.gitkeep` 保存包目录，配置为注释占位；system 已有用户、部门及菜单Java案例，各自使用对应Mapper接口和XML；菜单目标业务库仍暂缓，不能把旧V4当作新Mapper的目标表。原根目录的用户空文件 `test.java` 已原样迁至 auth 服务 rest 的对应包下，不属于新实现。以下是目标全仓关系及三个服务的完整层级模板。文件是命名示例；尚未授权的功能不要求实现这些 Java 类。`mapper/`、`db/migration/` 等依具体技术选型创建。
 
 ```text
 HermesX/
-├── pom.xml                                  # 聚合三个 Java 服务
+├── pom.xml                                  # 聚合common与三个Java服务
+├── hrs-common/                              # 公共JAR，无启动入口，无数据库
 ├── mvnw / mvnw.cmd                          # Maven Wrapper 入口
 ├── .mvn/wrapper/                            # Wrapper 版本与下载配置
 ├── hrs-auth-service/
@@ -252,7 +259,7 @@ HermesX/
 │           │   │   ├── interceptor/             # 按需
 │           │   │   └── utils/                   # 按需
 │           │   └── resources/
-│           │       ├── application.yml
+│           │       ├── application.properties
 │           │       └── mapper/UserProfileMapper.xml
 │           └── test/
 │               ├── java/hermesx/system/

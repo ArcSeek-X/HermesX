@@ -19,7 +19,7 @@
 
 ## 一、设计目标与功能归属
 
-目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有聚合三个 Java 服务的 Maven 工程骨架，各服务分为 pojo 与 rest；system 已有独立 SQLite 用户管理案例及菜单 Java 接口；菜单目标数据库和初始化数据暂缓，其他服务仍为骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。Java/Python 多服务部署尚未实施。
+目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有聚合三个 Java 服务的 Maven 工程骨架，各服务分为 pojo 与 rest；system 已有用户、部门管理与菜单Java案例，测试使用独立临时SQLite；真实业务库与目标菜单表部署、初始化数据仍暂缓，其他服务仍为骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。Java/Python 多服务部署尚未实施。
 
 后续部署目标是 **三个 Java 服务和一个 Python 分析服务**。`hrs-auth-service`、`hrs-system-service`、`hrs-analysis-service` 各自独立运行，每个服务包含 pojo 数据模块和 rest 运行模块；根 POM 统一聚合构建。system 已提供独立的用户 CRUD 与配置管理身份保护；完整服务部署与 auth 认证接入另行安排。
 
@@ -43,8 +43,8 @@
 
 ```text
 HermesX/
-├── pom.xml                        # Java 构建入口
-├── hrs-common/                    # 菜单依赖的公共响应与结果码JAR，不是独立服务
+├── pom.xml                        # Java构建入口
+├── hrs-common/                    # 统一响应/公共结果码/分页契约，非独立服务
 ├── mvnw / mvnw.cmd
 ├── .mvn/wrapper/
 ├── hrs-auth-service/              # hermesx.auth，认证服务
@@ -119,6 +119,8 @@ HermesX/
 
 ## 四、Java 与 Python 的数据和接口边界
 
+数据库按服务独立管理：Python 保留 `data/stock_analysis.db`；system 使用配置指定的独立 `data/hrs_system.db`；auth 与 Java analysis 后续分别使用 `data/hrs_auth.db`、`data/hrs_analysis.db`，当前不创建。服务间经接口访问，不跨库写表。system 可选 [Nacos 注册与发现](java_nacos_discovery.md)，不要求先实现其他服务。
+
 当前独立 system 用户 CRUD 为学习案例，暂沿用参考表的账号、密码哈希和状态字段；不提供表内用户登录。正式接入 auth 前必须按下述目标移交凭据和状态职责，不能把当前例外扩展为跨服务双写。
 
 - 【强制】`hrs-auth-service` 与 `hrs-system-service` 使用同一个用户身份。账号状态由 `auth` 单独维护；管理员在 system 服务发起停用，由业务服务授权后调用 `auth` 停用账号和撤销会话。角色、菜单和数据范围按[后端授权方案](../authority/backend/user_role.md)细化。
@@ -146,8 +148,12 @@ HermesX/
 
 | 位置 | 设计约定 |
 | --- | --- |
-| `apps/hrs-web/` | 维护供浏览器与 Electron 共用的页面、路由、组件、状态、国际化和 API 访问。请求收口到 `src/api/`，不要在页面里按运行环境复制业务逻辑。界面组件、国际化和类型命名沿用 [前端约定](../../.conventions/frontend/)；菜单数据来源、结构、加工与持久化见[菜单方案](../authority/frontend/frontend_module_menu.md)；动态路由派生、注册、刷新和守卫见[动态路由方案](../authority/frontend/frontend_async_router.md)；接口字段见[菜单API契约](../authority/frontend/menu_api_contract.md)。 |
+| `apps/hrs-web/` | 维护供浏览器与 Electron 共用的页面、路由、组件、状态、国际化和 API 访问。请求收口到 `src/api/`，不要在页面里按运行环境复制业务逻辑。界面组件、国际化和类型命名沿用 [前端约定](../../.conventions/frontend/)；菜单来源、节点、加工和持久化见 [菜单方案](../authority/frontend/frontend_module_menu.md)；从菜单派生路由、注册、刷新和守卫见 [动态路由方案](../authority/frontend/frontend_async_router.md)；HTTP字段与错误见 [菜单API契约](../authority/frontend/menu_api_contract.md)。 |
 | `apps/hrs-desktop/` | 维护窗口、受控的 preload 接口、后端进程生命周期、安装和更新。单机模式打包同一份 Web 界面和本机后端，后端绑定本机地址；界面通过业务 API 访问，桌面桥接只提供需要的本机能力。 |
 | `docker/`、`scripts/`、`.github/` | Docker 管镜像和联机部署，脚本统一本地启动、构建及检查，工作流调用这些入口并负责发布。Docker 与桌面各自传入运行地址、数据目录和静态资源位置。 |
 | `docs/`、`documents/` | 面向使用者的部署和配置写在 `docs/`，工程设计写在 `documents/engineering/`，专题方案和历史实施记录保留在现有位置。 |
 | 配置、运行数据和构建产物 | 区分 Git 仓库根、Python 工程根和运行数据位置。运行数据与配置文件的位置由相应启动环境解析，不能随工作目录或源码移动而改变。配置示例脱敏入库；账号凭据、真实 `.env`、本地数据库、日志和生成报告由运行环境管理。Maven `target/`、Web `dist-web/`、桌面 `dist-desktop/` 为构建产物。Python 随源码分发的股票索引与运行数据分开。 |
+
+已实现的部门树、菜单树和用户部门关联规则见[部门与菜单案例](java_organization_menu_management_case.md)，不代表已完成角色授权或前端菜单接入。
+
+Java system业务JSON接口采用 [common统一响应](java_common_response_design.md)，公共JAR不改变三个Java服务的部署数量。

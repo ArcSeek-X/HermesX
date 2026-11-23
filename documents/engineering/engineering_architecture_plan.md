@@ -101,7 +101,7 @@ HermesX/
 └── hrs-analysis-service/          # 同样的 pojo/rest 结构，包名 hermesx.analysis
 ```
 
-**本期验收与回滚**：`./mvnw verify` 验证全部 10 个 Maven 模块；确认只有三个 rest → 本服务 pojo 的代码依赖，无业务运行依赖，无新增 Java 实现。原根源码目录的用户空文件 `test.java` 原样移到 auth/rest 的对应包，保持未跟踪状态。未改 Python、Web、桌面、Docker 和发布入口，不要求 Java 能启动。回滚仅撤回 Java 构建与目录调整并原样恢复用户文件，P1 Python 迁移和本地数据不变。
+**本期验收与回滚**：`./mvnw verify` 验证全部 11 个 Maven 模块（含后续新增common）；原P2骨架验收只包含三个rest→本服务pojo的依赖；后续common和system案例另按末尾记录验收，不把骨架期的“无Java实现”套用于当前状态。原根源码目录的用户空文件 `test.java` 原样移到 auth/rest 的对应包，保持未跟踪状态。未改 Python、Web、桌面、Docker 和发布入口，不要求 Java 能启动。回滚仅撤回 Java 构建与目录调整并原样恢复用户文件，P1 Python 迁移和本地数据不变。
 
 **后续实施（待另行安排）**：
 
@@ -181,3 +181,15 @@ HermesX/
 - **system Mapper 调整（2026-11-18）**：按用户要求，以 MyBatis UserMapper + XML 替换原 JdbcTemplate UserDao；保留 SQLite 表与 HTTP 契约，补充 INSERT RETURNING 回滚验证。`./mvnw clean verify` 全部10个模块及6组集成测试通过，可执行JAR真实HTTP与重启持久化检查通过。
 
 - **用户企业与组织字段（2026-11-18）**：新增 enterprise_id、organization_id，并贯通 DTO/Entity/VO、Mapper XML 和列表精确筛选，字段可空且有值时必须为正整数；提供旧 SQLite 显式升级脚本，不自动修改本机数据，不将归属字段宣称为租户隔离。全部10个Maven模块和9项测试通过，包含旧表保留数据升级；可执行JAR验证新增归属落库、重启读取及原CRUD通过。
+
+- **system Nacos 接入（2026-11-18）**：仅 system/rest 引入服务注册与发现，默认关闭以支持离线开发，开启时要求配置地址与专用命名空间；保留独立 SQLite 数据库。本机已有Nacos2.5.4下注册、通过发现地址访问API及退出注销验证通过，全部10个Maven模块和12项测试通过。具体版本约束、启动方式与验证见 [Nacos 接入说明](java_nacos_discovery.md)。
+
+- **system 配置格式统一（2026-11-18）**：将 system 的 application.yml 转为 application.properties，21项配置及环境变量默认值保持一致；auth/analysis 骨架暂不调整。
+
+- **部门与菜单服务端（2026-11-19）**：参考scaffold在system实现Organization/Menu的DTO、Entity、VO、Controller、Service接口/实现及Mapper/XML；通过显式V4幂等初始化新增hrs_system_organization、hrs_system_menu。补齐循环检查、树筛选祖先保留、部门移动子孙路径原子更新、菜单类型与删除规则、用户部门关联校验；auth/Python/客户端不变。全部10个Maven模块和22项测试通过，并通过临时SQLite下可执行JAR真实HTTP、CSRF、重启持久化和软删除检查。说明见[部门与菜单案例](java_organization_menu_management_case.md)。
+
+- **common与统一响应（2026-11-19）**：新增普通hrs-common JAR，迁移PageVO并替换ErrorVO；system用户/部门/菜单/CSRF、业务异常、安全过滤器及错误分发统一为RestResult。删除由204改200/true，CSRF读取resultData.token。方案见[统一响应](java_common_response_design.md)，不改数据库和Python接口。
+
+- **统一响应验收**：干净构建全部11个Maven模块通过，common 3项测试与system 27项测试共30项通过；真实可执行JAR验证成功/删除/分页/树/CSRF及400/401/403/404/405/406/415/500统一JSON，保留Basic认证挑战。未改真实数据库和客户端，Windows及跨服务业务调用未验证。
+
+- **当前交付边界（2026-11-23）**：用户统一响应、部门与用户关联、菜单Java及可选Nacos配置分批入库；正式业务数据库、目标菜单结构部署与数据导入暂缓。前端最新隐藏祖先/状态职责规则、用户级授权及真实身份转发联调仍待实施。历史验证记录不等同于本轮重新在线验收。auth/test.java为迁移保留的零字节用户占位文件，最终以独立chore提交记录，不包含auth实现。

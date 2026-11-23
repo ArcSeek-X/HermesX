@@ -1,6 +1,6 @@
 # Java 菜单管理与导航查询
 
-更新时间：2026-11-23。本专题只覆盖菜单及其必需的公共响应、树工具和接口保护，不代表部门管理、Nacos或完整用户授权已交付。
+更新时间：2026-11-23。本专题只覆盖菜单及其必需的公共响应、树工具和接口保护。部门管理、Nacos分别见关联专题，不把这些能力或完整用户授权混入菜单协议。
 
 ## 接口与职责
 
@@ -78,7 +78,7 @@ flowchart TD
 | 其他菜单失败 | MENU_NOT_FOUND、INVALID_PARENT、INVALID_MENU_TYPE、INVALID_TREE等 |
 | 用户权限 | 暂不实现用户—角色—菜单关联；menuPermission仅预留 |
 
-公共错误边界与安全处理器是菜单依赖的共享设施，用户业务本身的成功响应升级不属于本次菜单提交范围。
+公共错误边界与安全处理器是菜单依赖的共享设施，用户业务成功响应已由后续独立提交统一，见[公共响应方案](java_common_response_design.md)；它不改变菜单协议的职责边界。
 
 ## 数据库与真实接入暂缓
 
@@ -95,3 +95,5 @@ flowchart TD
 执行`mvn -o -pl hrs-system-service/rest -am verify`，验证以本次Git暂存内容导出的独立目录，避免依赖工作区未提交的部门、Nacos或用户功能改动。
 
 回滚菜单代码不涉及业务库回滚。本文为中文专题，无英文对应文件。关联：[菜单](../authority/frontend/frontend_module_menu.md)、[动态路由](../authority/frontend/frontend_async_router.md)、[API契约](../authority/frontend/menu_api_contract.md)。
+
+关联专题：[部门与菜单案例](java_organization_menu_management_case.md)、[可选Nacos](java_nacos_discovery.md)。
