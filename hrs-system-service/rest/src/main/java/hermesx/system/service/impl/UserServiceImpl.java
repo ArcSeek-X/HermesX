@@ -10,6 +10,7 @@ import hermesx.system.exception.ManagementException;
 import hermesx.common.rest.ResultCodeEnum;
 import hermesx.system.security.CurrentUser;
 import hermesx.system.service.IUserService;
+import hermesx.system.service.IOrganizationService;
 import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +24,9 @@ public class UserServiceImpl implements IUserService {
     private final UserMapper mapper;
     private final PasswordEncoder passwords;
     private final CurrentUser currentUser;
-    public UserServiceImpl(UserMapper mapper, PasswordEncoder passwords, CurrentUser currentUser) {
-        this.mapper = mapper; this.passwords = passwords; this.currentUser = currentUser;
+    private final IOrganizationService organizations;
+    public UserServiceImpl(UserMapper mapper, PasswordEncoder passwords, CurrentUser currentUser, IOrganizationService organizations) {
+        this.mapper = mapper; this.passwords = passwords; this.currentUser = currentUser; this.organizations=organizations;
     }
     @Override @Transactional
     public UserVO create(CreateUserDTO data) {
@@ -33,6 +35,7 @@ public class UserServiceImpl implements IUserService {
         if (data.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw ManagementException.invalid(ResultCodeEnum.INVALID_REQUEST,"密码不能超过72个UTF-8字节。");
         }
+        organizations.validateUserDepartment(data.deptId(),data.enterpriseId(),data.organizationId());
         long id = mapper.insert(data.username().trim(), passwords.encode(data.password()), data.nickname().trim(),
                 data.phone(), data.email(), data.deptId(), data.enterpriseId(), data.organizationId(), data.status() == null ? 1 : data.status(), operator);
         return view(find(id));
@@ -49,6 +52,8 @@ public class UserServiceImpl implements IUserService {
     @Override @Transactional
     public UserVO update(long id, UpdateUserDTO data) {
         String operator = currentUser.requireAdmin();
+        find(id);
+        organizations.validateUserDepartment(data.deptId(),data.enterpriseId(),data.organizationId());
         UpdateUserDTO normalized = new UpdateUserDTO(data.nickname().trim(), data.phone(), data.email(), data.deptId(), data.enterpriseId(), data.organizationId(), data.status());
         if (mapper.update(id, normalized, operator) == 0) throw new UserNotFoundException();
         return view(find(id));

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hermesx.system.dao.OrganizationMapper">
+    <!-- record没有setter：按构造参数顺序显式映射，避免列名和驼峰名混淆。 -->
+    <resultMap id="entity" type="hermesx.system.entity.OrganizationEntity">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="parent_id" javaType="_long"/>
+            <arg column="ancestors" javaType="String"/>
+            <arg column="dept_name" javaType="String"/>
+            <arg column="leader" javaType="String"/>
+            <arg column="phone" javaType="String"/>
+            <arg column="email" javaType="String"/>
+            <arg column="sort" javaType="_int"/>
+            <arg column="status" javaType="_int"/>
+            <arg column="enterprise_id" javaType="java.lang.Long"/>
+            <arg column="organization_id" javaType="java.lang.Long"/>
+            <arg column="delete_flag" javaType="_int"/>
+            <arg column="create_by" javaType="String"/>
+            <arg column="update_by" javaType="String"/>
+            <arg column="create_time" javaType="String"/>
+            <arg column="update_time" javaType="String"/>
+        </constructor>
+    </resultMap>
+    <sql id="columns">id, parent_id, ancestors, dept_name, leader, phone, email, sort, status, enterprise_id, organization_id, delete_flag, create_by, update_by, create_time, update_time</sql>
+    <select id="find" resultMap="entity">
+        SELECT <include refid="columns"/> FROM hrs_system_organization WHERE id=#{id} AND delete_flag=0
+    </select>
+    <!-- 先取完整归属范围内的树，再在业务层筛选并保留祖先，避免搜子节点时断树。 -->
+    <select id="all" resultMap="entity">
+        SELECT <include refid="columns"/> FROM hrs_system_organization
+        WHERE delete_flag=0
+        <if test="enterpriseId != null">AND enterprise_id=#{enterpriseId}</if>
+        <if test="organizationId != null">AND organization_id=#{organizationId}</if>
+        ORDER BY sort,id
+    </select>
+    <!-- SQLite返回主键的写语句必须声明affectData，参加Spring事务而不是只读缓存。 -->
+    <select id="insert" resultType="long" affectData="true" flushCache="true" useCache="false">
+        INSERT INTO hrs_system_organization (parent_id,ancestors,dept_name,leader,phone,email,sort,status,enterprise_id,organization_id,create_by,update_by)
+        VALUES (#{data.parentId,jdbcType=BIGINT},#{ancestors},#{data.name,jdbcType=VARCHAR},#{data.leader,jdbcType=VARCHAR},#{data.phone,jdbcType=VARCHAR},#{data.email,jdbcType=VARCHAR},#{data.sort,jdbcType=INTEGER},#{data.status,jdbcType=INTEGER},#{data.enterpriseId,jdbcType=BIGINT},#{data.organizationId,jdbcType=BIGINT},#{operator},#{operator}) RETURNING id
+    </select>
+    <update id="update">
+        UPDATE hrs_system_organization SET parent_id=#{data.parentId,jdbcType=BIGINT},
+            ancestors=#{ancestors},
+            dept_name=#{data.name,jdbcType=VARCHAR},
+            leader=#{data.leader,jdbcType=VARCHAR},
+            phone=#{data.phone,jdbcType=VARCHAR},
+            email=#{data.email,jdbcType=VARCHAR},
+            sort=#{data.sort,jdbcType=INTEGER},
+            status=#{data.status,jdbcType=INTEGER},
+            enterprise_id=#{data.enterpriseId,jdbcType=BIGINT},
+            organization_id=#{data.organizationId,jdbcType=BIGINT},
+            update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+    <select id="countChildren" resultType="long">
+        SELECT COUNT(*) FROM hrs_system_organization WHERE parent_id=#{id} AND delete_flag=0
+    </select>
+    <update id="softDelete">
+        UPDATE hrs_system_organization SET delete_flag=1,update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+    <select id="countUsers" resultType="long">
+        SELECT COUNT(*) FROM hrs_system_user WHERE dept_id=#{id} AND delete_flag=0
+    </select>
+    <update id="updateAncestors">
+        UPDATE hrs_system_organization SET ancestors=#{ancestors},update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+</mapper>

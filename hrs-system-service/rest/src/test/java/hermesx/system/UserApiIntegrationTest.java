@@ -36,7 +36,12 @@ class UserApiIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired PasswordEncoder encoder;
     @Autowired IUserService service;
-    @BeforeEach void clear() { jdbc.update("DELETE FROM hrs_system_user"); }
+    @BeforeEach void clear() {
+        jdbc.update("DELETE FROM hrs_system_user");
+        jdbc.update("DELETE FROM hrs_system_organization");
+        jdbc.update("INSERT INTO hrs_system_organization(id,dept_name,create_by,update_by) VALUES (7,'测试部门','fixture','fixture')");
+        jdbc.update("INSERT INTO hrs_system_organization(id,dept_name,enterprise_id,organization_id,create_by,update_by) VALUES (8,'归属部门',100,2001,'fixture','fixture')");
+    }
     @AfterAll static void cleanup() throws Exception { Files.deleteIfExists(DATABASE); }
     String createBody(String username) {
         return "{\"username\":\"" + username + "\",\"password\":\"learning-secret\",\"nickname\":\"学习用户\",\"deptId\":7}";

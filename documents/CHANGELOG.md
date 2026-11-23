@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 提交部门管理CRUD、树移动与删除保护、用户部门归属校验及临时SQLite回归；system配置转为带注释的properties并显式列入既有V4资源，业务库与目标菜单表部署仍暂缓。
+
 - [改进] 用户与CSRF接口统一为RestResult响应，分页复用common类型，删除返回200/true；移除旧局部响应类，补齐容器错误分发及统一响应回归测试。
 
 - [修复] Java导航查询递归排除禁用节点及其子树，管理查询仍保留禁用数据；隐藏节点原样返回，page完整路径不由menuCode拼接，group路径不强制绝对格式；补齐回归测试，数据库与用户级授权仍暂缓，前端新显示规则待后续对齐。

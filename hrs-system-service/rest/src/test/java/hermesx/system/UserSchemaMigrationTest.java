@@ -45,4 +45,29 @@ class UserSchemaMigrationTest {
         assertThatThrownBy(() -> jdbc.update("UPDATE hrs_system_user SET organization_id=-1"))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
     }
+    @Test void additiveTreeSchemaPreservesUsersAndIsSafeOnRestart() {
+        var source=new DriverManagerDataSource("jdbc:sqlite:"+directory.resolve("existing-system.db"));
+        new ResourceDatabasePopulator(new ClassPathResource("db/schema.sql")).execute(source);
+        var jdbc=new JdbcTemplate(source);
+        jdbc.update("INSERT INTO hrs_system_user(username,password,nickname,delete_flag) VALUES ('old-user','old-hash','旧用户',1)");
+        var schema=new ResourceDatabasePopulator(new ClassPathResource("db/migration/V4__create_organization_and_menu.sql"));
+        schema.execute(source);
+        jdbc.update("INSERT INTO hrs_system_organization(dept_name,create_by,update_by) VALUES ('部门','fixture','fixture')");
+        jdbc.update("INSERT INTO hrs_system_menu(menu_name,menu_type,create_by,update_by) VALUES ('菜单','dir','fixture','fixture')");
+        // 再次初始化既不能删用户，也不能覆盖新节点。
+        new ResourceDatabasePopulator(new ClassPathResource("db/schema.sql")).execute(source);
+        schema.execute(source);
+        assertThat(jdbc.queryForObject("SELECT password FROM hrs_system_user",String.class)).isEqualTo("old-hash");
+        assertThat(jdbc.queryForObject("SELECT delete_flag FROM hrs_system_user",Integer.class)).isEqualTo(1);
+        for (String table:java.util.List.of("hrs_system_organization","hrs_system_menu")) {
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class)).isEqualTo(1);
+            var columns=jdbc.queryForList("PRAGMA table_info("+table+")").stream().map(r->r.get("name")).toList();
+            assertThat(columns).contains("enterprise_id","organization_id","delete_flag","create_by","update_time");
+            assertThatThrownBy(()->jdbc.update("UPDATE "+table+" SET delete_flag=2"))
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThatThrownBy(()->jdbc.update("UPDATE "+table+" SET enterprise_id=-1"))
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class);
+        }
+    }
+
 }
