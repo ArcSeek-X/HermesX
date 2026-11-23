@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/ArcSeek-X/HermesX?style=social)](https://github.com/ArcSeek-X/HermesX/stargazers)
 [![CI](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml/badge.svg)](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-red.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Ready-2088FF?logo=github-actions\&logoColor=white)](https://github.com/features/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker\&logoColor=white)](https://hub.docker.com/r/ArcSeek-X/HermesX)
@@ -274,9 +274,9 @@ python python/main.py --webui-only
 
 ## 📄 License
 
-[MIT License](LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
+[HermesX 非商业学习许可 1.0](LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
-欢迎在二次开发或引用时注明本仓库来源，感谢支持项目持续维护。
+本项目仅供学习、研究、技术交流与非商业用途使用，**禁止任何商业使用**。如需商业授权，请联系作者取得书面许可。
 
 ## ⚠️ 免责声明
 

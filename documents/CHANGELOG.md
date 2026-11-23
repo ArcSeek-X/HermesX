@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 将项目许可由 MIT 调整为 HermesX 非商业学习许可 1.0：允许学习与交流等非商业用途，禁止商用；同步更新中英繁三语 README 的许可徽章与说明。
+
 - [改进] 前端菜单清单统一 module、group、page 节点格式，以 menuType 区分，统一 menuCode/menuName/menuRoutePath 等字段；同步应用切换、侧栏高亮、排序状态和动态路由，菜单与路由共用清单指纹使旧缓存失效，需重新登录重建。本次不修改 Java 和数据库。
 
 - [新功能] 新增 hrs-common 公共JAR及公共/业务结果码枚举，system用户、部门、菜单和CSRF成功/失败统一为resultCode/resultMsg/resultData；删除改为200返回true，同步调用示例、异常与安全响应测试。

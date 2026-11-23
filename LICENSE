@@ -1,21 +1,48 @@
-MIT License
+HermesX Non-Commercial Learning License 1.0
+HermesX 非商业学习许可 1.0
 
-Copyright (c) 2026 Lensgcx（GaoCangxiong）- ArcSeek-X
+Copyright (c) 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+本许可仅适用于本仓库自有代码与文档，不适用于随仓库分发的第三方组件
+（其许可见各自目录内的 LICENSE 文件）。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. 允许的使用 / Permitted Use
+   任何使用者可为学习、研究、技术交流与非商业目的，免费使用、复制、
+   修改、合并与分发本软件及其文档。
+   Any user may use, copy, modify, merge and distribute the Software for
+   learning, research, technical discussion and non-commercial purposes,
+   free of charge.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. 禁止商业使用 / No Commercial Use
+   未经著作权人书面许可，不得将本软件或其任何部分用于任何商业目的，
+   包括但不限于：作为收费产品或服务的全部或部分提供；在企业、组织或
+   其他以营利为目的的场景中部署运营；集成进客户交付物或内部商业系统；
+   出售、出租或以商业目的再分发；基于本软件提供有偿咨询、托管或代运维。
+   No commercial use is permitted without prior written permission from the
+   copyright holder, including but not limited to offering the Software as
+   or within a paid product or service, deploying it for profit-making
+   operations, integrating it into commercial deliverables, selling,
+   leasing, or providing paid services based on the Software.
+
+3. 署名与保留 / Attribution
+   复制或实质性修改版本须保留版权声明与本许可全文，并注明来源为本仓库。
+   Copies and substantial modifications must retain this notice and the full
+   license text, with attribution to this repository.
+
+4. 免责声明 / No Warranty
+   本软件按“现状”提供，不作任何明示或默示担保（包括适销性、特定用途
+   适用性与不侵权）。作者及著作权人对使用本软件产生的任何损失不负责。
+   本项目不构成投资建议。
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED. THE AUTHORS ARE NOT LIABLE FOR ANY DAMAGES ARISING FROM ITS
+   USE. THIS PROJECT DOES NOT CONSTITUTE INVESTMENT ADVICE.
+
+5. 授权边界 / Scope
+   本许可不授予商标、专利或其他权利；衍生作品同样受非商业限制约束。
+   如需商业授权，请联系著作权人取得书面许可。
+   No trademark, patent or other rights are granted. Derivative works remain
+   subject to the non-commercial restriction. Commercial licensing requires
+   written permission from the copyright holder.
+
+两种语言版本如有冲突，以中文版为准。/ In case of conflict, the Chinese
+version prevails.

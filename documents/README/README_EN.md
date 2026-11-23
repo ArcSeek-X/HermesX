@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/ArcSeek-X/HermesX?style=social)](https://github.com/ArcSeek-X/HermesX/stargazers)
 [![CI](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml/badge.svg)](https://github.com/ArcSeek-X/HermesX/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-red.svg)](../../LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Ready-2088FF?logo=github-actions&logoColor=white)](https://github.com/features/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/ArcSeek-X/HermesX)
@@ -290,9 +290,9 @@ If you find this project useful, you can buy the author a glass of juice :tropic
 
 ## 📄 License
 
-[MIT License](../../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
+[HermesX Non-Commercial Learning License 1.0](../../LICENSE) © 2026 Lensgcx (GaoCangxiong) - ArcSeek-X
 
-If you use or build on this project, attribution with a link back to this repository is appreciated.
+For learning, research, technical discussion and non-commercial use only. Commercial use is prohibited. Contact the author for commercial licensing.
 
 ## ⚠️ Disclaimer
 
