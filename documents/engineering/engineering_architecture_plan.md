@@ -22,6 +22,8 @@
 
 ## 一、实施边界与批次总览
 
+**2026-11-24 SQL 执行状态更新**：SQLite 继续过渡，每服务固定同名 SQL；基线已收敛，Java 已关闭启动初始化并移除分段读取，正式 SQL 只复制到测试 classpath。独立手动工具和执行历史已实现并在临时库验证，正式部署仍待安排；执行约定及MySQL后续工作按 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md)的 DB-0～DB-5 批次执行，下文早期收拢记录仅描述当时阶段，当前实现与验收以上述状态及最新记录为准。
+
 **2026-11-18 范围更新**：原 P2“仅骨架”的初始交付已完成。现按用户新的明确授权，额外实现 system 的 SQLite 用户管理学习案例；不表示 P2 完整认证及 P3–P5 已获执行授权。案例的接口、字段、阶段性凭据归属例外和运行方法见 [用户管理案例](java_user_management_case.md)。
 
 实施依据为 [整体工程架构](engineering_architecture.md)、[Java 工程架构](java_engineering_architecture.md) 和 [Python 工程架构](python_engineering_architecture.md)。本文定义施工顺序与验收门槛，各层的编码规则由子方案维护。Java 业务实现和Java/Python 多服务部署不在本期范围。
@@ -193,3 +195,15 @@ HermesX/
 - **统一响应验收**：干净构建全部11个Maven模块通过，common 3项测试与system 27项测试共30项通过；真实可执行JAR验证成功/删除/分页/树/CSRF及400/401/403/404/405/406/415/500统一JSON，保留Basic认证挑战。未改真实数据库和客户端，Windows及跨服务业务调用未验证。
 
 - **当前交付边界（2026-11-23）**：用户统一响应、部门与用户关联、菜单Java及可选Nacos配置分批入库；正式业务数据库、目标菜单结构部署与数据导入暂缓。前端最新隐藏祖先/状态职责规则、用户级授权及真实身份转发联调仍待实施。历史验证记录不等同于本轮重新在线验收。auth/test.java为迁移保留的零字节用户占位文件，最终以独立chore提交记录，不包含auth实现。
+
+- **SQL维护入口收拢（2026-11-23）**：每个Java服务的sql/目录统一维护同名.sql文件；system将INIT/V2/V3/V4收拢为版本分段，构建复制入JAR，启动仍只选INIT/V4。移除旧正式SQL路径并同步测试和文档，不执行业务库迁移，也不引入自动版本记录。
+
+- **SQL新库基线整理（2026-11-23）**：按先修改SQL文件的要求，将system正式文件收敛为BASELINE_20261123，移除INIT/V2/V3/V4，三表结构与Mapper列对齐，补齐约束和索引。内存SQLite3.43.2完成47项映射/约束检查及重复执行验证；没有创建真实业务库。Java仍引用旧分段，因此本轮不宣称Maven/启动链路通过，后续按DB批次同步工具、配置和测试。
+
+- **Java启动与SQL执行解耦（2026-11-24）**：system生产配置改为spring.sql.init.mode=never，移除SqlScriptConfig/VersionedSqlResource与旧分段测试。正式SQL只复制到测试classpath，业务JAR不含SQL；CRUD测试使用正式基线，移除菜单替换DDL。根./mvnw -o clean verify的11模块、40测试通过；打包JAR在隔离临时库连续启动两次并通过Basic查询，结构和业务数据未变化。独立手动工具及真实数据库部署仍未实施，回退本次只涉及代码、配置和文档，无真实数据库需回滚。
+
+- **SQLite手动升级工具（2026-11-24）**：新增scripts/db/manual_db_upgrade.py及标准库unittest临时库测试；SQL使用@service、@dialect和逐段@upgrade JSON声明，工具按历史与规范结构选择待办，不在Java维护版本列表。支持plan、apply/create、adopt-baseline、SHA-256摘要、独立技术历史表、写锁复查、一致性备份和整批回滚；Java仍关闭初始化。工具测试接入ci_gate.sh deterministic。实际业务库、MySQL和自动部署未操作。
+
+- **手动工具验收（2026-11-24）**：Python3.9和3.11下各28项真实SQLite测试通过，覆盖事务回滚、WAL快照、无历史库接管与两进程竞争；根Maven11模块40测试通过。工具创建临时库后，打包Java真实HTTP完成Basic/CSRF用户及菜单新增和导航，工具重跑无待办，结构及历史未被Java改写。未操作实际数据库，MySQL、Windows、Docker与远端Actions未验证。
+
+- **提交前并发修正（2026-11-24）**：加压复查发现，普通文件描述符探测可能释放同进程SQLite写锁；数据库读取改为SQLite接口，补备份连接不释放写锁的回归。最新工具29项测试通过，30轮双进程验证通过；未修改实际业务库。

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] system 正式 SQL 统一到各服务 sql/ 同名文件，收敛用户、部门及 module/group/page 菜单的 SQLite 基线、约束和索引；关闭 Java 启动初始化，正式 SQL 仅供测试复制，不进入业务 JAR，移除旧脚本与重复测试结构。
+- [新功能] 新增可复用的 SQLite 手动升级工具 scripts/db/manual_db_upgrade.py，支持预览、显式建库、增量升级、基线接管、SHA-256 历史及结构校验、一致性备份和失败回滚；补齐中文编写规范、完整示例、29项临时库测试及 deterministic 门禁接入，未操作实际业务库。
+- [文档] 完善 SQL 管理与数据库升级执行方案，同步数据库规范、Java与全仓架构及学习案例，明确单文件版本协议、手动执行边界、备份恢复、当前验收和后续 MySQL 迁移要求。
+
 - [chore] 将迁移保留的auth/test.java零字节占位文件纳入版本管理；不包含登录、认证或其他运行逻辑。
 
 - [文档] 汇总数据库命名、服务独立库与工程规范，更新公共响应、用户、部门及菜单学习案例，明确业务库和目标菜单部署暂缓、历史验收与当前交付边界。

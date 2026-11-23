@@ -21,7 +21,7 @@
 
 ### 1.1 当前状态与目标
 
-菜单 Java 契约已于 2026-11-23 对齐前端：`POST /api/system/list-menu` 返回统一 `module/group/page` 树（Java过滤禁用节点及其子树，管理查询仍保留禁用记录；隐藏只影响前端展示），DTO/Entity/VO 和 Mapper 业务字段统一。**本阶段暂不创建 `data/hrs_system.db`、不修改正式建表脚本、不导入菜单数据；Mapper 目标结构仅用测试专用临时库验证。** 在后续数据库阶段完成之前，旧 V4 初始化出的菜单表不能直接运行新 Mapper。Basic/CSRF 身份接入与前端代理联调仍待后续完成。
+菜单 Java 契约已于 2026-11-23 对齐前端：`POST /api/system/list-menu` 返回统一 `module/group/page` 树（Java过滤禁用节点及其子树，管理查询仍保留禁用记录；隐藏只影响前端展示），DTO/Entity/VO 和 Mapper 业务字段统一。**不创建 `data/hrs_system.db`、不导入菜单数据。正式 SQL 已整理为 `BASELINE_20261123`，Java 已关闭启动初始化并移除分段读取，集成测试在临时 SQLite 显式执行同一正式基线。** 独立手动工具已实现并在临时库验证，正式数据库尚未部署。Basic/CSRF 身份接入与前端代理联调仍待后续完成。
 
 【强制】本文描述已确认的目标：**三个 Java 服务 + 一个 Python 服务**。仓库现已建立根聚合 POM、三个服务及各自的 pojo/rest 工程骨架，其中 system 已实现独立的 SQLite 用户、部门与菜单管理学习案例（CRUD、树结构与管理接口保护），auth 与 analysis 仍为骨架。整体方案与实施计划已同步此结构，现有 Python/Web/桌面入口未切换。system 另支持可选 [Nacos 注册与发现](java_nacos_discovery.md)，仍使用独立SQLite，不接入配置中心。
 
@@ -141,7 +141,7 @@ Controller → Service 接口 → ServiceImpl → DAO → 本服务数据
 | --- | --- | --- |
 | `rest/src/main/resources/application.properties`（system）；其余骨架暂用 `application.yml` | 服务运行配置和外部配置占位引用 | 不放真实密钥；新配置同步脱敏 `.env.example` 与文档 |
 | `rest/src/main/resources/mapper/`（如采用 MyBatis XML） | DAO 映射对应的 SQL XML | `WatchlistMapper.xml` 对应 `WatchlistMapper.java`，namespace 为完整 Mapper 类型名，语句 ID 对应方法名 |
-| `rest/src/main/resources/db/migration/`（如采用 Flyway） | 本服务拥有的数据结构迁移 | 例如 `V1__create_watchlist.sql`；版本唯一；不迁移其他服务的表；迁移工具尚未选定 |
+| `<服务名>/sql/<服务名>.sql` | 本服务正式SQL的唯一维护文件，包含基线及后续变更 | 固定名称不加分支后缀；目标由独立工具手动执行，Java不升级。system已移除启动分段读取，正式SQL仅复制到测试classpath、不进入业务JAR；独立工具见[SQL管理与执行方案](../DB/sql_management_and_execution_plan.md)，仅手动调用；不迁移其他服务的表 |
 | `pojo/src/test/java/hermesx/<业务包>/` | 必要的数据类型约束测试 | `LoginDTOTest.java`；不为纯 getter/setter 增加镜像测试 |
 | `rest/src/test/java/hermesx/<业务包>/` | Controller 契约、Service 规则、DAO 查询与远程失败路径验证 | `WatchlistControllerTest.java`、`WatchlistServiceImplTest.java`、`PythonAnalysisClientTest.java`；对应生产包 |
 | `rest/src/test/resources/` | 测试配置与夹具 | 例如 `application-test.yml`，不能默认连接真实生产或个人数据库 |
@@ -174,7 +174,7 @@ Python 内部分层与数据源规则见 [Python 工程架构](python_engineerin
 
 ## 四、目录示例
 
-未实现的服务仍以 `.gitkeep` 保存包目录，配置为注释占位；system 已有用户、部门及菜单Java案例，各自使用对应Mapper接口和XML；菜单目标业务库仍暂缓，不能把旧V4当作新Mapper的目标表。原根目录的用户空文件 `test.java` 已原样迁至 auth 服务 rest 的对应包下，不属于新实现。以下是目标全仓关系及三个服务的完整层级模板。文件是命名示例；尚未授权的功能不要求实现这些 Java 类。`mapper/`、`db/migration/` 等依具体技术选型创建。
+未实现的服务仍以 `.gitkeep` 保存包目录，配置为注释占位；system 已有用户、部门及菜单Java案例，各自使用对应Mapper接口和XML；菜单目标业务库仍暂缓，不能把旧V4当作新Mapper的目标表。原根目录的用户空文件 `test.java` 已原样迁至 auth 服务 rest 的对应包下，不属于新实现。以下是目标全仓关系及三个服务的完整层级模板。文件是命名示例；尚未授权的功能不要求实现这些 Java 类。`mapper/`按持久化实现维护；正式SQL统一放服务根目录sql/中的同名.sql文件，测试夹具保留在test/resources/db。
 
 ```text
 HermesX/
@@ -183,6 +183,8 @@ HermesX/
 ├── mvnw / mvnw.cmd                          # Maven Wrapper 入口
 ├── .mvn/wrapper/                            # Wrapper 版本与下载配置
 ├── hrs-auth-service/
+│   ├── sql/
+│   │   └── hrs-auth-service.sql          # 单文件按版本分段
 │   ├── pom.xml                              # 聚合本服务 pojo、rest
 │   ├── pojo/
 │   │   ├── pom.xml                          # hrs-auth-service-pojo
@@ -221,6 +223,8 @@ HermesX/
 │               ├── java/hermesx/auth/
 │               └── resources/
 ├── hrs-system-service/
+│   ├── sql/
+│   │   └── hrs-system-service.sql          # 单文件按版本分段
 │   ├── pom.xml
 │   ├── pojo/
 │   │   ├── pom.xml                          # hrs-system-service-pojo
@@ -265,6 +269,8 @@ HermesX/
 │               ├── java/hermesx/system/
 │               └── resources/
 ├── hrs-analysis-service/
+│   ├── sql/
+│   │   └── hrs-analysis-service.sql          # 单文件按版本分段
 │   ├── pom.xml
 │   ├── pojo/
 │   │   ├── pom.xml                          # hrs-analysis-service-pojo

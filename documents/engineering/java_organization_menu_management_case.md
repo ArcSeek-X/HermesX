@@ -2,7 +2,9 @@
 
 更新时间：2026-11-23。参考工程：`vibe-template/scaffold-master-main`。
 
-本案例只实现 `hrs-system-service` 的服务端，沿用用户管理的 Spring Boot、MyBatis、SQLite、管理身份和CSRF保护。部门表按要求命名为 **hrs_system_organization**，菜单表命名为 **hrs_system_menu**，目标位置是 system 自己的 `data/hrs_system.db`。**按当前要求暂不创建此文件、不修改正式建表脚本、不导入初始化菜单数据**。本轮只调整 Java 菜单接口、对象、业务逻辑及 Mapper；测试使用独立临时 SQLite。Python 数据库和前端功能代码未修改。
+> **SQL 执行更新（2026-11-24）**：正式 SQL 为 `BASELINE_20261123`，Java已关闭启动初始化并移除分段读取；测试显式使用正式SQL，不再用菜单夹具替换表结构。独立手动工具已实现，正式部署仍待安排，见 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md)。
+
+本案例只实现 `hrs-system-service` 的服务端，沿用用户管理的 Spring Boot、MyBatis、SQLite、管理身份和CSRF保护。部门表按要求命名为 **hrs_system_organization**，菜单表命名为 **hrs_system_menu**，目标位置是 system 自己的 `data/hrs_system.db`。**暂不创建此数据库、不导入初始化菜单数据**。Java 菜单接口、对象、业务逻辑及 Mapper 已调整；后续授权仅先整理了正式 SQL 基线，使用内存 SQLite 验证。Python 数据库和前端功能代码未修改。
 
 接口正文已统一为 [RestResult](java_common_response_design.md)：VO/树放在resultData，删除返回HTTP200及resultData=true。
 
@@ -55,7 +57,7 @@ rest/src/main/
     ├── application.properties
     ├── mapper/OrganizationMapper.xml
     ├── mapper/MenuMapper.xml
-    └── db/migration/V4__create_organization_and_menu.sql
+    # 正式SQL不放resources；服务根目录hrs-system-service.sql按版本管理
 ```
 
 | 类型 | 大白话 | 本例怎么写 |
@@ -192,11 +194,11 @@ Service先检查D不是B或B的子孙，再更新B，按父子关系逐个重算
 
 ## 8. 数据库暂缓实施：当前不能直接运行新菜单Mapper
 
-`data/hrs_system.db`是目标业务库位置，本轮没有创建、连接或写入它。用户/部门旧资源保持原样；`application.properties`仍加载`db/schema.sql`和旧V4。**旧V4仍使用parent_id、dir/menu/btn等旧列和约束，不能为新MenuMapper提供目标结构**。不能仅启动服务就认定数据库升级完成。
+`data/hrs_system.db` 是目标业务库，本轮未创建或写入。服务 `sql/hrs-system-service.sql` 已改为单一 BASELINE_20261123，用户、部门和目标菜单结构已对齐并通过内存验证。Java已移除旧分段选择，生产配置禁止启动初始化；SQL仅进入测试classpath，不进入业务JAR。独立工具已实现，真实库尚未部署；使用业务接口前须手动运行工具准备匹配结构。
 
-后续数据库阶段需更新正式建表/升级资源、索引和数据约束，将manifest节点按稳定menuCode导入，配置真实HRS_SYSTEM_DB_URL后再进行真实服务联调。暂不提供默认删表、迁移、种子导入或创建业务数据库命令。
+Java旧初始化移除及测试同步已完成。独立工具已实现，后续数据库阶段需按明确安排执行，按明确安排将manifest节点以稳定menuCode导入，配置真实HRS_SYSTEM_DB_URL后再进行真实服务联调。暂不提供默认删表、迁移、种子导入或创建业务数据库命令。
 
-测试通过属性覆盖，在测试创建的临时SQLite上加载`rest/src/test/resources/db/menu_target_test_schema.sql`。该夹具只替换临时库的菜单表，**不属于生产初始化资源**，不能当作已经交付的正式数据库迁移。它用于验证真实MyBatis参数绑定、record映射和事务，避免把Mapper完全mock掉。
+测试通过属性显式开启SQL初始化，并在测试创建的临时SQLite上加载Maven仅供测试复制的正式`sql/hrs-system-service.sql`。旧菜单结构替换夹具已删除；CRUD、MyBatis映射与事务直接在正式目标结构验证，避免另一份DDL掩盖结构偏差。这不代表真实业务库已部署。
 
 ## 9. 登录导航查询如何经过各层
 

@@ -2,6 +2,8 @@
 
 本案例把 `scaffold-master-main` 的用户 CRUD 思路放入 HermesX 的 `hrs-system-service`，只实现服务端。阅读顺序是 **DTO → Controller → Service 接口 → ServiceImpl → UserMapper / XML → Entity → VO**。本文中的路径均相对于仓库根。
 
+> **SQL 执行状态（2026-11-24）**：正式 SQL 为 `BASELINE_20261123`，Java 已关闭启动初始化并移除分段读取；测试在临时 SQLite 显式执行正式基线。业务 JAR 不携带建表 SQL，使用业务接口前须手动准备匹配结构。独立工具已实现，真实库部署仍待安排，见 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md)。
+
 统一响应见 [common与响应规范](java_common_response_design.md)：正文中的VO、数组、分页结果均位于resultData内，删除返回200及true，CSRF token位于resultData.token。
 
 ## 1. 本次实现的边界
@@ -35,7 +37,7 @@
 | `rest/src/main/java/hermesx/system/config/DatabaseConfig.java` | 把 SQLite 唯一键冲突通过 MyBatis 会话转换成通用重复键异常 |
 | `rest/src/main/java/hermesx/system/exception/GlobalExceptionHandler.java` | 业务异常到 HTTP 错误的转换，避免返回 SQL 或密码 |
 | `rest/src/main/resources/application.properties` | 外部配置入口、连接池和建表脚本设置 |
-| `rest/src/main/resources/db/schema.sql` | 建表和索引，首次启动创建，后续启动不清空数据 |
+| `sql/hrs-system-service.sql`（相对于服务目录，BASELINE_20261123段） | 用户、部门与目标菜单的统一基线；仅复制到测试classpath，Java启动不执行 |
 | `rest/src/test/java/hermesx/system/UserApiIntegrationTest.java` | 使用真实 SQLite 临时文件贯穿 API、业务和持久化 |
 
 这里使用 Java 17 的 `record` 表示数据类型：它生成构造方法和字段访问方法，例如 `data.nickname()`；没有 Lombok，也不需要手写大量 getter/setter。DTO 不负责处理业务，Entity 不负责执行 SQL。为避免意外记录密码，含密码的类型重写了 `toString()`。
@@ -84,29 +86,15 @@ MyBatis Spring Boot Starter 3.0.5 适配本例 Spring Boot 3.5；运行配置明
 
 SQLite 不像 MySQL 一样自动强制 VARCHAR 长度，所以 DTO 校验之外，DDL 也增加 CHECK。SQLite 不支持 MySQL 的 COMMENT、ENGINE 和 ON UPDATE 子句，中文解释使用 SQL 注释。时间、主键和唯一索引是迁移数据库时需要重点复核的差异。
 
-`schema.sql` 用于当前初始建表，`CREATE TABLE IF NOT EXISTS` 不会自动升级未来变化的旧表。本次新增企业和组织字段提供 `rest/src/main/resources/db/migration/V2__add_user_enterprise_organization.sql` 作为显式升级脚本，仅用于两个字段均不存在的旧 SQLite 表，应用不会自动执行它。旧数据的新增字段保持 NULL，不自动猜填归属。
+服务目录下 `sql/hrs-system-service.sql` 已整理为 `BASELINE_20261123`，直接包含企业、组织及 `delete_flag` 字段，不再保留旧 V2/V3 改表步骤。用户账号全表唯一，逻辑删除后仍不复用；审计列非空，由服务端写入。相同结构下重复执行不清空数据，但 `IF NOT EXISTS` 不会升级未知旧表。Java 的 INIT/V4 选择已移除，服务不再自动初始化；正式业务库仍未创建，不能以服务启动成功代替数据库部署验收。
 
-使用旧库时，先停止 Java 服务并备份数据库，再检查 `PRAGMA table_info(hrs_system_user);`。确认两个字段都不存在后，从仓库根执行下列命令，路径由自己提供：
-
-```bash
-read -r -p '旧SQLite文件的绝对路径: ' USER_DB_FILE
-# .bail on 保证遇到错误立即退出；两条 ALTER 位于一个事务，失败不会只升级一半。
-sqlite3 -bail "$USER_DB_FILE" < hrs-system-service/rest/src/main/resources/db/migration/V2__add_user_enterprise_organization.sql
-```
-
-删除标志统一为数据库 `delete_flag`、Java Entity 的 `deleteFlag`；值为0表示正常、1表示已删除，仍不暴露在前端 VO 中。若旧表仍叫 `deleted`，停止服务、备份后，再执行一次重命名脚本（原有删除状态会保留）：
-
-```bash
-sqlite3 -bail "$USER_DB_FILE" < hrs-system-service/rest/src/main/resources/db/migration/V3__rename_user_delete_flag.sql
-```
-
-V2 用于增加企业和组织字段，V3 用于重命名删除标志，分别检查对应字段后执行；两步都需要时按 V2 → V3 执行。新数据库由配置中的schema.sql和显式V4脚本初始化，无需手动运行V2/V3；已有对应目标字段时不要重复执行。若只有一个字段存在，应先排查数据库版本，不能盲目重跑脚本。脚本保留原用户、密码哈希和审计数据。后续字段变更也需明确的迁移，不要仅覆盖 CREATE TABLE 文件。
+独立工具 `scripts/db/manual_db_upgrade.py` 与执行历史已按 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md) 实现，支持plan、apply/create和显式接管基线；Java不调用它。真实业务数据库尚未创建。
 
 Nacos 可选接入、独立数据库规划和注册验证见 [Nacos 接入说明](java_nacos_discovery.md)。
 
 ## 5. 启动服务
 
-需要 JDK 17。以下命令从仓库根运行，使用独立 SQLite 文件，父目录先创建：
+**前提：数据库已手动准备为与正式 SQL 匹配的结构。** Java不再建表，下面命令仅构建和启动服务，不能初始化空库。请先按[SQL方案](../DB/sql_management_and_execution_plan.md#sec-5)使用独立工具预览并准备数据库。需要 JDK 17，从仓库根运行：
 
 ```bash
 ./mvnw -pl hrs-system-service/rest -am verify

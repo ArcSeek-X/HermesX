@@ -82,7 +82,7 @@ flowchart TD
 
 ## 数据库与真实接入暂缓
 
-**没有创建或修改data/hrs_system.db，没有执行正式建表或菜单种子导入。** Mapper引用的是目标menu_业务列，正式目标建表资源尚未交付；不能直接用旧表运行新Mapper。测试SQL位于src/test/resources，只在自动化测试自己的临时数据库使用，不是生产迁移。
+**未创建或修改 data/hrs_system.db，未导入菜单种子。** 正式 SQL 已在服务 `sql/hrs-system-service.sql` 收敛为 BASELINE_20261123，对齐目标 menu_ 业务列和 module/group/page，并通过内存 SQLite 验证。Java已关闭启动初始化并移除旧分段读取，正式SQL只复制到测试classpath，不进入业务JAR。测试显式初始化隔离临时库，不再使用另一份菜单DDL；独立工具已实现，正式部署仍待安排；使用业务接口前须手动运行工具准备匹配结构。
 
 数据库列使用menu_业务前缀，id、enterprise_id、organization_id、delete_flag与审计字段按既有约定保留；auth/exact映射为menu_auth/menu_exact。实际部署数据库、索引/约束与56个manifest节点导入在数据库阶段完成。
 

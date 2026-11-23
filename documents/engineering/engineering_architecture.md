@@ -152,6 +152,7 @@ HermesX/
 | `apps/hrs-desktop/` | 维护窗口、受控的 preload 接口、后端进程生命周期、安装和更新。单机模式打包同一份 Web 界面和本机后端，后端绑定本机地址；界面通过业务 API 访问，桌面桥接只提供需要的本机能力。 |
 | `docker/`、`scripts/`、`.github/` | Docker 管镜像和联机部署，脚本统一本地启动、构建及检查，工作流调用这些入口并负责发布。Docker 与桌面各自传入运行地址、数据目录和静态资源位置。 |
 | `docs/`、`documents/` | 面向使用者的部署和配置写在 `docs/`，工程设计写在 `documents/engineering/`，专题方案和历史实施记录保留在现有位置。 |
+| Java服务SQL | 每服务在sql/维护固定同名.sql文件；目标由人手动运行独立升级工具，Java不承担初始化或升级。system已关闭启动初始化并移除分段读取，正式SQL仅供测试复制、不进入业务JAR；独立手动工具已按[SQL管理与执行方案](../DB/sql_management_and_execution_plan.md)实现，实际数据库未部署；命名与字段见[数据库规范](../DB/database_rules.md)。 |
 | 配置、运行数据和构建产物 | 区分 Git 仓库根、Python 工程根和运行数据位置。运行数据与配置文件的位置由相应启动环境解析，不能随工作目录或源码移动而改变。配置示例脱敏入库；账号凭据、真实 `.env`、本地数据库、日志和生成报告由运行环境管理。Maven `target/`、Web `dist-web/`、桌面 `dist-desktop/` 为构建产物。Python 随源码分发的股票索引与运行数据分开。 |
 
 已实现的部门树、菜单树和用户部门关联规则见[部门与菜单案例](java_organization_menu_management_case.md)，不代表已完成角色授权或前端菜单接入。

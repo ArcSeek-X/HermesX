@@ -1,16 +1,19 @@
 # HermesX 数据库与建表规范
 
-更新时间：2026-11-23。
+更新时间：2026-11-24。
 
 本文是 HermesX 数据库命名、表结构和数据边界的规范。当前使用 SQLite，后续按服务逐步迁移 MySQL。表名已确认采用前缀式，例如 `hrs_system_user`；不是含点号的字面表名。
+
+> **SQL 执行状态**：system 正式 SQL 已收敛为 BASELINE_20261123，Java 已关闭启动初始化并移除旧分段读取，正式 SQL 不进入业务 JAR。独立手动工具和执行历史已实现，实际库仍未部署，见 [SQL 管理与数据库升级方案](sql_management_and_execution_plan.md)。
 
 ## 1. 适用范围与执行原则
 
 - 【强制】所有新建的应用业务表遵循本文，包括用户、组织、字典、关联、业务日志等表，必须具有 `delete_flag`、`enterprise_id`、`organization_id` 三个字段。
 - 【强制】本规范不要求修改 SQLite 自行维护的内部表，例如 `sqlite_sequence`。视图不是数据表，不机械增加可写字段，但对外查询仍遵循数据范围与删除规则。
+- 【强制】独立升级工具的技术历史表（例如 `hrs_system_schema_history`）不是业务表，不添加逻辑删除或企业组织归属字段；按独立工具协议维护，不通过业务 CRUD 修改。此例外不适用于业务日志、关联表或其他应用业务表。
 - 【强制】旧表改造使用明确的迁移脚本，不能修改初始化脚本后就声称旧库已升级。项目尚未上线，直接面向目标结构设计，不为旧字段长期维护双列或双写。
 - 【强制】修改现有表前核对实际版本、已有数据及所有调用方。真实配置、用户数据和运行数据库不随源码提交，不因整理目录而移动或清空。
-- 【强制】本文是目标约定，不代表存量 Python 表已经合规。本规范不批量改存量表；部门/菜单已有建表资源与临时库测试；这不表示真实业务库已经部署。目标菜单列与旧V4仍有差异，当前状态见第10节。
+- 【强制】本文是目标约定，不代表存量 Python 表已经合规。本规范不批量改存量表；system 三表正式 SQL 已收敛为当前基线并通过内存验证，不表示真实业务库已经部署，当前状态见第10节。
 
 ## 2. 每个服务拥有独立数据库
 
@@ -64,7 +67,7 @@ mkdir -p data
 export HRS_SYSTEM_DB_URL="jdbc:sqlite:$(pwd)/data/hrs_system.db"
 ```
 
-`HRS_SYSTEM_DB_URL` 当前为必填配置。数据库文件不存在时由驱动及初始化脚本创建，父目录需预先建立；启动还需要管理凭据，完整命令见[运行教程](../engineering/java_user_management_case.md)。从其他工作目录启动时必须传入正确的绝对路径，不能误用当时的 `pwd`。
+`HRS_SYSTEM_DB_URL` 当前为必填配置。Java 已关闭启动建表或升级，使用业务接口前须手动准备匹配结构。SQLite 驱动仍可能创建空文件，不能以文件存在或服务启动成功判断建库完成。工具和具体操作见[运行教程](../engineering/java_user_management_case.md)。父目录需预先建立，启动还需要管理凭据。从其他工作目录启动时必须传入正确的绝对路径，不能误用当时的 `pwd`。
 
 ### 3.2 容器、桌面和测试
 
@@ -129,7 +132,9 @@ hrs_<服务简称>_<业务名>
 | `create_time` | 创建时间，服务端生成，统一UTC |
 | `update_time` | 更新时间，由所有更新 SQL 或统一持久化机制维护，不能依赖前端提交 |
 
-【强制】新增表默认包含主键和上述审计字段；新表明确声明审计字段的可空策略，不接受客户端指定内部审计值。当前用户表部分审计字段仍可空是存量实现状态，不可据此认为所有表都应允许匿名写入。
+【强制】新增表默认包含主键和上述审计字段；新表明确声明审计字段的可空策略，不接受客户端指定内部审计值。旧版用户表审计列可空的安排已在新建库基线中收敛，不允许因此匿名写入。
+
+当前 system 新基线的三张业务表均将创建人、更新人和审计时间声明为非空；Java Mapper 写入操作者，SQLite 默认生成创建及初始更新时间。
 
 实体可以包含这些内部字段，但对外 VO 采用白名单，不默认返回删除标记和密码哈希。不要让所有 DTO 继承包含审计和删除标志的万能 BaseEntity，造成可修改字段失控。
 
@@ -182,13 +187,20 @@ CREATE TABLE IF NOT EXISTS hrs_system_example (
 
 ## 8. 初始化、升级、备份和回滚
 
-- 新库初始化脚本放在所属服务的 `rest/src/main/resources/db/schema.sql`；后续迁移放 `db/migration/`，文件命名如 `V2__add_user_enterprise_organization.sql`。框架未接入自动迁移前，目录存在不表示脚本自动执行。
-- 当前 system 用 Spring SQL 初始化创建新表；显式加载schema.sql及V4__create_organization_and_menu.sql，V4只做幂等新增表，不自动扫描其余迁移脚本。`CREATE TABLE IF NOT EXISTS` 不会修正旧列、增加缺失列或更新旧数据。
-- 每个变更说明前置版本、影响字段、执行次数、验证、回滚及是否需要停写。当前 system 的 V2 增加企业/组织字段，V3 将 deleted 改为 delete_flag；只对匹配前置结构的旧库执行，不能对新库重跑。
+- 【强制】每个 Java 服务在其根目录下的 `sql/` 维护唯一正式 SQL：`hrs-system-service/sql/hrs-system-service.sql`、`hrs-auth-service/sql/hrs-auth-service.sql`、`hrs-analysis-service/sql/hrs-analysis-service.sql`。固定名称不加分支或日期后缀，分支与发布历史由 Git 管理；不在 resources 维护正式副本，不扫描目录批量执行。
+- 【执行约定】建库与升级由人手动运行独立工具，Java 启动不执行正式 SQL，不维护版本列表。工具读取唯一文件，负责检查、备份、事务、完成验证和执行历史；不是每次启动都必须升级，也不要求人手工截取版本。
+- 【执行约定】统一入口允许反复运行，已完成变更校验摘要后跳过，待完成变更按依赖执行，冲突或未知结构报错。`CREATE TABLE IF NOT EXISTS` 不会修正已有表，SQLite 条件改表由工具衔接；不忽略错误来实现所谓幂等。
+- 【执行约定】先核对实际数据再建立正确基线。已执行并记录的段冻结，后续向同一文件追加变更。旧结构若有需保留数据，先备份和专门转换，不为旧入口长期保留 Java 执行器或双份 SQL。
+- 【当前实现】system SQL 为 `BASELINE_20261123`，包含用户、部门及目标菜单结构。`spring.sql.init.mode=never`，旧 Java 分段读取已移除；Maven 仅将正式 SQL 复制到测试 classpath，业务 JAR 不含建表 SQL。测试在临时 SQLite 显式初始化；独立工具和技术历史表已实现，只在临时库验收；真实库仍未部署。
+- **Java 启动不再因旧分段缺失失败，也不负责准备业务表。** 新基线可在空库或同结构下重复执行，不能升级未知旧结构；不要截取旧 V2/V3；使用独立工具先plan，再按目标状态apply/create或adopt-baseline，不能以Java启动代替升级。
+- auth/analysis 的 SQL 当前仅注释占位，不创建数据库。Java测试直接复用正式基线，旧历史结构和菜单替换夹具已删除。Python 的既有初始化链路不随本次 system 方案一并改造。
+- 每个变更说明前置状态、影响字段、数据保留、验证、恢复及停写要求。事务边界由工具控制，不能在新正式段内嵌独立 BEGIN/COMMIT。工具落地、Java 自动执行移除和运行教程更新须一起验收。
 - SQLite 不支持所有 MySQL ALTER 语法。复杂改表可能需要建新表、复制校验、重建索引再切换，不能丢失约束、删除标记、审计字段及主键。
 - 备份优先使用数据库一致性备份机制；若选择文件复制，先停止写入并正确处理WAL/SHM等状态。不能在运行中只复制一个 .db 就认为备份完整。
 - 迁移前后核对行数、主键、关键业务值、NULL、归属与删除状态；用真实SQLite验证脚本，并覆盖重启读取。恢复备份前先确认迁移后的新增数据如何处理，不直接覆盖。
 - SQLite单写者特性和锁等待要纳入并发验证。当前连接池最大1、busy_timeout=5000毫秒是用户案例的设置，不是所有未来服务必须照抄的容量规则。
+
+完整设计、实际命令、变更注释协议和验收矩阵见 [SQL 管理与数据库升级方案](sql_management_and_execution_plan.md)。工具只支持SQLite；MySQL另行实现，不把SQLite脚本直接用于MySQL。
 
 ## 9. 后续迁移 MySQL 的验收要求
 
@@ -206,9 +218,9 @@ CREATE TABLE IF NOT EXISTS hrs_system_example (
 
 | 项目 | 当前状态与处理 |
 | --- | --- |
-| system 用户表 | 已命名 `hrs_system_user`，已有delete_flag、enterprise_id、organization_id，后两列允许NULL；当前ID正数校验由DTO和CHECK配合，尚未采用模板中的typeof加强检查 |
+| system 用户表 | 新基线含delete_flag、enterprise_id、organization_id；后两列可空，dept_id及归属非空时用typeof与正数CHECK限制；审计字段非空，账号全表唯一，逻辑删除后仍不复用 |
 | system 运行库 | 本地路径约定为仓库根data/hrs_system.db，通过HRS_SYSTEM_DB_URL指定；规范不创建或修改真实数据库 |
-| system 部门/菜单 | 部门与旧菜单建表资源包含三字段及审计列，测试在临时库执行；真实业务库暂未创建。Java菜单Mapper已改为目标menu_业务列及module/group/page，旧V4仍为旧列/类型，不应当作目标菜单迁移；正式建表与菜单导入待数据库阶段实施。用户dept_id由Java校验真实部门及归属 |
+| system 部门/菜单 | 新基线已包含三字段、审计列及目标菜单menu_业务列和module/group/page，内存SQLite验证通过；未删除菜单标识及page路由以部分索引唯一。真实业务库未创建，菜单导入待安排；执行工具已实现，Java启动初始化已关闭，测试直接使用正式基线，不再用另一份菜单DDL替换。用户dept_id由Java校验真实部门及归属 |
 | system 企业与租户身份 | 仍无企业主数据和完整租户身份体系；enterprise_id、organization_id是归属元数据，不声称完成多租户权限 |
 | auth、Java analysis | 尚为骨架，不提前建库建表 |
 | Python 存量表 | stock_analysis.db中现有表未统一改名或补齐三字段；后续必须先盘点真实数据与调用方，再按业务移交和迁移计划收敛，不能把这份文档当成改造完成证明 |
@@ -224,7 +236,7 @@ CREATE TABLE IF NOT EXISTS hrs_system_example (
 - [ ] 新库DDL与旧库迁移都经过真实数据库验证，旧数据与删除状态得到保留。
 - [ ] 配置示例、专题文档、变更日志和测试同步；不提交实际数据库、备份或密钥。
 
-关联文档：[整体架构](../engineering/engineering_architecture.md)、[Java工程规范](../engineering/java_engineering_architecture.md)、[用户管理案例](../engineering/java_user_management_case.md)、[Nacos与独立数据库运行说明](../engineering/java_nacos_discovery.md)。
+关联文档：[SQL管理与数据库升级方案](sql_management_and_execution_plan.md)、[整体架构](../engineering/engineering_architecture.md)、[Java工程规范](../engineering/java_engineering_architecture.md)、[用户管理案例](../engineering/java_user_management_case.md)、[Nacos与独立数据库运行说明](../engineering/java_nacos_discovery.md)。
 
 技术参考：[SQLite数据类型](https://www.sqlite.org/datatype3.html)、[SQLite库名与对象名解析](https://www.sqlite.org/lang_naming.html)。本规范暂无英文对应版，本次不新增平行翻译文档。
 
