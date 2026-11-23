@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 用户与CSRF接口统一为RestResult响应，分页复用common类型，删除返回200/true；移除旧局部响应类，补齐容器错误分发及统一响应回归测试。
+
 - [修复] Java导航查询递归排除禁用节点及其子树，管理查询仍保留禁用数据；隐藏节点原样返回，page完整路径不由menuCode拼接，group路径不强制绝对格式；补齐回归测试，数据库与用户级授权仍暂缓，前端新显示规则待后续对齐。
 
 - [文档] 将菜单与动态路由方案按职责拆分重写，补齐数据源、字段、登录加载、加工、持久化、刷新和懒加载的表格与流程图；同步API、Keep-Alive及整体方案，纠正路由缓存键与patchRoutes卸载语义，明确当前限制。

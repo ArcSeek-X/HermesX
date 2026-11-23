@@ -1,6 +1,6 @@
 package hermesx.system.service.impl;
 
-import hermesx.system.base.PageVO;
+import hermesx.common.vo.PageVO;
 import hermesx.system.dao.UserMapper;
 import hermesx.system.dto.*;
 import hermesx.system.entity.UserEntity;

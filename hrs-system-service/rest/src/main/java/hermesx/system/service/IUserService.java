@@ -2,7 +2,7 @@ package hermesx.system.service;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import hermesx.system.base.PageVO;
+import hermesx.common.vo.PageVO;
 import hermesx.system.dto.*;
 import hermesx.system.vo.UserVO;
 

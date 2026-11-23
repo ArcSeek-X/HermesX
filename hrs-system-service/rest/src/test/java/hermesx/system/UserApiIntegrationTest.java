@@ -44,9 +44,9 @@ class UserApiIntegrationTest {
     long create(String username) throws Exception {
         String body = mvc.perform(post("/api/system/users").with(httpBasic("test-manager", "test-only-manager-password"))
                 .with(csrf()).contentType("application/json").content(createBody(username)))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.password").doesNotExist())
-                .andExpect(jsonPath("$.status").value(1)).andReturn().getResponse().getContentAsString();
-        return json.readTree(body).get("id").asLong();
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.resultData.password").doesNotExist())
+                .andExpect(jsonPath("$.resultData.status").value(1)).andReturn().getResponse().getContentAsString();
+        return json.readTree(body).get("resultData").get("id").asLong();
     }
     @Test void fullLifecycleAndDatabaseState() throws Exception {
         long id = create("learner");
@@ -55,18 +55,18 @@ class UserApiIntegrationTest {
         assertThat(encoder.matches("learning-secret", hash)).isTrue();
         assertThat(jdbc.queryForObject("SELECT create_by FROM hrs_system_user WHERE id=?",String.class,id)).isEqualTo("test-manager");
         mvc.perform(get("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.deptId").value(7)).andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.deptId").value(7)).andExpect(jsonPath("$.resultData.password").doesNotExist());
         mvc.perform(put("/api/system/users/{id}",id).with(user("editor").roles("SYSTEM_ADMIN")).with(csrf())
                 .contentType("application/json").content("{\"nickname\":\"新昵称\",\"status\":0}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.nickname").value("新昵称"))
-                .andExpect(jsonPath("$.deptId").isEmpty()).andExpect(jsonPath("$.updateBy").value("editor"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.nickname").value("新昵称"))
+                .andExpect(jsonPath("$.resultData.deptId").isEmpty()).andExpect(jsonPath("$.resultData.updateBy").value("editor"));
         assertThat(jdbc.queryForObject("SELECT password FROM hrs_system_user WHERE id=?",String.class,id)).isEqualTo(hash);
         mvc.perform(delete("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN")).with(csrf()))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultCode").value("200")).andExpect(jsonPath("$.resultData").value(true));
         assertThat(jdbc.queryForObject("SELECT delete_flag FROM hrs_system_user WHERE id=?",Integer.class,id)).isEqualTo(1);
         mvc.perform(get("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN"))).andExpect(status().isNotFound());
         mvc.perform(get("/api/system/users").with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.total").value(0));
         mvc.perform(delete("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN")).with(csrf()))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/api/system/users").with(user("manager").roles("SYSTEM_ADMIN")).with(csrf())
@@ -77,10 +77,10 @@ class UserApiIntegrationTest {
         mvc.perform(post("/api/system/users").with(user("manager").roles("SYSTEM_ADMIN")).with(csrf())
                 .contentType("application/json").content(createBody("first"))).andExpect(status().isConflict());
         mvc.perform(get("/api/system/users?pageSize=1&page=2&status=1&deptId=7").with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2))
-                .andExpect(jsonPath("$.rows[0].id").value(first));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.total").value(2))
+                .andExpect(jsonPath("$.resultData.rows[0].id").value(first));
         mvc.perform(get("/api/system/users").param("keyword", "' OR 1=1 --").with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.total").value(0));
     }
     @Test void authenticationAuthorizationAndCsrf() throws Exception {
         mvc.perform(get("/api/system/users")).andExpect(status().isUnauthorized());
@@ -90,7 +90,7 @@ class UserApiIntegrationTest {
                 .contentType("application/json").content(createBody("blocked"))).andExpect(status().isForbidden());
         assertThatThrownBy(() -> service.get(1)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         mvc.perform(get("/api/system/users/csrf").with(httpBasic("test-manager","test-only-manager-password")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.token").isNotEmpty());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.token").isNotEmpty());
     }
     @Test void invalidInputCannotWriteOrLeakPassword() throws Exception {
         for (String body : new String[]{"{}", createBody("x").replace("learning-secret","short"),
@@ -117,19 +117,19 @@ class UserApiIntegrationTest {
                 .with(httpBasic("test-manager", "test-only-manager-password")))
                 .andExpect(status().isOk()).andReturn();
         var session = (org.springframework.mock.web.MockHttpSession) first.getRequest().getSession(false);
-        String token = json.readTree(first.getResponse().getContentAsString()).get("token").asText();
+        String token = json.readTree(first.getResponse().getContentAsString()).get("resultData").get("token").asText();
         var created = mvc.perform(post("/api/system/users").session(session)
                 .with(httpBasic("test-manager", "test-only-manager-password"))
                 .header("X-CSRF-TOKEN", token).contentType("application/json").content(createBody("csrf-user")))
                 .andExpect(status().isCreated()).andReturn();
-        long id = json.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        long id = json.readTree(created.getResponse().getContentAsString()).get("resultData").get("id").asLong();
         var next = mvc.perform(get("/api/system/users/csrf").session(session)
                 .with(httpBasic("test-manager", "test-only-manager-password")))
                 .andExpect(status().isOk()).andReturn();
-        token = json.readTree(next.getResponse().getContentAsString()).get("token").asText();
+        token = json.readTree(next.getResponse().getContentAsString()).get("resultData").get("token").asText();
         mvc.perform(delete("/api/system/users/{id}", id).session(session)
                 .with(httpBasic("test-manager", "test-only-manager-password"))
-                .header("X-CSRF-TOKEN", token)).andExpect(status().isNoContent());
+                .header("X-CSRF-TOKEN", token)).andExpect(status().isOk()).andExpect(jsonPath("$.resultCode").value("200")).andExpect(jsonPath("$.resultData").value(true));
     }
 
     @Autowired hermesx.system.dao.UserMapper mapper;
@@ -149,33 +149,33 @@ class UserApiIntegrationTest {
     }
 
     @Test void enterpriseAndOrganizationArePersistedReturnedFilteredAndCleared() throws Exception {
-        String body = createBody("scoped").replace("7}", "7,\"enterpriseId\":100,\"organizationId\":2001}");
+        String body = createBody("scoped").replace("7}", "8,\"enterpriseId\":100,\"organizationId\":2001}");
         var created = mvc.perform(post("/api/system/users").with(user("manager").roles("SYSTEM_ADMIN")).with(csrf())
                 .contentType("application/json").content(body)).andExpect(status().isCreated())
-                .andExpect(jsonPath("$.enterpriseId").value(100))
-                .andExpect(jsonPath("$.organizationId").value(2001)).andReturn();
-        long id = json.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+                .andExpect(jsonPath("$.resultData.enterpriseId").value(100))
+                .andExpect(jsonPath("$.resultData.organizationId").value(2001)).andReturn();
+        long id = json.readTree(created.getResponse().getContentAsString()).get("resultData").get("id").asLong();
         create("unassigned");
         assertThat(jdbc.queryForObject("SELECT enterprise_id FROM hrs_system_user WHERE id=?",Long.class,id)).isEqualTo(100L);
         assertThat(jdbc.queryForObject("SELECT organization_id FROM hrs_system_user WHERE id=?",Long.class,id)).isEqualTo(2001L);
         mvc.perform(get("/api/system/users/{id}", id).with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.enterpriseId").value(100))
-                .andExpect(jsonPath("$.organizationId").value(2001));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.enterpriseId").value(100))
+                .andExpect(jsonPath("$.resultData.organizationId").value(2001));
         for (String query : new String[]{"enterpriseId=100", "organizationId=2001", "enterpriseId=100&organizationId=2001"}) {
             mvc.perform(get("/api/system/users?"+query).with(user("manager").roles("SYSTEM_ADMIN")))
-                    .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1))
-                    .andExpect(jsonPath("$.rows[0].id").value(id));
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.total").value(1))
+                    .andExpect(jsonPath("$.resultData.rows[0].id").value(id));
         }
         mvc.perform(get("/api/system/users?enterpriseId=999&organizationId=2001").with(user("manager").roles("SYSTEM_ADMIN")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.total").value(0));
         mvc.perform(put("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN")).with(csrf())
                 .contentType("application/json").content("{\"nickname\":\"改归属\",\"status\":1,\"enterpriseId\":101,\"organizationId\":2002}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.enterpriseId").value(101))
-                .andExpect(jsonPath("$.organizationId").value(2002));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.enterpriseId").value(101))
+                .andExpect(jsonPath("$.resultData.organizationId").value(2002));
         mvc.perform(put("/api/system/users/{id}",id).with(user("manager").roles("SYSTEM_ADMIN")).with(csrf())
                 .contentType("application/json").content("{\"nickname\":\"清空归属\",\"status\":1}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.enterpriseId").isEmpty())
-                .andExpect(jsonPath("$.organizationId").isEmpty());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resultData.enterpriseId").isEmpty())
+                .andExpect(jsonPath("$.resultData.organizationId").isEmpty());
         assertThat(mapper.find(id).orElseThrow().enterpriseId()).isNull();
         assertThat(mapper.find(id).orElseThrow().organizationId()).isNull();
     }
