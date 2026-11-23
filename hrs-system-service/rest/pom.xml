@@ -15,6 +15,10 @@
     <dependencies>
         <dependency><groupId>hermesx</groupId><artifactId>hrs-common</artifactId><version>${project.version}</version></dependency>
         <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
             <groupId>hermesx</groupId>
             <artifactId>hrs-system-service-pojo</artifactId>
             <version>${project.version}</version>

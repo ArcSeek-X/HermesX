@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] system可选接入Nacos注册与发现，默认关闭；配置地址、命名空间、分组及可达实例地址，补齐环境变量示例、配置校验测试和说明，业务接口认证及SQLite独立库边界不变。
+
 - [新功能] 提交部门管理CRUD、树移动与删除保护、用户部门归属校验及临时SQLite回归；system配置转为带注释的properties并显式列入既有V4资源，业务库与目标菜单表部署仍暂缓。
 
 - [改进] 用户与CSRF接口统一为RestResult响应，分页复用common类型，删除返回200/true；移除旧局部响应类，补齐容器错误分发及统一响应回归测试。
