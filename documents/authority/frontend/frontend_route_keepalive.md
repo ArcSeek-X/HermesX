@@ -1,6 +1,6 @@
 # HermesX - 前端路由缓存（Keep-Alive）架构设计
 
-> 📝 **方案简述**：本方案确立 HermesX Web 前端（`apps/hrs-web`）路由缓存的全局设计基准：切换路由时页面实例保留、切回时状态（表单/筛选项/Tab/滚动位置/已加载数据/图表实例）留存，不重新请求、不出现 loading；缓存范围由单一前端配置文件以**黑名单（pathname）**控制；缓存实现基于第三方库 **`keepalive-for-react` + `keepalive-for-react-router`**（适配 React 19.2 / React Router v7，MIT、6KB、零传递依赖），复用其 LRU、黑白名单、活动态下发能力，叠加本项目的黑名单配置真源、query/hash 重挂载、滚动位置恢复。任何前端路由/布局改动与本方案冲突，均以本方案为准。
+> 📝 **方案简述**：本方案确立 HermesX Web 前端（`apps/hrs-web`）路由缓存的全局设计基准：切换路由时页面实例保留、切回时状态（表单/筛选项/Tab/滚动位置/已加载数据/图表实例）留存，不重新请求、不出现 loading；缓存范围由单一前端配置文件以**黑名单（pathname）**控制；缓存实现基于第三方库 **`keepalive-for-react` + `keepalive-for-react-router`**（适配 React 19.2 / React Router v7，MIT、6KB、零传递依赖），复用其 LRU、黑白名单、活动态下发能力，叠加本项目的黑名单配置真源、query/hash 重挂载、滚动位置恢复。本文只维护页面实例缓存；菜单数据与动态路由定义分别由对应专题方案维护，不把实例缓存与菜单/路由持久化混为同一机制。
 
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
@@ -40,10 +40,10 @@
 | 编号 | ADR-002（沿用，作追溯 ID） |
 | 状态 | **已采纳（Accepted）** |
 | 关联方案 | `ADR-001`（后端分层架构，同为全局架构基准）；前端实现落地时同步更新 `documents/CHANGELOG.md` 与专题文档 |
-| 适用范围 | HermesX Web 前端 `apps/hrs-web`（**全域前端架构基准**；首个落地范围：路由缓存能力） |
+| 适用范围 | HermesX Web 前端 `apps/hrs-web`（**页面实例缓存专题**；适用页面的路由切换与失活副作用） |
 | 实现底座 | 第三方库 `keepalive-for-react@6` + `keepalive-for-react-router@6`（React 19.2 / React Router v7） |
 
-> **方案用意**：本方案是 HermesX 前端的**全局架构决策基准**，面向整个 Web 前端工程，不隶属于任何单一功能方案。它确立四项设计立场：① 路由缓存以**页面实例保留**为实现手段（而非状态提升）；② 缓存范围由**单一前端配置文件的黑名单（pathname）**控制，默认全开、显式排除；③ 缓存实现**基于 `keepalive-for-react` 库**，复用其渲染管线与 LRU / 黑名单 / 活动态能力，不引入第二个平行路由渲染层；④ 性能三铁律——失活页 DOM 移出文档（零绘制）、后台页暂停轮询/SSE、`maxCacheSize` LRU 硬上限。
+> **方案用意**：本方案是 HermesX Web **页面实例缓存的设计基准**，不负责菜单来源、路由注册或认证协议。它确立四项设计立场：① 路由缓存以**页面实例保留**为实现手段（而非状态提升）；② 缓存范围由**单一前端配置文件的黑名单（pathname）**控制，默认全开、显式排除；③ 缓存实现**基于 `keepalive-for-react` 库**，复用其渲染管线与 LRU / 黑名单 / 活动态能力，不引入第二个平行路由渲染层；④ 性能三铁律——失活页 DOM 移出文档（零绘制）、后台页暂停轮询/SSE、`maxCacheSize` LRU 硬上限。
 >
 > **指导方针**：任何前端方案 / 代码改动若与本方案冲突，均以本方案为准；本方案不被任何单一功能方案"拥有"或"限定"。
 
@@ -73,6 +73,27 @@
 - React Router **v7.13 数据路由**（`createBrowserRouter`），业务路由经 `patchRoutes('business')` 动态注入，页面经路由级 `lazy` 懒加载（`src/router/asyncRouteFactory.ts:66-70`）。
 - 渲染链：`Shell` → `Main`（唯一滚动容器 `main.hrs-page-container`）→ `KeepAliveOutlet`（封装 `KeepAliveRouteOutlet`，经库的 `useOutlet` 捕获页面元素并缓存；`errorElement` 把每个缓存节点包进 `RouteBoundary`）→ 页面组件。
 - 登录页 `/login` 是 **Shell 外的顶层路由**（`appRouter.tsx` 中与 `protected` 平级）；404 兜底 `/404` 在 Shell 内。
+
+### 与菜单、动态路由的边界
+
+| 对象 | 数据/状态 | 保存位置 | 浏览器刷新后 |
+| --- | --- | --- | --- |
+| [菜单](frontend_module_menu.md) | 模块索引、可见菜单、当前模块选择 | MenuStore + localStorage | 恢复菜单数据，不请求菜单API |
+| [动态路由](frontend_async_router.md) | 菜单派生的 AsyncRouteNode | RouterStore + localStorage；运行时生成路由配置 | 从数据生成初始路由种子 |
+| 本文Keep-Alive | 已挂载页面组件实例及页面局部状态 | 当前浏览器页面的内存 | 实例丢失并重新挂载，不由菜单缓存恢复 |
+
+```mermaid
+flowchart TD
+    A["原始菜单数据"] --> B["RouterStore：路由定义持久化"]
+    B --> C["React Router：地址匹配与 lazy"]
+    C --> D["Shell → Main → KeepAliveOutlet"]
+    D --> E["保留已挂载页面实例"]
+    E --> F["普通路由切换：复用实例"]
+    G["浏览器刷新"] --> H["页面实例丢失，重新初始化"]
+    H --> B
+```
+
+路由注册和撤销的已知限制统一见[动态路由方案 §九](frontend_async_router.md#sec-9)。页面实例缓存不会替代路由卸载，也不为菜单或路由做账号权限校验。
 
 ### <a id="22-页面副作用清单"></a>2.2 页面副作用清单
 

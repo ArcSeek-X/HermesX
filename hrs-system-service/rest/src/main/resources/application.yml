@@ -25,4 +25,4 @@ hermesx:
     admin-password: ${HRS_SYSTEM_ADMIN_PASSWORD}
 
 mybatis:
-  mapper-locations: classpath:mapper/UserMapper.xml
+  mapper-locations: classpath:mapper/*Mapper.xml

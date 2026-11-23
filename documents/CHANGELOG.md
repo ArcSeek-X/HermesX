@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] Java导航查询递归排除禁用节点及其子树，管理查询仍保留禁用数据；隐藏节点原样返回，page完整路径不由menuCode拼接，group路径不强制绝对格式；补齐回归测试，数据库与用户级授权仍暂缓，前端新显示规则待后续对齐。
+
+- [文档] 将菜单与动态路由方案按职责拆分重写，补齐数据源、字段、登录加载、加工、持久化、刷新和懒加载的表格与流程图；同步API、Keep-Alive及整体方案，纠正路由缓存键与patchRoutes卸载语义，明确当前限制。
+
+- [改进] Java system 新增 POST /api/system/list-menu，菜单 DTO/Entity/VO 与 Mapper 对齐 manifest 的 menuCode 等字段及 module/group/page 类型，复用统一响应，补齐树关系、唯一性与临时 SQLite 测试；正式数据库、建表脚本及菜单数据初始化暂缓。
+
 - [改进] Web 菜单增加 manifest 内开发调试开关 USE_STATIC_MENU（默认开启）；关闭后登录时从 POST /api/system/list-menu 加载菜单与路由，两种数据源共用现有本地持久化，刷新直接恢复缓存；移除启动时额外查询及 Store 内模式分支，接口失败在登录页提示。
 
 

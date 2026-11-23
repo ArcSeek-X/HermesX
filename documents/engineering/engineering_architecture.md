@@ -19,7 +19,7 @@
 
 ## 一、设计目标与功能归属
 
-目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有聚合三个 Java 服务的 Maven 工程骨架，各服务分为 pojo 与 rest；system 已有独立 SQLite 用户管理案例，其他服务仍为骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。Java/Python 多服务部署尚未实施。
+目前网页与桌面端仍使用 Python 后端，其工程位于 `python/`。仓库根目录已有聚合三个 Java 服务的 Maven 工程骨架，各服务分为 pojo 与 rest；system 已有独立 SQLite 用户管理案例及菜单 Java 接口；菜单目标数据库和初始化数据暂缓，其他服务仍为骨架。后续目标是在现有分析能力上接入 Java 业务 API，让网页和桌面共享权限规则与接口，同时保留桌面本机运行方式。Java/Python 多服务部署尚未实施。
 
 后续部署目标是 **三个 Java 服务和一个 Python 分析服务**。`hrs-auth-service`、`hrs-system-service`、`hrs-analysis-service` 各自独立运行，每个服务包含 pojo 数据模块和 rest 运行模块；根 POM 统一聚合构建。system 已提供独立的用户 CRUD 与配置管理身份保护；完整服务部署与 auth 认证接入另行安排。
 
@@ -44,6 +44,7 @@
 ```text
 HermesX/
 ├── pom.xml                        # Java 构建入口
+├── hrs-common/                    # 菜单依赖的公共响应与结果码JAR，不是独立服务
 ├── mvnw / mvnw.cmd
 ├── .mvn/wrapper/
 ├── hrs-auth-service/              # hermesx.auth，认证服务
@@ -145,7 +146,7 @@ HermesX/
 
 | 位置 | 设计约定 |
 | --- | --- |
-| `apps/hrs-web/` | 维护供浏览器与 Electron 共用的页面、路由、组件、状态、国际化和 API 访问。请求收口到 `src/api/`，不要在页面里按运行环境复制业务逻辑。界面组件、国际化和类型命名沿用 [前端约定](../../.conventions/frontend/)；若接入动态菜单，按 [菜单方案](../authority/frontend/frontend_module_menu.md) 对齐契约。 |
+| `apps/hrs-web/` | 维护供浏览器与 Electron 共用的页面、路由、组件、状态、国际化和 API 访问。请求收口到 `src/api/`，不要在页面里按运行环境复制业务逻辑。界面组件、国际化和类型命名沿用 [前端约定](../../.conventions/frontend/)；菜单数据来源、结构、加工与持久化见[菜单方案](../authority/frontend/frontend_module_menu.md)；动态路由派生、注册、刷新和守卫见[动态路由方案](../authority/frontend/frontend_async_router.md)；接口字段见[菜单API契约](../authority/frontend/menu_api_contract.md)。 |
 | `apps/hrs-desktop/` | 维护窗口、受控的 preload 接口、后端进程生命周期、安装和更新。单机模式打包同一份 Web 界面和本机后端，后端绑定本机地址；界面通过业务 API 访问，桌面桥接只提供需要的本机能力。 |
 | `docker/`、`scripts/`、`.github/` | Docker 管镜像和联机部署，脚本统一本地启动、构建及检查，工作流调用这些入口并负责发布。Docker 与桌面各自传入运行地址、数据目录和静态资源位置。 |
 | `docs/`、`documents/` | 面向使用者的部署和配置写在 `docs/`，工程设计写在 `documents/engineering/`，专题方案和历史实施记录保留在现有位置。 |

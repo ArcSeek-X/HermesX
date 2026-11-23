@@ -2,7 +2,9 @@ package hermesx.system.config;
 
 import org.springframework.context.annotation.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.config.Customizer;
+import jakarta.servlet.DispatcherType;
+import hermesx.system.security.RestSecurityHandler;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.*;
@@ -27,10 +29,12 @@ public class SecurityConfig {
                 .password(encoder.encode(password)).roles("SYSTEM_ADMIN").build());
     }
 
-    @Bean SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
+    @Bean SecurityFilterChain apiSecurity(HttpSecurity http, RestSecurityHandler errors) throws Exception {
         // 每次请求用 Basic 认证；Session 仅保存 CSRF token，不保存登录状态。
-        return http.authorizeHttpRequests(a -> a.anyRequest().hasRole("SYSTEM_ADMIN"))
-                .httpBasic(Customizer.withDefaults())
+        return http.authorizeHttpRequests(a -> a.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll().anyRequest().hasRole("SYSTEM_ADMIN"))
+                .httpBasic(b -> b.authenticationEntryPoint(errors))
+                .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors))
+                .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(c -> c.csrfTokenRepository(new org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository()))
                 .build();

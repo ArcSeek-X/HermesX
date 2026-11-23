@@ -13,6 +13,7 @@
     <packaging>jar</packaging>
     <name>HermesX System REST</name>
     <dependencies>
+        <dependency><groupId>hermesx</groupId><artifactId>hrs-common</artifactId><version>${project.version}</version></dependency>
         <dependency>
             <groupId>hermesx</groupId>
             <artifactId>hrs-system-service-pojo</artifactId>

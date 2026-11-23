@@ -6,6 +6,8 @@ import hermesx.system.dto.*;
 import hermesx.system.entity.UserEntity;
 import hermesx.system.vo.UserVO;
 import hermesx.system.exception.UserNotFoundException;
+import hermesx.system.exception.ManagementException;
+import hermesx.common.rest.ResultCodeEnum;
 import hermesx.system.security.CurrentUser;
 import hermesx.system.service.IUserService;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +31,7 @@ public class UserServiceImpl implements IUserService {
         String operator = currentUser.requireAdmin();
         // BCrypt 上限按字节算：中文密码不能只判断字符数量。
         if (data.password().getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw new IllegalArgumentException("密码不能超过72个UTF-8字节");
+            throw ManagementException.invalid(ResultCodeEnum.INVALID_REQUEST,"密码不能超过72个UTF-8字节。");
         }
         long id = mapper.insert(data.username().trim(), passwords.encode(data.password()), data.nickname().trim(),
                 data.phone(), data.email(), data.deptId(), data.enterpriseId(), data.organizationId(), data.status() == null ? 1 : data.status(), operator);

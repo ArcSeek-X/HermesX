@@ -13,6 +13,8 @@
     <packaging>jar</packaging>
     <name>HermesX System POJO</name>
     <dependencies>
+        <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId></dependency>
+        <dependency><groupId>hermesx</groupId><artifactId>hrs-common</artifactId><version>${project.version}</version></dependency>
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>

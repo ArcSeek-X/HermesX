@@ -12,7 +12,7 @@ public class CurrentUser {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getAuthorities().stream()
                 .noneMatch(a -> a.getAuthority().equals("ROLE_SYSTEM_ADMIN"))) {
-            throw new AccessDeniedException("需要用户管理权限");
+            throw new AccessDeniedException("需要system管理权限");
         }
         return auth.getName();
     }

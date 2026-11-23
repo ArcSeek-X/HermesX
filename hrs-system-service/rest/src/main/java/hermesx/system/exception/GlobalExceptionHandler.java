@@ -1,41 +1,64 @@
 package hermesx.system.exception;
 
-import hermesx.system.base.ErrorVO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import hermesx.common.rest.*;
+import hermesx.system.enums.SystemResultCodeEnum;
+import jakarta.validation.ConstraintViolationException;
+import org.slf4j.*;
 import org.springframework.dao.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.*;
+import org.springframework.web.method.annotation.*;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.*;
 
-/** 在 HTTP 边界把异常转成状态码，Service/DAO 不需要依赖 HTTP 对象。 */
+/** 统一HTTP错误边界。原始异常、请求值、SQL和密码不能直接作为resultMsg返回。 */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOG=LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private ResponseEntity<RestResult<Void>> failure(int status,ResultCode code) {
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(RestResult.failure(code));
+    }
+    @ExceptionHandler(ManagementException.class)
+    ResponseEntity<RestResult<Void>> management(ManagementException e) {
+        int status=switch(e.kind()) { case INVALID_REQUEST->400; case NOT_FOUND->404; case CONFLICT->409; case INTERNAL->500; };
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
+                .body(RestResult.failure(e.resultCode(),e.getMessage()));
+    }
     @ExceptionHandler(UserNotFoundException.class)
-    ResponseEntity<ErrorVO> missing(UserNotFoundException e) {
-        return ResponseEntity.status(404).body(new ErrorVO("USER_NOT_FOUND", e.getMessage()));
-    }
+    ResponseEntity<RestResult<Void>> missingUser() { return failure(404,SystemResultCodeEnum.USER_NOT_FOUND); }
     @ExceptionHandler(DuplicateKeyException.class)
-    ResponseEntity<ErrorVO> duplicate() {
-        return ResponseEntity.status(409).body(new ErrorVO("USERNAME_EXISTS", "登录账号已存在（含已删除账号）"));
+    ResponseEntity<RestResult<Void>> duplicate() { return failure(409,SystemResultCodeEnum.USERNAME_EXISTS); }
+    @ExceptionHandler({MethodArgumentNotValidException.class,HttpMessageNotReadableException.class,
+        HandlerMethodValidationException.class,MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class,ConstraintViolationException.class})
+    ResponseEntity<RestResult<Void>> invalidRequest(Exception e) { return failure(400,ResultCodeEnum.INVALID_REQUEST); }
+    @ExceptionHandler({NoResourceFoundException.class,NoHandlerFoundException.class})
+    ResponseEntity<RestResult<Void>> missingRoute(Exception e) { return failure(404,ResultCodeEnum.NOT_FOUND); }
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<RestResult<Void>> method(HttpRequestMethodNotSupportedException e) {
+        HttpHeaders headers=new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
+        if (e.getSupportedHttpMethods()!=null) headers.setAllow(e.getSupportedHttpMethods());
+        return new ResponseEntity<>(RestResult.failure(ResultCodeEnum.METHOD_NOT_ALLOWED),headers,HttpStatus.METHOD_NOT_ALLOWED);
     }
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
-            HandlerMethodValidationException.class, MethodArgumentTypeMismatchException.class, jakarta.validation.ConstraintViolationException.class})
-    ResponseEntity<ErrorVO> invalidRequest(Exception e) {
-        // 不返回 rejectedValue：其中可能有密码。
-        return ResponseEntity.badRequest().body(new ErrorVO("INVALID_REQUEST", "参数格式、长度或取值不正确"));
-    }
-    @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<ErrorVO> invalidBusiness(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(new ErrorVO("INVALID_REQUEST", e.getMessage()));
-    }
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<RestResult<Void>> media(HttpMediaTypeNotSupportedException e) { return failure(415,ResultCodeEnum.UNSUPPORTED_MEDIA_TYPE); }
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    ResponseEntity<RestResult<Void>> accept(HttpMediaTypeNotAcceptableException e) { return failure(406,ResultCodeEnum.NOT_ACCEPTABLE); }
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<RestResult<Void>> denied() { return failure(403,ResultCodeEnum.FORBIDDEN); }
     @ExceptionHandler(DataAccessException.class)
-    ResponseEntity<ErrorVO> database(DataAccessException e) {
-        LOG.error("用户数据访问失败，异常类型：{}", e.getClass().getSimpleName());
-        return ResponseEntity.status(503).body(new ErrorVO("DATABASE_UNAVAILABLE", "用户数据暂不可用"));
+    ResponseEntity<RestResult<Void>> database(DataAccessException e) {
+        LOG.error("数据库操作失败，异常类型：{}",e.getClass().getSimpleName());
+        return failure(503,ResultCodeEnum.DATABASE_UNAVAILABLE);
+    }
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<RestResult<Void>> unexpected(Exception e) {
+        // 包括未预期的IllegalArgumentException，不允许用异常原文向调用方泄露内部信息。
+        LOG.error("未预期错误，异常类型：{}",e.getClass().getSimpleName());
+        return failure(500,ResultCodeEnum.INTERNAL_ERROR);
     }
 }

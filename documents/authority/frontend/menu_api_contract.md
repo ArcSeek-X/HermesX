@@ -4,11 +4,13 @@
 
 ## 1. 当前交付与接入范围
 
+最新规则：Java导航负责过滤禁用子树；menuVisible仅为前端显示数据，父级隐藏时后代入口也应隐藏，但返回的page仍应生成路由。用户—角色—菜单授权逻辑暂缓，仅保留字段。当前Java已按此调整；前端还保留旧的group隐藏透传及menuStatus判断，需在客户端阶段单独调整，不代表这部分已完成。
+
 前端 API 入口为 `apps/hrs-web/src/api/system/menu.ts`，调用 `menuApi.getTree()`，返回 `Promise<NavMenuNode[]>`。节点类型直接复用 `apps/hrs-web/src/types/moduleMenu.ts`，与 `router/manifest.ts` 的 `MENU_MANIFEST` 共用一套字段、枚举和树结构。
 
 已实现请求、统一响应解包、运行时契约校验和错误传递，并由 `router/loadMenuData.ts` 同时为菜单与路由加载数据。`router/manifest.ts` 中的开发调试开关 `USE_STATIC_MENU` 默认 `true`（静态清单）；设为 `false` 后，在登录成功时使用本接口获取菜单。开关是固定配置，不提供运行中的切换功能。接口失败向调用方抛出，不回退到静态清单或空数组。
 
-本轮前端目标已改为 `POST /api/system/list-menu`。Java 的 `MenuController` 当前仍提供旧接口 `GET /api/system/menus/tree`，请求方法和地址尚未同步；当前 `MenuVO` 也仍返回 `parentId/name/type/path/component/sort/visible/status` 等旧字段，尚未满足本契约。当前文档与前端代码是后续 Java 和数据库调整的目标，不能据此前端测试宣称真实服务已联调通过。本文仅定义导航菜单树查询；菜单管理的新增、修改、删除、详情接口不在此次前端交付范围内。
+Java 已实现 `POST /api/system/list-menu`，`MenuVO` 与 Mapper 已按本契约输出统一节点。`GET /api/system/menus/tree` 保留为带筛选条件的管理查询，导航不调用它。**当前只完成 Java 代码与临时测试库验证：正式 SQLite 文件、目标表结构部署和 manifest 数据导入按用户要求暂缓。** 旧 V4 建表脚本尚未升级，不能把现有表直接当作新 Mapper 的目标表。真实调用还需完成转发、身份凭据与 CSRF 接入；不能据自动化测试宣称真实服务已联调。菜单 CRUD 的字段已统一，管理接口仍为 `/api/system/menus`。
 
 ## 2. 请求
 
@@ -104,7 +106,7 @@
 | `menuName` | string | 是 | 名称，支持国际化键或直接文案 |
 | `menuDescription` | string | 是 | 描述，无描述时返回空字符串 |
 | `menuType` | string | 是 | module / group / page |
-| `menuRoutePath` | string | page 必填 | 站内路由路径，以单个 `/` 开头；page 路由全树唯一 |
+| `menuRoutePath` | string | page 必填 | 站内路由路径，以单个 `/` 开头；page 路由全树唯一；使用完整路径，不拼接父级或menuCode |
 | `menuPagePath` | string | page 必填 | `pages/` 开头的前端页面模块路径；必须能由现有页面导入白名单解析 |
 | `menuIcon` | string | 否 | 现有图标名称 |
 | `menuBadge` | string | 否 | 预留徽标文本 |
@@ -112,7 +114,7 @@
 | `menuExpanded` | boolean | 是 | 默认是否展开，使用 true/false |
 | `menuVisible` | boolean | 是 | 是否显示导航入口；隐藏不代表禁止路由访问 |
 | `menuSort` | number | 是 | 同级升序排序值 |
-| `menuStatus` | number | 是 | 0=禁用，1=启用；禁止返回字符串 "0"/"1" |
+| `menuStatus` | number | 当前保留 | 管理状态0/1；Java导航已排除禁用子树，所以本接口返回节点均为1。现有前端类型仍要求该字段，后续可单独收敛导航契约；前端不承担启用状态业务判断 |
 | `menuPermission` | string | 否 | 权限标识预留，不能替代服务端授权 |
 | `children` | array | 否 | 同一类型的子节点数组；叶子省略或返回 []，不能返回 null；page 不含子节点 |
 | `auth` | string | 否 | public / protected，保留当前 manifest 的路由扩展语义 |
@@ -120,7 +122,7 @@
 
 可选字段无值时省略；字符串可选字段也可返回空字符串，page 必需的路径除外。不要为兼容旧 Java 响应同时返回 name/menuName、type/menuType 等双字段；数据库和 Java 调整时直接按目标契约输出。
 
-API 方法校验后保留字段、顺序和隐藏/禁用节点，不负责 Store 的排序或过滤。页面文件的可解析性由前端路由层验证；远端数据不能提供可直接执行的组件代码或任意导入地址。实际页面仍需要随前端构建发布。
+Java导航查询先排除禁用节点及其子树，不过滤隐藏节点；前端API方法只校验并保留实际返回字段及顺序，不负责再次筛选业务启用状态。菜单管理接口仍可查询禁用记录。页面文件的可解析性由前端路由层验证；远端数据不能提供可直接执行的组件代码或任意导入地址。实际页面仍需要随前端构建发布。
 
 ## 5. 失败与空数据
 
@@ -157,9 +159,18 @@ export const USE_STATIC_MENU = true;
 
 这是开发调试时修改的源码常量，修改后重新登录获取所选数据源的菜单。不设计运行中热切换或模式切换兼容层，也不增加环境变量。开关只在 `loadMenuData()` 内选择数据源；两个 Store 和应用启动入口不判断开关。两种模式共用现有缓存键、清单指纹及 localStorage 读写逻辑，不新增另一套持久化实现。
 
-接口失败时，登录页显示错误并允许重新提交，不用静态清单兜底。刷新时直接恢复已有菜单与路由，不再请求菜单接口；缓存缺失或失效时沿用原有重新登录流程。后续真实接入仍需完成 Java/数据库字段及请求地址对齐、服务转发和认证（含 CSRF）联调，目前未验证真实 Java 服务。
+接口失败时，登录页显示错误并允许重新提交，不用静态清单兜底。刷新时直接恢复已有菜单与路由，不再请求菜单接口；缓存缺失或失效时沿用原有重新登录流程。后续真实接入仍需完成目标数据库建表及数据初始化、服务转发和认证（含 CSRF）联调；Java 字段与请求地址已对齐，目前未验证真实业务数据库和浏览器直连接入。
 
 ## 7. API、Store 与组件如何分层
+
+本文只维护 HTTP/JSON 协议，不重复维护两份实现方案。
+
+| 主题 | 对应方案 |
+| --- | --- |
+| 原始数据来源、节点结构、导航加工和持久化 | [菜单设计](frontend_module_menu.md) |
+| 菜单派生页面路由、注册、刷新、守卫和懒加载 | [动态路由设计](frontend_async_router.md) |
+| 页面实例缓存与失活副作用 | [Keep-Alive](frontend_route_keepalive.md) |
+
 
 | 层 | 文件/位置 | 职责 |
 | --- | --- | --- |
@@ -171,7 +182,7 @@ export const USE_STATIC_MENU = true;
 | 路由状态 | `stores/RouterStore.ts` | 从同一份节点派生页面路由 |
 | 组件 | `ApplicationMenu.tsx`、`SidebarNav.tsx` 等 | 使用 `useMenuStore` 订阅状态，不直接请求菜单 API |
 
-`useMenuStore` 已是全局菜单状态的 Hook，不再新增 `hooks/useMenu.ts`。登录页调用统一加载入口，两个 Store 分别加工、持久化菜单和路由，然后注册路由。刷新时，Store 初始化从 localStorage 恢复状态，路由器使用恢复后的路由数据；不额外请求菜单 API。再次登录获取最新菜单并覆盖现有缓存。
+`useMenuStore` 已是全局菜单状态的 Hook，不再新增 `hooks/useMenu.ts`。两个 Store 分别消费同一原始数组；RouterStore 不从已经过滤的 MenuStore 侧栏结果生成路由，隐藏入口仍可有路由。登录页调用统一加载入口，两个 Store 分别加工、持久化菜单和路由，然后注册路由。刷新时，Store 初始化从 localStorage 恢复状态，路由器使用恢复后的路由数据；不额外请求菜单 API。再次登录获取最新菜单并覆盖现有缓存。
 
 ```mermaid
 flowchart TD
@@ -184,3 +195,5 @@ flowchart TD
     F --> G["MenuStore → 现有持久化 → 菜单组件"]
     F --> H["RouterStore → 现有持久化 → 页面路由"]
 ```
+
+路由注册的真实生命周期限制（追加不等于替换、空 patch 不会清除旧路由）见[动态路由方案 §九](frontend_async_router.md#sec-9)；本接口校验和数据持久化不等于已经完成路由撤销或账号缓存隔离。

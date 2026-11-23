@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hermesx.system.dao.MenuMapper">
+    <!-- 仅映射system自己的菜单表。目标列已对齐前端契约；正式建表与数据初始化后续实施。 -->
+    <resultMap id="entity" type="hermesx.system.entity.MenuEntity">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="menu_parent_id" javaType="_long"/>
+            <arg column="menu_code" javaType="String"/>
+            <arg column="menu_name" javaType="String"/>
+            <arg column="menu_description" javaType="String"/>
+            <arg column="menu_type" javaType="String"/>
+            <arg column="menu_route_path" javaType="String"/>
+            <arg column="menu_page_path" javaType="String"/>
+            <arg column="menu_icon" javaType="String"/>
+            <arg column="menu_badge" javaType="String"/>
+            <arg column="menu_position" javaType="String"/>
+            <arg column="menu_expanded" javaType="_boolean"/>
+            <arg column="menu_visible" javaType="_boolean"/>
+            <arg column="menu_sort" javaType="_int"/>
+            <arg column="menu_status" javaType="_int"/>
+            <arg column="menu_permission" javaType="String"/>
+            <arg column="menu_auth" javaType="String"/>
+            <arg column="menu_exact" javaType="java.lang.Boolean"/>
+            <arg column="enterprise_id" javaType="java.lang.Long"/>
+            <arg column="organization_id" javaType="java.lang.Long"/>
+            <arg column="delete_flag" javaType="_int"/>
+            <arg column="create_by" javaType="String"/>
+            <arg column="update_by" javaType="String"/>
+            <arg column="create_time" javaType="String"/>
+            <arg column="update_time" javaType="String"/>
+        </constructor>
+    </resultMap>
+    <sql id="columns">id, menu_parent_id, menu_code, menu_name, menu_description, menu_type, menu_route_path, menu_page_path, menu_icon, menu_badge, menu_position, menu_expanded, menu_visible, menu_sort, menu_status, menu_permission, menu_auth, menu_exact, enterprise_id, organization_id, delete_flag, create_by, update_by, create_time, update_time</sql>
+    <select id="find" resultMap="entity">
+        SELECT <include refid="columns"/> FROM hrs_system_menu WHERE id=#{id} AND delete_flag=0
+    </select>
+    <select id="all" resultMap="entity">
+        SELECT <include refid="columns"/> FROM hrs_system_menu WHERE delete_flag=0
+        <if test="enterpriseId != null">AND enterprise_id=#{enterpriseId}</if>
+        <if test="organizationId != null">AND organization_id=#{organizationId}</if>
+        ORDER BY menu_sort,id
+    </select>
+    <!-- RETURNING返回数据库生成的id；affectData使写操作参与Spring事务。 -->
+    <select id="insert" resultType="long" affectData="true" flushCache="true" useCache="false">
+        INSERT INTO hrs_system_menu (menu_parent_id,menu_code,menu_name,menu_description,menu_type,menu_route_path,menu_page_path,menu_icon,menu_badge,menu_position,menu_expanded,menu_visible,menu_sort,menu_status,menu_permission,menu_auth,menu_exact,enterprise_id,organization_id,create_by,update_by)
+        VALUES (#{data.menuParentId,jdbcType=BIGINT},#{data.menuCode,jdbcType=VARCHAR},#{data.menuName,jdbcType=VARCHAR},#{data.menuDescription,jdbcType=VARCHAR},#{data.menuType,jdbcType=VARCHAR},#{data.menuRoutePath,jdbcType=VARCHAR},#{data.menuPagePath,jdbcType=VARCHAR},#{data.menuIcon,jdbcType=VARCHAR},#{data.menuBadge,jdbcType=VARCHAR},#{data.menuPosition,jdbcType=VARCHAR},#{data.menuExpanded,jdbcType=BOOLEAN},#{data.menuVisible,jdbcType=BOOLEAN},#{data.menuSort,jdbcType=INTEGER},#{data.menuStatus,jdbcType=INTEGER},#{data.menuPermission,jdbcType=VARCHAR},#{data.auth,jdbcType=VARCHAR},#{data.exact,jdbcType=BOOLEAN},#{data.enterpriseId,jdbcType=BIGINT},#{data.organizationId,jdbcType=BIGINT},#{operator},#{operator}) RETURNING id
+    </select>
+    <update id="update">
+        UPDATE hrs_system_menu SET menu_parent_id=#{data.menuParentId,jdbcType=BIGINT},
+            menu_code=#{data.menuCode,jdbcType=VARCHAR},
+            menu_name=#{data.menuName,jdbcType=VARCHAR},
+            menu_description=#{data.menuDescription,jdbcType=VARCHAR},
+            menu_type=#{data.menuType,jdbcType=VARCHAR},
+            menu_route_path=#{data.menuRoutePath,jdbcType=VARCHAR},
+            menu_page_path=#{data.menuPagePath,jdbcType=VARCHAR},
+            menu_icon=#{data.menuIcon,jdbcType=VARCHAR},
+            menu_badge=#{data.menuBadge,jdbcType=VARCHAR},
+            menu_position=#{data.menuPosition,jdbcType=VARCHAR},
+            menu_expanded=#{data.menuExpanded,jdbcType=BOOLEAN},
+            menu_visible=#{data.menuVisible,jdbcType=BOOLEAN},
+            menu_sort=#{data.menuSort,jdbcType=INTEGER},
+            menu_status=#{data.menuStatus,jdbcType=INTEGER},
+            menu_permission=#{data.menuPermission,jdbcType=VARCHAR},
+            menu_auth=#{data.auth,jdbcType=VARCHAR},
+            menu_exact=#{data.exact,jdbcType=BOOLEAN},
+            enterprise_id=#{data.enterpriseId,jdbcType=BIGINT},
+            organization_id=#{data.organizationId,jdbcType=BIGINT},
+            update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+    <select id="countChildren" resultType="long">
+        SELECT COUNT(*) FROM hrs_system_menu WHERE menu_parent_id=#{id} AND delete_flag=0
+    </select>
+    <update id="softDelete">
+        UPDATE hrs_system_menu SET delete_flag=1,update_by=#{operator},update_time=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND delete_flag=0
+    </update>
+</mapper>
