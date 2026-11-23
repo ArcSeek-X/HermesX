@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [chore] 将迁移保留的auth/test.java零字节占位文件纳入版本管理；不包含登录、认证或其他运行逻辑。
+
 - [文档] 汇总数据库命名、服务独立库与工程规范，更新公共响应、用户、部门及菜单学习案例，明确业务库和目标菜单部署暂缓、历史验收与当前交付边界。
 
 - [新功能] system可选接入Nacos注册与发现，默认关闭；配置地址、命名空间、分组及可达实例地址，补齐环境变量示例、配置校验测试和说明，业务接口认证及SQLite独立库边界不变。
