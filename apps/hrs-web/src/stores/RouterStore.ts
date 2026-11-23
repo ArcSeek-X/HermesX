@@ -1,6 +1,6 @@
 /**
- * 动态路由状态：以 MENU_MANIFEST 为唯一真源，登录后构建并持久化全量路由树，
- * 刷新时直接从 localStorage 还原。清单指纹变更即丢弃旧缓存，避免用过期的页面路径注册路由。
+ * 动态路由状态：与菜单共用同一次加载的节点。
+ * 两种数据源共用现有本地持久化流程，刷新时按清单指纹恢复缓存。
  * 登录页与 404 兜底由 appRouter 静态声明，不进入本 Store。
  */
 import { getStorageItem, setStorageItem } from '@utils/storage';
@@ -21,8 +21,8 @@ interface StoredAsyncRouterBlob {
 interface RouterState {
   /** 动态路由树；刷新时从 localStorage 还原，未登录或清单变更时为空数组 */
   asyncRouteData: AsyncRouteNode[];
-  /** 从 MENU_MANIFEST 重建全量路由树并持久化，同时标记业务路由需重新注入 */
-  buildAsyncRouterData: () => void;
+  /** 从传入节点重建全量路由树，同时标记业务路由需重新注入并沿用现有本地持久化 */
+  buildAsyncRouterData: (nodes?: NavMenuNode[]) => void;
   /** 业务路由是否需要注入受保护布局：true=尚未注入，false=已注入；避免每次导航重复 patchRoutes */
   addRouteFlag: boolean;
 }
@@ -96,10 +96,8 @@ export const useRouterStore = create<RouterState>((set) => ({
   // 本会话尚未注入业务路由，首次 registerAsyncRoutes 时注入
   addRouteFlag: true,
 
-  buildAsyncRouterData: () => {
-    const asyncRouteData = buildAsyncRouteTree(
-      MENU_MANIFEST,
-    );
+  buildAsyncRouterData: (nodes = MENU_MANIFEST) => {
+    const asyncRouteData = buildAsyncRouteTree(nodes);
     applyAsyncRouterData(set, asyncRouteData);
     // 路由数据已重建，必须重新注入，不能沿用上次的「已注入」标记
     set({ addRouteFlag: true });

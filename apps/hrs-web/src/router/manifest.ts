@@ -5,6 +5,15 @@
  */
 import type { NavMenuNode } from '../types/moduleMenu';
 
+
+
+/**
+ * 开发调试开关（修改后刷新页面并重新登录）：
+ * true：使用本文件的静态菜单；false：使用 POST /api/system/list-menu 返回的菜单。
+ * 菜单和动态路由始终使用同一份数据，不在运行中切换数据源。
+ */
+export const USE_STATIC_MENU = true;
+
 export const MENU_MANIFEST: NavMenuNode[] = [
   {
     menuSort: 0,

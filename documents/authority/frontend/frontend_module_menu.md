@@ -1,6 +1,6 @@
 # <a id="frontend-module-menu"></a>前端模块化菜单与动态路由状态方案
 
-> 📝 **方案简述**：本方案确立 `apps/hrs-web` 前端"菜单 + 动态路由"的数据分层与状态管理基准——以 `MENU_MANIFEST` 为唯一真源，菜单与路由共用同一份原始数据；菜单加工/持久化收敛到 `MenuStore`、动态路由树加工/持久化收敛到 `RouterStore`（均 Zustand）；白名单路由（登录页/404/兜底）不进入状态层、仅在 `appRouter.tsx` 内联声明；真源当前为本地常量，后续平滑切换为接口返回。本方案**已落地**，本文档描述当前实现状态。
+> 📝 **方案简述**：本方案确立 `apps/hrs-web` 前端"菜单 + 动态路由"的数据分层与状态管理基准——由 `USE_STATIC_MENU` 开发调试开关选择静态清单或 API，菜单与路由共用同一份原始数据；菜单加工/持久化收敛到 `MenuStore`、动态路由树加工/持久化收敛到 `RouterStore`（均 Zustand）；白名单路由（登录页/404/兜底）不进入状态层、仅在 `appRouter.tsx` 内联声明；默认使用本地常量；关闭开关后登录时使用接口返回。本方案**已落地**，本文档描述当前实现状态。
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
@@ -20,7 +20,8 @@
 - [十、持久化策略](#sec-10)
 - [十一、文件职责与边界](#sec-11)
 - [十二、约束与注意](#sec-12)
-- [十三、后续演进](#sec-13)
+- [十三、开发调试数据源开关](#sec-13)
+- [十四、菜单查询 API 与分层](#sec-14)
 
 ---
 
@@ -28,7 +29,7 @@
 
 ## 一、背景与目标
 
-当前 Web 端菜单、路由、模块切换能力已从"静态写死"演进为"统一配置驱动"：路由真源暂存本地常量，后续切接口返回。本方案需同时满足：
+当前 Web 端菜单、路由、模块切换能力已从"静态写死"演进为"统一配置驱动"：默认使用本地常量，开发调试时可通过固定开关改用接口返回。本方案需同时满足：
 
 - 菜单与路由共享同一份真源数据；
 - 支持模块切换（当前真源含 `productModel` 产品模块、`developmentMode` 调试/文档模块）；
@@ -54,11 +55,11 @@
 
 ## 三、设计原则
 
-- **单一真源**：菜单与路由都基于同一份 `MENU_MANIFEST` 原始数据。
+- **单一真源**：菜单与路由都基于加载入口选定的同一份原始数据（静态清单或 API）。
 - **白名单独立**：白名单不混入业务动态路由状态、不入 Store、不持久化。
 - **状态中心化**：数据加工、存储、编排统一进入 Zustand（`MenuStore` / `RouterStore`）。
-- **结果可缓存**：加工后的菜单数据与动态路由数据允许持久化。
-- **逐步演进**：现阶段兼容本地常量真源，后续平滑切换到接口真源。
+- **结果可缓存**：两种数据源加工后的菜单与路由共用现有持久化，刷新时从本地恢复。
+- **固定配置**：开发时修改 `USE_STATIC_MENU` 后重新登录，不提供运行中切换或兼容层。
 
 ---
 
@@ -70,7 +71,7 @@
 
 ### 4.1 真源层
 
-- `router/manifest.ts`（`MENU_MANIFEST`）—— 唯一真源，只承担原始数据存储，不承担加工/状态逻辑。
+- `router/manifest.ts` 提供 `USE_STATIC_MENU` 调试开关（默认 `true`）和 `MENU_MANIFEST` 静态清单；关闭时使用 API 返回的同格式节点。两种数据源共用下文的缓存与刷新恢复流程。
 
 ### 4.2 状态加工层
 
@@ -140,11 +141,11 @@
 
 **Action 设计**：
 
-- `buildMenuData(loginModuleCode?)`（场景一）：从 `MENU_MANIFEST` **实时构建**全量 `menuData`（`buildRuntimeMenuData`），确定 `currentModuleCode`（登录指定或回退第一个非空模块，没有可用模块时为空字符串），派生 `currentMenuData` 并持久化 `menuData` 与 `currentModuleCode`。
+- `buildMenuData(loginModuleCode?, nodes?)`（场景一）：从加载入口传入的节点**实时构建**全量 `menuData`（`buildRuntimeMenuData`），确定 `currentModuleCode`（登录指定或回退第一个非空模块，没有可用模块时为空字符串），派生 `currentMenuData` 并持久化 `menuData` 与 `currentModuleCode`。
 - `setCurrentModuleCode(menuCode)`（场景二）：复用已持久化 `menuData`，切换 `currentModuleCode` 并重算 `currentMenuData`，仅持久化 `currentModuleCode`。
 - 内部统一出口 `applyMenuState(set, menuData, currentModuleCode, init)`：负责派生 `currentMenuData`、按 `init` 决定是否持久化 `menuData`、始终持久化 `currentModuleCode`、写入 state。
 
-**处理顺序**：从 `MENU_MANIFEST` 读取真源 → 按模块归类生成 `menuData` → 按 `currentModuleCode` 索引得到 `currentMenuData`（即 `menuData[currentModuleCode].children`）→ 更新 Zustand state。场景三（刷新）由 store 初始化时自动从 localStorage 还原 `menuData` 与 `currentModuleCode` 并派生 `currentMenuData`，不需要单独 Action。
+**处理顺序**：通过 `loadMenuData()` 读取选定数据源 → 按模块归类生成 `menuData` → 按 `currentModuleCode` 索引得到 `currentMenuData`（即 `menuData[currentModuleCode].children`）→ 更新 Zustand state。场景三（刷新）由 Store 初始化时自动从 localStorage 还原 `menuData` 与 `currentModuleCode` 并派生 `currentMenuData`，两种模式相同，不调用菜单 API，也不需要额外恢复 Action。
 
 **【强制】** `menuData` 的形状是 `Record<MenuCode, NavMenuNode>`（按模块索引、值含 `children`），**不是** `NavMenuNode[]` 扁平数组；消费方先按 `currentModuleCode` 索引取模块，再取 `.children` 作为菜单树。
 
@@ -177,7 +178,7 @@
 ### 9.1 菜单数据流
 
 ```
-MENU_MANIFEST 真源
+loadMenuData 选定的统一节点
   -> MenuStore.buildMenuData()        （场景一：从真源实时构建）
   -> menuData（持久化 menu.menuData）
   -> currentModuleCode（持久化 menu.currentModuleCode）
@@ -188,7 +189,7 @@ MENU_MANIFEST 真源
 ### 9.2 路由数据流
 
 ```
-MENU_MANIFEST 真源
+loadMenuData 选定的统一节点
   -> RouterStore.buildAsyncRouterData()   （场景一：登录后构建并落盘）
   -> asyncRouteData（场景二：刷新时从持久化还原）
   -> routeRegistration.registerAsyncRoutes() -> patchRoutes('business', ...)
@@ -223,7 +224,8 @@ MENU_MANIFEST 真源
 
 ### 11.1 真源文件
 
-- `router/manifest.ts` —— 唯一真源 `MENU_MANIFEST`（模块 + 菜单/路由节点）。
+- `router/manifest.ts` —— 开发调试开关 `USE_STATIC_MENU` 与静态 `MENU_MANIFEST`。
+- `router/loadMenuData.ts` —— 按开关加载一份菜单节点，交给菜单和路由 Store。
 
 ### 11.2 核心状态文件
 
@@ -254,13 +256,16 @@ MENU_MANIFEST 真源
 
 <a id="sec-13"></a>
 
-## 十三、后续演进
+## 十三、开发调试数据源开关
 
-当前真源在本地常量中，后续真源将改为接口返回。为兼容未来演进：
+`router/manifest.ts` 中的 `USE_STATIC_MENU` 默认 `true`。开发时设为 `false` 后重新登录，即从 `POST /api/system/list-menu` 获取菜单，无请求体或查询参数。这是固定的源码配置，不提供运行中切换、模式兼容或自动回退。
 
-1. 将 Store 中"读取真源"的入口抽象为统一方法；
-2. 当前先读取本地 `MENU_MANIFEST`；
-3. 后续切到接口时，只替换数据读取入口，不改 Store 的状态结构与 `asyncRouteData` / `currentMenuData` 的消费方式；
-4. 接口化后可增加版本号、更新时间、远端同步策略。
+`router/loadMenuData.ts` 统一选择数据源，并将同一份 `NavMenuNode[]` 交给 `MenuStore` 和 `RouterStore`。登录成功后，先加载、加工并沿用现有逻辑持久化，再注册路由。两种模式刷新时均从 localStorage 恢复菜单、当前模块及路由，不请求菜单 API；再次登录时获取新数据并覆盖缓存。开关判断只保留在加载入口，Store 和启动入口不再区分数据源，不额外建设缓存或刷新加载机制。登录时请求失败直接展示错误，排查后可重新提交。
 
-该方案兼容当前本地真源模式，也兼容后续接口化真源模式，可作为菜单和动态路由重构的正式设计基础。
+<a id="sec-14"></a>
+
+## 十四、菜单查询 API 与分层
+
+`api/system/menu.ts` 的 `menuApi.getTree()` 解包 `resultCode/resultMsg/resultData` 并校验节点契约，不写 Store，POST 不进入通用 GET 缓存。菜单组件直接订阅 `useMenuStore`，不新增 `hooks/useMenu.ts`。加载入口负责协调数据源，两个 Store 分别负责菜单和路由的派生状态。
+
+Java 当前仍为旧接口 `GET /api/system/menus/tree`，`MenuVO` 字段也尚未对齐，开发代理仍指向 Python。关闭开关前需准备符合契约的接口及转发、认证（含 CSRF）；本次仅实现前端调试开关，未修改 Java 或数据库，未完成真实服务联调。完整字段和调用流程见 [菜单树查询接口契约](menu_api_contract.md)。

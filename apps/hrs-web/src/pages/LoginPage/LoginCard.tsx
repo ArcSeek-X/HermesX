@@ -10,7 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { isParsedApiError, type ParsedApiError } from '@/api/error/error';
 import { useAuth } from '../../hooks';
 import { useUiLanguage } from '../../contexts/UiLanguageContext';
-import { useMenuStore, useRouterStore } from '../../stores';
+import { loadMenuData } from '../../router/loadMenuData';
 import { registerAsyncRoutes } from '../../router/routeRegistration';
 import {
   Alert,
@@ -32,11 +32,6 @@ const LoginCard: React.FC = () => {
   const { t } = useUiLanguage();
   /** 路由导航函数 */
   const navigate = useNavigate();
-  /** 菜单构建：登录成功后创建并持久化全量菜单数据（MenuStore 场景一） */
-  const buildMenuData = useMenuStore((s) => s.buildMenuData);
-  /** 动态路由构建：登录成功后创建并持久化全量动态路由树（RouterStore 场景一） */
-  const buildAsyncRouterData = useRouterStore((s) => s.buildAsyncRouterData);
-
   /** URL 查询参数，用于提取登录成功后的重定向地址 */
   const [searchParams] = useSearchParams();
   /** 原始重定向地址，从查询参数 redirect 中获取 */
@@ -60,7 +55,8 @@ const LoginCard: React.FC = () => {
 
   /**
    * 表单提交事件处理函数
-   * 调用登录接口，成功后重定向到目标页面，失败则显示错误信息
+   * 登录成功后加载菜单，等待 Store 完成数据处理与本地持久化，再注册路由并跳转页面。
+   * 登录或菜单请求失败时显示错误信息。
    * @param e - 表单提交事件
    */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,11 +73,10 @@ const LoginCard: React.FC = () => {
       // 调用登录接口验证密码
       const result = await login(password);
       if (result.success) {
-        // 登录成功：先构建并持久化全量菜单数据（菜单以存储为权威源），再构建并持久化
-        // 全量动态路由树（RouterStore 场景一），最后跳转目标页；
-        // 不传 loginModuleCode 时由 store 自动取第一个可用模块。
-        buildMenuData();
-        buildAsyncRouterData();
+
+        // 开关决定使用静态清单还是 API；菜单与路由使用同一份返回数据。
+        // 内部复用两个 Store 的数据处理和持久化，必须等待完成后再跳转。
+        await loadMenuData();
         // 登录成功后注入业务路由（patchRoutes 到 protected 布局），再跳转目标页
         registerAsyncRoutes();
         // 登录成功，重定向到目标页面（替换历史记录，避免后退回登录页）
@@ -90,6 +85,9 @@ const LoginCard: React.FC = () => {
         // 登录失败，展示服务端返回的错误信息或默认失败提示
         setError(result.error ?? t('auth.login.loginFailed'));
       }
+    } catch (cause) {
+      // 登录成功后若菜单请求失败，留在当前页展示错误，允许再次提交。
+      setError(isParsedApiError(cause) ? cause : cause instanceof Error ? cause.message : '菜单加载失败');
     } finally {
       // 无论成功失败，恢复按钮可点击状态
       setIsSubmitting(false);

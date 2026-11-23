@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] Web 菜单增加 manifest 内开发调试开关 USE_STATIC_MENU（默认开启）；关闭后登录时从 POST /api/system/list-menu 加载菜单与路由，两种数据源共用现有本地持久化，刷新直接恢复缓存；移除启动时额外查询及 Store 内模式分支，接口失败在登录页提示。
+
+
 - [文档] 将项目许可由 MIT 调整为 HermesX 非商业学习许可 1.0：允许学习与交流等非商业用途，禁止商用；同步更新中英繁三语 README 的许可徽章与说明。
+
+- [改进] 前端新增菜单树查询 API（POST /api/system/list-menu，无请求体），按 resultCode/resultMsg/resultData 解包并复用 manifest 的统一节点契约，校验树结构与字段、传递业务及网络错误，POST 不进入通用 GET 缓存；补齐接口契约、API/Store/Hook 分层说明和测试，当前运行数据源仍为静态 manifest，尚未切换 Java。
 
 - [改进] 前端菜单清单统一 module、group、page 节点格式，以 menuType 区分，统一 menuCode/menuName/menuRoutePath 等字段；同步应用切换、侧栏高亮、排序状态和动态路由，菜单与路由共用清单指纹使旧缓存失效，需重新登录重建。本次不修改 Java 和数据库。
 

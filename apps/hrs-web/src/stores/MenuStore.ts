@@ -1,6 +1,6 @@
 /**
- * 导航菜单状态：从统一清单派生模块索引与当前模块侧栏。
- * 与动态路由共用清单指纹，真源变更后丢弃旧缓存，避免使用过期菜单。
+ * 导航菜单状态：从统一菜单节点派生模块索引与当前模块侧栏。
+ * 与动态路由沿用同一套本地持久化和清单指纹，刷新时从缓存恢复。
  */
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
@@ -22,8 +22,8 @@ interface MenuState {
   currentModuleCode: MenuCode;
   /** 当前模块的顶层导航节点，即 menuData[currentModuleCode].children，供侧栏直接渲染。 */
   currentMenuData: NavMenuNode[];
-  /** 登录后按最新清单重建菜单树并持久化；loginModuleCode 不可用时回退到首个有菜单的模块。 */
-  buildMenuData: (loginModuleCode?: MenuCode) => void;
+  /** 登录后按传入节点重建菜单树；沿用现有本地持久化；loginModuleCode 不可用时回退到首个有菜单的模块。 */
+  buildMenuData: (loginModuleCode?: MenuCode, nodes?: NavMenuNode[]) => void;
   /** 切换当前模块并持久化选中项；复用已有菜单树，不重新构建。 */
   setCurrentModuleCode: (menuCode: MenuCode) => void;
 }
@@ -42,9 +42,9 @@ const buildMenuNodes = (nodes: NavMenuNode[]): NavMenuNode[] =>
     return [{ ...node, children }];
   });
 
-const buildRuntimeMenuData = (): ModuleMenuData =>
+const buildRuntimeMenuData = (nodes: NavMenuNode[]): ModuleMenuData =>
   Object.fromEntries(
-    buildMenuNodes(MENU_MANIFEST)
+    buildMenuNodes(nodes)
       .filter((node) => node.menuType === 'module')
       .map((node) => [node.menuCode, node]),
   );
@@ -92,8 +92,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   menuData: initialMenuData,
   currentModuleCode: initialCurrentModuleCode,
   currentMenuData: initialMenuData[initialCurrentModuleCode]?.children ?? [],
-  buildMenuData: (loginModuleCode) => {
-    const menuData = buildRuntimeMenuData();
+  buildMenuData: (loginModuleCode, nodes = MENU_MANIFEST) => {
+    const menuData = buildRuntimeMenuData(nodes);
     applyMenuState(set, menuData, getValidModuleCode(menuData, loginModuleCode), true);
   },
   setCurrentModuleCode: (menuCode) => {
