@@ -1,6 +1,6 @@
 /**
- * 菜单状态：统一节点清单 → 按模块索引 → 当前模块侧栏。
- * 菜单与动态路由使用相同清单指纹，结构变更后拒绝还原旧格式缓存。
+ * 导航菜单状态：从统一清单派生模块索引与当前模块侧栏。
+ * 与动态路由共用清单指纹，真源变更后丢弃旧缓存，避免使用过期菜单。
  */
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
@@ -16,18 +16,21 @@ interface StoredMenuBlob {
 }
 
 interface MenuState {
-  /** 用模块的 menuCode 索引，所有值都是统一菜单节点。 */
+  /** 按模块 menuCode 索引的全量菜单树；节点统一为 NavMenuNode，由 buildMenuData 重建。 */
   menuData: ModuleMenuData;
-  /** 当前选中模块的稳定业务标识，不是数据库 id。 */
+  /** 当前选中模块的 menuCode（稳定业务标识，非数据库 id），决定侧栏展示哪个模块。 */
   currentModuleCode: MenuCode;
+  /** 当前模块的顶层导航节点，即 menuData[currentModuleCode].children，供侧栏直接渲染。 */
   currentMenuData: NavMenuNode[];
+  /** 登录后按最新清单重建菜单树并持久化；loginModuleCode 不可用时回退到首个有菜单的模块。 */
   buildMenuData: (loginModuleCode?: MenuCode) => void;
+  /** 切换当前模块并持久化选中项；复用已有菜单树，不重新构建。 */
   setCurrentModuleCode: (menuCode: MenuCode) => void;
 }
 
 /**
- * 生成可见导航：禁用节点连同子树移除；隐藏分组仅透传子节点。
- * 不改写节点字段、不再维护模块专属格式，层级交由渲染组件递归计算。
+ * 按 menuSort 升序生成可见导航：禁用节点连同子树移除，隐藏分组只透传子节点。
+ * 不改写节点业务字段，层级仍由 children 表达。
  */
 const buildMenuNodes = (nodes: NavMenuNode[]): NavMenuNode[] =>
   [...nodes].sort((a, b) => a.menuSort - b.menuSort).flatMap((node) => {
@@ -52,6 +55,7 @@ const getValidModuleCode = (menuData: ModuleMenuData, code?: MenuCode | null): M
   return Object.values(menuData).find((node) => node.children?.length)?.menuCode ?? '';
 };
 
+/** 读取本地菜单缓存；指纹不一致或结构异常时返回空对象，等待登录后重建。 */
 const readStoredMenuData = (): ModuleMenuData => {
   const stored = getStorageItem<StoredMenuBlob>(MENU_DATA_STORAGE_KEY, 'local');
   if (
@@ -67,6 +71,7 @@ const initialCurrentModuleCode = getValidModuleCode(
   getStorageItem<MenuCode>(CURRENT_MODULE_STORAGE_KEY, 'local'),
 );
 
+/** 统一写入：仅在重建菜单时持久化菜单树，当前模块始终持久化，并同步侧栏数据。 */
 const applyMenuState = (
   set: (partial: Partial<MenuState>) => void,
   menuData: ModuleMenuData,

@@ -1,26 +1,7 @@
 /**
- * @file RouterStore.ts
- * @description 动态路由状态 Store（Zustand）。以路由清单 `MENU_MANIFEST` 为唯一真值源，
- *   在登录后构建全量动态路由树（asyncRouteData）并持久化；刷新浏览器时直接从持久化还原，
- *   无需重建。白名单路由（登录页、404 兜底等）不进入本 Store，由路由注册层在最终注册时合并。
- *
- * 持久化边界：
- * - asyncRouteData：动态路由树（含 children 的树状结构），需持久化到 localStorage；
- *   存储即唯一权威数据源，有则直接可用，缺失视为未登录（空数组）。
- *   持久化 blob 携带清单指纹：清单（真源）变更后旧缓存视为过期丢弃，
- *   交由 main.tsx 的「已登录但路由为空 → 回退登录页」路径重新登录重建。
- *
- * 两个业务场景与 Store 入口的对应关系（登录功能尚未实现，以下入口供后续直接调用）：
- * - 场景一 首次登录：登录成功后调用 `buildAsyncRouterData()` ——
- *   遍历真源数据、按转换关系构建全量动态路由树并持久化。
- * - 场景二 刷新浏览器（已登录）：store 初始化时（模块加载）自动从 localStorage
- *   还原 asyncRouteData（见文件底部 `initial*` 初始化），无需手动调用；
- *   路由注册层直接消费 `asyncRouteData` 将其挂入路由表（"建立动态路由"）。
- *
- * 使用场景：被路由注册层经由 `useRouterStore` 读取 `asyncRouteData`，
- *   将其注册为最终的动态路由表（登录/404 等静态路由在 appRouter 中独立声明，不在此列）。
- * @author Lensgcx (GaoCangxiong)
- * @date 2026-09-19
+ * 动态路由状态：以 MENU_MANIFEST 为唯一真源，登录后构建并持久化全量路由树，
+ * 刷新时直接从 localStorage 还原。清单指纹变更即丢弃旧缓存，避免用过期的页面路径注册路由。
+ * 登录页与 404 兜底由 appRouter 静态声明，不进入本 Store。
  */
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
@@ -28,32 +9,27 @@ import type { AsyncRouteNode } from '../types/router';
 import { MENU_MANIFEST, MENU_MANIFEST_FINGERPRINT } from '../router/manifest';
 import type { NavMenuNode } from '../types/moduleMenu';
 
-/** localStorage 中持久化「动态路由树（asyncRouteData）」的键；存储即路由数据源，有则直接可用 */
+/** 本地持久化动态路由树的键；存储即路由数据源，缺失视为未登录 */
 const ASYNC_ROUTER_STORAGE_KEY = 'router.asyncRouteData';
 
-/** 持久化 blob 结构：动态路由树 + 产出该树时的路由清单指纹（用于识别真源清单变更） */
+/** 持久化 blob：路由树 + 产出时的清单指纹，用于识别真源变更 */
 interface StoredAsyncRouterBlob {
   fingerprint: string;
   routes: AsyncRouteNode[];
 }
 
 interface RouterState {
-  /** 动态路由树（树状结构，含 children）。需持久化（见 ASYNC_ROUTER_STORAGE_KEY）；
-   *  存储缺失或清单指纹过期（未登录 / 清单变更）时为空数组，登录后由 buildAsyncRouterData 构建并落盘 */
+  /** 动态路由树；刷新时从 localStorage 还原，未登录或清单变更时为空数组 */
   asyncRouteData: AsyncRouteNode[];
-  /** 场景一：登录后构建全量动态路由树并持久化 */
+  /** 从 MENU_MANIFEST 重建全量路由树并持久化，同时标记业务路由需重新注入 */
   buildAsyncRouterData: () => void;
-  /** 业务路由是否已注入受保护布局：true=尚未注入（需 patchRoutes），false=已注入。
-   *  用于避免路由守卫每次导航都重复 patchRoutes 触发受保护布局重渲染 */
+  /** 业务路由是否需要注入受保护布局：true=尚未注入，false=已注入；避免每次导航重复 patchRoutes */
   addRouteFlag: boolean;
 }
 
 /**
- * 将路由节点（NavMenuNode）映射为动态路由节点（AsyncRouteNode）。
- * 仅搬运路由注册所需的字段，未命中的字段回退为默认值；若存在子节点则一并挂上。
- * @param node 源路由节点，不允许为 null
- * @param children 已构建好的子路由节点；为空或 undefined 时不挂 children 字段
- * @returns 转换后的 AsyncRouteNode
+ * 菜单节点 → 动态路由节点：只搬运路由注册需要的字段，缺失路径回退为空字符串。
+ * 子节点递归转换后一并挂载；空子节点不挂 children。
  */
 const toAsyncRouteNode = (
   node: NavMenuNode,
@@ -70,10 +46,8 @@ const toAsyncRouteNode = (
 });
 
 /**
- * 递归构建动态路由树：仅保留启用的 page 节点，
- * 其余节点（如 group）仅透传其 children，不保留壳。
- * @param nodes 路由节点森林（可能含多级 children）
- * @returns 动态路由树数组；无匹配路由时返回空数组
+ * 递归构建动态路由树：按 menuSort 升序，仅保留启用的 page 节点；
+ * 分组等非页面节点只透传子树，不保留壳。
  */
 const buildAsyncRouteTree = (nodes: NavMenuNode[]): AsyncRouteNode[] =>
   [...nodes].sort((a, b) => a.menuSort - b.menuSort).flatMap((node) => {
@@ -86,37 +60,25 @@ const buildAsyncRouteTree = (nodes: NavMenuNode[]): AsyncRouteNode[] =>
   });
 
 /**
- * 读取持久化的动态路由树（asyncRouteData）。
- * 存储即唯一权威数据源：写入方（buildAsyncRouterData）产出的是结构干净的 AsyncRouteNode[]，
- * 经 JSON 往返后字段无损（routerKey/routerPath/routerDescription 等均为可序列化基本类型），故此处不做逐节点清洗，
- * 只做顶层数组形态校验——与 MenuStore.readStoredMenuData 的「信任自有持久化」策略一致。
- * 存储缺失、解析失败、非数组一律视为「没有」，返回空数组（刻意的合法初值）。
- * 副作用：读取 localStorage（'local' 作用域）的 ASYNC_ROUTER_STORAGE_KEY。
- * @returns 持久化的动态路由树；缺失或格式非法时返回空数组
+ * 读取本地持久化的路由树：只接受指纹一致、形态合法的 blob，其余一律视为未登录或已过期。
+ * 清单变更后旧页面路径可能查不到模块（resolvePageImporter 失败），因此整块丢弃并等待重新登录构建。
  */
 const readStoredAsyncRouterData = (): AsyncRouteNode[] => {
   const stored = getStorageItem<StoredAsyncRouterBlob>(ASYNC_ROUTER_STORAGE_KEY, 'local');
-  // 只接受「清单指纹一致 + 数组形态」的持久化数据：清单（真源）变更后旧 blob 一律视为没有，
-  // 交由 main.tsx 的「已登录但路由为空 → 回退登录页」路径重新登录重建。
-  // 否则旧 blob 里的过期 menuPagePath（如页面文件移动前的路径）会被 resolvePageImporter
-  // 查表未命中，调用时报 “resolvePageImporter(...) is not a function”。
-  // 旧格式裸数组（无 fingerprint 字段）同样在此被丢弃。
   if (!stored || typeof stored !== 'object' || stored.fingerprint !== MENU_MANIFEST_FINGERPRINT
     || !Array.isArray(stored.routes)) {
     return [];
   }
-  // 节点形态校验：字段名随版本演进（menuCode 映射 routerKey，menuPagePath 映射 routerPagePath）；
-  // routerPagePath 允许为 ''（redirect 节点本就无页面），故只校验其为 string 类型即可。
+  // routerPagePath 允许为空（redirect 节点无页面），只校验字段类型。
   return stored.routes.every((n) => n && typeof n.routerKey === 'string' && typeof n.routerPagePath === 'string')
     ? stored.routes
     : [];
 };
 
-// ===== 场景二：从持久化加载 - store 初始化（模块加载时自动执行）=====
-// 刷新浏览器（已登录）时直接从 localStorage 还原 asyncRouteData；未登录则为空数组，无需手动调用。
+// store 初始化即从 localStorage 还原，刷新后无需重建；未登录为空数组。
 const initialAsyncRouterData = readStoredAsyncRouterData();
 
-/** 内部统一出口：持久化 + 写入 state（消除 action 的重复骨架）。 */
+/** 统一出口：写入持久化 blob 并同步 state。 */
 const applyAsyncRouterData = (
   set: (partial: Partial<RouterState>) => void,
   asyncRouteData: AsyncRouteNode[],
@@ -130,21 +92,18 @@ const applyAsyncRouterData = (
 };
 
 export const useRouterStore = create<RouterState>((set) => ({
-  // 初始 state 在 store 初始化时由 localStorage 还原（见 initial*），直接内联无需 return
   asyncRouteData: initialAsyncRouterData,
-  // 初始为 true：本会话尚未注入业务路由，首次 registerAsyncRoutes 时注入
+  // 本会话尚未注入业务路由，首次 registerAsyncRoutes 时注入
   addRouteFlag: true,
 
-  // 场景：首次登录成功 → 构建全量动态路由树并持久化
   buildAsyncRouterData: () => {
     const asyncRouteData = buildAsyncRouteTree(
       MENU_MANIFEST,
     );
     applyAsyncRouterData(set, asyncRouteData);
-    // 路由数据已（重新）产出 → 标记需重新注入，避免沿用上一次的「已注入」标记
+    // 路由数据已重建，必须重新注入，不能沿用上次的「已注入」标记
     set({ addRouteFlag: true });
   },
 
-  // 业务路由注册（registerAsyncRoutes / uninstallAsyncRoutes）已移至 src/router/routeRegistration.ts，
-  // 由该模块直接消费 asyncRouteData 与 addRouteFlag，避免 RouterStore 静态依赖 appRouter。
+  // 业务路由注册由 routeRegistration 消费本 Store，避免反向依赖 appRouter
 }));
