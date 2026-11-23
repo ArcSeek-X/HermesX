@@ -28,6 +28,7 @@ flake8_checks() {
 
 deterministic_checks() {
   echo "==> backend-gate: local deterministic checks"
+  python -m unittest discover -s scripts/db/tests -v
   ./scripts/test.sh code
   ./scripts/test.sh yfinance
 }
