@@ -38,8 +38,8 @@ hover 时其它项淡出让位的细节。整体克制、高级。
 |----|------|------|
 | 数据 | `stores/MenuStore.ts`（`useMenuStore`） | 以 `MENU_MANIFEST` 为唯一真值源，构建 `currentMenuData`（按当前模块筛选、含 `menuPosition`） |
 | 编排 | `SidebarNav.tsx` | 取 `currentMenuData`、AlphaSift 过滤「选股」、content/footer 分区、展开态、模块切换自动跳转、DOM 接线（含唯一玻璃块 `.navThumb`） |
-| 节点 | `MenuNode.tsx` | 单节点四形态渲染（图标栏 / 分组标题 / 可折叠 / 叶子）、路由高亮、点击跳转、子级递归、标记 `data-active` / `data-menu-id` |
-| 玻璃动效 | `useNavThumb.ts` | 落点解析（`resolveHighlightMenuId`）、定位与滑行（`slideThumb`）、触发骨架、滚动 / `ResizeObserver` 同步 |
+| 节点 | `MenuNode.tsx` | 单节点四形态渲染（图标栏 / 分组标题 / 可折叠 / 叶子）、路由高亮、点击跳转、子级递归、标记 `data-active` / `data-menu-code` |
+| 玻璃动效 | `useNavThumb.ts` | 落点解析（`resolveHighlightMenuCode`）、定位与滑行（`slideThumb`）、触发骨架、滚动 / `ResizeObserver` 同步 |
 
 <a id="sec-3"></a>
 
@@ -68,7 +68,7 @@ hover 时其它项淡出让位的细节。整体克制、高级。
 
 高亮与玻璃落点**同源**：均从 `pathname`（`react-router`）派生，不维护本地高亮状态。
 
-- 落点解析 `resolveHighlightMenuId(menuNodes, pathname, isExpanded)`：单遍遍历（`findBestChain` + `isBetterChain`）求"当前路径最佳命中链"，多命中时先取完全相等、再取更深者；命中项被折叠祖先隐藏时落点上移到链上第一个可见祖先（折叠含激活子项的一级菜单时玻璃落到该一级菜单）。
+- 落点解析 `resolveHighlightMenuCode(menuNodes, pathname, isExpanded)`：单遍遍历（`findBestChain` + `isBetterChain`）求"当前路径最佳命中链"，多命中时先取完全相等、再取更深者；命中项被折叠祖先隐藏时落点上移到链上第一个可见祖先（折叠含激活子项的一级菜单时玻璃落到该一级菜单）。
 - 节点高亮 `MenuNode` 内 `isActiveRoute = matchPath(自身) || 任意子项 matchPath`，与落点共用同一 `matchPath` 原语。
 
 天然兼容深链、前进/后退、刷新——任何入口只要路由变了，高亮与玻璃自动对齐。
@@ -96,7 +96,7 @@ const y = tr.top - ar.top                      // 实时计算，滚动天然安
 
 ### 3.4 触发时机：syncThumb + 瞬时/滑行双模
 
-`syncThumb(animateSlide)` 找到落点行（`findTarget` 按 `highlightMenuId` 精确匹配 `[data-menu-id]`，避免折叠退场旧行误匹配）并调 `slideThumb`。用 `animateSlide` 严格区分「是否播动画」：
+`syncThumb(animateSlide)` 找到落点行（`findTarget` 按 `highlightMenuCode` 精确匹配 `[data-menu-code]`，避免折叠退场旧行误匹配）并调 `slideThumb`。用 `animateSlide` 严格区分「是否播动画」：
 
 | 时机 | 触发 | animateSlide |
 |------|------|--------------|
@@ -149,7 +149,7 @@ transition={MENU_ITEM_PRESS_SPRING}   // { type: 'spring', stiffness: 520, dampi
 
 在新项目中复刻该交互，建议按以下顺序迁移：
 
-1. **迁移动效底座**：把 `useNavThumb.ts` 中的 `slideThumb`（零依赖）+ `matchPath` / `resolveHighlightMenuId` 抽出为独立动效模块。
+1. **迁移动效底座**：把 `useNavThumb.ts` 中的 `slideThumb`（零依赖）+ `matchPath` / `resolveHighlightMenuCode` 抽出为独立动效模块。
 2. **抽导航组件**：将 `SidebarNav` + `MenuNode` 中「`.navThumb` + 路由高亮 + 展开态 + 滚动/RO 同步」的模式抽成通用 `NavRail` 组件，数据入口保留 `currentMenuData`（`NavMenuNode[]`，含 `menuPosition`）。
 3. **保留 CSS 约定**：唯一 `.navThumb`（absolute, z-0, `pointer-events:none`）+ 菜单项 `z-1` + `transform` 不写 CSS transition + `:has()` 兄弟让位，三条不可省。
 4. **接入路由**：高亮与落点必须从 `pathname`（react-router）派生，不接受外部受控状态。
@@ -158,6 +158,6 @@ transition={MENU_ITEM_PRESS_SPRING}   // { type: 'spring', stiffness: 520, dampi
 最小可复用单元清单：
 
 - `slideThumb(thumb, targetRow, menuArea, animateSlide, duration)` —— 核心定位与滑行。
-- `resolveHighlightMenuId(menuNodes, pathname, isExpanded)` + `matchPath(routePath, exact, pathname)` —— 落点/高亮解析原语。
+- `resolveHighlightMenuCode(menuNodes, pathname, isExpanded)` + `matchPath(menuRoutePath, exact, pathname)` —— 落点/高亮解析原语。
 - `useNavThumb({ menuItems, pathname, isExpanded, collapsedState })` —— 触发骨架（路由 watch + 滚动 + ResizeObserver）。
 - `.navThumb{position:absolute;…;pointer-events:none;z-index:0}` + 菜单项 `{position:relative;z-index:1}` —— 叠放约定。

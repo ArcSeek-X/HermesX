@@ -139,10 +139,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     const filtered = showAlphaSiftNav
       ? currentMenuData
       : currentMenuData
-          .filter((item) => item.menuId !== 'screening')
+          .filter((item) => item.menuCode !== 'screening')
           .map((item) =>
             item.children
-              ? { ...item, children: item.children.filter((child) => child.menuId !== 'screening') }
+              ? { ...item, children: item.children.filter((child) => child.menuCode !== 'screening') }
               : item,
           );
     return {
@@ -156,17 +156,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
    * 不用 effect 同步，也免去模式切换后重置）。
    */
   const [userExpanded, setUserExpanded] = useState<Record<string, boolean>>({});
-  // 依据节点当前有效展开态取反落新值（由 MenuNode 传入），不要对 prev[menuId] 取反：
+  // 依据节点当前有效展开态取反落新值（由 MenuNode 传入），不要对 prev[menuCode] 取反：
   // 首次点击时覆盖值尚不存在，!undefined 会得到 true，导致「展开态菜单首次点击无反应」。
-  const toggle = useCallback((menuId: string, expanded: boolean) => {
-    setUserExpanded((prev) => ({ ...prev, [menuId]: !expanded }));
+  const toggle = useCallback((menuCode: string, expanded: boolean) => {
+    setUserExpanded((prev) => ({ ...prev, [menuCode]: !expanded }));
   }, []);
   // 展开判定：用户显式切换过则用其值，否则回退数据里的 menuExpanded；
   // 若某子项命中当前路由（深链 / 刷新直达子页），父级自动展开，保证激活叶子在 DOM 中、滑行玻璃能落到它。
   const isExpanded = useCallback(
     (node: NavMenuNode) => {
-      if (userExpanded[node.menuId] !== undefined) return userExpanded[node.menuId];
-      if (node.children?.some((child) => matchPath(child.routePath, child.exact, pathname))) return true;
+      if (userExpanded[node.menuCode] !== undefined) return userExpanded[node.menuCode];
+      if (node.children?.some((child) => matchPath(child.menuRoutePath, child.exact, pathname))) return true;
       return node.menuExpanded;
     },
     [userExpanded, pathname],
@@ -182,15 +182,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     const firstItem = contentItems[0];
     if (!firstItem) return;
     const landingItem = firstItem.children?.length ? firstItem.children[0] : firstItem;
-    if (landingItem?.routePath) navigate(landingItem.routePath);
+    if (landingItem?.menuRoutePath) navigate(landingItem.menuRoutePath);
   }, [currentMenuData, contentItems, navigate]);
 
   // 全量菜单（主 + 底部）：稳定引用，供玻璃子系统解析落点 + 重建时重新登记 ResizeObserver
   const menuItems = useMemo(() => [...contentItems, ...footerItems], [contentItems, footerItems]);
 
-  // 滑行玻璃子系统：落点解析（resolveHighlightMenuId）、定位计算、滑行动画与滚动/resize 同步全部封装于 ./useNavThumb；
-  // 本组件只保留 DOM 接线（三个 ref 挂到菜单区/玻璃块/滚动容器）。highlightMenuId 由子系统解析后回传，供 MenuNode 标记 data-active 与兄弟让位。
-  const { menuAreaRef, thumbRef, navScrollRef, highlightMenuId } = useNavThumb({
+  // 滑行玻璃子系统：落点解析（resolveHighlightMenuCode）、定位计算、滑行动画与滚动/resize 同步全部封装于 ./useNavThumb；
+  // 本组件只保留 DOM 接线（三个 ref 挂到菜单区/玻璃块/滚动容器）。highlightMenuCode 由子系统解析后回传，供 MenuNode 标记 data-active 与兄弟让位。
+  const { menuAreaRef, thumbRef, navScrollRef, highlightMenuCode } = useNavThumb({
     menuItems,
     pathname,
     isExpanded,
@@ -202,7 +202,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     <ul className={cn('nav-list flex flex-col gap-1.5', styles.navList)}>
       {nodes.map((menuNode) => (
         <MenuNode
-          key={menuNode.menuId}
+          key={menuNode.menuCode}
           node={menuNode}
           level={0}
           collapsedState={menuCollapsedState}
@@ -210,7 +210,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           isExpanded={isExpanded}
           onToggle={toggle}
           onNavigate={onNavigate}
-          highlightMenuId={highlightMenuId}
+          highlightMenuCode={highlightMenuCode}
         />
       ))}
     </ul>

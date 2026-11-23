@@ -5,7 +5,7 @@
  *   让 SidebarNav 只保留 DOM 接线（<div class=navThumb> + 三个 ref 的挂载）。
  *
  *   分层（对齐参考 §2 / §5）：
- *   - 落点解析：matchPath（路由匹配原语，MenuNode/SidebarNav 亦复用）+ resolveHighlightMenuId
+ *   - 落点解析：matchPath（路由匹配原语，MenuNode/SidebarNav 亦复用）+ resolveHighlightMenuCode
  *     —— 解析「当前高亮行」（折叠上移 / 展开回落）；
  *   - 动效底座：slideThumb —— 用 Web Animations API 驱动 transform，零依赖，等价参考的 gsap.to(thumb,{y,...})；
  *   - 触发骨架：useNavThumb —— syncThumb + 路由 watch + 滚动贴合 + ResizeObserver。
@@ -47,8 +47,8 @@ export interface NavThumbRefs {
   thumbRef: RefObject<HTMLDivElement | null>;
   /** 主菜单滚动容器（ScrollShadow 透传），监听 scroll 让玻璃贴合当前项 */
   navScrollRef: RefObject<HTMLElement | null>;
-  /** 当前高亮行（滑行玻璃落点）的菜单 id；无命中为 null（玻璃隐藏）。与路由高亮同源，供兄弟让位复用 */
-  highlightMenuId: string | null;
+  /** 当前高亮行（滑行玻璃落点）的菜单业务码；无命中为 null（玻璃隐藏）。与路由高亮同源，供兄弟让位复用 */
+  highlightMenuCode: string | null;
 }
 
 /**
@@ -77,7 +77,7 @@ const getCurrentY = (thumb: HTMLElement): number => {
  * CSS 不写 transition——transform 完全由这里接管，避免两套动画打架（参考 §3.5）。
  *
  * @param thumb        玻璃块元素
- * @param targetRow    目标行（带 data-menu-id 的菜单项）
+ * @param targetRow    目标行（带 data-menu-code 的菜单项）
  * @param menuArea     菜单区定位父级
  * @param animateSlide 是否播滑行；false 为瞬时贴合
  * @param duration     动画时长 ms（由调用方按「减弱动效」策略决定）；instant 时忽略
@@ -117,18 +117,18 @@ export const slideThumb = (
  * 判断菜单配置的路由是否命中当前路径（原 menuPath.ts 的唯一导出，随落点解析一并下沉到此）。
  * MenuNode 判定单节点「自身/子项命中」高亮、SidebarNav 判「父级自动展开」、以及下方 findBestChain 共用。
  *
- * @param routePath 菜单配置的路由；为空表示该项不可跳转，直接判为未命中
+ * @param menuRoutePath 菜单配置的路由；为空表示该项不可跳转，直接判为未命中
  * @param exact     true 要求与当前路径完全相等；false 时当前路径为其子路径也算命中
  * @param pathname  当前浏览器路径
  * @returns 命中返回 true，否则 false
  */
 export const matchPath = (
-  routePath: string | undefined,
+  menuRoutePath: string | undefined,
   exact: boolean | undefined,
   pathname: string,
 ): boolean => {
-  if (!routePath) return false;
-  return exact ? pathname === routePath : pathname === routePath || pathname.startsWith(`${routePath}/`);
+  if (!menuRoutePath) return false;
+  return exact ? pathname === menuRoutePath : pathname === menuRoutePath || pathname.startsWith(`${menuRoutePath}/`);
 };
 
 /**
@@ -136,8 +136,8 @@ export const matchPath = (
  * 与既有 reduce 裁决语义一致，供单遍遍历复用。
  */
 const isBetterChain = (chainA: NavMenuNode[], chainB: NavMenuNode[], pathname: string): boolean => {
-  const aExact = chainA[chainA.length - 1].routePath === pathname ? 1 : 0;
-  const bExact = chainB[chainB.length - 1].routePath === pathname ? 1 : 0;
+  const aExact = chainA[chainA.length - 1].menuRoutePath === pathname ? 1 : 0;
+  const bExact = chainB[chainB.length - 1].menuRoutePath === pathname ? 1 : 0;
   if (aExact !== bExact) return aExact > bExact;
   return chainA.length > chainB.length;
 };
@@ -155,7 +155,7 @@ const findBestChain = (
   for (const menuNode of menuNodes) {
     const chain = [...ancestorChain, menuNode];
     // 候选：自身命中，以及子树中的最优（更深优先）
-    if (matchPath(menuNode.routePath, menuNode.exact, pathname) && (!best || isBetterChain(chain, best, pathname))) {
+    if (matchPath(menuNode.menuRoutePath, menuNode.exact, pathname) && (!best || isBetterChain(chain, best, pathname))) {
       best = chain;
     }
     if (menuNode.children?.length) {
@@ -167,7 +167,7 @@ const findBestChain = (
 };
 
 /**
- * 解析滑行玻璃落点菜单 id —— 即「当前高亮行」，与路由高亮同源的单一真源（自 menuPath.ts 下沉至此）。
+ * 解析滑行玻璃落点菜单业务码 —— 即「当前高亮行」，与路由高亮同源的单一真源（自 menuPath.ts 下沉至此）。
  *
  * 规则：
  * 1. 落点跟随当前路由命中的菜单；多节点同时命中时先取「路径完全相等」者、再取更深者，结果与数组顺序无关；
@@ -179,9 +179,9 @@ const findBestChain = (
  * @param menuNodes  菜单节点列表（主菜单 + 底部菜单合并后的全量）
  * @param pathname   当前浏览器路径
  * @param isExpanded 展开判定（与渲染侧同一份，保证落点与实际可见性一致）
- * @returns 落点菜单 id；无命中返回 null
+ * @returns 落点菜单业务码；无命中返回 null
  */
-export const resolveHighlightMenuId = (
+export const resolveHighlightMenuCode = (
   menuNodes: NavMenuNode[],
   pathname: string,
   isExpanded: (node: NavMenuNode) => boolean,
@@ -191,7 +191,7 @@ export const resolveHighlightMenuId = (
   // 链上第一个「自身折叠」的节点即落点（链上最后一个可见节点）；末节点自身折叠时仍可见，玻璃落在它身上
   const collapsedIndex = best.findIndex((node, index) => index < best.length - 1 && !isExpanded(node));
   const target = collapsedIndex >= 0 ? best[collapsedIndex] : best[best.length - 1];
-  return target.menuId;
+  return target.menuCode;
 };
 
 /**
@@ -206,7 +206,7 @@ export const resolveHighlightMenuId = (
  * 时长取 THUMB_SLIDE_REDUCED_MS(0.30s)，明显短于常规 THUMB_SLIDE_MS(0.52s)。
  *
  * @param options 见 UseNavThumbOptions
- * @returns refs + highlightMenuId，供调用方挂 DOM 与标记高亮行
+ * @returns refs + highlightMenuCode，供调用方挂 DOM 与标记高亮行
  */
 export const useNavThumb = ({
   menuItems,
@@ -222,19 +222,19 @@ export const useNavThumb = ({
   );
 
   // 落点解析（当前高亮行）：命中路由的菜单；被折叠祖先隐藏时上移到最近可见的祖先行。供玻璃定位与 MenuNode 复用
-  const highlightMenuId = useMemo(
-    () => resolveHighlightMenuId(menuItems, pathname, isExpanded),
+  const highlightMenuCode = useMemo(
+    () => resolveHighlightMenuCode(menuItems, pathname, isExpanded),
     [menuItems, pathname, isExpanded],
   );
 
-  /** 按落点 menuId 精确定位目标行（而非取首个 [data-active]）：折叠动画中「正在退场」的旧行仍在 DOM，按首个匹配会贴错 */
+  /** 按落点 menuCode 精确定位目标行（而非取首个 [data-active]）：折叠动画中「正在退场」的旧行仍在 DOM，按首个匹配会贴错 */
   const findTarget = useCallback((): HTMLElement | null => {
     const area = menuAreaRef.current;
     if (!area) return null;
     if (collapsedState !== 'offcanvas') return null;
-    const rows = Array.from(area.querySelectorAll<HTMLElement>('[data-menu-id]'));
-    return rows.find((row) => row.dataset.menuId === highlightMenuId) ?? null;
-  }, [collapsedState, highlightMenuId]);
+    const rows = Array.from(area.querySelectorAll<HTMLElement>('[data-menu-code]'));
+    return rows.find((row) => row.dataset.menuCode === highlightMenuCode) ?? null;
+  }, [collapsedState, highlightMenuCode]);
 
   // 记录最近一次定位的落点 y，供跨父级切换后的「漂移检测」比对
   const lastTargetYRef = useRef<number | null>(null);
@@ -323,7 +323,7 @@ export const useNavThumb = ({
     return () => ro.disconnect();
   }, [menuItems]);
 
-  return { menuAreaRef, thumbRef, navScrollRef, highlightMenuId };
+  return { menuAreaRef, thumbRef, navScrollRef, highlightMenuCode };
 };
 
 export default useNavThumb;

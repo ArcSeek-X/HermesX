@@ -3,7 +3,7 @@
  *
  * 头部「运行模式」入口：单一图标按钮，点击即在 产品使用模式 / 开发调试模式 之间切换。
  * 按钮内显示当前模式简称（常规 / 调试），图标随模式变化以直观区分。
- * 模式状态由 MenuStore 统一持有（currentModuleId 持久化到 localStorage），切换后侧边栏菜单随之切换。
+ * 模式状态由 MenuStore 统一持有（currentModuleCode 持久化到 localStorage），切换后侧边栏菜单随之切换。
  *
  * @author Lensgcx (GaoCangxiong)
  */
@@ -11,15 +11,15 @@ import { Bug, CircleDot } from 'lucide-react';
 import { useMenuStore } from '../../../stores/MenuStore';
 
 export const ModeSwitch = () => {
-  const currentModuleId = useMenuStore((s) => s.currentModuleId);
-  const setCurrentModuleId = useMenuStore((s) => s.setCurrentModuleId);
-  const isDevelopmentMode = currentModuleId === 'developmentMode';
+  const currentModuleCode = useMenuStore((s) => s.currentModuleCode);
+  const setCurrentModuleCode = useMenuStore((s) => s.setCurrentModuleCode);
+  const isDevelopmentMode = currentModuleCode === 'developmentMode';
   const shortLabel = isDevelopmentMode ? '调试' : '常规';
 
   return (
     <button
       type="button"
-      onClick={() => setCurrentModuleId(isDevelopmentMode ? 'productModel' : 'developmentMode')}
+      onClick={() => setCurrentModuleCode(isDevelopmentMode ? 'productModel' : 'developmentMode')}
       aria-label={shortLabel}
       title={shortLabel}
       aria-pressed={isDevelopmentMode}

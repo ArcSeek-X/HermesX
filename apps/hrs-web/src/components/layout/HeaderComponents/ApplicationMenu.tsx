@@ -25,11 +25,11 @@ export const ApplicationMenu = () => {
   const { t } = useUiLanguage();
   // 与 ModeSwitch 同路：点击应用项时同步切换当前模块，首页跳转由 SidebarNav 监听
   // currentMenuData 变化的 effect 自动完成（无需在此显式 navigate，避免重复跳转）。
-  const setCurrentModuleId = useMenuStore((s) => s.setCurrentModuleId);
+  const setCurrentModuleCode = useMenuStore((s) => s.setCurrentModuleCode);
   // 模块列表直接来自 MenuStore 的 menuData（与菜单数据同步，且已含模块名/图标/描述等元数据）。
   // menuData 在登录后由 buildMenuData 构建，未登录时为空，下拉自然为空。
   const menuData = useMenuStore((s) => s.menuData);
-  const currentModuleId = useMenuStore((s) => s.currentModuleId);
+  const currentModuleCode = useMenuStore((s) => s.currentModuleCode);
   const modules = Object.values(menuData);
 
 
@@ -135,17 +135,17 @@ export const ApplicationMenu = () => {
               <div className="px-3 py-2 text-xs font-medium text-muted-text">{t('layout.header.myApps')}</div>
               <div className="grid grid-cols-2 gap-1">
                 {modules.map((module) => {
-                  const isActive = module.moduleId === currentModuleId;
-                  const Icon = menuIconRegistry[module.moduleIcon ?? ''] ?? LayoutGrid;
+                  const isActive = module.menuCode === currentModuleCode;
+                  const Icon = menuIconRegistry[module.menuIcon ?? ''] ?? LayoutGrid;
                   return (
                     <button
-                      key={module.moduleId}
+                      key={module.menuCode}
                       type="button"
                       role="menuitem"
                       aria-current={isActive ? 'true' : undefined}
                       onClick={() => {
                         setOpen(false);
-                        setCurrentModuleId(module.moduleId);
+                        setCurrentModuleCode(module.menuCode);
                       }}
                       className={`flex items-start gap-2.5 rounded-sm p-2.5 text-left transition-colors hover:bg-hover ${
                         isActive ? 'bg-primary/10 ring-1 ring-primary/30' : ''
@@ -156,11 +156,11 @@ export const ApplicationMenu = () => {
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-foreground">
-                          {moduleText(module.moduleName)}
+                          {moduleText(module.menuName)}
                         </span>
-                        {module.moduleDescription && (
+                        {module.menuDescription && (
                           <span className="mt-0.5 block truncate text-xs text-secondary-text">
-                            {moduleText(module.moduleDescription)}
+                            {moduleText(module.menuDescription)}
                           </span>
                         )}
                       </span>

@@ -133,7 +133,7 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
         │  useMenuStore (Zustand)
 ┌─────────────────────────── MenuStore.ts ───────────────────────────┐
 │  MENU_MANIFEST（路由清单，唯一真源）→ buildRuntimeMenuData             │
-│  → menuData（持久化）/ currentModuleId（持久化）/ currentMenuData（派生）│
+│  → menuData（持久化）/ currentModuleCode（持久化）/ currentMenuData（派生）│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -146,7 +146,7 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 | `SidebarNav.module.scss` | 侧栏专属样式（毛玻璃块 + `:has()` 兄弟让位），CSS Module 封装，不泄露全局 |
 | `menuPath.ts` | `matchPath` 单一真源（供 `MenuNode` 与 `SidebarNav` 复用，避免 react-refresh 仅导出组件的限制） |
 | `MenuStore.ts` | 菜单数据与状态管理（构建 / 切换 / 持久化 / 派生） |
-| `src/types/moduleMenu.ts` | 菜单类型契约（`NavMenuNode` / `NavModuleNode` / `ModuleMenuData`） |
+| `src/types/moduleMenu.ts` | 菜单类型契约（`NavMenuNode` / `ModuleMenuData`） |
 | `src/style/palette.css` | `--nav-*` 主题令牌（毛玻璃块引用其中的 `--primary` / `--nav-item-height` / `--radius`） |
 
 ---
@@ -155,20 +155,23 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 
 ### <a id="41-节点模型-navmenunode"></a>4.1 节点模型 `NavMenuNode`
 
+当前 `module/group/page` 共用 `NavMenuNode`，通过 `menuType` 区分。节点完整契约以 [前端模块化菜单方案](../authority/frontend/frontend_module_menu.md#sec-5) 为准；`menuSort` 控制同级排序，`menuStatus=0` 禁用整棵子树。`id/menuParentId` 为后端接入预留，当前静态清单通过 `children` 表达父子关系。`level` 仅是组件递归参数，不存入清单。菜单缓存保存 `{ fingerprint, modules }`，与路由共用清单指纹，旧结构缓存需重新登录重建。
+
+
 定义于 `src/types/moduleMenu.ts`。同一套字段承载一级（分组）与二级（子项）：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `menuId` | `string` | 节点唯一标识，同时作为 Tree 节点 id |
-| `menuName` | `string?` | 菜单名称，i18n key 或直写文案 |
-| `routePath` | `string?` | 路由路径；为空表示不可跳转 |
+| `menuCode` | `string` | 节点唯一标识，同时作为 Tree 节点 id |
+| `menuName` | `string` | 菜单名称，i18n key 或直写文案 |
+| `menuRoutePath` | `string?` | 路由路径；为空表示不可跳转 |
 | `menuIcon` | `string?` | 图标名（lucide-react 组件名），运行时经白名单 `menuIconRegistry` 解析 |
 | `menuBadge` | `string?` | 徽章文本 |
 | `menuPosition` | `'header' \| 'content' \| 'footer'` | 所在区域，使用方据此拆分渲染 |
-| `level` | `number` | 菜单层级（从 0 起），用于缩进 / 字号 |
-| `menuType` | `'page' \| 'group' \| 'redirect' \| 'fallback'?` | 节点类型；`group` 仅作分区标题 |
+| `level`（渲染时计算，不在清单中持久化） | `number` | 菜单层级（从 0 起），用于缩进 / 字号 |
+| `menuType` | `'module' \| 'group' \| 'page'` | 节点类型；`group` 仅作分区标题 |
 | `menuExpanded` | `boolean` | 是否默认展开 |
-| `description` | `string` | 页面描述，用于 tooltip |
+| `menuDescription` | `string` | 页面描述，用于 tooltip |
 | `exact` | `boolean?` | 是否精确匹配路由高亮 |
 | `children` | `NavMenuNode[]?` | 子菜单节点；存在时渲染为嵌套项 |
 
@@ -180,11 +183,11 @@ Shell 布局层（useLayoutStore 提供 menuCollapsedState）
 MENU_MANIFEST（router/manifest.ts，唯一真源）
       │  buildRuntimeMenuData() 遍历每个模块子树
       ▼
-menuData: Record<ModuleId, NavModuleNode>   ── 全量菜单数据（含模块元数据 + 菜单树）
-      │  getValidModuleId() 校验当前模块
+menuData: Record<MenuCode, NavMenuNode>   ── 全量菜单数据（含模块元数据 + 菜单树）
+      │  getValidModuleCode() 校验当前模块
       ▼
-currentModuleId: ModuleId                    ── 当前激活模块（持久化）
-      │  menuData[currentModuleId]?.children
+currentModuleCode: MenuCode                    ── 当前激活模块（持久化）
+      │  menuData[currentModuleCode]?.children
       ▼
 currentMenuData: NavMenuNode[]               ── 当前模块菜单树（运行期派生，不持久化）
       │  useMenuStore((s) => s.currentMenuData)
@@ -193,8 +196,8 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 ```
 
 构建细节：
-- `toNavMenuNode`：将 `AppRouteNode` 映射为 `NavMenuNode`（仅搬运展示字段）。
-- `buildModuleMenuNodes`：递归构建并过滤 `menuVisible === false` 的节点；`group` 类型不可见时仅透传其子节点。
+- `buildMenuNodes`：按 `menuSort` 排序并递归生成统一节点；禁用节点整棵子树剔除，隐藏 `group` 仅透传子节点。
+- `buildRuntimeMenuData`：从统一节点中选择 `menuType=module`，按 `menuCode` 建立索引，不转换为另一套模块字段。
 
 ### <a id="43-持久化边界"></a>4.3 持久化边界
 
@@ -203,19 +206,19 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 | 状态 | 持久化 | 键 | 说明 |
 | --- | --- | --- | --- |
 | `menuData` | 是（localStorage） | `menu.menuData` | 全量菜单数据源，「存什么用什么」，缺失不回退实时数据 |
-| `currentModuleId` | 是（localStorage） | `menu.currentModuleId` | 当前模块，刷新可还原 |
-| `currentMenuData` | 否 | — | 由 `menuData + currentModuleId` 派生，运行期计算 |
+| `currentModuleCode` | 是（localStorage） | `menu.currentModuleCode` | 当前模块，刷新可还原 |
+| `currentMenuData` | 否 | — | 由 `menuData + currentModuleCode` 派生，运行期计算 |
 
 三个业务场景：
-- **首次登录**：`buildMenuData(loginModuleId?)` 构建全量并落盘 `menuData` + 写 `currentModuleId`。
-- **切换模块**：`setCurrentModuleId(id)` 复用已持久化 `menuData`，仅更新 `currentModuleId` 并重算派生视图。
+- **首次登录**：`buildMenuData(loginModuleCode?)` 构建全量并落盘 `menuData` + 写 `currentModuleCode`。
+- **切换模块**：`setCurrentModuleCode(menuCode)` 复用已持久化 `menuData`，仅更新 `currentModuleCode` 并重算派生视图。
 - **刷新浏览器**：store 初始化时从 localStorage 还原两者并派生 `currentMenuData`，无需手动调用。
 
 ### <a id="44-区域拆分content-footer"></a>4.4 区域拆分（content / footer）
 
 `SidebarNav` 从 `MenuStore` 取 `currentMenuData`，经 `useMemo` 做两件事后拆分：
 
-1. **AlphaSift 过滤**：未启用时剔除 `menuId === 'screening'`（选股入口）。
+1. **AlphaSift 过滤**：未启用时剔除 `menuCode === 'screening'`（选股入口）。
 2. **按 `menuPosition` 分区**：
    - `contentItems = filtered.filter(menuPosition === 'content')`
    - `footerItems = filtered.filter(menuPosition === 'footer')`
@@ -231,11 +234,11 @@ SidebarNav → contentItems / footerItems（按 menuPosition 拆分）
 定义在 `menuPath.ts`（单一真源，被 `MenuNode` 与 `SidebarNav` 复用）：
 
 ```ts
-export const matchPath = (routePath, exact, pathname): boolean => {
-  if (!routePath) return false;
+export const matchPath = (menuRoutePath, exact, pathname): boolean => {
+  if (!menuRoutePath) return false;
   return exact
-    ? pathname === routePath
-    : pathname === routePath || pathname.startsWith(`${routePath}/`);
+    ? pathname === menuRoutePath
+    : pathname === menuRoutePath || pathname.startsWith(`${menuRoutePath}/`);
 };
 ```
 
@@ -248,8 +251,8 @@ export const matchPath = (routePath, exact, pathname): boolean => {
 
 ```ts
 const active =
-  matchPath(routePath, exact, pathname) ||
-  (hasChildren && children.some((c) => matchPath(c.routePath, c.exact, pathname)));
+  matchPath(menuRoutePath, exact, pathname) ||
+  (hasChildren && children.some((c) => matchPath(c.menuRoutePath, c.exact, pathname)));
 ```
 
 - 父级在「自身命中」或「任一子项命中」时同步高亮（对齐参考实现 `selfCurrent` / `childCurrent`）。
@@ -262,7 +265,7 @@ const active =
 ```ts
 const firstItem = contentItems[0];
 const target = firstItem.children?.length ? firstItem.children[0] : firstItem;
-if (target?.routePath) navigate(target.routePath);
+if (target?.menuRoutePath) navigate(target.menuRoutePath);
 ```
 
 - 一级含二级 → 跳到其内部第一个二级；否则跳该一级本身。
@@ -273,8 +276,8 @@ if (target?.routePath) navigate(target.routePath);
 
 ```ts
 const isExpanded = (node) => {
-  if (userExpanded[node.menuId] !== undefined) return userExpanded[node.menuId];
-  if (node.children?.some((c) => matchPath(c.routePath, c.exact, pathname))) return true; // 命中子项 → 自动展开
+  if (userExpanded[node.menuCode] !== undefined) return userExpanded[node.menuCode];
+  if (node.children?.some((c) => matchPath(c.menuRoutePath, c.exact, pathname))) return true; // 命中子项 → 自动展开
   return node.menuExpanded;
 };
 ```
@@ -390,7 +393,7 @@ const isExpanded = (node) => {
 | `SidebarNav.module.scss` | 侧栏专属样式（毛玻璃 + `:has()` 兄弟让位），CSS Module |
 | `menuPath.ts` | `matchPath` 单一真源（抽出以满足 react-refresh 仅导出组件约定） |
 | `MenuStore.ts` | 菜单状态（Zustand）：构建 / 切换 / 持久化 / 派生 |
-| `src/types/moduleMenu.ts` | `NavMenuNode` / `NavModuleNode` / `ModuleMenuData` 类型契约 |
+| `src/types/moduleMenu.ts` | `NavMenuNode` / `ModuleMenuData` 类型契约 |
 | `src/style/palette.css` | `--nav-*` 主题令牌 |
 | `router/manifest.ts` | `MENU_MANIFEST`：菜单数据唯一真源 |
 

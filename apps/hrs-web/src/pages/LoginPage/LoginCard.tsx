@@ -79,7 +79,7 @@ const LoginCard: React.FC = () => {
       if (result.success) {
         // 登录成功：先构建并持久化全量菜单数据（菜单以存储为权威源），再构建并持久化
         // 全量动态路由树（RouterStore 场景一），最后跳转目标页；
-        // 不传 loginModuleId 时由 store 自动取第一个可用模块。
+        // 不传 loginModuleCode 时由 store 自动取第一个可用模块。
         buildMenuData();
         buildAsyncRouterData();
         // 登录成功后注入业务路由（patchRoutes 到 protected 布局），再跳转目标页

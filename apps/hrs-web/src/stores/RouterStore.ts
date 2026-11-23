@@ -25,11 +25,8 @@
 import { getStorageItem, setStorageItem } from '@utils/storage';
 import { create } from 'zustand';
 import type { AsyncRouteNode } from '../types/router';
-import {
-  MENU_MANIFEST,
-  isPageLikeRouteNode,
-  type AppRouteNode,
-} from '../router/manifest';
+import { MENU_MANIFEST, MENU_MANIFEST_FINGERPRINT } from '../router/manifest';
+import type { NavMenuNode } from '../types/moduleMenu';
 
 /** localStorage 中持久化「动态路由树（asyncRouteData）」的键；存储即路由数据源，有则直接可用 */
 const ASYNC_ROUTER_STORAGE_KEY = 'router.asyncRouteData';
@@ -39,24 +36,6 @@ interface StoredAsyncRouterBlob {
   fingerprint: string;
   routes: AsyncRouteNode[];
 }
-
-/**
- * 由路由清单（真源）计算指纹：清单任一字段变更都会改变该值，
- * 用于识别「持久化路由树由旧清单产出」的过期缓存。
- * @param manifest 路由清单真源（MENU_MANIFEST）
- * @returns 指纹字符串（djb2 哈希 + 序列化长度，双 36 进制拼接）
- */
-const computeManifestFingerprint = (manifest: unknown): string => {
-  const source = JSON.stringify(manifest);
-  let hash = 5381;
-  for (let index = 0; index < source.length; index += 1) {
-    hash = ((hash << 5) + hash + source.charCodeAt(index)) | 0;
-  }
-  return `${hash.toString(36)}-${source.length.toString(36)}`;
-};
-
-/** 当前真源清单指纹；持久化 blob 指纹与其不一致即视为过期（见 readStoredAsyncRouterData） */
-const MENU_MANIFEST_FINGERPRINT = computeManifestFingerprint(MENU_MANIFEST);
 
 interface RouterState {
   /** 动态路由树（树状结构，含 children）。需持久化（见 ASYNC_ROUTER_STORAGE_KEY）；
@@ -70,37 +49,37 @@ interface RouterState {
 }
 
 /**
- * 将路由节点（AppRouteNode）映射为动态路由节点（AsyncRouteNode）。
+ * 将路由节点（NavMenuNode）映射为动态路由节点（AsyncRouteNode）。
  * 仅搬运路由注册所需的字段，未命中的字段回退为默认值；若存在子节点则一并挂上。
  * @param node 源路由节点，不允许为 null
  * @param children 已构建好的子路由节点；为空或 undefined 时不挂 children 字段
  * @returns 转换后的 AsyncRouteNode
  */
 const toAsyncRouteNode = (
-  node: AppRouteNode & { menuType: 'page' | 'redirect' | 'fallback' },
+  node: NavMenuNode,
   children?: AsyncRouteNode[],
 ): AsyncRouteNode => ({
-  routerKey: node.menuId,
+  routerKey: node.menuCode,
   routerName: node.menuName,
-  routerPath: node.routePath ?? '',
+  routerPath: node.menuRoutePath ?? '',
   routerPagePath: node.menuPagePath ?? '',
-  routerType: node.menuType,
+  routerType: 'page',
   auth: node.auth,
-  redirect: node.redirect,
   routerDescription: node.menuDescription,
   children: children?.length ? children : undefined,
 });
 
 /**
- * 递归构建动态路由树：仅保留可生成路由的节点（page/redirect/fallback），
+ * 递归构建动态路由树：仅保留启用的 page 节点，
  * 其余节点（如 group）仅透传其 children，不保留壳。
  * @param nodes 路由节点森林（可能含多级 children）
  * @returns 动态路由树数组；无匹配路由时返回空数组
  */
-const buildAsyncRouteTree = (nodes: AppRouteNode[]): AsyncRouteNode[] =>
-  nodes.flatMap((node) => {
+const buildAsyncRouteTree = (nodes: NavMenuNode[]): AsyncRouteNode[] =>
+  [...nodes].sort((a, b) => a.menuSort - b.menuSort).flatMap((node) => {
+    if (node.menuStatus === 0) return [];
     const children = node.children?.length ? buildAsyncRouteTree(node.children) : undefined;
-    if (!isPageLikeRouteNode(node) || !node.routePath) {
+    if (node.menuType !== 'page' || !node.menuRoutePath) {
       return children ?? [];
     }
     return [toAsyncRouteNode(node, children)];
@@ -126,7 +105,7 @@ const readStoredAsyncRouterData = (): AsyncRouteNode[] => {
     || !Array.isArray(stored.routes)) {
     return [];
   }
-  // 节点形态校验：字段名随版本演进（menuId→routerKey、新增 routerPagePath 等）；
+  // 节点形态校验：字段名随版本演进（menuCode 映射 routerKey，menuPagePath 映射 routerPagePath）；
   // routerPagePath 允许为 ''（redirect 节点本就无页面），故只校验其为 string 类型即可。
   return stored.routes.every((n) => n && typeof n.routerKey === 'string' && typeof n.routerPagePath === 'string')
     ? stored.routes
@@ -159,7 +138,7 @@ export const useRouterStore = create<RouterState>((set) => ({
   // 场景：首次登录成功 → 构建全量动态路由树并持久化
   buildAsyncRouterData: () => {
     const asyncRouteData = buildAsyncRouteTree(
-      MENU_MANIFEST.flatMap((moduleNode) => moduleNode.children ?? []),
+      MENU_MANIFEST,
     );
     applyAsyncRouterData(set, asyncRouteData);
     // 路由数据已（重新）产出 → 标记需重新注入，避免沿用上一次的「已注入」标记

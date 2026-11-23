@@ -3,7 +3,7 @@
  * @description 侧栏「滑行玻璃」（.navThumb）落点回归测试。
  *   锁定曾经的错位反例：激活项是二级菜单时折叠其一级父菜单，玻璃必须落到该一级菜单行上
  *   （既不能停在旧坐标，也不能飘到相邻菜单行），重新展开后回落到激活的二级菜单。
- *   断言基于落点行的 data-active 标记（玻璃按 data-menu-id 定位同一行），不依赖 jsdom 的几何测量。
+ *   断言基于落点行的 data-active 标记（玻璃按 data-menu-code 定位同一行），不依赖 jsdom 的几何测量。
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -21,36 +21,45 @@ vi.mock('@/api/discover/alphasift', () => ({
   },
 }));
 
-// 对齐文档页侧栏结构：可折叠一级菜单「导航」（自身无 routePath）含二级页「侧边栏」，同级另有「布局」
+// 对齐文档页侧栏结构：可折叠一级菜单「导航」（自身无 menuRoutePath）含二级页「侧边栏」，同级另有「布局」
 const docsMenu: NavMenuNode[] = [
   {
-    menuId: 'docs-nav',
+    menuCode: 'docs-nav',
     menuName: '导航',
-    routePath: '',
+    menuRoutePath: '',
     menuExpanded: true,
-    description: '',
-    level: 0,
+    menuDescription: '',
     menuPosition: 'content',
+    menuType: 'page',
+    menuSort: 0,
+    menuStatus: 1,
+    menuVisible: true,
     children: [
       {
-        menuId: 'docs-sidebar',
+        menuCode: 'docs-sidebar',
         menuName: '侧边栏',
-        routePath: '/docs/component/sideBar',
+        menuRoutePath: '/docs/component/sideBar',
         menuExpanded: false,
-        description: '',
-        level: 1,
+        menuDescription: '',
         menuPosition: 'content',
+        menuType: 'page',
+        menuSort: 0,
+        menuStatus: 1,
+        menuVisible: true,
       },
     ],
   },
   {
-    menuId: 'docs-layout',
+    menuCode: 'docs-layout',
     menuName: '布局',
-    routePath: '/docs/component/layout',
+    menuRoutePath: '/docs/component/layout',
     menuExpanded: false,
-    description: '',
-    level: 0,
+    menuDescription: '',
     menuPosition: 'content',
+    menuType: 'page',
+    menuSort: 0,
+    menuStatus: 1,
+    menuVisible: true,
   },
 ];
 
@@ -62,9 +71,9 @@ const renderNav = () =>
     </MemoryRouter>,
   );
 
-/** 取指定菜单行（MenuNode 在落点行打 data-active，玻璃按 data-menu-id 定位） */
-const rowOf = (container: HTMLElement, menuId: string) =>
-  container.querySelector<HTMLElement>(`[data-menu-id="${menuId}"]`);
+/** 取指定菜单行（MenuNode 在落点行打 data-active，玻璃按 data-menu-code 定位） */
+const rowOf = (container: HTMLElement, menuCode: string) =>
+  container.querySelector<HTMLElement>(`[data-menu-code="${menuCode}"]`);
 
 describe('SidebarNav 滑行玻璃落点', () => {
   beforeEach(() => {

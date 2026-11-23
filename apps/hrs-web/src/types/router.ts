@@ -1,7 +1,6 @@
-import type {
-  RouteAuthPolicy,
-  RouteMenuType,
-} from '../router/manifest';
+/** 路由登录策略与路由类型独立于菜单节点类型。 */
+export type RouteAuthPolicy = 'public' | 'protected';
+export type RouteType = 'page' | 'redirect' | 'fallback';
 
 /** 动态路由树节点。 */
 export type AsyncRouteNode = {
@@ -10,7 +9,7 @@ export type AsyncRouteNode = {
   routerPath: string;
   /** 路由实际指向的页面模块路径（如 'pages/HomePage'），由真源 MENU_MANIFEST.menuPagePath 映射而来 */
   routerPagePath: string;
-  routerType: Exclude<RouteMenuType, 'group'>;
+  routerType: RouteType;
   auth?: RouteAuthPolicy;
   redirect?: string;
   routerDescription: string;

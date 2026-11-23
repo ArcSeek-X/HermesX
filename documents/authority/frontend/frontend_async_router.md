@@ -66,7 +66,7 @@ createBrowserRouter([
 ## 三、路由真源与加工链路
 
 ```
-MENU_MANIFEST (router/manifest.ts)              ← 唯一真源（ModuleNode[]，第一层为模块，children 为 AppRouteNode）
+MENU_MANIFEST (router/manifest.ts)              ← 唯一真源（NavMenuNode[]，所有层级统一，menuType 区分 module/group/page）
       │ 登录后 RouterStore.buildAsyncRouterData()
       ▼
 RouterStore.asyncRouteData (AsyncRouteNode[])   ← 运行时权威源，持久化 localStorage('router.asyncRouterData')
@@ -78,8 +78,8 @@ asyncRouteFactory.buildAsyncRoutes(nodes) → RouteObject[]   （page→{path,ha
 router (createBrowserRouter) → Shell 的 <Outlet/> 渲染
 ```
 
-- **真源** `MENU_MANIFEST`：以菜单字段为基线叠加路由/鉴权字段（`RouteMenuType = 'page'|'group'|'redirect'|'fallback'`、`auth?: 'public'|'protected'`、`menuPagePath?`），页面不在此声明 `loader`，页面解析由 `menuPagePath` + 动态导入完成（见 §6）。真源结构详见 [前端模块化菜单与动态路由状态方案](frontend_module_menu.md)。
-- **加工** `RouterStore.buildAsyncRouterData()`：递归 `buildAsyncRouteTree` 仅保留 `page/redirect/fallback` 节点（`group` 仅透传 children），映射为 `AsyncRouteNode`（字段见 `types/router.ts`：`routerKey=menuId`、`routerName=menuName`、`routerPagePath=menuPagePath`、`routerType=menuType`…），构建后落盘。
+- **真源** `MENU_MANIFEST`：以菜单字段为基线叠加路由/鉴权字段（`MenuType = 'module'|'group'|'page'`、`auth?: 'public'|'protected'`、`menuPagePath?`），页面不在此声明 `loader`，页面解析由 `menuPagePath` + 动态导入完成（见 §6）。真源结构详见 [前端模块化菜单与动态路由状态方案](frontend_module_menu.md)。
+- **加工** `RouterStore.buildAsyncRouterData()`：递归 `buildAsyncRouteTree` 按 `menuSort` 排序，跳过禁用子树，仅将 `page` 转为页面路由（`module/group` 透传 children），映射为 `AsyncRouteNode`（字段见 `types/router.ts`：`routerKey=menuCode`、`routerName=menuName`、`routerPagePath=menuPagePath`、`routerType=page`、`routerPath=menuRoutePath`…），构建后落盘。菜单与路由共用清单指纹，旧字段或旧结构缓存失效后通过重新登录重建。
 - **还原**：store 初始化时由 `readStoredAsyncRouterData()` 从 localStorage 还原（场景二：刷新浏览器），无需手动调用。
 
 ---
