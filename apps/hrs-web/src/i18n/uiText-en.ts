@@ -179,6 +179,13 @@ const en: Record<UiTextKey, string> = {
 
   'layout.nav.scanner.title': 'Scanner',
   'layout.nav.scanner.description': 'Technical signal scanner with unified concurrency control and cancellation',
+
+  'layout.nav.userManagement.title': 'Users',
+  'layout.nav.userManagement.description': 'Manage system users and account information',
+  'layout.nav.orgManagement.title': 'Organizations',
+  'layout.nav.orgManagement.description': 'Manage departments and organization hierarchy',
+  'layout.nav.menuManagement.title': 'Menus',
+  'layout.nav.menuManagement.description': 'Maintain system menus and page entries',
   'layout.nav.development.docsCheckbox.title': 'Checkbox',
   'layout.nav.development.docsCheckbox.description': 'HrsCheckbox component demo and usage',
   'layout.nav.development.docsDrawer.title': 'Drawer',

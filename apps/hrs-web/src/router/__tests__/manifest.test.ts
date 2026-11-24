@@ -9,12 +9,12 @@ const flatten = (nodes: NavMenuNode[]): NavMenuNode[] =>
 const nodes = flatten(MENU_MANIFEST);
 
 describe('统一菜单清单契约', () => {
-  it('保留两个模块、13 个分组和 41 个页面，统一使用 menuCode/menuType', () => {
+  it('保留三个模块、13 个分组和 44 个页面，统一使用 menuCode/menuType', () => {
     expect(MENU_MANIFEST.map((node) => [node.menuCode, node.menuType])).toEqual([
-      ['productModel', 'module'], ['developmentMode', 'module'],
+      ['productModel', 'module'], ['developmentMode', 'module'], ['systemMode', 'module'],
     ]);
     expect(nodes.filter((node) => node.menuType === 'group')).toHaveLength(13);
-    expect(nodes.filter((node) => node.menuType === 'page')).toHaveLength(41);
+    expect(nodes.filter((node) => node.menuType === 'page')).toHaveLength(44);
     expect(new Set(nodes.map((node) => node.menuCode)).size).toBe(nodes.length);
     for (const node of nodes) {
       expect(['module', 'group', 'page']).toContain(node.menuType);

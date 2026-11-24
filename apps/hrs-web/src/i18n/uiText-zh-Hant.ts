@@ -176,6 +176,13 @@ const zhHant = {
 
   'layout.nav.scanner.title': '信號掃描', // 信號掃描導航項
   'layout.nav.scanner.description': '統一併發控制、支持取消的技術信號掃描器', // 信號掃描導航項描述
+
+  'layout.nav.userManagement.title': '使用者管理', // 系統管理-使用者管理導航項
+  'layout.nav.userManagement.description': '管理系統使用者與帳號資訊', // 使用者管理導航項描述
+  'layout.nav.orgManagement.title': '組織管理', // 系統管理-組織管理導航項
+  'layout.nav.orgManagement.description': '管理部門與組織層級結構', // 組織管理導航項描述
+  'layout.nav.menuManagement.title': '選單管理', // 系統管理-選單管理導航項
+  'layout.nav.menuManagement.description': '維護系統選單與頁面入口', // 選單管理導航項描述
   'layout.nav.development.docsCheckbox.title': '複選框', // 複選框組件文檔導航項
   'layout.nav.development.docsCheckbox.description': 'HrsCheckbox 勾選框組件演示與用法', // 复选框导航项描述
   'layout.nav.development.docsDrawer.title': '抽屜', // 抽屜組件文檔導航項

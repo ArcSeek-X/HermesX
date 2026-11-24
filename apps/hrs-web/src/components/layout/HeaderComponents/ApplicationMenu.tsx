@@ -3,7 +3,7 @@
  *
  * 头部「我的应用」下拉面板：点击触发按钮弹出应用入口列表（motion.div 动画）。
  * 应用数据来自 MenuStore 的 menuData（由 router/manifest.ts 真源构建），
- * 当前含 productModel（产品）与 developmentMode（开发调试）两个模块；
+ * 当前含 productModel（产品）、developmentMode（开发调试）与 systemMode（系统管理）三个模块；
  * 模块级元数据（名称/图标/描述）随 menuData 一并下发，新增模块无需改此组件。
  *
  * 层级处理：弹层通过 createPortal 渲染到 document.body（fixed 定位），

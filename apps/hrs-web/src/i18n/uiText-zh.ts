@@ -178,6 +178,13 @@ const zh = {
   'layout.nav.scanner.title': '信号扫描', // 信号扫描导航项
   'layout.nav.scanner.description': '统一并发控制、支持取消的技术信号扫描器', // 信号扫描导航项描述
 
+  'layout.nav.userManagement.title': '用户管理', // 系统管理-用户管理导航项
+  'layout.nav.userManagement.description': '管理系统用户与账号信息', // 用户管理导航项描述
+  'layout.nav.orgManagement.title': '组织管理', // 系统管理-组织管理导航项
+  'layout.nav.orgManagement.description': '管理部门与组织层级结构', // 组织管理导航项描述
+  'layout.nav.menuManagement.title': '菜单管理', // 系统管理-菜单管理导航项
+  'layout.nav.menuManagement.description': '维护系统菜单与页面入口', // 菜单管理导航项描述
+
   // 导航菜单（调试开发模式） layout.nav.development.*
   'layout.nav.development.docsCheckbox.title': '复选框', // 复选框组件文档导航项
   'layout.nav.development.docsCheckbox.description': 'HrsCheckbox 勾选框组件演示与用法', // 复选框导航项描述
