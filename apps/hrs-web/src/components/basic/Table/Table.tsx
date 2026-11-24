@@ -1,44 +1,30 @@
 /**
- * Table.tsx
- * ------------------------------------------------------------
- * 文件作用：
- *   通用数据表格组件。基于 HeroUI Table 组件封装，提供数据驱动的表格渲染能力。
- *   支持列定义、行数据渲染、列排序、行选择（全选/单选）、空状态展示、
- *   操作列插槽、分页功能以及多种表格变体。
+ * 基于 HeroUI Table 的通用数据表格。
  *
- * 核心功能：
- *   1. 数据驱动：表头由 columns 数组定义，行数据由 rows 数组传入；
- *   2. 列排序：通过 column.allowsSorting 控制是否支持排序，
- *      排序状态变化通过 onSortChange 回调通知父组件；
- *   3. 行选择：支持单选/多选/全选，通过 selectionMode 控制，
- *      选中项通过 onSelectionChange 回调；
- *   4. 空状态：通过 renderEmptyState 自定义表格为空时的展示内容；
- *   5. 操作列：通过 column.render 插槽函数自定义单元格内容（如操作按钮）；
- *   6. 分页：通过 pagination 配置启用分页，使用独立 Pagination 组件显示页码导航和数据统计；
- *   7. 可配置：variant、className 等属性均支持外部配置。
- *   8. 固定列：取值归一、动态偏移与边界阴影集中在同目录 fixedColumns.ts。
+ * 核心能力：
+ * - 数据驱动：columns 定义列，rows 提供行数据，render 插槽自定义单元格；
+ * - 排序与选择：allowsSorting + sortDescriptor/onSortChange，selectionMode + selectedKeys/onSelectionChange；
+ * - 空态与分页：renderEmptyState 自定义空态，pagination 受控分页；
+ * - 固定列与树形：fixed 配置固定列（细节见 fixedColumns.ts），treeColumnKey + children 递归子行。
  *
  * 使用示例：
  *   <Table
  *     columns={[
- *       { key: 'name', title: '名称', allowsSorting: true },
- *       { key: 'price', title: '价格' },
- *       { key: 'actions', title: '操作', render: (row) => <Button>编辑</Button> },
+ *       { key: 'name', title: '名称', minWidth: 120, defaultWidth: 120, allowsSorting: true },
+ *       { key: 'actions', title: '操作', minWidth: 90, defaultWidth: 90, render: (row) => <Button>编辑</Button> },
  *     ]}
- *     rows={[{ id: '1', name: '股票A', price: 100 }]}
+ *     rows={[{ id: '1', name: '股票A' }]}
  *     selectionMode="multiple"
- *     onSelectionChange={(keys) => console.log(keys)}
- *     pagination={{ total: 100, pageSize: 20, pages: 5, pageNum: 1, onPageChange: setPage }}
+ *     onSelectionChange={(keys) => setSelected(keys)}
  *   />
- * ------------------------------------------------------------
- * @author Lensgcx (GaoCangxiong)
  */
 
 import { useCallback, useMemo, useRef } from 'react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { Table as HeroTable, EmptyState } from '@heroui/react';
 import type { Key, SortDescriptor, Selection } from '@heroui/react';
-import { Inbox } from 'lucide-react';
+import { HrsButton } from '../HrsButton/HrsButton';
+import { ChevronRight, Inbox } from 'lucide-react';
 import PaginationBar from '../Pagination';
 import { cn } from '../../../utils/cn';
 import styles from './Table.module.scss';
@@ -46,181 +32,112 @@ import { buildFixedColumnPropsByKey, useFixedColumnOffsets } from './fixedColumn
 import type { TableColumnFixedMode } from './fixedColumns';
 export type { TableColumnFixedMode } from './fixedColumns';
 
-
-/**
- * 排序描述符接口。
- * 描述当前排序的列和排序方向。
- * 从 @heroui/react 导入以保持类型一致性。
- */
 export type { SortDescriptor } from '@heroui/react';
 
-/**
- * 表格列定义接口。
- * 每一列通过 key 唯一标识，title 显示列名，
- * 可通过 allowsSorting 控制是否支持排序，
- * 可通过 render 插槽函数自定义单元格渲染内容。
- */
 export interface TableColumnDef<T> {
-  /** 列的唯一标识，对应行数据中的字段名 */
+  /** 列唯一标识，对应行数据字段名 */
   key: string;
-  /** 列标题，显示在表头 */
+  /** 列标题 */
   title: string;
-  /** 是否支持排序，默认 false */
+  /** 是否可排序，默认 false */
   allowsSorting?: boolean;
-  /**
-   * 列最小宽度（像素），对应 HeroUI TableColumn 的 minWidth（必填，number）。
-   * 用于限制列在可调整 / 自适应时不会窄于该值。
-   */
+  /** 最小宽度（px），HeroUI 要求必填 */
   minWidth: number;
-  /**
-   * 列默认宽度，对应 HeroUI TableColumn 的 defaultWidth（必填，string | number）。
-   * 在 Table 被 HeroUI.ResizableContainer 包裹时按各列 defaultWidth 的相对比例分配宽度。
-   * 支持像素数字（如 120）或 CSS 长度字符串（如 '15%'、'120px'）。
-   */
+  /** 默认宽度，支持 px 数字或 '15%' 等 CSS 长度；按各列相对比例分配 */
   defaultWidth: string | number;
-  /**
-   * 是否为行标题列（无障碍语义，对应 HeroUI Column 的 isRowHeader）。
-   * 用于标记哪一列作为每一行的标题，屏幕阅读器据此朗读。
-   * 不传时：默认让第一列作为行头（满足 HeroUI「至少一列 isRowHeader」的约束）。
-   */
+  /** 行标题列，默认第一列（HeroUI 要求至少一列） */
   isRowHeader?: boolean;
-  /**
-   * 自定义单元格渲染函数。
-   * 传入行数据，返回要渲染的 React 节点。
-   * 未提供时默认渲染 row[column.key] 的值。
-   */
+  /** 自定义单元格渲染，未提供时显示 row[column.key] */
   render?: (row: T) => React.ReactNode;
-  /**
-   * 单元格的自定义 className，透传给 <HeroTable.Cell> 的 className。
-   * 文档：Cell 继承自 React Aria Cell，支持 className（string，附加 CSS 类）。
-   * 与内置的 "border-b border-subtle" 通过 cn 合并。
-   */
+  /** 单元格附加 className */
   cellClassName?: string;
-  /**
-   * 整列（列头 + 单元格）的对齐方式，默认 'left'。
-   * 数字 / 金额列设 'right'，序号 / 标识列设 'center'；列头与单元格同步生效。
-   */
+  /** 整列对齐方式，默认 left */
   align?: TableColumnAlign;
-  /**
-   * 固定列（横向滚动时保持可见），列表的列默认不固定。
-   * 取 true 等价固定在左侧；'left' / 'right' 显式指定方向；false 与不传均为不固定。
-   * 固定列必须从首列（left）或末列（right）起连续声明；
-   * 偏移量由组件按运行时实际列宽计算，可随列宽拖动自动更新。
-   */
+  /** 固定列，true 等价 'left'；须从首列或末列起连续声明 */
   fixed?: TableColumnFixedMode;
 }
 
-/** 列对齐方式：整列（列头 + 单元格）统一生效，默认 'left' */
 export type TableColumnAlign = 'left' | 'right' | 'center';
 
-/** 对齐方式 → 文本对齐 class（作用于 th / td 及非排序列头） */
 const TABLE_ALIGN_TEXT_CLASS: Record<TableColumnAlign, string> = {
   left: 'text-left',
   right: 'text-right',
   center: 'text-center',
 };
 
-/** 对齐方式 → flex 主轴对齐 class（作用于可排序列头内部容器） */
 const TABLE_ALIGN_FLEX_CLASS: Record<TableColumnAlign, string> = {
   left: 'justify-start',
   right: 'justify-end',
   center: 'justify-center',
 };
 
-/**
- * 分页配置接口。
- * 传入后启用分页功能，渲染分页控件。
- * 采用受控模式：调用方管理页码状态，通过 onPageChange 接收翻页事件。
- */
 export interface PaginationDef {
-  /** 总条数 */
+  /** 数据总条数，用于展示总数统计 */
   total: number;
-  /** 每页显示的行数 */
+  /** 每页条数 */
   pageSize: number;
   /** 总页数 */
   pages: number;
-  /** 当前页码（从 1 开始） */
+  /** 当前页码，从 1 开始 */
   pageNum: number;
-  /** 页码变化时的回调 */
+  /** 页码变化回调，返回新页码（从 1 开始） */
   onPageChange: (pageNum: number) => void;
 }
 
-/**
- * 表格组件属性接口。
- * 泛型 T 表示行数据类型，必须包含 id 字段用于唯一标识每一行。
- */
-export interface TableProps<T extends { id: string | number }> {
-  /** 列定义数组，决定表格有哪些列、每列的标题、宽度、是否可排序等 */
+export interface TableProps<T extends object> {
+  /** 列定义数组：列标题、宽度、排序及单元格渲染方式 */
   columns: TableColumnDef<T>[];
-  /** 行数据数组，每行必须包含 id 字段作为唯一标识 */
+  /** 行数据数组 */
   rows: T[];
-  /**
-   * 表格视觉变体，透传给 HeroUI Table 的 variant。
-   * - 'primary': 主要样式（默认）
-   * - 'secondary': 次要样式
-   */
+  /** 行唯一标识字段，默认 'id'；字段值作为 React key 与行 class 后缀 */
+  rowKey?: Extract<keyof T, string>;
+  /** 表格视觉变体，默认 primary */
   variant?: 'primary' | 'secondary';
-  /** 表格根容器的自定义类名（透传给 HeroTable） */
+  /** 表格主体附加 className */
   className?: string;
-  /** 外层包裹容器的自定义类名 */
+  /** 外层容器附加 className（含表格与分页栏） */
   wrapperClassName?: string;
-  /**
-   * 行选择模式：
-   * - 'none': 不支持选择（默认）
-   * - 'single': 单选
-   * - 'multiple': 多选（含全选）
-   */
+  /** 行选择模式：none 不显示选择列，single 单选，multiple 多选（含全选） */
   selectionMode?: 'none' | 'single' | 'multiple';
-  /** 当前选中的行 key 集合（受控模式） */
+  /** 受控选中行 key 集合 */
   selectedKeys?: Iterable<Key>;
-  /** 选中行变化时的回调，返回当前选中的 key 集合 */
+  /** 选中行变化回调，keys 为 'all' 表示全选 */
   onSelectionChange?: (keys: Selection) => void;
-  /** 排序变化时的回调，返回排序描述对象 */
+  /** 排序变化回调，返回新排序列与方向 */
   onSortChange?: (sortDescriptor: SortDescriptor) => void;
-  /** 当前排序描述符（受控模式） */
+  /** 受控排序状态：column 为列 key，direction 为升序/降序 */
   sortDescriptor?: SortDescriptor;
-  /**
-   * 自定义空状态渲染函数。
-   * 当 rows 为空时调用，返回要展示的 React 节点。
-   * 未提供时使用默认空状态文案。
-   */
+  /** rows 为空时的自定义展示，未提供时用默认空态 */
   renderEmptyState?: () => React.ReactNode;
-  /** 表格加载状态，为 true 时显示加载指示器 */
+  /** 是否展示加载中空态提示，默认 false */
   isLoading?: boolean;
-  /** 表格整体高度，超出后表格内部滚动；默认 320px */
+  /** 表格高度，超出后内部滚动；默认 320px */
   height?: string | number;
   /**
-   * 是否让表格撑满父容器剩余高度（需父级为 flex 列布局）。
-   * 为 true 时忽略 height：外层 wrapper 以 flex-1 + min-h-0 占据剩余空间，
-   * 滚动交给内部 ScrollContainer。
-   *
-   * 适用「页头 + 指标卡 + 表格」这类需要贴底适配的面板：改用 calc(100vh - Npx)
-   * 这类魔法数时，窗口缩放、浏览器全屏（100vh 变屏幕高而页头/KPI 卡不同步变化）、
-   * KPI 卡换行都会让减数失配，表格下方空出一段。
-   *
-   * 注意：父链上每一级都需能给出确定高度（如 AppPage 配 fill 转 flex 列、
-   * 中间层用 flex-1 min-h-0），否则百分比/flex 会退化，详见 AppPage.fill。
+   * 撑满父容器剩余高度（需父级为 flex 列），此时忽略 height。
+   * 用 calc(100vh - Npx) 会在窗口缩放、全屏或指标卡换行时失配。
    */
   fillHeight?: boolean;
-  /**
-   * 分页配置。
-   * 传入对象后启用分页功能，显示分页控件和统计信息。
-   * 采用受控模式：调用方负责数据切片和页码管理。
-   */
+  /** 传入后启用受控分页：调用方负责数据切片与页码管理 */
   pagination?: PaginationDef;
-  /** 表格行的自定义类名，透传给每一行 <HeroTable.Row> 的 className */
+  /** 每行附加 className，用于按行标识追加自定义样式 */
   rowClassName?: string;
+  /** 树形列 key；配置后 children 递归为子行，该列自动渲染展开按钮 */
+  treeColumnKey?: string;
+  /** 受控展开行 key 集合 */
+  expandedKeys?: Iterable<Key>;
+  /** 非受控初始展开行 key 集合 */
+  defaultExpandedKeys?: Iterable<Key>;
+  /** 展开/折叠变化回调，返回当前展开行 key 集合 */
+  onExpandedChange?: (keys: Set<Key>) => void;
 }
 
-/**
- * 通用数据表格组件。
- *
- * 负责将 columns 和 rows 数据转换为 HeroUI Table 的结构化渲染，
- * 并处理排序、选择、空状态等交互逻辑。
- */
-export function Table<T extends { id: string | number }>({
+const SCROLL_CONTAINER_STYLE = { height: '100%', overflow: 'auto' as const };
+
+export function Table<T extends object>({
   columns,
   rows,
+  rowKey = 'id' as Extract<keyof T, string>,
   variant = 'primary',
   className = '',
   selectionMode = 'none',
@@ -235,112 +152,116 @@ export function Table<T extends { id: string | number }>({
   pagination,
   rowClassName = '',
   wrapperClassName = '',
+  treeColumnKey,
+  expandedKeys,
+  defaultExpandedKeys,
+  onExpandedChange,
 }: TableProps<T>) {
-  /**
-   * 处理选择变化。
-   * 直接传递 HeroUI 的 Selection 类型给回调。
-   */
-  const handleSelectionChange = useCallback(
-    (selection: Selection) => {
-      if (!onSelectionChange) return;
-      onSelectionChange(selection);
-    },
-    [onSelectionChange],
-  );
-
-  /**
-   * 渲染单元格内容。
-   * 如果列定义了 render 函数则使用自定义渲染，否则直接显示字段值。
-   */
-  // 列定义按 key 建索引，避免每个单元格都做一次线性查找
-  const columnByKey = useMemo(
+  const columnDefByField = useMemo(
     () => new Map(columns.map((column) => [column.key, column])),
     [columns],
   );
 
-  /**
-   * 列结构签名：列增删时让 React Aria 动态集合缓存失效。
-   * RAC 的 useCachedChildren 以行数据对象为 WeakMap key 缓存已渲染的 Row element，
-   * 仅改变 columns 时旧行会复用缓存里的 Row（其 columns 仍是旧列数），
-   * 与新表头列数不一致会抛 "Cell count must match column count"。
-   * 通过 Body / Row 的 dependencies 精确失效缓存，不重挂载整张表，
-   * 避免丢失选中、排序与列宽状态。
-   */
-  const columnSignature = useMemo(
+  // RAC 以行对象为 WeakMap key 缓存 Row；仅列变化时旧行会复用旧列数，
+  // 导致 "Cell count must match column count"。用 dependencies 精确失效，不重挂载整表。
+  const columnLayoutSignature = useMemo(
     () => columns.map((column) => column.key).join('|'),
     [columns],
   );
 
-  /** 固定列容器 ref：偏移变量写在外层 div 上 */
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  useFixedColumnOffsets(wrapperRef, columns.length, columnSignature);
-
-  /** 固定列属性按 key 建索引：表头与单元格共用同一份，避免两处漂移 */
-  const fixedByKey = useMemo(() => buildFixedColumnPropsByKey(columns), [columns]);
-
-  const renderCell = useCallback(
-    (row: T, columnKey: string) => {
-      const colDef = columnByKey.get(columnKey);
-      // 如果有自定义渲染函数，使用它
-      if (colDef?.render) {
-        return colDef.render(row);
-      }
-
-      // 否则直接显示字段值（通过索引访问）
-      const value = (row as Record<string, unknown>)[columnKey];
-      if (value == null) return '—';
-      return String(value);
-    },
-    [columnByKey],
+  // 平铺切树形或改行标识字段时行对象引用可能不变，需一并纳入依赖使缓存失效
+  const rowCacheDependencies = useMemo(
+    () => [columnLayoutSignature, treeColumnKey ?? '', rowKey],
+    [columnLayoutSignature, treeColumnKey, rowKey],
   );
 
-  /**
-   * 默认空状态渲染。
-   * 当表格处于加载中时显示“加载中…”提示，
-   * 否则显示无数据的空状态（图标 + 文案）。
-   */
-  const defaultEmptyState = useMemo(() => {
-    return () => {
-      // 加载中：展示加载提示，避免与空数据状态混淆
-      if (isLoading) {
-        return (
-          <div className="py-10 text-center text-sm text-muted">加载中…</div>
-        );
-      }
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useFixedColumnOffsets(wrapperRef, columns.length, columnLayoutSignature);
+  const fixedPropsByField = useMemo(() => buildFixedColumnPropsByKey(columns), [columns]);
 
-      return (
-        <EmptyState className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
-          <Inbox className="size-6 text-muted" />
-          <span className="text-sm text-muted">暂无数据</span>
-        </EmptyState>
-      );
-    };
+  const renderTableCell = useCallback(
+    (row: T, fieldKey: string) => {
+      const columnDef = columnDefByField.get(fieldKey);
+      if (columnDef?.render) return columnDef.render(row);
+      const value = (row as Record<string, unknown>)[fieldKey];
+      return value == null ? '—' : String(value);
+    },
+    [columnDefByField],
+  );
+
+  const renderDefaultEmptyState = useCallback(() => {
+    if (isLoading) {
+      return <div className="py-10 text-center text-sm text-muted">加载中…</div>;
+    }
+    return (
+      <EmptyState className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
+        <Inbox className="size-6 text-muted" />
+        <span className="text-sm text-muted">暂无数据</span>
+      </EmptyState>
+    );
   }, [isLoading]);
 
+  const renderTableRow = (rowData: T): ReactElement => {
+    const childTableRows = (rowData as { children?: T[] }).children;
+    const rowIdentity = String(rowData[rowKey]);
+    return (
+      <HeroTable.Row
+        key={rowIdentity}
+        columns={columns}
+        dependencies={rowCacheDependencies}
+        className={cn(`hrs-table__row__${rowIdentity}`, rowClassName)}
+      >
+        {columns.map((columnDef) => {
+          const align = columnDef.align ?? 'left';
+          const fixedColumnProps = fixedPropsByField.get(columnDef.key);
+          const isTreeColumnCell = treeColumnKey != null && columnDef.key === treeColumnKey;
+          return (
+            <HeroTable.Cell
+              key={columnDef.key}
+              className={cn(
+                'border-b border-subtle',
+                TABLE_ALIGN_TEXT_CLASS[align],
+                columnDef.cellClassName,
+                fixedColumnProps?.className,
+              )}
+              style={fixedColumnProps?.style}
+            >
+              {isTreeColumnCell
+                ? (cellRenderProps) => (
+                    <span className="flex items-center gap-1">
+                      {cellRenderProps.hasChildItems && cellRenderProps.isTreeColumn && (
+                        <HrsButton
+                          slot="chevron"
+                          variant="ghost"
+                          size="xs"
+                          aria-label={cellRenderProps.isExpanded ? '收起子行' : '展开子行'}
+                          className="size-6 min-w-0 shrink-0 !px-0"
+                        >
+                          <ChevronRight
+                            className={cn(
+                              'size-4 transition-transform duration-150',
+                              cellRenderProps.isExpanded && 'rotate-90',
+                            )}
+                          />
+                        </HrsButton>
+                      )}
+                      {renderTableCell(rowData, columnDef.key)}
+                    </span>
+                  )
+                : renderTableCell(rowData, columnDef.key)}
+            </HeroTable.Cell>
+          );
+        })}
+        {treeColumnKey != null && childTableRows && childTableRows.length > 0 && (
+          <HeroTable.Collection items={childTableRows}>{renderTableRow}</HeroTable.Collection>
+        )}
+      </HeroTable.Row>
+    );
+  };
 
-
-
-
-
-  /**
-   * 实际渲染的行数据。
-   * 受控模式下调用方已切片，直接渲染 rows。
-   */
-  const displayRows = rows;
-
-  /**
-   * 外层容器样式。
-   * fillHeight 时不写死高度：由 flex-1 占据父级 flex 列的剩余空间，内部滚动。
-   */
-  const wrapperStyle = useMemo(() => (
-    fillHeight ? undefined : { height: typeof height === 'number' ? `${height}px` : height }
-  ), [fillHeight, height]);
-
-  /** 滚动容器占满 HeroTable 剩余空间。 */
-  const scrollContainerStyle = useMemo(() => ({
-    height: '100%',
-    overflow: 'auto' as const,
-  }), []);
+  const wrapperStyle = fillHeight
+    ? undefined
+    : { height: typeof height === 'number' ? `${height}px` : height };
 
   return (
     <div
@@ -348,48 +269,51 @@ export function Table<T extends { id: string | number }>({
       className={cn('hrs-table flex flex-col w-full', fillHeight && 'flex-1 min-h-0', wrapperClassName)}
       style={wrapperStyle}
     >
-      {/* HeroUI Table 主体：flex-1 占满 wrapper 高度，ScrollContainer 再占满 HeroTable */}
       <HeroTable variant={variant} className={cn('hrs-table__root flex-1 min-h-0 rounded-md bg-secondary', styles.root, className)}>
-        <HeroTable.ScrollContainer className={styles.scrollOverride} style={scrollContainerStyle}>
+        <HeroTable.ScrollContainer className={styles.scrollOverride} style={SCROLL_CONTAINER_STYLE}>
           <HeroTable.ResizableContainer>
             <HeroTable.Content
               className="hrs-table__content rounded-md"
               aria-label="数据表格"
               selectionMode={selectionMode === 'none' ? undefined : selectionMode}
               selectedKeys={selectedKeys}
-              onSelectionChange={handleSelectionChange}
+              onSelectionChange={onSelectionChange}
               sortDescriptor={sortDescriptor}
               onSortChange={onSortChange}
+              treeColumn={treeColumnKey}
+              expandedKeys={expandedKeys}
+              defaultExpandedKeys={defaultExpandedKeys}
+              onExpandedChange={onExpandedChange}
             >
-              {/* 表头：列头与单元格使用同一 align，保证整列对齐一致 */}
               <HeroTable.Header className={cn('hrs-table__header bg-muted', styles.header)}>
-                {columns.map((col) => {
-                  const align = col.align ?? 'left';
-                  const fixedProps = fixedByKey.get(col.key);
+                {columns.map((columnDef) => {
+                  const align = columnDef.align ?? 'left';
+                  const fixedColumnProps = fixedPropsByField.get(columnDef.key);
                   return (
                     <HeroTable.Column
-                      key={col.key}
-                      allowsSorting={col.allowsSorting}
-                      minWidth={col.minWidth as ComponentProps<typeof HeroTable.Column>['minWidth']}
-                      defaultWidth={col.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
-                      isRowHeader={col.isRowHeader ?? col.key === columns[0]?.key}
-                      className={cn(TABLE_ALIGN_TEXT_CLASS[align], fixedProps?.className)}
-                      style={fixedProps?.style}
+                      key={columnDef.key}
+                      id={columnDef.key}
+                      allowsSorting={columnDef.allowsSorting}
+                      minWidth={columnDef.minWidth as ComponentProps<typeof HeroTable.Column>['minWidth']}
+                      defaultWidth={columnDef.defaultWidth as ComponentProps<typeof HeroTable.Column>['defaultWidth']}
+                      isRowHeader={columnDef.isRowHeader ?? columnDef.key === columns[0]?.key}
+                      className={cn(TABLE_ALIGN_TEXT_CLASS[align], fixedColumnProps?.className)}
+                      style={fixedColumnProps?.style}
                     >
-                      {col.allowsSorting ? (
+                      {columnDef.allowsSorting ? (
                         <HeroTable.SortableColumnHeader
                           className={cn('w-full', TABLE_ALIGN_FLEX_CLASS[align])}
                           sortDirection={
-                            sortDescriptor?.column === col.key
+                            sortDescriptor?.column === columnDef.key
                               ? sortDescriptor.direction
                               : undefined
                           }
                         >
-                          {col.title}
+                          {columnDef.title}
                         </HeroTable.SortableColumnHeader>
                       ) : (
                         <span className={cn('block w-full', TABLE_ALIGN_TEXT_CLASS[align])}>
-                          {col.title}
+                          {columnDef.title}
                         </span>
                       )}
                     </HeroTable.Column>
@@ -397,38 +321,19 @@ export function Table<T extends { id: string | number }>({
                 })}
               </HeroTable.Header>
 
-              {/* 表体 */}
               <HeroTable.Body
                 className={cn('hrs-table__body', styles.body)}
-                items={displayRows}
-                dependencies={[columnSignature]}
-                renderEmptyState={renderEmptyState ?? defaultEmptyState}
+                items={rows}
+                dependencies={rowCacheDependencies}
+                renderEmptyState={renderEmptyState ?? renderDefaultEmptyState}
               >
-                {/*
-                使用 render props 模式，根据行数据渲染每一行。
-                HeroUI Table 要求通过 (item) => <HeroTable.Row> 的方式渲染。
-              */}
-                {(item) => (
-                  <HeroTable.Row key={String(item.id)} columns={columns}
-                    dependencies={[columnSignature]}
-                    className={cn(`hrs-table__row__${String(item.id)}`, rowClassName)}
-                  >
-                    {(col) => (
-                      <HeroTable.Cell
-                        className={cn('border-b border-subtle', TABLE_ALIGN_TEXT_CLASS[col.align ?? 'left'], col.cellClassName, fixedByKey.get(col.key)?.className)}
-                        style={fixedByKey.get(col.key)?.style}
-                      >
-                        {renderCell(item, col.key)}
-                      </HeroTable.Cell>
-                    )}
-                  </HeroTable.Row>
-                )}
+                {renderTableRow}
               </HeroTable.Body>
             </HeroTable.Content>
           </HeroTable.ResizableContainer>
         </HeroTable.ScrollContainer>
       </HeroTable>
-      {/* 底部分页栏常驻：刷新时保留旧数据与分页控件，避免布局跳动 */}
+      {/* 分页栏常驻：刷新时保留旧数据与分页控件，避免布局跳动 */}
       {pagination && (
         <PaginationBar
           className="hrs-table__pagination"

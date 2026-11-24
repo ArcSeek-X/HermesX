@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 新增组织管理页面设计与实施方案，明确现有组织表字段及枚举、7个接口的请求响应、画布与树表布局、筛选操作、前后端分层和真实联调前置条件；界面复用本项目组件，本次未修改功能代码或实际数据库。
+- [新功能] 通用 Table 组件支持树形数据：配置 treeColumnKey 后按行数据 children 递归渲染子行，展开/折叠走 HeroUI 原生能力（expandedKeys / onExpandedChange），未配置时保持平铺渲染且现有调用方零改动；新增可选 rowKey 指定行标识字段（默认 id），补齐树形、rowKey 与平铺兼容性回归测试及文档页示例。
 - [新功能] 新增 systemMode 系统管理模块与用户管理、组织管理、菜单管理三个二级菜单（页面暂为空页，仅展示页头），支持模块切换与路由跳转；补齐中英繁三语文案。
 
 - [改进] system 正式 SQL 统一到各服务 sql/ 同名文件，收敛用户、部门及 module/group/page 菜单的 SQLite 基线、约束和索引；关闭 Java 启动初始化，正式 SQL 仅供测试复制，不进入业务 JAR，移除旧脚本与重复测试结构。

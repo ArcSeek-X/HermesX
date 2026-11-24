@@ -7,7 +7,7 @@
  * 固定列用例同时守住 fixedColumns.ts 的取值归一、CSS 变量偏移与连续固定区边界阴影。
  * @author Lensgcx (GaoCangxiong)
  */
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import Table from '../Table';
 import type { TableColumnDef, TableColumnFixedMode } from '../Table';
@@ -112,5 +112,79 @@ describe('Table 动态列集合', () => {
     expect(headerCells[3].style.left).toBe('var(--hrs-table-fixed-left-3)');
     expect(headerCells[4].style.right).toBe('var(--hrs-table-fixed-right-4)');
     expect(headerCells[4].className).toContain('colFixedRight');
+  });
+});
+
+interface TreeRow {
+  id: string;
+  name: string;
+  children?: TreeRow[];
+}
+
+const TREE_ROWS: TreeRow[] = [
+  {
+    id: 'dir-1',
+    name: '目录一',
+    children: [
+      { id: 'file-1', name: '文件一' },
+      { id: 'file-2', name: '文件二' },
+    ],
+  },
+  { id: 'dir-2', name: '目录二' },
+];
+
+const treeColumns: TableColumnDef<TreeRow>[] = [
+  { key: 'name', title: '名称', minWidth: 120, defaultWidth: 120 },
+];
+
+describe('Table 树形数据', () => {
+  it('未配置 treeColumnKey 时，行数据带 children 也按平铺渲染', () => {
+    const { container } = render(<Table columns={treeColumns} rows={TREE_ROWS} />);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(TREE_ROWS.length);
+    expect(container.querySelector('[aria-label="展开子行"]')).toBeNull();
+  });
+
+  it('配置 treeColumnKey 后按 defaultExpandedKeys 展开子行，树形列渲染 chevron', () => {
+    const { container } = render(
+      <Table
+        columns={treeColumns}
+        rows={TREE_ROWS}
+        treeColumnKey="name"
+        defaultExpandedKeys={new Set(['dir-1'])}
+      />,
+    );
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(TREE_ROWS.length + 2);
+    // dir-1 有子行且已展开；dir-2 无子行，不应出现 chevron
+    expect(container.querySelectorAll('[aria-label="收起子行"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[aria-label="展开子行"]')).toHaveLength(0);
+  });
+
+  it('rowKey：以指定字段值作为行 class 后缀', () => {
+    interface KeyRow { key: string; title: string }
+    const keyRows: KeyRow[] = [{ key: 'k-1', title: '甲' }];
+    const keyColumns: TableColumnDef<KeyRow>[] = [
+      { key: 'title', title: '名称', minWidth: 80, defaultWidth: 80 },
+    ];
+    const { container } = render(
+      <Table columns={keyColumns} rows={keyRows} rowKey="key" />,
+    );
+    expect(container.querySelector('.hrs-table__row__k-1')).not.toBeNull();
+  });
+
+  it('受控展开：点击 chevron 触发 onExpandedChange', async () => {
+    const onExpandedChange = vi.fn();
+    const { container } = render(
+      <Table
+        columns={treeColumns}
+        rows={TREE_ROWS}
+        treeColumnKey="name"
+        expandedKeys={new Set()}
+        onExpandedChange={onExpandedChange}
+      />,
+    );
+    const chevron = container.querySelector('[aria-label="展开子行"]');
+    expect(chevron).not.toBeNull();
+    fireEvent.click(chevron!);
+    await waitFor(() => expect(onExpandedChange).toHaveBeenCalled());
   });
 });
