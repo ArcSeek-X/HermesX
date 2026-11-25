@@ -93,8 +93,6 @@ export function StockMetricViewMetricTable({
       onSortChange={handleSortChange}
       pagination={pagination}
       fillHeight
-      // 紧凑密度：后代选择器覆盖 HeroUI 默认列头 / 单元格内边距，仅当前页面生效
-      wrapperClassName="[&_th]:whitespace-nowrap [&_td]:py-2.5 [&_td]:text-xs"
       renderEmptyState={renderEmptyState}
     />
   );

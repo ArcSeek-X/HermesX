@@ -13,8 +13,8 @@ import { DocsSection } from '../DocsSection';
 const PRIMARY_VARIANTS: HrsButtonVariant[] = ['primary', 'primary-soft', 'gradient', 'secondary', 'outline', 'ghost'];
 /** 语义类变体（示例二展示） */
 const SEMANTIC_VARIANTS: HrsButtonVariant[] = ['danger', 'danger-soft', 'success', 'success-soft', 'warning', 'warning-soft'];
-/** 尺寸档位（示例三展示） */
-const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+/** 尺寸档位（示例三展示）：xxs 为 24px 高的紧凑图标按钮档 */
+const BUTTON_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl'] as const;
 
 /**
  * 按钮组件文档演示页。
@@ -41,9 +41,9 @@ export const DocsButtonPage: React.FC = () => {
     <AppPage>
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold text-primary-text">{t('layout.nav.development.docsButton.title')}</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('layout.nav.development.docsButton.title')}</h1>
           <p className="text-xs text-muted">
-            基于 HeroUI Button 封装的通用按钮（HrsButton）。18 种语义化变体、5 档尺寸、加载态（isLoading）
+            基于 HeroUI Button 封装的通用按钮（HrsButton）。18 种语义化变体、6 档尺寸（含 24px 的 xxs 紧凑档）、加载态（isLoading）
             与发光效果（glow）；onClick 在内部桥接为 HeroUI 的 onPress，原生属性（type / aria-* 等）全部透传。
           </p>
         </header>
@@ -67,9 +67,9 @@ export const DocsButtonPage: React.FC = () => {
         </DocsSection>
 
         {/* 3. 尺寸对比 */}
-        <DocsSection title="示例三：尺寸对比（size）" description="size 支持 xs / sm / md / lg / xl（默认 sm），字重随档位递增：md 及以下 font-medium、lg 为 font-semibold、xl 为 font-bold。">
+        <DocsSection title="示例三：尺寸对比（size）" description="size 支持 xxs / xs / sm / md / lg / xl（默认 md）：xxs 为 24px 紧凑档（适合表格行内操作），xs 为 28px；字重随档位递增，lg 为 font-semibold、xl 为 font-bold。">
           <div className="flex flex-wrap items-center gap-3">
-            {SIZES.map((size) => (
+            {BUTTON_SIZES.map((size) => (
               <HrsButton key={size} size={size}>size={size}</HrsButton>
             ))}
           </div>

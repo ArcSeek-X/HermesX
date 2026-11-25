@@ -34,6 +34,10 @@ export type AnimCardProps = {
   onClick?: MouseEventHandler<HTMLDivElement>;
   /** 卡片悬停提示文案（映射到根元素原生 title，鼠标悬停时展示） */
   tooltip?: string;
+  /** 无障碍标签，用于容器类卡片的语义标识 */
+  'aria-label'?: string;
+  /** 无障碍忙碌态，用于标记内容加载中 */
+  'aria-busy'?: boolean;
 };
 
 const baseStyle = 'relative flex overflow-hidden rounded-lg bg-card border border-subtle min-h-[110px]';
@@ -59,6 +63,8 @@ export default function AnimCard({
   style,
   onClick,
   tooltip,
+  'aria-label': ariaLabel,
+  'aria-busy': ariaBusy,
   children,
 }: AnimCardProps) {
 
@@ -71,6 +77,8 @@ export default function AnimCard({
         id={id}
         onClick={onClick}
         title={tooltip}
+        aria-label={ariaLabel}
+        aria-busy={ariaBusy}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}
@@ -95,6 +103,8 @@ export default function AnimCard({
       style={style}
       onClick={onClick}
       title={tooltip}
+      aria-label={ariaLabel}
+      aria-busy={ariaBusy}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut', delay: ordinal * 0.05 }}

@@ -133,6 +133,10 @@ const TREE_ROWS: TreeRow[] = [
   { id: 'dir-2', name: '目录二' },
 ];
 
+const NEXT_TREE_ROWS: TreeRow[] = [
+  { id: 'dir-3', name: '目录三', children: [{ id: 'file-3', name: '文件三' }] },
+];
+
 const treeColumns: TableColumnDef<TreeRow>[] = [
   { key: 'name', title: '名称', minWidth: 120, defaultWidth: 120 },
 ];
@@ -157,6 +161,26 @@ describe('Table 树形数据', () => {
     // dir-1 有子行且已展开；dir-2 无子行，不应出现 chevron
     expect(container.querySelectorAll('[aria-label="收起子行"]')).toHaveLength(1);
     expect(container.querySelectorAll('[aria-label="展开子行"]')).toHaveLength(0);
+  });
+
+  it('未传展开配置时默认展开首行，行 key 集合变化后重新默认展开新首行', async () => {
+    const { container, rerender } = render(
+      <Table columns={treeColumns} rows={TREE_ROWS} treeColumnKey="name" />,
+    );
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(TREE_ROWS.length + 2);
+    expect(container.querySelectorAll('[aria-label="收起子行"]')).toHaveLength(1);
+
+    rerender(<Table columns={treeColumns} rows={NEXT_TREE_ROWS} treeColumnKey="name" />);
+    await waitFor(() => expect(container.querySelectorAll('tbody tr')).toHaveLength(2));
+    expect(container.querySelectorAll('[aria-label="收起子行"]')).toHaveLength(1);
+  });
+
+  it('外部传入 expandedKeys 时不注入默认展开', () => {
+    const { container } = render(
+      <Table columns={treeColumns} rows={TREE_ROWS} treeColumnKey="name" expandedKeys={new Set()} />,
+    );
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(TREE_ROWS.length);
+    expect(container.querySelectorAll('[aria-label="展开子行"]')).toHaveLength(1);
   });
 
   it('rowKey：以指定字段值作为行 class 后缀', () => {
@@ -186,5 +210,17 @@ describe('Table 树形数据', () => {
     expect(chevron).not.toBeNull();
     fireEvent.click(chevron!);
     await waitFor(() => expect(onExpandedChange).toHaveBeenCalled());
+  });
+
+  it('自定义 rowKey 同时作为集合标识，受控展开能显示完整子树', () => {
+    interface OrganizationRow { organizationId: number; name: string; children?: OrganizationRow[] }
+    const organizationRows: OrganizationRow[] = [{ organizationId: 7, name: '总部', children: [
+      { organizationId: 8, name: '研发中心', children: [{ organizationId: 9, name: '分析组' }] },
+    ] }];
+    const columns: TableColumnDef<OrganizationRow>[] = [{ key: 'name', title: '名称', minWidth: 120, defaultWidth: 120 }];
+    const { container, rerender } = render(<Table columns={columns} rows={organizationRows} rowKey="organizationId" treeColumnKey="name" expandedKeys={new Set([7, 8])} />);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(3);
+    rerender(<Table columns={columns} rows={organizationRows} rowKey="organizationId" treeColumnKey="name" expandedKeys={new Set()} />);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 });

@@ -5,7 +5,8 @@
  * - 数据驱动：columns 定义列，rows 提供行数据，render 插槽自定义单元格；
  * - 排序与选择：allowsSorting + sortDescriptor/onSortChange，selectionMode + selectedKeys/onSelectionChange；
  * - 空态与分页：renderEmptyState 自定义空态，pagination 受控分页；
- * - 固定列与树形：fixed 配置固定列（细节见 fixedColumns.ts），treeColumnKey + children 递归子行。
+ * - 固定列与树形：fixed 配置固定列（细节见 fixedColumns.ts），treeColumnKey + children 递归子行；
+ *   树形表格默认展开首行，外部传入 expandedKeys / defaultExpandedKeys 时完全由外部控制。
  *
  * 使用示例：
  *   <Table
@@ -19,7 +20,7 @@
  *   />
  */
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, ReactElement } from 'react';
 import { Table as HeroTable, EmptyState } from '@heroui/react';
 import type { Key, SortDescriptor, Selection } from '@heroui/react';
@@ -95,7 +96,7 @@ export interface TableProps<T extends object> {
   variant?: 'primary' | 'secondary';
   /** 表格主体附加 className */
   className?: string;
-  /** 外层容器附加 className（含表格与分页栏） */
+  /** 外层容器附加 className（含表格与分页栏）；默认已包含紧凑表头/单元格样式 */
   wrapperClassName?: string;
   /** 行选择模式：none 不显示选择列，single 单选，multiple 多选（含全选） */
   selectionMode?: 'none' | 'single' | 'multiple';
@@ -124,9 +125,9 @@ export interface TableProps<T extends object> {
   rowClassName?: string;
   /** 树形列 key；配置后 children 递归为子行，该列自动渲染展开按钮 */
   treeColumnKey?: string;
-  /** 受控展开行 key 集合 */
+  /** 受控展开行 key 集合；传入后不再注入默认展开，展开态完全由外部维护 */
   expandedKeys?: Iterable<Key>;
-  /** 非受控初始展开行 key 集合 */
+  /** 非受控初始展开行 key 集合；传入后不再默认展开首行 */
   defaultExpandedKeys?: Iterable<Key>;
   /** 展开/折叠变化回调，返回当前展开行 key 集合 */
   onExpandedChange?: (keys: Set<Key>) => void;
@@ -157,6 +158,37 @@ export function Table<T extends object>({
   defaultExpandedKeys,
   onExpandedChange,
 }: TableProps<T>) {
+  const isExpandedControlled = expandedKeys !== undefined;
+
+  /** 树形表格默认展开首行；非树形或空数据不注入展开态。 */
+  const getFirstTreeRowKeys = useCallback((): Set<Key> => {
+    if (treeColumnKey == null || rows.length === 0) return new Set();
+    const firstRowKey = rows[0][rowKey] as Key | undefined;
+    return firstRowKey == null ? new Set() : new Set([firstRowKey]);
+  }, [treeColumnKey, rows, rowKey]);
+
+  // 行 key 集合变化（翻页、重新查询）时重置默认展开；用签名而非 rows 引用，避免同一页重渲染误重置。
+  const rowKeysSignature = rows.map(row => String(row[rowKey])).join('|');
+
+  // 外部未传展开配置时由组件自管：优先用 defaultExpandedKeys，否则默认展开首行。
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(() => ({
+    signature: rowKeysSignature,
+    keys: defaultExpandedKeys !== undefined ? new Set<Key>(defaultExpandedKeys) : getFirstTreeRowKeys(),
+  }));
+
+  let effectiveExpandedKeys: Iterable<Key> = expandedKeys ?? uncontrolledExpanded.keys;
+  if (!isExpandedControlled && defaultExpandedKeys === undefined && uncontrolledExpanded.signature !== rowKeysSignature) {
+    // render 期间派生新状态：行集合变了就重新默认展开首行，避免用 effect 触发级联渲染。
+    const nextKeys = getFirstTreeRowKeys();
+    setUncontrolledExpanded({ signature: rowKeysSignature, keys: nextKeys });
+    effectiveExpandedKeys = nextKeys;
+  }
+
+  const handleExpandedChange = useCallback((keys: Set<Key>) => {
+    if (!isExpandedControlled) setUncontrolledExpanded(previous => ({ ...previous, keys }));
+    onExpandedChange?.(keys);
+  }, [isExpandedControlled, onExpandedChange]);
+
   const columnDefByField = useMemo(
     () => new Map(columns.map((column) => [column.key, column])),
     [columns],
@@ -207,6 +239,7 @@ export function Table<T extends object>({
     return (
       <HeroTable.Row
         key={rowIdentity}
+        id={rowData[rowKey] as Key}
         columns={columns}
         dependencies={rowCacheDependencies}
         className={cn(`hrs-table__row__${rowIdentity}`, rowClassName)}
@@ -219,7 +252,7 @@ export function Table<T extends object>({
             <HeroTable.Cell
               key={columnDef.key}
               className={cn(
-                'border-b border-subtle',
+                'border-b border-subtle text-foreground-dim',
                 TABLE_ALIGN_TEXT_CLASS[align],
                 columnDef.cellClassName,
                 fixedColumnProps?.className,
@@ -228,24 +261,25 @@ export function Table<T extends object>({
             >
               {isTreeColumnCell
                 ? (cellRenderProps) => (
-                    <span className="flex items-center gap-1">
+                    <span className="relative flex min-w-0 items-center">
+                      {/* chevron 绝对定位脱离文档流，名称从固定位置起排，避免有/无子节点的同级行名称错位 */}
                       {cellRenderProps.hasChildItems && cellRenderProps.isTreeColumn && (
                         <HrsButton
                           slot="chevron"
                           variant="ghost"
                           size="xs"
                           aria-label={cellRenderProps.isExpanded ? '收起子行' : '展开子行'}
-                          className="size-6 min-w-0 shrink-0 !px-0"
+                          className="absolute left-0 min-w-0 shrink-0"
                         >
                           <ChevronRight
                             className={cn(
-                              'size-4 transition-transform duration-150',
+                              'size-3 transition-transform duration-150',
                               cellRenderProps.isExpanded && 'rotate-90',
                             )}
                           />
                         </HrsButton>
                       )}
-                      {renderTableCell(rowData, columnDef.key)}
+                      <span className="min-w-0 pl-7">{renderTableCell(rowData, columnDef.key)}</span>
                     </span>
                   )
                 : renderTableCell(rowData, columnDef.key)}
@@ -266,7 +300,11 @@ export function Table<T extends object>({
   return (
     <div
       ref={wrapperRef}
-      className={cn('hrs-table flex flex-col w-full', fillHeight && 'flex-1 min-h-0', wrapperClassName)}
+      className={cn(
+        'hrs-table flex flex-col w-full [&_th]:whitespace-nowrap [&_td]:py-2.5 [&_td]:text-xs',
+        fillHeight && 'flex-1 min-h-0',
+        wrapperClassName,
+      )}
       style={wrapperStyle}
     >
       <HeroTable variant={variant} className={cn('hrs-table__root flex-1 min-h-0 rounded-md bg-secondary', styles.root, className)}>
@@ -281,9 +319,8 @@ export function Table<T extends object>({
               sortDescriptor={sortDescriptor}
               onSortChange={onSortChange}
               treeColumn={treeColumnKey}
-              expandedKeys={expandedKeys}
-              defaultExpandedKeys={defaultExpandedKeys}
-              onExpandedChange={onExpandedChange}
+              expandedKeys={effectiveExpandedKeys}
+              onExpandedChange={handleExpandedChange}
             >
               <HeroTable.Header className={cn('hrs-table__header bg-muted', styles.header)}>
                 {columns.map((columnDef) => {

@@ -36,7 +36,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉变体（语义化风格），默认 'primary'。各变体样式见 BUTTON_VARIANT_STYLES。 */
   variant?: HrsButtonVariant;
   /** 尺寸档位，默认 'md'。各档位高度/内边距/字号见 BUTTON_SIZE_STYLES。 */
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** 是否处于加载态。为 true 时展示旋转图标与文案，且按钮被禁用。默认 false。 */
   isLoading?: boolean;
   /** 加载态自定义文案；未提供时回退到 i18n 的 'common.processing'。 */
@@ -53,6 +53,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  * 未分层的 `button { font: inherit }` 规则，确保字号稳定生效。
  */
 const BUTTON_SIZE_STYLES = {
+  xxs: 'h-6 rounded-sm px-1.5 !text-xs !font-medium',
   xs: 'h-7 rounded-sm px-2 !text-xs !font-medium',
   sm: 'h-8 rounded-sm px-3 !text-xs !font-medium',
   md: 'h-9 rounded-sm px-4 !text-sm !font-medium',

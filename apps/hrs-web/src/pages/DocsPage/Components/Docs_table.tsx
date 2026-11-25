@@ -306,10 +306,10 @@ export const DocsTablePage: React.FC = () => {
           <Table columns={stockColumns} rows={pagedStockRows} pagination={stockPagination} />
         </DocsSection>
 
-        {/* 示例七：treeColumnKey 树形数据，defaultExpandedKeys 非受控初始展开 */}
+        {/* 示例七：treeColumnKey 树形数据，默认展开首行；defaultExpandedKeys 可覆盖默认 */}
         <DocsSection
           title="示例七：树形数据（treeColumnKey）"
-          description="以组织管理为例：配置 treeColumnKey 后，children 递归渲染为子行；defaultExpandedKeys 指定初始展开的行（非受控，无需外部 state），展开/折叠状态由组件内部管理。列定义的 minWidth 为最小像素宽，defaultWidth 支持数字 px 或 '18%' 这类百分比字符串。未配置 treeColumnKey 的表格仍按平铺渲染。"
+          description="以组织管理为例：配置 treeColumnKey 后，children 递归渲染为子行；未传展开配置时默认只展开首行，行 key 集合变化后按新首行重新默认展开。defaultExpandedKeys 指定初始展开的行（非受控，无需外部 state），expandedKeys 则完全由外部受控，传入任一配置都不再注入默认展开；展开/折叠状态由组件内部管理。列定义的 minWidth 为最小像素宽，defaultWidth 支持数字 px 或 '18%' 这类百分比字符串。未配置 treeColumnKey 的表格仍按平铺渲染。"
         >
           <Table
             columns={ORG_UNIT_COLUMNS}
