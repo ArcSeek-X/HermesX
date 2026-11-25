@@ -323,6 +323,10 @@ def authorizer(bundle: Bundle, readonly: bool = False) -> Callable:
             table = second
         if table == bundle.history_table:
             return sqlite3.SQLITE_DENY
+        # SQLite重命名表时会读取并更新临时schema目录，即使没有临时业务表。
+        # 只放行目录的READ/UPDATE；临时表创建、其他库与事务仍由上面的规则拦截。
+        if database == "temp" and table in {"sqlite_temp_master", "sqlite_temp_schema"}:
+            return sqlite3.SQLITE_OK if action == sqlite3.SQLITE_READ or (not readonly and action == sqlite3.SQLITE_UPDATE) else sqlite3.SQLITE_DENY
         if table and table not in {"sqlite_master", "sqlite_schema", "sqlite_sequence"}:
             if not table.startswith(bundle.prefix) or database not in (None, "main"):
                 return sqlite3.SQLITE_DENY

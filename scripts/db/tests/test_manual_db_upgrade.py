@@ -317,6 +317,7 @@ INSERT INTO hrs_system_item(name) VALUES ('literal;--text;/*text*/');
     def test_sql_cannot_override_transactions_attach_or_modify_history(self):
         for bad_sql in ['BEGIN;', "ATTACH ':memory:' AS other;", 'PRAGMA journal_mode=OFF;',
                         'CREATE VIRTUAL TABLE hrs_system_search USING fts5(name);',
+                        'CREATE TEMP TABLE hrs_system_temporary (id INTEGER);',
                         'CREATE TABLE hrs_auth_wrong (id INTEGER);',
                         'CREATE TABLE hrs_system_schema_history (id INTEGER);']:
             with self.subTest(sql=bad_sql):
@@ -383,6 +384,25 @@ INSERT INTO hrs_system_item(name) VALUES ('literal;--text;/*text*/');
         self.assertEqual(self.query('SELECT COUNT(*) FROM hrs_system_user'), [(0,)])
         self.assertEqual(self.query('SELECT COUNT(*) FROM hrs_system_menu'), [(0,)])
         self.assertEqual(len(self.query('SELECT checksum FROM hrs_system_schema_history')[0][0]), 64)
+
+    def test_official_organization_upgrade_preserves_links_and_is_applied_once(self):
+        official_sql = (SCRIPT.parents[2] / SERVICE / 'sql' / f'{SERVICE}.sql').read_text(encoding='utf-8')
+        self.sql_file.write_text(official_sql.split('-- BEGIN ORGANIZATION_20261124')[0], encoding='utf-8')
+        self.create()
+        self.mutate("INSERT INTO hrs_system_organization(id,dept_name,create_by,update_by) VALUES (7,'总部','fixture','fixture')")
+        self.mutate("INSERT INTO hrs_system_organization(id,parent_id,ancestors,dept_name,create_by,update_by) VALUES (8,7,'7','研发部','fixture','fixture')")
+        self.mutate("INSERT INTO hrs_system_user(username,password,nickname,dept_id,create_by,update_by) VALUES ('learner','hash','成员',8,'fixture','fixture')")
+        self.sql_file.write_text(official_sql, encoding='utf-8')
+        self.invoke('--apply', '--backup-dir', str(self.backups))
+        self.assertEqual(self.query('SELECT organization_id,parent_id,ancestors,organization_name FROM hrs_system_organization ORDER BY organization_id'),
+                         [(7, 0, '', '总部'), (8, 7, '7', '研发部')])
+        self.assertEqual(self.query('SELECT dept_id FROM hrs_system_user'), [(8,)])
+        self.assertEqual(self.query('SELECT change_id FROM hrs_system_schema_history ORDER BY id'),
+                         [('BASELINE_20261123',), ('ORGANIZATION_20261124',)])
+        before_history = self.query('SELECT * FROM hrs_system_schema_history ORDER BY id')
+        self.invoke('--apply', '--backup-dir', str(self.backups))
+        self.assertEqual(self.query('SELECT * FROM hrs_system_schema_history ORDER BY id'), before_history)
+        self.assertEqual(len(list(self.backups.glob('*.db'))), 1)
 
     def test_placeholder_service_and_invalid_cli_return_nonzero_without_creating_database(self):
         for options in [['--service', 'hrs-auth-service', '--database', str(self.database), '--apply', '--create'],
