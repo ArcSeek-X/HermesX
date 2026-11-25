@@ -7,11 +7,12 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from 'node:fs'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { fileURLToPath } from 'node:url'
+import { createSystemDevProxy } from './scripts/systemDevProxy'
 
 const frontendDir = __dirname
 const repoRoot = path.resolve(frontendDir, '../..')
@@ -25,6 +26,7 @@ const buildInputFiles = [
   'package.json',
   'package-lock.json',
   'vite.config.ts',
+  'scripts/systemDevProxy.ts',
   'tsconfig.json',
   'tsconfig.app.json',
   'tsconfig.node.json',
@@ -251,7 +253,10 @@ function staticPassthroughPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode, command }) => {
+  const developmentEnv = command === 'serve' ? loadEnv(mode, repoRoot, 'HRS_WEB_') : {}
+  const systemDevProxy = command === 'serve' ? createSystemDevProxy(repoRoot, developmentEnv.HRS_WEB_SYSTEM_API_TARGET, developmentEnv.HRS_WEB_SYSTEM_DEV_AUTH) : undefined
+  return {
   define: {
     __APP_PACKAGE_VERSION__: JSON.stringify(appVersion),
     __APP_REVISION__: JSON.stringify(appRevision),
@@ -267,6 +272,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    ...(systemDevProxy ? [systemDevProxy.plugin] : []),
     staticPassthroughPlugin(),
     buildMetadataPlugin(),
     tailwindcss(),
@@ -280,6 +286,7 @@ export default defineConfig({
     host: '0.0.0.0',  // 允许公网访问
     port: 1022,       // 默认端口
     proxy: {
+      ...(systemDevProxy?.proxy ?? {}),
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
@@ -299,4 +306,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })
