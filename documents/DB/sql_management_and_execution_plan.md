@@ -2,7 +2,7 @@
 
 > 更新时间：2026-11-24。依据当前仓库文件和已确认的 SQL 管理方向整理。
 > 当前使用 SQLite 过渡，后续按服务迁移 MySQL。目标是：**每个服务一份正式 SQL 文件，由人手动运行独立升级工具，Java 不承担初始化或升级执行逻辑。**
-> **实施状态更新**：system SQL 已收敛为 `BASELINE_20261123`；Java已关闭启动初始化并移除旧分段读取，正式SQL仅复制到测试classpath、不进入业务JAR。独立手动工具、历史记录和临时库测试已实现；尚未创建或修改真实业务数据库，MySQL支持仍待后续实施。
+> **实施状态更新**：system SQL 包含冻结的 `BASELINE_20261123` 与组织迁移 `ORGANIZATION_20261124`；Java已关闭启动初始化并移除旧分段读取，正式SQL仅复制到测试classpath、不进入业务JAR。独立手动工具、历史记录和临时库测试已实现；2026-11-24已按明确要求初始化本机system独立SQLite并导入组织验证数据；生产部署和MySQL支持仍待后续实施。
 
 ## 目录
 
@@ -61,18 +61,18 @@ flowchart TD
 | 项目 | 当前状态 | 目标处理 |
 | --- | --- | --- |
 | system 正式 SQL | 已收拢到 `hrs-system-service/sql/hrs-system-service.sql` | 保留唯一入口，重整为工具可检查的变更序列 |
-| system 文件内容 | 已收敛为单一 `BASELINE_20261123`，不再保留旧 INIT/V2/V3/V4 | 已声明@service、@dialect和@upgrade，基线在实际库执行登记后冻结 |
-| 菜单正式结构 | SQL 已对齐 Java 的 `menu_` 业务列和 `module/group/page` | 正式部署与菜单数据导入仍待后续安排 |
+| system 文件内容 | 冻结的 `BASELINE_20261123` 后追加 `ORGANIZATION_20261124`，不恢复旧 INIT/V2/V3/V4 | 已声明@service、@dialect和@upgrade，基线在实际库执行登记后冻结 |
+| 菜单正式结构 | SQL 已对齐 Java 的 `menu_` 业务列和 `module/group/page` | 本机正式结构已初始化，菜单数据导入仍待后续安排 |
 | Java 启动初始化 | 已配置 `spring.sql.init.mode=never`，不执行正式建表或升级 | 使用业务接口前手动准备匹配结构，不以启动成功认定建库完成 |
 | Java 分段选择 | `SqlScriptConfig`、`VersionedSqlResource` 及旧分段测试已删除 | Java 不再保留版本列表，后续工具独立管理变更 |
 | SQL 打包 | Maven 只将正式SQL复制到测试classpath，业务JAR不含SQL | 后续部署单独交付匹配的SQL和工具 |
 | Java 集成测试 | 显式开启测试初始化，使用正式SQL创建临时库；旧菜单DDL夹具已删除 | 持续验证实际目标结构，避免两份DDL漂移 |
-| 执行历史 | 工具按服务创建独立技术历史表，并校验逐段SHA-256 | 当前仅在临时库执行；不等于真实业务库已有此表 |
+| 执行历史 | 工具按服务创建独立技术历史表，并校验逐段SHA-256 | 本机system库已记录2个正式变更段；种子数据不是结构升级，不另写执行历史 |
 | auth / Java analysis | SQL 仅注释占位，服务尚为骨架 | 暂不创建数据库、不添加无业务用途的表 |
-| system 实际库 | 核对时未发现 `data/hrs_system.db` | 不因撰写方案创建；后续由明确的新库初始化操作创建 |
+| system 实际库 | data/hrs_system.db已由明确授权的新库操作初始化 | Java启动仍不建表；后续按手动工具检测和执行待办 |
 | Python 库 | `data/stock_analysis.db` 已存在，仍有原有运行链路 | 本次不改其结构、ORM 初始化或执行入口 |
 
-**SQL基线、Java启动解耦与手动工具均已完成。** 工具只支持SQLite，严格拒绝未知旧结构；实际业务库、菜单数据导入、MySQL迁移仍未执行。空库上启动Java不会建表，应先由人手动运行本工具。
+**SQL基线、Java启动解耦与手动工具均已完成。** 工具只支持SQLite，严格拒绝未知旧结构；本机system库初始化已执行，菜单数据导入、生产部署和MySQL迁移仍未执行。空库上启动Java不会建表，应先由人手动运行本工具。
 
 <a id="sec-3"></a>
 
@@ -428,7 +428,7 @@ SQL 文件不是通用“撤销键”。涉及删列、合并数据或不可逆�
 
 ## 八、Java 与运行环境调整
 
-Java侧解耦、独立工具及临时库验证已完成；实际数据库部署仍待安排。以下逐项区分当前状态。
+Java侧解耦、独立工具及临时库验证已完成；本机system库已手动初始化；生产部署仍待安排。以下逐项区分当前状态。
 
 | 位置 | 目标修改 | 验收 |
 | --- | --- | --- |
@@ -523,7 +523,7 @@ system、auth、Java analysis 各自独立切换，不因 system 切换就修改
 
 ## 十、实施批次与交付物
 
-本文批次使用 **DB-0～DB-5**，不改变原工程计划中 P0/P1/P2 的定义。**DB-1基线与检查元信息、DB-2工具、DB-3的Java侧解耦均已完成；DB-4实际库部署与DB-5 MySQL迁移仍待安排。**
+本文批次使用 **DB-0～DB-5**，不改变原工程计划中 P0/P1/P2 的定义。**DB-1基线与检查元信息、DB-2工具、DB-3的Java侧解耦均已完成；DB-4本机system初始化和组织验证已完成，生产部署及DB-5 MySQL迁移仍待安排。**
 
 | 批次 | 具体工作 | 交付与结束条件 |
 | --- | --- | --- |
@@ -561,7 +561,7 @@ system、auth、Java analysis 各自独立切换，不因 system 切换就修改
 
 工具测试使用临时数据库，Java 验证执行当前根 Maven 的 `./mvnw clean verify`，并补充由正式 SQL 经工具建库到 Java HTTP 的完整路径。部署前核对使用者、Docker、桌面与脚本是否存在旧启动初始化依赖；没有覆盖的平台、数据库或在线服务需明确列出。
 
-验证记录：SQL基线先通过内存SQLite3.43.2的47项映射/约束检查；2026-11-24 Java调整后，根 `./mvnw -o clean verify` 的11模块、40项测试通过，覆盖正式SQL下CRUD、菜单、Basic/CSRF和禁止启动初始化。业务JAR不含SQL及旧初始化类，测试SQL与正式文件字节一致。另以临时正式结构库从独立工作目录连续启动打包JAR两次，Basic认证查询成功，每次关闭后结构和业务数据均未变化。工具在Python3.9与3.11下各通过29项真实SQLite测试，覆盖增量升级、摘要/结构冲突、显式接管、两进程竞争、WAL备份和整批回滚，已接入deterministic门禁。另已验证工具CLI预览/建库→打包Java→Basic/CSRF用户新增→菜单新增及导航→工具无待办重跑的完整临时库链路；Java未改写结构和升级历史。真实业务库升级、MySQL、Windows、Docker和远端GitHub Actions尚未执行。当前尚未部署，撤回只涉及本批源码和文档；部署后的数据恢复按第七节执行。
+早期临时库验证记录：SQL基线先通过内存SQLite3.43.2的47项映射/约束检查；2026-11-24 Java调整后，根 `./mvnw -o clean verify` 的11模块、40项测试通过，覆盖正式SQL下CRUD、菜单、Basic/CSRF和禁止启动初始化。业务JAR不含SQL及旧初始化类，测试SQL与正式文件字节一致。另以临时正式结构库从独立工作目录连续启动打包JAR两次，Basic认证查询成功，每次关闭后结构和业务数据均未变化。工具在Python3.9与3.11下各通过29项真实SQLite测试，覆盖增量升级、摘要/结构冲突、显式接管、两进程竞争、WAL备份和整批回滚，已接入deterministic门禁。另已验证工具CLI预览/建库→打包Java→Basic/CSRF用户新增→菜单新增及导航→工具无待办重跑的完整临时库链路；Java未改写结构和升级历史。后续本机system库初始化、组织测试数据及服务启动已按本文末尾记录完成；MySQL、生产部署、Windows、Docker和远端GitHub Actions仍未执行。实际数据库的恢复按第七节执行，不能只撤销源码。
 
 <a id="sec-12"></a>
 
@@ -584,3 +584,7 @@ SQLite 技术依据：[CREATE TABLE](https://www.sqlite.org/lang_createtable.htm
 MySQL 技术依据：[8.0 ALTER TABLE](https://dev.mysql.com/doc/refman/8.0/en/alter-table.html)、[条件语句](https://dev.mysql.com/doc/refman/8.0/en/if.html)、[隐式提交](https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html)。
 
 本文暂无英文对应版；不新增平行翻译，避免重复维护。
+
+2026-11-24组织管理补充：正式SQL新增ORGANIZATION_20261124，重建组织表并将旧id数值保留为organization_id，维持父链和用户dept_id引用；工具支持SQLite重命名所需的内部临时schema访问，仍禁止临时业务表、跨库及SQL自行控制事务。30项临时库测试已通过，覆盖正式组织升级和无待办重复执行；另已通过工具建临时库→打包Java→真实Basic/CSRF组织CRUD与筛选分页→无待办重跑，结构和历史保持不变。早期测试未操作实际业务库；后续已按明确要求完成本机system独立库初始化及组织验证数据导入。
+
+2026-11-24本机执行更新：已对data/hrs_system.db完成plan→apply/create，执行历史登记2段；组织数据从独立的sql/test-data/organization_test_data.sql手动导入，37条中36条未删除、12个可查询根，重复执行不覆盖数据。该测试SQL不是正式升级入口，不由工具扫描或Java启动执行。导入前备份位于data/backups/；本机服务已启动，后续已通过Vite本机开发代理代传现有Basic/CSRF接通组织页面；正式登录/网关认证暂缓。启动、凭据文件权限与恢复边界见[组织方案11.4](../product/系统设置/system_org_management.md#sec-11)。

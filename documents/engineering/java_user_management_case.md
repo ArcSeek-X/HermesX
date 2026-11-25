@@ -2,7 +2,7 @@
 
 本案例把 `scaffold-master-main` 的用户 CRUD 思路放入 HermesX 的 `hrs-system-service`，只实现服务端。阅读顺序是 **DTO → Controller → Service 接口 → ServiceImpl → UserMapper / XML → Entity → VO**。本文中的路径均相对于仓库根。
 
-> **SQL 执行状态（2026-11-24）**：正式 SQL 为 `BASELINE_20261123`，Java 已关闭启动初始化并移除分段读取；测试在临时 SQLite 显式执行正式基线。业务 JAR 不携带建表 SQL，使用业务接口前须手动准备匹配结构。独立工具已实现，真实库部署仍待安排，见 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md)。
+> **SQL 执行状态（2026-11-24）**：正式 SQL 包含 `BASELINE_20261123` 与组织迁移 `ORGANIZATION_20261124`，Java 已关闭启动初始化并移除分段读取；测试在临时 SQLite 显式执行正式SQL。业务 JAR 不携带建表 SQL，使用业务接口前须手动准备匹配结构。独立工具已实现，本机system库已初始化，生产部署仍待安排，见 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md)。
 
 统一响应见 [common与响应规范](java_common_response_design.md)：正文中的VO、数组、分页结果均位于resultData内，删除返回200及true，CSRF token位于resultData.token。
 
@@ -86,9 +86,9 @@ MyBatis Spring Boot Starter 3.0.5 适配本例 Spring Boot 3.5；运行配置明
 
 SQLite 不像 MySQL 一样自动强制 VARCHAR 长度，所以 DTO 校验之外，DDL 也增加 CHECK。SQLite 不支持 MySQL 的 COMMENT、ENGINE 和 ON UPDATE 子句，中文解释使用 SQL 注释。时间、主键和唯一索引是迁移数据库时需要重点复核的差异。
 
-服务目录下 `sql/hrs-system-service.sql` 已整理为 `BASELINE_20261123`，直接包含企业、组织及 `delete_flag` 字段，不再保留旧 V2/V3 改表步骤。用户账号全表唯一，逻辑删除后仍不复用；审计列非空，由服务端写入。相同结构下重复执行不清空数据，但 `IF NOT EXISTS` 不会升级未知旧表。Java 的 INIT/V4 选择已移除，服务不再自动初始化；正式业务库仍未创建，不能以服务启动成功代替数据库部署验收。
+服务目录下 `sql/hrs-system-service.sql` 已整理为 `BASELINE_20261123`，直接包含企业、组织及 `delete_flag` 字段，不再保留旧 V2/V3 改表步骤。用户账号全表唯一，逻辑删除后仍不复用；审计列非空，由服务端写入。相同结构下重复执行不清空数据，但 `IF NOT EXISTS` 不会升级未知旧表。Java 的 INIT/V4 选择已移除，服务不再自动初始化；本机system库已通过手动工具初始化并验证，仍不能以服务启动成功代替数据库部署验收。
 
-独立工具 `scripts/db/manual_db_upgrade.py` 与执行历史已按 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md) 实现，支持plan、apply/create和显式接管基线；Java不调用它。真实业务数据库尚未创建。
+独立工具 `scripts/db/manual_db_upgrade.py` 与执行历史已按 [SQL 管理与数据库升级方案](../DB/sql_management_and_execution_plan.md) 实现，支持plan、apply/create和显式接管基线；Java不调用它。本机data/hrs_system.db已初始化，用户表为空；本次仅导入组织验证数据。
 
 Nacos 可选接入、独立数据库规划和注册验证见 [Nacos 接入说明](java_nacos_discovery.md)。
 
@@ -177,3 +177,5 @@ rm "$COOKIE_FILE"
 设计依据：[Java 工程架构](java_engineering_architecture.md)。技术行为参考 [Spring Boot 数据初始化](https://docs.spring.io/spring-boot/how-to/data-initialization.html)、[SQLite 类型说明](https://www.sqlite.org/datatype3.html)、[Spring Security Basic 认证](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/basic.html)。本学习文档没有英文对应版，本次未新增双语副本。
 
 **2026-11-19 行为更新**：新增部门表后，用户新增/修改不再允许任意不存在的deptId；旧孤立引用需明确改为NULL或实际部门。V4创建新表不自动修正这些旧值，也不改变已有用户的密码或删除状态。
+
+2026-11-24组织关联更新：用户dept_id现在引用组织表organization_id主键；同企业校验继续生效，用户自身organization_id保持归属元数据语义，不与部门主键比较。正式SQL需由手动工具按历史执行完整待办，不能直接重复执行整份文件。详见[组织管理方案](../product/系统设置/system_org_management.md)。

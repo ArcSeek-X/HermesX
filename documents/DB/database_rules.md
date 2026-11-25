@@ -4,7 +4,7 @@
 
 本文是 HermesX 数据库命名、表结构和数据边界的规范。当前使用 SQLite，后续按服务逐步迁移 MySQL。表名已确认采用前缀式，例如 `hrs_system_user`；不是含点号的字面表名。
 
-> **SQL 执行状态**：system 正式 SQL 已收敛为 BASELINE_20261123，Java 已关闭启动初始化并移除旧分段读取，正式 SQL 不进入业务 JAR。独立手动工具和执行历史已实现，实际库仍未部署，见 [SQL 管理与数据库升级方案](sql_management_and_execution_plan.md)。
+> **SQL 执行状态**：system 正式 SQL 包含冻结基线 BASELINE_20261123 及组织升级段 ORGANIZATION_20261124，Java 已关闭启动初始化并移除旧分段读取，正式 SQL 不进入业务 JAR。独立手动工具和执行历史已实现，本机 data/hrs_system.db 已初始化并导入组织验证数据，生产部署仍待安排，见 [SQL 管理与数据库升级方案](sql_management_and_execution_plan.md)。
 
 ## 1. 适用范围与执行原则
 
@@ -122,11 +122,19 @@ hrs_<服务简称>_<业务名>
 
 【强制】普通查询、分页总数、更新、删除及批量操作统一检查 `delete_flag = 0`。软删除更新删除标志及更新审计字段，保留数据。查看已删除数据、恢复、最终清理必须有明确独立的授权语义；不写默认物理 DELETE 代替业务删除。测试夹具清理不属于业务删除接口。
 
+### 5.1.1 组织主数据表的主键特例（代码、SQL及本机独立库已落实）
+
+`hrs_system_organization`采用`organization_id`作为唯一主键，删除原`id`列；SQLite声明为`organization_id INTEGER PRIMARY KEY AUTOINCREMENT`，Java/接口字段为`organizationId`。本表该列表示组织节点身份，非空且唯一，不再作为可空、可重复的所属组织归属列，也不另设scopeOrganizationId。父子关系由`parent_id`引用该主键，所属企业仍用`enterprise_id`。
+
+上节普通业务表organization_id的可空归属规则不适用于组织主数据表本身。用户/菜单等表的id与organization_id不因此自动改名或改语义；用户dept_id的目标关联应指向组织表organization_id，并同步校验组织存在、未删除及所属企业，不沿用已取消的部门组织归属比较。
+
+此项已落实到Java Entity/DTO/VO、Mapper和正式SQL的ORGANIZATION_20261124段，已使用临时SQLite验证，并于2026-11-24由手动工具初始化本机data/hrs_system.db。若旧数据存在，应将旧id身份保留为新organization_id，不将旧的可重复组织归属值直接当成主键。实施遵循既有手动执行与历史冻结规则，详见[组织管理方案](../product/系统设置/system_org_management.md#sec-3)。
+
 ### 5.2 主键与审计字段
 
 | 字段 | 规则 |
 | --- | --- |
-| `id` | 单表主键，Java Long；SQLite 使用 INTEGER PRIMARY KEY AUTOINCREMENT；MySQL 使用 BIGINT AUTO_INCREMENT；不能把自增ID当全系统全服务唯一ID |
+| `id`（默认）或明确批准的业务主键名 | 普通表默认id；组织主数据表按5.1.1使用organization_id且不再有id。Java Long，SQLite INTEGER PRIMARY KEY AUTOINCREMENT，MySQL BIGINT AUTO_INCREMENT；仅本表内唯一 |
 | `create_by` | 创建人，建议 VARCHAR(64)，服务端可信身份或明确的系统任务身份生成 |
 | `update_by` | 更新人，建议 VARCHAR(64)，随更新与软删除维护 |
 | `create_time` | 创建时间，服务端生成，统一UTC |
@@ -140,9 +148,9 @@ hrs_<服务简称>_<业务名>
 
 ## 6. 数据范围、唯一性和索引
 
-- 当前用户管理仅向配置的管理身份开放，`enterpriseId` 和 `organizationId` 可以由该管理员维护，只是元数据。没有校验企业组织存在性与归属，也没有实现普通用户跨企业隔离；接口文档必须如实说明。
+- 当前用户管理仅向配置的管理身份开放，`enterpriseId` 和 `organizationId` 可以由该管理员维护，只是元数据。用户dept_id非空时已校验组织存在且未删除、所属企业一致；尚无企业主数据校验，也没有实现普通用户跨企业隔离；接口文档必须如实说明。
 - 后续实现多租户时，企业身份来自认证后的可信上下文。请求中的ID只能作为待授权目标，不可直接决定操作者的权限范围。读取、计数、修改、删除及关联查询都需覆盖数据范围，而不只是给列表加筛选项。
-- `enterprise_id` 与 `organization_id` 不是同一个概念；允许同一企业拥有多个组织。新增组织关联表后验证组织属于目标企业，不擅自认为任意两组正整数都存在关联。
+- `enterprise_id` 与 `organization_id` 不是同一个概念；组织主数据表organization_id为主键，其他普通业务表按所属组织语义使用。允许同一企业拥有多个组织。新增组织关联表后验证组织属于目标企业，不擅自认为任意两组正整数都存在关联。
 - 唯一性按业务定义，不能机械在所有表套统一组合。当前用户 `username` 全表唯一，包含已删除账号；本规范不把它悄悄改成企业内唯一。
 - 如果未来支持企业内唯一，必须明确NULL企业的处理规则。SQLite 与 MySQL 的普通唯一约束都不能简单用可空列自动保证“未分配企业也唯一”。
 - 不简单使用 `(业务键, delete_flag)` 来实现“删除后可无限复用”：同一业务键已有一条删除记录时，再删除另一条可能冲突。允许复用需要单独设计并验证跨数据库方案。
@@ -191,7 +199,7 @@ CREATE TABLE IF NOT EXISTS hrs_system_example (
 - 【执行约定】建库与升级由人手动运行独立工具，Java 启动不执行正式 SQL，不维护版本列表。工具读取唯一文件，负责检查、备份、事务、完成验证和执行历史；不是每次启动都必须升级，也不要求人手工截取版本。
 - 【执行约定】统一入口允许反复运行，已完成变更校验摘要后跳过，待完成变更按依赖执行，冲突或未知结构报错。`CREATE TABLE IF NOT EXISTS` 不会修正已有表，SQLite 条件改表由工具衔接；不忽略错误来实现所谓幂等。
 - 【执行约定】先核对实际数据再建立正确基线。已执行并记录的段冻结，后续向同一文件追加变更。旧结构若有需保留数据，先备份和专门转换，不为旧入口长期保留 Java 执行器或双份 SQL。
-- 【当前实现】system SQL 为 `BASELINE_20261123`，包含用户、部门及目标菜单结构。`spring.sql.init.mode=never`，旧 Java 分段读取已移除；Maven 仅将正式 SQL 复制到测试 classpath，业务 JAR 不含建表 SQL。测试在临时 SQLite 显式初始化；独立工具和技术历史表已实现，只在临时库验收；真实库仍未部署。
+- 【当前实现】system SQL 包含 `BASELINE_20261123` 与 `ORGANIZATION_20261124`，覆盖用户、组织及目标菜单结构。`spring.sql.init.mode=never`，旧 Java 分段读取已移除；Maven 仅将正式 SQL 复制到测试 classpath，业务 JAR 不含建表 SQL。测试在临时 SQLite 显式初始化；独立工具和技术历史表已实现，临时库测试通过；本机data/hrs_system.db已由手动工具执行2段并导入组织验证数据，生产部署仍未执行。
 - **Java 启动不再因旧分段缺失失败，也不负责准备业务表。** 新基线可在空库或同结构下重复执行，不能升级未知旧结构；不要截取旧 V2/V3；使用独立工具先plan，再按目标状态apply/create或adopt-baseline，不能以Java启动代替升级。
 - auth/analysis 的 SQL 当前仅注释占位，不创建数据库。Java测试直接复用正式基线，旧历史结构和菜单替换夹具已删除。Python 的既有初始化链路不随本次 system 方案一并改造。
 - 每个变更说明前置状态、影响字段、数据保留、验证、恢复及停写要求。事务边界由工具控制，不能在新正式段内嵌独立 BEGIN/COMMIT。工具落地、Java 自动执行移除和运行教程更新须一起验收。
@@ -219,9 +227,10 @@ CREATE TABLE IF NOT EXISTS hrs_system_example (
 | 项目 | 当前状态与处理 |
 | --- | --- |
 | system 用户表 | 新基线含delete_flag、enterprise_id、organization_id；后两列可空，dept_id及归属非空时用typeof与正数CHECK限制；审计字段非空，账号全表唯一，逻辑删除后仍不复用 |
-| system 运行库 | 本地路径约定为仓库根data/hrs_system.db，通过HRS_SYSTEM_DB_URL指定；规范不创建或修改真实数据库 |
-| system 部门/菜单 | 新基线已包含三字段、审计列及目标菜单menu_业务列和module/group/page，内存SQLite验证通过；未删除菜单标识及page路由以部分索引唯一。真实业务库未创建，菜单导入待安排；执行工具已实现，Java启动初始化已关闭，测试直接使用正式基线，不再用另一份菜单DDL替换。用户dept_id由Java校验真实部门及归属 |
-| system 企业与租户身份 | 仍无企业主数据和完整租户身份体系；enterprise_id、organization_id是归属元数据，不声称完成多租户权限 |
+| system 运行库 | 仓库根data/hrs_system.db已由手动工具初始化，通过HRS_SYSTEM_DB_URL指定；SQL不随Java启动执行 |
+| system 组织主键目标 | 组织表organization_id为唯一主键，已移除id及原组织归属语义；SQL、Java、用户dept_id引用和同企业校验已同步，本机独立库已执行 |
+| system 部门/菜单 | 新基线已包含三字段、审计列及目标菜单menu_业务列和module/group/page，内存SQLite验证通过；未删除菜单标识及page路由以部分索引唯一。本机system库已初始化并导入37条组织验证数据，用户和菜单仍为空，菜单导入待安排；执行工具已实现，Java启动初始化已关闭，测试直接使用正式基线，不再用另一份菜单DDL替换。用户dept_id由Java校验真实部门及归属 |
+| system 企业与租户身份 | 仍无企业主数据和完整租户身份体系；普通业务表enterprise_id、organization_id为归属元数据，组织主数据表的目标organization_id按5.1.1为主键；不声称完成多租户权限 |
 | auth、Java analysis | 尚为骨架，不提前建库建表 |
 | Python 存量表 | stock_analysis.db中现有表未统一改名或补齐三字段；后续必须先盘点真实数据与调用方，再按业务移交和迁移计划收敛，不能把这份文档当成改造完成证明 |
 

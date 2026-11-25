@@ -49,7 +49,8 @@ RestResult是不可变record，success每次创建独立对象，不使用共享
 | --- | --- | --- |
 | 用户/部门/菜单新增 | 新对象VO | 201，保留Location |
 | 详情、修改 | 对应VO | 200 |
-| 用户分页 | {rows,total,page,pageSize} | 200 |
+| 用户分页 | {rows,total,page,pageSize}（PageVO，保留现有契约） | 200 |
+| 组织分页 | {list,total,pages,pageNum,pageSize}（ListPageVO，total计根组织） | 200 |
 | 部门树、菜单树 | 树形数组；无数据为[] | 200 |
 | 删除 | true | 200，替代旧204 |
 | CSRF | {token,headerName,parameterName} | 200 |
@@ -162,3 +163,5 @@ Python API、Web和桌面入口没有切换或修改；它们现有Python响应�
 本次不改表、不迁移真实用户库；测试使用临时库。回滚需同批撤回common依赖、Controller/错误处理、测试和调用示例；不需要数据库逆迁移，不能只退回某个Controller造成新旧协议混杂。
 
 本专题暂无英文对应版本，本次不增加平行翻译。关联：[Java工程规范](java_engineering_architecture.md)、[用户案例](java_user_management_case.md)、[部门菜单案例](java_organization_menu_management_case.md)。
+
+2026-11-24：common新增PageQueryDTO、FilterConditionDTO、FilterOperatorEnum和ListPageVO供组织分页复用。查询请求直接接收pageNum/pageSize/filterList，不套RestResult；仅响应统一包装。system负责组织字段白名单和值校验，其他服务按自身业务校验，不共享组织表或租户权限判断。

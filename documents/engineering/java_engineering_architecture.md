@@ -4,7 +4,9 @@
 >
 > 👤 **方案作者**：Lensgcx (GaoCangxiong) - ArcSeek-X
 >
-> 🕒 **更新时间**：2026-11-18
+> 🕒 **更新时间**：2026-11-24
+
+组织管理已同步20列结构、organization_id主键和POST分页/编辑/删除接口；common新增PageQueryDTO、FilterConditionDTO、FilterOperatorEnum和ListPageVO，字段规则由system Service校验。详见[组织管理实现方案](../product/系统设置/system_org_management.md)。
 
 ## 目录
 
@@ -21,7 +23,7 @@
 
 ### 1.1 当前状态与目标
 
-菜单 Java 契约已于 2026-11-23 对齐前端：`POST /api/system/list-menu` 返回统一 `module/group/page` 树（Java过滤禁用节点及其子树，管理查询仍保留禁用记录；隐藏只影响前端展示），DTO/Entity/VO 和 Mapper 业务字段统一。**不创建 `data/hrs_system.db`、不导入菜单数据。正式 SQL 已整理为 `BASELINE_20261123`，Java 已关闭启动初始化并移除分段读取，集成测试在临时 SQLite 显式执行同一正式基线。** 独立手动工具已实现并在临时库验证，正式数据库尚未部署。Basic/CSRF 身份接入与前端代理联调仍待后续完成。
+菜单 Java 契约已于 2026-11-23 对齐前端：`POST /api/system/list-menu` 返回统一 `module/group/page` 树（Java过滤禁用节点及其子树，管理查询仍保留禁用记录；隐藏只影响前端展示），DTO/Entity/VO 和 Mapper 业务字段统一。**本机 `data/hrs_system.db` 已由手动工具初始化并导入组织验证数据，用户/菜单暂不导入。正式 SQL 已整理为冻结的 `BASELINE_20261123` 与组织迁移 `ORGANIZATION_20261124`，Java 已关闭启动初始化并移除分段读取，集成测试在临时 SQLite 显式执行同一正式SQL。** 独立手动工具已实现并在临时库验证，本机system库已初始化，生产部署仍待安排。组织页面已通过Vite本机开发代理代传现有Basic/CSRF接通Java；私有凭据只在开发服务端读取，正式登录、Token及网关认证继续暂缓，详见[组织管理方案第九节](../product/系统设置/system_org_management.md#sec-9)。
 
 【强制】本文描述已确认的目标：**三个 Java 服务 + 一个 Python 服务**。仓库现已建立根聚合 POM、三个服务及各自的 pojo/rest 工程骨架，其中 system 已实现独立的 SQLite 用户、部门与菜单管理学习案例（CRUD、树结构与管理接口保护），auth 与 analysis 仍为骨架。整体方案与实施计划已同步此结构，现有 Python/Web/桌面入口未切换。system 另支持可选 [Nacos 注册与发现](java_nacos_discovery.md)，仍使用独立SQLite，不接入配置中心。
 
