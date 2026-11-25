@@ -28,6 +28,13 @@ import { buildCacheKey, getCacheTTL } from '../constants/cacheConfig';
 import { showToast } from '../components/basic/Toast/Toast';
 import apiCache from '@utils/apiCache';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipCache?: boolean;
+    handleErrorLocally?: boolean;
+  }
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -44,7 +51,7 @@ const apiClient = axios.create({
  * 通过设置 config.adapter 短路请求
  */
 apiClient.interceptors.request.use((config) => {
-  if (config.method === 'get') {
+  if (config.method === 'get' && !config.skipCache) {
     const cacheKey = buildCacheKey(config.method, config.url || '', config.params);
     const cached = apiCache.get(cacheKey);
 
@@ -71,7 +78,7 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => {
     // 写入缓存（仅 GET 请求）
-    if (response.config.method === 'get') {
+    if (response.config.method === 'get' && !response.config.skipCache) {
       const url = response.config.url || '';
       const ttl = getCacheTTL(url);
 
@@ -87,6 +94,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.config?.handleErrorLocally) return Promise.reject(error);
 
     // 处理 401 未授权
     if (error.response?.status === 401) {
