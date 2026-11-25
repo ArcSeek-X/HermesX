@@ -5,6 +5,67 @@
  */
 
 const zhHant = {
+  // 【页面】组织管理-表格、表单及请求反馈
+  "orgManagement.field.name": "組織名稱",
+  "orgManagement.field.shortName": "組織簡稱",
+  "orgManagement.field.code": "組織編碼",
+  "orgManagement.field.nature": "組織性質",
+  "orgManagement.field.type": "組織類型",
+  "orgManagement.field.leader": "負責人",
+  "orgManagement.field.phone": "聯絡電話",
+  "orgManagement.field.email": "電子郵件",
+  "orgManagement.field.sort": "顯示排序",
+  "orgManagement.field.status": "啟用狀態",
+  "orgManagement.field.remark": "備註",
+  "orgManagement.field.parent": "上級組織",
+  "orgManagement.field.enterprise": "所屬企業ID",
+  "orgManagement.search.name": "輸入組織名稱",
+  "orgManagement.dictionaryPending": "字典選項待設定",
+  "orgManagement.allStatuses": "全部狀態",
+  "orgManagement.enabled": "啟用",
+  "orgManagement.disabled": "停用",
+  "orgManagement.add": "新增組織",
+  "orgManagement.addChild": "新增下級",
+  "orgManagement.edit": "編輯組織",
+  "orgManagement.delete": "刪除組織",
+  "orgManagement.save": "儲存組織",
+  "orgManagement.reset": "重設",
+  "orgManagement.query": "查詢",
+  "orgManagement.retry": "重試",
+  "orgManagement.actions": "操作",
+  "orgManagement.structure": "組織架構",
+  "orgManagement.root": "無上級（根組織）",
+  "orgManagement.counts": "符合條件根組織 {roots} 個 · 本頁組織 {nodes} 個",
+  "orgManagement.empty": "暫無符合條件的組織，可重設篩選或新增組織。",
+  "orgManagement.fetching": "正在查詢組織…",
+  "orgManagement.unavailable": "組織資料尚未載入成功。",
+  "orgManagement.enterpriseSection": "進階歸屬設定",
+  "orgManagement.enterpriseHint": "根組織可暫不分配企業；下級繼承企業，編輯時不可更改。",
+  "orgManagement.audit.created": "建立",
+  "orgManagement.audit.updated": "更新",
+  "orgManagement.discardTitle": "放棄未儲存的修改？",
+  "orgManagement.discardDescription": "關閉後，本次輸入的內容不會儲存。",
+  "orgManagement.discard": "放棄修改",
+  "orgManagement.deleteDescription": "確認刪除「{name}」？",
+  "orgManagement.deleteGuard": "存在下級組織或關聯使用者時，伺服器會拒絕刪除。",
+  "orgManagement.error.children": "該組織仍有下級，請先調整下級組織。",
+  "orgManagement.error.members": "該組織仍關聯使用者，請先調整使用者部門。",
+  "orgManagement.error.parent": "上級組織已失效或形成循環，請重新開啟編輯並選擇。",
+  "orgManagement.error.enterprise": "父子組織及關聯使用者必須屬於同一企業，已有組織不能修改企業。",
+  "orgManagement.error.missing": "組織已被刪除或不存在，請重新查詢後重試。",
+  "orgManagement.error.validation": "請檢查組織名稱、電子郵件、排序、企業ID或篩選條件。",
+  "orgManagement.error.depth": "組織層級或祖先路徑超過限制，請選擇其他上級。",
+  "orgManagement.error.authentication": "system 服務認證尚未接通，請完成統一認證聯調。",
+  "orgManagement.error.forbidden": "目前身分無權管理組織。",
+  "orgManagement.error.csrf": "system 請求驗證尚未接通，請完成認證聯調後重試。",
+  "orgManagement.error.contract": "組織介面回傳格式不符合約定，請檢查伺服器。",
+  "orgManagement.error.connection": "無法讀取 system 組織介面，請檢查服務及路由轉送。寫入逾時時請先重新查詢核對結果，勿重複提交。",
+  "orgManagement.feedback.created": "組織已新增。",
+  "orgManagement.feedback.updated": "組織已更新。",
+  "orgManagement.feedback.deleted": "組織已刪除。",
+  "orgManagement.feedback.savedRefreshFailed": "組織已儲存，但清單重新整理失敗，請只重試查詢。",
+  "orgManagement.feedback.deletedRefreshFailed": "組織已刪除，但清單重新整理失敗，請只重試查詢。",
+
 
   // ---- 第 1 类 全局 common ----
   'common.cancel': '取消', // 通用取消按鈕文案
@@ -1338,7 +1399,7 @@ const zhHant = {
   'watchlist.todayCoverage': '今日覆盖', // 【页面】自选-今日分析覆盖率
   'watchlist.todayEmptyDescription': '今天完成分析後，這裡會按评分顯示股票排行。', // 【页面】自选-今日空狀態描述
   'watchlist.todayEmptyTitle': '今天还沒有分析結果', // 【页面】自选-今日空狀態標題
-  'watchlist.todayLoadErrorDescription': '完整歷史分頁載入失敗，為避免展示不完整排行，請重新整理後重試。', // 【页面】自选-今日排行載入失敗描述
+  'watchlist.todayLoadErrorDescription': '完整歷史分頁載入失敗，為避免展示不完整排行，請重新查詢後重試。', // 【页面】自选-今日排行載入失敗描述
   'watchlist.todayLoadErrorTitle': '今日排行載入失敗', // 【页面】自选-今日排行載入失敗標題
   'watchlist.todaySortHint': '按情绪分優先排序', // 【页面】自选-今日排序提示
   'watchlist.todayStatusLoading': '確認今日狀態中', // 【页面】自选-今日狀態確認中

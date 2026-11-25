@@ -874,7 +874,7 @@ export const MENU_MANIFEST: NavMenuNode[] = [
         menuType: 'page',
         auth: 'protected',
         menuVisible: true,
-        menuPagePath: 'pages/System/orgManagementPage',
+        menuPagePath: 'pages/System/orgManagementPage/orgManagementPage',
       },
       {
         menuSort: 2,
