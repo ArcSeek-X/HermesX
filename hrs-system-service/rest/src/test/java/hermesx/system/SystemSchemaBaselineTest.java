@@ -1,43 +1,48 @@
 package hermesx.system;
 
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import static org.assertj.core.api.Assertions.*;
 
-/** 使用同一份正式 SQL 和真实 SQLite，验证新库基线；不再模拟已移除的旧版本升级。 */
+/** 验证正式SQL的基线与组织结构升级，使用临时SQLite。重复部署由手动工具的历史记录控制。 */
 class SystemSchemaBaselineTest {
     @TempDir Path directory;
 
-    @Test void repeatedBaselinePreservesSchemaDataAndAllocatedIds() {
+    @Test void organizationMigrationPreservesPrimaryKeysParentPathsAndUserLinks() throws Exception {
         var source = new DriverManagerDataSource("jdbc:sqlite:" + directory.resolve("system.db"));
-        var baseline = new ResourceDatabasePopulator(new ClassPathResource("db/hrs-system-service.sql"));
+        String sql = new ClassPathResource("db/hrs-system-service.sql").getContentAsString(StandardCharsets.UTF_8);
+        int migrationStart = sql.indexOf("-- BEGIN ORGANIZATION_20261124");
+        var baseline = new ResourceDatabasePopulator(new ByteArrayResource(sql.substring(0,migrationStart).getBytes(StandardCharsets.UTF_8)));
         baseline.execute(source);
         var jdbc = new JdbcTemplate(source);
-        jdbc.update("INSERT INTO hrs_system_user(username,password,nickname,delete_flag,create_by,update_by) "
-                + "VALUES ('learner','test-hash','学习用户',1,'fixture','fixture')");
-        jdbc.update("INSERT INTO hrs_system_organization(dept_name,create_by,update_by) "
-                + "VALUES ('研发部','fixture','fixture')");
-        jdbc.update("INSERT INTO hrs_system_menu(menu_code,menu_name,menu_type,create_by,update_by) "
-                + "VALUES ('product','产品','module','fixture','fixture')");
-        var schema = jdbc.queryForList("SELECT type,name,sql FROM sqlite_master ORDER BY type,name");
+        jdbc.update("INSERT INTO hrs_system_organization(id,dept_name,enterprise_id,organization_id,create_by,update_by) "
+                + "VALUES (7,'总部',100,2001,'fixture','fixture')");
+        jdbc.update("INSERT INTO hrs_system_organization(id,parent_id,ancestors,dept_name,email,phone,leader,enterprise_id,organization_id,delete_flag,create_by,update_by) "
+                + "VALUES (8,7,'7','研发部','rnd@example.com','010123','负责人',100,2001,1,'fixture','fixture')");
+        jdbc.update("INSERT INTO hrs_system_user(username,password,nickname,dept_id,enterprise_id,organization_id,create_by,update_by) "
+                + "VALUES ('learner','test-hash','学习用户',8,100,2001,'fixture','fixture')");
         var users = jdbc.queryForList("SELECT * FROM hrs_system_user ORDER BY id");
-        var organizations = jdbc.queryForList("SELECT * FROM hrs_system_organization ORDER BY id");
-        var menus = jdbc.queryForList("SELECT * FROM hrs_system_menu ORDER BY id");
-
         baseline.execute(source);
-
-        assertThat(jdbc.queryForList("SELECT type,name,sql FROM sqlite_master ORDER BY type,name")).isEqualTo(schema);
+        new ResourceDatabasePopulator(new ByteArrayResource(sql.substring(migrationStart).getBytes(StandardCharsets.UTF_8))).execute(source);
         assertThat(jdbc.queryForList("SELECT * FROM hrs_system_user ORDER BY id")).isEqualTo(users);
-        assertThat(jdbc.queryForList("SELECT * FROM hrs_system_organization ORDER BY id")).isEqualTo(organizations);
-        assertThat(jdbc.queryForList("SELECT * FROM hrs_system_menu ORDER BY id")).isEqualTo(menus);
+        var department = jdbc.queryForMap("SELECT * FROM hrs_system_organization WHERE organization_id=8");
+        assertThat(department).containsEntry("organization_name","研发部").containsEntry("ancestors","7")
+                .containsEntry("organization_email","rnd@example.com").containsEntry("organization_phone","010123")
+                .containsEntry("organization_leader","负责人").containsEntry("delete_flag",1)
+                .containsEntry("organization_short_name",null).doesNotContainKey("id");
+        assertThat(((Number)department.get("parent_id")).longValue()).isEqualTo(7);
         assertThat(jdbc.queryForObject("PRAGMA integrity_check", String.class)).isEqualTo("ok");
-        // 已删除账号仍占用名称；再次执行基线不能让账号唯一性失效。
+        jdbc.update("INSERT INTO hrs_system_organization(organization_name,create_by,update_by) VALUES ('新组织','fixture','fixture')");
+        assertThat(jdbc.queryForObject("SELECT organization_id FROM hrs_system_organization WHERE organization_name='新组织'",Long.class)).isGreaterThan(8);
+        // 组织迁移不改变用户唯一性与主键。
         assertThatThrownBy(() -> jdbc.update("INSERT INTO hrs_system_user(username,password,nickname,create_by,update_by) "
                 + "VALUES ('learner','other-hash','重复账号','fixture','fixture')"))
                 .isInstanceOf(DataAccessException.class);

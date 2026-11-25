@@ -133,3 +133,37 @@ CREATE INDEX IF NOT EXISTS idx_hrs_system_menu_scope
 -- 后续真实结构或数据变更追加到此处；基线实际执行并登记后，不再改写已执行内容。
 -- 手动工具：scripts/db/manual_db_upgrade.py；执行历史由工具维护，Java 不调用它。
 -- 本文件已验证不代表真实库已部署；首次执行须先 plan，再明确指定 apply/create。
+
+-- BEGIN ORGANIZATION_20261124
+-- @upgrade {"description":"组织主键、业务字段及企业关联规则升级","kind":"migration","requires":["BASELINE_20261123"],"verify":["SELECT COUNT(*) = 0 FROM hrs_system_organization child LEFT JOIN hrs_system_organization parent ON child.parent_id=parent.organization_id WHERE child.parent_id<>0 AND (parent.organization_id IS NULL OR child.enterprise_id IS NOT parent.enterprise_id)"]}
+-- 保留旧id数值，保证父链和用户dept_id的身份不变；旧组织归属列不再沿用。
+CREATE TABLE hrs_system_organization_next (
+    organization_id INTEGER PRIMARY KEY AUTOINCREMENT CHECK(organization_id > 0),
+    parent_id BIGINT NOT NULL DEFAULT 0 CHECK(typeof(parent_id) = 'integer' AND parent_id >= 0 AND parent_id <> organization_id),
+    ancestors VARCHAR(500) NOT NULL DEFAULT '' CHECK(length(ancestors) <= 500),
+    organization_name VARCHAR(100) NOT NULL CHECK(length(organization_name) BETWEEN 1 AND 100 AND length(trim(organization_name)) > 0),
+    organization_short_name VARCHAR(64) CHECK(length(organization_short_name) <= 64),
+    organization_code VARCHAR(64) CHECK(length(organization_code) <= 64),
+    organization_email VARCHAR(128) CHECK(length(organization_email) <= 128),
+    organization_phone VARCHAR(32) CHECK(length(organization_phone) <= 32),
+    organization_leader VARCHAR(64) CHECK(length(organization_leader) <= 64),
+    organization_nature VARCHAR(32) CHECK(length(organization_nature) <= 32),
+    organization_type VARCHAR(32) CHECK(length(organization_type) <= 32),
+    remark VARCHAR(500) CHECK(length(remark) <= 500),
+    sort INT NOT NULL DEFAULT 0 CHECK(typeof(sort) = 'integer' AND sort >= 0),
+    status TINYINT NOT NULL DEFAULT 1 CHECK(status IN (0, 1)),
+    enterprise_id BIGINT CHECK(enterprise_id IS NULL OR (typeof(enterprise_id) = 'integer' AND enterprise_id > 0)),
+    delete_flag TINYINT NOT NULL DEFAULT 0 CHECK(delete_flag IN (0, 1)),
+    create_by VARCHAR(64) NOT NULL CHECK(length(create_by) BETWEEN 1 AND 64 AND length(trim(create_by)) > 0),
+    update_by VARCHAR(64) NOT NULL CHECK(length(update_by) BETWEEN 1 AND 64 AND length(trim(update_by)) > 0),
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO hrs_system_organization_next
+    (organization_id,parent_id,ancestors,organization_name,organization_email,organization_phone,organization_leader,sort,status,enterprise_id,delete_flag,create_by,update_by,create_time,update_time)
+SELECT id,parent_id,ancestors,dept_name,email,phone,leader,sort,status,enterprise_id,delete_flag,create_by,update_by,create_time,update_time FROM hrs_system_organization;
+DROP TABLE hrs_system_organization;
+ALTER TABLE hrs_system_organization_next RENAME TO hrs_system_organization;
+CREATE INDEX idx_hrs_system_organization_parent ON hrs_system_organization(parent_id,delete_flag);
+CREATE INDEX idx_hrs_system_organization_enterprise ON hrs_system_organization(enterprise_id,delete_flag,sort,organization_id);
+-- END ORGANIZATION_20261124
