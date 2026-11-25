@@ -116,6 +116,27 @@ export const useThemeStore = create<ThemeState>((set, get) => {
     writeStoredTheme({ themeMode, themeColor, sidebarTheme });
   };
 
+  // 跨标签页同步：其他标签页改主题会重写 hrs-pref-theme，同步本标签页内存态，
+  // 让 ThemeToggle 图标与设置草稿跟上 <html> 的实际主题。只 set 不 persist，
+  // 否则会再次触发其他标签页的 storage 事件，形成互相改写的回环。
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+      if (event.key !== LOCAL_STORAGE_PREFIX + THEME_STORAGE_KEY || !event.newValue) return;
+      try {
+        const parsed: unknown = JSON.parse(event.newValue);
+        if (!parsed || typeof parsed !== 'object') return;
+        const incoming = normalizeTheme(parsed as Partial<StoredTheme>);
+        const current = get();
+        if (
+          current.themeMode === incoming.themeMode &&
+          current.themeColor === incoming.themeColor &&
+          current.sidebarTheme === incoming.sidebarTheme
+        ) return;
+        set(incoming);
+      } catch { /* 非法持久化值忽略，保持当前内存态 */ }
+    });
+  }
+
   return {
     ...initial,
 
