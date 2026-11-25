@@ -24,7 +24,7 @@
  *
  * ## 繁体支持的责任边界
  * 本文件负责「语言状态的真相来源 + document.lang 同步」；
- * 繁体字典的真繁体翻译在 `uiText-zh-Hant.ts`，业务字典的真繁体在 `locales/featureText.ts`（三语齐全）。
+ * 繁体字典的真繁体翻译在 `uiText-zh-Hant/` 分片，业务字典的真繁体在 `locales/featureText.ts`（三语齐全）。
  * `toCnOrEn()` 仅用于日期/Intl 等只支持 zh/en 的格式化工序，不参与业务文案的取值。
  * 三者分工，本文件不直接持有任何业务文案。
  */
@@ -80,7 +80,7 @@ export const UiLanguageProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   // 语言切换时同步 <html lang="..."> 属性，用于辅助功能和 SEO。
-  // 繁体 'zh-Hant' 直接透传（与 uiText-zh-Hant.ts 的主字典繁体文案保持一致），
+  // 繁体 'zh-Hant' 直接透传（与 uiText-zh-Hant/ 分片的主字典繁体文案保持一致），
   // 简体映射为 'zh-CN'，英文为 'en'。
   useEffect(() => {
     if (typeof document !== 'undefined') {

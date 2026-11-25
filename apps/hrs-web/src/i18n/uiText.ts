@@ -10,9 +10,9 @@
  *
  * ## 与其他模块的关系（上下游）
  * - 上游（文案来源，本文件 import）：
- *   - `uiText-zh.ts`：简体中文文案，定义 `UiTextKey` 类型（key 的真相来源，三语必须对齐）。
- *   - `uiText-zh-Hant.ts`：繁体中文文案，key 集合与 zh 完全一致（真繁体翻译）。
- *   - `uiText-en.ts`：英文文案。
+ *   - `uiText-zh/index.ts`：简体中文文案，按类别拆分为分片后聚合；定义 `UiTextKey` 类型（key 的真相来源，三语必须对齐）。
+ *   - `uiText-zh-Hant/index.ts`：繁体中文文案，分片结构与 zh 一致，key 集合与 zh 完全相同（真繁体翻译）。
+ *   - `uiText-en/index.ts`：英文文案，分片结构与 zh 一致，key 集合与 zh 完全相同。
  * - 下游（消费者）：
  *   - `contexts/UiLanguageContext.tsx`：在 `t()` 中通过 `UI_TEXT[language][key]` 命中主字典，
  *   - 任意组件：通过 `useUiLanguage().t(key, params)` 或直接使用 `formatUiText(UI_TEXT[language][key], params)`。
@@ -21,7 +21,7 @@
  * ## 责任边界
  * - 主字典只覆盖「全站通用 UI 文案」，且三语齐全（含真繁体）。
  * - 业务域本地字典（告警/回测/组合等）在 `locales/featureText.ts`，现已补齐 `zh-Hant` 真繁体；消费方直接用完整 `UiLanguage` 键取值，不再经 `toCnOrEn()` 回退简体。`toCnOrEn()` 仅用于日期/Intl 等仅支持 zh/en 的场景。
- * - 新增文案：主字典必须同时在 zh / zh-Hant / en 三份文件中补同一 key，否则 `UI_TEXT` 类型会报错；featureText 各导出亦需同步三语。
+ * - 新增文案：主字典必须同时在 zh / zh-Hant / en 三个语种的对应分片中补同一 key，否则 `UI_TEXT` 类型会报错；featureText 各导出亦需同步三语。
  */
 
 import zh from './uiText-zh';
