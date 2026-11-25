@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface OrganizationMapper {
     Optional<OrganizationEntity> find(@Param("id") long id);
-    List<OrganizationEntity> all(@Param("enterpriseId") Long enterpriseId, @Param("organizationId") Long organizationId);
+    List<OrganizationEntity> all(@Param("enterpriseId") Long enterpriseId);
     long insert(@Param("data") OrganizationWriteDTO data, @Param("ancestors") String ancestors, @Param("operator") String operator);
     int update(@Param("id") long id, @Param("data") OrganizationWriteDTO data, @Param("ancestors") String ancestors, @Param("operator") String operator);
     long countChildren(@Param("id") long id);

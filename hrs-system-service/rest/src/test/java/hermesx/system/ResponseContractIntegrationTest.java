@@ -56,7 +56,7 @@ class ResponseContractIntegrationTest {
         for (ResultCode code:SystemResultCodeEnum.values()) assertThat(codes.add(code.getCode())).isTrue();
     }
     @Test void successPaginationTreeAndCsrfAreWrappedExactlyOnce() throws Exception {
-        for (String url:List.of("/api/system/users","/api/system/organizations/tree","/api/system/menus/tree","/api/system/users/csrf")) {
+        for (String url:List.of("/api/system/users","/api/system/organization/get-organization-tree","/api/system/menus/tree","/api/system/users/csrf")) {
             var result=mvc.perform(get(url).with(user("manager").roles("SYSTEM_ADMIN"))).andReturn();
             envelope(result,200,"200");
             assertThat(json.readTree(result.getResponse().getContentAsString()).get("resultData").has("resultCode")).isFalse();

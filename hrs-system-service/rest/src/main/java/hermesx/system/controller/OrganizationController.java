@@ -1,35 +1,51 @@
 package hermesx.system.controller;
 
-import hermesx.system.dto.OrganizationWriteDTO;
+import hermesx.common.dto.PageQueryDTO;
+import hermesx.common.rest.RestResult;
+import hermesx.common.vo.ListPageVO;
+import hermesx.system.dto.*;
 import hermesx.system.vo.OrganizationVO;
 import hermesx.system.service.IOrganizationService;
-import hermesx.common.rest.RestResult;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import org.springframework.http.*;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.net.URI;
 import java.util.List;
 
-/** HTTP边界只负责路由、格式校验和响应，不直接访问Mapper。 */
+/** HTTP边界：业务校验、分页和关联保护交给Service。 */
 @RestController
-@RequestMapping("/api/system/organizations")
+@RequestMapping("/api/system/organization")
 public class OrganizationController {
-    private final IOrganizationService service;
-    public OrganizationController(IOrganizationService service) { this.service=service; }
-    @PostMapping public ResponseEntity<RestResult<OrganizationVO>> create(@Valid @RequestBody OrganizationWriteDTO data) {
-        OrganizationVO result=service.create(data);
-        return ResponseEntity.created(java.net.URI.create("/api/system/organizations/"+result.id())).body(RestResult.success(result));
+    private final IOrganizationService organizationService;
+    public OrganizationController(IOrganizationService organizationService) { this.organizationService=organizationService; }
+
+    @PostMapping("/list-organization")
+    public RestResult<ListPageVO<OrganizationVO>> queryOrganizations(@RequestBody PageQueryDTO organizationQuery) {
+        return RestResult.success(organizationService.queryOrganizations(organizationQuery));
     }
-    @GetMapping("/{id}") public RestResult<OrganizationVO> get(@PathVariable("id") @Positive long id) { return RestResult.success(service.get(id)); }
-    @GetMapping("/tree") public RestResult<List<OrganizationVO>> tree(
-            @RequestParam(value="keyword",required=false) @Size(max=128) String keyword,
-            @RequestParam(value="status",required=false) @Min(0) @Max(1) Integer status,
-            @RequestParam(value="enterpriseId",required=false) @Positive Long enterpriseId,
-            @RequestParam(value="organizationId",required=false) @Positive Long organizationId) {
-        return RestResult.success(service.tree(keyword,status,enterpriseId,organizationId));
+    @GetMapping("/get-organization-tree")
+    public RestResult<List<OrganizationVO>> getOrganizationCandidates(
+            @RequestParam(value="enterpriseId",required=false) @Positive Long enterpriseId) {
+        return RestResult.success(organizationService.tree(enterpriseId));
     }
-    @PutMapping("/{id}") public RestResult<OrganizationVO> update(@PathVariable("id") @Positive long id,
-            @Valid @RequestBody OrganizationWriteDTO data) { return RestResult.success(service.update(id,data)); }
-    @DeleteMapping("/{id}")
-    public RestResult<Boolean> delete(@PathVariable("id") @Positive long id) { service.delete(id); return RestResult.success(true); }
+    @GetMapping("/detail-organization/{organizationId}")
+    public RestResult<OrganizationVO> getOrganization(@PathVariable("organizationId") @Positive long organizationId) {
+        return RestResult.success(organizationService.get(organizationId));
+    }
+    @PostMapping("/add-organization")
+    public ResponseEntity<RestResult<OrganizationVO>> createOrganization(@Valid @RequestBody OrganizationWriteDTO organizationFields) {
+        OrganizationVO organization=organizationService.create(organizationFields);
+        return ResponseEntity.created(URI.create("/api/system/organization/detail-organization/"+organization.organizationId()))
+                .body(RestResult.success(organization));
+    }
+    @PostMapping("/edit-organization")
+    public RestResult<OrganizationVO> editOrganization(@Valid @RequestBody OrganizationEditDTO organizationEdit) {
+        return RestResult.success(organizationService.update(organizationEdit.organizationId(),organizationEdit.organizationFields()));
+    }
+    @PostMapping("/delete-organization")
+    public RestResult<Boolean> deleteOrganization(@Valid @RequestBody OrganizationDeleteDTO organizationDelete) {
+        organizationService.delete(organizationDelete.organizationId());
+        return RestResult.success(true);
+    }
 }

@@ -35,7 +35,7 @@ public class UserServiceImpl implements IUserService {
         if (data.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw ManagementException.invalid(ResultCodeEnum.INVALID_REQUEST,"密码不能超过72个UTF-8字节。");
         }
-        organizations.validateUserDepartment(data.deptId(),data.enterpriseId(),data.organizationId());
+        organizations.validateUserDepartment(data.deptId(),data.enterpriseId());
         long id = mapper.insert(data.username().trim(), passwords.encode(data.password()), data.nickname().trim(),
                 data.phone(), data.email(), data.deptId(), data.enterpriseId(), data.organizationId(), data.status() == null ? 1 : data.status(), operator);
         return view(find(id));
@@ -53,7 +53,7 @@ public class UserServiceImpl implements IUserService {
     public UserVO update(long id, UpdateUserDTO data) {
         String operator = currentUser.requireAdmin();
         find(id);
-        organizations.validateUserDepartment(data.deptId(),data.enterpriseId(),data.organizationId());
+        organizations.validateUserDepartment(data.deptId(),data.enterpriseId());
         UpdateUserDTO normalized = new UpdateUserDTO(data.nickname().trim(), data.phone(), data.email(), data.deptId(), data.enterpriseId(), data.organizationId(), data.status());
         if (mapper.update(id, normalized, operator) == 0) throw new UserNotFoundException();
         return view(find(id));
